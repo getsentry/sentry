@@ -317,37 +317,87 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-                              <SelectFieldWrapper>
-                                <div
-                                  className="css-mv2muq-SelectFieldWrapper e1qrhqd00"
-                                >
-                                  <SelectControl
-                                    choices={
+                              <StyledSelectControl
+                                choices={
+                                  Array [
+                                    Array [
+                                      "all",
+                                      "all",
+                                    ],
+                                    Array [
+                                      "any",
+                                      "any",
+                                    ],
+                                    Array [
+                                      "none",
+                                      "none",
+                                    ],
+                                  ]
+                                }
+                                clearable={false}
+                                disabled={false}
+                                id="id-actionMatch"
+                                multiple={false}
+                                onChange={[Function]}
+                                required={true}
+                                value=""
+                              >
+                                <SelectControl
+                                  choices={
+                                    Array [
                                       Array [
-                                        Array [
-                                          "all",
-                                          "all",
-                                        ],
-                                        Array [
-                                          "any",
-                                          "any",
-                                        ],
-                                        Array [
-                                          "none",
-                                          "none",
-                                        ],
-                                      ]
-                                    }
+                                        "all",
+                                        "all",
+                                      ],
+                                      Array [
+                                        "any",
+                                        "any",
+                                      ],
+                                      Array [
+                                        "none",
+                                        "none",
+                                      ],
+                                    ]
+                                  }
+                                  className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                                  clearable={false}
+                                  disabled={false}
+                                  id="id-actionMatch"
+                                  multiple={false}
+                                  onChange={[Function]}
+                                  required={true}
+                                  value=""
+                                >
+                                  <StyledSelect
+                                    arrowRenderer={[Function]}
+                                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                     clearable={false}
                                     disabled={false}
                                     id="id-actionMatch"
                                     multiple={false}
                                     onChange={[Function]}
+                                    options={
+                                      Array [
+                                        Object {
+                                          "label": "all",
+                                          "value": "all",
+                                        },
+                                        Object {
+                                          "label": "any",
+                                          "value": "any",
+                                        },
+                                        Object {
+                                          "label": "none",
+                                          "value": "none",
+                                        },
+                                      ]
+                                    }
                                     required={true}
                                     value=""
                                   >
-                                    <StyledSelect
+                                    <SelectPicker
                                       arrowRenderer={[Function]}
+                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       disabled={false}
                                       id="id-actionMatch"
@@ -372,14 +422,42 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       required={true}
                                       value=""
                                     >
-                                      <SelectPicker
+                                      <Select
                                         arrowRenderer={[Function]}
-                                        className="css-16280ey-StyledSelect eho28m20"
+                                        autosize={true}
+                                        backspaceRemoves={true}
+                                        backspaceToRemoveMessage="Press backspace to remove {label}"
+                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        clearAllText="Clear all"
+                                        clearRenderer={[Function]}
+                                        clearValueText="Clear value"
                                         clearable={false}
+                                        closeOnSelect={true}
+                                        deleteRemoves={true}
+                                        delimiter=","
                                         disabled={false}
+                                        escapeClearsValue={true}
+                                        filterOptions={[Function]}
                                         id="id-actionMatch"
+                                        ignoreAccents={true}
+                                        ignoreCase={true}
+                                        inputProps={Object {}}
+                                        isLoading={false}
+                                        joinValues={false}
+                                        labelKey="label"
+                                        matchPos="any"
+                                        matchProp="any"
+                                        menuBuffer={0}
+                                        menuRenderer={[Function]}
+                                        multi={false}
                                         multiple={false}
+                                        noResultsText="No results found"
+                                        onBlurResetsInput={true}
                                         onChange={[Function]}
+                                        onCloseResetsInput={true}
+                                        onSelectResetsInput={true}
+                                        openOnClick={true}
+                                        optionComponent={[Function]}
                                         options={
                                           Array [
                                             Object {
@@ -396,170 +474,114 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             },
                                           ]
                                         }
+                                        pageSize={5}
+                                        placeholder="Select..."
+                                        removeSelected={true}
                                         required={true}
+                                        rtl={false}
+                                        scrollMenuIntoView={true}
+                                        searchable={true}
+                                        simpleValue={false}
+                                        tabSelectsValue={true}
+                                        trimFilter={true}
                                         value=""
+                                        valueComponent={[Function]}
+                                        valueKey="value"
                                       >
-                                        <Select
-                                          arrowRenderer={[Function]}
-                                          autosize={true}
-                                          backspaceRemoves={true}
-                                          backspaceToRemoveMessage="Press backspace to remove {label}"
-                                          className="css-16280ey-StyledSelect eho28m20"
-                                          clearAllText="Clear all"
-                                          clearRenderer={[Function]}
-                                          clearValueText="Clear value"
-                                          clearable={false}
-                                          closeOnSelect={true}
-                                          deleteRemoves={true}
-                                          delimiter=","
-                                          disabled={false}
-                                          escapeClearsValue={true}
-                                          filterOptions={[Function]}
-                                          id="id-actionMatch"
-                                          ignoreAccents={true}
-                                          ignoreCase={true}
-                                          inputProps={Object {}}
-                                          isLoading={false}
-                                          joinValues={false}
-                                          labelKey="label"
-                                          matchPos="any"
-                                          matchProp="any"
-                                          menuBuffer={0}
-                                          menuRenderer={[Function]}
-                                          multi={false}
-                                          multiple={false}
-                                          noResultsText="No results found"
-                                          onBlurResetsInput={true}
-                                          onChange={[Function]}
-                                          onCloseResetsInput={true}
-                                          onSelectResetsInput={true}
-                                          openOnClick={true}
-                                          optionComponent={[Function]}
-                                          options={
-                                            Array [
-                                              Object {
-                                                "label": "all",
-                                                "value": "all",
-                                              },
-                                              Object {
-                                                "label": "any",
-                                                "value": "any",
-                                              },
-                                              Object {
-                                                "label": "none",
-                                                "value": "none",
-                                              },
-                                            ]
-                                          }
-                                          pageSize={5}
-                                          placeholder="Select..."
-                                          removeSelected={true}
-                                          required={true}
-                                          rtl={false}
-                                          scrollMenuIntoView={true}
-                                          searchable={true}
-                                          simpleValue={false}
-                                          tabSelectsValue={true}
-                                          trimFilter={true}
-                                          value=""
-                                          valueComponent={[Function]}
-                                          valueKey="value"
+                                        <div
+                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
                                         >
                                           <div
-                                            className="Select css-16280ey-StyledSelect eho28m20 is-searchable Select--single"
+                                            className="Select-control"
+                                            onKeyDown={[Function]}
+                                            onMouseDown={[Function]}
+                                            onTouchEnd={[Function]}
+                                            onTouchMove={[Function]}
+                                            onTouchStart={[Function]}
                                           >
-                                            <div
-                                              className="Select-control"
-                                              onKeyDown={[Function]}
-                                              onMouseDown={[Function]}
-                                              onTouchEnd={[Function]}
-                                              onTouchMove={[Function]}
-                                              onTouchStart={[Function]}
+                                            <span
+                                              className="Select-multi-value-wrapper"
+                                              id="react-select-22--value"
                                             >
-                                              <span
-                                                className="Select-multi-value-wrapper"
-                                                id="react-select-22--value"
+                                              <div
+                                                className="Select-placeholder"
+                                              >
+                                                Select...
+                                              </div>
+                                              <AutosizeInput
+                                                aria-activedescendant="react-select-22--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                className="Select-input"
+                                                id="id-actionMatch"
+                                                injectStyles={true}
+                                                minWidth="5"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={true}
+                                                role="combobox"
+                                                value=""
                                               >
                                                 <div
-                                                  className="Select-placeholder"
-                                                >
-                                                  Select...
-                                                </div>
-                                                <AutosizeInput
-                                                  aria-activedescendant="react-select-22--value"
-                                                  aria-expanded="false"
-                                                  aria-haspopup="false"
-                                                  aria-owns=""
                                                   className="Select-input"
-                                                  id="id-actionMatch"
-                                                  injectStyles={true}
-                                                  minWidth="5"
-                                                  onBlur={[Function]}
-                                                  onChange={[Function]}
-                                                  onFocus={[Function]}
-                                                  required={true}
-                                                  role="combobox"
-                                                  value=""
+                                                  style={
+                                                    Object {
+                                                      "display": "inline-block",
+                                                    }
+                                                  }
                                                 >
-                                                  <div
-                                                    className="Select-input"
+                                                  <input
+                                                    aria-activedescendant="react-select-22--value"
+                                                    aria-expanded="false"
+                                                    aria-haspopup="false"
+                                                    aria-owns=""
+                                                    id="id-actionMatch"
+                                                    onBlur={[Function]}
+                                                    onChange={[Function]}
+                                                    onFocus={[Function]}
+                                                    required={true}
+                                                    role="combobox"
                                                     style={
                                                       Object {
-                                                        "display": "inline-block",
+                                                        "boxSizing": "content-box",
+                                                        "width": "5px",
                                                       }
                                                     }
-                                                  >
-                                                    <input
-                                                      aria-activedescendant="react-select-22--value"
-                                                      aria-expanded="false"
-                                                      aria-haspopup="false"
-                                                      aria-owns=""
-                                                      id="id-actionMatch"
-                                                      onBlur={[Function]}
-                                                      onChange={[Function]}
-                                                      onFocus={[Function]}
-                                                      required={true}
-                                                      role="combobox"
-                                                      style={
-                                                        Object {
-                                                          "boxSizing": "content-box",
-                                                          "width": "5px",
-                                                        }
+                                                    value=""
+                                                  />
+                                                  <div
+                                                    style={
+                                                      Object {
+                                                        "height": 0,
+                                                        "left": 0,
+                                                        "overflow": "scroll",
+                                                        "position": "absolute",
+                                                        "top": 0,
+                                                        "visibility": "hidden",
+                                                        "whiteSpace": "pre",
                                                       }
-                                                      value=""
-                                                    />
-                                                    <div
-                                                      style={
-                                                        Object {
-                                                          "height": 0,
-                                                          "left": 0,
-                                                          "overflow": "scroll",
-                                                          "position": "absolute",
-                                                          "top": 0,
-                                                          "visibility": "hidden",
-                                                          "whiteSpace": "pre",
-                                                        }
-                                                      }
-                                                    />
-                                                  </div>
-                                                </AutosizeInput>
-                                              </span>
+                                                    }
+                                                  />
+                                                </div>
+                                              </AutosizeInput>
+                                            </span>
+                                            <span
+                                              className="Select-arrow-zone"
+                                              onMouseDown={[Function]}
+                                            >
                                               <span
-                                                className="Select-arrow-zone"
-                                                onMouseDown={[Function]}
-                                              >
-                                                <span
-                                                  className="icon-arrow-down"
-                                                />
-                                              </span>
-                                            </div>
+                                                className="icon-arrow-down"
+                                              />
+                                            </span>
                                           </div>
-                                        </Select>
-                                      </SelectPicker>
-                                    </StyledSelect>
-                                  </SelectControl>
-                                </div>
-                              </SelectFieldWrapper>
+                                        </div>
+                                      </Select>
+                                    </SelectPicker>
+                                  </StyledSelect>
+                                </SelectControl>
+                              </StyledSelectControl>
                             </div>
                           </div>
                         </SelectField>
@@ -1025,37 +1047,87 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         <div
                           className="controls"
                         >
-                          <SelectFieldWrapper>
-                            <div
-                              className="css-mv2muq-SelectFieldWrapper e1qrhqd00"
-                            >
-                              <SelectControl
-                                choices={
+                          <StyledSelectControl
+                            choices={
+                              Array [
+                                Array [
+                                  "__all_environments__",
+                                  "All Environments",
+                                ],
+                                Array [
+                                  "production",
+                                  "Production",
+                                ],
+                                Array [
+                                  "staging",
+                                  "Staging",
+                                ],
+                              ]
+                            }
+                            clearable={false}
+                            disabled={false}
+                            id="id-environment"
+                            multiple={false}
+                            onChange={[Function]}
+                            required={true}
+                            value="staging"
+                          >
+                            <SelectControl
+                              choices={
+                                Array [
                                   Array [
-                                    Array [
-                                      "__all_environments__",
-                                      "All Environments",
-                                    ],
-                                    Array [
-                                      "production",
-                                      "Production",
-                                    ],
-                                    Array [
-                                      "staging",
-                                      "Staging",
-                                    ],
-                                  ]
-                                }
+                                    "__all_environments__",
+                                    "All Environments",
+                                  ],
+                                  Array [
+                                    "production",
+                                    "Production",
+                                  ],
+                                  Array [
+                                    "staging",
+                                    "Staging",
+                                  ],
+                                ]
+                              }
+                              className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                              clearable={false}
+                              disabled={false}
+                              id="id-environment"
+                              multiple={false}
+                              onChange={[Function]}
+                              required={true}
+                              value="staging"
+                            >
+                              <StyledSelect
+                                arrowRenderer={[Function]}
+                                className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                 clearable={false}
                                 disabled={false}
                                 id="id-environment"
                                 multiple={false}
                                 onChange={[Function]}
+                                options={
+                                  Array [
+                                    Object {
+                                      "label": "All Environments",
+                                      "value": "__all_environments__",
+                                    },
+                                    Object {
+                                      "label": "Production",
+                                      "value": "production",
+                                    },
+                                    Object {
+                                      "label": "Staging",
+                                      "value": "staging",
+                                    },
+                                  ]
+                                }
                                 required={true}
                                 value="staging"
                               >
-                                <StyledSelect
+                                <SelectPicker
                                   arrowRenderer={[Function]}
+                                  className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
                                   clearable={false}
                                   disabled={false}
                                   id="id-environment"
@@ -1080,14 +1152,42 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   required={true}
                                   value="staging"
                                 >
-                                  <SelectPicker
+                                  <Select
                                     arrowRenderer={[Function]}
-                                    className="css-16280ey-StyledSelect eho28m20"
+                                    autosize={true}
+                                    backspaceRemoves={true}
+                                    backspaceToRemoveMessage="Press backspace to remove {label}"
+                                    className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                    clearAllText="Clear all"
+                                    clearRenderer={[Function]}
+                                    clearValueText="Clear value"
                                     clearable={false}
+                                    closeOnSelect={true}
+                                    deleteRemoves={true}
+                                    delimiter=","
                                     disabled={false}
+                                    escapeClearsValue={true}
+                                    filterOptions={[Function]}
                                     id="id-environment"
+                                    ignoreAccents={true}
+                                    ignoreCase={true}
+                                    inputProps={Object {}}
+                                    isLoading={false}
+                                    joinValues={false}
+                                    labelKey="label"
+                                    matchPos="any"
+                                    matchProp="any"
+                                    menuBuffer={0}
+                                    menuRenderer={[Function]}
+                                    multi={false}
                                     multiple={false}
+                                    noResultsText="No results found"
+                                    onBlurResetsInput={true}
                                     onChange={[Function]}
+                                    onCloseResetsInput={true}
+                                    onSelectResetsInput={true}
+                                    openOnClick={true}
+                                    optionComponent={[Function]}
                                     options={
                                       Array [
                                         Object {
@@ -1104,191 +1204,135 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         },
                                       ]
                                     }
+                                    pageSize={5}
+                                    placeholder="Select..."
+                                    removeSelected={true}
                                     required={true}
+                                    rtl={false}
+                                    scrollMenuIntoView={true}
+                                    searchable={true}
+                                    simpleValue={false}
+                                    tabSelectsValue={true}
+                                    trimFilter={true}
                                     value="staging"
+                                    valueComponent={[Function]}
+                                    valueKey="value"
                                   >
-                                    <Select
-                                      arrowRenderer={[Function]}
-                                      autosize={true}
-                                      backspaceRemoves={true}
-                                      backspaceToRemoveMessage="Press backspace to remove {label}"
-                                      className="css-16280ey-StyledSelect eho28m20"
-                                      clearAllText="Clear all"
-                                      clearRenderer={[Function]}
-                                      clearValueText="Clear value"
-                                      clearable={false}
-                                      closeOnSelect={true}
-                                      deleteRemoves={true}
-                                      delimiter=","
-                                      disabled={false}
-                                      escapeClearsValue={true}
-                                      filterOptions={[Function]}
-                                      id="id-environment"
-                                      ignoreAccents={true}
-                                      ignoreCase={true}
-                                      inputProps={Object {}}
-                                      isLoading={false}
-                                      joinValues={false}
-                                      labelKey="label"
-                                      matchPos="any"
-                                      matchProp="any"
-                                      menuBuffer={0}
-                                      menuRenderer={[Function]}
-                                      multi={false}
-                                      multiple={false}
-                                      noResultsText="No results found"
-                                      onBlurResetsInput={true}
-                                      onChange={[Function]}
-                                      onCloseResetsInput={true}
-                                      onSelectResetsInput={true}
-                                      openOnClick={true}
-                                      optionComponent={[Function]}
-                                      options={
-                                        Array [
-                                          Object {
-                                            "label": "All Environments",
-                                            "value": "__all_environments__",
-                                          },
-                                          Object {
-                                            "label": "Production",
-                                            "value": "production",
-                                          },
-                                          Object {
-                                            "label": "Staging",
-                                            "value": "staging",
-                                          },
-                                        ]
-                                      }
-                                      pageSize={5}
-                                      placeholder="Select..."
-                                      removeSelected={true}
-                                      required={true}
-                                      rtl={false}
-                                      scrollMenuIntoView={true}
-                                      searchable={true}
-                                      simpleValue={false}
-                                      tabSelectsValue={true}
-                                      trimFilter={true}
-                                      value="staging"
-                                      valueComponent={[Function]}
-                                      valueKey="value"
+                                    <div
+                                      className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                     >
                                       <div
-                                        className="Select css-16280ey-StyledSelect eho28m20 has-value is-searchable Select--single"
+                                        className="Select-control"
+                                        onKeyDown={[Function]}
+                                        onMouseDown={[Function]}
+                                        onTouchEnd={[Function]}
+                                        onTouchMove={[Function]}
+                                        onTouchStart={[Function]}
                                       >
-                                        <div
-                                          className="Select-control"
-                                          onKeyDown={[Function]}
-                                          onMouseDown={[Function]}
-                                          onTouchEnd={[Function]}
-                                          onTouchMove={[Function]}
-                                          onTouchStart={[Function]}
+                                        <span
+                                          className="Select-multi-value-wrapper"
+                                          id="react-select-24--value"
                                         >
-                                          <span
-                                            className="Select-multi-value-wrapper"
-                                            id="react-select-24--value"
+                                          <Value
+                                            disabled={false}
+                                            id="react-select-24--value-item"
+                                            instancePrefix="react-select-24-"
+                                            onClick={null}
+                                            placeholder="Select..."
+                                            value={
+                                              Object {
+                                                "label": "Staging",
+                                                "value": "staging",
+                                              }
+                                            }
                                           >
-                                            <Value
-                                              disabled={false}
-                                              id="react-select-24--value-item"
-                                              instancePrefix="react-select-24-"
-                                              onClick={null}
-                                              placeholder="Select..."
-                                              value={
+                                            <div
+                                              className="Select-value"
+                                            >
+                                              <span
+                                                aria-selected="true"
+                                                className="Select-value-label"
+                                                id="react-select-24--value-item"
+                                                role="option"
+                                              >
+                                                Staging
+                                              </span>
+                                            </div>
+                                          </Value>
+                                          <AutosizeInput
+                                            aria-activedescendant="react-select-24--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            className="Select-input"
+                                            id="id-environment"
+                                            injectStyles={true}
+                                            minWidth="5"
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            value=""
+                                          >
+                                            <div
+                                              className="Select-input"
+                                              style={
                                                 Object {
-                                                  "label": "Staging",
-                                                  "value": "staging",
+                                                  "display": "inline-block",
                                                 }
                                               }
                                             >
-                                              <div
-                                                className="Select-value"
-                                              >
-                                                <span
-                                                  aria-selected="true"
-                                                  className="Select-value-label"
-                                                  id="react-select-24--value-item"
-                                                  role="option"
-                                                >
-                                                  Staging
-                                                </span>
-                                              </div>
-                                            </Value>
-                                            <AutosizeInput
-                                              aria-activedescendant="react-select-24--value"
-                                              aria-expanded="false"
-                                              aria-haspopup="false"
-                                              aria-owns=""
-                                              className="Select-input"
-                                              id="id-environment"
-                                              injectStyles={true}
-                                              minWidth="5"
-                                              onBlur={[Function]}
-                                              onChange={[Function]}
-                                              onFocus={[Function]}
-                                              required={false}
-                                              role="combobox"
-                                              value=""
-                                            >
-                                              <div
-                                                className="Select-input"
+                                              <input
+                                                aria-activedescendant="react-select-24--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                id="id-environment"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={false}
+                                                role="combobox"
                                                 style={
                                                   Object {
-                                                    "display": "inline-block",
+                                                    "boxSizing": "content-box",
+                                                    "width": "5px",
                                                   }
                                                 }
-                                              >
-                                                <input
-                                                  aria-activedescendant="react-select-24--value"
-                                                  aria-expanded="false"
-                                                  aria-haspopup="false"
-                                                  aria-owns=""
-                                                  id="id-environment"
-                                                  onBlur={[Function]}
-                                                  onChange={[Function]}
-                                                  onFocus={[Function]}
-                                                  required={false}
-                                                  role="combobox"
-                                                  style={
-                                                    Object {
-                                                      "boxSizing": "content-box",
-                                                      "width": "5px",
-                                                    }
+                                                value=""
+                                              />
+                                              <div
+                                                style={
+                                                  Object {
+                                                    "height": 0,
+                                                    "left": 0,
+                                                    "overflow": "scroll",
+                                                    "position": "absolute",
+                                                    "top": 0,
+                                                    "visibility": "hidden",
+                                                    "whiteSpace": "pre",
                                                   }
-                                                  value=""
-                                                />
-                                                <div
-                                                  style={
-                                                    Object {
-                                                      "height": 0,
-                                                      "left": 0,
-                                                      "overflow": "scroll",
-                                                      "position": "absolute",
-                                                      "top": 0,
-                                                      "visibility": "hidden",
-                                                      "whiteSpace": "pre",
-                                                    }
-                                                  }
-                                                />
-                                              </div>
-                                            </AutosizeInput>
-                                          </span>
+                                                }
+                                              />
+                                            </div>
+                                          </AutosizeInput>
+                                        </span>
+                                        <span
+                                          className="Select-arrow-zone"
+                                          onMouseDown={[Function]}
+                                        >
                                           <span
-                                            className="Select-arrow-zone"
-                                            onMouseDown={[Function]}
-                                          >
-                                            <span
-                                              className="icon-arrow-down"
-                                            />
-                                          </span>
-                                        </div>
+                                            className="icon-arrow-down"
+                                          />
+                                        </span>
                                       </div>
-                                    </Select>
-                                  </SelectPicker>
-                                </StyledSelect>
-                              </SelectControl>
-                            </div>
-                          </SelectFieldWrapper>
+                                    </div>
+                                  </Select>
+                                </SelectPicker>
+                              </StyledSelect>
+                            </SelectControl>
+                          </StyledSelectControl>
                         </div>
                       </div>
                     </SelectField>
@@ -1779,61 +1823,159 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-                              <SelectFieldWrapper>
-                                <div
-                                  className="css-mv2muq-SelectFieldWrapper e1qrhqd00"
-                                >
-                                  <SelectControl
-                                    choices={
+                              <StyledSelectControl
+                                choices={
+                                  Array [
+                                    Array [
+                                      "5",
+                                      "5 minutes",
+                                    ],
+                                    Array [
+                                      "10",
+                                      "10 minutes",
+                                    ],
+                                    Array [
+                                      "30",
+                                      "30 minutes",
+                                    ],
+                                    Array [
+                                      "60",
+                                      "60 minutes",
+                                    ],
+                                    Array [
+                                      "180",
+                                      "3 hours",
+                                    ],
+                                    Array [
+                                      "720",
+                                      "12 hours",
+                                    ],
+                                    Array [
+                                      "1440",
+                                      "24 hours",
+                                    ],
+                                    Array [
+                                      "10080",
+                                      "one week",
+                                    ],
+                                    Array [
+                                      "43200",
+                                      "30 days",
+                                    ],
+                                  ]
+                                }
+                                clearable={false}
+                                disabled={false}
+                                id="id-frequency"
+                                multiple={false}
+                                onChange={[Function]}
+                                required={true}
+                                value=""
+                              >
+                                <SelectControl
+                                  choices={
+                                    Array [
                                       Array [
-                                        Array [
-                                          "5",
-                                          "5 minutes",
-                                        ],
-                                        Array [
-                                          "10",
-                                          "10 minutes",
-                                        ],
-                                        Array [
-                                          "30",
-                                          "30 minutes",
-                                        ],
-                                        Array [
-                                          "60",
-                                          "60 minutes",
-                                        ],
-                                        Array [
-                                          "180",
-                                          "3 hours",
-                                        ],
-                                        Array [
-                                          "720",
-                                          "12 hours",
-                                        ],
-                                        Array [
-                                          "1440",
-                                          "24 hours",
-                                        ],
-                                        Array [
-                                          "10080",
-                                          "one week",
-                                        ],
-                                        Array [
-                                          "43200",
-                                          "30 days",
-                                        ],
-                                      ]
-                                    }
+                                        "5",
+                                        "5 minutes",
+                                      ],
+                                      Array [
+                                        "10",
+                                        "10 minutes",
+                                      ],
+                                      Array [
+                                        "30",
+                                        "30 minutes",
+                                      ],
+                                      Array [
+                                        "60",
+                                        "60 minutes",
+                                      ],
+                                      Array [
+                                        "180",
+                                        "3 hours",
+                                      ],
+                                      Array [
+                                        "720",
+                                        "12 hours",
+                                      ],
+                                      Array [
+                                        "1440",
+                                        "24 hours",
+                                      ],
+                                      Array [
+                                        "10080",
+                                        "one week",
+                                      ],
+                                      Array [
+                                        "43200",
+                                        "30 days",
+                                      ],
+                                    ]
+                                  }
+                                  className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                                  clearable={false}
+                                  disabled={false}
+                                  id="id-frequency"
+                                  multiple={false}
+                                  onChange={[Function]}
+                                  required={true}
+                                  value=""
+                                >
+                                  <StyledSelect
+                                    arrowRenderer={[Function]}
+                                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                     clearable={false}
                                     disabled={false}
                                     id="id-frequency"
                                     multiple={false}
                                     onChange={[Function]}
+                                    options={
+                                      Array [
+                                        Object {
+                                          "label": "5 minutes",
+                                          "value": "5",
+                                        },
+                                        Object {
+                                          "label": "10 minutes",
+                                          "value": "10",
+                                        },
+                                        Object {
+                                          "label": "30 minutes",
+                                          "value": "30",
+                                        },
+                                        Object {
+                                          "label": "60 minutes",
+                                          "value": "60",
+                                        },
+                                        Object {
+                                          "label": "3 hours",
+                                          "value": "180",
+                                        },
+                                        Object {
+                                          "label": "12 hours",
+                                          "value": "720",
+                                        },
+                                        Object {
+                                          "label": "24 hours",
+                                          "value": "1440",
+                                        },
+                                        Object {
+                                          "label": "one week",
+                                          "value": "10080",
+                                        },
+                                        Object {
+                                          "label": "30 days",
+                                          "value": "43200",
+                                        },
+                                      ]
+                                    }
                                     required={true}
                                     value=""
                                   >
-                                    <StyledSelect
+                                    <SelectPicker
                                       arrowRenderer={[Function]}
+                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       disabled={false}
                                       id="id-frequency"
@@ -1882,14 +2024,42 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       required={true}
                                       value=""
                                     >
-                                      <SelectPicker
+                                      <Select
                                         arrowRenderer={[Function]}
-                                        className="css-16280ey-StyledSelect eho28m20"
+                                        autosize={true}
+                                        backspaceRemoves={true}
+                                        backspaceToRemoveMessage="Press backspace to remove {label}"
+                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        clearAllText="Clear all"
+                                        clearRenderer={[Function]}
+                                        clearValueText="Clear value"
                                         clearable={false}
+                                        closeOnSelect={true}
+                                        deleteRemoves={true}
+                                        delimiter=","
                                         disabled={false}
+                                        escapeClearsValue={true}
+                                        filterOptions={[Function]}
                                         id="id-frequency"
+                                        ignoreAccents={true}
+                                        ignoreCase={true}
+                                        inputProps={Object {}}
+                                        isLoading={false}
+                                        joinValues={false}
+                                        labelKey="label"
+                                        matchPos="any"
+                                        matchProp="any"
+                                        menuBuffer={0}
+                                        menuRenderer={[Function]}
+                                        multi={false}
                                         multiple={false}
+                                        noResultsText="No results found"
+                                        onBlurResetsInput={true}
                                         onChange={[Function]}
+                                        onCloseResetsInput={true}
+                                        onSelectResetsInput={true}
+                                        openOnClick={true}
+                                        optionComponent={[Function]}
                                         options={
                                           Array [
                                             Object {
@@ -1930,194 +2100,114 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             },
                                           ]
                                         }
+                                        pageSize={5}
+                                        placeholder="Select..."
+                                        removeSelected={true}
                                         required={true}
+                                        rtl={false}
+                                        scrollMenuIntoView={true}
+                                        searchable={true}
+                                        simpleValue={false}
+                                        tabSelectsValue={true}
+                                        trimFilter={true}
                                         value=""
+                                        valueComponent={[Function]}
+                                        valueKey="value"
                                       >
-                                        <Select
-                                          arrowRenderer={[Function]}
-                                          autosize={true}
-                                          backspaceRemoves={true}
-                                          backspaceToRemoveMessage="Press backspace to remove {label}"
-                                          className="css-16280ey-StyledSelect eho28m20"
-                                          clearAllText="Clear all"
-                                          clearRenderer={[Function]}
-                                          clearValueText="Clear value"
-                                          clearable={false}
-                                          closeOnSelect={true}
-                                          deleteRemoves={true}
-                                          delimiter=","
-                                          disabled={false}
-                                          escapeClearsValue={true}
-                                          filterOptions={[Function]}
-                                          id="id-frequency"
-                                          ignoreAccents={true}
-                                          ignoreCase={true}
-                                          inputProps={Object {}}
-                                          isLoading={false}
-                                          joinValues={false}
-                                          labelKey="label"
-                                          matchPos="any"
-                                          matchProp="any"
-                                          menuBuffer={0}
-                                          menuRenderer={[Function]}
-                                          multi={false}
-                                          multiple={false}
-                                          noResultsText="No results found"
-                                          onBlurResetsInput={true}
-                                          onChange={[Function]}
-                                          onCloseResetsInput={true}
-                                          onSelectResetsInput={true}
-                                          openOnClick={true}
-                                          optionComponent={[Function]}
-                                          options={
-                                            Array [
-                                              Object {
-                                                "label": "5 minutes",
-                                                "value": "5",
-                                              },
-                                              Object {
-                                                "label": "10 minutes",
-                                                "value": "10",
-                                              },
-                                              Object {
-                                                "label": "30 minutes",
-                                                "value": "30",
-                                              },
-                                              Object {
-                                                "label": "60 minutes",
-                                                "value": "60",
-                                              },
-                                              Object {
-                                                "label": "3 hours",
-                                                "value": "180",
-                                              },
-                                              Object {
-                                                "label": "12 hours",
-                                                "value": "720",
-                                              },
-                                              Object {
-                                                "label": "24 hours",
-                                                "value": "1440",
-                                              },
-                                              Object {
-                                                "label": "one week",
-                                                "value": "10080",
-                                              },
-                                              Object {
-                                                "label": "30 days",
-                                                "value": "43200",
-                                              },
-                                            ]
-                                          }
-                                          pageSize={5}
-                                          placeholder="Select..."
-                                          removeSelected={true}
-                                          required={true}
-                                          rtl={false}
-                                          scrollMenuIntoView={true}
-                                          searchable={true}
-                                          simpleValue={false}
-                                          tabSelectsValue={true}
-                                          trimFilter={true}
-                                          value=""
-                                          valueComponent={[Function]}
-                                          valueKey="value"
+                                        <div
+                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
                                         >
                                           <div
-                                            className="Select css-16280ey-StyledSelect eho28m20 is-searchable Select--single"
+                                            className="Select-control"
+                                            onKeyDown={[Function]}
+                                            onMouseDown={[Function]}
+                                            onTouchEnd={[Function]}
+                                            onTouchMove={[Function]}
+                                            onTouchStart={[Function]}
                                           >
-                                            <div
-                                              className="Select-control"
-                                              onKeyDown={[Function]}
-                                              onMouseDown={[Function]}
-                                              onTouchEnd={[Function]}
-                                              onTouchMove={[Function]}
-                                              onTouchStart={[Function]}
+                                            <span
+                                              className="Select-multi-value-wrapper"
+                                              id="react-select-26--value"
                                             >
-                                              <span
-                                                className="Select-multi-value-wrapper"
-                                                id="react-select-26--value"
+                                              <div
+                                                className="Select-placeholder"
+                                              >
+                                                Select...
+                                              </div>
+                                              <AutosizeInput
+                                                aria-activedescendant="react-select-26--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                className="Select-input"
+                                                id="id-frequency"
+                                                injectStyles={true}
+                                                minWidth="5"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={true}
+                                                role="combobox"
+                                                value=""
                                               >
                                                 <div
-                                                  className="Select-placeholder"
-                                                >
-                                                  Select...
-                                                </div>
-                                                <AutosizeInput
-                                                  aria-activedescendant="react-select-26--value"
-                                                  aria-expanded="false"
-                                                  aria-haspopup="false"
-                                                  aria-owns=""
                                                   className="Select-input"
-                                                  id="id-frequency"
-                                                  injectStyles={true}
-                                                  minWidth="5"
-                                                  onBlur={[Function]}
-                                                  onChange={[Function]}
-                                                  onFocus={[Function]}
-                                                  required={true}
-                                                  role="combobox"
-                                                  value=""
+                                                  style={
+                                                    Object {
+                                                      "display": "inline-block",
+                                                    }
+                                                  }
                                                 >
-                                                  <div
-                                                    className="Select-input"
+                                                  <input
+                                                    aria-activedescendant="react-select-26--value"
+                                                    aria-expanded="false"
+                                                    aria-haspopup="false"
+                                                    aria-owns=""
+                                                    id="id-frequency"
+                                                    onBlur={[Function]}
+                                                    onChange={[Function]}
+                                                    onFocus={[Function]}
+                                                    required={true}
+                                                    role="combobox"
                                                     style={
                                                       Object {
-                                                        "display": "inline-block",
+                                                        "boxSizing": "content-box",
+                                                        "width": "5px",
                                                       }
                                                     }
-                                                  >
-                                                    <input
-                                                      aria-activedescendant="react-select-26--value"
-                                                      aria-expanded="false"
-                                                      aria-haspopup="false"
-                                                      aria-owns=""
-                                                      id="id-frequency"
-                                                      onBlur={[Function]}
-                                                      onChange={[Function]}
-                                                      onFocus={[Function]}
-                                                      required={true}
-                                                      role="combobox"
-                                                      style={
-                                                        Object {
-                                                          "boxSizing": "content-box",
-                                                          "width": "5px",
-                                                        }
+                                                    value=""
+                                                  />
+                                                  <div
+                                                    style={
+                                                      Object {
+                                                        "height": 0,
+                                                        "left": 0,
+                                                        "overflow": "scroll",
+                                                        "position": "absolute",
+                                                        "top": 0,
+                                                        "visibility": "hidden",
+                                                        "whiteSpace": "pre",
                                                       }
-                                                      value=""
-                                                    />
-                                                    <div
-                                                      style={
-                                                        Object {
-                                                          "height": 0,
-                                                          "left": 0,
-                                                          "overflow": "scroll",
-                                                          "position": "absolute",
-                                                          "top": 0,
-                                                          "visibility": "hidden",
-                                                          "whiteSpace": "pre",
-                                                        }
-                                                      }
-                                                    />
-                                                  </div>
-                                                </AutosizeInput>
-                                              </span>
+                                                    }
+                                                  />
+                                                </div>
+                                              </AutosizeInput>
+                                            </span>
+                                            <span
+                                              className="Select-arrow-zone"
+                                              onMouseDown={[Function]}
+                                            >
                                               <span
-                                                className="Select-arrow-zone"
-                                                onMouseDown={[Function]}
-                                              >
-                                                <span
-                                                  className="icon-arrow-down"
-                                                />
-                                              </span>
-                                            </div>
+                                                className="icon-arrow-down"
+                                              />
+                                            </span>
                                           </div>
-                                        </Select>
-                                      </SelectPicker>
-                                    </StyledSelect>
-                                  </SelectControl>
-                                </div>
-                              </SelectFieldWrapper>
+                                        </div>
+                                      </Select>
+                                    </SelectPicker>
+                                  </StyledSelect>
+                                </SelectControl>
+                              </StyledSelectControl>
                             </div>
                           </div>
                         </SelectField>
@@ -2581,37 +2671,87 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-                              <SelectFieldWrapper>
-                                <div
-                                  className="css-mv2muq-SelectFieldWrapper e1qrhqd00"
-                                >
-                                  <SelectControl
-                                    choices={
+                              <StyledSelectControl
+                                choices={
+                                  Array [
+                                    Array [
+                                      "all",
+                                      "all",
+                                    ],
+                                    Array [
+                                      "any",
+                                      "any",
+                                    ],
+                                    Array [
+                                      "none",
+                                      "none",
+                                    ],
+                                  ]
+                                }
+                                clearable={false}
+                                disabled={false}
+                                id="id-actionMatch"
+                                multiple={false}
+                                onChange={[Function]}
+                                required={true}
+                                value="all"
+                              >
+                                <SelectControl
+                                  choices={
+                                    Array [
                                       Array [
-                                        Array [
-                                          "all",
-                                          "all",
-                                        ],
-                                        Array [
-                                          "any",
-                                          "any",
-                                        ],
-                                        Array [
-                                          "none",
-                                          "none",
-                                        ],
-                                      ]
-                                    }
+                                        "all",
+                                        "all",
+                                      ],
+                                      Array [
+                                        "any",
+                                        "any",
+                                      ],
+                                      Array [
+                                        "none",
+                                        "none",
+                                      ],
+                                    ]
+                                  }
+                                  className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                                  clearable={false}
+                                  disabled={false}
+                                  id="id-actionMatch"
+                                  multiple={false}
+                                  onChange={[Function]}
+                                  required={true}
+                                  value="all"
+                                >
+                                  <StyledSelect
+                                    arrowRenderer={[Function]}
+                                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                     clearable={false}
                                     disabled={false}
                                     id="id-actionMatch"
                                     multiple={false}
                                     onChange={[Function]}
+                                    options={
+                                      Array [
+                                        Object {
+                                          "label": "all",
+                                          "value": "all",
+                                        },
+                                        Object {
+                                          "label": "any",
+                                          "value": "any",
+                                        },
+                                        Object {
+                                          "label": "none",
+                                          "value": "none",
+                                        },
+                                      ]
+                                    }
                                     required={true}
                                     value="all"
                                   >
-                                    <StyledSelect
+                                    <SelectPicker
                                       arrowRenderer={[Function]}
+                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       disabled={false}
                                       id="id-actionMatch"
@@ -2636,14 +2776,42 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                       required={true}
                                       value="all"
                                     >
-                                      <SelectPicker
+                                      <Select
                                         arrowRenderer={[Function]}
-                                        className="css-16280ey-StyledSelect eho28m20"
+                                        autosize={true}
+                                        backspaceRemoves={true}
+                                        backspaceToRemoveMessage="Press backspace to remove {label}"
+                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        clearAllText="Clear all"
+                                        clearRenderer={[Function]}
+                                        clearValueText="Clear value"
                                         clearable={false}
+                                        closeOnSelect={true}
+                                        deleteRemoves={true}
+                                        delimiter=","
                                         disabled={false}
+                                        escapeClearsValue={true}
+                                        filterOptions={[Function]}
                                         id="id-actionMatch"
+                                        ignoreAccents={true}
+                                        ignoreCase={true}
+                                        inputProps={Object {}}
+                                        isLoading={false}
+                                        joinValues={false}
+                                        labelKey="label"
+                                        matchPos="any"
+                                        matchProp="any"
+                                        menuBuffer={0}
+                                        menuRenderer={[Function]}
+                                        multi={false}
                                         multiple={false}
+                                        noResultsText="No results found"
+                                        onBlurResetsInput={true}
                                         onChange={[Function]}
+                                        onCloseResetsInput={true}
+                                        onSelectResetsInput={true}
+                                        openOnClick={true}
+                                        optionComponent={[Function]}
                                         options={
                                           Array [
                                             Object {
@@ -2660,191 +2828,135 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                             },
                                           ]
                                         }
+                                        pageSize={5}
+                                        placeholder="Select..."
+                                        removeSelected={true}
                                         required={true}
+                                        rtl={false}
+                                        scrollMenuIntoView={true}
+                                        searchable={true}
+                                        simpleValue={false}
+                                        tabSelectsValue={true}
+                                        trimFilter={true}
                                         value="all"
+                                        valueComponent={[Function]}
+                                        valueKey="value"
                                       >
-                                        <Select
-                                          arrowRenderer={[Function]}
-                                          autosize={true}
-                                          backspaceRemoves={true}
-                                          backspaceToRemoveMessage="Press backspace to remove {label}"
-                                          className="css-16280ey-StyledSelect eho28m20"
-                                          clearAllText="Clear all"
-                                          clearRenderer={[Function]}
-                                          clearValueText="Clear value"
-                                          clearable={false}
-                                          closeOnSelect={true}
-                                          deleteRemoves={true}
-                                          delimiter=","
-                                          disabled={false}
-                                          escapeClearsValue={true}
-                                          filterOptions={[Function]}
-                                          id="id-actionMatch"
-                                          ignoreAccents={true}
-                                          ignoreCase={true}
-                                          inputProps={Object {}}
-                                          isLoading={false}
-                                          joinValues={false}
-                                          labelKey="label"
-                                          matchPos="any"
-                                          matchProp="any"
-                                          menuBuffer={0}
-                                          menuRenderer={[Function]}
-                                          multi={false}
-                                          multiple={false}
-                                          noResultsText="No results found"
-                                          onBlurResetsInput={true}
-                                          onChange={[Function]}
-                                          onCloseResetsInput={true}
-                                          onSelectResetsInput={true}
-                                          openOnClick={true}
-                                          optionComponent={[Function]}
-                                          options={
-                                            Array [
-                                              Object {
-                                                "label": "all",
-                                                "value": "all",
-                                              },
-                                              Object {
-                                                "label": "any",
-                                                "value": "any",
-                                              },
-                                              Object {
-                                                "label": "none",
-                                                "value": "none",
-                                              },
-                                            ]
-                                          }
-                                          pageSize={5}
-                                          placeholder="Select..."
-                                          removeSelected={true}
-                                          required={true}
-                                          rtl={false}
-                                          scrollMenuIntoView={true}
-                                          searchable={true}
-                                          simpleValue={false}
-                                          tabSelectsValue={true}
-                                          trimFilter={true}
-                                          value="all"
-                                          valueComponent={[Function]}
-                                          valueKey="value"
+                                        <div
+                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                         >
                                           <div
-                                            className="Select css-16280ey-StyledSelect eho28m20 has-value is-searchable Select--single"
+                                            className="Select-control"
+                                            onKeyDown={[Function]}
+                                            onMouseDown={[Function]}
+                                            onTouchEnd={[Function]}
+                                            onTouchMove={[Function]}
+                                            onTouchStart={[Function]}
                                           >
-                                            <div
-                                              className="Select-control"
-                                              onKeyDown={[Function]}
-                                              onMouseDown={[Function]}
-                                              onTouchEnd={[Function]}
-                                              onTouchMove={[Function]}
-                                              onTouchStart={[Function]}
+                                            <span
+                                              className="Select-multi-value-wrapper"
+                                              id="react-select-2--value"
                                             >
-                                              <span
-                                                className="Select-multi-value-wrapper"
-                                                id="react-select-2--value"
+                                              <Value
+                                                disabled={false}
+                                                id="react-select-2--value-item"
+                                                instancePrefix="react-select-2-"
+                                                onClick={null}
+                                                placeholder="Select..."
+                                                value={
+                                                  Object {
+                                                    "label": "all",
+                                                    "value": "all",
+                                                  }
+                                                }
                                               >
-                                                <Value
-                                                  disabled={false}
-                                                  id="react-select-2--value-item"
-                                                  instancePrefix="react-select-2-"
-                                                  onClick={null}
-                                                  placeholder="Select..."
-                                                  value={
+                                                <div
+                                                  className="Select-value"
+                                                >
+                                                  <span
+                                                    aria-selected="true"
+                                                    className="Select-value-label"
+                                                    id="react-select-2--value-item"
+                                                    role="option"
+                                                  >
+                                                    all
+                                                  </span>
+                                                </div>
+                                              </Value>
+                                              <AutosizeInput
+                                                aria-activedescendant="react-select-2--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                className="Select-input"
+                                                id="id-actionMatch"
+                                                injectStyles={true}
+                                                minWidth="5"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={false}
+                                                role="combobox"
+                                                value=""
+                                              >
+                                                <div
+                                                  className="Select-input"
+                                                  style={
                                                     Object {
-                                                      "label": "all",
-                                                      "value": "all",
+                                                      "display": "inline-block",
                                                     }
                                                   }
                                                 >
-                                                  <div
-                                                    className="Select-value"
-                                                  >
-                                                    <span
-                                                      aria-selected="true"
-                                                      className="Select-value-label"
-                                                      id="react-select-2--value-item"
-                                                      role="option"
-                                                    >
-                                                      all
-                                                    </span>
-                                                  </div>
-                                                </Value>
-                                                <AutosizeInput
-                                                  aria-activedescendant="react-select-2--value"
-                                                  aria-expanded="false"
-                                                  aria-haspopup="false"
-                                                  aria-owns=""
-                                                  className="Select-input"
-                                                  id="id-actionMatch"
-                                                  injectStyles={true}
-                                                  minWidth="5"
-                                                  onBlur={[Function]}
-                                                  onChange={[Function]}
-                                                  onFocus={[Function]}
-                                                  required={false}
-                                                  role="combobox"
-                                                  value=""
-                                                >
-                                                  <div
-                                                    className="Select-input"
+                                                  <input
+                                                    aria-activedescendant="react-select-2--value"
+                                                    aria-expanded="false"
+                                                    aria-haspopup="false"
+                                                    aria-owns=""
+                                                    id="id-actionMatch"
+                                                    onBlur={[Function]}
+                                                    onChange={[Function]}
+                                                    onFocus={[Function]}
+                                                    required={false}
+                                                    role="combobox"
                                                     style={
                                                       Object {
-                                                        "display": "inline-block",
+                                                        "boxSizing": "content-box",
+                                                        "width": "5px",
                                                       }
                                                     }
-                                                  >
-                                                    <input
-                                                      aria-activedescendant="react-select-2--value"
-                                                      aria-expanded="false"
-                                                      aria-haspopup="false"
-                                                      aria-owns=""
-                                                      id="id-actionMatch"
-                                                      onBlur={[Function]}
-                                                      onChange={[Function]}
-                                                      onFocus={[Function]}
-                                                      required={false}
-                                                      role="combobox"
-                                                      style={
-                                                        Object {
-                                                          "boxSizing": "content-box",
-                                                          "width": "5px",
-                                                        }
+                                                    value=""
+                                                  />
+                                                  <div
+                                                    style={
+                                                      Object {
+                                                        "height": 0,
+                                                        "left": 0,
+                                                        "overflow": "scroll",
+                                                        "position": "absolute",
+                                                        "top": 0,
+                                                        "visibility": "hidden",
+                                                        "whiteSpace": "pre",
                                                       }
-                                                      value=""
-                                                    />
-                                                    <div
-                                                      style={
-                                                        Object {
-                                                          "height": 0,
-                                                          "left": 0,
-                                                          "overflow": "scroll",
-                                                          "position": "absolute",
-                                                          "top": 0,
-                                                          "visibility": "hidden",
-                                                          "whiteSpace": "pre",
-                                                        }
-                                                      }
-                                                    />
-                                                  </div>
-                                                </AutosizeInput>
-                                              </span>
+                                                    }
+                                                  />
+                                                </div>
+                                              </AutosizeInput>
+                                            </span>
+                                            <span
+                                              className="Select-arrow-zone"
+                                              onMouseDown={[Function]}
+                                            >
                                               <span
-                                                className="Select-arrow-zone"
-                                                onMouseDown={[Function]}
-                                              >
-                                                <span
-                                                  className="icon-arrow-down"
-                                                />
-                                              </span>
-                                            </div>
+                                                className="icon-arrow-down"
+                                              />
+                                            </span>
                                           </div>
-                                        </Select>
-                                      </SelectPicker>
-                                    </StyledSelect>
-                                  </SelectControl>
-                                </div>
-                              </SelectFieldWrapper>
+                                        </div>
+                                      </Select>
+                                    </SelectPicker>
+                                  </StyledSelect>
+                                </SelectControl>
+                              </StyledSelectControl>
                             </div>
                           </div>
                         </SelectField>
@@ -3138,37 +3250,87 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         <div
                           className="controls"
                         >
-                          <SelectFieldWrapper>
-                            <div
-                              className="css-mv2muq-SelectFieldWrapper e1qrhqd00"
-                            >
-                              <SelectControl
-                                choices={
+                          <StyledSelectControl
+                            choices={
+                              Array [
+                                Array [
+                                  "__all_environments__",
+                                  "All Environments",
+                                ],
+                                Array [
+                                  "production",
+                                  "Production",
+                                ],
+                                Array [
+                                  "staging",
+                                  "Staging",
+                                ],
+                              ]
+                            }
+                            clearable={false}
+                            disabled={false}
+                            id="id-environment"
+                            multiple={false}
+                            onChange={[Function]}
+                            required={true}
+                            value="__all_environments__"
+                          >
+                            <SelectControl
+                              choices={
+                                Array [
                                   Array [
-                                    Array [
-                                      "__all_environments__",
-                                      "All Environments",
-                                    ],
-                                    Array [
-                                      "production",
-                                      "Production",
-                                    ],
-                                    Array [
-                                      "staging",
-                                      "Staging",
-                                    ],
-                                  ]
-                                }
+                                    "__all_environments__",
+                                    "All Environments",
+                                  ],
+                                  Array [
+                                    "production",
+                                    "Production",
+                                  ],
+                                  Array [
+                                    "staging",
+                                    "Staging",
+                                  ],
+                                ]
+                              }
+                              className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                              clearable={false}
+                              disabled={false}
+                              id="id-environment"
+                              multiple={false}
+                              onChange={[Function]}
+                              required={true}
+                              value="__all_environments__"
+                            >
+                              <StyledSelect
+                                arrowRenderer={[Function]}
+                                className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                 clearable={false}
                                 disabled={false}
                                 id="id-environment"
                                 multiple={false}
                                 onChange={[Function]}
+                                options={
+                                  Array [
+                                    Object {
+                                      "label": "All Environments",
+                                      "value": "__all_environments__",
+                                    },
+                                    Object {
+                                      "label": "Production",
+                                      "value": "production",
+                                    },
+                                    Object {
+                                      "label": "Staging",
+                                      "value": "staging",
+                                    },
+                                  ]
+                                }
                                 required={true}
                                 value="__all_environments__"
                               >
-                                <StyledSelect
+                                <SelectPicker
                                   arrowRenderer={[Function]}
+                                  className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
                                   clearable={false}
                                   disabled={false}
                                   id="id-environment"
@@ -3193,14 +3355,42 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   required={true}
                                   value="__all_environments__"
                                 >
-                                  <SelectPicker
+                                  <Select
                                     arrowRenderer={[Function]}
-                                    className="css-16280ey-StyledSelect eho28m20"
+                                    autosize={true}
+                                    backspaceRemoves={true}
+                                    backspaceToRemoveMessage="Press backspace to remove {label}"
+                                    className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                    clearAllText="Clear all"
+                                    clearRenderer={[Function]}
+                                    clearValueText="Clear value"
                                     clearable={false}
+                                    closeOnSelect={true}
+                                    deleteRemoves={true}
+                                    delimiter=","
                                     disabled={false}
+                                    escapeClearsValue={true}
+                                    filterOptions={[Function]}
                                     id="id-environment"
+                                    ignoreAccents={true}
+                                    ignoreCase={true}
+                                    inputProps={Object {}}
+                                    isLoading={false}
+                                    joinValues={false}
+                                    labelKey="label"
+                                    matchPos="any"
+                                    matchProp="any"
+                                    menuBuffer={0}
+                                    menuRenderer={[Function]}
+                                    multi={false}
                                     multiple={false}
+                                    noResultsText="No results found"
+                                    onBlurResetsInput={true}
                                     onChange={[Function]}
+                                    onCloseResetsInput={true}
+                                    onSelectResetsInput={true}
+                                    openOnClick={true}
+                                    optionComponent={[Function]}
                                     options={
                                       Array [
                                         Object {
@@ -3217,191 +3407,135 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         },
                                       ]
                                     }
+                                    pageSize={5}
+                                    placeholder="Select..."
+                                    removeSelected={true}
                                     required={true}
+                                    rtl={false}
+                                    scrollMenuIntoView={true}
+                                    searchable={true}
+                                    simpleValue={false}
+                                    tabSelectsValue={true}
+                                    trimFilter={true}
                                     value="__all_environments__"
+                                    valueComponent={[Function]}
+                                    valueKey="value"
                                   >
-                                    <Select
-                                      arrowRenderer={[Function]}
-                                      autosize={true}
-                                      backspaceRemoves={true}
-                                      backspaceToRemoveMessage="Press backspace to remove {label}"
-                                      className="css-16280ey-StyledSelect eho28m20"
-                                      clearAllText="Clear all"
-                                      clearRenderer={[Function]}
-                                      clearValueText="Clear value"
-                                      clearable={false}
-                                      closeOnSelect={true}
-                                      deleteRemoves={true}
-                                      delimiter=","
-                                      disabled={false}
-                                      escapeClearsValue={true}
-                                      filterOptions={[Function]}
-                                      id="id-environment"
-                                      ignoreAccents={true}
-                                      ignoreCase={true}
-                                      inputProps={Object {}}
-                                      isLoading={false}
-                                      joinValues={false}
-                                      labelKey="label"
-                                      matchPos="any"
-                                      matchProp="any"
-                                      menuBuffer={0}
-                                      menuRenderer={[Function]}
-                                      multi={false}
-                                      multiple={false}
-                                      noResultsText="No results found"
-                                      onBlurResetsInput={true}
-                                      onChange={[Function]}
-                                      onCloseResetsInput={true}
-                                      onSelectResetsInput={true}
-                                      openOnClick={true}
-                                      optionComponent={[Function]}
-                                      options={
-                                        Array [
-                                          Object {
-                                            "label": "All Environments",
-                                            "value": "__all_environments__",
-                                          },
-                                          Object {
-                                            "label": "Production",
-                                            "value": "production",
-                                          },
-                                          Object {
-                                            "label": "Staging",
-                                            "value": "staging",
-                                          },
-                                        ]
-                                      }
-                                      pageSize={5}
-                                      placeholder="Select..."
-                                      removeSelected={true}
-                                      required={true}
-                                      rtl={false}
-                                      scrollMenuIntoView={true}
-                                      searchable={true}
-                                      simpleValue={false}
-                                      tabSelectsValue={true}
-                                      trimFilter={true}
-                                      value="__all_environments__"
-                                      valueComponent={[Function]}
-                                      valueKey="value"
+                                    <div
+                                      className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                     >
                                       <div
-                                        className="Select css-16280ey-StyledSelect eho28m20 has-value is-searchable Select--single"
+                                        className="Select-control"
+                                        onKeyDown={[Function]}
+                                        onMouseDown={[Function]}
+                                        onTouchEnd={[Function]}
+                                        onTouchMove={[Function]}
+                                        onTouchStart={[Function]}
                                       >
-                                        <div
-                                          className="Select-control"
-                                          onKeyDown={[Function]}
-                                          onMouseDown={[Function]}
-                                          onTouchEnd={[Function]}
-                                          onTouchMove={[Function]}
-                                          onTouchStart={[Function]}
+                                        <span
+                                          className="Select-multi-value-wrapper"
+                                          id="react-select-4--value"
                                         >
-                                          <span
-                                            className="Select-multi-value-wrapper"
-                                            id="react-select-4--value"
+                                          <Value
+                                            disabled={false}
+                                            id="react-select-4--value-item"
+                                            instancePrefix="react-select-4-"
+                                            onClick={null}
+                                            placeholder="Select..."
+                                            value={
+                                              Object {
+                                                "label": "All Environments",
+                                                "value": "__all_environments__",
+                                              }
+                                            }
                                           >
-                                            <Value
-                                              disabled={false}
-                                              id="react-select-4--value-item"
-                                              instancePrefix="react-select-4-"
-                                              onClick={null}
-                                              placeholder="Select..."
-                                              value={
+                                            <div
+                                              className="Select-value"
+                                            >
+                                              <span
+                                                aria-selected="true"
+                                                className="Select-value-label"
+                                                id="react-select-4--value-item"
+                                                role="option"
+                                              >
+                                                All Environments
+                                              </span>
+                                            </div>
+                                          </Value>
+                                          <AutosizeInput
+                                            aria-activedescendant="react-select-4--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            className="Select-input"
+                                            id="id-environment"
+                                            injectStyles={true}
+                                            minWidth="5"
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            value=""
+                                          >
+                                            <div
+                                              className="Select-input"
+                                              style={
                                                 Object {
-                                                  "label": "All Environments",
-                                                  "value": "__all_environments__",
+                                                  "display": "inline-block",
                                                 }
                                               }
                                             >
-                                              <div
-                                                className="Select-value"
-                                              >
-                                                <span
-                                                  aria-selected="true"
-                                                  className="Select-value-label"
-                                                  id="react-select-4--value-item"
-                                                  role="option"
-                                                >
-                                                  All Environments
-                                                </span>
-                                              </div>
-                                            </Value>
-                                            <AutosizeInput
-                                              aria-activedescendant="react-select-4--value"
-                                              aria-expanded="false"
-                                              aria-haspopup="false"
-                                              aria-owns=""
-                                              className="Select-input"
-                                              id="id-environment"
-                                              injectStyles={true}
-                                              minWidth="5"
-                                              onBlur={[Function]}
-                                              onChange={[Function]}
-                                              onFocus={[Function]}
-                                              required={false}
-                                              role="combobox"
-                                              value=""
-                                            >
-                                              <div
-                                                className="Select-input"
+                                              <input
+                                                aria-activedescendant="react-select-4--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                id="id-environment"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={false}
+                                                role="combobox"
                                                 style={
                                                   Object {
-                                                    "display": "inline-block",
+                                                    "boxSizing": "content-box",
+                                                    "width": "5px",
                                                   }
                                                 }
-                                              >
-                                                <input
-                                                  aria-activedescendant="react-select-4--value"
-                                                  aria-expanded="false"
-                                                  aria-haspopup="false"
-                                                  aria-owns=""
-                                                  id="id-environment"
-                                                  onBlur={[Function]}
-                                                  onChange={[Function]}
-                                                  onFocus={[Function]}
-                                                  required={false}
-                                                  role="combobox"
-                                                  style={
-                                                    Object {
-                                                      "boxSizing": "content-box",
-                                                      "width": "5px",
-                                                    }
+                                                value=""
+                                              />
+                                              <div
+                                                style={
+                                                  Object {
+                                                    "height": 0,
+                                                    "left": 0,
+                                                    "overflow": "scroll",
+                                                    "position": "absolute",
+                                                    "top": 0,
+                                                    "visibility": "hidden",
+                                                    "whiteSpace": "pre",
                                                   }
-                                                  value=""
-                                                />
-                                                <div
-                                                  style={
-                                                    Object {
-                                                      "height": 0,
-                                                      "left": 0,
-                                                      "overflow": "scroll",
-                                                      "position": "absolute",
-                                                      "top": 0,
-                                                      "visibility": "hidden",
-                                                      "whiteSpace": "pre",
-                                                    }
-                                                  }
-                                                />
-                                              </div>
-                                            </AutosizeInput>
-                                          </span>
+                                                }
+                                              />
+                                            </div>
+                                          </AutosizeInput>
+                                        </span>
+                                        <span
+                                          className="Select-arrow-zone"
+                                          onMouseDown={[Function]}
+                                        >
                                           <span
-                                            className="Select-arrow-zone"
-                                            onMouseDown={[Function]}
-                                          >
-                                            <span
-                                              className="icon-arrow-down"
-                                            />
-                                          </span>
-                                        </div>
+                                            className="icon-arrow-down"
+                                          />
+                                        </span>
                                       </div>
-                                    </Select>
-                                  </SelectPicker>
-                                </StyledSelect>
-                              </SelectControl>
-                            </div>
-                          </SelectFieldWrapper>
+                                    </div>
+                                  </Select>
+                                </SelectPicker>
+                              </StyledSelect>
+                            </SelectControl>
+                          </StyledSelectControl>
                         </div>
                       </div>
                     </SelectField>
@@ -3721,61 +3855,159 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             <div
                               className="controls"
                             >
-                              <SelectFieldWrapper>
-                                <div
-                                  className="css-mv2muq-SelectFieldWrapper e1qrhqd00"
-                                >
-                                  <SelectControl
-                                    choices={
+                              <StyledSelectControl
+                                choices={
+                                  Array [
+                                    Array [
+                                      "5",
+                                      "5 minutes",
+                                    ],
+                                    Array [
+                                      "10",
+                                      "10 minutes",
+                                    ],
+                                    Array [
+                                      "30",
+                                      "30 minutes",
+                                    ],
+                                    Array [
+                                      "60",
+                                      "60 minutes",
+                                    ],
+                                    Array [
+                                      "180",
+                                      "3 hours",
+                                    ],
+                                    Array [
+                                      "720",
+                                      "12 hours",
+                                    ],
+                                    Array [
+                                      "1440",
+                                      "24 hours",
+                                    ],
+                                    Array [
+                                      "10080",
+                                      "one week",
+                                    ],
+                                    Array [
+                                      "43200",
+                                      "30 days",
+                                    ],
+                                  ]
+                                }
+                                clearable={false}
+                                disabled={false}
+                                id="id-frequency"
+                                multiple={false}
+                                onChange={[Function]}
+                                required={true}
+                                value={30}
+                              >
+                                <SelectControl
+                                  choices={
+                                    Array [
                                       Array [
-                                        Array [
-                                          "5",
-                                          "5 minutes",
-                                        ],
-                                        Array [
-                                          "10",
-                                          "10 minutes",
-                                        ],
-                                        Array [
-                                          "30",
-                                          "30 minutes",
-                                        ],
-                                        Array [
-                                          "60",
-                                          "60 minutes",
-                                        ],
-                                        Array [
-                                          "180",
-                                          "3 hours",
-                                        ],
-                                        Array [
-                                          "720",
-                                          "12 hours",
-                                        ],
-                                        Array [
-                                          "1440",
-                                          "24 hours",
-                                        ],
-                                        Array [
-                                          "10080",
-                                          "one week",
-                                        ],
-                                        Array [
-                                          "43200",
-                                          "30 days",
-                                        ],
-                                      ]
-                                    }
+                                        "5",
+                                        "5 minutes",
+                                      ],
+                                      Array [
+                                        "10",
+                                        "10 minutes",
+                                      ],
+                                      Array [
+                                        "30",
+                                        "30 minutes",
+                                      ],
+                                      Array [
+                                        "60",
+                                        "60 minutes",
+                                      ],
+                                      Array [
+                                        "180",
+                                        "3 hours",
+                                      ],
+                                      Array [
+                                        "720",
+                                        "12 hours",
+                                      ],
+                                      Array [
+                                        "1440",
+                                        "24 hours",
+                                      ],
+                                      Array [
+                                        "10080",
+                                        "one week",
+                                      ],
+                                      Array [
+                                        "43200",
+                                        "30 days",
+                                      ],
+                                    ]
+                                  }
+                                  className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                                  clearable={false}
+                                  disabled={false}
+                                  id="id-frequency"
+                                  multiple={false}
+                                  onChange={[Function]}
+                                  required={true}
+                                  value={30}
+                                >
+                                  <StyledSelect
+                                    arrowRenderer={[Function]}
+                                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                     clearable={false}
                                     disabled={false}
                                     id="id-frequency"
                                     multiple={false}
                                     onChange={[Function]}
+                                    options={
+                                      Array [
+                                        Object {
+                                          "label": "5 minutes",
+                                          "value": "5",
+                                        },
+                                        Object {
+                                          "label": "10 minutes",
+                                          "value": "10",
+                                        },
+                                        Object {
+                                          "label": "30 minutes",
+                                          "value": "30",
+                                        },
+                                        Object {
+                                          "label": "60 minutes",
+                                          "value": "60",
+                                        },
+                                        Object {
+                                          "label": "3 hours",
+                                          "value": "180",
+                                        },
+                                        Object {
+                                          "label": "12 hours",
+                                          "value": "720",
+                                        },
+                                        Object {
+                                          "label": "24 hours",
+                                          "value": "1440",
+                                        },
+                                        Object {
+                                          "label": "one week",
+                                          "value": "10080",
+                                        },
+                                        Object {
+                                          "label": "30 days",
+                                          "value": "43200",
+                                        },
+                                      ]
+                                    }
                                     required={true}
                                     value={30}
                                   >
-                                    <StyledSelect
+                                    <SelectPicker
                                       arrowRenderer={[Function]}
+                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       disabled={false}
                                       id="id-frequency"
@@ -3824,14 +4056,42 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                       required={true}
                                       value={30}
                                     >
-                                      <SelectPicker
+                                      <Select
                                         arrowRenderer={[Function]}
-                                        className="css-16280ey-StyledSelect eho28m20"
+                                        autosize={true}
+                                        backspaceRemoves={true}
+                                        backspaceToRemoveMessage="Press backspace to remove {label}"
+                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        clearAllText="Clear all"
+                                        clearRenderer={[Function]}
+                                        clearValueText="Clear value"
                                         clearable={false}
+                                        closeOnSelect={true}
+                                        deleteRemoves={true}
+                                        delimiter=","
                                         disabled={false}
+                                        escapeClearsValue={true}
+                                        filterOptions={[Function]}
                                         id="id-frequency"
+                                        ignoreAccents={true}
+                                        ignoreCase={true}
+                                        inputProps={Object {}}
+                                        isLoading={false}
+                                        joinValues={false}
+                                        labelKey="label"
+                                        matchPos="any"
+                                        matchProp="any"
+                                        menuBuffer={0}
+                                        menuRenderer={[Function]}
+                                        multi={false}
                                         multiple={false}
+                                        noResultsText="No results found"
+                                        onBlurResetsInput={true}
                                         onChange={[Function]}
+                                        onCloseResetsInput={true}
+                                        onSelectResetsInput={true}
+                                        openOnClick={true}
+                                        optionComponent={[Function]}
                                         options={
                                           Array [
                                             Object {
@@ -3872,215 +4132,135 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                             },
                                           ]
                                         }
+                                        pageSize={5}
+                                        placeholder="Select..."
+                                        removeSelected={true}
                                         required={true}
+                                        rtl={false}
+                                        scrollMenuIntoView={true}
+                                        searchable={true}
+                                        simpleValue={false}
+                                        tabSelectsValue={true}
+                                        trimFilter={true}
                                         value={30}
+                                        valueComponent={[Function]}
+                                        valueKey="value"
                                       >
-                                        <Select
-                                          arrowRenderer={[Function]}
-                                          autosize={true}
-                                          backspaceRemoves={true}
-                                          backspaceToRemoveMessage="Press backspace to remove {label}"
-                                          className="css-16280ey-StyledSelect eho28m20"
-                                          clearAllText="Clear all"
-                                          clearRenderer={[Function]}
-                                          clearValueText="Clear value"
-                                          clearable={false}
-                                          closeOnSelect={true}
-                                          deleteRemoves={true}
-                                          delimiter=","
-                                          disabled={false}
-                                          escapeClearsValue={true}
-                                          filterOptions={[Function]}
-                                          id="id-frequency"
-                                          ignoreAccents={true}
-                                          ignoreCase={true}
-                                          inputProps={Object {}}
-                                          isLoading={false}
-                                          joinValues={false}
-                                          labelKey="label"
-                                          matchPos="any"
-                                          matchProp="any"
-                                          menuBuffer={0}
-                                          menuRenderer={[Function]}
-                                          multi={false}
-                                          multiple={false}
-                                          noResultsText="No results found"
-                                          onBlurResetsInput={true}
-                                          onChange={[Function]}
-                                          onCloseResetsInput={true}
-                                          onSelectResetsInput={true}
-                                          openOnClick={true}
-                                          optionComponent={[Function]}
-                                          options={
-                                            Array [
-                                              Object {
-                                                "label": "5 minutes",
-                                                "value": "5",
-                                              },
-                                              Object {
-                                                "label": "10 minutes",
-                                                "value": "10",
-                                              },
-                                              Object {
-                                                "label": "30 minutes",
-                                                "value": "30",
-                                              },
-                                              Object {
-                                                "label": "60 minutes",
-                                                "value": "60",
-                                              },
-                                              Object {
-                                                "label": "3 hours",
-                                                "value": "180",
-                                              },
-                                              Object {
-                                                "label": "12 hours",
-                                                "value": "720",
-                                              },
-                                              Object {
-                                                "label": "24 hours",
-                                                "value": "1440",
-                                              },
-                                              Object {
-                                                "label": "one week",
-                                                "value": "10080",
-                                              },
-                                              Object {
-                                                "label": "30 days",
-                                                "value": "43200",
-                                              },
-                                            ]
-                                          }
-                                          pageSize={5}
-                                          placeholder="Select..."
-                                          removeSelected={true}
-                                          required={true}
-                                          rtl={false}
-                                          scrollMenuIntoView={true}
-                                          searchable={true}
-                                          simpleValue={false}
-                                          tabSelectsValue={true}
-                                          trimFilter={true}
-                                          value={30}
-                                          valueComponent={[Function]}
-                                          valueKey="value"
+                                        <div
+                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                         >
                                           <div
-                                            className="Select css-16280ey-StyledSelect eho28m20 has-value is-searchable Select--single"
+                                            className="Select-control"
+                                            onKeyDown={[Function]}
+                                            onMouseDown={[Function]}
+                                            onTouchEnd={[Function]}
+                                            onTouchMove={[Function]}
+                                            onTouchStart={[Function]}
                                           >
-                                            <div
-                                              className="Select-control"
-                                              onKeyDown={[Function]}
-                                              onMouseDown={[Function]}
-                                              onTouchEnd={[Function]}
-                                              onTouchMove={[Function]}
-                                              onTouchStart={[Function]}
+                                            <span
+                                              className="Select-multi-value-wrapper"
+                                              id="react-select-6--value"
                                             >
-                                              <span
-                                                className="Select-multi-value-wrapper"
-                                                id="react-select-6--value"
+                                              <Value
+                                                disabled={false}
+                                                id="react-select-6--value-item"
+                                                instancePrefix="react-select-6-"
+                                                onClick={null}
+                                                placeholder="Select..."
+                                                value={
+                                                  Object {
+                                                    "label": "30 minutes",
+                                                    "value": "30",
+                                                  }
+                                                }
                                               >
-                                                <Value
-                                                  disabled={false}
-                                                  id="react-select-6--value-item"
-                                                  instancePrefix="react-select-6-"
-                                                  onClick={null}
-                                                  placeholder="Select..."
-                                                  value={
+                                                <div
+                                                  className="Select-value"
+                                                >
+                                                  <span
+                                                    aria-selected="true"
+                                                    className="Select-value-label"
+                                                    id="react-select-6--value-item"
+                                                    role="option"
+                                                  >
+                                                    30 minutes
+                                                  </span>
+                                                </div>
+                                              </Value>
+                                              <AutosizeInput
+                                                aria-activedescendant="react-select-6--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                className="Select-input"
+                                                id="id-frequency"
+                                                injectStyles={true}
+                                                minWidth="5"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={false}
+                                                role="combobox"
+                                                value=""
+                                              >
+                                                <div
+                                                  className="Select-input"
+                                                  style={
                                                     Object {
-                                                      "label": "30 minutes",
-                                                      "value": "30",
+                                                      "display": "inline-block",
                                                     }
                                                   }
                                                 >
-                                                  <div
-                                                    className="Select-value"
-                                                  >
-                                                    <span
-                                                      aria-selected="true"
-                                                      className="Select-value-label"
-                                                      id="react-select-6--value-item"
-                                                      role="option"
-                                                    >
-                                                      30 minutes
-                                                    </span>
-                                                  </div>
-                                                </Value>
-                                                <AutosizeInput
-                                                  aria-activedescendant="react-select-6--value"
-                                                  aria-expanded="false"
-                                                  aria-haspopup="false"
-                                                  aria-owns=""
-                                                  className="Select-input"
-                                                  id="id-frequency"
-                                                  injectStyles={true}
-                                                  minWidth="5"
-                                                  onBlur={[Function]}
-                                                  onChange={[Function]}
-                                                  onFocus={[Function]}
-                                                  required={false}
-                                                  role="combobox"
-                                                  value=""
-                                                >
-                                                  <div
-                                                    className="Select-input"
+                                                  <input
+                                                    aria-activedescendant="react-select-6--value"
+                                                    aria-expanded="false"
+                                                    aria-haspopup="false"
+                                                    aria-owns=""
+                                                    id="id-frequency"
+                                                    onBlur={[Function]}
+                                                    onChange={[Function]}
+                                                    onFocus={[Function]}
+                                                    required={false}
+                                                    role="combobox"
                                                     style={
                                                       Object {
-                                                        "display": "inline-block",
+                                                        "boxSizing": "content-box",
+                                                        "width": "5px",
                                                       }
                                                     }
-                                                  >
-                                                    <input
-                                                      aria-activedescendant="react-select-6--value"
-                                                      aria-expanded="false"
-                                                      aria-haspopup="false"
-                                                      aria-owns=""
-                                                      id="id-frequency"
-                                                      onBlur={[Function]}
-                                                      onChange={[Function]}
-                                                      onFocus={[Function]}
-                                                      required={false}
-                                                      role="combobox"
-                                                      style={
-                                                        Object {
-                                                          "boxSizing": "content-box",
-                                                          "width": "5px",
-                                                        }
+                                                    value=""
+                                                  />
+                                                  <div
+                                                    style={
+                                                      Object {
+                                                        "height": 0,
+                                                        "left": 0,
+                                                        "overflow": "scroll",
+                                                        "position": "absolute",
+                                                        "top": 0,
+                                                        "visibility": "hidden",
+                                                        "whiteSpace": "pre",
                                                       }
-                                                      value=""
-                                                    />
-                                                    <div
-                                                      style={
-                                                        Object {
-                                                          "height": 0,
-                                                          "left": 0,
-                                                          "overflow": "scroll",
-                                                          "position": "absolute",
-                                                          "top": 0,
-                                                          "visibility": "hidden",
-                                                          "whiteSpace": "pre",
-                                                        }
-                                                      }
-                                                    />
-                                                  </div>
-                                                </AutosizeInput>
-                                              </span>
+                                                    }
+                                                  />
+                                                </div>
+                                              </AutosizeInput>
+                                            </span>
+                                            <span
+                                              className="Select-arrow-zone"
+                                              onMouseDown={[Function]}
+                                            >
                                               <span
-                                                className="Select-arrow-zone"
-                                                onMouseDown={[Function]}
-                                              >
-                                                <span
-                                                  className="icon-arrow-down"
-                                                />
-                                              </span>
-                                            </div>
+                                                className="icon-arrow-down"
+                                              />
+                                            </span>
                                           </div>
-                                        </Select>
-                                      </SelectPicker>
-                                    </StyledSelect>
-                                  </SelectControl>
-                                </div>
-                              </SelectFieldWrapper>
+                                        </div>
+                                      </Select>
+                                    </SelectPicker>
+                                  </StyledSelect>
+                                </SelectControl>
+                              </StyledSelectControl>
                             </div>
                           </div>
                         </SelectField>

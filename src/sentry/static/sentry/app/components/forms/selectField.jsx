@@ -40,27 +40,25 @@ export default class SelectField extends FormField {
     const {options, creatable, choices, placeholder, disabled, required} = this.props;
 
     return (
-      <SelectFieldWrapper>
-        <SelectControl
-          creatable={creatable}
-          id={this.getId()}
-          choices={choices}
-          options={options}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          value={this.state.value}
-          onChange={this.onChange.bind(this)}
-          clearable={this.props.clearable}
-          multiple={this.isMultiple()}
-        />
-      </SelectFieldWrapper>
+      <StyledSelectControl
+        creatable={creatable}
+        id={this.getId()}
+        choices={choices}
+        options={options}
+        placeholder={placeholder}
+        disabled={disabled}
+        required={required}
+        value={this.state.value}
+        onChange={this.onChange.bind(this)}
+        clearable={this.props.clearable}
+        multiple={this.isMultiple()}
+      />
     );
   }
 }
 
 // This is to match other fields that are wrapped by a `div.control-group`
-const SelectFieldWrapper = styled('div')`
+const StyledSelectControl = styled(SelectControl)`
   ${Form} &, .form-stacked & {
     .control-group & {
       margin-bottom: 0;
