@@ -339,10 +339,10 @@ class JiraIntegrationTest(APITestCase):
                 'name': 'title',
                 'label': 'Title',
             }, {
-                'default': ('%s\n\n```\n'
+                'default': ('%s\n\n{code}\n'
                             'Stacktrace (most recent call last):\n\n  '
                             'File "sentry/models/foo.py", line 29, in build_msg\n    '
-                            'string_max_length=self.string_max_length)\n\nmessage\n```'
+                            'string_max_length=self.string_max_length)\n\nmessage\n{code}'
                             ) % (absolute_uri(group.get_absolute_url()),),
                 'type': 'textarea',
                 'name': 'description',
