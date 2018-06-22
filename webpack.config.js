@@ -67,7 +67,6 @@ var appEntry = {
     'react-router',
     'react-bootstrap/lib/Modal',
     'reflux',
-    'select2', // TODO(billy): Remove this #SELECT2
     'vendor/simple-slider/simple-slider',
     'emotion',
     'react-emotion',
