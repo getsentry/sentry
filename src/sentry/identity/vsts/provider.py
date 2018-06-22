@@ -19,6 +19,7 @@ class VSTSIdentityProvider(OAuth2Provider):
     oauth_authorize_url = 'https://app.vssps.visualstudio.com/oauth2/authorize'
     oauth_scopes = (
         'vso.code',
+        'vso.graph',
         'vso.project',
         'vso.release',
         'vso.serviceendpoint_manage',
@@ -50,7 +51,7 @@ class VSTSIdentityProvider(OAuth2Provider):
             AccountConfigView(),
         ]
 
-    def get_refresh_token_header(self):
+    def get_refresh_token_headers(self):
         return {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Content-Length': '1654',
