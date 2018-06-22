@@ -5,7 +5,10 @@ import pytest
 import six
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import GroupAssignee, Activity, Integration, GroupLink, ExternalIssue
+from sentry.models import (
+    GroupAssignee, Activity, Integration, GroupLink, ExternalIssue,
+    sync_group_assignee_inbound
+)
 from sentry.testutils import TestCase
 
 
@@ -189,3 +192,83 @@ class GroupAssigneeTestCase(TestCase):
                     group=self.group,
                     type=Activity.UNASSIGNED,
                 ).exists()
+
+    def test_assignee_sync_inbound_assign(self):
+        group = self.group
+        user_no_access = self.create_user()
+        user_w_access = self.user
+        integration = Integration.objects.create(
+            provider='example',
+            external_id='123456',
+        )
+        integration.add_organization(group.organization.id)
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+            key='APP-123',
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        # no permissions
+        groups_updated = sync_group_assignee_inbound(
+            integration, user_no_access.email, 'APP-123'
+        )
+
+        assert not groups_updated
+
+        # w permissions
+        groups_updated = sync_group_assignee_inbound(
+            integration, user_w_access.email, 'APP-123'
+        )
+
+        assert groups_updated[0] == group
+        assert GroupAssignee.objects.filter(
+            project=group.project,
+            group=group,
+            user=user_w_access,
+            team__isnull=True,
+        ).exists()
+
+    def test_assignee_sync_inbound_deassign(self):
+        group = self.group
+        integration = Integration.objects.create(
+            provider='example',
+            external_id='123456',
+        )
+        integration.add_organization(group.organization.id)
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+            key='APP-123',
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        GroupAssignee.objects.assign(group, self.user)
+
+        groups_updated = sync_group_assignee_inbound(
+            integration, self.user.email, 'APP-123', assign=False,
+        )
+
+        assert groups_updated[0] == group
+        assert not GroupAssignee.objects.filter(
+            project=group.project,
+            group=group,
+            user=self.user,
+            team__isnull=True,
+        ).exists()
