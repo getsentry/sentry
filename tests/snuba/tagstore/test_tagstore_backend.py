@@ -287,6 +287,7 @@ class TagStorageTest(SnubaTestCase):
         assert tags[0].last_seen == one_second_ago
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
+        assert tags[0].key == 'sentry:release'
 
     def test_get_group_event_filter(self):
         assert self.ts.get_group_event_filter(
