@@ -81,13 +81,18 @@ class ProjectPluginDetails extends AsyncView {
     let enabled = this.getEnabled();
 
     let enable = (
-      <Button onClick={this.handleEnable} style={{marginRight: '6px'}}>
+      <Button size="small" onClick={this.handleEnable} style={{marginRight: '6px'}}>
         {t('Enable Plugin')}
       </Button>
     );
 
     let disable = (
-      <Button priority="danger" onClick={this.handleDisable} style={{marginRight: '6px'}}>
+      <Button
+        size="small"
+        priority="danger"
+        onClick={this.handleDisable}
+        style={{marginRight: '6px'}}
+      >
         {t('Disable Plugin')}
       </Button>
     );
@@ -97,7 +102,9 @@ class ProjectPluginDetails extends AsyncView {
     return (
       <div className="pull-right">
         {pluginDetails.canDisable && toggleEnable}
-        <Button onClick={this.handleReset}>{t('Reset Configuration')}</Button>
+        <Button size="small" onClick={this.handleReset}>
+          {t('Reset Configuration')}
+        </Button>
       </div>
     );
   }
