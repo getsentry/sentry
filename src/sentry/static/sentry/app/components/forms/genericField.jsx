@@ -71,7 +71,7 @@ export default class GenericField extends React.Component {
       case 'choice':
       case 'select':
         // the chrome required tip winds up in weird places
-        // for select2 elements, so just make it look like
+        // for select elements, so just make it look like
         // it's required (with *) and rely on server validation
         delete props.required;
         if (props.has_autocomplete) {
