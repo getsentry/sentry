@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
@@ -24,20 +24,13 @@ Define a relationship between Sentry and GitHub.
  * Create or link existing GitHub issues. (coming soon)
 """
 
-alert_link = {
-    'text': 'Looking to add one of your repositories to sync commit data? Add a **Repo** for your organization.',
-    'link': '/settings/{orgId}/repos/'
-}
-
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github',
-    aspects={
-        'alert_link': alert_link,
-    }
+    aspects={},
 )
 
 API_ERRORS = {
@@ -76,6 +69,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
     name = 'GitHub'
     metadata = metadata
     integration_cls = GitHubIntegration
+
+    features = frozenset([
+        IntegrationFeatures.COMMITS,
+        IntegrationFeatures.ISSUE_SYNC,
+    ])
 
     setup_dialog_config = {
         'width': 1030,

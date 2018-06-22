@@ -1,10 +1,13 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationIntegration render() with one integration renders 1`] = `
+exports[`Integration render() with one integration renders 1`] = `
 <SideEffect(DocumentTitle)
   title="GitHub Integration - Sentry"
 >
   <React.Fragment>
+    <BreadcrumbTitle
+      title="GitHub"
+    />
     <SettingsPageHeading
       icon={
         <PluginIcon
@@ -24,31 +27,42 @@ exports[`OrganizationIntegration render() with one integration renders 1`] = `
         >
           Installation
         </Box>
-        <Tooltip
-          disabled={true}
-          title="Integration cannot be added on Sentry. Enable this integration via the GitHub instance."
-          tooltipOptions={
-            Object {
-              "placement": "left",
-            }
-          }
+        <Box
+          mr={1}
         >
-          <Box
-            mr={1}
-          >
-            <Button
-              disabled={false}
-              onClick={[Function]}
-              size="xsmall"
-            >
-              <span
-                className="icon icon-add"
-              />
-               
-              Add Installation
-            </Button>
-          </Box>
-        </Tooltip>
+          <AddIntegrationButton
+            onAddIntegration={[Function]}
+            provider={
+              Object {
+                "canAdd": true,
+                "canAddProject": false,
+                "config": Array [],
+                "features": Array [],
+                "key": "github",
+                "metadata": Object {
+                  "aspects": Object {
+                    "alert_link": Object {
+                      "link": "/url/with/params/{orgId}/",
+                      "text": "This is a *alert link* with markdown formatting",
+                    },
+                  },
+                  "author": "Morty",
+                  "description": "*markdown* formatted _description_",
+                  "issue_url": "http://example.com/integration_issue_url",
+                  "noun": "Installation",
+                  "source_url": "http://example.com/integration_source_url",
+                },
+                "name": "GitHub",
+                "setupDialog": Object {
+                  "height": 100,
+                  "url": "/github-integration-setup-uri/",
+                  "width": 100,
+                },
+              }
+            }
+            size="xsmall"
+          />
+        </Box>
       </PanelHeader>
       <PanelBody
         direction="column"
@@ -67,6 +81,9 @@ exports[`OrganizationIntegration render() with one integration renders 1`] = `
               "id": "1",
               "name": "Test Integration",
               "provider": Object {
+                "canAdd": true,
+                "canAddProject": false,
+                "features": Array [],
                 "key": "github",
                 "name": "GitHub",
               },
@@ -77,12 +94,12 @@ exports[`OrganizationIntegration render() with one integration renders 1`] = `
           onRemove={[Function]}
           onToggleEnabled={[Function]}
           orgId="org-slug"
-          projectId="project-slug"
           provider={
             Object {
               "canAdd": true,
               "canAddProject": false,
               "config": Array [],
+              "features": Array [],
               "key": "github",
               "metadata": Object {
                 "aspects": Object {
@@ -109,7 +126,7 @@ exports[`OrganizationIntegration render() with one integration renders 1`] = `
       </PanelBody>
     </Panel>
     <AlertLink
-      to="/url/with/params/org-slug/"
+      onClick={[Function]}
     >
       <span
         dangerouslySetInnerHTML={
@@ -143,9 +160,9 @@ exports[`OrganizationIntegration render() with one integration renders 1`] = `
 </SideEffect(DocumentTitle)>
 `;
 
-exports[`OrganizationIntegration render() without any integrations Displays an error for an invalid provider key 1`] = `
+exports[`Integration render() without any integrations Displays an error for an invalid provider key 1`] = `
 <SideEffect(DocumentTitle)
-  title="Global Integrations - Sentry"
+  title="Integration - Sentry"
 >
   <LoadingError
     message="Invalid integration provider"

@@ -19,8 +19,8 @@ Define a relationship between Sentry and your Slack workspace(s).
 """
 
 alert_link = {
-    'text': 'Looking to send Sentry alerts to Slack? Add an **Alert Rule** for this project.',
-    'link': '/settings/{orgId}/{projectId}/alerts/rules/'
+    'text': 'Looking to send Sentry alerts to Slack? Add an **Alert Rule** to a project.',
+    'link': '/settings/:orgId/:projectId/alerts/rules/'
 }
 
 metadata = IntegrationMetadata(
