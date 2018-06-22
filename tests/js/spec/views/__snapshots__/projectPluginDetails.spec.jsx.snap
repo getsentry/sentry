@@ -128,6 +128,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Button
                   disabled={false}
                   onClick={[Function]}
+                  size="small"
                   style={
                     Object {
                       "marginRight": "6px",
@@ -139,6 +140,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Button
                   disabled={false}
                   onClick={[Function]}
+                  size="small"
                 >
                   Reset Configuration
                 </Button>
@@ -180,6 +182,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                           <Button
                             disabled={false}
                             onClick={[Function]}
+                            size="small"
                             style={
                               Object {
                                 "marginRight": "6px",
@@ -191,6 +194,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               disabled={false}
                               onClick={[Function]}
                               role="button"
+                              size="small"
                               style={
                                 Object {
                                   "marginRight": "6px",
@@ -199,10 +203,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Enable Plugin"
-                                className="css-cmo08-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="small"
                                 style={
                                   Object {
                                     "marginRight": "6px",
@@ -211,31 +216,38 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Enable Plugin"
-                                  className="css-cmo08-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
+                                  size="small"
                                   style={
                                     Object {
                                       "marginRight": "6px",
                                     }
                                   }
                                 >
-                                  <ButtonLabel>
+                                  <ButtonLabel
+                                    size="small"
+                                  >
                                     <Component
-                                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      size="small"
                                     >
                                       <Flex
                                         align="center"
-                                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                                        className="css-19bmqb3-ButtonLabel e17811v31"
+                                        size="small"
                                       >
                                         <Base
                                           align="center"
-                                          className="e17811v31 css-mvnt76-ButtonLabel"
+                                          className="e17811v31 css-1eblpyp-ButtonLabel"
+                                          size="small"
                                         >
                                           <div
-                                            className="e17811v31 css-mvnt76-ButtonLabel"
+                                            className="e17811v31 css-1eblpyp-ButtonLabel"
                                             is={null}
+                                            size="small"
                                           >
                                             Enable Plugin
                                           </div>
@@ -250,42 +262,52 @@ exports[`ProjectPluginDetails renders 1`] = `
                           <Button
                             disabled={false}
                             onClick={[Function]}
+                            size="small"
                           >
                             <StyledButton
                               aria-label="Reset Configuration"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
+                              size="small"
                             >
                               <Component
                                 aria-label="Reset Configuration"
-                                className="css-cmo08-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="small"
                               >
                                 <button
                                   aria-label="Reset Configuration"
-                                  className="css-cmo08-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
+                                  size="small"
                                 >
-                                  <ButtonLabel>
+                                  <ButtonLabel
+                                    size="small"
+                                  >
                                     <Component
-                                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      size="small"
                                     >
                                       <Flex
                                         align="center"
-                                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                                        className="css-19bmqb3-ButtonLabel e17811v31"
+                                        size="small"
                                       >
                                         <Base
                                           align="center"
-                                          className="e17811v31 css-mvnt76-ButtonLabel"
+                                          className="e17811v31 css-1eblpyp-ButtonLabel"
+                                          size="small"
                                         >
                                           <div
-                                            className="e17811v31 css-mvnt76-ButtonLabel"
+                                            className="e17811v31 css-1eblpyp-ButtonLabel"
                                             is={null}
+                                            size="small"
                                           >
                                             Reset Configuration
                                           </div>
