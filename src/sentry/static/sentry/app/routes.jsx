@@ -297,7 +297,6 @@ const projectSettingsRoutes = (
       component={errorHandler(ProjectDebugSymbols)}
     />
     <Route
-      key="processing-issues/"
       path="processing-issues/"
       name="Processing Issues"
       componentPromise={() =>
@@ -315,7 +314,6 @@ const projectSettingsRoutes = (
       <Route path=":filterType/" />
     </Route>
     <Route
-      key="hooks/"
       path="hooks/"
       name="Service Hooks"
       componentPromise={() =>
@@ -323,7 +321,6 @@ const projectSettingsRoutes = (
       component={errorHandler(LazyLoad)}
     />
     <Route
-      key="hooks/new/"
       path="hooks/new/"
       name="Create Service Hook"
       componentPromise={() =>
@@ -331,7 +328,6 @@ const projectSettingsRoutes = (
       component={errorHandler(LazyLoad)}
     />
     <Route
-      key="hooks/:hookId/"
       path="hooks/:hookId/"
       name="Service Hook Details"
       componentPromise={() =>
@@ -361,7 +357,7 @@ const projectSettingsRoutes = (
       component={errorHandler(LazyLoad)}
     />
     <Redirect from="csp/" to="security-headers/" />
-    <Route key="security-headers/" path="security-headers/" name="Security Headers">
+    <Route path="security-headers/" name="Security Headers">
       <IndexRoute
         componentPromise={() =>
           import(/*webpackChunkName: "ProjectSecurityHeaders"*/ './views/settings/projectSecurityHeaders')}
@@ -369,7 +365,6 @@ const projectSettingsRoutes = (
       />
       <Route
         path="csp/"
-        key="csp/"
         name="Content Security Policy"
         componentPromise={() =>
           import(/*webpackChunkName: "ProjectCspReports"*/ './views/settings/projectSecurityHeaders/csp')}
@@ -377,7 +372,6 @@ const projectSettingsRoutes = (
       />
       <Route
         path="expect-ct/"
-        key="expect-ct/"
         name="Certificate Transparency"
         componentPromise={() =>
           import(/*webpackChunkName: "ProjectExpectCtReports"*/ './views/settings/projectSecurityHeaders/expectCt')}
@@ -385,14 +379,13 @@ const projectSettingsRoutes = (
       />
       <Route
         path="hpkp/"
-        key="hpkp/"
         name="HPKP"
         componentPromise={() =>
           import(/*webpackChunkName: "ProjectHpkpReports"*/ './views/settings/projectSecurityHeaders/hpkp')}
         component={errorHandler(LazyLoad)}
       />
     </Route>
-    <Route key="plugins/" path="plugins/" name="Integrations">
+    <Route path="plugins/" name="Integrations">
       <IndexRoute component={errorHandler(ProjectPlugins)} />
       <Route
         path=":pluginId/"
