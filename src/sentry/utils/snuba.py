@@ -142,6 +142,9 @@ def raw_query(start, end, groupby, conditions=None, filter_keys=None,
             raise SnubaError(body['error'])
         else:
             raise SnubaError('HTTP {}'.format(response.status))
+
+    # Forward and reverse translation maps from model ids to snuba keys, per column
+    body['data'] = [reverse(d) for d in body['data']]
     return body
 
 
@@ -157,9 +160,6 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
                      selected_columns=selected_columns, aggregations=aggregations, rollup=rollup, arrayjoin=arrayjoin,
                      limit=limit, orderby=orderby, having=having, referrer=referrer, is_grouprelease=is_grouprelease)
 
-    # Forward and reverse translation maps from model ids to snuba keys, per column
-    with timer('get_snuba_map'):
-        forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=is_grouprelease)
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
     expected_cols = set(groupby + aggregate_cols + selected_columns)
@@ -168,7 +168,6 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     assert expected_cols == got_cols
 
     with timer('process_result'):
-        body['data'] = [reverse(d) for d in body['data']]
         return nest_groups(body['data'], groupby, aggregate_cols)
 
 
