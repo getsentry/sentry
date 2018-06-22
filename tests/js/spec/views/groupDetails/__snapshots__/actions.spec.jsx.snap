@@ -101,17 +101,18 @@ exports[`GroupActions render() renders correctly 1`] = `
     target="issue_tracking"
     type="text"
   >
-    <a
+    <Link
       className="btn btn-default btn-sm btn-config-issue-tracking"
-      href="/org/project/settings/issue-tracking/"
+      onlyActiveOnIndex={false}
       style={
         Object {
           "marginRight": "5px",
         }
       }
+      to="/org/project/settings/issue-tracking/"
     >
       Link Issue Tracker
-    </a>
+    </Link>
   </GuideAnchor>
 </div>
 `;

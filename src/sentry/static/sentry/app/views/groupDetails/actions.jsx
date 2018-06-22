@@ -1,4 +1,4 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -302,14 +302,14 @@ const GroupDetailsActions = createReactClass({
           })}
         {!hasIssueTracking && (
           <GuideAnchor type="text" target="issue_tracking">
-            <a
-              href={`/${this.getOrganization().slug}/${this.getProject()
+            <Link
+              to={`/${this.getOrganization().slug}/${this.getProject()
                 .slug}/settings/issue-tracking/`}
               className={'btn btn-default btn-sm btn-config-issue-tracking'}
               style={{marginRight: '5px'}}
             >
               {t('Link Issue Tracker')}
-            </a>
+            </Link>
           </GuideAnchor>
         )}
         {orgFeatures.has('internal-catchall') && (
