@@ -91,6 +91,7 @@ export default {
       RadioBooleanField: require('app/components/forms/radioBooleanField').default,
       RangeField: require('app/components/forms/rangeField').default,
       SelectField: require('app/components/forms/selectField').default,
+      // TODO(billy): Remove this after getsentry is merged/updated #SELECT2
       Select2Field: require('app/components/forms/selectField').default,
       TextField: require('app/components/forms/textField').default,
       TextareaField: require('app/components/forms/textareaField').default,
