@@ -500,6 +500,12 @@ class ValidateDataTest(BaseAPITest):
         assert data.get('fingerprint') == ['{{default}}', '10000000000']
         assert len(data['errors']) == 0
 
+        data = self.validate_and_normalize({
+            'fingerprint': [],
+        })
+        assert data.get('fingerprint') == []
+        assert len(data['errors']) == 0
+
     def test_messages(self):
         # Just 'message': wrap it in interface
         data = self.validate_and_normalize({
