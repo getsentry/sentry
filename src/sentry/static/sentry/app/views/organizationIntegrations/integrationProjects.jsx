@@ -180,7 +180,7 @@ class IntegrationProjects extends AsyncComponent {
                           {t(
                             'Are you sure you want to remove the integration from %s?',
                             project.slug
-                          )}}
+                          )}
                         </strong>
                       </p>
                       <p>
