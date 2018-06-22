@@ -282,5 +282,22 @@ describe('SearchBar', function() {
       clock.tick(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
     });
+
+    it('does not request values when tag is `timesSeen`', function() {
+      // This should never get called
+      let mock = MockApiClient.addMockResponse({
+        url: '/projects/123/456/tags/timesSeen/values/',
+        body: [],
+      });
+      let props = {
+        orgId: '123',
+        projectId: '456',
+        query: 'timesSeen:',
+      };
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+      clock.tick(301);
+      expect(mock).not.toHaveBeenCalled();
+    });
   });
 });

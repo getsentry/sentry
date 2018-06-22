@@ -109,9 +109,10 @@ const StreamSidebar = createReactClass({
   },
 
   render() {
+    let {loading, orgId, projectId, tags} = this.props;
     return (
       <div className="stream-sidebar">
-        {this.props.loading ? (
+        {loading ? (
           <LoadingIndicator />
         ) : (
           <div>
@@ -133,15 +134,15 @@ const StreamSidebar = createReactClass({
               <hr />
             </div>
 
-            {_.map(this.props.tags, tag => {
+            {_.map(tags, tag => {
               return (
                 <StreamTagFilter
                   value={this.state.queryObj[tag.key]}
                   key={tag.key}
                   tag={tag}
                   onSelect={this.onSelectTag}
-                  orgId={this.props.orgId}
-                  projectId={this.props.projectId}
+                  orgId={orgId}
+                  projectId={projectId}
                 />
               );
             })}
