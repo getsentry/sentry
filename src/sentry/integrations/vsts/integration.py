@@ -45,7 +45,8 @@ class VstsIntegration(Integration, VstsIssueSync):
         except ApiError:
             # TODO(LB): Disable for now. Need to decide what to do with this in the future
             # should a message be shown to the user?
-            # Should we try refreshing the token? For VSTS that often clears up the problem
+            #  If INVALID_ACCESS_TOKEN ask the user to reinstall integration?
+
             project_choices = []
             disabled = True
         else:
