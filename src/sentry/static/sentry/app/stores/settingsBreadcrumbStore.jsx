@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {stringifyRouteList} from 'app/utils';
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 const SettingsBreadcrumbStore = Reflux.createStore({
   init() {
@@ -19,12 +19,12 @@ const SettingsBreadcrumbStore = Reflux.createStore({
   },
 
   onUpdateRouteMap({routes, title}) {
-    this.pathMap[stringifyRouteList(routes)] = title;
+    this.pathMap[getRouteStringFromRoutes(routes)] = title;
     this.trigger(this.pathMap);
   },
 
   onTrimMappings(routes) {
-    const routePath = stringifyRouteList(routes);
+    const routePath = getRouteStringFromRoutes(routes);
     for (const fullPath in this.pathMap) {
       if (!routePath.startsWith(fullPath)) delete this.pathMap[fullPath];
     }
