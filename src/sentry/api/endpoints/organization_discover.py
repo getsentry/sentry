@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.bases import OrganizationMemberEndpoint
+from sentry.api.bases import OrganizationEndpoint
 
-from sentry.models import Project, ProjectStatus, OrganizationMemberTeam
+from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 
 from sentry import roles
 
@@ -31,9 +31,14 @@ class DiscoverSerializer(serializers.Serializer):
     end = serializers.DateTimeField(required=True)
     limit = serializers.IntegerField(min_value=0, max_value=1000, required=False)
 
+    def __init__(self, *args, **kwargs):
+        super(DiscoverSerializer, self).__init__(*args, **kwargs)
+        self.member = OrganizationMember.objects.get(
+            user=self.context['user'], organization=self.context['organization'])
+
     def validate_projects(self, attrs, source):
         organization = self.context['organization']
-        member = self.context['member']
+        member = self.member
         projects = attrs[source]
 
         org_projects = set(Project.objects.filter(
@@ -62,7 +67,7 @@ class DiscoverSerializer(serializers.Serializer):
         return set(requested_projects).issubset(set(member_project_list))
 
 
-class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
+class OrganizationDiscoverEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDiscoverPermission, )
 
     def do_query(self, start, end, groupby, **kwargs):
@@ -77,7 +82,7 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
 
         return snuba_results
 
-    def post(self, request, organization, member):
+    def post(self, request, organization):
         data = request.DATA
 
         filters = {
@@ -100,7 +105,7 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
 
         serializer = DiscoverSerializer(
             data=request.DATA, context={
-                'organization': organization, 'member': member})
+                'organization': organization, 'user': request.user})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
