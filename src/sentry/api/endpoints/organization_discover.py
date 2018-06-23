@@ -29,7 +29,24 @@ class DiscoverSerializer(serializers.Serializer):
     )
     start = serializers.DateTimeField(required=True)
     end = serializers.DateTimeField(required=True)
+    fields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+    )
     limit = serializers.IntegerField(min_value=0, max_value=1000, required=False)
+    rollup = serializers.IntegerField(required=False)
+    orderby = serializers.CharField(required=False, default='-last_seen')
+    conditions = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+    )
+    aggregations = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+    )
 
     def __init__(self, *args, **kwargs):
         super(DiscoverSerializer, self).__init__(*args, **kwargs)
@@ -83,26 +100,6 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
         return snuba_results
 
     def post(self, request, organization):
-        data = request.DATA
-
-        filters = {
-            'project_id': data['projects']
-        } if 'projects' in data else None
-
-        selected_columns = data.get('fields')
-
-        orderby = data.get('orderby', '-last_seen')
-
-        conditions = data.get('conditions')
-
-        limit = data.get('limit', 1000)
-
-        aggregations = data.get('aggregations')
-
-        groupby = data.get('groupby')
-
-        rollup = data.get('rollup')
-
         serializer = DiscoverSerializer(
             data=request.DATA, context={
                 'organization': organization, 'user': request.user})
@@ -113,16 +110,16 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
         serialized = serializer.object
 
         results = self.do_query(
-            serialized['start'],
-            serialized['end'],
-            groupby,
-            selected_columns=selected_columns,
-            conditions=conditions,
-            orderby=orderby,
-            limit=limit,
-            aggregations=aggregations,
-            rollup=rollup,
-            filter_keys=filters,
+            serialized.get('start'),
+            serialized.get('end'),
+            serialized.get('groupby'),
+            selected_columns=serialized.get('fields'),
+            conditions=serialized.get('conditions'),
+            orderby=serialized.get('orderby'),
+            limit=serialized.get('limit'),
+            aggregations=serialized.get('aggregations'),
+            rollup=serialized.get('rollup'),
+            filter_keys={'project_id': serialized.get('projects')},
         )
 
         return Response(results, status=200)
