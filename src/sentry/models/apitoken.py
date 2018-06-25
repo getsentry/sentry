@@ -8,7 +8,10 @@ from django.db import models, transaction
 from django.utils import timezone
 from uuid import uuid4
 
-from sentry.db.models import (ArrayField, Model, BaseManager, FlexibleForeignKey, sane_repr)
+from sentry.models.apiscopes import ApiScopes
+from sentry.db.models import (
+    ArrayField, Model, BaseManager, FlexibleForeignKey, sane_repr
+)
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
@@ -19,28 +22,21 @@ class ApiToken(Model):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey('sentry.ApiApplication', null=True)
     user = FlexibleForeignKey('sentry.User')
-    token = models.CharField(max_length=64, unique=True, default=lambda: ApiToken.generate_token())
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        default=lambda: ApiToken.generate_token(),
+    )
     refresh_token = models.CharField(
-        max_length=64, unique=True, null=True, default=lambda: ApiToken.generate_token()
+        max_length=64,
+        unique=True,
+        null=True,
+        default=lambda: ApiToken.generate_token(),
     )
     expires_at = models.DateTimeField(
         null=True, default=lambda: timezone.now() + DEFAULT_EXPIRATION
     )
-    scopes = BitField(
-        flags=(
-            ('project:read', 'project:read'), ('project:write',
-                                               'project:write'), ('project:admin', 'project:admin'),
-            ('project:releases', 'project:releases'), ('team:read',
-                                                       'team:read'), ('team:write', 'team:write'),
-            ('team:admin', 'team:admin'), ('event:read',
-                                           'event:read'), ('event:write', 'event:write'),
-            ('event:admin', 'event:admin'), ('org:read', 'org:read'), ('org:write', 'org:write'),
-            ('org:admin',
-             'org:admin'), ('member:read',
-                            'member:read'), ('member:write',
-                                             'member:write'), ('member:admin', 'member:admin'),
-        )
-    )
+    scopes = BitField(flags=ApiScopes().to_bitfield())
     scope_list = ArrayField(of=models.TextField)
     date_added = models.DateTimeField(default=timezone.now)
 

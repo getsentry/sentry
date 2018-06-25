@@ -68,6 +68,16 @@ class User(BaseModel, AbstractBaseUser):
             'modifying their account (username, password, etc).'
         )
     )
+    is_sentry_app = models.NullBooleanField(
+        _('is sentry app'),
+        null=True,
+        default=None,
+        help_text=_(
+            'Designates whether this user is the entity used for Permissions'
+            'on behalf of a Sentry App. Cannot login or use Sentry like a'
+            'normal User would.'
+        )
+    )
     is_password_expired = models.BooleanField(
         _('password expired'),
         default=False,
