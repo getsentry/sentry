@@ -11,7 +11,7 @@ from requests.exceptions import HTTPError
 
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.plugins import plugins
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import (
@@ -27,6 +27,8 @@ OK_UPDATED = 'Successfully updated configuration.'
 
 
 class ProjectPluginDetailsEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectSettingPermission, )
+
     def _get_plugin(self, plugin_id):
         try:
             return plugins.get(plugin_id)
