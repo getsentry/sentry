@@ -9,7 +9,6 @@ from sentry.models import (
 )
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
-from sentry.utils.query import RangeQuerySetWrapper
 
 
 def attach_eventuser(project_id):
@@ -91,9 +90,8 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         else:
             callbacks = []
 
-        queryset = RangeQuerySetWrapper(
-            tagstore.get_group_tag_value_qs(group.project_id, group.id, environment_id, lookup_key),
-            callbacks=callbacks,
+        gtv_iter = tagstore.get_group_tag_value_iter(
+            group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks
         )
 
         filename = '{}-{}'.format(
@@ -101,4 +99,4 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             key,
         )
 
-        return self.to_csv_response(queryset, filename, key=key)
+        return self.to_csv_response(gtv_iter, filename, key=key)

@@ -35,7 +35,7 @@ def has_shape(data, shape, allow_empty=False):
     Any other object simply has to have the same type.
     If `allow_empty` is set, lists and dicts in `data` will pass even if they are empty.
     """
-    if type(data) != type(shape):
+    if not isinstance(data, type(shape)):
         return False
     if isinstance(data, dict):
         return (allow_empty or len(data) > 0) and\
