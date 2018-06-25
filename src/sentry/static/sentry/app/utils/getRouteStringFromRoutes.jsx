@@ -12,10 +12,10 @@ export default function getRouteStringFromRoutes(routes) {
   // Strip the first route (path: '/') since the subsequent children routes
   // are all absolute paths
   return (
+    '/' +
     routes
-      .splice(1)
-      .filter(({path}) => path)
-      .map(({path}) => path)
-      .join('') || ''
+      .filter(r => r.path)
+      .map(r => r.path.replace(/^\//, ''))
+      .join('')
   );
 }
