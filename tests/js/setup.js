@@ -31,6 +31,13 @@ jest.mock('react-lazyload', () => {
   return LazyLoadMock;
 });
 
+jest.mock('raven-js', () => ({
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+  showReportDialog: jest.fn(),
+  lastEventId: jest.fn(),
+}));
+
 const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
 
@@ -45,7 +52,7 @@ window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
-window.scrollTo = sinon.spy();
+window.scrollTo = jest.fn();
 
 // Instead of wrapping codeblocks in `setTimeout`
 window.tick = () => new Promise(res => setTimeout(res));
@@ -53,11 +60,6 @@ window.tick = () => new Promise(res => setTimeout(res));
 // emotion context broadcast
 const broadcast = createBroadcast(theme);
 
-window.Raven = {
-  captureMessage: sinon.spy(),
-  captureException: sinon.spy(),
-  lastEventId: sinon.spy(),
-};
 window.TestStubs = {
   // react-router's 'router' context
   router: (params = {}) => ({

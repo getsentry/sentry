@@ -25,7 +25,6 @@
     "MockApiClient": true,
     "TestStubs": true,
     "tick": true,
-    "Raven": true,
     "jest": true
   },
   "plugins": [

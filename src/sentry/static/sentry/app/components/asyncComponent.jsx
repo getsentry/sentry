@@ -1,5 +1,6 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 
 import {Client} from 'app/api';

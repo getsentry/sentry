@@ -1,4 +1,6 @@
 import {isString} from 'lodash';
+import Raven from 'raven-js';
+
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {

@@ -1,5 +1,6 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
