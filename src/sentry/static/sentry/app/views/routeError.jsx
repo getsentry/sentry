@@ -94,3 +94,4 @@ class RouteError extends React.Component {
 }
 
 export default withRouter(RouteError);
+export {RouteError};
