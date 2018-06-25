@@ -469,9 +469,11 @@ function routes() {
       <Route
         path="auth/"
         name="Auth Providers"
-        componentPromise={() =>
-          import(/*webpackChunkName: OrganizationAuth*/ './views/settings/organizationAuth')}
-        component={errorHandler(LazyLoad)}
+        component={
+            HookStore.get('component:org-auth-view').length
+              ? HookStore.get('component:org-auth-view')[0]()
+              : OrganizationAuth
+        }
       />
 
       <Route path="members/" name="Members">
