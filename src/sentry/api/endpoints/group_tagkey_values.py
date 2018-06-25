@@ -4,11 +4,9 @@ from sentry import tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 from sentry.models import Group, Environment
-from sentry.tagstore.types import GroupTagValue
 from sentry.utils.apidocs import scenario
 
 
@@ -51,43 +49,25 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        queryset = tagstore.get_group_tag_value_qs(
-            group.project_id, group.id, environment_id, lookup_key)
-
         sort = request.GET.get('sort')
         if sort == 'date':
             order_by = '-last_seen'
-            paginator_cls = DateTimePaginator
         elif sort == 'age':
             order_by = '-first_seen'
-            paginator_cls = DateTimePaginator
         else:
             order_by = '-id'
-            paginator_cls = Paginator
 
         if key == 'user':
             serializer_cls = UserTagValueSerializer(group.project_id)
         else:
             serializer_cls = None
 
+        paginator = tagstore.get_group_tag_value_paginator(
+            group.project_id, group.id, environment_id, lookup_key, order_by=order_by
+        )
+
         return self.paginate(
             request=request,
-            queryset=queryset,
-            order_by=order_by,
-            paginator_cls=paginator_cls,
-            on_results=lambda results: serialize(
-                map(  # XXX: This is a pretty big abstraction leak
-                    lambda instance: GroupTagValue(
-                        group_id=instance.group_id,
-                        key=instance.key,
-                        value=instance.value,
-                        times_seen=instance.times_seen,
-                        last_seen=instance.last_seen,
-                        first_seen=instance.first_seen,
-                    ),
-                    results,
-                ),
-                request.user,
-                serializer_cls,
-            ),
+            paginator=paginator,
+            on_results=lambda results: serialize(results, request.user, serializer_cls),
         )

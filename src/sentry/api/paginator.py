@@ -26,7 +26,7 @@ MAX_HITS_LIMIT = 1000
 
 
 class BasePaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT):
+    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
         if order_by:
             if order_by.startswith('-'):
                 self.key, self.desc = order_by[1:], True
@@ -37,6 +37,7 @@ class BasePaginator(object):
             self.desc = False
         self.queryset = queryset
         self.max_limit = max_limit
+        self.on_results = on_results
 
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
@@ -145,6 +146,7 @@ class BasePaginator(object):
             cursor=cursor,
             is_desc=self.desc,
             key=self.get_item_key,
+            on_results=self.on_results,
         )
 
     def count_hits(self, max_hits):
@@ -219,8 +221,12 @@ class OffsetPaginator(BasePaginator):
         next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
 
+        results = list(results[:limit])
+        if self.on_results:
+            results = self.on_results(results)
+
         return CursorResult(
-            results=results[:limit],
+            results=results,
             next=next_cursor,
             prev=prev_cursor,
         )
@@ -254,7 +260,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
 
 
 class SequencePaginator(object):
-    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT):
+    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
         self.scores, self.values = map(
             list,
             zip(*sorted(data, reverse=reverse)),
@@ -265,6 +271,7 @@ class SequencePaginator(object):
             self.scores,
         )
         self.max_limit = max_limit
+        self.on_results = on_results
 
     def get_result(self, limit, cursor=None, count_hits=False):
         limit = min(limit, self.max_limit)
@@ -312,8 +319,12 @@ class SequencePaginator(object):
             prev_cursor = Cursor(cursor.value, cursor.offset, True, False)
             next_cursor = Cursor(cursor.value, cursor.offset, False, False)
 
+        results = self.values[lo:hi]
+        if self.on_results:
+            results = self.on_results(results)
+
         return CursorResult(
-            self.values[lo:hi],
+            results,
             prev=prev_cursor,
             next=next_cursor,
             hits=min(len(self.scores), MAX_HITS_LIMIT) if count_hits else None,
