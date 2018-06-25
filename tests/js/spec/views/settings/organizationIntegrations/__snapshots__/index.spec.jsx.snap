@@ -1,0 +1,171 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Integration render() with one integration renders 1`] = `
+<SideEffect(DocumentTitle)
+  title="GitHub Integration - Sentry"
+>
+  <React.Fragment>
+    <BreadcrumbTitle
+      title="GitHub"
+    />
+    <SettingsPageHeading
+      icon={
+        <PluginIcon
+          pluginId="github"
+          size={28}
+        />
+      }
+      title="GitHub"
+    />
+    <Panel>
+      <PanelHeader
+        disablePadding={true}
+        hasButtons={true}
+      >
+        <Box
+          px={2}
+        >
+          Installation
+        </Box>
+        <Box
+          mr={1}
+        >
+          <AddIntegrationButton
+            onAddIntegration={[Function]}
+            provider={
+              Object {
+                "canAdd": true,
+                "canAddProject": false,
+                "config": Array [],
+                "features": Array [],
+                "key": "github",
+                "metadata": Object {
+                  "aspects": Object {
+                    "alert_link": Object {
+                      "link": "/url/with/params/{orgId}/",
+                      "text": "This is a *alert link* with markdown formatting",
+                    },
+                  },
+                  "author": "Morty",
+                  "description": "*markdown* formatted _description_",
+                  "issue_url": "http://example.com/integration_issue_url",
+                  "noun": "Installation",
+                  "source_url": "http://example.com/integration_source_url",
+                },
+                "name": "GitHub",
+                "setupDialog": Object {
+                  "height": 100,
+                  "url": "/github-integration-setup-uri/",
+                  "width": 100,
+                },
+              }
+            }
+            size="xsmall"
+          />
+        </Box>
+      </PanelHeader>
+      <PanelBody
+        direction="column"
+        disablePadding={true}
+        flex={false}
+      >
+        <InstalledIntegration
+          integration={
+            Object {
+              "configData": Object {},
+              "configDataProjects": Object {},
+              "configOrganization": Array [],
+              "configProject": Array [],
+              "domainName": "gtithub.com/test-integration",
+              "icon": "http://example.com/integration_icon.png",
+              "id": "1",
+              "name": "Test Integration",
+              "provider": Object {
+                "canAdd": true,
+                "canAddProject": false,
+                "features": Array [],
+                "key": "github",
+                "name": "GitHub",
+              },
+            }
+          }
+          key="1"
+          onDisable={[Function]}
+          onRemove={[Function]}
+          onToggleEnabled={[Function]}
+          orgId="org-slug"
+          provider={
+            Object {
+              "canAdd": true,
+              "canAddProject": false,
+              "config": Array [],
+              "features": Array [],
+              "key": "github",
+              "metadata": Object {
+                "aspects": Object {
+                  "alert_link": Object {
+                    "link": "/url/with/params/{orgId}/",
+                    "text": "This is a *alert link* with markdown formatting",
+                  },
+                },
+                "author": "Morty",
+                "description": "*markdown* formatted _description_",
+                "issue_url": "http://example.com/integration_issue_url",
+                "noun": "Installation",
+                "source_url": "http://example.com/integration_source_url",
+              },
+              "name": "GitHub",
+              "setupDialog": Object {
+                "height": 100,
+                "url": "/github-integration-setup-uri/",
+                "width": 100,
+              },
+            }
+          }
+        />
+      </PanelBody>
+    </Panel>
+    <AlertLink
+      onClick={[Function]}
+    >
+      <span
+        dangerouslySetInnerHTML={
+          Object {
+            "__html": "This is a <em>alert link</em> with markdown formatting",
+          }
+        }
+      />
+    </AlertLink>
+    <hr />
+    <h5>
+      GitHub Integration
+    </h5>
+    <IntegrationDetails
+      author="Morty"
+      links={
+        Array [
+          Object {
+            "href": "http://example.com/integration_issue_url",
+            "title": "Report an Issue",
+          },
+          Object {
+            "href": "http://example.com/integration_source_url",
+            "title": "View Source",
+          },
+        ]
+      }
+      markdownDescription="*markdown* formatted _description_"
+    />
+  </React.Fragment>
+</SideEffect(DocumentTitle)>
+`;
+
+exports[`Integration render() without any integrations Displays an error for an invalid provider key 1`] = `
+<SideEffect(DocumentTitle)
+  title="Integration - Sentry"
+>
+  <LoadingError
+    message="Invalid integration provider"
+  />
+</SideEffect(DocumentTitle)>
+`;

@@ -16,6 +16,7 @@ from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.models import (
     Commit, CommitAuthor, CommitFileChange, Integration, PullRequest,
     Repository, User
@@ -71,17 +72,30 @@ class Webhook(object):
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
-    def _handle(self, event, organization, repo):
-        # TODO(maxbittker) these might need different behavior for missing
-        # repository models in __call__
-        pass
+    def __call__(self, event):
+        installation = event['installation']
+        if installation and event['action'] == 'deleted':
+            integration = Integration.objects.get(
+                external_id=installation['id'],
+                provider='github',
+            )
+            self._handle_delete(event, integration)
+
+    def _handle_delete(self, event, integration):
+
+        organizations = integration.organizations.all()
+        integration.update(status=ObjectStatus.DISABLED)
+
+        Repository.objects.filter(
+            organization_id__in=organizations.values_list('id', flat=True),
+            provider='integrations:github',
+            integration_id=integration.id,
+        ).update(status=ObjectStatus.DISABLED)
 
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
     def _handle(self, event, organization, repo):
-        # TODO(maxbittker) these might need different behavior for missing
-        # repository models in __call__
         pass
 
 

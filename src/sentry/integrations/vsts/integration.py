@@ -1,17 +1,16 @@
 from __future__ import absolute_import
-from sentry import http
 from time import time
-from django import forms
 
-from django.utils.translation import ugettext_lazy as _
-from sentry.web.helpers import render_to_response
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
-from .client import VstsApiClient
-from sentry.pipeline import NestedPipelineView, PipelineView
+from django.utils.translation import ugettext as _
+
+from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.exceptions import ApiError
+from sentry.integrations.vsts.issues import VstsIssueSync
+from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.utils.http import absolute_uri
-
+from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
 DESCRIPTION = """
 VSTS
@@ -27,49 +26,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ProjectConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
-        if 'project' in request.POST:
-            project_id = request.POST.get('project')
-            projects = pipeline.fetch_state(key='projects')
-            project = self.get_project_from_id(project_id, projects)
-            if project is not None:
-                pipeline.bind_state('project', project)
-                return pipeline.next_step()
-
-        identity_data = pipeline.fetch_state(key='identity')
-        instance = identity_data['instance']
-        access_token = identity_data['data']['access_token']
-        projects = get_projects(instance, access_token)['value']
-        pipeline.bind_state('projects', projects)
-        project_form = ProjectForm(projects)
-
-        return render_to_response(
-            template='sentry/integrations/vsts-config.html',
-            context={
-                'form': project_form,
-            },
-            request=request,
-        )
-
-    def get_project_from_id(self, project_id, projects):
-        for project in projects:
-            if project['id'] == project_id:
-                return project
-        return None
-
-
-class ProjectForm(forms.Form):
-    def __init__(self, projects, *args, **kwargs):
-        super(ProjectForm, self).__init__(*args, **kwargs)
-        self.fields['project'] = forms.ChoiceField(
-            choices=[(project['id'], project['name']) for project in projects],
-            label='Project',
-            help_text='Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'
-        )
-
-
-class VstsIntegration(Integration):
+class VstsIntegration(Integration, VstsIssueSync):
     def __init__(self, *args, **kwargs):
         super(VstsIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None
@@ -78,10 +35,66 @@ class VstsIntegration(Integration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        access_token = self.default_identity.data.get('access_token')
-        if access_token is None:
-            raise ValueError('Identity missing access token')
-        return VstsApiClient(access_token)
+        return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
+
+    def get_project_config(self):
+        client = self.get_client()
+        disabled = False
+        try:
+            projects = client.get_projects(self.model.metadata['domain_name'])
+        except ApiError:
+            # TODO(LB): Disable for now. Need to decide what to do with this in the future
+            # should a message be shown to the user?
+            #  If INVALID_ACCESS_TOKEN ask the user to reinstall integration?
+
+            project_choices = []
+            disabled = True
+        else:
+            project_choices = [(project['id'], project['name']) for project in projects['value']]
+
+        try:
+            # TODO(LB): Will not work in the UI until the serliazer sends a `project_id` to get_installation()
+            # serializers and UI are being refactored and it's not worth trying to fix
+            # the old system. Revisit
+            default_project = self.project_integration.config.get('default_project')
+        except Exception:
+            default_project = None
+
+        initial_project = ('', '')
+        if default_project is not None:
+            for project_id, project_name in project_choices:
+                if default_project == project_id:
+                    initial_project = (project_id, project_name)
+                    break
+
+        return [
+            {
+                'name': 'default_project',
+                'type': 'choice',
+                'allowEmpty': True,
+                'disabled': disabled,
+                'required': True,
+                'choices': project_choices,
+                'initial': initial_project,
+                'label': _('Default Project Name'),
+                'placeholder': _('MyProject'),
+                'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
+            },
+        ]
+
+    @property
+    def instance(self):
+        return self.model.metadata['domain_name']
+
+    @property
+    def default_project(self):
+        try:
+            return self.model.metadata['default_project']
+        except KeyError:
+            return None
+
+    def create_comment(self, issue_id, comment):
+        self.get_client().update_work_item(self.instance, issue_id, comment=comment)
 
 
 class VstsIntegrationProvider(IntegrationProvider):
@@ -90,8 +103,11 @@ class VstsIntegrationProvider(IntegrationProvider):
     metadata = metadata
     domain = '.visualstudio.com'
     api_version = '4.1'
+    oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
     integration_cls = VstsIntegration
+    can_add_project = True
+    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     setup_dialog_config = {
         'width': 600,
@@ -100,7 +116,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
-            'redirect_url': absolute_uri('/extensions/vsts/setup/'),
+            'redirect_url': absolute_uri(self.oauth_redirect_url),
         }
 
         identity_pipeline_view = NestedPipelineView(
@@ -112,30 +128,28 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return [
             identity_pipeline_view,
-            ProjectConfigView(),
         ]
 
     def build_integration(self, state):
         data = state['identity']['data']
         account = state['identity']['account']
         instance = state['identity']['instance']
-        project = state['project']
 
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
         return {
-            'name': project['name'],
-            'external_id': project['id'],
+            'name': account['AccountName'],
+            'external_id': account['AccountId'],
             'metadata': {
                 'domain_name': instance,
                 'scopes': scopes,
-                # icon doesn't appear to be possible
             },
+            # TODO(LB): Change this to a Microsoft account as opposed to a VSTS workspace
             'user_identity': {
                 'type': 'vsts',
                 'external_id': account['AccountId'],
                 'scopes': [],
                 'data': self.get_oauth_data(data),
-            }
+            },
         }
 
     def get_oauth_data(self, payload):
@@ -157,17 +171,3 @@ class VstsIntegrationProvider(IntegrationProvider):
             VstsRepositoryProvider,
             id='integrations:vsts',
         )
-
-
-def get_projects(instance, access_token):
-    session = http.build_session()
-    url = 'https://%s/DefaultCollection/_apis/projects' % instance
-    response = session.get(
-        url,
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer %s' % access_token,
-        }
-    )
-    response.raise_for_status()
-    return response.json()

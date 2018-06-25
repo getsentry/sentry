@@ -34,6 +34,7 @@ class JiraApiClient(ApiClient):
     VERSIONS_URL = '/rest/api/2/project/%s/versions'
     USERS_URL = '/rest/api/2/user/assignable/search'
     SERVER_INFO_URL = '/rest/api/2/serverInfo'
+    ASSIGN_URL = '/rest/api/2/issue/%s/assignee'
 
     def __init__(self, base_url, shared_secret):
         self.base_url = base_url
@@ -125,6 +126,12 @@ class JiraApiClient(ApiClient):
     def search_users_for_project(self, project, username):
         return self.get(self.USERS_URL, params={'project': project, 'username': username})
 
+    def search_users_for_issue(self, issue_key, email):
+        # not actully in the official documentation, but apparently
+        # you can pass email as the username param see:
+        # https://community.atlassian.com/t5/Answers-Developer-Questions/JIRA-Rest-API-find-JIRA-user-based-on-user-s-email-address/qaq-p/532715
+        return self.get(self.USERS_URL, params={'issueKey': issue_key, 'username': email})
+
     def create_issue(self, raw_form_data):
         data = {'fields': raw_form_data}
         return self.post(self.CREATE_URL, data=data)
@@ -134,3 +141,6 @@ class JiraApiClient(ApiClient):
 
     def get_valid_statuses(self):
         return self.request('GET', self.STATUS_URL)
+
+    def assign_issue(self, key, username):
+        return self.put(self.ASSIGN_URL % key, data={'name': username})

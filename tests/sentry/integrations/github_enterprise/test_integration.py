@@ -3,11 +3,12 @@ from __future__ import absolute_import
 import responses
 import six
 from mock import patch
-
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
+from sentry.models import (
+    Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration,
+)
 from sentry.testutils import IntegrationTestCase
 
 
@@ -24,7 +25,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     }
 
     @patch('sentry.integrations.github_enterprise.integration.get_jwt', return_value='jwt_token_1')
-    def assert_setup_flow(self, get_jwt, installation_id='install_id_1', user_id='user_id_1'):
+    def assert_setup_flow(self, get_jwt, installation_id='install_id_1', app_id='app_1', user_id='user_id_1'):
         responses.reset()
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
@@ -73,6 +74,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             u'https://35.232.149.196/api/v3/app/installations/{}'.format(installation_id),
             json={
                 'id': installation_id,
+                'app_id': app_id,
                 'account': {
                     'login': 'Test Organization',
                     'avatar_url': 'https://35.232.149.196/avatar.png',

@@ -1207,11 +1207,13 @@ table.integrations {
     max-width: 500px;
     width: auto;
     padding-bottom: 0;
-    left: 30px;
+    left: 0;
+    top: 100%;
     .clearfix;
     overflow: auto;
     max-height: 500px;
     white-space: nowrap;
+    overflow: show;
 
     &:before {
       left: 11px;
@@ -1252,7 +1254,6 @@ table.integrations {
 
     li {
       position: relative;
-      padding: 0 5px 0 15px;
 
       &:nth-child(2) {
         margin-top: 5px;
@@ -1270,7 +1271,7 @@ table.integrations {
 
       > a {
         .truncate();
-        padding: 6px 0;
+        padding: 6px 6px 6px 0;
         border-radius: 0;
         line-height: 1;
         border-left: 3px solid transparent;
@@ -1281,17 +1282,19 @@ table.integrations {
 
         &.active,
         &:active {
-          color: @gray-dark;
+          color: @gray-darkest;
+          background: @white-dark;
 
           &:after {
             display: block;
             content: '';
             position: absolute;
             width: 4px;
-            left: 0;
+            left: -1px;
             top: 0;
             bottom: 0;
             background: @purple-light;
+            border-radius: 0 2px 2px 0;
           }
         }
       }
@@ -2735,6 +2738,12 @@ ul.radio-inputs {
   }
 }
 
+.custom-resolution-modal {
+  .modal-content {
+    overflow: visible;
+  }
+}
+
 // Sudo Modal
 .sudo-modal.modal {
   .modal-header {
@@ -2969,8 +2978,7 @@ ul.tag-list {
 }
 
 .client-platform-list,
-.client-platform,
-.org-dashboard-platform-list {
+.client-platform {
   li,
   span {
     &.python .platformicon {

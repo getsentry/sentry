@@ -39,11 +39,10 @@ def get_query_hash(uri, method, query_params=None):
     return hashlib.sha256(query_string.encode('utf8')).hexdigest()
 
 
-def get_integration_from_request(request):
+def get_integration_from_jwt(token, path, query_params, method='GET'):
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
-    token = request.GET.get('jwt')
     if token is None:
         raise AtlassianConnectValidationError('No token parameter')
     # Decode the JWT token, without verification. This gives
@@ -68,8 +67,12 @@ def get_integration_from_request(request):
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 
-    qsh = get_query_hash(request.path, 'GET', request.GET)
+    qsh = get_query_hash(path, method, query_params)
     if qsh != decoded_verified['qsh']:
         raise AtlassianConnectValidationError('Query hash mismatch')
 
     return integration
+
+
+def get_integration_from_request(request):
+    return get_integration_from_jwt(request.GET.get('jwt'), request.path, request.GET)

@@ -289,15 +289,16 @@ class SnubaTagStorage(TagStorage):
         # NB we add release as a condition rather than a filter because
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
-        key = 'tags[sentry:release]'
-        conditions = [[key, 'IN', versions]]
+        tag = 'sentry:release'
+        col = 'tags[{}]'.format(tag)
+        conditions = [[col, 'IN', versions]]
         aggregations = [
             ['count()', '', 'times_seen'],
             ['min', SEEN_COLUMN, 'first_seen'],
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        result = snuba.query(start, end, ['project_id', key],
+        result = snuba.query(start, end, ['project_id', col],
                              conditions, filters, aggregations,
                              referrer='tagstore.get_release_tags')
 
@@ -306,7 +307,7 @@ class SnubaTagStorage(TagStorage):
             for value, data in six.iteritems(project_data):
                 values.append(
                     TagValue(
-                        key=key,
+                        key=tag,
                         value=value,
                         **fix_tag_value_data(data)
                     )
@@ -319,32 +320,24 @@ class SnubaTagStorage(TagStorage):
         filters = {
             'project_id': project_ids,
         }
-        or_conditions = [cond for cond in [
-            ('user_id', 'IN', [eu.ident for eu in event_users if eu.ident]),
-            ('email', 'IN', [eu.email for eu in event_users if eu.email]),
-            ('username', 'IN', [eu.username for eu in event_users if eu.username]),
-            ('ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]),
-        ] if cond[2] != []]
-        conditions = [or_conditions]
-        aggregations = [['max', SEEN_COLUMN, 'seen']]
+        conditions = [
+            ['tags[sentry:user]', 'IN', filter(None, [eu.tag_value for eu in event_users])],
+        ]
+        aggregations = [['max', SEEN_COLUMN, 'last_seen']]
 
         result = snuba.query(start, end, ['issue'], conditions, filters,
-                             aggregations, limit=limit, orderby='-seen',
+                             aggregations, limit=limit, orderby='-last_seen',
                              referrer='tagstore.get_group_ids_for_users')
-        return result.keys()
+        return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
         start, end = self.get_time_range()
         filters = {
             'project_id': [eu.project_id for eu in event_users]
         }
-        or_conditions = [cond for cond in [
-            ('user_id', 'IN', [eu.ident for eu in event_users if eu.ident]),
-            ('email', 'IN', [eu.email for eu in event_users if eu.email]),
-            ('username', 'IN', [eu.username for eu in event_users if eu.username]),
-            ('ip_address', 'IN', [eu.ip_address for eu in event_users if eu.ip_address]),
-        ] if cond[2] != []]
-        conditions = [or_conditions]
+        conditions = [
+            ['tags[sentry:user]', 'IN', filter(None, [eu.tag_value for eu in event_users])]
+        ]
         aggregations = [
             ['count()', '', 'times_seen'],
             ['min', SEEN_COLUMN, 'first_seen'],

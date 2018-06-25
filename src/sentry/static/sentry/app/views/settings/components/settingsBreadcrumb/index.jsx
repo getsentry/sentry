@@ -1,13 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {stringifyRouteList} from 'app/utils';
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 import InlineSvg from 'app/components/inlineSvg';
 import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
 import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
 import SentryTypes from 'app/proptypes';
+import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
+import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
 import TextLink from 'app/components/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -21,22 +26,35 @@ const MENUS = {
 class SettingsBreadcrumb extends React.Component {
   static propTypes = {
     routes: PropTypes.array,
+    // pathMap maps stringifed routes to a breadcrumb title. This property is
+    // provided by the SettingsBreadcrumbStore.
+    pathMap: PropTypes.object,
   };
 
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
+  static defaultProps = {
+    pathMap: {},
+  };
+
+  componentDidUpdate(prevProps) {
+    if (this.props.routes === prevProps.routes) return;
+    SettingsBreadcrumbActions.trimMappings(this.props.routes);
+  }
+
   render() {
-    let {routes, params} = this.props;
-    let routesWithNames = routes.filter(({name}) => name);
-    let lastRouteIndex = routesWithNames.length - 1;
+    let {routes, params, pathMap} = this.props;
+    let lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
     return (
       <Breadcrumbs>
         <LogoLink href="/">
           <StyledInlineSvg src="icon-sentry" size="20px" />
         </LogoLink>
-        {routesWithNames.map((route, i) => {
+        {routes.map((route, i) => {
+          if (!route.name) return null;
+          let pathTitle = pathMap[stringifyRouteList(routes.slice(0, i + 1))];
           let isLast = i === lastRouteIndex;
           let createMenu = MENUS[route.name];
           let Menu = typeof createMenu === 'function' && createMenu;
@@ -46,7 +64,7 @@ class SettingsBreadcrumb extends React.Component {
             : () => (
                 <Crumb route={route} isLast={isLast}>
                   <TextLink to={recreateRoute(route, {routes, params})}>
-                    {route.name}{' '}
+                    {pathTitle || route.name}{' '}
                   </TextLink>
                   <Divider isLast={isLast} />
                 </Crumb>
@@ -67,7 +85,13 @@ class SettingsBreadcrumb extends React.Component {
   }
 }
 
-export default SettingsBreadcrumb;
+export default createReactClass({
+  displayName: 'ConnectedSettingsBreadcrumb',
+  mixins: [Reflux.connect(SettingsBreadcrumbStore, 'pathMap')],
+  render() {
+    return <SettingsBreadcrumb {...this.props} {...this.state} />;
+  },
+});
 
 const Breadcrumbs = styled.div`
   display: flex;

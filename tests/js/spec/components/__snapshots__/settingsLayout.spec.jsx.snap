@@ -16,7 +16,7 @@ exports[`SettingsLayout renders 1`] = `
         <Box
           flex="1"
         >
-          <SettingsBreadcrumb
+          <ConnectedSettingsBreadcrumb
             route={Object {}}
             routes={Array []}
           />

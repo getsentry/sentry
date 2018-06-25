@@ -21,7 +21,7 @@ const TextBlockNoMargin = styled(TextBlock)`
   margin-bottom: 0;
 `;
 
-class ProjectUserReportSettings extends AsyncView {
+class ProjectUserFeedbackSettings extends AsyncView {
   static propTypes = {
     setProjectNavSection: PropTypes.func,
   };
@@ -177,4 +177,4 @@ class ProjectUserReportSettings extends AsyncView {
   }
 }
 
-export default ProjectUserReportSettings;
+export default ProjectUserFeedbackSettings;

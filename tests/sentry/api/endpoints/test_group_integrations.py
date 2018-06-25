@@ -34,15 +34,20 @@ class GroupIntegrationsTest(APITestCase):
         path = '/api/0/issues/{}/integrations/'.format(group.id)
 
         response = self.client.get(path)
+        provider = integration.get_provider()
 
         assert response.data[0] == {
             'id': six.text_type(integration.id),
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
             'domainName': integration.metadata.get('domain_name'),
+            'status': integration.get_status_display(),
             'provider': {
-                'key': integration.get_provider().key,
-                'name': integration.get_provider().name,
+                'key': provider.key,
+                'name': provider.name,
+                'canAdd': provider.can_add,
+                'canAddProject': provider.can_add_project,
+                'features': [f.value for f in provider.features],
             },
             'externalIssues': [{
                 'description': 'this is an example description',

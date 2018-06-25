@@ -487,6 +487,7 @@ window.TestStubs = {
       canAdd: true,
       canAddProject: false,
       config: [],
+      features: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',
         width: 100,
@@ -518,6 +519,9 @@ window.TestStubs = {
       provider: {
         name: 'GitHub',
         key: 'github',
+        canAdd: true,
+        canAddProject: false,
+        features: [],
       },
       configOrganization: [],
       configProject: [],
@@ -1041,7 +1045,7 @@ window.TestStubs = {
     ...params,
   }),
 
-  UserReport: () => ({
+  UserFeedback: () => ({
     id: '123',
     name: 'Lyn',
     email: 'lyn@sentry.io',

@@ -239,15 +239,15 @@ class TagStorageTest(SnubaTestCase):
         ) is None
 
     def test_get_group_ids_for_users(self):
-        assert set(self.ts.get_group_ids_for_users(
+        assert self.ts.get_group_ids_for_users(
             [self.proj1.id],
             [EventUser(project_id=self.proj1.id, ident='user1')]
-        )) == set([self.proj1group1.id, self.proj1group2.id])
+        ) == set([self.proj1group1.id, self.proj1group2.id])
 
-        assert set(self.ts.get_group_ids_for_users(
+        assert self.ts.get_group_ids_for_users(
             [self.proj1.id],
             [EventUser(project_id=self.proj1.id, ident='user2')]
-        )) == set([self.proj1group1.id])
+        ) == set([self.proj1group1.id])
 
     def test_get_group_tag_values_for_users(self):
         result = self.ts.get_group_tag_values_for_users(
@@ -273,19 +273,6 @@ class TagStorageTest(SnubaTestCase):
         assert result[0].value == 'user2'
         assert result[0].last_seen == self.now - timedelta(seconds=2)
 
-        # Test that users identified by different means are collected.
-        # (effectively tests OR conditions in snuba API)
-        result = self.ts.get_group_tag_values_for_users([
-            EventUser(project_id=self.proj1.id, email='user1@sentry.io'),
-            EventUser(project_id=self.proj1.id, ident='user2')
-        ])
-        assert len(result) == 2
-        result.sort(key=lambda x: x.value)
-        assert result[0].value == 'user1'
-        assert result[0].last_seen == self.now - timedelta(seconds=1)
-        assert result[1].value == 'user2'
-        assert result[1].last_seen == self.now - timedelta(seconds=2)
-
     def test_get_release_tags(self):
         tags = list(
             self.ts.get_release_tags(
@@ -300,6 +287,7 @@ class TagStorageTest(SnubaTestCase):
         assert tags[0].last_seen == one_second_ago
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
+        assert tags[0].key == 'sentry:release'
 
     def test_get_group_event_filter(self):
         assert self.ts.get_group_event_filter(

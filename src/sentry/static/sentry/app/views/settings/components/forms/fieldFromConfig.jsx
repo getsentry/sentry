@@ -3,9 +3,7 @@ import React from 'react';
 
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 import RangeField from 'app/views/settings/components/forms/rangeField';
-// import Select2FieldAutocomplete from './select2FieldAutocomplete';
 import SelectField from 'app/views/settings/components/forms/selectField';
-// import Select2TextField from './select2TextField';
 import TextField from 'app/views/settings/components/forms/textField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import RadioField from 'app/views/settings/components/forms/radioField';
@@ -49,7 +47,6 @@ export default class FieldFromConfig extends React.Component {
   render() {
     let {field, ...otherProps} = this.props;
 
-    // TODO(billy) Not sure of structure yet
     let props = {
       ...otherProps,
       ...field,
@@ -71,7 +68,10 @@ export default class FieldFromConfig extends React.Component {
         if (props.multiline) {
           return <TextareaField {...props} />;
         }
+
+        // TODO(billy): Handle `props.choices` with a "creatable" SelectField
         // if (props.choices) return <Select2TextField {...props} />;
+
         return <TextField {...props} />;
       case 'number':
         return <InputField {...props} type="number" />;
@@ -84,9 +84,12 @@ export default class FieldFromConfig extends React.Component {
         // so just make it look like it's required in field (with *),
         // and rely on server validation
         delete props.required;
+
+        // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
         // if (props.has_autocomplete) {
-        // return <Select2FieldAutocomplete {...props} />;
+        // return <SelectAsyncField {...props} />;
         // }
+
         return <SelectField {...props} />;
       case 'radio':
         return <RadioField {...props} />;

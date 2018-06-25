@@ -16,14 +16,21 @@ class IntegrationSerializer(Serializer):
             'name': obj.name,
             'icon': obj.metadata.get('icon'),
             'domainName': obj.metadata.get('domain_name'),
+            'status': obj.get_status_display(),
             'provider': {
                 'key': provider.key,
                 'name': provider.name,
+                'canAdd': provider.can_add,
+                'canAddProject': provider.can_add_project,
+                'features': [f.value for f in provider.features],
             },
         }
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
+    def __init__(self, organization_id=None):
+        self.organization_id = organization_id
+
     def serialize(self, obj, attrs, user):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
@@ -33,7 +40,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         })
 
         try:
-            install = obj.get_installation()
+            install = obj.get_installation(self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -58,13 +65,13 @@ class OrganizationIntegrationSerializer(Serializer):
                 project__organization_id__in=[i.organization_id for i in item_list],
             )
 
-        project_integrations_by_org = defaultdict(dict)
+        projects_by_integrations = defaultdict(list)
         for pi in project_integrations:
-            project_integrations_by_org[pi.project.organization_id][pi.project.slug] = pi.config
+            projects_by_integrations[pi.integration_id].append(pi.project.slug)
 
         return {
             i: {
-                'project_configs': project_integrations_by_org.get(i.organization_id, {})
+                'projects': projects_by_integrations.get(i.integration_id, [])
             } for i in item_list
         }
 
@@ -73,10 +80,14 @@ class OrganizationIntegrationSerializer(Serializer):
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration = serialize(obj.integration, user, IntegrationConfigSerializer())
+        integration = serialize(
+            objects=obj.integration,
+            user=user,
+            serializer=IntegrationConfigSerializer(obj.organization.id),
+        )
         integration.update({
             'configData': obj.config,
-            'configDataProjects': attrs['project_configs'],
+            'projects': attrs['projects'],
         })
 
         return integration
@@ -121,9 +132,9 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.action = action
         self.params = params
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, organization_id=None):
         data = super(IntegrationIssueConfigSerializer, self).serialize(obj, attrs, user)
-        installation = obj.get_installation()
+        installation = obj.get_installation(organization_id)
 
         if self.action == 'link':
             data['linkIssueConfig'] = installation.get_link_issue_config(

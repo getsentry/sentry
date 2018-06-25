@@ -38,6 +38,8 @@ export default class OrganizationRepositories extends React.Component {
         return 'Deletion Queued';
       case 'deletion_in_progress':
         return 'Deletion in Progress';
+      case 'disabled':
+        return 'Disabled';
       case 'hidden':
         return 'Disabled';
       default:
@@ -111,9 +113,13 @@ export default class OrganizationRepositories extends React.Component {
               <Box>
                 {itemList.map(repo => {
                   let repoIsVisible = repo.status === 'active';
+                  let style =
+                    repo.status === 'disabled'
+                      ? {filter: 'grayscale(1)', opacity: '0.4'}
+                      : {};
                   return (
                     <RepoRow key={repo.id}>
-                      <Box p={2} flex="1">
+                      <Box p={2} style={style} flex="1">
                         <Flex direction="column">
                           <Box pb={1}>
                             <strong>{repo.name}</strong>
@@ -129,7 +135,7 @@ export default class OrganizationRepositories extends React.Component {
                               </small>
                             )}
                           </Box>
-                          <Box>
+                          <Box style={style}>
                             <small>{repo.provider.name}</small>
                             {repo.url && (
                               <small>
@@ -143,13 +149,11 @@ export default class OrganizationRepositories extends React.Component {
 
                       <Box p={2}>
                         <Confirm
-                          disabled={!repoIsVisible}
+                          disabled={!repoIsVisible && repo.status !== 'disabled'}
                           onConfirm={() => onDeleteRepo(repo)}
                           message={t('Are you sure you want to remove this repository?')}
                         >
-                          <Button size="xsmall">
-                            <span className="icon icon-trash" />
-                          </Button>
+                          <Button size="xsmall" icon="icon-trash" />
                         </Confirm>
                       </Box>
                     </RepoRow>

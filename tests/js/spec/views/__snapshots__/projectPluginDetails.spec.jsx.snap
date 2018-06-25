@@ -128,6 +128,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Button
                   disabled={false}
                   onClick={[Function]}
+                  size="small"
                   style={
                     Object {
                       "marginRight": "6px",
@@ -139,6 +140,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Button
                   disabled={false}
                   onClick={[Function]}
+                  size="small"
                 >
                   Reset Configuration
                 </Button>
@@ -148,7 +150,7 @@ exports[`ProjectPluginDetails renders 1`] = `
           >
             <Wrapper>
               <div
-                className="css-1pnrn3o-Wrapper e1kblvez0"
+                className="css-1pnrn3o-Wrapper e1kblvez1"
               >
                 <Flex
                   align="center"
@@ -162,11 +164,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                       is={null}
                     >
                       <Title>
-                        <div
-                          className="css-zmdcxu-Title e1kblvez1"
+                        <Base
+                          className="css-1mqcea-Title e1kblvez0"
                         >
-                          Amazon SQS
-                        </div>
+                          <div
+                            className="css-1mqcea-Title e1kblvez0"
+                            is={null}
+                          >
+                            Amazon SQS
+                          </div>
+                        </Base>
                       </Title>
                       <div>
                         <div
@@ -175,6 +182,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                           <Button
                             disabled={false}
                             onClick={[Function]}
+                            size="small"
                             style={
                               Object {
                                 "marginRight": "6px",
@@ -186,6 +194,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               disabled={false}
                               onClick={[Function]}
                               role="button"
+                              size="small"
                               style={
                                 Object {
                                   "marginRight": "6px",
@@ -194,10 +203,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Enable Plugin"
-                                className="css-cmo08-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="small"
                                 style={
                                   Object {
                                     "marginRight": "6px",
@@ -206,31 +216,38 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Enable Plugin"
-                                  className="css-cmo08-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
+                                  size="small"
                                   style={
                                     Object {
                                       "marginRight": "6px",
                                     }
                                   }
                                 >
-                                  <ButtonLabel>
+                                  <ButtonLabel
+                                    size="small"
+                                  >
                                     <Component
-                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      size="small"
                                     >
                                       <Flex
                                         align="center"
-                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        className="css-19bmqb3-ButtonLabel e17811v31"
+                                        size="small"
                                       >
                                         <Base
                                           align="center"
-                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          className="e17811v31 css-1eblpyp-ButtonLabel"
+                                          size="small"
                                         >
                                           <div
-                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                            className="e17811v31 css-1eblpyp-ButtonLabel"
                                             is={null}
+                                            size="small"
                                           >
                                             Enable Plugin
                                           </div>
@@ -245,42 +262,52 @@ exports[`ProjectPluginDetails renders 1`] = `
                           <Button
                             disabled={false}
                             onClick={[Function]}
+                            size="small"
                           >
                             <StyledButton
                               aria-label="Reset Configuration"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
+                              size="small"
                             >
                               <Component
                                 aria-label="Reset Configuration"
-                                className="css-cmo08-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
+                                size="small"
                               >
                                 <button
                                   aria-label="Reset Configuration"
-                                  className="css-cmo08-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
+                                  size="small"
                                 >
-                                  <ButtonLabel>
+                                  <ButtonLabel
+                                    size="small"
+                                  >
                                     <Component
-                                      className="css-1lzmoq1-ButtonLabel e17811v31"
+                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      size="small"
                                     >
                                       <Flex
                                         align="center"
-                                        className="css-1lzmoq1-ButtonLabel e17811v31"
+                                        className="css-19bmqb3-ButtonLabel e17811v31"
+                                        size="small"
                                       >
                                         <Base
                                           align="center"
-                                          className="e17811v31 css-1br8hoo-ButtonLabel"
+                                          className="e17811v31 css-1eblpyp-ButtonLabel"
+                                          size="small"
                                         >
                                           <div
-                                            className="e17811v31 css-1br8hoo-ButtonLabel"
+                                            className="e17811v31 css-1eblpyp-ButtonLabel"
                                             is={null}
+                                            size="small"
                                           >
                                             Reset Configuration
                                           </div>

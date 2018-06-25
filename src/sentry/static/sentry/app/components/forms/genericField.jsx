@@ -8,9 +8,9 @@ import EmailField from 'app/components/forms/emailField';
 import NumberField from 'app/components/forms/numberField';
 import PasswordField from 'app/components/forms/passwordField';
 import RangeField from 'app/components/forms/rangeField';
-import Select2FieldAutocomplete from 'app/components/forms/select2FieldAutocomplete';
+import SelectAsyncField from 'app/components/forms/selectAsyncField';
 import Select2Field from 'app/components/forms/select2Field';
-import Select2TextField from 'app/components/forms/select2TextField';
+import SelectCreatableField from 'app/components/forms/selectCreatableField';
 import TextField from 'app/components/forms/textField';
 import TextareaField from 'app/components/forms/textareaField';
 
@@ -61,7 +61,7 @@ export default class GenericField extends React.Component {
       case 'string':
       case 'text':
       case 'url':
-        if (props.choices) return <Select2TextField {...props} />;
+        if (props.choices) return <SelectCreatableField {...props} />;
         return <TextField {...props} />;
       case 'number':
         return <NumberField {...props} />;
@@ -74,7 +74,7 @@ export default class GenericField extends React.Component {
         // it's required (with *) and rely on server validation
         delete props.required;
         if (props.has_autocomplete) {
-          return <Select2FieldAutocomplete {...props} />;
+          return <SelectAsyncField {...props} />;
         }
         return <Select2Field {...props} />;
       default:

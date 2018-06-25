@@ -606,7 +606,7 @@ class LegacyTagStorage(TagStorage):
         )
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
-        return list(
+        return set(
             models.GroupTagValue.objects.filter(
                 key='sentry:user',
                 value__in=[eu.tag_value for eu in event_users],

@@ -16,6 +16,7 @@ from bitfield.types import BitHandler
 from django.db import models
 from django.db.models import signals
 from django.db.models.query_utils import DeferredAttribute
+from django.utils import timezone
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
@@ -104,6 +105,10 @@ class BaseModel(models.Model):
         else:
             self.__data = UNSAVED
 
+    def _update_timestamps(self):
+        if hasattr(self, 'date_updated'):
+            self.date_updated = timezone.now()
+
     def has_changed(self, field_name):
         "Returns ``True`` if ``field`` has changed since initialization."
         if self.__data is UNSAVED:
@@ -139,6 +144,12 @@ def __model_post_save(instance, **kwargs):
     instance._update_tracked_data()
 
 
+def __model_pre_save(instance, **kwargs):
+    if not isinstance(instance, BaseModel):
+        return
+    instance._update_timestamps()
+
+
 def __model_class_prepared(sender, **kwargs):
     if not issubclass(sender, BaseModel):
         return
@@ -147,5 +158,6 @@ def __model_class_prepared(sender, **kwargs):
         raise ValueError('{!r} model has not defined __core__'.format(sender))
 
 
+signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)

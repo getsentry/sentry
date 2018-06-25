@@ -37,10 +37,10 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.merge import merge_group
-from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
+from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import is_float
@@ -50,6 +50,14 @@ from sentry.stacktraces import normalize_in_app
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
+
+
+post_process_callback = getattr(settings, 'SENTRY_POST_PROCESS_CALLBACK', None)
+if post_process_callback is None:
+    from sentry.tasks.post_process import post_process_group
+    post_process_callback = post_process_group.delay
+else:
+    post_process_callback = import_string(post_process_callback)
 
 
 def count_limit(count):
@@ -79,8 +87,6 @@ def get_fingerprint_for_event(event):
     fingerprint = event.data.get('fingerprint')
     if fingerprint is None:
         return ['{{ default }}']
-    if isinstance(fingerprint, six.string_types):
-        return [fingerprint]
     return fingerprint
 
 
@@ -309,7 +315,7 @@ class EventManager(object):
     logger = logging.getLogger('sentry.events')
 
     def __init__(self, data, version='5'):
-        self.data = data
+        self.data = data.copy()
         self.version = version
 
     def normalize(self, request_env=None):
@@ -325,27 +331,14 @@ class EventManager(object):
         def to_values(v):
             return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
-        def convert_fingerprint(values):
-            rv = values[:]
-            bad_float = False
-            for idx, item in enumerate(rv):
-                if isinstance(item, float) and \
-                   (abs(item) >= (1 << 53) or int(item) != item):
-                    bad_float = True
-                rv[idx] = text(item)
-            if bad_float:
-                metrics.incr(
-                    'events.bad_float_fingerprint',
-                    skip_internal=True,
-                    tags={
-                        'project_id': data.get('project'),
-                    },
-                )
-            return rv
+        def stringify(f):
+            if isinstance(f, float):
+                return text(int(f)) if abs(f) < (1 << 53) else None
+            return text(f)
 
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
-            'fingerprint': lambda v: convert_fingerprint(v) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
@@ -534,6 +527,7 @@ class EventManager(object):
 
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
+        data = self.data
 
         project = Project.objects.get_from_cache(id=project)
 
@@ -545,7 +539,7 @@ class EventManager(object):
         try:
             event = Event.objects.get(
                 project_id=project.id,
-                event_id=self.data['event_id'],
+                event_id=data['event_id'],
             )
         except Event.DoesNotExist:
             pass
@@ -554,14 +548,12 @@ class EventManager(object):
                 'duplicate.found',
                 exc_info=True,
                 extra={
-                    'event_uuid': self.data['event_id'],
+                    'event_uuid': data['event_id'],
                     'project_id': project.id,
                     'model': Event.__name__,
                 }
             )
             return event
-
-        data = self.data.copy()
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
@@ -672,10 +664,7 @@ class EventManager(object):
         # tags are stored as a tuple
         tags = tags.items()
 
-        # XXX(dcramer): we're relying on mutation of the data object to ensure
-        # this propagates into Event
         data['tags'] = tags
-
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # prioritize fingerprint over checksum as its likely the client defaulted
@@ -949,7 +938,7 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send(project=project, group=group, sender=Project)
 
-            post_process_group.delay(
+            post_process_callback(
                 group=group,
                 event=event,
                 is_new=is_new,

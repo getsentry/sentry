@@ -195,7 +195,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 context={
                     'authenticator': interface.authenticator,
                 },
-                send_email=False,
+                send_email=True,
             )
             request.user.clear_lost_passwords()
             request.user.refresh_session_nonce(self.request)

@@ -38,4 +38,5 @@ def generate_security_email(account, type, actor, ip_address, context=None, curr
         context=new_context,
         template=template,
         html_template=html_template,
+        type=type
     )

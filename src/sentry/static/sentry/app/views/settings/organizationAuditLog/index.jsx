@@ -25,6 +25,7 @@ const EVENT_TYPES = [
   'project.set-private',
   'org.create',
   'org.edit',
+  'org.restore',
   'org.remove',
   'tagkey.remove',
   'projectkey.create',

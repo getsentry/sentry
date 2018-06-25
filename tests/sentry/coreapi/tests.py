@@ -489,9 +489,21 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'fingerprint'
 
         data = self.validate_and_normalize({
-            'fingerprint': ['{{default}}', 1, 'bar', 4.5],
+            'fingerprint': ['{{default}}', 1, 'bar', 4.5, -2.7, True],
         })
-        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4.5']
+        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4', '-2', 'True']
+        assert len(data['errors']) == 0
+
+        data = self.validate_and_normalize({
+            'fingerprint': ['{{default}}', 1e100, -1e100, 1e10],
+        })
+        assert data.get('fingerprint') == ['{{default}}', '10000000000']
+        assert len(data['errors']) == 0
+
+        data = self.validate_and_normalize({
+            'fingerprint': [],
+        })
+        assert data.get('fingerprint') == []
         assert len(data['errors']) == 0
 
     def test_messages(self):
@@ -613,8 +625,7 @@ class EnsureHasIpTest(BaseAPITest):
                 },
             },
         }
-        out = inp.copy()
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '192.168.0.1'
 
     def test_with_user_ip(self):
@@ -623,29 +634,28 @@ class EnsureHasIpTest(BaseAPITest):
                 'ip_address': '192.168.0.1',
             },
         }
-        out = inp.copy()
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
 
     def test_with_user_auto_ip(self):
-        out = {
+        inp = {
             'sentry.interfaces.User': {
                 'ip_address': '{{auto}}',
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
-        out = {
+        inp = {
             'user': {
                 'ip_address': '{{auto}}',
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
     def test_without_ip_values(self):
-        out = {
+        inp = {
             'platform': 'javascript',
             'sentry.interfaces.User': {},
             'sentry.interfaces.Http': {
@@ -653,18 +663,18 @@ class EnsureHasIpTest(BaseAPITest):
                 'env': {},
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
     def test_without_any_values(self):
-        out = {
+        inp = {
             'platform': 'javascript',
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
     def test_with_http_auto_ip(self):
-        out = {
+        inp = {
             'sentry.interfaces.Http': {
                 'url': 'http://example.com/',
                 'env': {
@@ -672,11 +682,11 @@ class EnsureHasIpTest(BaseAPITest):
                 },
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
 
     def test_with_all_auto_ip(self):
-        out = {
+        inp = {
             'sentry.interfaces.User': {
                 'ip_address': '{{auto}}',
             },
@@ -687,7 +697,7 @@ class EnsureHasIpTest(BaseAPITest):
                 },
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 

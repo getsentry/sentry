@@ -28,6 +28,6 @@ if (otherFormatterType) {
   const otherFormatter = cli.getFormatter(otherFormatterType);
 
   fs.writeFile('eslint.checkstyle.xml', otherFormatter(report.results), 'utf8', () => {
-    process.exit(0);
+    process.exit(report.errorCount);
   });
 }

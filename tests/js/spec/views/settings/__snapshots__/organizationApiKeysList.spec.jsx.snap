@@ -60,7 +60,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     >
       <Wrapper>
         <div
-          className="css-1pnrn3o-Wrapper e1kblvez0"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
@@ -74,11 +74,16 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 is={null}
               >
                 <Title>
-                  <div
-                    className="css-zmdcxu-Title e1kblvez1"
+                  <Base
+                    className="css-1mqcea-Title e1kblvez0"
                   >
-                    API Keys
-                  </div>
+                    <div
+                      className="css-1mqcea-Title e1kblvez0"
+                      is={null}
+                    >
+                      API Keys
+                    </div>
+                  </Base>
                 </Title>
                 <div>
                   <Button
@@ -117,21 +122,21 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             size="small"
                           >
                             <Component
-                              className="css-179w01k-ButtonLabel e17811v31"
+                              className="css-19bmqb3-ButtonLabel e17811v31"
                               size="small"
                             >
                               <Flex
                                 align="center"
-                                className="css-179w01k-ButtonLabel e17811v31"
+                                className="css-19bmqb3-ButtonLabel e17811v31"
                                 size="small"
                               >
                                 <Base
                                   align="center"
-                                  className="e17811v31 css-8mahft-ButtonLabel"
+                                  className="e17811v31 css-1eblpyp-ButtonLabel"
                                   size="small"
                                 >
                                   <div
-                                    className="e17811v31 css-8mahft-ButtonLabel"
+                                    className="e17811v31 css-1eblpyp-ButtonLabel"
                                     is={null}
                                     size="small"
                                   >
@@ -140,20 +145,20 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                       size="small"
                                     >
                                       <Component
-                                        className="css-h7y7by-Icon e17811v32"
+                                        className="css-1vdnsie-Icon e17811v32"
                                         hasChildren={true}
                                         size="small"
                                       >
                                         <Box
-                                          className="css-h7y7by-Icon e17811v32"
+                                          className="css-1vdnsie-Icon e17811v32"
                                           size="small"
                                         >
                                           <Base
-                                            className="e17811v32 css-11bwulm-Icon"
+                                            className="e17811v32 css-nk081r-Icon"
                                             size="small"
                                           >
                                             <div
-                                              className="e17811v32 css-11bwulm-Icon"
+                                              className="e17811v32 css-nk081r-Icon"
                                               is={null}
                                               size="small"
                                             >
