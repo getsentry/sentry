@@ -13,9 +13,21 @@ from sentry.testutils import APITestCase, TestCase
 class VstsIntegrationProviderTest(TestCase):
     def setUp(self):
         self.integration = VstsIntegrationProvider()
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',
+            json={
+                'id': 'user1',
+                'displayName': 'Sentry User',
+                'emailAddress': 'sentry@user.com',
+            },
+        )
 
+    @responses.activate
     def test_build_integration(self):
         state = {
+            'account': {'AccountName': 'sentry', 'AccountId': '123435'},
+            'instance': 'sentry.visualstudio.com',
             'identity': {
                 'data': {
                     'access_token': 'xxx-xxxx',
@@ -23,19 +35,18 @@ class VstsIntegrationProviderTest(TestCase):
                     'refresh_token': 'rxxx-xxxx',
                     'token_type': 'jwt-bearer',
                 },
-                'account': {'AccountName': 'sentry', 'AccountId': '123435'},
-                'instance': 'sentry.visualstudio.com',
             },
         }
         integration_dict = self.integration.build_integration(state)
         assert integration_dict['name'] == 'sentry'
         assert integration_dict['external_id'] == '123435'
-        assert integration_dict['metadata']['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
+        assert integration_dict['metadata']['scopes'] == sorted(VSTSIdentityProvider.oauth_scopes)
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
 
         assert integration_dict['user_identity']['type'] == 'vsts'
-        assert integration_dict['user_identity']['external_id'] == '123435'
-        assert integration_dict['user_identity']['scopes'] == []
+        assert integration_dict['user_identity']['external_id'] == 'user1'
+        assert integration_dict['user_identity']['scopes'] == sorted(
+            VSTSIdentityProvider.oauth_scopes)
 
         assert integration_dict['user_identity']['data']['access_token'] == 'xxx-xxxx'
         assert isinstance(integration_dict['user_identity']['data']['expires'], int)

@@ -1,14 +1,24 @@
 from __future__ import absolute_import
 
-from django import forms
+from sentry import http, options
 
-from sentry import http
-from sentry import options
-
-from sentry.web.helpers import render_to_response
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
-from sentry.pipeline import PipelineView
 from sentry.utils.http import absolute_uri
+
+
+def get_user_info(access_token):
+    session = http.build_session()
+    resp = session.get(
+        'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',
+        headers={
+            'Accept': 'application/json',
+            'Authorization': 'bearer %s' % access_token,
+        },
+    )
+    resp.raise_for_status()
+    resp = resp.json()
+
+    return resp
 
 
 class VSTSIdentityProvider(OAuth2Provider):
@@ -48,7 +58,6 @@ class VSTSIdentityProvider(OAuth2Provider):
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
-            AccountConfigView(),
         ]
 
     def get_refresh_token_headers(self):
@@ -67,6 +76,20 @@ class VSTSIdentityProvider(OAuth2Provider):
             'grant_type': 'refresh_token',
             'assertion': refresh_token,
             'redirect_uri': absolute_uri(oauth_redirect_url),
+        }
+
+    def build_identity(self, data):
+        data = data['data']
+        user = get_user_info(data['access_token'])
+
+        return {
+            'type': 'vsts',
+            'id': user['id'],
+            'email': user['emailAddress'],
+            'email_verified': True,
+            'name': user['displayName'],
+            'scopes': sorted(self.oauth_scopes),
+            'data': self.get_oauth_data(data),
         }
 
 
@@ -95,57 +118,3 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
             return dict(parse_qsl(body))
         return json.loads(body)
-
-
-class AccountForm(forms.Form):
-    def __init__(self, accounts, *args, **kwargs):
-        super(AccountForm, self).__init__(*args, **kwargs)
-        self.fields['account'] = forms.ChoiceField(
-            choices=[(acct['AccountId'], acct['AccountName']) for acct in accounts],
-            label='Account',
-            help_text='VS Team Services account (account.visualstudio.com).',
-        )
-
-
-class AccountConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
-        if 'account' in request.POST:
-            account_id = request.POST.get('account')
-            accounts = pipeline.fetch_state(key='accounts')
-            account = self.get_account_from_id(account_id, accounts)
-            if account is not None:
-                pipeline.bind_state('account', account)
-                pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
-                return pipeline.next_step()
-
-        access_token = pipeline.fetch_state(key='data')['access_token']
-        accounts = self.get_accounts(access_token)
-        pipeline.bind_state('accounts', accounts)
-        account_form = AccountForm(accounts)
-        return render_to_response(
-            template='sentry/integrations/vsts-config.html',
-            context={
-                'form': account_form,
-            },
-            request=request,
-        )
-
-    def get_account_from_id(self, account_id, accounts):
-        for account in accounts:
-            if account['AccountId'] == account_id:
-                return account
-        return None
-
-    def get_accounts(self, access_token):
-        session = http.build_session()
-        url = 'https://app.vssps.visualstudio.com/_apis/accounts'
-        response = session.get(
-            url,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            },
-        )
-        if response.status_code == 200:
-            return response.json()
-        return None
