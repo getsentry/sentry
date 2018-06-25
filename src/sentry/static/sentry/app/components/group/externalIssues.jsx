@@ -79,7 +79,7 @@ class ExternalIssueForm extends AsyncComponent {
       action,
     };
     Object.entries(dynamicFieldValues).map(([key, val]) => {
-      query[key] = encodeURIComponent(val);
+      query[key] = val;
     });
     this.api.request(endpoint, {
       method: 'GET',

@@ -67,7 +67,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         installation = integration.get_installation(organization_id)
         try:
-            data = installation.get_issue(external_issue_id)
+            data = installation.get_issue(request.DATA)
         except IntegrationError as exc:
             return Response({'detail': exc.message}, status=400)
 
@@ -75,10 +75,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             'title': data.get('title'),
             'description': data.get('description'),
         }
+
+        external_issue_key = installation.format_external_key(data)
         external_issue, created = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,
             integration_id=integration.id,
-            key=external_issue_id,
+            key=external_issue_key,
             defaults=defaults,
         )
 
@@ -122,10 +124,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrationError as exc:
             return Response({'non_field_errors': exc.message}, status=400)
 
+        external_issue_key = installation.format_external_key(data)
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,
             integration_id=integration.id,
-            key=data['key'],
+            key=external_issue_key,
             defaults={
                 'title': data.get('title'),
                 'description': data.get('description'),
