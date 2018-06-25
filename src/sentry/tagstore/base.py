@@ -297,7 +297,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_value_paginator(self, project_id, environment_id, key, query=None):
+    def get_tag_value_paginator(self, project_id, environment_id, key, query=None, order_by='-last_seen'):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
         """
