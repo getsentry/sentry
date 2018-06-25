@@ -153,6 +153,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         authenticator = Authenticator.objects.get(id=auth.id)
         assert len(authenticator.interface.get_registered_devices()) == 1
 
+        self._assert_security_email_sent('mfa-removed', email_log)
+
         # Can't remove last device
         url = reverse(
             'sentry-api-0-user-authenticator-device-details',
@@ -165,7 +167,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.delete(url)
         assert resp.status_code == 500
 
-        assert email_log.info.call_count == 0
+        # only one send
+        self._assert_security_email_sent('mfa-removed', email_log)
 
     def test_sms_get_phone(self):
         interface = SmsInterface()

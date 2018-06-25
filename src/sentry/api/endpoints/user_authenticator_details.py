@@ -127,7 +127,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 context={
                     'authenticator': authenticator,
                 },
-                send_email=False
+                send_email=True
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
