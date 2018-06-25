@@ -25,7 +25,6 @@ import MyIssuesBookmarked from 'app/views/myIssues/bookmarked';
 import MyIssuesViewed from 'app/views/myIssues/viewed';
 import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure/index';
-import OrganizationDiscover from 'app/views/organizationDiscover';
 import OnboardingWizard from 'app/views/onboarding/index';
 import OrganizationActivity from 'app/views/organizationActivity';
 import OrganizationContext from 'app/views/organizationContext';
@@ -761,7 +760,9 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/discover/"
-            component={errorHandler(OrganizationDiscover)}
+            componentPromise={() =>
+              import(/*webpackChunkName:"OrganizationDiscover"*/ './views/organizationDiscover/index')}
+            component={errorHandler(LazyLoad)}
           />
           <Route
             path="/organizations/:orgId/activity/"
