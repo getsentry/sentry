@@ -10,7 +10,7 @@ describe('getRouteStringFromRoutes', function() {
   ];
   it('can get a route string from routes array and skips routes that do not have a path', function() {
     expect(getRouteStringFromRoutes(routes)).toBe(
-      '/:orgId//organizations/:orgId/api-keys/'
+      '/:orgId/organizations/:orgId/api-keys/'
     );
   });
 
