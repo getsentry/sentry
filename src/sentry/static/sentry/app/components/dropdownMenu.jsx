@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import Raven from 'raven-js';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';

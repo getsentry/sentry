@@ -1,5 +1,6 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
