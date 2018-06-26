@@ -142,6 +142,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
                 'domain_name': installation['account']['html_url'].replace('https://', ''),
+                'account_type': installation['account']['type'],
             },
             'user_identity': {
                 'type': 'github',

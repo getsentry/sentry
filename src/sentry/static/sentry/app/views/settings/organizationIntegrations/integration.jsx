@@ -81,8 +81,15 @@ export default class Integration extends AsyncView {
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  handleDisableIntegration = () => {
-    window.open('https://github.com/settings/installations', '_blank');
+  handleDisableIntegration = integration => {
+    let url;
+    if (integration.accountType === 'User') {
+      url = 'https://github.com/settings/installations';
+    } else {
+      let orgName = integration.domainName.split('/')[1];
+      url = `https://github.com/organizations/${orgName}/settings/installations`;
+    }
+    window.open(url, '_blank');
   };
 
   renderAlertLink(provider) {
@@ -136,7 +143,7 @@ export default class Integration extends AsyncView {
             integration={integration}
             onToggleEnabled={e => this.handleToggleProjectIntegration(integration, e)}
             onRemove={() => this.handleDeleteIntegration(integration)}
-            onDisable={() => this.handleDisableIntegration()}
+            onDisable={() => this.handleDisableIntegration(integration)}
           />
         ))
       );

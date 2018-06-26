@@ -20,6 +20,7 @@ class IntegrationSerializer(Serializer):
             'name': obj.name,
             'icon': obj.metadata.get('icon'),
             'domainName': obj.metadata.get('domain_name'),
+            'accountType': obj.metadata.get('account_type'),
             'status': obj.get_status_display(),
             'provider': {
                 'key': provider.key,
