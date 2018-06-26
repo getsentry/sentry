@@ -44,7 +44,7 @@ const EmptyMessage = ({title, description, icon, children, action, size}) => {
       {icon && <StyledInlineSvg src={icon} />}
       <div className="ref-message">
         {title && <EmptyHeader>{title}</EmptyHeader>}
-        {description && <EmptyDescription>{description}</EmptyDescription>}
+        {description && <EmptyDescription noMargin>{description}</EmptyDescription>}
         {children}
       </div>
       {action && <Action>{action}</Action>}
