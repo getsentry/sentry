@@ -16,12 +16,11 @@ from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
 from sentry.models import (
-    Commit, CommitAuthor, CommitFileChange, Identity, Integration, PullRequest,
-    Repository, User
+    Commit, CommitAuthor, CommitFileChange, Identity, Integration, PullRequest
 )
 from sentry.utils import json
-from sentry.constants import ObjectStatus
 from sentry.integrations.exceptions import ApiError
+from sentry.integrations.github.webhook import Webhook, InstallationEventWebhook
 from .repository import GitHubEnterpriseRepositoryProvider
 from .client import GitHubEnterpriseAppsClient
 
@@ -44,68 +43,26 @@ def get_installation_metadata(event):
     return integration.metadata['installation']
 
 
-class Webhook(object):
-    def _handle(self, event, organization, repo):
-        raise NotImplementedError
-
-    def __call__(self, event):
-        integration = Integration.objects.get(
-            external_id=event['installation']['id'],
-            provider='github-enterprise',
-        )
-
-        if 'repository' in event:
-
-            orgs = {
-                org.id: org
-                for org in integration.organizations.all()
-            }
-
-            repos = Repository.objects.filter(
-                organization_id__in=orgs.keys(),
-                provider='integrations:github_enterprise',
-                external_id=six.text_type(event['repository']['id']),
-            )
-            for repo in repos:
-                # We need to track GitHub's "full_name" which is the repository slug.
-                # This is needed to access the API since `external_id` isn't sufficient.
-                if repo.config.get('name') != event['repository']['full_name']:
-                    repo.config['name'] = event['repository']['full_name']
-                    repo.save()
-
-                self._handle(event, orgs[repo.organization_id], repo)
+class GitHubEnterpriseWebhook(Webhook):
+    provider = 'github-enterprise'
+    repo_provider = 'github_enterprise'
 
 
-class InstallationEventWebhook(Webhook):
-    # https://developer.github.com/v3/activity/events/types/#installationevent
-    def __call__(self, event):
-        installation = event['installation']
-        if installation and event['action'] == 'deleted':
-            integration = Integration.objects.get(
-                external_id=installation['id'],
-                provider='github-enterprise',
-            )
-            self._handle_delete(event, integration)
-
-    def _handle_delete(self, event, integration):
-
-        organizations = integration.organizations.all()
-        integration.update(status=ObjectStatus.DISABLED)
-
-        Repository.objects.filter(
-            organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:github_enterprise',
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+class GitHubEnterpriseInstallationEventWebhook(InstallationEventWebhook):
+    provider = 'github-enterprise'
+    repo_provider = 'github_enterprise'
 
 
-class InstallationRepositoryEventWebhook(Webhook):
+class GitHubEnterpriseInstallationRepositoryEventWebhook(Webhook):
+    provider = 'github-enterprise'
+    repo_provider = 'github_enterprise'
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
+
     def _handle(self, event, organization, repo):
         pass
 
 
-class PushEventWebhook(Webhook):
+class PushEventWebhook(GitHubEnterpriseWebhook):
     # https://developer.github.com/v3/activity/events/types/#pushevent
 
     def _handle(self, event, organization, repo):
@@ -255,7 +212,7 @@ class PushEventWebhook(Webhook):
                 pass
 
 
-class PullRequestEventWebhook(Webhook):
+class PullRequestEventWebhook(GitHubEnterpriseWebhook):
     # https://developer.github.com/v3/activity/events/types/#pullrequestevent
 
     def _handle(self, event, organization, repo):
@@ -280,16 +237,8 @@ class PullRequestEventWebhook(Webhook):
             )
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
-            try:
-                user_model = User.objects.filter(
-                    social_auth__provider='github',
-                    social_auth__uid=user['id'],
-                    org_memberships=organization,
-                )[0]
-            except IndexError:
-                pass
-            else:
-                author_email = user_model.email
+            # todo(meredith): try to get user email from identity model
+            pass
 
         try:
             author = CommitAuthor.objects.get(
@@ -423,8 +372,8 @@ class GithubEnterpriseWebhookEndpoint(GithubWebhookBase):
     _handlers = {
         'push': PushEventWebhook,
         'pull_request': PullRequestEventWebhook,
-        'installation': InstallationEventWebhook,
-        'installation_repositories': InstallationRepositoryEventWebhook,
+        'installation': GitHubEnterpriseInstallationEventWebhook,
+        'installation_repositories': GitHubEnterpriseInstallationRepositoryEventWebhook,
     }
 
     @method_decorator(csrf_exempt)

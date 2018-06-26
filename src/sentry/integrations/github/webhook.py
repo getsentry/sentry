@@ -39,13 +39,16 @@ def get_external_id(username):
 
 
 class Webhook(object):
+    provider = 'github'
+    repo_provider = 'github'
+
     def _handle(self, event, organization, repo):
         raise NotImplementedError
 
     def __call__(self, event):
         integration = Integration.objects.get(
             external_id=event['installation']['id'],
-            provider='github',
+            provider=self.provider,
         )
 
         if 'repository' in event:
@@ -57,7 +60,7 @@ class Webhook(object):
 
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
-                provider='integrations:github',
+                provider='integrations:%s' % self.repo_provider,
                 external_id=six.text_type(event['repository']['id']),
             )
             for repo in repos:
@@ -77,7 +80,7 @@ class InstallationEventWebhook(Webhook):
         if installation and event['action'] == 'deleted':
             integration = Integration.objects.get(
                 external_id=installation['id'],
-                provider='github',
+                provider=self.provider,
             )
             self._handle_delete(event, integration)
 
@@ -88,7 +91,7 @@ class InstallationEventWebhook(Webhook):
 
         Repository.objects.filter(
             organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:github',
+            provider='integrations:%s' % self.repo_provider,
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
 
