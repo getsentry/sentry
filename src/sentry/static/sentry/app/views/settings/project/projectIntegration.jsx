@@ -39,9 +39,7 @@ class ProjectIntegration extends AsyncView {
             allowUndo={true}
             apiMethod="POST"
             initialData={integration.configData}
-            apiEndpoint={`/projects/${orgId}/${projectId}/integrations/${
-              integration.id
-            }/`}
+            apiEndpoint={`/projects/${orgId}/${projectId}/integrations/${integration.id}/`}
           >
             <JsonForm
               fields={integration.configProject}
