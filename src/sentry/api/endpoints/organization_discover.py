@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from datetime import datetime
-
+from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.bases import OrganizationMemberEndpoint
+from sentry.api.bases import OrganizationEndpoint
 
-from sentry.models import Project, ProjectStatus, OrganizationMemberTeam
+from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 
 from sentry import roles
 
@@ -20,20 +21,53 @@ class OrganizationDiscoverPermission(OrganizationPermission):
     }
 
 
-class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
-    permission_classes = (OrganizationDiscoverPermission, )
+class DiscoverSerializer(serializers.Serializer):
+    projects = ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        allow_null=False,
+    )
+    start = serializers.DateTimeField(required=True)
+    end = serializers.DateTimeField(required=True)
+    fields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+    )
+    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False)
+    rollup = serializers.IntegerField(required=False)
+    orderby = serializers.CharField(required=False, default='-last_seen')
+    conditions = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+    )
+    aggregations = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+    )
 
-    def do_query(self, start, end, groupby, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(DiscoverSerializer, self).__init__(*args, **kwargs)
+        self.member = OrganizationMember.objects.get(
+            user=self.context['user'], organization=self.context['organization'])
 
-        snuba_results = snuba.raw_query(
-            start=start,
-            end=end,
-            groupby=groupby,
-            referrer='discover',
-            **kwargs
-        )
+    def validate_projects(self, attrs, source):
+        organization = self.context['organization']
+        member = self.member
+        projects = attrs[source]
 
-        return snuba_results
+        org_projects = set(Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).values_list('id', flat=True))
+
+        if not set(projects).issubset(org_projects) or not self.has_projects_access(
+                member, organization, projects):
+            raise PermissionDenied
+
+        return attrs
 
     def has_projects_access(self, member, organization, requested_projects):
         has_global_access = roles.get(member.role).is_global
@@ -49,60 +83,43 @@ class OrganizationDiscoverEndpoint(OrganizationMemberEndpoint):
 
         return set(requested_projects).issubset(set(member_project_list))
 
-    def post(self, request, organization, member):
-        data = request.DATA
 
-        filters = {
-            'project_id': data['projects']
-        } if 'projects' in data else None
+class OrganizationDiscoverEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationDiscoverPermission, )
 
-        selected_columns = data.get('fields')
+    def do_query(self, start, end, groupby, **kwargs):
 
-        orderby = data.get('orderby', '-last_seen')
+        snuba_results = snuba.raw_query(
+            start=start,
+            end=end,
+            groupby=groupby,
+            referrer='discover',
+            **kwargs
+        )
 
-        conditions = data.get('conditions')
+        return snuba_results
 
-        limit = data.get('limit', 1000)
+    def post(self, request, organization):
+        serializer = DiscoverSerializer(
+            data=request.DATA, context={
+                'organization': organization, 'user': request.user})
 
-        aggregations = data.get('aggregations')
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        groupby = data.get('groupby')
+        serialized = serializer.object
 
-        rollup = data.get('rollup')
-
-        projects = data.get('projects')
-
-        org_projects = set(Project.objects.filter(
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ).values_list('id', flat=True))
-
-        if (not isinstance(limit, int) or limit < 0 or limit > 1000):
-            return Response({'detail': 'Invalid limit parameter'}, status=400)
-
-        if not projects:
-            return Response({'detail': 'No projects requested'}, status=400)
-
-        if not set(projects).issubset(org_projects):
-            return Response({'detail': 'Invalid projects'}, status=400)
-
-        if not self.has_projects_access(member, organization, projects):
-            return Response({'detail': 'Invalid projects'}, status=400)
-
-        fmt = '%Y-%m-%dT%H:%M:%S'
-        start = datetime.strptime(data['start'], fmt)
-        end = datetime.strptime(data['end'], fmt)
         results = self.do_query(
-            start,
-            end,
-            groupby,
-            selected_columns=selected_columns,
-            conditions=conditions,
-            orderby=orderby,
-            limit=limit,
-            aggregations=aggregations,
-            rollup=rollup,
-            filter_keys=filters,
+            serialized.get('start'),
+            serialized.get('end'),
+            serialized.get('groupby'),
+            selected_columns=serialized.get('fields'),
+            conditions=serialized.get('conditions'),
+            orderby=serialized.get('orderby'),
+            limit=serialized.get('limit'),
+            aggregations=serialized.get('aggregations'),
+            rollup=serialized.get('rollup'),
+            filter_keys={'project_id': serialized.get('projects')},
         )
 
         return Response(results, status=200)
