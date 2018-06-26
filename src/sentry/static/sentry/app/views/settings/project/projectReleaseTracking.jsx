@@ -1,22 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import DynamicWrapper from 'app/components/dynamicWrapper';
-import getDynamicText from 'app/utils/getDynamicText';
 import Field from 'app/views/settings/components/forms/field';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import getDynamicText from 'app/utils/getDynamicText';
 import withPlugins from 'app/utils/withPlugins';
+
+const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
+const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
 
 class ProjectReleaseTracking extends AsyncView {
   static propTypes = {
@@ -32,7 +36,15 @@ class ProjectReleaseTracking extends AsyncView {
   getEndpoints() {
     let {orgId, projectId} = this.props.params;
 
-    return [['data', `/projects/${orgId}/${projectId}/releases/token/`]];
+    // Allow 403s
+    return [
+      [
+        'data',
+        `/projects/${orgId}/${projectId}/releases/token/`,
+        {},
+        {allowError: err => err && err.status === 403},
+      ],
+    ];
   }
 
   handleRegenerateToken = () => {
@@ -58,7 +70,7 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getReleaseWebhookIntructions() {
-    let {webhookUrl} = this.state.data;
+    let {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
     return (
       'curl ' +
       webhookUrl +
@@ -76,7 +88,7 @@ class ProjectReleaseTracking extends AsyncView {
     return (
       '// See SDK documentation for language specific usage.' +
       '\n' +
-      "Raven.config('your dsn', {" +
+      "Raven.config('YOUR_DSN', {" +
       '\n' +
       '  ' +
       "release: '0e4fdef81448dcfa0e16ecc4433ff3997aa53572'" +
@@ -87,6 +99,7 @@ class ProjectReleaseTracking extends AsyncView {
 
   renderBody() {
     let {organization, project, plugins} = this.props;
+    let hasWrite = organization.access.includes('project:write');
 
     if (plugins.loading) {
       return <LoadingIndicator />;
@@ -96,14 +109,25 @@ class ProjectReleaseTracking extends AsyncView {
       p => p.type === 'release-tracking' && p.hasConfiguration
     );
 
-    let {token, webhookUrl} = this.state.data;
+    let {token, webhookUrl} = this.state.data || {
+      token: TOKEN_PLACEHOLDER,
+      webhookUrl: WEBHOOK_PLACEHOLDER,
+    };
 
-    token = getDynamicText({value: token, fixed: '__TOKEN__'});
-    webhookUrl = getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
+    token = token && getDynamicText({value: token, fixed: '__TOKEN__'});
+    webhookUrl =
+      webhookUrl && getDynamicText({value: webhookUrl, fixed: '__WEBHOOK_URL__'});
 
     return (
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
+        {!hasWrite && (
+          <Alert icon="icon-circle-exclamation" type="warning">
+            {t(
+              'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
+            )}
+          </Alert>
+        )}
         <p>
           {t(
             'Configure release tracking for this project to automatically record new releases of your application.'
@@ -151,13 +175,14 @@ class ProjectReleaseTracking extends AsyncView {
             >
               <div>
                 <Confirm
+                  disabled={!hasWrite}
                   priority="danger"
                   onConfirm={this.handleRegenerateToken}
                   message={t(
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button type="button" priority="danger">
+                  <Button type="button" priority="danger" disabled={!hasWrite}>
                     {t('Regenerate Token')}
                   </Button>
                 </Confirm>
