@@ -99,10 +99,13 @@ class AuthLoginView(BaseView):
 
         op = request.POST.get('op')
 
-        # Detect that we are on the register page by url /register/ and
-        # then activate the register tab by default.
-        if not op and '/register' in request.path_info and can_register:
-            op = 'register'
+        if not op:
+            # Detect that we are on the register page by url /register/ and
+            # then activate the register tab by default.
+            if '/register' in request.path_info and can_register:
+                op = 'register'
+            elif request.GET.get('op') == 'sso':
+                op = 'sso'
 
         login_form = self.get_login_form(request)
         if can_register:
