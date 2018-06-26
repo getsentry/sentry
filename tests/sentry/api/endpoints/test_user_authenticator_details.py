@@ -112,6 +112,34 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert 'challenge' not in resp.data
         assert 'response' not in resp.data
 
+    def test_get_device_name(self):
+        auth = Authenticator.objects.create(
+            type=3,  # u2f
+            user=self.user,
+            config={
+                'devices': [{
+                    'binding': {
+                        'publicKey': 'aowekroawker',
+                        'keyHandle': 'devicekeyhandle',
+                        'appId': 'https://dev.getsentry.net:8000/auth/2fa/u2fappid.json'
+                    },
+                    'name': 'Amused Beetle',
+                    'ts': 1512505334
+                }, {
+                    'binding': {
+                        'publicKey': 'publickey',
+                        'keyHandle': 'aowerkoweraowerkkro',
+                        'appId': 'https://dev.getsentry.net:8000/auth/2fa/u2fappid.json'
+                    },
+                    'name': 'Sentry',
+                    'ts': 1512505334
+                }]
+            }
+        )
+
+        assert auth.interface.get_device_name('devicekeyhandle') == 'Amused Beetle'
+        assert auth.interface.get_device_name('aowerkoweraowerkkro') == 'Sentry'
+
     @mock.patch('sentry.utils.email.logger')
     def test_u2f_remove_device(self, email_log):
         auth = Authenticator.objects.create(
