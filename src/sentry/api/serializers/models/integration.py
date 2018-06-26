@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
-import six
 from collections import defaultdict
 
-from sentry.api.serializers import register, Serializer, serialize
-from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration, ProjectIntegration
+import six
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import (
+    ExternalIssue, GroupLink, Integration, OrganizationIntegration,
+    ProjectIntegration,
+)
 
 
 @register(Integration)
@@ -28,8 +32,9 @@ class IntegrationSerializer(Serializer):
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
-    def __init__(self, organization_id=None):
+    def __init__(self, organization_id=None, project_id=None):
         self.organization_id = organization_id
+        self.project_id = project_id
 
     def serialize(self, obj, attrs, user):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
@@ -40,7 +45,10 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         })
 
         try:
-            install = obj.get_installation(self.organization_id)
+            install = obj.get_installation(
+                organization_id=self.organization_id,
+                project_id=self.project_id,
+            )
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -75,7 +83,7 @@ class OrganizationIntegrationSerializer(Serializer):
             } for i in item_list
         }
 
-    def serialize(self, obj, attrs, user, organization=None, project=None):
+    def serialize(self, obj, attrs, user):
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
@@ -95,8 +103,15 @@ class OrganizationIntegrationSerializer(Serializer):
 
 @register(ProjectIntegration)
 class ProjectIntegrationSerializer(Serializer):
-    def serialize(self, obj, attrs, user, organization=None, project=None):
-        integration = serialize(obj.integration, user, IntegrationConfigSerializer())
+    def serialize(self, obj, attrs, user):
+        integration = serialize(
+            objects=obj.integration,
+            user=user,
+            serializer=IntegrationConfigSerializer(
+                project_id=obj.project.id,
+                organization_id=obj.project.organization.id,
+            ),
+        )
         integration.update({
             'configData': obj.config,
         })
