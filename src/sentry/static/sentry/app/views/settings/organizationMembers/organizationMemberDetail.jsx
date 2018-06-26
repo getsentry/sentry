@@ -5,7 +5,6 @@ import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
-import ConfigStore from 'app/stores/configStore';
 import DateTime from 'app/components/dateTime';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
@@ -121,16 +120,13 @@ class OrganizationMemberDetail extends AsyncView {
 
   renderBody() {
     let {error, member} = this.state;
-    let {teams} = this.getOrganization();
+    let {teams, access} = this.getOrganization();
 
     if (!member) return <NotFound />;
 
     let email = member.email;
     let inviteLink = member.invite_link;
-
-    let currentUser = ConfigStore.get('user');
-    let isCurrentUser = currentUser.email === email;
-    let roleSelectDisabled = isCurrentUser;
+    let canEdit = access.includes('org:write');
 
     return (
       <div>
@@ -216,7 +212,7 @@ class OrganizationMemberDetail extends AsyncView {
 
         <RoleSelect
           enforceAllowed={false}
-          disabled={roleSelectDisabled}
+          disabled={!canEdit}
           roleList={member.roles}
           selectedRole={member.role}
           setRole={slug => this.setState({member: {...member, role: slug}})}
@@ -226,6 +222,7 @@ class OrganizationMemberDetail extends AsyncView {
           teams={teams}
           selectedTeams={new Set(member.teams)}
           toggleTeam={this.handleToggleTeam}
+          disabled={!canEdit}
         />
 
         <Button
@@ -233,6 +230,7 @@ class OrganizationMemberDetail extends AsyncView {
           busy={this.state.busy}
           className="invite-member-submit"
           onClick={this.handleSave}
+          disabled={!canEdit}
         >
           {t('Save Member')}
         </Button>
