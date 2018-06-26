@@ -37,52 +37,6 @@ class VstsIntegration(Integration, VstsIssueSync):
 
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
-    def get_default_project_config_field(self):
-        # Not going to be used at this time. Switching to last used project
-        client = self.get_client()
-        disabled = False
-        try:
-            projects = client.get_projects(self.model.metadata['domain_name'])
-        except ApiError:
-            # TODO(LB): Disable for now. Need to decide what to do with this in the future
-            # should a message be shown to the user?
-            #  If INVALID_ACCESS_TOKEN ask the user to reinstall integration?
-
-            project_choices = []
-            disabled = True
-        else:
-            project_choices = [(project['id'], project['name']) for project in projects['value']]
-
-        try:
-            # TODO(LB): Will not work in the UI until the serliazer sends a `project_id` to get_installation()
-            # serializers and UI are being refactored and it's not worth trying to fix
-            # the old system. Revisit
-            default_project = self.project_integration.config.get('default_project')
-        except Exception:
-            default_project = None
-
-        initial_project = ('', '')
-        if default_project is not None:
-            for project_id, project_name in project_choices:
-                if default_project == project_id:
-                    initial_project = (project_id, project_name)
-                    break
-
-        return [
-            {
-                'name': 'default_project',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'required': True,
-                'choices': project_choices,
-                'initial': initial_project,
-                'label': _('Default Project Name'),
-                'placeholder': _('MyProject'),
-                'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
-            },
-        ]
-
     def get_project_config(self):
         client = self.get_client()
         instance = self.model.metadata['domain_name']
