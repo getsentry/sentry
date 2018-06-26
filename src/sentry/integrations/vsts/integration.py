@@ -85,11 +85,27 @@ class VstsIntegration(Integration, VstsIssueSync):
 
     def get_project_config(self):
         client = self.get_client()
-        fields = [
+        instance = self.model.metadata['domain_name']
+
+        try:
+            # NOTE(lb): vsts get workitem states does not give an id.
+            work_item_states = client.get_work_item_states(instance)['value']
+            statuses = [(c['name'], c['name']) for c in work_item_states]
+            disabled = False
+        except ApiError:
+            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
+            # statuses is a little heavy handed. Is there something better we
+            # can fall back to?
+            statuses = []
+            disabled = True
+
+        return [
             {
                 'name': 'resolve_status',
                 'type': 'choice',
                 'allowEmpty': True,
+                'disabled': disabled,
+                'choices': statuses,
                 'label': _('Visual Studio Team Services Resolved Status'),
                 'placeholder': _('Select a Status'),
                 'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
@@ -98,6 +114,8 @@ class VstsIntegration(Integration, VstsIssueSync):
                 'name': 'resolve_when',
                 'type': 'choice',
                 'allowEmpty': True,
+                'disabled': disabled,
+                'choices': statuses,
                 'label': _('Resolve in Sentry When'),
                 'placeholder': _('Select a Status'),
                 'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
@@ -106,6 +124,8 @@ class VstsIntegration(Integration, VstsIssueSync):
                 'name': 'regression_status',
                 'type': 'choice',
                 'allowEmpty': True,
+                'disabled': disabled,
+                'choices': statuses,
                 'label': _('Visual Studio Team Services Regression Status'),
                 'placeholder': _('Select a Status'),
                 'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
@@ -129,19 +149,6 @@ class VstsIntegration(Integration, VstsIssueSync):
                 'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
-
-        try:
-            statuses = [(c['id'], c['name']) for c in client.get_valid_statuses()]
-            fields[0]['choices'] = statuses
-            fields[1]['choices'] = statuses
-        except ApiError:
-            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
-            # statuses is a little heavy handed. Is there something better we
-            # can fall back to?
-            fields[0]['disabled'] = True
-            fields[1]['disabled'] = True
-
-        return fields
 
     @property
     def instance(self):
