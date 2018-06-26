@@ -39,6 +39,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             'organization': organization,
             'provider_key': provider.key,
             'provider_name': provider.name,
+            'authenticated': request.user.is_authenticated(),
         }
 
         return self.respond('sentry/organization-login.html', context)
