@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
 const CONFIGURABLE_FEATURES = ['commits'];
 
@@ -37,6 +38,8 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 
+  mergeIntegration() {}
+
   renderDisableIntegration(integration) {
     const message = `You must uninstall this integration from
       %s in order to delete this integration in Sentry.`;
@@ -56,11 +59,7 @@ export default class InstalledIntegration extends React.Component {
       all projects and any repositories from this integration.  Are you sure
       you want to remove this integration?`;
     return (
-      <Confirm
-        disabled={integration.status === 'disabled'}
-        message={t(message)}
-        onConfirm={() => this.props.onRemove()}
-      >
+      <Confirm message={t(message)} onConfirm={() => this.props.onRemove()}>
         <Button size="small" icon="icon-trash" />
       </Confirm>
     );
@@ -77,16 +76,29 @@ export default class InstalledIntegration extends React.Component {
           <Box px={2} flex={1} style={style}>
             <IntegrationItem integration={integration} />
           </Box>
-          {this.hasConfiguration() && (
-            <Box mr={1}>
-              <Button
-                size="small"
-                to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
-              >
-                {t('Configure')}
-              </Button>
-            </Box>
-          )}
+          {integration.status === 'active' &&
+            this.hasConfiguration() && (
+              <Box mr={1}>
+                <Button
+                  size="small"
+                  to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
+                >
+                  {t('Configure')}
+                </Button>
+              </Box>
+            )}
+          {integration.status === 'disabled' &&
+            this.hasConfiguration() && (
+              <Box mr={1}>
+                <AddIntegrationButton
+                  size="small"
+                  priority="danger"
+                  provider={provider}
+                  onAddIntegration={this.mergeIntegration}
+                  reinstall={true}
+                />
+              </Box>
+            )}
           <Box mr={1} pr={2}>
             {integration.status === 'active' && integration.provider.key === 'github'
               ? this.renderDisableIntegration(integration)

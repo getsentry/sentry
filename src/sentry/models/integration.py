@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
+from sentry.models.repository import Repository
+
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
@@ -74,6 +76,14 @@ class Integration(Model):
 
     def has_feature(self, feature):
         return feature in self.get_provider().features
+
+    def reinstall_repositories(self):
+        organizations = self.organizations.all()
+        Repository.objects.filter(
+            organization_id__in=organizations.values_list('id', flat=True),
+            provider='integrations:github',
+            integration_id=self.id,
+        ).update(status=ObjectStatus.VISIBLE)
 
     def add_organization(self, organization_id, default_auth_id=None, config=None):
         """
