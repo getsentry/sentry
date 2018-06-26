@@ -185,7 +185,7 @@ class IntegrationProjects extends AsyncComponent {
                       </p>
                       <p>
                         {t(
-                          'Removing the this integration from the project will clear any project specific configurations and functionality for this project'
+                          'Removing the this integration from the project will clear any project specific configurations and functionality for this project.'
                         )}
                       </p>
                     </React.Fragment>
