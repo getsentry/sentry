@@ -346,17 +346,16 @@ def get_project_issues(project_ids, issue_ids=None):
             tombstone.project_id, {}
         )[tombstone.hash] = tombstone.deleted_at
 
-    # return [(gid, [(hash, tombstone_date), (hash, tombstone_date), ...]), ...]
+    # return [(gid, pid, [(hash, tombstone_date), (hash, tombstone_date), ...]), ...]
     result = {}
     for h in hashes:
         tombstone_date = tombstones_by_project.get(h.project_id, {}).get(h.hash, None)
         issue = (
             h.hash,
-            h.project_id,
             tombstone_date.strftime("%Y-%m-%d %H:%M:%S") if tombstone_date else None
         )
-        result.setdefault(h.group_id, []).append(issue)
-    return list(result.items())[:MAX_ISSUES]
+        result.setdefault((h.group_id, h.project_id), []).append(issue)
+    return [k + (v,) for k, v in result.items()][:MAX_ISSUES]
 
 
 def get_related_project_ids(column, ids):
