@@ -1,11 +1,13 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
 
 import {Panel, PanelHeader} from 'app/components/panels';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-
+import {storiesOf} from '@storybook/react';
+import {withInfo} from '@storybook/addon-info';
 import Button from 'app/components/buttons/button';
+import EmptyMessage, {
+  EmptyDescription,
+  EmptyHeader,
+} from 'app/views/settings/components/emptyMessage';
 
 storiesOf('EmptyMessage', module)
   .add(
@@ -46,6 +48,21 @@ storiesOf('EmptyMessage', module)
           action={<Button priority="primary">Invite Members</Button>}
         >
           Sentry is better with friends
+        </EmptyMessage>
+      </Panel>
+    ))
+  )
+  .add(
+    'in panel with sub-description',
+    withInfo('Put this in a panel for maximum effect')(() => (
+      <Panel>
+        <PanelHeader>Members</PanelHeader>
+        <EmptyMessage>
+          <EmptyHeader>Sentry is better with Friends</EmptyHeader>
+          <EmptyDescription>
+            When you use sentry with friends, you'll find your world of possibilities
+            expends
+          </EmptyDescription>
         </EmptyMessage>
       </Panel>
     ))

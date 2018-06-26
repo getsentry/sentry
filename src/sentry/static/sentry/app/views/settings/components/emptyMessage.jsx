@@ -1,8 +1,10 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import space from 'app/styles/space';
 
 const Wrapper = styled.div`
   display: flex;
@@ -27,6 +29,15 @@ const Action = styled.div`
   margin-top: 0.75em;
 `;
 
+const EmptyHeader = styled.div`
+  margin-bottom: ${space(2)};
+`;
+
+const EmptyDescription = styled(TextBlock)`
+  font-size: 0.9em;
+  font-weight: normal;
+`;
+
 const EmptyMessage = ({icon, children, action, size}) => {
   return (
     <Wrapper size={size}>
@@ -44,3 +55,5 @@ EmptyMessage.propTypes = {
 };
 
 export default EmptyMessage;
+
+export {EmptyHeader, EmptyDescription};
