@@ -14,5 +14,5 @@ def get_asset_url(module, path):
     return '{}/{}/{}'.format(
         settings.STATIC_URL.rstrip('/'),
         module,
-        path,
+        path.lstrip('/'),
     )
