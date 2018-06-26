@@ -25,7 +25,7 @@ class ProjectIntegration extends AsyncView {
     const {orgId, projectId} = this.props.params;
     const {integration} = this.state;
 
-    const title = <IntegrationItem integration={integration} withProvider={true} />;
+    const title = <IntegrationItem integration={integration} />;
 
     return (
       <React.Fragment>
