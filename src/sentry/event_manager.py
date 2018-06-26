@@ -42,6 +42,7 @@ from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
+from sentry.utils.geo import geo_by_addr
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
@@ -524,6 +525,18 @@ class EventManager(object):
 
         if data['transaction']:
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
+        ip_address = get_path(data, ['sentry.interfaces.User', 'ip_address'])
+        if ip_address:
+            geo = geo_by_addr(ip_address)
+            if geo:
+                data['sentry.interfaces.User']['geo'] = {
+                    'country_code': geo.get('country_code'),
+                    'city': geo.get('city'),
+                    'region': geo.get('region'),
+                    'latitude': geo.get('latitude'),
+                    'longitude': geo.get('longitude'),
+                }
 
         return data
 
