@@ -15,6 +15,7 @@ class Confirm extends React.PureComponent {
      * If true, will skip the confirmation modal and call `onConfirm`
      */
     bypass: PropTypes.bool,
+    title: PropTypes.string,
     message: PropTypes.node,
     /**
      * Renderer that passes:
@@ -121,6 +122,7 @@ class Confirm extends React.PureComponent {
       message,
       renderMessage,
       priority,
+      title,
       confirmText,
       cancelText,
       children,
@@ -154,6 +156,9 @@ class Confirm extends React.PureComponent {
               onClick: this.handleToggle,
             })}
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
+          <div className="modal-header">
+            <h4>{title}</h4>
+          </div>
           <div className="modal-body">{confirmMessage}</div>
           <div className="modal-footer">
             <Button style={{marginRight: 10}} onClick={this.handleToggle}>

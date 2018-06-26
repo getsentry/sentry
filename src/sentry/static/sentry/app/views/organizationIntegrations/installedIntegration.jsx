@@ -4,6 +4,7 @@ import React from 'react';
 
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
@@ -41,12 +42,15 @@ export default class InstalledIntegration extends React.Component {
   mergeIntegration() {}
 
   renderDisableIntegration(integration) {
-    const message = `You must uninstall this integration from
-      %s in order to delete this integration in Sentry.`;
+    let {body, action_text} = integration.provider.aspects.disable_dialog;
+    let message = <Alert type="info" icon="icon-circle-exclamation">{body}</Alert>;
+
     return (
       <Confirm
-        confirmText={t('Remove on GitHub')}
-        message={t(message, integration.provider.key)}
+        confirmText={t(action_text)}
+        message={t(message)}
+        priority="danger"
+        title="Disabling Your Integration"
         onConfirm={() => this.props.onDisable(integration)}
       >
         <Button size="small" icon="icon-trash" />
@@ -55,11 +59,10 @@ export default class InstalledIntegration extends React.Component {
   }
 
   renderRemoveIntegration(integration) {
-    const message = `Removing this integration will disable the integration for
-      all projects and any repositories from this integration.  Are you sure
-      you want to remove this integration?`;
+    let {body, action_text} = integration.provider.aspects.removal_dialog;
+    let message = <Alert type="warning" icon="icon-circle-exclamation">{body}</Alert>;
     return (
-      <Confirm message={t(message)} onConfirm={() => this.props.onRemove()}>
+      <Confirm message={t(message)} confirmText={t(action_text)} priority="danger" title="Deleting Your Integration" onConfirm={() => this.props.onRemove()}>
         <Button size="small" icon="icon-trash" />
       </Confirm>
     );

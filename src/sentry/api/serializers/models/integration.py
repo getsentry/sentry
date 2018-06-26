@@ -28,6 +28,7 @@ class IntegrationSerializer(Serializer):
                 'canAdd': provider.can_add,
                 'canAddProject': provider.can_add_project,
                 'features': [f.value for f in provider.features],
+                'aspects': provider.metadata.aspects,
             },
         }
 
