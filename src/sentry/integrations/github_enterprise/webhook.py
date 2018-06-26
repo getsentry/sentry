@@ -32,7 +32,7 @@ def is_anonymous_email(email):
 
 
 def get_external_id(username):
-    return 'github:%s' % username
+    return 'github_enterprise:%s' % username
 
 
 def get_installation_metadata(event):
