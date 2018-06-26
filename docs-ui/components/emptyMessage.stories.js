@@ -61,7 +61,7 @@ storiesOf('EmptyMessage', module)
           <EmptyHeader>Sentry is better with Friends</EmptyHeader>
           <EmptyDescription>
             When you use sentry with friends, you'll find your world of possibilities
-            expends
+            expands!
           </EmptyDescription>
         </EmptyMessage>
       </Panel>
