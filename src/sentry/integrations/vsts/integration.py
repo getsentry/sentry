@@ -37,7 +37,8 @@ class VstsIntegration(Integration, VstsIssueSync):
 
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
-    def get_project_config(self):
+    def get_default_project_config_field(self):
+        # Not going to be used at this time. Switching to last used project
         client = self.get_client()
         disabled = False
         try:
@@ -81,6 +82,66 @@ class VstsIntegration(Integration, VstsIssueSync):
                 'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
             },
         ]
+
+    def get_project_config(self):
+        client = self.get_client()
+        fields = [
+            {
+                'name': 'resolve_status',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('Visual Studio Team Services Resolved Status'),
+                'placeholder': _('Select a Status'),
+                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+            },
+            {
+                'name': 'resolve_when',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('Resolve in Sentry When'),
+                'placeholder': _('Select a Status'),
+                'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
+            },
+            {
+                'name': 'regression_status',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('Visual Studio Team Services Regression Status'),
+                'placeholder': _('Select a Status'),
+                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
+            },
+            {
+                'name': 'sync_comments',
+                'type': 'boolean',
+                'label': _('Post Comments to Visual Studio Team Services'),
+                'help': _('Synchronize comments from Sentry issues to linked Visual Studio Team Services tickets.'),
+            },
+            {
+                'name': 'sync_forward_assignment',
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to Visual Studio Team Services'),
+                'help': _('When assigning something in Sentry, the linked Visual Studio Team Services ticket will have the associated Visual Studio Team Services user assigned.'),
+            },
+            {
+                'name': 'sync_reverse_assignment',
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to Sentry'),
+                'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+            },
+        ]
+
+        try:
+            statuses = [(c['id'], c['name']) for c in client.get_valid_statuses()]
+            fields[0]['choices'] = statuses
+            fields[1]['choices'] = statuses
+        except ApiError:
+            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
+            # statuses is a little heavy handed. Is there something better we
+            # can fall back to?
+            fields[0]['disabled'] = True
+            fields[1]['disabled'] = True
+
+        return fields
 
     @property
     def instance(self):
