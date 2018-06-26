@@ -23,6 +23,6 @@ else:
         except Exception:
             logger.warning("Error opening GeoIP database: %s" % geoip_path)
         else:
-            geo_by_addr = lambda ip: geo_db.record_by_addr(ip)
+            geo_by_addr = geo_db.record_by_addr
     else:
         logger.warning("settings.GEOIP_PATH not configured.")

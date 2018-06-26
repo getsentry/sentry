@@ -534,12 +534,10 @@ class EventManager(object):
                 geo = None
 
             if geo:
-                data['sentry.interfaces.User']['geo'] = {
+                data['sentry.interfaces.Geo'] = {
                     'country_code': geo.get('country_code'),
                     'city': geo.get('city'),
                     'region': geo.get('region'),
-                    'latitude': geo.get('latitude'),
-                    'longitude': geo.get('longitude'),
                 }
 
         return data

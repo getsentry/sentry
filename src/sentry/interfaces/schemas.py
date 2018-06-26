@@ -438,6 +438,15 @@ EVENT_SCHEMA = {
         # Other interfaces
         'sentry.interfaces.User': {'type': 'object'},
         'sentry.interfaces.Http': {},
+        'sentry.interfaces.Geo': {
+            'type': 'object',
+            'properties': {
+                'country_code': {'type': 'string'},
+                'city': {'type': 'string'},
+                'region': {'type': 'string'},
+            },
+            'additionalProperties': False,
+        },
 
         # Other reserved keys. (some are added in processing)
         'project': {'type': ['number', 'string']},
