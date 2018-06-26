@@ -19,14 +19,10 @@ else:
     geoip_path = getattr(settings, 'GEOIP_PATH', None)
     if geoip_path:
         try:
-            geo_db = GeoIP.open(geoip_path, GeoIP.GEOIP_STANDARD)
-        except BaseException:
+            geo_db = GeoIP.open(geoip_path, GeoIP.GEOIP_MEMORY_CACHE)
+        except Exception:
             logger.warning("Error opening GeoIP database: %s" % geoip_path)
         else:
-            def geo_by_addr(ip):
-                try:
-                    return geo_db.record_by_addr(ip)
-                except BaseException:
-                    return None
+            geo_by_addr = lambda ip: geo_db.record_by_addr(ip)
     else:
         logger.warning("settings.GEOIP_PATH not configured.")

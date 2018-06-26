@@ -528,7 +528,11 @@ class EventManager(object):
 
         ip_address = get_path(data, ['sentry.interfaces.User', 'ip_address'])
         if ip_address:
-            geo = geo_by_addr(ip_address)
+            try:
+                geo = geo_by_addr(ip_address)
+            except Exception:
+                geo = None
+
             if geo:
                 data['sentry.interfaces.User']['geo'] = {
                     'country_code': geo.get('country_code'),
