@@ -358,21 +358,18 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                       </InlineButton>
                                     </Tooltip>
                                     <Link
-                                      className="css-5kvhca"
                                       to="/settings/org-slug/project-slug/"
                                     >
                                       <Link
-                                        className="css-5kvhca"
                                         onlyActiveOnIndex={false}
                                         style={Object {}}
                                         to="/settings/org-slug/project-slug/"
                                       >
                                         <a
-                                          className="css-5kvhca"
                                           onClick={[Function]}
                                           style={Object {}}
                                         >
-                                          <StyledProjectLabel
+                                          <ProjectLabel
                                             organization={
                                               Object {
                                                 "access": Array [
@@ -411,8 +408,8 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                               }
                                             }
                                           >
-                                            <ProjectLabel
-                                              className="css-ngf4wp-StyledProjectLabel enngb6z1"
+                                            <span
+                                              className="project-label"
                                               organization={
                                                 Object {
                                                   "access": Array [
@@ -452,53 +449,12 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                               }
                                             >
                                               <span
-                                                className="css-ngf4wp-StyledProjectLabel enngb6z1"
-                                                organization={
-                                                  Object {
-                                                    "access": Array [
-                                                      "org:read",
-                                                      "org:write",
-                                                      "org:admin",
-                                                      "project:read",
-                                                      "project:write",
-                                                      "project:admin",
-                                                      "team:read",
-                                                      "team:write",
-                                                      "team:admin",
-                                                    ],
-                                                    "features": Array [],
-                                                    "id": "3",
-                                                    "name": "Organization Name",
-                                                    "onboardingTasks": Array [],
-                                                    "projects": Array [],
-                                                    "slug": "org-slug",
-                                                    "status": Object {
-                                                      "id": "active",
-                                                      "name": "active",
-                                                    },
-                                                    "teams": Array [],
-                                                  }
-                                                }
-                                                project={
-                                                  Object {
-                                                    "hasAccess": true,
-                                                    "id": "2",
-                                                    "isBookmarked": false,
-                                                    "isMember": true,
-                                                    "name": "Project Name",
-                                                    "slug": "project-slug",
-                                                    "teams": Array [],
-                                                  }
-                                                }
+                                                className="project-name"
                                               >
-                                                <span
-                                                  className="project-name"
-                                                >
-                                                  Project Name
-                                                </span>
+                                                Project Name
                                               </span>
-                                            </ProjectLabel>
-                                          </StyledProjectLabel>
+                                            </span>
+                                          </ProjectLabel>
                                         </a>
                                       </Link>
                                     </Link>

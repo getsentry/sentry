@@ -7,7 +7,6 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import AvatarChooser from 'app/components/avatarChooser';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
@@ -84,44 +83,38 @@ export default class TeamSettings extends AsyncView {
           }}
         >
           <Box>
-            <JsonForm location={location} forms={teamSettingsFields} />
+            <JsonForm access={access} location={location} forms={teamSettingsFields} />
           </Box>
         </Form>
 
-        {organization.features.includes('internal-catchall') && (
-          <AvatarChooser
-            type="team"
-            allowGravatar={false}
-            endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
-            model={team}
-            onSave={this.handleSubmitSuccess}
-          />
-        )}
-
-        {access.has('team:admin') && (
-          <Panel>
-            <PanelHeader>{t('Remove Team')}</PanelHeader>
-            <Field
-              help={t(
-                "This may affect team members' access to projects and associated alert delivery."
-              )}
-            >
-              <div>
-                <Confirm
-                  onConfirm={this.handleRemoveTeam}
+        <Panel>
+          <PanelHeader>{t('Remove Team')}</PanelHeader>
+          <Field
+            help={t(
+              "This may affect team members' access to projects and associated alert delivery."
+            )}
+          >
+            <div>
+              <Confirm
+                disabled={!access.has('team:admin')}
+                onConfirm={this.handleRemoveTeam}
+                priority="danger"
+                message={tct('Are you sure you want to remove the team [team]?', {
+                  team: `#${team.slug}`,
+                })}
+              >
+                <Button
+                  icon="icon-trash"
                   priority="danger"
-                  message={tct('Are you sure you want to remove the team [team]?', {
-                    team: `#${team.slug}`,
-                  })}
+                  title={t('Remove Team')}
+                  disabled={!access.has('team:admin')}
                 >
-                  <Button icon="icon-trash" priority="danger" title={t('Remove Team')}>
-                    {t('Remove Team')}
-                  </Button>
-                </Confirm>
-              </div>
-            </Field>
-          </Panel>
-        )}
+                  {t('Remove Team')}
+                </Button>
+              </Confirm>
+            </div>
+          </Field>
+        </Panel>
       </React.Fragment>
     );
   }
