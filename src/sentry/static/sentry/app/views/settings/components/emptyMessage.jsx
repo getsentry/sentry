@@ -6,6 +6,7 @@ import InlineSvg from 'app/components/inlineSvg';
 
 const Wrapper = styled.div`
   display: flex;
+  text-align: center;
   align-items: center;
   flex-direction: column;
   color: ${p => p.theme.gray4};
