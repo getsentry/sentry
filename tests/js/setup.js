@@ -82,6 +82,14 @@ window.TestStubs = {
     ...params,
   }),
 
+  routes: () => [
+    {path: '/'},
+    {path: '/:orgId/'},
+    {name: 'this should be skipped'},
+    {path: '/organizations/:orgId/'},
+    {path: 'api-keys/', name: 'API Key'},
+  ],
+
   routerProps: (params = {}) => ({
     location: TestStubs.location(),
     params: {},
