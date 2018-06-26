@@ -38,22 +38,26 @@ const EmptyDescription = styled(TextBlock)`
   font-weight: normal;
 `;
 
-const EmptyMessage = ({icon, children, action, size}) => {
+const EmptyMessage = ({title, description, icon, children, action, size}) => {
   return (
     <Wrapper size={size}>
       {icon && <StyledInlineSvg src={icon} />}
-      <div className="ref-message">{children}</div>
+      <div className="ref-message">
+        {title && <EmptyHeader>{title}</EmptyHeader>}
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+        {children}
+      </div>
       {action && <Action>{action}</Action>}
     </Wrapper>
   );
 };
 
 EmptyMessage.propTypes = {
+  title: PropTypes.string,
+  description: PropTypes.string,
   icon: PropTypes.string,
   action: PropTypes.element,
   size: PropTypes.oneOf(['large', 'medium']),
 };
 
 export default EmptyMessage;
-
-export {EmptyHeader, EmptyDescription};
