@@ -281,6 +281,8 @@ class U2fSettingsView(TwoFactorSettingsView):
         if key_handle and 'remove' in request.POST and \
            interface.remove_u2f_device(key_handle):
             interface.authenticator.save()
+            device_name = interface.get_device_name(key_handle)
+
             capture_security_activity(
                 account=request.user,
                 type='mfa-removed',
@@ -288,6 +290,7 @@ class U2fSettingsView(TwoFactorSettingsView):
                 ip_address=request.META['REMOTE_ADDR'],
                 context={
                     'authenticator': interface.authenticator,
+                    'device_name': device_name
                 },
                 send_email=True,
             )

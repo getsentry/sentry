@@ -1,7 +1,7 @@
 Security Notice
 ---------------
 
-An authenticator has been added to your Sentry account.
+Recovery codes have been regenerated for your Sentry account.
 
 
 Details
@@ -10,9 +10,6 @@ Details
 Account: foo@example.com
 IP: 127.0.0.1
 When: Jan. 20, 2017, 9:39 p.m. UTC
-
-Authenticator: U2F (Universal 2nd Factor)
-Device: Home computer
 
 
 Don't recognize this activity?

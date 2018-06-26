@@ -119,6 +119,8 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             interface.authenticator.save()
+            device_name = interface.get_device_name(interface_device_id)
+
             capture_security_activity(
                 account=user,
                 type='mfa-removed',
@@ -126,6 +128,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 ip_address=request.META['REMOTE_ADDR'],
                 context={
                     'authenticator': authenticator,
+                    'device_name': device_name
                 },
                 send_email=True
             )
