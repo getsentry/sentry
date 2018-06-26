@@ -1,5 +1,7 @@
 import React from 'react';
 
+import {PanelAlert} from 'app/components/panels';
+import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
@@ -7,11 +9,10 @@ import Button from 'app/components/buttons/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import ListLink from 'app/components/listLink';
-import {PanelAlert} from 'app/components/panels';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {fields} from 'app/data/forms/projectAlerts';
+import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
@@ -65,20 +66,27 @@ export default class ProjectAlertSettings extends AsyncView {
   renderBody() {
     let {orgId, projectId} = this.props.params;
     let {organization} = this.props;
+    let canEditRule = organization.access.includes('project:write');
 
     return (
       <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
-            <Button
-              to={recreateRoute('rules/new/', this.props)}
-              priority="primary"
-              size="small"
-              icon="icon-circle-add"
+            <Tooltip
+              disabled={canEditRule}
+              title={t('You do not have permission to edit alert rules.')}
             >
-              {t('New Alert Rule')}
-            </Button>
+              <Button
+                to={recreateRoute('rules/new/', this.props)}
+                disabled={!canEditRule}
+                priority="primary"
+                size="small"
+                icon="icon-circle-add"
+              >
+                {t('New Alert Rule')}
+              </Button>
+            </Tooltip>
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>

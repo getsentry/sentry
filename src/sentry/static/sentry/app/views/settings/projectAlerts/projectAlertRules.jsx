@@ -11,6 +11,7 @@ import {
   addLoadingMessage,
   removeIndicator,
 } from 'app/actionCreators/indicator';
+import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
@@ -20,11 +21,10 @@ import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryTypes from 'app/proptypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
-import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -111,7 +111,7 @@ const RuleRow = createReactClass({
           <div>
             <Tooltip
               disabled={canEdit}
-              title={t('You do not have permission to view rule configuration.')}
+              title={t('You do not have permission to edit alert rules.')}
             >
               <Button
                 data-test-id="edit-rule"
@@ -124,12 +124,18 @@ const RuleRow = createReactClass({
               </Button>
             </Tooltip>
 
-            <Confirm
-              message={t('Are you sure you want to remove this rule?')}
-              onConfirm={this.onDelete}
+            <Tooltip
+              disabled={canEdit}
+              title={t('You do not have permission to edit alert rules.')}
             >
-              <Button size="small" icon="icon-trash" />
-            </Confirm>
+              <Confirm
+                message={t('Are you sure you want to remove this rule?')}
+                onConfirm={this.onDelete}
+                disabled={!canEdit}
+              >
+                <Button size="small" icon="icon-trash" />
+              </Confirm>
+            </Tooltip>
           </div>
         </PanelHeader>
 
@@ -254,20 +260,28 @@ class ProjectAlertRules extends AsyncView {
 
   renderBody() {
     let {ruleList} = this.state;
+    let {organization} = this.context;
+    let canEditRule = organization.access.includes('project:write');
 
     return (
       <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
-            <Button
-              to={recreateRoute('new/', this.props)}
-              priority="primary"
-              size="small"
-              icon="icon-circle-add"
+            <Tooltip
+              disabled={canEditRule}
+              title={t('You do not have permission to edit alert rules.')}
             >
-              {t('New Alert Rule')}
-            </Button>
+              <Button
+                disabled={!canEditRule}
+                to={recreateRoute('new/', this.props)}
+                priority="primary"
+                size="small"
+                icon="icon-circle-add"
+              >
+                {t('New Alert Rule')}
+              </Button>
+            </Tooltip>
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
