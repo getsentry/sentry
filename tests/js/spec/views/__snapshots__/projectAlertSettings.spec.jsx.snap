@@ -7,15 +7,20 @@ exports[`ProjectAlertSettings render() renders 1`] = `
   <React.Fragment>
     <SettingsPageHeading
       action={
-        <Button
-          disabled={false}
-          icon="icon-circle-add"
-          priority="primary"
-          size="small"
-          to="rules/new/"
+        <Tooltip
+          disabled={true}
+          title="You do not have permission to edit alert rules."
         >
-          New Alert Rule
-        </Button>
+          <Button
+            disabled={false}
+            icon="icon-circle-add"
+            priority="primary"
+            size="small"
+            to="rules/new/"
+          >
+            New Alert Rule
+          </Button>
+        </Tooltip>
       }
       tabs={
         <ul
