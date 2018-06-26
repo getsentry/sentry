@@ -20,6 +20,7 @@ import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure/index';
 import OnboardingWizard from 'app/views/onboarding/index';
 import OrganizationActivity from 'app/views/organizationActivity';
+import OrganizationAuth from 'app/views/settings/organizationAuth/index';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationDashboard';
@@ -470,9 +471,9 @@ function routes() {
         path="auth/"
         name="Auth Providers"
         component={
-            HookStore.get('component:org-auth-view').length
-              ? HookStore.get('component:org-auth-view')[0]()
-              : OrganizationAuth
+          HookStore.get('component:org-auth-view').length
+            ? HookStore.get('component:org-auth-view')[0]()
+            : OrganizationAuth
         }
       />
 
