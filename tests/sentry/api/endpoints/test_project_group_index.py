@@ -12,8 +12,8 @@ from mock import patch
 from sentry import tagstore
 from sentry.models import (
     Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupHashTombstone,
-    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, GroupTombstone, Release,
-    UserOption, GroupShare,
+    GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupTombstone, ExternalIssue, Integration, Release, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -428,6 +428,130 @@ class GroupUpdateTest(APITestCase):
         )
 
         assert len(response.data) == 0
+
+    @patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
+    def test_resolve_with_integration(self, mock_sync_status_outbound):
+        self.login_as(user=self.user)
+
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org.id)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
+        external_issue = ExternalIssue.objects.get_or_create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            key='APP-%s' % group.id,
+        )[0]
+
+        GroupLink.objects.get_or_create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )[0]
+
+        response = self.client.get(
+            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            format='json',
+        )
+
+        assert len(response.data) == 1
+
+        with self.tasks():
+            with self.feature('organizations:internal-catchall'):
+                response = self.client.put(
+                    '{}?status=unresolved'.format(self.path),
+                    data={
+                        'status': 'resolved',
+                    },
+                    format='json',
+                )
+                assert response.status_code == 200, response.data
+
+                group = Group.objects.get(id=group.id)
+                assert group.status == GroupStatus.RESOLVED
+
+                assert response.data == {
+                    'status': 'resolved',
+                    'statusDetails': {},
+                }
+                mock_sync_status_outbound.assert_called_once_with(
+                    external_issue, True
+                )
+
+        response = self.client.get(
+            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            format='json',
+        )
+        assert len(response.data) == 0
+
+    @patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
+    def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
+        release = self.create_release(project=self.project, version='abc')
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        org = self.organization
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org.id)
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+        )
+        external_issue = ExternalIssue.objects.get_or_create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            key='APP-%s' % group.id,
+        )[0]
+
+        GroupLink.objects.get_or_create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )[0]
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+
+        with self.tasks():
+            with self.feature('organizations:internal-catchall'):
+                response = self.client.put(
+                    url, data={
+                        'status': 'unresolved',
+                    }, format='json'
+                )
+                assert response.status_code == 200
+                assert response.data == {
+                    'status': 'unresolved',
+                    'statusDetails': {},
+                }
+
+                group = Group.objects.get(id=group.id)
+                assert group.status == GroupStatus.UNRESOLVED
+
+                self.assertNoResolution(group)
+
+                assert GroupSubscription.objects.filter(
+                    user=self.user,
+                    group=group,
+                    is_active=True,
+                ).exists()
+                mock_sync_status_outbound.assert_called_once_with(
+                    external_issue, False
+                )
 
     def test_self_assign_issue(self):
         group = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
