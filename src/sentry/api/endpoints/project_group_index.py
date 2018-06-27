@@ -599,6 +599,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 )
 
                 kick_off_status_syncs.apply_async(kwargs={
+                    'project_id': group.project_id,
                     'group_id': group.id,
                     'is_resolved': True,
                 })
@@ -722,6 +723,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
                     if new_status == GroupStatus.UNRESOLVED:
                         kick_off_status_syncs.apply_async(kwargs={
+                            'project_id': group.project_id,
                             'group_id': group.id,
                             'is_resolved': False,
                         })
