@@ -79,7 +79,7 @@ class DiscoverSerializer(serializers.Serializer):
             teams__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
             ).values('team'),
-        ).values_list('id')
+        ).values_list('id', flat=True)
 
         return set(requested_projects).issubset(set(member_project_list))
 
