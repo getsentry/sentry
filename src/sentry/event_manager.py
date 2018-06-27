@@ -32,10 +32,12 @@ from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, UserReport
+    Organization, Project, Release, ReleaseEnvironment, ReleaseProject,
+    ReleaseProjectEnvironment, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
+from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
@@ -1222,6 +1224,14 @@ class EventManager(object):
                 }
             )
             activity.send_notification()
+            organization = Organization.objects.get_from_cache(
+                id=group.project.organization_id,
+            )
+            if features.has('organizations:internal-catchall', organization):
+                kick_off_status_syncs.apply_async(kwargs={
+                    'project_id': group.project_id,
+                    'group_id': group.id,
+                })
 
         return is_regression
 

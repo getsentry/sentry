@@ -32,6 +32,7 @@ from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
 from sentry.signals import advanced_search, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
+from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor, CursorResult
@@ -597,6 +598,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     sender=acting_user,
                 )
 
+                kick_off_status_syncs.apply_async(kwargs={
+                    'project_id': group.project_id,
+                    'group_id': group.id,
+                })
+
             result.update({
                 'status': 'resolved',
                 'statusDetails': status_details,
@@ -713,6 +719,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 reason=GroupSubscriptionReason.status_change,
                             )
                         activity.send_notification()
+
+                    if new_status == GroupStatus.UNRESOLVED:
+                        kick_off_status_syncs.apply_async(kwargs={
+                            'project_id': group.project_id,
+                            'group_id': group.id,
+                        })
 
         if 'assignedTo' in result:
             assigned_actor = result['assignedTo']

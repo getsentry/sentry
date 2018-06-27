@@ -118,3 +118,9 @@ class IssueSyncMixin(object):
         If assign=True, we're assigning the issue. Otherwise, deassign.
         """
         raise NotImplementedError
+
+    def sync_status_outbound(self, external_issue, is_resolved, **kwargs):
+        """
+        Propagate a sentry issue's status to a linked issue's status.
+        """
+        raise NotImplementedError
