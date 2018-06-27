@@ -474,6 +474,9 @@ class GroupUpdateTest(APITestCase):
                 )
                 assert response.status_code == 200, response.data
 
+                group = Group.objects.get(id=group.id)
+                assert group.status == GroupStatus.RESOLVED
+
                 assert response.data == {
                     'status': 'resolved',
                     'statusDetails': {},

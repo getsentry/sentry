@@ -52,15 +52,6 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     integration.get_installation().sync_assignee_outbound(external_issue, user, assign=assign)
 
 
-def group_status_matches_is_resolved(group_id, is_resolved):
-    # make sure the group still exists and more importantly, the status
-    # is still what we think it is
-    return Group.objects.filter(
-        id=group_id,
-        status=GroupStatus.RESOLVED if is_resolved else GroupStatus.UNRESOLVED,
-    ).exists()
-
-
 @instrumented_task(
     name='sentry.tasks.integrations.sync_status_outbound',
     queue='integrations',
@@ -68,12 +59,20 @@ def group_status_matches_is_resolved(group_id, is_resolved):
     max_retries=5
 )
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def sync_status_outbound(group_id, external_issue_id, is_resolved, **kwargs):
-    if not group_status_matches_is_resolved(group_id, is_resolved):
+def sync_status_outbound(group_id, external_issue_id, **kwargs):
+    try:
+        group_status = Group.objects.filter(
+            id=group_id,
+            status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED],
+        ).values_list('status', flat=True)[0]
+    except IndexError:
         return
+
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     integration = Integration.objects.get(id=external_issue.integration_id)
-    integration.get_installation().sync_status_outbound(external_issue, is_resolved)
+    integration.get_installation().sync_status_outbound(
+        external_issue, group_status == GroupStatus.RESOLVED,
+    )
 
 
 @instrumented_task(
@@ -83,13 +82,9 @@ def sync_status_outbound(group_id, external_issue_id, is_resolved, **kwargs):
     max_retries=5
 )
 @retry()
-def kick_off_status_syncs(project_id, group_id, is_resolved, **kwargs):
+def kick_off_status_syncs(project_id, group_id, **kwargs):
     # doing this in a task since this has to go in the event manager
     # and didn't want to introduce additional queries there
-
-    if not group_status_matches_is_resolved(group_id, is_resolved):
-        return
-
     external_issue_ids = GroupLink.objects.filter(
         project_id=project_id,
         group_id=group_id,
@@ -101,6 +96,5 @@ def kick_off_status_syncs(project_id, group_id, is_resolved, **kwargs):
             kwargs={
                 'group_id': group_id,
                 'external_issue_id': external_issue_id,
-                'is_resolved': is_resolved,
             }
         )

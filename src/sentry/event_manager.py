@@ -1231,7 +1231,6 @@ class EventManager(object):
                 kick_off_status_syncs.apply_async(kwargs={
                     'project_id': group.project_id,
                     'group_id': group.id,
-                    'is_resolved': False,
                 })
 
         return is_regression

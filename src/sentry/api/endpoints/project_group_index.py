@@ -601,7 +601,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 kick_off_status_syncs.apply_async(kwargs={
                     'project_id': group.project_id,
                     'group_id': group.id,
-                    'is_resolved': True,
                 })
 
             result.update({
@@ -725,7 +724,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         kick_off_status_syncs.apply_async(kwargs={
                             'project_id': group.project_id,
                             'group_id': group.id,
-                            'is_resolved': False,
                         })
 
         if 'assignedTo' in result:
