@@ -3,6 +3,7 @@ from __future__ import absolute_import
 __all__ = ('Geo', )
 
 from sentry.interfaces.base import Interface
+from sentry.utils.geo import geo_by_addr
 
 
 class Geo(Interface):
@@ -16,6 +17,9 @@ class Geo(Interface):
     >>> }
     """
 
+    def get_path(self):
+        return 'geo'
+
     @classmethod
     def to_python(cls, data):
         kwargs = {
@@ -25,5 +29,19 @@ class Geo(Interface):
         }
         return cls(**kwargs)
 
-    def get_path(self):
-        return 'geo'
+    @classmethod
+    def from_ip_address(cls, ip_address):
+        try:
+            geo = geo_by_addr(ip_address)
+        except Exception:
+            geo = None
+
+        if not geo:
+            return None
+
+        kwargs = {
+            'country_code': geo.get('country_code'),
+            'city': geo.get('city'),
+            'region': geo.get('region'),
+        }
+        return cls(**kwargs)

@@ -12,6 +12,7 @@ __all__ = ('User', )
 import six
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.geo import Geo
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 from sentry.utils.validators import validate_ip
@@ -78,6 +79,12 @@ class User(Interface):
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'ip_address'")
 
+        geo = data.pop('geo', None)
+        if not geo and ip_address:
+            geo = Geo.from_ip_address(ip_address)
+        elif geo and not isinstance(geo, Geo):
+            geo = Geo.to_python(geo)
+
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):
         #     raise ValueError('No identifying value')
@@ -88,10 +95,19 @@ class User(Interface):
             'username': username,
             'ip_address': ip_address,
             'name': name,
+            'geo': geo,
         }
 
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
+
+    def to_json(self):
+        # geo needs to be JSON encoded if it exists
+        geo = self._data.pop('geo') if 'geo' in self._data else {}
+        json = super(User, self).to_json()
+        if geo:
+            json['geo'] = geo
+        return json
 
     def get_api_context(self, is_public=False):
         return {
