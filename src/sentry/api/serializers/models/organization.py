@@ -131,9 +131,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('relay')
         if features.has('organizations:health', obj, actor=user):
             feature_list.append('health')
+<<<<<<< HEAD
         if OrganizationOption.objects.filter(
                 organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
             feature_list.append('legacy-rate-limits')
+=======
+        if features.has('organizations:sso-paywall-experiment', obj, actor=user):
+            feature_list.append('sso-paywall-experiment')
+
+>>>>>>> show if in experiment, make feature an OrganizationFeature
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
