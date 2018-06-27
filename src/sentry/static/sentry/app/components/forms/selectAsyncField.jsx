@@ -47,7 +47,7 @@ class SelectAsyncField extends SelectField {
       // This is the only thing that is different from parent, we compare newValue against coerved value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it
-      // to just return `value`. Also when field changes, it propagates the coerved value up
+      // to just return `value`. Also when field changes, it propagates the coerced value up
       let coercedValue = this.coerceValue(this.state.value);
 
       // newValue can be empty string because of `getValue`, while coerceValue needs to return null (to differentiate
