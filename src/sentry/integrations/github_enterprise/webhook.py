@@ -1,38 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import dateutil.parser
 import hashlib
 import hmac
 import logging
 import six
 
-from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils import timezone
 from simplejson import JSONDecodeError
-from sentry.models import (
-    Commit, CommitAuthor, CommitFileChange, Identity, Integration, PullRequest
-)
+from sentry.models import Integration
 from sentry.utils import json
-from sentry.integrations.exceptions import ApiError
-from sentry.integrations.github.webhook import Webhook, InstallationEventWebhook
+from sentry.integrations.github.webhook import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook, PullRequestEventWebhook
 from .repository import GitHubEnterpriseRepositoryProvider
 from .client import GitHubEnterpriseAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
-
-
-def is_anonymous_email(email):
-    return email[-25:] == '@users.noreply.github.com'
-
-
-def get_external_id(username):
-    return 'github_enterprise:%s' % username
 
 
 def get_installation_metadata(event):
@@ -43,236 +29,56 @@ def get_installation_metadata(event):
     return integration.metadata['installation']
 
 
-class GitHubEnterpriseWebhook(Webhook):
-    provider = 'github-enterprise'
-    repo_provider = 'github_enterprise'
-
-
 class GitHubEnterpriseInstallationEventWebhook(InstallationEventWebhook):
     provider = 'github-enterprise'
     repo_provider = 'github_enterprise'
 
 
-class GitHubEnterpriseInstallationRepositoryEventWebhook(Webhook):
+class GitHubEnterpriseInstallationRepositoryEventWebhook(InstallationRepositoryEventWebhook):
     provider = 'github-enterprise'
     repo_provider = 'github_enterprise'
-    # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
 
+    # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
     def _handle(self, event, organization, repo):
         pass
 
 
-class PushEventWebhook(GitHubEnterpriseWebhook):
-    # https://developer.github.com/v3/activity/events/types/#pushevent
+class GitHubEnterprisePushEventWebhook(PushEventWebhook):
+    provider = 'github-enterprise'
+    repo_provider = 'github_enterprise'
 
-    def _handle(self, event, organization, repo):
-        authors = {}
+    # https://developer.github.com/v3/activity/events/types/#pushevent
+    def is_anonymous_email(self, email):
+        return email[-25:] == '@users.noreply.github.com'
+
+    def get_external_id(self, username):
+        return 'github_enterprise:%s' % username
+
+    def get_client(self, event):
         metadata = get_installation_metadata(event)
         if metadata is None:
             return HttpResponse(status=400)
 
-        client = GitHubEnterpriseAppsClient(
+        return GitHubEnterpriseAppsClient(
             metadata['url'],
             metadata['id'],
             event['installation']['id'],
             metadata['private_key'])
-        gh_username_cache = {}
 
-        for commit in event['commits']:
-            if not commit['distinct']:
-                continue
-
-            if GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit['message']):
-                continue
-
-            author_email = commit['author']['email']
-            if '@' not in author_email:
-                author_email = u'{}@localhost'.format(
-                    author_email[:65],
-                )
-            # try to figure out who anonymous emails are
-            elif is_anonymous_email(author_email):
-                gh_username = commit['author'].get('username')
-                # bot users don't have usernames
-                if gh_username:
-                    external_id = get_external_id(gh_username)
-                    if gh_username in gh_username_cache:
-                        author_email = gh_username_cache[gh_username] or author_email
-                    else:
-                        try:
-                            commit_author = CommitAuthor.objects.get(
-                                external_id=external_id,
-                                organization_id=organization.id,
-                            )
-                        except CommitAuthor.DoesNotExist:
-                            commit_author = None
-
-                        if commit_author is not None and not is_anonymous_email(
-                            commit_author.email
-                        ):
-                            author_email = commit_author.email
-                            gh_username_cache[gh_username] = author_email
-                        else:
-                            try:
-                                gh_user = client.get('/users/%s' % gh_username)
-                            except ApiError as exc:
-                                logger.exception(six.text_type(exc))
-                            else:
-                                # even if we can't find a user, set to none so we
-                                # don't re-query
-                                gh_username_cache[gh_username] = None
-                                try:
-                                    # todo(meredith): make sure correct identity is used
-                                    identity = Identity.objects.get(external_id=gh_user['id'])
-                                except Identity.DoesNotExist:
-                                    pass
-                                else:
-                                    author_email = identity.user.email
-                                    gh_username_cache[gh_username] = author_email
-                                    if commit_author is not None:
-                                        try:
-                                            with transaction.atomic():
-                                                commit_author.update(
-                                                    email=author_email,
-                                                    external_id=external_id,
-                                                )
-                                        except IntegrityError:
-                                            pass
-
-                        if commit_author is not None:
-                            authors[author_email] = commit_author
-
-            # TODO(dcramer): we need to deal with bad values here, but since
-            # its optional, lets just throw it out for now
-            if len(author_email) > 75:
-                author = None
-            elif author_email not in authors:
-                authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                    organization_id=organization.id,
-                    email=author_email,
-                    defaults={
-                        'name': commit['author']['name'][:128],
-                    }
-                )[0]
-
-                update_kwargs = {}
-
-                if author.name != commit['author']['name'][:128]:
-                    update_kwargs['name'] = commit['author']['name'][:128]
-
-                gh_username = commit['author'].get('username')
-                if gh_username:
-                    external_id = get_external_id(gh_username)
-                    if author.external_id != external_id and not is_anonymous_email(author.email):
-                        update_kwargs['external_id'] = external_id
-
-                if update_kwargs:
-                    try:
-                        with transaction.atomic():
-                            author.update(**update_kwargs)
-                    except IntegrityError:
-                        pass
-            else:
-                author = authors[author_email]
-
-            try:
-                with transaction.atomic():
-                    c = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization.id,
-                        key=commit['id'],
-                        message=commit['message'],
-                        author=author,
-                        date_added=dateutil.parser.parse(
-                            commit['timestamp'],
-                        ).astimezone(timezone.utc),
-                    )
-                    for fname in commit['added']:
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type='A',
-                        )
-                    for fname in commit['removed']:
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type='D',
-                        )
-                    for fname in commit['modified']:
-                        CommitFileChange.objects.create(
-                            organization_id=organization.id,
-                            commit=c,
-                            filename=fname,
-                            type='M',
-                        )
-            except IntegrityError:
-                pass
+    def should_ignore_commit(self, commit):
+        return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit['message'])
 
 
-class PullRequestEventWebhook(GitHubEnterpriseWebhook):
+class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
+    provider = 'github-enterprise'
+    repo_provider = 'github_enterprise'
+
     # https://developer.github.com/v3/activity/events/types/#pullrequestevent
+    def is_anonymous_email(self, email):
+        return email[-25:] == '@users.noreply.github.com'
 
-    def _handle(self, event, organization, repo):
-        pull_request = event['pull_request']
-        number = pull_request['number']
-        title = pull_request['title']
-        body = pull_request['body']
-        user = pull_request['user']
-
-        # The value of the merge_commit_sha attribute changes depending on the state of the pull request. Before a pull request is merged, the merge_commit_sha attribute holds the SHA of the test merge commit. After a pull request is merged, the attribute changes depending on how the pull request was merged:
-        # - If the pull request was merged as a merge commit, the attribute represents the SHA of the merge commit.
-        # - If the pull request was merged via a squash, the attribute represents the SHA of the squashed commit on the base branch.
-        # - If the pull request was rebased, the attribute represents the commit that the base branch was updated to.
-        # https://developer.github.com/v3/pulls/#get-a-single-pull-request
-        merge_commit_sha = pull_request['merge_commit_sha'] if pull_request['merged'] else None
-
-        author_email = u'{}@localhost'.format(user['login'][:65])
-        try:
-            commit_author = CommitAuthor.objects.get(
-                external_id=get_external_id(user['login']),
-                organization_id=organization.id,
-            )
-            author_email = commit_author.email
-        except CommitAuthor.DoesNotExist:
-            # todo(meredith): try to get user email from identity model
-            pass
-
-        try:
-            author = CommitAuthor.objects.get(
-                organization_id=organization.id,
-                external_id=get_external_id(user['login']),
-            )
-        except CommitAuthor.DoesNotExist:
-            try:
-                author = CommitAuthor.objects.get(
-                    organization_id=organization.id,
-                    email=author_email,
-                )
-            except CommitAuthor.DoesNotExist:
-                author = CommitAuthor.objects.create(
-                    organization_id=organization.id,
-                    email=author_email,
-                    external_id=get_external_id(user['login']),
-                    name=user['login'][:128]
-                )
-
-        try:
-            PullRequest.objects.create_or_update(
-                repository_id=repo.id,
-                key=number,
-                values={
-                    'organization_id': organization.id,
-                    'title': title,
-                    'author': author,
-                    'message': body,
-                    'merge_commit_sha': merge_commit_sha,
-                },
-            )
-        except IntegrityError:
-            pass
+    def get_external_id(self, username):
+        return 'github_enterprise:%s' % username
 
 
 class GithubWebhookBase(View):
@@ -370,8 +176,8 @@ class GithubWebhookBase(View):
 
 class GithubEnterpriseWebhookEndpoint(GithubWebhookBase):
     _handlers = {
-        'push': PushEventWebhook,
-        'pull_request': PullRequestEventWebhook,
+        'push': GitHubEnterprisePushEventWebhook,
+        'pull_request': GitHubEnterprisePullRequestEventWebhook,
         'installation': GitHubEnterpriseInstallationEventWebhook,
         'installation_repositories': GitHubEnterpriseInstallationRepositoryEventWebhook,
     }

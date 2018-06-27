@@ -158,7 +158,7 @@ class PushEventWebhookTest(APITestCase):
         )
 
         CommitAuthor.objects.create(
-            external_id='github:baxterthehacker',
+            external_id='github_enterprise:baxterthehacker',
             organization_id=project.organization_id,
             email='baxterthehacker@example.com',
             name=u'bàxterthehacker',
