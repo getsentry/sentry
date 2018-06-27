@@ -145,7 +145,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         installation = self.get_installation_info(
             identity['access_token'], state['installation_id'])
 
-        return {
+        integration = {
             'name': installation['account']['login'],
             # TODO(adhiraj): This should be a constant representing the entire github cloud.
             'external_id': installation['id'],
@@ -167,6 +167,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'data': {'access_token': identity['access_token']},
             },
         }
+        if state['reinstall_id']:
+            integration['reinstall_id'] = state['reinstall_id']
+
+        return integration
 
     def setup(self):
         from sentry.plugins import bindings
@@ -183,6 +187,9 @@ class GitHubInstallationRedirect(PipelineView):
         return 'https://github.com/apps/%s' % name
 
     def dispatch(self, request, pipeline):
+        if 'reinstall_id' in request.GET:
+            pipeline.bind_state('reinstall_id', request.GET['reinstall_id'])
+
         if 'installation_id' in request.GET:
             pipeline.bind_state('installation_id', request.GET['installation_id'])
             return pipeline.next_step()

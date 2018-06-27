@@ -17,6 +17,7 @@ class IntegrationSerializer(Serializer):
         provider = obj.get_provider()
         return {
             'id': six.text_type(obj.id),
+            'external_id': obj.external_id,
             'name': obj.name,
             'icon': obj.metadata.get('icon'),
             'domainName': obj.metadata.get('domain_name'),

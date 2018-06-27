@@ -31,7 +31,8 @@ export default class AddIntegrationButton extends React.Component {
   static propTypes = {
     provider: PropTypes.object.isRequired,
     onAddIntegration: PropTypes.func.isRequired,
-    reinstall: PropTypes.bool,
+    integration: PropTypes.object,
+    reinstall: PropTypes.bool
   };
 
   componentDidMount() {
@@ -49,12 +50,16 @@ export default class AddIntegrationButton extends React.Component {
 
   handleAddIntegration = provider => {
     const name = 'sentryAddIntegration';
+    debugger;
 
     const {url, width, height} = provider.setupDialog;
+    const {integration, reinstall} = this.props;
     const {left, top} = computeCenteredWindow(width, height);
 
+    const installUrl = reinstall ? url + `?reinstall_id=${integration.external_id}` : url;
+
     this.dialog = window.open(
-      url,
+      installUrl,
       name,
       `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`
     );
@@ -93,14 +98,12 @@ export default class AddIntegrationButton extends React.Component {
       <Tooltip
         disabled={provider.canAdd}
         tooltipOptions={{placement: 'left'}}
-        title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
-      >
+        title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}>
         <span>
           <Button
             {...buttonProps}
             disabled={!provider.canAdd}
-            onClick={() => this.handleAddIntegration(provider)}
-          >
+            onClick={() => this.handleAddIntegration(provider)}>
             {!reinstall && <span className="icon icon-add" />}
             {buttonText}
           </Button>

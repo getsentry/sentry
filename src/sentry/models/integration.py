@@ -77,11 +77,12 @@ class Integration(Model):
     def has_feature(self, feature):
         return feature in self.get_provider().features
 
-    def reinstall_repositories(self):
+    def reinstall(self, new_external_id):
+        self.update(external_id=new_external_id, status=ObjectStatus.VISIBLE)
         organizations = self.organizations.all()
         Repository.objects.filter(
             organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:github',
+            provider='integrations:%s' % self.provider,
             integration_id=self.id,
         ).update(status=ObjectStatus.VISIBLE)
 

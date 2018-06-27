@@ -18,7 +18,7 @@ export default class InstalledIntegration extends React.Component {
     provider: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
-    onDisable: PropTypes.func.isRequired,
+    onDisable: PropTypes.func.isRequired
   };
 
   /**
@@ -43,16 +43,21 @@ export default class InstalledIntegration extends React.Component {
 
   renderDisableIntegration(integration) {
     let {body, action_text} = integration.provider.aspects.disable_dialog;
-    let message = <Alert type="info" icon="icon-circle-exclamation">{body}</Alert>;
+    let message = (
+      <div>
+        <Alert type="error" icon="icon-circle-exclamation">
+          This integration cannot be removed on Sentry
+        </Alert>
+        {body}
+      </div>
+    );
 
     return (
       <Confirm
         confirmText={t(action_text)}
         message={t(message)}
         priority="danger"
-        title="Disabling Your Integration"
-        onConfirm={() => this.props.onDisable(integration)}
-      >
+        onConfirm={() => this.props.onDisable(integration)}>
         <Button size="small" icon="icon-trash" />
       </Confirm>
     );
@@ -60,9 +65,20 @@ export default class InstalledIntegration extends React.Component {
 
   renderRemoveIntegration(integration) {
     let {body, action_text} = integration.provider.aspects.removal_dialog;
-    let message = <Alert type="warning" icon="icon-circle-exclamation">{body}</Alert>;
+    let message = (
+      <div>
+        <Alert type="error" icon="icon-circle-exclamation">
+          Deleting this integration has consequences!
+        </Alert>
+        {body}
+      </div>
+    );
     return (
-      <Confirm message={t(message)} confirmText={t(action_text)} priority="danger" title="Deleting Your Integration" onConfirm={() => this.props.onRemove()}>
+      <Confirm
+        message={t(message)}
+        confirmText={t(action_text)}
+        priority="danger"
+        onConfirm={() => this.props.onRemove()}>
         <Button size="small" icon="icon-trash" />
       </Confirm>
     );
@@ -80,32 +96,33 @@ export default class InstalledIntegration extends React.Component {
             <IntegrationItem integration={integration} />
           </Box>
           {integration.status === 'active' &&
-            this.hasConfiguration() && (
-              <Box mr={1}>
-                <Button
-                  size="small"
-                  to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
-                >
-                  {t('Configure')}
-                </Button>
-              </Box>
-            )}
-          {integration.status === 'disabled' &&
-            this.hasConfiguration() && (
-              <Box mr={1}>
-                <AddIntegrationButton
-                  size="small"
-                  priority="danger"
-                  provider={provider}
-                  onAddIntegration={this.mergeIntegration}
-                  reinstall={true}
-                />
-              </Box>
-            )}
+          this.hasConfiguration() && (
+            <Box mr={1}>
+              <Button
+                size="small"
+                to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}>
+                {t('Configure')}
+              </Button>
+            </Box>
+          )}
+          {integration.status === 'disabled' && (
+            <Box mr={1}>
+              <AddIntegrationButton
+                size="small"
+                priority="danger"
+                provider={provider}
+                integration={integration}
+                onAddIntegration={this.mergeIntegration}
+                reinstall={true}
+              />
+            </Box>
+          )}
           <Box mr={1} pr={2}>
-            {integration.status === 'active' && integration.provider.key === 'github'
-              ? this.renderDisableIntegration(integration)
-              : this.renderRemoveIntegration(integration)}
+            {integration.status === 'active' && integration.provider.key === 'github' ? (
+              this.renderDisableIntegration(integration)
+            ) : (
+              this.renderRemoveIntegration(integration)
+            )}
           </Box>
         </PanelItem>
       </React.Fragment>
