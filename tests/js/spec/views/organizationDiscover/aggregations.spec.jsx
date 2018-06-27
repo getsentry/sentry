@@ -1,4 +1,7 @@
-import {getInternal, getExternal} from 'app/views/organizationDiscover/aggregations';
+import {
+  getInternal,
+  getExternal,
+} from 'app/views/organizationDiscover/aggregations/utils';
 
 const aggregationList = [
   {
