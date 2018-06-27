@@ -16,7 +16,7 @@ import {t} from 'app/locale';
 import {update, loadStatsForProject} from 'app/actionCreators/projects';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import Platformicon from 'app/components/platformicon';
+import PlatformList from 'app/components/platformList';
 
 import Chart from './chart';
 import NoEvents from './noEvents';
@@ -62,13 +62,19 @@ class ProjectCard extends React.Component {
       ? t('Remove from bookmarks')
       : t('Add to bookmarks');
 
+    let platforms;
+    if (typeof project.platforms !== 'undefined') {
+      platforms = project && project.platforms;
+    } else {
+      platforms = [];
+    }
     return (
       <ProjectCardWrapper data-test-id={slug} width={['100%', '50%', '33%', '25%']}>
         {stats ? (
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
               <Box ml={2}>
-                <StyledPlatformicon size="24" platform={project.platform || 'generic'} />
+                <PlatformList direction={'right'} platforms={platforms} />
               </Box>
               <StyledTitle>
                 {hasProjectAccess ? (
@@ -100,13 +106,6 @@ class ProjectCard extends React.Component {
     );
   }
 }
-
-const StyledPlatformicon = styled(Platformicon)`
-  display: block;
-  color: white;
-  border-radius: 3px;
-  max-width: 24px;
-`;
 
 const ProjectCardContainer = createReactClass({
   propTypes: {
@@ -154,7 +153,7 @@ const ChartContainer = styled.div`
 
 const StyledTitle = styled.div`
   ${overflowEllipsis};
-  padding: 16px 8px;
+  padding: 16px 4px;
 `;
 
 const ProjectCardWrapper = styled(Box)`

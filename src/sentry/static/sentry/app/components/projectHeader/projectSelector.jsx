@@ -223,7 +223,6 @@ const ProjectSelector = createReactClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {/*ideally an icon here...*/}
         <ProjectBadge>
           <Flex>
             <StyledPlatformList platforms={platforms} direction="left" />

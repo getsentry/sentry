@@ -94,7 +94,7 @@ describe('ProjectCard', function() {
   });
 
   it('renders with platform', function() {
-    expect(wrapper.find('Platformicon[platform="javascript"]')).toHaveLength(1);
+    expect(wrapper.find('PlatformList')).toHaveLength(1);
   });
 
   it('renders loading placeholder card if there are no stats', function() {
