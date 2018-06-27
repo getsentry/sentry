@@ -82,7 +82,7 @@ class User(Interface):
         geo = data.pop('geo', None)
         if not geo and ip_address:
             geo = Geo.from_ip_address(ip_address)
-        elif geo and not isinstance(geo, Geo):
+        elif geo:
             geo = Geo.to_python(geo)
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
@@ -106,7 +106,7 @@ class User(Interface):
         geo = self._data.pop('geo') if 'geo' in self._data else {}
         json = super(User, self).to_json()
         if geo:
-            json['geo'] = geo
+            json['geo'] = geo.to_json()
         return json
 
     def get_api_context(self, is_public=False):

@@ -27,6 +27,7 @@ class Geo(Interface):
             'city': data.get('city'),
             'region': data.get('region'),
         }
+
         return cls(**kwargs)
 
     @classmethod
@@ -39,9 +40,9 @@ class Geo(Interface):
         if not geo:
             return None
 
-        kwargs = {
+        data = {
             'country_code': geo.get('country_code'),
             'city': geo.get('city'),
             'region': geo.get('region'),
         }
-        return cls(**kwargs)
+        return cls.to_python(data)
