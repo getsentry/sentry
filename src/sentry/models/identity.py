@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -63,3 +64,19 @@ class Identity(Model):
     def get_provider(self):
         from sentry.identity import get
         return get(self.idp.type)
+
+    @classmethod
+    def reattach(cls, idp, external_id, user, **kwargs):
+        """
+        Removes identities under `idp` associated with either `external_id` or `user`
+        and creates a new identity linking them.
+        """
+        lookup = Q(external_id=external_id) | Q(user=user)
+        Identity.objects.filter(lookup, idp=idp).delete()
+
+        return Identity.objects.create(
+            idp=idp,
+            user=user,
+            external_id=external_id,
+            **kwargs
+        )

@@ -2,10 +2,12 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['IntegrationPipeline']
 
+import six
+
 from django.db import IntegrityError
-from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.api.serializers import serialize
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
@@ -99,20 +101,38 @@ class IntegrationPipeline(Pipeline):
                 )
 
                 if not created:
-                    identity_model.update(data=identity['data'], scopes=identity['scopes'])
+                    identity_model.update(**identity_data)
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
-                # identities and recreate it.
-                lookup = Q(external_id=identity['external_id']) | Q(user=self.request.user)
-                Identity.objects.filter(lookup, idp=idp).delete()
-
-                identity_model = Identity.objects.create(
-                    idp=idp,
-                    user=self.request.user,
-                    external_id=identity['external_id'],
-                    **identity_data
-                )
+                # identities and recreate it, except in the case of Github
+                # where we need to be more careful because users may be using
+                # those identities to log in.
+                if idp.type == 'github':
+                    try:
+                        other_identity = Identity.objects.get(
+                            idp=idp,
+                            external_id=identity['external_id'],
+                        )
+                    except Identity.DoesNotExist:
+                        # The user is linked to a different external_id. It's ok to relink
+                        # here because they'll still be able to log in with the new external_id.
+                        pass
+                    else:
+                        # The external_id is linked to a different user. If that user doesn't
+                        # have a password, we don't delete the link as it may lock them out.
+                        if not other_identity.user.has_usable_password():
+                            return self._dialog_response({
+                                # Force text_type conversion because translation objects are not
+                                # JSON-serializable by default.
+                                'error': six.text_type(_(
+                                    'The provided Github account is linked to a different user. '
+                                    'Please try again with a different Github account.'
+                                ))},
+                                False,
+                            )
+                identity_model = Identity.reattach(
+                    idp, identity['external_id'], self.request.user, **identity_data)
 
         org_integration_args = {}
 

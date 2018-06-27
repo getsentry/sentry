@@ -75,7 +75,7 @@ export default class AddIntegrationButton extends React.Component {
     const {success, data} = message.data;
 
     if (!success) {
-      IndicatorStore.addError(t('Unable to add Integration'));
+      IndicatorStore.addError(data['error']);
       return;
     }
 

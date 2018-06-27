@@ -16,7 +16,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
     @patch('sentry.integrations.github.integration.get_jwt', return_value='jwt_token_1')
-    def assert_setup_flow(self, get_jwt, installation_id='install_id_1', app_id='app_1', user_id='user_id_1'):
+    def assert_setup_flow(self, get_jwt, installation_id='install_id_1',
+                          app_id='app_1', user_id='user_id_1'):
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -102,6 +103,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert auth_header == 'Bearer jwt_token_1'
 
         self.assertDialogSuccess(resp)
+        return resp
 
     @responses.activate
     def test_basic_flow(self):
@@ -133,3 +135,24 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert identity.data == {
             'access_token': 'xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx'
         }
+
+    @responses.activate
+    def test_reassign_user(self):
+        self.assert_setup_flow()
+
+        # Associate the identity with a user that has a password.
+        # Identity should be relinked.
+        user2 = self.create_user()
+        Identity.objects.get().update(user=user2)
+        self.assert_setup_flow()
+        identity = Identity.objects.get()
+        assert identity.user == self.user
+
+        # Associate the identity with a user without a password.
+        # Identity should not be relinked.
+        user2.set_unusable_password()
+        user2.save()
+        Identity.objects.get().update(user=user2)
+        resp = self.assert_setup_flow()
+        assert '"success":false' in resp.content
+        assert 'The provided Github account is linked to a different user' in resp.content
