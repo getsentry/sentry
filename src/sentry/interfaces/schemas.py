@@ -255,6 +255,16 @@ EXCEPTION_INTERFACE_SCHEMA = {
     'additionalProperties': True,
 }
 
+GEO_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'country_code': {'type': 'string'},
+        'city': {'type': 'string'},
+        'region': {'type': 'string'},
+    },
+    'additionalProperties': False,
+}
+
 DEVICE_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -438,15 +448,7 @@ EVENT_SCHEMA = {
         # Other interfaces
         'sentry.interfaces.User': {'type': 'object'},
         'sentry.interfaces.Http': {},
-        'sentry.interfaces.Geo': {
-            'type': 'object',
-            'properties': {
-                'country_code': {'type': 'string'},
-                'city': {'type': 'string'},
-                'region': {'type': 'string'},
-            },
-            'additionalProperties': False,
-        },
+        'geo': {},  # GEO_INTERFACE_SCHEMA
 
         # Other reserved keys. (some are added in processing)
         'project': {'type': ['number', 'string']},
@@ -714,6 +716,7 @@ INTERFACE_SCHEMAS = {
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
     'device': DEVICE_INTERFACE_SCHEMA,
+    'geo': GEO_INTERFACE_SCHEMA,
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,

@@ -534,7 +534,7 @@ class EventManager(object):
                 geo = None
 
             if geo:
-                data['sentry.interfaces.Geo'] = {
+                data['geo'] = {
                     'country_code': geo.get('country_code'),
                     'city': geo.get('city'),
                     'region': geo.get('region'),
