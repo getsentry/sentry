@@ -155,12 +155,12 @@ class EventManagerTest(TransactionTestCase):
     def test_does_geo_from_ip(self, from_ip_address_mock):
         from sentry.interfaces.geo import Geo
 
-        geo = Geo.to_python({
+        geo = {
             'city': 'San Francisco',
             'country_code': 'US',
             'region': 'CA',
-        })
-        from_ip_address_mock.return_value = geo
+        }
+        from_ip_address_mock.return_value = Geo.to_python(geo)
 
         manager = EventManager(
             self.make_event(
