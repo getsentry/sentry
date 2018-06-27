@@ -63,6 +63,12 @@ describe('SelectAsyncField', function() {
     // Select item
     wrapper.find('input[id="id-fieldName"]').simulate('keyDown', {keyCode: 13});
 
+    // SelectControl should have the value object, not just a simple value
+    expect(wrapper.find('SelectControl').prop('value')).toEqual({
+      value: 'baz',
+      label: 'Baz Label',
+    });
+
     wrapper.find('Form').simulate('submit');
     expect(submitMock).toHaveBeenCalledWith(
       {
