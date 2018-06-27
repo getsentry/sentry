@@ -202,12 +202,7 @@ const ProjectSelector = createReactClass({
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
-    let platforms;
-    if (typeof project.platforms !== 'undefined') {
-      platforms = project && project.platforms;
-    } else {
-      platforms = [];
-    }
+    const platforms = (project && project.platforms) || [];
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?

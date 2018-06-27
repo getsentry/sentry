@@ -62,12 +62,8 @@ class ProjectCard extends React.Component {
       ? t('Remove from bookmarks')
       : t('Add to bookmarks');
 
-    let platforms;
-    if (typeof project.platforms !== 'undefined') {
-      platforms = project && project.platforms;
-    } else {
-      platforms = [];
-    }
+    const platforms = (project && project.platforms) || [];
+
     return (
       <ProjectCardWrapper data-test-id={slug} width={['100%', '50%', '33%', '25%']}>
         {stats ? (
