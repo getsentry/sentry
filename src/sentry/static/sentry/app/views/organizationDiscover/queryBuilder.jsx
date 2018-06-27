@@ -40,6 +40,7 @@ export default function createQueryBuilder(initial = {}, organization) {
 
   return {
     getInternal,
+    getExternal,
     updateField,
     fetch,
     getColumns,

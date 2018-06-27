@@ -2,7 +2,10 @@ import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Query Builder', function() {
   it('generates default query with all projects', function() {
-    const queryBuilder = createQueryBuilder({}, [TestStubs.Project()]);
+    const queryBuilder = createQueryBuilder(
+      {},
+      TestStubs.Organization({projects: [TestStubs.Project()]})
+    );
     const external = queryBuilder.getExternal();
 
     expect(external.projects).toEqual([2]);
