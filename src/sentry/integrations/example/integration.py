@@ -65,6 +65,9 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         pass
 
+    def sync_status_outbound(external_issue, is_resolved):
+        pass
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """

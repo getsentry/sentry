@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.tasks.base import instrumented_task, retry
-
-from sentry.models import ExternalIssue, Integration, User
+from sentry import features
+from sentry.models import ExternalIssue, Group, GroupLink, Integration, User
 from sentry.integrations.exceptions import IntegrationError
+from sentry.tasks.base import instrumented_task, retry
 
 
 @instrumented_task(
@@ -51,3 +51,43 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     else:
         user = User.objects.get(id=user_id)
     integration.get_installation().sync_assignee_outbound(external_issue, user, assign=assign)
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.sync_status_outbound',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def sync_status_outbound(external_issue_id, is_resolved, **kwargs):
+    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    integration = Integration.objects.get(id=external_issue.integration_id)
+    integration.get_installation().sync_status_outbound(external_issue, is_resolved)
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.kick_off_status_syncs',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+@retry(exclude=(Group.DoesNotExist,))
+def kick_off_status_syncs(group_id, is_resolved, **kwargs):
+    # doing this in a task since this has to go in the event manager
+    # and didn't want to introduce additional queries there
+    group = Group.objects.get(id=group_id)
+    if features.has('organizations:internal-catchall', group.organization):
+        external_issue_ids = GroupLink.objects.filter(
+            project_id=group.project_id,
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.issue,
+        ).values_list('linked_id', flat=True)
+
+        for external_issue_id in external_issue_ids:
+            sync_status_outbound.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'is_resolved': is_resolved,
+                }
+            )
