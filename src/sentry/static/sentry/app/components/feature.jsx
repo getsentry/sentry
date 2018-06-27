@@ -19,13 +19,19 @@ class Feature extends React.Component {
     config: PropTypes.arrayOf(PropTypes.string),
 
     /**
-     * List of required feature tags
+     * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
+     * On the backend end, feature tags have a scope prefix string that is stripped out on the
+     * frontend (since feature tags are attached to a context object).
+     *
+     * Use `organization:` or `project:` prefix strings to specify a feature with context.
      */
     feature: PropTypes.arrayOf(PropTypes.string),
+
     /**
      * List of required access levels
      */
     access: PropTypes.arrayOf(PropTypes.string),
+
     /**
      * If children is a function then will be treated as a render prop and passed this object:
      * {
