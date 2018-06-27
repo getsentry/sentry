@@ -255,6 +255,7 @@ INSTALLED_APPS = (
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
+    'sentry.eventstream',
 )
 
 import django
@@ -984,6 +985,9 @@ SENTRY_TSDB_OPTIONS = {}
 
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
+
+SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
+SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
