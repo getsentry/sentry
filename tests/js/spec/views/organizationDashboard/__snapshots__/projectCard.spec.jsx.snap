@@ -14,7 +14,9 @@ exports[`ProjectCard renders 1`] = `
       "isBookmarked": false,
       "isMember": true,
       "name": "Project Name",
-      "platform": "javascript",
+      "platforms": Array [
+        "javascript",
+      ],
       "slug": "project-slug",
       "stats": Array [
         Array [
@@ -42,7 +44,7 @@ exports[`ProjectCard renders 1`] = `
     }
   >
     <Base
-      className="css-3jemnr-ProjectCardWrapper efesc7i3"
+      className="css-3jemnr-ProjectCardWrapper efesc7i2"
       data-test-id="project-slug"
       width={
         Array [
@@ -54,13 +56,13 @@ exports[`ProjectCard renders 1`] = `
       }
     >
       <div
-        className="css-3jemnr-ProjectCardWrapper efesc7i3"
+        className="css-3jemnr-ProjectCardWrapper efesc7i2"
         data-test-id="project-slug"
         is={null}
       >
         <StyledProjectCard>
           <div
-            className="css-18be1td-StyledProjectCard efesc7i4"
+            className="css-18be1td-StyledProjectCard efesc7i3"
           >
             <Flex
               align="center"
@@ -86,36 +88,60 @@ exports[`ProjectCard renders 1`] = `
                         className="css-1dvsqd3"
                         is={null}
                       >
-                        <StyledPlatformicon
-                          platform="javascript"
-                          size="24"
+                        <PlatformList
+                          direction="right"
+                          platforms={
+                            Array [
+                              "javascript",
+                            ]
+                          }
                         >
-                          <Platformicon
-                            className="css-12pxqdy-StyledPlatformicon efesc7i0"
-                            platform="javascript"
-                            size="24"
+                          <PlatformIcons
+                            direction="right"
+                            platforms={
+                              Array [
+                                "javascript",
+                              ]
+                            }
                           >
-                            <img
-                              className="css-12pxqdy-StyledPlatformicon efesc7i0"
-                              height="24"
-                              src={
-                                Object {
-                                  "default": Object {
-                                    "id": "test",
-                                    "viewBox": Object {},
-                                  },
-                                }
-                              }
-                              width="24"
-                            />
-                          </Platformicon>
-                        </StyledPlatformicon>
+                            <div
+                              className="css-1wtj5bg-PlatformIcons ezvce7z0"
+                              direction="right"
+                            >
+                              <StyledPlatformIcon
+                                key="javascript"
+                                platform="javascript"
+                                size="16px"
+                              >
+                                <Platformicon
+                                  className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                  platform="javascript"
+                                  size="16px"
+                                >
+                                  <img
+                                    className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
+                                    height="16px"
+                                    src={
+                                      Object {
+                                        "default": Object {
+                                          "id": "test",
+                                          "viewBox": Object {},
+                                        },
+                                      }
+                                    }
+                                    width="16px"
+                                  />
+                                </Platformicon>
+                              </StyledPlatformIcon>
+                            </div>
+                          </PlatformIcons>
+                        </PlatformList>
                       </div>
                     </Base>
                   </Box>
                   <StyledTitle>
                     <div
-                      className="css-zq8dzg-StyledTitle efesc7i2"
+                      className="css-25y8kw-StyledTitle efesc7i1"
                     >
                       <div>
                         project-slug
@@ -132,7 +158,7 @@ exports[`ProjectCard renders 1`] = `
                       title="Add to bookmarks"
                     >
                       <a
-                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i5"
+                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i4"
                         onClick={[Function]}
                         title="Add to bookmarks"
                       />
@@ -143,7 +169,7 @@ exports[`ProjectCard renders 1`] = `
             </Flex>
             <ChartContainer>
               <div
-                className="css-1s8o1vf-ChartContainer efesc7i1"
+                className="css-1s8o1vf-ChartContainer efesc7i0"
               >
                 <Chart
                   noEvents={true}
@@ -362,7 +388,9 @@ exports[`ProjectCard renders 1`] = `
                   "isBookmarked": false,
                   "isMember": true,
                   "name": "Project Name",
-                  "platform": "javascript",
+                  "platforms": Array [
+                    "javascript",
+                  ],
                   "slug": "project-slug",
                   "stats": Array [
                     Array [
