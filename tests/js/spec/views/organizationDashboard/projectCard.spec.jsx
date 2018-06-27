@@ -14,7 +14,7 @@ describe('ProjectCard', function() {
       <ProjectCard
         project={TestStubs.Project({
           stats: [[1525042800, 1], [1525046400, 2]],
-          platform: 'javascript',
+          platforms: ['javascript'],
         })}
         params={{orgId: 'org-slug'}}
       />,
@@ -24,7 +24,7 @@ describe('ProjectCard', function() {
     projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      data: TestStubs.Project({isBookmarked: false, platform: 'javascript'}),
+      data: TestStubs.Project({isBookmarked: false, platforms: ['javascript']}),
     });
   });
 
@@ -95,6 +95,8 @@ describe('ProjectCard', function() {
 
   it('renders with platform', function() {
     expect(wrapper.find('PlatformList')).toHaveLength(1);
+    const icons = wrapper.find('StyledPlatformIcon');
+    expect(icons.first().prop('platform')).toBe('javascript');
   });
 
   it('renders loading placeholder card if there are no stats', function() {

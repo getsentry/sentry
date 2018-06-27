@@ -14,7 +14,9 @@ exports[`ProjectCard renders 1`] = `
       "isBookmarked": false,
       "isMember": true,
       "name": "Project Name",
-      "platform": "javascript",
+      "platforms": Array [
+        "javascript",
+      ],
       "slug": "project-slug",
       "stats": Array [
         Array [
@@ -88,23 +90,32 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <PlatformList
                           direction="right"
-                          platforms={Array []}
+                          platforms={
+                            Array [
+                              "javascript",
+                            ]
+                          }
                         >
                           <PlatformIcons
                             direction="right"
-                            platforms={Array []}
+                            platforms={
+                              Array [
+                                "javascript",
+                              ]
+                            }
                           >
                             <div
                               className="css-1wtj5bg-PlatformIcons ezvce7z0"
                               direction="right"
                             >
                               <StyledPlatformIcon
-                                platform="default"
+                                key="javascript"
+                                platform="javascript"
                                 size="16px"
                               >
                                 <Platformicon
                                   className="css-b9p6z1-StyledPlatformIcon ezvce7z1"
-                                  platform="default"
+                                  platform="javascript"
                                   size="16px"
                                 >
                                   <img
@@ -377,7 +388,9 @@ exports[`ProjectCard renders 1`] = `
                   "isBookmarked": false,
                   "isMember": true,
                   "name": "Project Name",
-                  "platform": "javascript",
+                  "platforms": Array [
+                    "javascript",
+                  ],
                   "slug": "project-slug",
                   "stats": Array [
                     Array [
