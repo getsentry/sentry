@@ -6,7 +6,6 @@ import {Box} from 'grid-emotion';
 import AutoSelectText from 'app/components/autoSelectText';
 
 import {getDisplayValue} from './utils';
-
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result

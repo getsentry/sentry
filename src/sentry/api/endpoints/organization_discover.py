@@ -46,6 +46,7 @@ class DiscoverSerializer(serializers.Serializer):
         child=ListField(),
         required=False,
         allow_null=True,
+        default=[]
     )
 
     def __init__(self, *args, **kwargs):

@@ -8,91 +8,14 @@ import SelectControl from 'app/components/forms/selectControl';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
-import {COLUMNS} from './data';
-
-const COUNT_OPTION = {value: 'count', label: 'count'};
-
-const TOPK_COUNTS = [5, 10, 20, 50, 100];
-
-const TOP_LEVEL_OPTIONS = [
-  {value: 'uniq', label: 'uniq(...)'},
-  {value: 'topK', label: 'topK(...)'},
-];
-
-const UNIQ_OPTIONS = COLUMNS.map(({name}) => ({
-  value: `uniq_${name}`,
-  label: `uniq(${name})`,
-}));
-
-const TOPK_COUNT_OPTIONS = TOPK_COUNTS.map(num => ({
-  value: `topK_${num}`,
-  label: `topK(${num})(...)`,
-}));
-
-const TOPK_VALUE_OPTIONS = TOPK_COUNTS.reduce((acc, num) => {
-  return [
-    ...acc,
-    ...COLUMNS.map(({name}) => ({
-      value: `topK_${num}_${name}`,
-      label: `topK(${num})(${name})`,
-    })),
-  ];
-}, []);
-
-/*
-* Converts from external representation (array) to internal format (string)
-* for dropdown.
-*/
-export function getInternal(external) {
-  const [func, col] = external;
-
-  if (func === null) {
-    return '';
-  }
-
-  if (func === 'count()') {
-    return 'count';
-  }
-
-  if (func === 'uniq') {
-    return `uniq_${col}`;
-  }
-
-  if (func.startsWith('topK')) {
-    const count = func.match(/topK\((\d+)\)/)[1];
-    return `topK_${count}_${col}`;
-  }
-
-  return func;
-}
-
-/*
-* Converts from external representation (string value from dropdown) to external format (array)
-*/
-export function getExternal(internal) {
-  const uniqRegex = /^uniq_(.+)$/;
-  const topKRegex = /^topK_(\d+)_(.+)$/;
-
-  if (internal === 'count') {
-    return ['count()', null, 'count'];
-  }
-
-  if (internal.match(uniqRegex)) {
-    return ['uniq', internal.match(uniqRegex)[1], internal];
-  }
-
-  const topKMatch = internal.match(topKRegex);
-  if (topKMatch) {
-    return [`topK(${parseInt(topKMatch[1], 10)})`, topKMatch[2], internal];
-  }
-
-  return internal;
-}
+import {getInternal, getExternal, getAggregateOptions} from './utils';
+import {TOPK_COUNTS} from '../data';
 
 class Aggregation extends React.Component {
   static propTypes = {
     value: PropTypes.array,
     onChange: PropTypes.func,
+    columns: PropTypes.array,
   };
 
   constructor(props) {
@@ -100,6 +23,7 @@ class Aggregation extends React.Component {
     this.state = {
       value: getInternal(props.value),
       displayedOptions: null,
+      options: getAggregateOptions(props.columns),
     };
   }
 
@@ -110,24 +34,23 @@ class Aggregation extends React.Component {
   }
 
   getOptions() {
-    return [COUNT_OPTION, ...UNIQ_OPTIONS, ...TOPK_VALUE_OPTIONS];
+    const {options} = this.state;
+    return [options.topLevel[0], ...options.uniq, ...options.topKValues];
   }
 
-  getOptionList(options, input) {}
-
   filterOptions = (options, input, value) => {
-    let optionList = [COUNT_OPTION, ...TOP_LEVEL_OPTIONS];
+    let optionList = this.state.options.topLevel;
 
     if (input.startsWith('uniq') || this.state.displayedOptions === 'uniq') {
-      optionList = UNIQ_OPTIONS;
+      optionList = this.state.options.uniq;
     }
 
-    if (input.match(/^topK_\d+/) || this.state.displayedOptions === 'topKValues') {
-      optionList = TOPK_VALUE_OPTIONS;
+    if (input.match(/^topK_\d+/) || this.state.displayedOptions === 'topKValue') {
+      optionList = this.state.options.topKValues;
     }
 
     if (input.startsWith('topK') || this.state.displayedOptions === 'topK') {
-      optionList = TOPK_COUNT_OPTIONS;
+      optionList = this.state.options.topKCounts;
     }
 
     return optionList.filter(({label}) => label.includes(input));
@@ -138,15 +61,14 @@ class Aggregation extends React.Component {
   }
 
   handleChange = option => {
-    const topLevelValues = new Set(['uniq', 'topK']);
     const topKValues = new Set([...TOPK_COUNTS.map(num => `topK_${num}`)]);
 
-    if (topLevelValues.has(option.value)) {
+    if (option.value === 'uniq' || option.value === 'topK') {
       this.setState({displayedOptions: option.value}, this.focus);
     } else if (topKValues.has(option.value)) {
       this.setState(
         {
-          displayedOptions: 'topKValues',
+          displayedOptions: 'topKValue',
         },
         this.focus
       );
@@ -187,6 +109,7 @@ export default class Aggregations extends React.Component {
   static propTypes = {
     value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
+    columns: PropTypes.array,
   };
 
   addRow() {
@@ -208,7 +131,7 @@ export default class Aggregations extends React.Component {
   }
 
   render() {
-    const {value} = this.props;
+    const {value, columns} = this.props;
 
     return (
       <div>
@@ -224,6 +147,7 @@ export default class Aggregations extends React.Component {
             <Aggregation
               value={aggregation}
               onChange={val => this.handleChange(val, idx)}
+              columns={columns}
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>
