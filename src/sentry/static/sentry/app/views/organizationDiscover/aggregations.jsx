@@ -5,6 +5,7 @@ import {Flex, Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
 import SelectControl from 'app/components/forms/selectControl';
+import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import {COLUMNS} from './data';
@@ -225,11 +226,9 @@ export default class Aggregations extends React.Component {
               onChange={val => this.handleChange(val, idx)}
             />
             <Box ml={1}>
-              <a
-                className="icon-circle-cross"
-                style={{lineHeight: '37px'}}
-                onClick={() => this.removeRow(idx)}
-              />
+              <a onClick={() => this.removeRow(idx)}>
+                <InlineSvg src="icon-circle-close" height="38px" />
+              </a>
             </Box>
           </Flex>
         ))}
