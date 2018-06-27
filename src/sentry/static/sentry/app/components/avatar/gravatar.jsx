@@ -50,7 +50,7 @@ class Gravatar extends React.Component {
 
     let query = {
       s: remoteSize || undefined,
-      d: placeholder || 'blank',
+      d: placeholder || '404',
     };
 
     url += '?' + qs.stringify(query);
