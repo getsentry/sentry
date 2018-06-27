@@ -15,7 +15,6 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import {t} from 'app/locale';
 
-import {COLUMNS} from './data';
 import createQueryBuilder from './queryBuilder';
 import Result from './result';
 import Time from './time';
@@ -69,24 +68,16 @@ const OrganizationDiscover = createReactClass({
   },
 
   render: function() {
+    const {queryBuilder} = this.state;
     const hasFeature = this.getFeatures().has('internal-catchall');
 
     if (!hasFeature) return this.renderComingSoon();
 
-    const fieldOptions = COLUMNS.map(({name}) => ({
-      value: name,
-      label: name,
-    }));
+    const fieldOptions = queryBuilder.getFieldOptions();
 
-    const orderbyOptions = COLUMNS.reduce((acc, {name}) => {
-      return [
-        ...acc,
-        {value: name, label: `${name} asc`},
-        {value: `-${name}`, label: `${name} desc`},
-      ];
-    }, []);
+    const orderbyOptions = queryBuilder.getOrderByOptions();
 
-    const query = this.state.queryBuilder.getInternal();
+    const query = queryBuilder.getInternal();
 
     return (
       <div className="organization-home">
@@ -118,10 +109,14 @@ const OrganizationDiscover = createReactClass({
           <Box w={[1 / 3, 1 / 3, 1 / 3, 1 / 4]}>
             <MultiSelectField
               name="fields"
-              label={t('Select')}
+              label={t('Summarize')}
               options={fieldOptions}
               value={query.fields}
               onChange={val => this.updateField('fields', val)}
+            />
+            <Aggregations
+              value={query.aggregations}
+              onChange={val => this.updateField('aggregations', val)}
             />
             <SelectField
               name="orderby"
@@ -140,10 +135,6 @@ const OrganizationDiscover = createReactClass({
             <Conditions
               value={query.conditions}
               onChange={val => this.updateField('conditions', val)}
-            />
-            <Aggregations
-              value={query.aggregations}
-              onChange={val => this.updateField('aggregations', val)}
             />
             <Button onClick={this.runQuery} style={{marginTop: 8}} priority="primary">
               {t('Run Query')}
