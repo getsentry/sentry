@@ -113,6 +113,14 @@ describe('SelectCreatableField', function() {
       },
     ]);
 
+    // SelectControl should have the value object, not just a simple value
+    expect(wrapper.find('SelectControl').prop('value')).toEqual(
+      expect.objectContaining({
+        value: 'bar',
+        label: 'bar',
+      })
+    );
+
     wrapper.find('Form').simulate('submit');
     expect(submitMock).toHaveBeenCalledWith(
       {
