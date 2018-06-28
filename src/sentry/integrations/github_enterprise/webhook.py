@@ -23,7 +23,9 @@ logger = logging.getLogger('sentry.webhooks')
 
 def get_installation_metadata(event):
     try:
-        integration = Integration.objects.get(external_id=event['installation']['id'])
+        integration = Integration.objects.get(
+            external_id=event['installation']['id'],
+            provider='github-enterprise')
     except Integration.DoesNotExist:
         return
     return integration.metadata['installation']
@@ -57,7 +59,7 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_client(self, event):
         metadata = get_installation_metadata(event)
         if metadata is None:
-            return HttpResponse(status=400)
+            return None
 
         return GitHubEnterpriseAppsClient(
             metadata['url'],
@@ -81,7 +83,7 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
         return 'github_enterprise:%s' % username
 
 
-class GithubWebhookBase(View):
+class GitHubEnterpriseWebhookBase(View):
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -103,7 +105,7 @@ class GithubWebhookBase(View):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
-        return super(GithubWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super(GitHubEnterpriseWebhookBase, self).dispatch(request, *args, **kwargs)
 
     def get_logging_data(self):
         pass
@@ -119,7 +121,7 @@ class GithubWebhookBase(View):
         body = six.binary_type(request.body)
         if not body:
             logger.error(
-                'github.webhook.missing-body',
+                'github_enterprise.webhook.missing-body',
                 extra=self.get_logging_data(),
             )
             return HttpResponse(status=400)
@@ -128,7 +130,7 @@ class GithubWebhookBase(View):
             handler = self.get_handler(request.META['HTTP_X_GITHUB_EVENT'])
         except KeyError:
             logger.error(
-                'github.webhook.missing-event',
+                'github_enterprise.webhook.missing-event',
                 extra=self.get_logging_data(),
             )
             return HttpResponse(status=400)
@@ -140,7 +142,7 @@ class GithubWebhookBase(View):
             method, signature = request.META['HTTP_X_HUB_SIGNATURE'].split('=', 1)
         except (KeyError, IndexError):
             logger.error(
-                'github.webhook.missing-signature',
+                'github_enterprise.webhook.missing-signature',
                 extra=self.get_logging_data(),
             )
             return HttpResponse(status=400)
@@ -149,7 +151,7 @@ class GithubWebhookBase(View):
             event = json.loads(body.decode('utf-8'))
         except JSONDecodeError:
             logger.error(
-                'github.webhook.invalid-json',
+                'github_enterprise.webhook.invalid-json',
                 extra=self.get_logging_data(),
                 exc_info=True,
             )
@@ -158,14 +160,14 @@ class GithubWebhookBase(View):
         secret = self.get_secret(event)
         if secret is None:
             logger.error(
-                'github.webhook.missing-secret',
+                'github_enterprise.webhook.missing-secret',
                 extra=self.get_logging_data(),
             )
             return HttpResponse(status=401)
 
         if not self.is_valid_signature(method, body, self.get_secret(event), signature):
             logger.error(
-                'github.webhook.invalid-signature',
+                'github_enterprise.webhook.invalid-signature',
                 extra=self.get_logging_data(),
             )
             return HttpResponse(status=401)
@@ -174,7 +176,7 @@ class GithubWebhookBase(View):
         return HttpResponse(status=204)
 
 
-class GithubEnterpriseWebhookEndpoint(GithubWebhookBase):
+class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     _handlers = {
         'push': GitHubEnterprisePushEventWebhook,
         'pull_request': GitHubEnterprisePullRequestEventWebhook,
@@ -187,7 +189,7 @@ class GithubEnterpriseWebhookEndpoint(GithubWebhookBase):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
-        return super(GithubEnterpriseWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super(GitHubEnterpriseWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
     def post(self, request):

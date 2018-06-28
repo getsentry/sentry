@@ -111,6 +111,8 @@ class PushEventWebhook(Webhook):
     def _handle(self, event, organization, repo):
         authors = {}
         client = self.get_client(event)
+        if client is None:
+            return HttpResponse(status=400)
         gh_username_cache = {}
 
         for commit in event['commits']:
@@ -157,7 +159,8 @@ class PushEventWebhook(Webhook):
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
                                 try:
-                                    identity = Identity.objects.get(external_id=gh_user['id'])
+                                    identity = Identity.objects.get(
+                                        external_id=gh_user['id'], idp__type=self.provider)
                                 except Identity.DoesNotExist:
                                     pass
                                 else:
@@ -319,7 +322,7 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GithubWebhookBase(View):
+class GitHubWebhookBase(View):
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -341,7 +344,7 @@ class GithubWebhookBase(View):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
-        return super(GithubWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super(GitHubWebhookBase, self).dispatch(request, *args, **kwargs)
 
     def get_logging_data(self):
         pass
@@ -409,7 +412,7 @@ class GithubWebhookBase(View):
         return HttpResponse(status=204)
 
 
-class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
+class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     _handlers = {
         'push': PushEventWebhook,
         'pull_request': PullRequestEventWebhook,
@@ -422,7 +425,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
-        return super(GithubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super(GitHubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     def get_secret(self):
         return options.get('github-app.webhook-secret')
