@@ -18,7 +18,8 @@ export default class InstalledIntegration extends React.Component {
     provider: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
-    onDisable: PropTypes.func.isRequired
+    onDisable: PropTypes.func.isRequired,
+    onReinstallIntegration: PropTypes.func,
   };
 
   /**
@@ -39,7 +40,12 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 
-  mergeIntegration() {}
+  reinstallIntegration = integration => {
+    const activeIntegration = Object.assign({}, this.props.integration, {
+      status: 'active',
+    });
+    this.props.onReinstallIntegration(activeIntegration);
+  };
 
   renderDisableIntegration(integration) {
     const {body, actionText} = integration.provider.aspects.disable_dialog;
@@ -57,7 +63,8 @@ export default class InstalledIntegration extends React.Component {
         confirmText={actionText}
         message={message}
         priority="danger"
-        onConfirm={() => this.props.onDisable(integration)}>
+        onConfirm={() => this.props.onDisable(integration)}
+      >
         <Button size="small" icon="icon-trash" />
       </Confirm>
     );
@@ -78,7 +85,8 @@ export default class InstalledIntegration extends React.Component {
         message={message}
         confirmText={actionText}
         priority="danger"
-        onConfirm={() => this.props.onRemove()}>
+        onConfirm={() => this.props.onRemove()}
+      >
         <Button size="small" icon="icon-trash" />
       </Confirm>
     );
@@ -96,15 +104,16 @@ export default class InstalledIntegration extends React.Component {
             <IntegrationItem integration={integration} />
           </Box>
           {integration.status === 'active' &&
-          this.hasConfiguration() && (
-            <Box mr={1}>
-              <Button
-                size="small"
-                to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}>
-                {t('Configure')}
-              </Button>
-            </Box>
-          )}
+            this.hasConfiguration() && (
+              <Box mr={1}>
+                <Button
+                  size="small"
+                  to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
+                >
+                  {t('Configure')}
+                </Button>
+              </Box>
+            )}
           {integration.status === 'disabled' && (
             <Box mr={1}>
               <AddIntegrationButton
@@ -112,17 +121,15 @@ export default class InstalledIntegration extends React.Component {
                 priority="danger"
                 provider={provider}
                 integration={integration}
-                onAddIntegration={this.mergeIntegration}
+                onAddIntegration={this.reinstallIntegration}
                 reinstall={true}
               />
             </Box>
           )}
           <Box mr={1} pr={2}>
-            {integration.status === 'active' && integration.provider.key === 'github' ? (
-              this.renderDisableIntegration(integration)
-            ) : (
-              this.renderRemoveIntegration(integration)
-            )}
+            {integration.status === 'active' && integration.provider.key === 'github'
+              ? this.renderDisableIntegration(integration)
+              : this.renderRemoveIntegration(integration)}
           </Box>
         </PanelItem>
       </React.Fragment>

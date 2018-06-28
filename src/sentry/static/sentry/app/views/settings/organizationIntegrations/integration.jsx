@@ -144,6 +144,7 @@ export default class Integration extends AsyncView {
             onToggleEnabled={e => this.handleToggleProjectIntegration(integration, e)}
             onRemove={() => this.handleDeleteIntegration(integration)}
             onDisable={() => this.handleDisableIntegration(integration)}
+            onReinstallIntegration={this.mergeIntegration}
           />
         ))
       );
@@ -161,6 +162,7 @@ export default class Integration extends AsyncView {
                 size="xsmall"
                 provider={provider}
                 onAddIntegration={this.mergeIntegration}
+                reinstall={false}
               />
             </Box>
           </PanelHeader>

@@ -26,16 +26,12 @@ Define a relationship between Sentry and GitHub.
 """
 disable_dialog = {
     'actionText': _('Remove on GitHub'),
-    'body': _('Before deleting this integration, you must uninstall this integration'
-              ' from GitHub. After uninstalling, your integration will be disabled at which point'
-              ' you can choose to delete this integration.')
+    'body': _('Before deleting this integration, you must uninstall this integration from GitHub. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.')
 }
 
 removal_dialog = {
     'actionText': _('Delete'),
-    'body': _('Deleting this integration will delete all associated repositories'
-              ' and commit data. This action cannot be undone. Are you sure you want'
-              ' to delete your integration?')
+    'body': _('Deleting this integration will delete all associated repositories and commit data. This action cannot be undone. Are you sure you want to delete your integration?')
 }
 
 metadata = IntegrationMetadata(
@@ -65,6 +61,9 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
 
     def get_repositories(self):
         return self.get_client().get_repositories()
+
+    def reinstall(self):
+        self.reinstall_repositories()
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
@@ -167,7 +166,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'data': {'access_token': identity['access_token']},
             },
         }
-        if state['reinstall_id']:
+        if state.get('reinstall_id'):
             integration['reinstall_id'] = state['reinstall_id']
 
         return integration
