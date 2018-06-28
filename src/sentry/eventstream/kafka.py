@@ -33,8 +33,8 @@ class KafkaPublisher(object):
 
 
 class KafkaEventStream(EventStream):
-    def __init__(self, topic='events', sync=False, connection=None, **options):
-        self.topic = topic
+    def __init__(self, publish_topic='events', sync=False, connection=None, **options):
+        self.publish_topic = publish_topic
         self.pubsub = KafkaPublisher(connection)
         if not sync:
             self.pubsub = QueuedPublisher(self.pubsub)
@@ -60,7 +60,7 @@ class KafkaEventStream(EventStream):
                 'retention_days': retention_days,
             })
 
-            self.pubsub.publish(self.topic, key=key.encode('utf-8'), value=json.dumps(value))
+            self.pubsub.publish(self.publish_topic, key=key.encode('utf-8'), value=json.dumps(value))
         except Exception as error:
             logger.warning('Could not publish event: %s', error, exc_info=True)
             raise
