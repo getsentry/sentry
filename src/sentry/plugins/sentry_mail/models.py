@@ -77,7 +77,17 @@ class MailPlugin(NotificationPlugin):
             logger.debug('Skipping message rendering, no users to send to.')
             return
 
+        tags = {}
+        if 'event' in context:
+            tags = dict(context['event'].get_tags())
+
         subject_prefix = self.get_option('subject_prefix', project) or self._subject_prefix()
+        
+        try:
+            subject_prefix = subject_prefix.format(tags=tags)
+        except Exception:
+            pass
+        
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
