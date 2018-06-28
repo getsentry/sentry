@@ -19,7 +19,11 @@ jest.mock('scroll-to-element', () => {});
 jest.mock('react-router', () => {
   const ReactRouter = require.requireActual('react-router');
   return {
+    IndexRedirect: ReactRouter.IndexRedirect,
+    IndexRoute: ReactRouter.IndexRoute,
     Link: ReactRouter.Link,
+    Redirect: ReactRouter.Redirect,
+    Route: ReactRouter.Route,
     withRouter: ReactRouter.withRouter,
     browserHistory: {
       push: jest.fn(),
