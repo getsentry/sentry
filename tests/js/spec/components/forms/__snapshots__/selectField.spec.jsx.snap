@@ -136,8 +136,10 @@ exports[`SelectField renders without form context 1`] = `
         >
           <StyledSelect
             arrowRenderer={[Function]}
+            backspaceRemoves={true}
             className="css-j6zs66-StyledSelectControl e1qrhqd00"
             clearable={true}
+            deleteRemoves={true}
             disabled={false}
             id="id-fieldName"
             multiple={false}
@@ -159,8 +161,10 @@ exports[`SelectField renders without form context 1`] = `
           >
             <SelectPicker
               arrowRenderer={[Function]}
+              backspaceRemoves={true}
               className="e1qrhqd00 css-dxi9rm-StyledSelect-StyledSelectControl eho28m20"
               clearable={true}
+              deleteRemoves={true}
               disabled={false}
               id="id-fieldName"
               multiple={false}

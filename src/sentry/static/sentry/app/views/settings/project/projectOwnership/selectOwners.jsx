@@ -308,6 +308,7 @@ export default class SelectOwners extends React.Component {
         loadOptions={this.handleLoadOptions}
         defaultOptions
         async
+        clearable
         cache={false}
         valueComponent={ValueComponent}
         placeholder={t('Add Owners')}
