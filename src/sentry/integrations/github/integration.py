@@ -73,11 +73,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
     name = 'GitHub'
     metadata = metadata
     integration_cls = GitHubIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
-
     features = frozenset([
         IntegrationFeatures.COMMITS,
-        IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.ISSUE_BASIC,
     ])
 
     setup_dialog_config = {

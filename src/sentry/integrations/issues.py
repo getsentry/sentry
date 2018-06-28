@@ -7,7 +7,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 
-class IssueSyncMixin(object):
+class IssueBasicMixin(object):
 
     def get_group_title(self, group, event, **kwargs):
         return event.error()
@@ -118,6 +118,9 @@ class IssueSyncMixin(object):
         Takes result of `get_issue` or `create_issue` and returns the formatted key
         """
         return data['key']
+
+
+class IssueSyncMixin(IssueBasicMixin):
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """

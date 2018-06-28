@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.issues import IssueBasicMixin
 
 
-class GitHubIssueSync(IssueSyncMixin):
+class GitHubIssueSync(IssueBasicMixin):
     def make_external_key(self, data):
         return '{}#{}'.format(data['repo'], data['key'])
 

@@ -31,7 +31,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except Integration.DoesNotExist:
             return Response(status=404)
 
-        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+        if not integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                IntegrationFeatures.ISSUE_SYNC):
             return Response(
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 
@@ -61,7 +62,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except Integration.DoesNotExist:
             return Response(status=404)
 
-        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+        if not integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                IntegrationFeatures.ISSUE_SYNC):
             return Response(
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 
@@ -114,7 +116,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except Integration.DoesNotExist:
             return Response(status=404)
 
-        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+        if not integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                IntegrationFeatures.ISSUE_SYNC):
             return Response(
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 
@@ -166,7 +169,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except Integration.DoesNotExist:
             return Response(status=404)
 
-        if not integration.has_feature(IntegrationFeatures.ISSUE_SYNC):
+        if not integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                IntegrationFeatures.ISSUE_SYNC):
             return Response(
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 

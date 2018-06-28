@@ -12,7 +12,7 @@ from sentry.models import Integration
 class GroupIntegrationsEndpoint(GroupEndpoint):
     def get(self, request, group):
         providers = [
-            i.key for i in integrations.all() if i.has_feature(IntegrationFeatures.ISSUE_SYNC)
+            i.key for i in integrations.all() if i.has_feature(IntegrationFeatures.ISSUE_BASIC) or i.has_feature(IntegrationFeatures.ISSUE_SYNC)
         ]
         return self.paginate(
             # TODO(jess): This should filter by integrations that
