@@ -559,6 +559,23 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         client.transition_issue(external_issue.key, transition['id'])
 
+    def _get_done_statuses(self):
+        client = self.get_client()
+        statuses = client.get_valid_statuses()
+        return {
+            s['id'] for s in statuses if s['statusCategory']['key'] == 'done'
+        }
+
+    def should_unresolve(self, data):
+        done_statuses = self._get_done_statuses()
+        return data['changelog']['from'] in done_statuses and \
+            data['changelog']['to'] not in done_statuses
+
+    def should_resolve(self, data):
+        done_statuses = self._get_done_statuses()
+        return data['changelog']['to'] in done_statuses and \
+            data['changelog']['from'] not in done_statuses
+
 
 class JiraIntegrationProvider(IntegrationProvider):
     key = 'jira'
