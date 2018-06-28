@@ -64,3 +64,7 @@ class KafkaEventStream(EventStream):
         except Exception as error:
             logger.warning('Could not publish event: %s', error, exc_info=True)
             raise
+
+        def consume(self, event, primary_hash, **kwargs):
+            # TODO talk to Ted
+            pass
