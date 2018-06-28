@@ -56,12 +56,28 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'help': _('Declares what the linked JIRA ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
             },
             {
+                'name': 'unresolve_status',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('JIRA Un-Resolved Status'),
+                'placeholder': _('Select a Status'),
+                'help': _('Declares what the linked JIRA ticket workflow status should be transitioned to when the Sentry issue is unresolved.'),
+            },
+            {
                 'name': 'resolve_when',
                 'type': 'choice',
                 'allowEmpty': True,
                 'label': _('Resolve in Sentry When'),
                 'placeholder': _('Select a Status'),
                 'help': _('When a JIRA ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
+            },
+            {
+                'name': 'unresolve_when',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('Un-Resolve in Sentry When'),
+                'placeholder': _('Select a Status'),
+                'help': _('When a JIRA ticket is transitioned to this status, mark the Sentry issue as unresolved.'),
             },
             {
                 'name': 'sync_comments',
@@ -89,12 +105,16 @@ class JiraIntegration(Integration, IssueSyncMixin):
             statuses = [(c['id'], c['name']) for c in client.get_valid_statuses()]
             configuration[0]['choices'] = statuses
             configuration[1]['choices'] = statuses
+            configuration[2]['choices'] = statuses
+            configuration[3]['choices'] = statuses
         except ApiError:
             # TODO(epurkhsier): Maybe disabling the inputs for the resolve
             # statuses is a little heavy handed. Is there something better we
             # can fall back to?
             configuration[0]['disabled'] = True
             configuration[1]['disabled'] = True
+            configuration[2]['disabled'] = True
+            configuration[3]['disabled'] = True
 
         return configuration
 
