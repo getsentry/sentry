@@ -75,7 +75,7 @@ export default class AddIntegrationButton extends React.Component {
     const {success, data} = message.data;
 
     if (!success) {
-      IndicatorStore.addError(data['error']);
+      IndicatorStore.addError(data.error);
       return;
     }
 
