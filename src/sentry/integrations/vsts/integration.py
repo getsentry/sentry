@@ -167,7 +167,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         instance = state['instance']
         user = get_user_info(data['access_token'])
         work_item_subscription = WorkItemWebhook().create_subscription(
-            instance, data, self.oauth_redirect_url, account['AccountId'])
+            instance, oauth_data, self.oauth_redirect_url, account['AccountId'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
 
         return {
