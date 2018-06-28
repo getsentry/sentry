@@ -2,12 +2,10 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['IntegrationPipeline']
 
-import six
-
 from django.db import IntegrityError
 from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
@@ -123,12 +121,10 @@ class IntegrationPipeline(Pipeline):
                         # have a password, we don't delete the link as it may lock them out.
                         if not other_identity.user.has_usable_password():
                             return self._dialog_response({
-                                # Force text_type conversion because translation objects are not
-                                # JSON-serializable by default.
-                                'error': six.text_type(_(
+                                'error': _(
                                     'The provided Github account is linked to a different user. '
                                     'Please try again with a different Github account.'
-                                ))},
+                                )},
                                 False,
                             )
                 identity_model = Identity.reattach(
