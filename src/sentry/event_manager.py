@@ -39,7 +39,6 @@ from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
-from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
@@ -932,7 +931,7 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send(project=project, group=group, sender=Project)
 
-            post_process_group.delay(
+            eventstream.publish(
                 group=group,
                 event=event,
                 is_new=is_new,
@@ -941,7 +940,6 @@ class EventManager(object):
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=hashes[0],
             )
-            eventstream.publish(event=event, primary_hash=hashes[0])
         else:
             self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
 
