@@ -23,14 +23,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'GroupEnvironment', fields ['group_id', 'environment_id']
         db.create_unique('sentry_groupenvironment', ['group_id', 'environment_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'GroupEnvironment', fields ['group_id', 'environment_id']
         db.delete_unique('sentry_groupenvironment', ['group_id', 'environment_id'])
 
         # Deleting model 'GroupEnvironment'
         db.delete_table('sentry_groupenvironment')
-
 
     models = {
         'sentry.activity': {

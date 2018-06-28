@@ -13,6 +13,7 @@ test.conf
 pip-log.txt
 celerybeat-schedule
 sentry-package.json
+/.artifacts
 /coverage/
 /cover
 /build
