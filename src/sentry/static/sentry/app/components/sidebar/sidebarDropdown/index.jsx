@@ -119,9 +119,10 @@ class SidebarDropdown extends React.Component {
                         </SidebarMenuItem>
                       )}
 
-                      <SidebarMenuItem>
-                        <SwitchOrganization canCreateOrganization={hasOrgWrite} />
-                      </SidebarMenuItem>
+                      {!config.singleOrganization &&
+                        <SidebarMenuItem>
+                          <SwitchOrganization canCreateOrganization={hasOrgWrite} />
+                        </SidebarMenuItem>}
 
                       <Divider />
                     </React.Fragment>
