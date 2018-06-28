@@ -50,8 +50,8 @@ class GitHubIntegration(Integration, GitHubIssueSync, RepositoryMixin):
     def get_repositories(self):
         return self.get_client().get_repositories()
 
-    def format_external_key(self, data):
-        return '{}#{}'.format(data.get('repo'), data.get('key'))
+    def make_external_key(self, data):
+        return '{}#{}'.format(data['repo'], data['key'])
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):

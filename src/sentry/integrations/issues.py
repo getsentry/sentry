@@ -8,6 +8,7 @@ from sentry.utils.safe import safe_execute
 
 
 class IssueSyncMixin(object):
+
     def get_group_title(self, group, event, **kwargs):
         return event.error()
 
@@ -111,6 +112,12 @@ class IssueSyncMixin(object):
         >>>     }
         """
         raise NotImplementedError
+
+    def make_external_key(self, data):
+        """
+        Takes result of `get_issue` or `create_issue` and returns the formatted key
+        """
+        return data['key']
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """

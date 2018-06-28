@@ -5,6 +5,8 @@ from sentry.integrations.issues import IssueSyncMixin
 
 
 class GitHubIssueSync(IssueSyncMixin):
+    def make_external_key(self, data):
+        return '{}#{}'.format(data['repo'], data['key'])
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitHubIssueSync, self).get_create_issue_config(group, **kwargs)
@@ -16,8 +18,7 @@ class GitHubIssueSync(IssueSyncMixin):
             repo_choices = [(repo['full_name'], repo['full_name']) for repo in repos]
 
         params = kwargs.get('params', {})
-        repo = params.get('repo')
-        default_repo = repo or repo_choices[0][0]
+        default_repo = params.get('repo', repo_choices[0][0])
         assignees = self.get_allowed_assignees(default_repo)
 
         return [
@@ -75,8 +76,7 @@ class GitHubIssueSync(IssueSyncMixin):
             repo_choices = [(repo['full_name'], repo['full_name']) for repo in repos]
 
         params = kwargs.get('params', {})
-        repo = params.get('repo')
-        default_repo = repo or repo_choices[0][0]
+        default_repo = params.get('repo', repo_choices[0][0])
         issues = self.get_repo_issues(default_repo)
 
         return [
@@ -107,7 +107,8 @@ class GitHubIssueSync(IssueSyncMixin):
             }
         ]
 
-    def get_issue(self, data):
+    def get_issue(self, issue_id, **kwargs):
+        data = kwargs['data']
         repo = data.get('repo')
         issue_num = data.get('externalIssue')
         client = self.get_client()
@@ -161,6 +162,6 @@ class GitHubIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
-        issues = tuple((i['number'], 'GH-{} {}'.format(i['number'], i['title'])) for i in response)
+        issues = tuple((i['number'], '#{} {}'.format(i['number'], i['title'])) for i in response)
 
         return issues
