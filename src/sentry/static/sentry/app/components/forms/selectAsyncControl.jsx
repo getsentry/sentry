@@ -88,6 +88,8 @@ class SelectAsyncControl extends React.Component {
       err => {
         addErrorMessage(t('There was a problem with the request.'));
         handleXhrErrorResponse('SelectAsync failed')(err);
+        // eslint-disable-next-line no-console
+        console.error(err);
       }
     );
   };
