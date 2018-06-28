@@ -42,7 +42,6 @@ export default class CustomResolutionModal extends React.Component {
 
   render() {
     let {orgId, projectId} = this.props;
-    let {version} = this.state;
 
     return (
       <Modal
@@ -60,8 +59,7 @@ export default class CustomResolutionModal extends React.Component {
               name="version"
               onChange={this.onChange}
               placeholder={t('e.g. 1.0.4')}
-              url={`/api/0/projects/${orgId}/${projectId}/releases/`}
-              value={version}
+              url={`/projects/${orgId}/${projectId}/releases/`}
               onResults={results => {
                 return results.map(release => ({
                   value: release.version,

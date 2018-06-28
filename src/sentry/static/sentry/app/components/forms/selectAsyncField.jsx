@@ -85,13 +85,15 @@ class SelectAsyncField extends SelectField {
   };
 
   getField() {
+    // Callers should be able to override all props except onChange
+    // FormField calls props.onChange via `setValue`
     return (
       <SelectAsyncControl
         id={this.getId()}
-        {...this.props}
-        value={this.state.value}
         onResults={this.onResults}
         onQuery={this.onQuery}
+        {...this.props}
+        value={this.state.value}
         onChange={this.onChange}
       />
     );
