@@ -177,7 +177,7 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None):
+def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None):
     """
     This logs a user in for the sesion and current request.
 
@@ -237,17 +237,18 @@ def login(request, user, passed_2fa=None, after_2fa=None, organization_id=None):
     _login(request, user)
     if organization_id:
         mark_sso_complete(request, organization_id)
-    log_auth_success(request, user.username, organization_id)
+    log_auth_success(request, user.username, organization_id, source)
     return True
 
 
-def log_auth_success(request, username, organization_id=None):
+def log_auth_success(request, username, organization_id=None, source=None):
     logger.info(
         'user.auth.success',
         extra={
             'ip_address': request.META['REMOTE_ADDR'],
             'username': username,
             'organization_id': organization_id,
+            'source': source,
         }
     )
 
