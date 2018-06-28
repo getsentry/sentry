@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from dateutil.parser import parse as parse_datetime
 from itertools import chain
 from operator import or_
-import json
 import six
 import time
 import urllib3
@@ -15,7 +14,7 @@ from django.db.models import Q
 
 from sentry.event_manager import HASH_RE
 from sentry.models import Environment, Group, GroupHash, GroupHashTombstone, GroupRelease, Release, ReleaseProject
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from functools import reduce
 
@@ -377,3 +376,15 @@ def get_related_project_ids(column, ids):
                 project_field + '__isnull': False,
             }).values_list(project_field, flat=True)
     return []
+
+
+def insert_raw(data):
+    data = json.dumps(data)
+    try:
+        with timer('snuba_insert_raw'):
+            return _snuba_pool.urlopen(
+                'POST', '/tests/insert',
+                body=data,
+            )
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaError(err)
