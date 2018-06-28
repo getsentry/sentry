@@ -72,6 +72,14 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'help': _('When a JIRA ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
             },
             {
+                'name': 'unresolve_when',
+                'type': 'choice',
+                'allowEmpty': True,
+                'label': _('Un-Resolve in Sentry When'),
+                'placeholder': _('Select a Status'),
+                'help': _('When a JIRA ticket is transitioned to this status, mark the Sentry issue as unresolved.'),
+            },
+            {
                 'name': 'sync_comments',
                 'type': 'boolean',
                 'label': _('Post Comments to JIRA'),
@@ -98,6 +106,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             configuration[0]['choices'] = statuses
             configuration[1]['choices'] = statuses
             configuration[2]['choices'] = statuses
+            configuration[3]['choices'] = statuses
         except ApiError:
             # TODO(epurkhsier): Maybe disabling the inputs for the resolve
             # statuses is a little heavy handed. Is there something better we
@@ -105,6 +114,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             configuration[0]['disabled'] = True
             configuration[1]['disabled'] = True
             configuration[2]['disabled'] = True
+            configuration[3]['disabled'] = True
 
         return configuration
 
