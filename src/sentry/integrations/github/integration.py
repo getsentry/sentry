@@ -25,17 +25,17 @@ Define a relationship between Sentry and GitHub.
  * Create or link existing GitHub issues. (coming soon)
 """
 disable_dialog = {
-    'actionText': 'Remove on GitHub',
-    'body': 'Before deleting this integration, you must uninstall this integration'
-            ' from GitHub. After uninstalling, your integration will be disabled at which point'
-            ' you can choose to delete this integration.'
+    'actionText': _('Remove on GitHub'),
+    'body': _('Before deleting this integration, you must uninstall this integration'
+              ' from GitHub. After uninstalling, your integration will be disabled at which point'
+              ' you can choose to delete this integration.')
 }
 
 removal_dialog = {
-    'actionText': 'Delete',
-    'body': 'Deleting this integration will delete all associated repositories'
-            ' and commit data. This action cannot be undone. Are you sure you want'
-            ' to delete your integration?'
+    'actionText': _('Delete'),
+    'body': _('Deleting this integration will delete all associated repositories'
+              ' and commit data. This action cannot be undone. Are you sure you want'
+              ' to delete your integration?')
 }
 
 metadata = IntegrationMetadata(

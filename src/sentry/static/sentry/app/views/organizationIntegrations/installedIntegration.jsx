@@ -54,8 +54,8 @@ export default class InstalledIntegration extends React.Component {
 
     return (
       <Confirm
-        confirmText={t(actionText)}
-        message={t(message)}
+        confirmText={actionText}
+        message={message}
         priority="danger"
         onConfirm={() => this.props.onDisable(integration)}>
         <Button size="small" icon="icon-trash" />
@@ -75,8 +75,8 @@ export default class InstalledIntegration extends React.Component {
     );
     return (
       <Confirm
-        message={t(message)}
-        confirmText={t(actionText)}
+        message={message}
+        confirmText={actionText}
         priority="danger"
         onConfirm={() => this.props.onRemove()}>
         <Button size="small" icon="icon-trash" />
