@@ -169,6 +169,19 @@ class GroupManager(BaseManager):
                 'last_seen': date,
             })
 
+    def get_groups_by_external_issue(self, integration, external_issue_key):
+        from sentry.models import ExternalIssue, GroupLink
+        return Group.objects.filter(
+            id__in=GroupLink.objects.filter(
+                linked_id__in=ExternalIssue.objects.filter(
+                    key=external_issue_key,
+                    integration_id=integration.id,
+                    organization_id__in=integration.organizations.values_list('id', flat=True),
+                ).values_list('id', flat=True),
+            ).values_list('group_id', flat=True),
+            project__organization_id__in=integration.organizations.values_list('id', flat=True),
+        )
+
 
 class Group(Model):
     """
