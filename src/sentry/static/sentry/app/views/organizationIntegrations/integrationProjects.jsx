@@ -50,8 +50,7 @@ class IntegrationProjects extends AsyncComponent {
 
     removeIntegrationFromProject(orgId, project, integration).then(() => {
       const projects = integration.projects.filter(p => p !== project);
-      const intg = {...integration, projects};
-      this.setState({integration: intg});
+      this.setState({integration: {...integration, projects}});
     });
   };
 
