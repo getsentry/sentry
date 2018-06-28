@@ -10,6 +10,7 @@ import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
 
 import RoleList from './fixtures/roleList';
+import Release from './fixtures/release';
 
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
@@ -870,6 +871,8 @@ window.TestStubs = {
       ...params,
     };
   },
+
+  Release,
 
   RoleList,
 
