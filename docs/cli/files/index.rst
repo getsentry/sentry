@@ -16,4 +16,3 @@ Subcommands
 
  info <info/index>
  get <get/index>
-

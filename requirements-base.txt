@@ -1,16 +1,16 @@
 BeautifulSoup>=3.2.1
-botocore<1.5.71
 boto3>=1.4.1,<1.4.6
+botocore<1.5.71
 celery>=3.1.8,<3.1.19
 click>=5.0,<7.0
 # 'cryptography>=1.3,<1.4
 cssutils>=0.9.9,<0.10.0
-Django>=1.6.11,<1.7
 django-crispy-forms>=1.4.0,<1.5.0
 django-jsonfield>=0.9.13,<0.9.14
 django-picklefield>=0.3.0,<0.4.0
 django-sudo>=2.1.0,<3.0.0
 django-templatetag-sugar>=0.1.0
+Django>=1.6.11,<1.7
 djangorestframework>=2.4.8,<2.5.0
 email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
@@ -20,13 +20,16 @@ futures>=3.2.0,<4.0.0
 # broken on python3
 hiredis>=0.1.0,<0.2.0
 honcho>=1.0.0,<1.1.0
-kombu==3.0.35
 ipaddress>=1.0.16,<1.1.0
-loremipsum>=1.0.5,<1.1.0
 jsonschema==2.6.0
+jsonschema==2.6.0
+kombu==3.0.35
+loremipsum>=1.0.5,<1.1.0
 lxml>=3.4.1
-mock==2.0.0
+# for vsts repo
+mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
+mock==2.0.0
 oauth2>=1.5.167
 parsimonious==0.8.0
 percy>=1.1.2
@@ -35,37 +38,34 @@ Pillow>=3.2.0,<=4.2.1
 progressbar2>=3.10,<3.11
 psycopg2>=2.6.0,<2.8.0
 PyJWT>=1.5.0,<1.6.0
-pytest>=3.5.0,<3.6.0
 pytest-django>=2.9.1,<2.10.0
 pytest-html>=1.9.0,<1.10.0
+pytest>=3.5.0,<3.6.0
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python-openid>=2.2
+python-u2flib-server>=4.0.1,<4.1.0
 PyYAML>=3.11,<3.12
+qrcode>=5.2.2,<6.0.0
 querystring_parser>=1.2.3,<2.0.0
 raven>=6.0.0,<=6.4.0
+rb>=1.7.0,<2.0.0
+redis-py-cluster>=1.3.4,<1.4.0
 redis>=2.10.3,<2.10.6
 requests[security]>=2.18.4,<2.19.0
 selenium==3.11.0
 semaphore>=0.1.0,<0.2.0
+setproctitle>=1.1.7,<1.2.0
 simplejson>=3.2.0,<3.9.0
 six>=1.10.0,<1.11.0
-setproctitle>=1.1.7,<1.2.0
+sqlparse>=0.1.16,<0.2.0
 statsd>=3.1.0,<3.2.0
 strict-rfc3339>=0.7
 structlog==16.1.0
-sqlparse>=0.1.16,<0.2.0
 symbolic>=5.0.0,<6.0.0
 toronado>=0.0.11,<0.1.0
 ua-parser>=0.6.1,<0.8.0
-urllib3>=1.22,<1.23
-uwsgi>2.0.0,<2.1.0
-rb>=1.7.0,<2.0.0
-qrcode>=5.2.2,<6.0.0
-python-u2flib-server>=4.0.1,<4.1.0
-redis-py-cluster>=1.3.4,<1.4.0
-jsonschema==2.6.0
 # for bitbucket client
 unidiff>=0.5.4
-# for vsts repo
-mistune>0.7,<0.9
+urllib3>=1.22,<1.23
+uwsgi>2.0.0,<2.1.0
