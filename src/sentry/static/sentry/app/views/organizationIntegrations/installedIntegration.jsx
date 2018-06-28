@@ -42,8 +42,8 @@ export default class InstalledIntegration extends React.Component {
   mergeIntegration() {}
 
   renderDisableIntegration(integration) {
-    let {body, action_text} = integration.provider.aspects.disable_dialog;
-    let message = (
+    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const message = (
       <div>
         <Alert type="error" icon="icon-circle-exclamation">
           This integration cannot be removed on Sentry
@@ -54,7 +54,7 @@ export default class InstalledIntegration extends React.Component {
 
     return (
       <Confirm
-        confirmText={t(action_text)}
+        confirmText={t(actionText)}
         message={t(message)}
         priority="danger"
         onConfirm={() => this.props.onDisable(integration)}>
@@ -64,8 +64,8 @@ export default class InstalledIntegration extends React.Component {
   }
 
   renderRemoveIntegration(integration) {
-    let {body, action_text} = integration.provider.aspects.removal_dialog;
-    let message = (
+    const {body, actionText} = integration.provider.aspects.removal_dialog;
+    const message = (
       <div>
         <Alert type="error" icon="icon-circle-exclamation">
           Deleting this integration has consequences!
@@ -76,7 +76,7 @@ export default class InstalledIntegration extends React.Component {
     return (
       <Confirm
         message={t(message)}
-        confirmText={t(action_text)}
+        confirmText={t(actionText)}
         priority="danger"
         onConfirm={() => this.props.onRemove()}>
         <Button size="small" icon="icon-trash" />
