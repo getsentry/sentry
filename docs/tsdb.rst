@@ -33,4 +33,3 @@ different cluster, provide the ``cluster`` option, as such:
     SENTRY_TSDB_OPTIONS = {
         'cluster': 'tsdb',
     }
-

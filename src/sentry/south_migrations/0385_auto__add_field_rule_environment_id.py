@@ -17,11 +17,9 @@ class Migration(SchemaMigration):
                       self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Rule.environment_id'
         db.delete_column('sentry_rule', 'environment_id')
-
 
     models = {
         'sentry.activity': {

@@ -36,9 +36,9 @@
       <div>
         <a href="{% url 'sentry-account-settings-2fa-sms' %}" class="btn btn-default">{% trans "Cancel" %}</a>
         {% if not auth.phone_number %}
-        <button type="submit" class="btn btn-primary">{% trans "Send Confirmation Code" %}</button> 
+        <button type="submit" class="btn btn-primary">{% trans "Send Confirmation Code" %}</button>
         {% else %}
-        <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button> 
+        <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button>
         {% endif %}
       </div>
     </fieldset>

@@ -20,4 +20,3 @@ Subcommands
  discover <discover/index>
  generate-secret-key <generate-secret-key/index>
  delete <delete/index>
-
