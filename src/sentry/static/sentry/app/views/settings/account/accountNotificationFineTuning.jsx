@@ -271,12 +271,14 @@ export default class AccountNotificationFineTuning extends AsyncView {
             <PanelBody>
               <PanelHeader hasButtons>
                 <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
-                {isProject &&
-                  this.renderSearchInput({
-                    placeholder: t('Search Projects'),
-                    url,
-                    stateKey,
-                  })}
+                <Box>
+                  {isProject &&
+                    this.renderSearchInput({
+                      placeholder: t('Search Projects'),
+                      url,
+                      stateKey,
+                    })}
+                </Box>
               </PanelHeader>
 
               {isProject &&
