@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.utils.http import absolute_uri
+
 UNSET = object()
 
 FIELD_MAP = {
@@ -20,6 +22,7 @@ class VstsApiPath(object):
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repositories = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
+    subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
     work_items_types_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
@@ -228,4 +231,25 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 account_name=account_name,
             ),
             api_preview=True,
+        )
+
+    def create_subscription(self, instance, external_id):
+        return self.patch(
+            VstsApiPath.subscriptions.format(
+                account_name=instance
+            ),
+            data={
+                'publisherId': 'tfs',
+                'eventType': 'workitem.updated',
+                'resourceVersion': '1.0-preview.1',
+                'consumerId': 'webHooks',
+                'consumerActionId': 'httpRequest',
+                'publisherInputs': {
+                    'changedFields': ['System.AssignedTo'],
+                },
+                'consumerInputs': {
+                    'url': absolute_uri('/extensions/vsts/webhook'),
+                    'external_id': external_id,
+                }
+            },
         )
