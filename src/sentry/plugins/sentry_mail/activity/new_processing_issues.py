@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry import features
 from sentry.models import GroupSubscriptionReason, EventError
 from sentry.utils.http import absolute_uri
 
@@ -55,12 +54,8 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        has_new_teams = features.has(
-            'organizations:new-teams',
-            self.organization,
-        )
         return u'Processing Issues on {}'.format(
-            self.project.slug if has_new_teams else self.project.name,
+            self.project.slug
         )
 
     def get_template(self):

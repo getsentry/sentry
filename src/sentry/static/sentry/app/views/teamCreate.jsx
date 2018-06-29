@@ -21,16 +21,8 @@ class TeamCreate extends AsyncView {
   }
 
   handleSubmitSuccess = data => {
-    let features = new Set(this.context.organization.features);
-
     let {orgId} = this.props.params;
-
-    // Legacy behavior: redirect to project creation
-    let redirectUrl = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
-    if (features.has('new-teams')) {
-      // New behavior: redirect to team settings page
-      redirectUrl = `/settings/${orgId}/teams/${data.slug}/`;
-    }
+    let redirectUrl = `/settings/${orgId}/teams/${data.slug}/`;
     this.props.router.push(redirectUrl);
   };
 

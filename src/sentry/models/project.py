@@ -293,11 +293,6 @@ class Project(Model):
         return is_enabled
 
     def transfer_to(self, team=None, organization=None):
-
-        # TODO(jess): remove this when new-teams is live for everyone
-        # only support passing team or org not both
-        assert not (team and organization)
-
         # NOTE: this will only work properly if the new team is in a different
         # org than the existing one, which is currently the only use case in
         # production

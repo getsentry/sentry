@@ -248,31 +248,23 @@ const AssigneeSelector = createReactClass({
   renderTeamNodes() {
     let {filter} = this.state;
     let {size} = this.props;
-    let teamNodes = [];
-    let org = this.context.organization;
-    let features = new Set(org.features);
 
-    if (features.has('new-teams')) {
-      teamNodes = this.assignableTeams().map(({id, display, team}) => {
-        return (
-          <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
-            <MenuItemWrapper>
-              <IconContainer>
-                <Avatar team={team} size={size} />
-              </IconContainer>
-              <Label>{this.highlight(display, filter)}</Label>
-            </MenuItemWrapper>
-          </MenuItem>
-        );
-      });
-    }
-    return teamNodes;
+    return this.assignableTeams().map(({id, display, team}) => {
+      return (
+        <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
+          <MenuItemWrapper>
+            <IconContainer>
+              <Avatar team={team} size={size} />
+            </IconContainer>
+            <Label>{this.highlight(display, filter)}</Label>
+          </MenuItemWrapper>
+        </MenuItem>
+      );
+    });
   },
 
   renderDropdownItems() {
     let {loading, assignedTo} = this.state;
-    let org = this.context.organization;
-    let features = new Set(org.features);
     let teams = this.renderTeamNodes();
     let members = this.renderMemberNodes();
     let hasTeamsAndMembers = teams.length && members.length;
@@ -284,11 +276,7 @@ const AssigneeSelector = createReactClass({
           <input
             type="text"
             className="form-control input-sm"
-            placeholder={
-              features.has('new-teams')
-                ? t('Filter teams and people')
-                : t('Filter members')
-            }
+            placeholder={t('Filter teams and people')}
             ref={ref => this.onFilterMount(ref)}
             onClick={this.onFilterClick}
             onKeyDown={this.onFilterKeyDown}

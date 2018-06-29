@@ -21,7 +21,6 @@ export default class CreateTeamForm extends React.Component {
 
   render() {
     let {organization} = this.props;
-    let features = new Set(organization.features);
 
     return (
       <React.Fragment>
@@ -39,28 +38,16 @@ export default class CreateTeamForm extends React.Component {
           onSubmitSuccess={this.handleCreateTeamSuccess}
           requireChanges
         >
-          {features.has('new-teams') ? (
-            <TextField
-              name="slug"
-              label={t('Team Slug')}
-              placeholder={t('e.g. operations, web-frontend, desktop')}
-              help={t('May contain lowercase letters, numbers, dashes and underscores.')}
-              required
-              flexibleControlStateSize
-              inline={false}
-              p={0}
-            />
-          ) : (
-            <TextField
-              name="name"
-              label={t('Team Name')}
-              placeholder={t('e.g. Operations, Web, Desktop')}
-              required
-              flexibleControlStateSize
-              inline={false}
-              p={0}
-            />
-          )}
+          <TextField
+            name="slug"
+            label={t('Team Slug')}
+            placeholder={t('e.g. operations, web-frontend, desktop')}
+            help={t('May contain lowercase letters, numbers, dashes and underscores.')}
+            required
+            flexibleControlStateSize
+            inline={false}
+            p={0}
+          />
         </Form>
       </React.Fragment>
     );
