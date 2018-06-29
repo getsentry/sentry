@@ -35,7 +35,9 @@ function applyDefaults(query) {
  */
 export default function createQueryBuilder(initial = {}, organization) {
   const query = applyDefaults(initial);
-  const defaultProjects = organization.projects.map(project => parseInt(project.id, 10));
+  const defaultProjects = organization.projects
+    .filter(projects => projects.isMember)
+    .map(project => parseInt(project.id, 10));
   let tags = [];
 
   return {
