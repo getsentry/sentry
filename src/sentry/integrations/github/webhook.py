@@ -281,7 +281,7 @@ class PullRequestEventWebhook(Webhook):
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
             try:
-                identity = Identity.objects.get(external_id=user['id'])
+                identity = Identity.objects.get(external_id=user['id'], idp__type=self.provider)
             except Identity.DoesNotExist:
                 pass
             else:
