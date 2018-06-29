@@ -200,9 +200,14 @@ const Stream = createReactClass({
             }
 
             newState.searchId = defaultResult.id;
-            newState.query = queryString.getQueryStringWithoutEnvironment(
-              defaultResult.query
-            );
+
+            if (this.getFeatures().has('environments')) {
+              newState.query = queryString.getQueryStringWithoutEnvironment(
+                defaultResult.query
+              );
+            } else {
+              newState.query = defaultResult.query;
+            }
             newState.isDefaultSearch = true;
           }
         }
