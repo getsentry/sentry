@@ -25,6 +25,7 @@ class DebugMfaRemovedEmailView(View):
             ip_address=request.META['REMOTE_ADDR'],
             context={
                 'authenticator': authenticator,
+                'device_name': 'Home computer'
             },
             # make this consistent for acceptance tests
             current_datetime=datetime.datetime(2017, 1, 20, 21, 39, 23, 30723)

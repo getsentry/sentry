@@ -536,6 +536,11 @@ class U2fInterface(AuthenticatorInterface):
             return True
         return False
 
+    def get_device_name(self, key):
+        for device in self.config.get('devices') or ():
+            if device['binding']['keyHandle'] == key:
+                return device['name']
+
     def get_registered_devices(self):
         rv = []
         for device in self.config.get('devices') or ():

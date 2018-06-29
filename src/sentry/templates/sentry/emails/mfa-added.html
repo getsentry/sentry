@@ -5,8 +5,14 @@
 {% endblock %}
 
 {% block security_metadata %}
+  <tr>
+    <td></td>
+    <td style="padding-bottom: 0px"><strong>{{ authenticator.interface.name }}</strong></td>
+  </tr>
+  {% if device_name %}
     <tr>
       <td></td>
-      <td><strong>{{ authenticator.interface.name }}</strong></td>
+      <td style="padding-top: 0px"><strong>{{ device_name }}</strong></td>
     </tr>
+  {% endif %}
 {% endblock %}
