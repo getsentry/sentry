@@ -219,8 +219,8 @@ export default class OrganizationMemberRow extends React.PureComponent {
                     orgName,
                   })}
                 >
-                  <Button priority="danger" size="small" busy={this.state.busy}>
-                    <span className="icon icon-exit" /> {t('Leave')}
+                  <Button priority="danger" size="small" icon="icon-exit">
+                    {t('Leave')}
                   </Button>
                 </Confirm>
               )}
@@ -229,12 +229,13 @@ export default class OrganizationMemberRow extends React.PureComponent {
               !memberCanLeave && (
                 <Button
                   size="small"
+                  icon="icon-exit"
                   disabled
                   title={t(
                     'You cannot leave the organization as you are the only owner.'
                   )}
                 >
-                  <span className="icon icon-exit" /> {t('Leave')}
+                  {t('Leave')}
                 </Button>
               )}
           </Box>
