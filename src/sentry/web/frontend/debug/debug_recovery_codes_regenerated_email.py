@@ -10,7 +10,7 @@ from sentry.security.emails import generate_security_email
 from .mail import MailPreview
 
 
-class DebugMfaAddedEmailView(View):
+class DebugRecoveryCodesRegeneratedEmailView(View):
     def get(self, request):
         authenticator = Authenticator(
             id=0,
@@ -21,11 +21,10 @@ class DebugMfaAddedEmailView(View):
         email = generate_security_email(
             account=request.user,
             actor=request.user,
-            type='mfa-added',
+            type='recovery-codes-regenerated',
             ip_address=request.META['REMOTE_ADDR'],
             context={
                 'authenticator': authenticator,
-                'device_name': 'Home computer'
             },
             # make this consistent for acceptance tests
             current_datetime=datetime.datetime(2017, 1, 20, 21, 39, 23, 30723)

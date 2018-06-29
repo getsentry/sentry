@@ -14,11 +14,10 @@ class UserAuthenticatorEnrollTest(APITestCase):
         self.user = self.create_user(email='a@example.com', is_superuser=False)
         self.login_as(user=self.user)
 
-    def _assert_mfa_added_email_sent(*args):
-        test, email_log = args
+    def _assert_security_email_sent(self, email_type, email_log):
         assert email_log.info.call_count == 1
         assert 'mail.queued' in email_log.info.call_args[0]
-        assert email_log.info.call_args[1]['extra']['message_type'] == 'mfa-added'
+        assert email_log.info.call_args[1]['extra']['message_type'] == email_type
 
     @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.TotpInterface.validate_otp', return_value=True)
@@ -49,7 +48,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         recovery = Authenticator.objects.get_interface(user=self.user, interface_id="recovery")
         assert recovery.is_enrolled
 
-        self._assert_mfa_added_email_sent(email_log)
+        self._assert_security_email_sent('mfa-added', email_log)
 
         # can't enroll again because no multi enrollment is allowed
         resp = self.client.get(url)
@@ -110,7 +109,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
             interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
             assert interface.phone_number == "1231234"
 
-            self._assert_mfa_added_email_sent(email_log)
+            self._assert_security_email_sent('mfa-added', email_log)
 
     @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
@@ -139,4 +138,4 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert try_enroll.call_args == mock.call("challenge", "response", "device name")
             assert resp.status_code == 204
 
-            self._assert_mfa_added_email_sent(email_log)
+            self._assert_security_email_sent('mfa-added', email_log)

@@ -17,6 +17,7 @@ from sentry.web.frontend.debug.debug_new_release_email import (DebugNewReleaseEm
 from sentry.web.frontend.debug.debug_new_user_feedback_email import (DebugNewUserFeedbackEmailView)
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
 from sentry.web.frontend.debug.debug_password_changed_email import (DebugPasswordChangedEmailView)
+from sentry.web.frontend.debug.debug_recovery_codes_regenerated_email import (DebugRecoveryCodesRegeneratedEmailView)
 from sentry.web.frontend.debug.debug_regression_email import (
     DebugRegressionEmailView, DebugRegressionReleaseEmailView
 )
@@ -74,6 +75,7 @@ urlpatterns = patterns(
     url(r'^debug/mail/org-delete-confirm/$', sentry.web.frontend.debug.mail.org_delete_confirm),
     url(r'^debug/mail/mfa-removed/$', DebugMfaRemovedEmailView.as_view()),
     url(r'^debug/mail/mfa-added/$', DebugMfaAddedEmailView.as_view()),
+    url(r'^debug/mail/recovery-codes-regenerated/$', DebugRecoveryCodesRegeneratedEmailView.as_view()),
     url(r'^debug/mail/password-changed/$', DebugPasswordChangedEmailView.as_view()),
     url(r'^debug/mail/new-processing-issues/$', DebugNewProcessingIssuesEmailView.as_view()),
     url(
