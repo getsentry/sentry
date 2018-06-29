@@ -12,6 +12,7 @@ import theme from 'app/utils/theme';
 import RoleList from './fixtures/roleList';
 import Release from './fixtures/release';
 import {AsanaPlugin, AsanaCreate, AsanaAutocomplete} from './fixtures/asana';
+import {VstsPlugin, VstsCreate} from './fixtures/vsts-old';
 
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
@@ -1082,6 +1083,8 @@ window.TestStubs = {
   AsanaPlugin,
   AsanaCreate,
   AsanaAutocomplete,
+  VstsPlugin,
+  VstsCreate,
 };
 
 // this is very commonly used, so expose it globally

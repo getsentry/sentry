@@ -43,8 +43,19 @@ export default class SelectCreatableField extends FormField {
       // This is the only thing that is different from parent, we compare newValue against coerved value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it
-      // to just return `value`. Also when field changes, it propagates the coerved value up
-      if (newValue !== this.coerceValue(this.state.value)) {
+      // to just return `value`. Also when field changes, it propagates the coerced value up
+      let coercedValue = this.coerceValue(this.state.value);
+
+      // newValue can be empty string because of `getValue`, while coerceValue needs to return null (to differentiate
+      // empty string from cleared item). We could use `!=` to compare, but lets be a bit more explicit with strict equality
+      //
+      // This can happen when this is apart of a field, and it re-renders onChange for a different field,
+      // there will be a mismatch between this component's state.value and `this.getValue` result above
+      if (
+        newValue !== coercedValue &&
+        !!newValue !== !!coercedValue &&
+        newValue !== this.state.value
+      ) {
         this.setValue(newValue);
       }
     }
