@@ -44,3 +44,7 @@ class WebCrawlersFilterTest(TestCase):
 
         data = self.get_mock_data('Slackbot 1.0(+https://api.slack.com/robots)')
         assert self.apply_filter(data)
+
+    def test_filters_calypso_appcrawler(self):
+        data = self.get_mock_data('Calypso AppCrawler')
+        assert self.apply_filter(data)
