@@ -13,18 +13,27 @@ class BaseBadge extends React.Component {
     team: SentryTypes.Team,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
+
     /**
      * Avatar size
      */
     avatarSize: PropTypes.number,
+
     /**
      * Hides the avatar
      */
     hideAvatar: PropTypes.bool,
+
+    /**
+     * Additional props for Avatar component
+     */
+    avatarProps: PropTypes.object,
+
     /**
      * Hides the main display name
      */
     hideName: PropTypes.bool,
+
     className: PropTypes.string,
     displayName: PropTypes.node,
     description: PropTypes.node,
@@ -32,6 +41,7 @@ class BaseBadge extends React.Component {
   };
 
   static defaultProps = {
+    avatarProps: {},
     avatarSize: 24,
     hideAvatar: false,
   };
@@ -45,6 +55,7 @@ class BaseBadge extends React.Component {
       avatarClassName,
       displayName,
       description,
+      avatarProps,
       team,
       organization,
       project,
@@ -59,7 +70,12 @@ class BaseBadge extends React.Component {
     return (
       <Flex align="center" className={className}>
         {!hideAvatar && (
-          <StyledAvatar css={avatarClassName} size={avatarSize} {...data} />
+          <StyledAvatar
+            css={avatarClassName}
+            size={avatarSize}
+            {...avatarProps || {}}
+            {...data}
+          />
         )}
 
         <DisplayNameAndDescription>

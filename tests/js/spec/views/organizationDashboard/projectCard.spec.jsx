@@ -74,7 +74,7 @@ describe('ProjectCard', function() {
       <ProjectCard
         project={TestStubs.Project({
           stats: [[1525042800, 1], [1525046400, 2]],
-          platform: 'javascript',
+          platforms: ['javascript'],
           latestDeploys,
         })}
         params={{orgId: 'org-slug'}}

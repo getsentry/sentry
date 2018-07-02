@@ -21,7 +21,6 @@ describe('IdBadge', function() {
     let wrapper = shallow(<IdBadge project={TestStubs.Project()} />, routerContext);
 
     expect(wrapper.find('ProjectBadge')).toHaveLength(1);
-    expect(wrapper.find('ProjectBadge').prop('hideAvatar')).toBe(true);
   });
 
   it('renders the correct component when `organization` property is passed', function() {
