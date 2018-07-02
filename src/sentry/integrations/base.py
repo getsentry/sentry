@@ -32,6 +32,7 @@ class IntegrationFeatures(Enum):
     NOTIFICATION = 'notification'
     ISSUE_SYNC = 'issue_sync'
     COMMITS = 'commits'
+    CHAT_UNFURL = 'chat_unfurl'
 
 
 class IntegrationProvider(PipelineProvider):
