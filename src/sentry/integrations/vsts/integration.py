@@ -169,7 +169,6 @@ class VstsIntegrationProvider(IntegrationProvider):
             'external_id': account['AccountId'],
             'metadata': {
                 'domain_name': instance,
-                'scopes': scopes,
             },
             'user_identity': {
                 'type': 'vsts',

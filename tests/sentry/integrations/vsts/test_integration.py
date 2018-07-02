@@ -40,7 +40,6 @@ class VstsIntegrationProviderTest(TestCase):
         integration_dict = self.integration.build_integration(state)
         assert integration_dict['name'] == 'sentry'
         assert integration_dict['external_id'] == '123435'
-        assert integration_dict['metadata']['scopes'] == sorted(VSTSIdentityProvider.oauth_scopes)
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
 
         assert integration_dict['user_identity']['type'] == 'vsts'
