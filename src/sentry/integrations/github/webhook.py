@@ -18,8 +18,8 @@ from simplejson import JSONDecodeError
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import (
-    Commit, CommitAuthor, CommitFileChange, Integration, PullRequest,
-    Repository, User
+    Commit, CommitAuthor, CommitFileChange, Identity, Integration, PullRequest,
+    Repository
 )
 from sentry.utils import json
 
@@ -30,22 +30,17 @@ from .client import GitHubAppsClient
 logger = logging.getLogger('sentry.webhooks')
 
 
-def is_anonymous_email(email):
-    return email[-25:] == '@users.noreply.github.com'
-
-
-def get_external_id(username):
-    return 'github:%s' % username
-
-
 class Webhook(object):
+    provider = 'github'
+    repo_provider = 'github'
+
     def _handle(self, event, organization, repo):
         raise NotImplementedError
 
     def __call__(self, event):
         integration = Integration.objects.get(
             external_id=event['installation']['id'],
-            provider='github',
+            provider=self.provider,
         )
 
         if 'repository' in event:
@@ -57,7 +52,7 @@ class Webhook(object):
 
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
-                provider='integrations:github',
+                provider='integrations:%s' % self.repo_provider,
                 external_id=six.text_type(event['repository']['id']),
             )
             for repo in repos:
@@ -77,7 +72,7 @@ class InstallationEventWebhook(Webhook):
         if installation and event['action'] == 'deleted':
             integration = Integration.objects.get(
                 external_id=installation['id'],
-                provider='github',
+                provider=self.provider,
             )
             self._handle_delete(event, integration)
 
@@ -88,7 +83,7 @@ class InstallationEventWebhook(Webhook):
 
         Repository.objects.filter(
             organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:github',
+            provider='integrations:%s' % self.repo_provider,
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
 
@@ -101,17 +96,30 @@ class InstallationRepositoryEventWebhook(Webhook):
 
 class PushEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#pushevent
+    def is_anonymous_email(self, email):
+        return email[-25:] == '@users.noreply.github.com'
+
+    def get_external_id(self, username):
+        return 'github:%s' % username
+
+    def get_client(self, event):
+        return GitHubAppsClient(event['installation']['id'])
+
+    def should_ignore_commit(self, commit):
+        return GitHubRepositoryProvider.should_ignore_commit(commit['message'])
 
     def _handle(self, event, organization, repo):
         authors = {}
-        client = GitHubAppsClient(event['installation']['id'])
+        client = self.get_client(event)
+        if client is None:
+            return HttpResponse(status=400)
         gh_username_cache = {}
 
         for commit in event['commits']:
             if not commit['distinct']:
                 continue
 
-            if GitHubRepositoryProvider.should_ignore_commit(commit['message']):
+            if self.should_ignore_commit(commit):
                 continue
 
             author_email = commit['author']['email']
@@ -120,11 +128,11 @@ class PushEventWebhook(Webhook):
                     author_email[:65],
                 )
             # try to figure out who anonymous emails are
-            elif is_anonymous_email(author_email):
+            elif self.is_anonymous_email(author_email):
                 gh_username = commit['author'].get('username')
                 # bot users don't have usernames
                 if gh_username:
-                    external_id = get_external_id(gh_username)
+                    external_id = self.get_external_id(gh_username)
                     if gh_username in gh_username_cache:
                         author_email = gh_username_cache[gh_username] or author_email
                     else:
@@ -136,14 +144,14 @@ class PushEventWebhook(Webhook):
                         except CommitAuthor.DoesNotExist:
                             commit_author = None
 
-                        if commit_author is not None and not is_anonymous_email(
+                        if commit_author is not None and not self.is_anonymous_email(
                             commit_author.email
                         ):
                             author_email = commit_author.email
                             gh_username_cache[gh_username] = author_email
                         else:
                             try:
-                                gh_user = client.get('/users/%s' % gh_username)
+                                gh_user = client.get_user(gh_username)
                             except ApiError as exc:
                                 logger.exception(six.text_type(exc))
                             else:
@@ -151,15 +159,12 @@ class PushEventWebhook(Webhook):
                                 # don't re-query
                                 gh_username_cache[gh_username] = None
                                 try:
-                                    user = User.objects.filter(
-                                        social_auth__provider='github',
-                                        social_auth__uid=gh_user['id'],
-                                        org_memberships=organization,
-                                    )[0]
-                                except IndexError:
+                                    identity = Identity.objects.get(
+                                        external_id=gh_user['id'], idp__type=self.provider)
+                                except Identity.DoesNotExist:
                                     pass
                                 else:
-                                    author_email = user.email
+                                    author_email = identity.user.email
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
@@ -194,8 +199,9 @@ class PushEventWebhook(Webhook):
 
                 gh_username = commit['author'].get('username')
                 if gh_username:
-                    external_id = get_external_id(gh_username)
-                    if author.external_id != external_id and not is_anonymous_email(author.email):
+                    external_id = self.get_external_id(gh_username)
+                    if author.external_id != external_id and not self.is_anonymous_email(
+                            author.email):
                         update_kwargs['external_id'] = external_id
 
                 if update_kwargs:
@@ -246,6 +252,11 @@ class PushEventWebhook(Webhook):
 
 class PullRequestEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#pullrequestevent
+    def is_anonymous_email(self, email):
+        return email[-25:] == '@users.noreply.github.com'
+
+    def get_external_id(self, username):
+        return 'github:%s' % username
 
     def _handle(self, event, organization, repo):
         pull_request = event['pull_request']
@@ -264,26 +275,22 @@ class PullRequestEventWebhook(Webhook):
         author_email = u'{}@localhost'.format(user['login'][:65])
         try:
             commit_author = CommitAuthor.objects.get(
-                external_id=get_external_id(user['login']),
+                external_id=self.get_external_id(user['login']),
                 organization_id=organization.id,
             )
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
             try:
-                user_model = User.objects.filter(
-                    social_auth__provider='github',
-                    social_auth__uid=user['id'],
-                    org_memberships=organization,
-                )[0]
-            except IndexError:
+                identity = Identity.objects.get(external_id=user['id'], idp__type=self.provider)
+            except Identity.DoesNotExist:
                 pass
             else:
-                author_email = user_model.email
+                author_email = identity.user.email
 
         try:
             author = CommitAuthor.objects.get(
                 organization_id=organization.id,
-                external_id=get_external_id(user['login']),
+                external_id=self.get_external_id(user['login']),
             )
         except CommitAuthor.DoesNotExist:
             try:
@@ -295,7 +302,7 @@ class PullRequestEventWebhook(Webhook):
                 author = CommitAuthor.objects.create(
                     organization_id=organization.id,
                     email=author_email,
-                    external_id=get_external_id(user['login']),
+                    external_id=self.get_external_id(user['login']),
                     name=user['login'][:128]
                 )
 
@@ -315,7 +322,7 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GithubWebhookBase(View):
+class GitHubWebhookBase(View):
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -337,7 +344,7 @@ class GithubWebhookBase(View):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
-        return super(GithubWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super(GitHubWebhookBase, self).dispatch(request, *args, **kwargs)
 
     def get_logging_data(self):
         pass
@@ -405,7 +412,7 @@ class GithubWebhookBase(View):
         return HttpResponse(status=204)
 
 
-class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
+class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     _handlers = {
         'push': PushEventWebhook,
         'pull_request': PullRequestEventWebhook,
@@ -418,7 +425,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
-        return super(GithubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super(GitHubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     def get_secret(self):
         return options.get('github-app.webhook-secret')

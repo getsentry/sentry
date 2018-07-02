@@ -366,7 +366,9 @@ urlpatterns += patterns(
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     # User settings use generic_react_page_view, while any view
     # acting on behalf of an organization should use react_page_view
-    url(r'^settings/account/security/$', generic_react_page_view, name='sentry-account-settings-security'),
+    url(r'^settings/account/security/$',
+        generic_react_page_view,
+        name='sentry-account-settings-security'),
     url(r'^settings/account/', generic_react_page_view),
     url(r'^settings/', react_page_view),
     url(
@@ -528,6 +530,7 @@ urlpatterns += patterns(
     url(r'^extensions/jira/', include('sentry.integrations.jira.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
     url(r'^extensions/github/', include('sentry.integrations.github.urls')),
+    url(r'^extensions/github-enterprise/', include('sentry.integrations.github_enterprise.urls')),
     url(r'^extensions/vsts/', include('sentry.integrations.vsts.urls')),
     url(r'^extensions/bitbucket/', include('sentry.integrations.bitbucket.urls')),
 
