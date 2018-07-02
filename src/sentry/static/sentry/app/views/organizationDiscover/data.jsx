@@ -1,22 +1,22 @@
-// const PROMOTED_TAGS = [
-//   {name: 'level', type: 'string'},
-//   {name: 'logger', type: 'string'},
-//   {name: 'server_name', type: 'string'},
-//   {name: 'transaction', type: 'string'},
-//   {name: 'environment', type: 'string'},
-//   {name: 'site', type: 'string'},
-//   {name: 'url', type: 'string'},
-//   {name: 'app_device', type: 'string'},
-//   {name: 'device', type: 'string'},
-//   {name: 'device_family', type: 'string'},
-//   {name: 'runtime', type: 'string'},
-//   {name: 'runtime_name', type: 'string'},
-//   {name: 'browser', type: 'string'},
-//   {name: 'browser_name', type: 'string'},
-//   {name: 'os', type: 'string'},
-//   {name: 'os_name', type: 'string'},
-//   {name: 'os_rooted', type: 'number'},
-// ];
+const PROMOTED_TAGS = [
+  {name: 'level', type: 'string'},
+  {name: 'logger', type: 'string'},
+  {name: 'server_name', type: 'string'},
+  {name: 'transaction', type: 'string'},
+  {name: 'environment', type: 'string'},
+  {name: 'site', type: 'string'},
+  {name: 'url', type: 'string'},
+  {name: 'app_device', type: 'string'},
+  {name: 'device', type: 'string'},
+  {name: 'device_family', type: 'string'},
+  {name: 'runtime', type: 'string'},
+  {name: 'runtime_name', type: 'string'},
+  {name: 'browser', type: 'string'},
+  {name: 'browser_name', type: 'string'},
+  {name: 'os', type: 'string'},
+  {name: 'os_name', type: 'string'},
+  {name: 'os_rooted', type: 'number'},
+];
 
 const COLUMNS = [
   {name: 'os_build', type: 'string'},
@@ -83,4 +83,4 @@ const CONDITION_OPERATORS = [
 
 const TOPK_COUNTS = [5, 10, 20, 50, 100];
 
-export {COLUMNS, CONDITION_OPERATORS, TOPK_COUNTS};
+export {COLUMNS, PROMOTED_TAGS, CONDITION_OPERATORS, TOPK_COUNTS};
