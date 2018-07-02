@@ -14,8 +14,8 @@ class ProjectDeletionTask(ModelDeletionTask):
 
         # in bulk
         model_list = (
-            models.Activity, models.EnvironmentProject, models.EventMapping, models.EventUser,
-            models.GroupAssignee, models.GroupBookmark, models.GroupEmailThread,
+            models.Activity, models.EnvironmentProject, models.EventAttachment, models.EventMapping,
+            models.EventUser, models.GroupAssignee, models.GroupBookmark, models.GroupEmailThread,
             models.GroupHash, models.GroupHashTombstone, models.GroupRelease, models.GroupRuleStatus,
             models.GroupSeen, models.GroupShare, models.GroupSubscription, models.ProjectBookmark,
             models.ProjectKey, models.ProjectTeam, models.SavedSearchUserDefault, models.SavedSearch,

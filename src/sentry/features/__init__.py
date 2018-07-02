@@ -8,6 +8,7 @@ default_manager = FeatureManager()  # NOQA
 default_manager.add('auth:register')
 default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:create')
+default_manager.add('organizations:event-attachments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sso', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sso-rippling', OrganizationFeature)  # NOQA
