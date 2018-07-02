@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
-
 UNSET = object()
 
 FIELD_MAP = {
@@ -21,10 +20,12 @@ class VstsApiPath(object):
     repositories = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
+    work_items_types_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     api_version = '4.1'
+    api_version_preview = '-preview.1'  # in another pr vsts-assignee #8783
 
     def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
         super(VstsApiClient, self).__init__(*args, **kwargs)
@@ -33,10 +34,11 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         if 'access_token' not in self.identity.data:
             raise ValueError('Vsts Identity missing access token')
 
-    def request(self, method, path, data=None, params=None):
+    def request(self, method, path, data=None, params=None, api_preview=False):
         self.check_auth(redirect_url=self.oauth_redirect_url)
+        api_version = self.api_version if api_preview is False else self.api_version + self.api_version_preview
         headers = {
-            'Accept': 'application/json; api-version={}'.format(self.api_version),
+            'Accept': 'application/json; api-version={}'.format(api_version),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
             'X-HTTP-Method-Override': method,
             'X-TFS-FedAuthRedirect': 'Suppress',
@@ -130,6 +132,30 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 account_name=instance,
                 id=id,
             ),
+        )
+
+    def get_work_item_states(self, instance, project=None):
+        if project is None:
+            # TODO(lb): I'm pulling from the first project.
+            # Not sure what else to do here unless I can prompt the user
+            project = self.get_projects(instance)['value'][0]['id']
+        return self.get(
+            VstsApiPath.work_items_types_states.format(
+                account_name=instance,
+                project=project,
+                # TODO(lb): might want to make this custom like jira at some point
+                type='Bug',
+            ),
+            api_preview=True,
+        )
+
+    def get_work_item_types(self, instance, process_id):
+        return self.get(
+            VstsApiPath.work_item_types.format(
+                account_name=instance,
+                process_id=process_id,
+            ),
+            api_preview=True,
         )
 
     def get_repo(self, instance, name_or_id, project=None):
