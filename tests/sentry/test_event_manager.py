@@ -151,6 +151,47 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
+    @mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
+    def test_does_geo_from_ip(self, from_ip_address_mock):
+        from sentry.interfaces.geo import Geo
+
+        geo = {
+            'city': 'San Francisco',
+            'country_code': 'US',
+            'region': 'CA',
+        }
+        from_ip_address_mock.return_value = Geo.to_python(geo)
+
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'sentry.interfaces.User': {
+                        'ip_address': '192.168.0.1',
+                    },
+                }
+            )
+        )
+        data = manager.normalize()
+        assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
+        assert data['sentry.interfaces.User']['geo'] == geo
+
+    @mock.patch('sentry.interfaces.geo.geo_by_addr')
+    def test_skips_geo_with_no_result(self, geo_by_addr_mock):
+        geo_by_addr_mock.return_value = None
+
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'sentry.interfaces.User': {
+                        'ip_address': '127.0.0.1',
+                    },
+                }
+            )
+        )
+        data = manager.normalize()
+        assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+        assert 'geo' not in data['sentry.interfaces.User']
+
     def test_does_default_ip_address_if_present(self):
         manager = EventManager(
             self.make_event(
