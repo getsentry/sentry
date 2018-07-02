@@ -13,7 +13,7 @@ from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
 from .client import GitHubAppsClient
-from .issues import GitHubIssueSync
+from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
 
@@ -42,7 +42,7 @@ API_ERRORS = {
 }
 
 
-class GitHubIntegration(Integration, GitHubIssueSync, RepositoryMixin):
+class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
 
     def get_client(self):
         return GitHubAppsClient(external_id=self.model.external_id)

@@ -4,12 +4,12 @@ from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
 
 
-class GitHubIssueSync(IssueBasicMixin):
+class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
         return '{}#{}'.format(data['repo'], data['key'])
 
     def get_create_issue_config(self, group, **kwargs):
-        fields = super(GitHubIssueSync, self).get_create_issue_config(group, **kwargs)
+        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
         try:
             repos = self.get_repositories()
         except ApiError:
