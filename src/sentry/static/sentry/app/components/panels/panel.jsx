@@ -12,7 +12,7 @@ const Panel = styled(({title, body, ...props}) => {
   return !hasHeaderAndBody ? (
     <div {...props} />
   ) : (
-    <div>
+    <div {...props}>
       <PanelHeader>{title}</PanelHeader>
 
       <PanelBody>{body}</PanelBody>

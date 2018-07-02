@@ -355,67 +355,78 @@ exports[`projectAlertRules renders 1`] = `
           routes={Array []}
         >
           <Panel>
-            <StyledPanel>
+            <Component
+              className="css-10qfvek-Panel e1laxa7d0"
+            >
               <div
-                className="css-17lswg2-StyledPanel e1laxa7d0"
+                className="css-10qfvek-Panel e1laxa7d0"
               >
                 <PanelHeader
                   align="center"
                   className="css-1lx593h"
                   justify="space-between"
                 >
-                  <StyledPanelHeader
+                  <Component
                     align="center"
-                    className="css-1lx593h"
+                    className="css-1kcywdb-PanelHeader-getPadding e1p8v8nv0"
                     justify="space-between"
                   >
-                    <Component
+                    <Flex
                       align="center"
-                      className="css-yk06vx-StyledPanelHeader-getPadding e1p8v8nv0"
+                      className="css-1kcywdb-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <Flex
+                      <Base
                         align="center"
-                        className="css-yk06vx-StyledPanelHeader-getPadding e1p8v8nv0"
+                        className="e1p8v8nv0 css-24tymz-PanelHeader-getPadding"
                         justify="space-between"
                       >
-                        <Base
-                          align="center"
-                          className="e1p8v8nv0 css-17o4jsc-StyledPanelHeader-getPadding"
-                          justify="space-between"
+                        <div
+                          className="e1p8v8nv0 css-24tymz-PanelHeader-getPadding"
+                          is={null}
                         >
-                          <div
-                            className="e1p8v8nv0 css-17o4jsc-StyledPanelHeader-getPadding"
-                            is={null}
+                          <TextColorLink
+                            to="1/"
                           >
-                            <TextColorLink
+                            <Link
+                              className="css-1s5bpjc-TextColorLink e1abl5wd0"
+                              onlyActiveOnIndex={false}
+                              style={Object {}}
                               to="1/"
                             >
-                              <Link
+                              <a
                                 className="css-1s5bpjc-TextColorLink e1abl5wd0"
-                                onlyActiveOnIndex={false}
+                                onClick={[Function]}
                                 style={Object {}}
+                              >
+                                My alert rule
+                                 - 
+                                All Environments
+                              </a>
+                            </Link>
+                          </TextColorLink>
+                          <div>
+                            <Tooltip
+                              disabled={true}
+                              title="You do not have permission to edit alert rules."
+                            >
+                              <Button
+                                data-test-id="edit-rule"
+                                disabled={false}
+                                size="small"
+                                style={
+                                  Object {
+                                    "marginRight": 5,
+                                  }
+                                }
                                 to="1/"
                               >
-                                <a
-                                  className="css-1s5bpjc-TextColorLink e1abl5wd0"
-                                  onClick={[Function]}
-                                  style={Object {}}
-                                >
-                                  My alert rule
-                                   - 
-                                  All Environments
-                                </a>
-                              </Link>
-                            </TextColorLink>
-                            <div>
-                              <Tooltip
-                                disabled={true}
-                                title="You do not have permission to edit alert rules."
-                              >
-                                <Button
+                                <StyledButton
+                                  aria-label="Edit Rule"
                                   data-test-id="edit-rule"
                                   disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
                                   size="small"
                                   style={
                                     Object {
@@ -424,8 +435,9 @@ exports[`projectAlertRules renders 1`] = `
                                   }
                                   to="1/"
                                 >
-                                  <StyledButton
+                                  <Component
                                     aria-label="Edit Rule"
+                                    className="css-dkprmi-StyledButton-getColors e17811v30"
                                     data-test-id="edit-rule"
                                     disabled={false}
                                     onClick={[Function]}
@@ -438,12 +450,13 @@ exports[`projectAlertRules renders 1`] = `
                                     }
                                     to="1/"
                                   >
-                                    <Component
+                                    <Link
                                       aria-label="Edit Rule"
                                       className="css-dkprmi-StyledButton-getColors e17811v30"
                                       data-test-id="edit-rule"
                                       disabled={false}
                                       onClick={[Function]}
+                                      onlyActiveOnIndex={false}
                                       role="button"
                                       size="small"
                                       style={
@@ -453,13 +466,12 @@ exports[`projectAlertRules renders 1`] = `
                                       }
                                       to="1/"
                                     >
-                                      <Link
+                                      <a
                                         aria-label="Edit Rule"
                                         className="css-dkprmi-StyledButton-getColors e17811v30"
                                         data-test-id="edit-rule"
                                         disabled={false}
                                         onClick={[Function]}
-                                        onlyActiveOnIndex={false}
                                         role="button"
                                         size="small"
                                         style={
@@ -467,187 +479,196 @@ exports[`projectAlertRules renders 1`] = `
                                             "marginRight": 5,
                                           }
                                         }
-                                        to="1/"
                                       >
-                                        <a
-                                          aria-label="Edit Rule"
-                                          className="css-dkprmi-StyledButton-getColors e17811v30"
-                                          data-test-id="edit-rule"
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          role="button"
+                                        <ButtonLabel
                                           size="small"
-                                          style={
-                                            Object {
-                                              "marginRight": 5,
-                                            }
-                                          }
                                         >
-                                          <ButtonLabel
+                                          <Component
+                                            className="css-19bmqb3-ButtonLabel e17811v31"
                                             size="small"
                                           >
-                                            <Component
+                                            <Flex
+                                              align="center"
                                               className="css-19bmqb3-ButtonLabel e17811v31"
                                               size="small"
                                             >
-                                              <Flex
+                                              <Base
                                                 align="center"
-                                                className="css-19bmqb3-ButtonLabel e17811v31"
+                                                className="e17811v31 css-1eblpyp-ButtonLabel"
                                                 size="small"
                                               >
-                                                <Base
-                                                  align="center"
+                                                <div
                                                   className="e17811v31 css-1eblpyp-ButtonLabel"
+                                                  is={null}
                                                   size="small"
                                                 >
-                                                  <div
-                                                    className="e17811v31 css-1eblpyp-ButtonLabel"
-                                                    is={null}
-                                                    size="small"
-                                                  >
-                                                    Edit Rule
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                            </Component>
-                                          </ButtonLabel>
-                                        </a>
-                                      </Link>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                              </Tooltip>
-                              <Tooltip
-                                disabled={true}
-                                title="You do not have permission to edit alert rules."
+                                                  Edit Rule
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </a>
+                                    </Link>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </Tooltip>
+                            <Tooltip
+                              disabled={true}
+                              title="You do not have permission to edit alert rules."
+                            >
+                              <Confirm
+                                cancelText="Cancel"
+                                confirmText="Confirm"
+                                disabled={false}
+                                message="Are you sure you want to remove this rule?"
+                                onConfirm={[Function]}
+                                priority="primary"
                               >
-                                <Confirm
-                                  cancelText="Cancel"
-                                  confirmText="Confirm"
+                                <Button
                                   disabled={false}
-                                  message="Are you sure you want to remove this rule?"
-                                  onConfirm={[Function]}
-                                  priority="primary"
+                                  icon="icon-trash"
+                                  onClick={[Function]}
+                                  size="small"
                                 >
-                                  <Button
+                                  <StyledButton
                                     disabled={false}
-                                    icon="icon-trash"
                                     onClick={[Function]}
+                                    role="button"
                                     size="small"
                                   >
-                                    <StyledButton
+                                    <Component
+                                      className="css-dkprmi-StyledButton-getColors e17811v30"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
-                                      <Component
+                                      <button
                                         className="css-dkprmi-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
                                         size="small"
                                       >
-                                        <button
-                                          className="css-dkprmi-StyledButton-getColors e17811v30"
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          role="button"
+                                        <ButtonLabel
                                           size="small"
                                         >
-                                          <ButtonLabel
+                                          <Component
+                                            className="css-19bmqb3-ButtonLabel e17811v31"
                                             size="small"
                                           >
-                                            <Component
+                                            <Flex
+                                              align="center"
                                               className="css-19bmqb3-ButtonLabel e17811v31"
                                               size="small"
                                             >
-                                              <Flex
+                                              <Base
                                                 align="center"
-                                                className="css-19bmqb3-ButtonLabel e17811v31"
+                                                className="e17811v31 css-1eblpyp-ButtonLabel"
                                                 size="small"
                                               >
-                                                <Base
-                                                  align="center"
+                                                <div
                                                   className="e17811v31 css-1eblpyp-ButtonLabel"
+                                                  is={null}
                                                   size="small"
                                                 >
-                                                  <div
-                                                    className="e17811v31 css-1eblpyp-ButtonLabel"
-                                                    is={null}
+                                                  <Icon
+                                                    hasChildren={false}
                                                     size="small"
                                                   >
-                                                    <Icon
+                                                    <Component
+                                                      className="css-ljhpxy-Icon e17811v32"
                                                       hasChildren={false}
                                                       size="small"
                                                     >
-                                                      <Component
+                                                      <Box
                                                         className="css-ljhpxy-Icon e17811v32"
-                                                        hasChildren={false}
                                                         size="small"
                                                       >
-                                                        <Box
-                                                          className="css-ljhpxy-Icon e17811v32"
+                                                        <Base
+                                                          className="e17811v32 css-7mohvl-Icon"
                                                           size="small"
                                                         >
-                                                          <Base
+                                                          <div
                                                             className="e17811v32 css-7mohvl-Icon"
+                                                            is={null}
                                                             size="small"
                                                           >
-                                                            <div
-                                                              className="e17811v32 css-7mohvl-Icon"
-                                                              is={null}
-                                                              size="small"
+                                                            <StyledInlineSvg
+                                                              size="12px"
+                                                              src="icon-trash"
                                                             >
-                                                              <StyledInlineSvg
+                                                              <InlineSvg
+                                                                className="css-1ov3rcq-StyledInlineSvg e17811v33"
                                                                 size="12px"
                                                                 src="icon-trash"
                                                               >
-                                                                <InlineSvg
+                                                                <StyledSvg
                                                                   className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                                  size="12px"
-                                                                  src="icon-trash"
+                                                                  height="12px"
+                                                                  viewBox={Object {}}
+                                                                  width="12px"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                  <svg
+                                                                    className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
-                                                                    <svg
-                                                                      className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </div>
-                                                          </Base>
-                                                        </Box>
-                                                      </Component>
-                                                    </Icon>
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                            </Component>
-                                          </ButtonLabel>
-                                        </button>
-                                      </Component>
-                                    </StyledButton>
-                                  </Button>
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </StyledSvg>
+                                                              </InlineSvg>
+                                                            </StyledInlineSvg>
+                                                          </div>
+                                                        </Base>
+                                                      </Box>
+                                                    </Component>
+                                                  </Icon>
+                                                </div>
+                                              </Base>
+                                            </Flex>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                                <Modal
+                                  animation={false}
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "add": [Function],
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
+                                      "modals": Array [],
+                                      "remove": [Function],
+                                    }
+                                  }
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                >
                                   <Modal
-                                    animation={false}
                                     autoFocus={true}
                                     backdrop={true}
-                                    bsClass="modal"
-                                    dialogComponentClass={[Function]}
+                                    backdropClassName="modal-backdrop"
+                                    containerClassName="modal-open"
                                     enforceFocus={true}
                                     keyboard={true}
                                     manager={
@@ -662,46 +683,21 @@ exports[`projectAlertRules renders 1`] = `
                                         "remove": [Function],
                                       }
                                     }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
                                     onHide={[Function]}
                                     renderBackdrop={[Function]}
                                     restoreFocus={true}
                                     show={false}
-                                  >
-                                    <Modal
-                                      autoFocus={true}
-                                      backdrop={true}
-                                      backdropClassName="modal-backdrop"
-                                      containerClassName="modal-open"
-                                      enforceFocus={true}
-                                      keyboard={true}
-                                      manager={
-                                        ModalManager {
-                                          "add": [Function],
-                                          "containers": Array [],
-                                          "data": Array [],
-                                          "handleContainerOverflow": true,
-                                          "hideSiblingNodes": true,
-                                          "isTopModal": [Function],
-                                          "modals": Array [],
-                                          "remove": [Function],
-                                        }
-                                      }
-                                      onEntering={[Function]}
-                                      onExited={[Function]}
-                                      onHide={[Function]}
-                                      renderBackdrop={[Function]}
-                                      restoreFocus={true}
-                                      show={false}
-                                    />
-                                  </Modal>
-                                </Confirm>
-                              </Tooltip>
-                            </div>
+                                  />
+                                </Modal>
+                              </Confirm>
+                            </Tooltip>
                           </div>
-                        </Base>
-                      </Flex>
-                    </Component>
-                  </StyledPanelHeader>
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
                 </PanelHeader>
                 <PanelBody
                   direction="column"
@@ -849,7 +845,7 @@ exports[`projectAlertRules renders 1`] = `
                   </div>
                 </PanelBody>
               </div>
-            </StyledPanel>
+            </Component>
           </Panel>
         </RuleRow>
       </div>
