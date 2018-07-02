@@ -19,6 +19,10 @@ export function getInternal(external) {
     return `uniq(${col})`;
   }
 
+  if (func === 'avg') {
+    return `avg(${col})`;
+  }
+
   if (func.startsWith('topK')) {
     const count = func.match(/topK\((\d+)\)/)[1];
     return `topK(${count})(${col})`;
@@ -35,6 +39,7 @@ export function getInternal(external) {
 */
 export function getExternal(internal) {
   const uniqRegex = /^uniq\((.+)\)$/;
+  const avgRegex = /^avg\((.+)\)$/;
   const topKRegex = /^topK\((\d+)\)\((.+)\)$/;
 
   if (internal === 'count') {
@@ -44,6 +49,11 @@ export function getExternal(internal) {
   if (internal.match(uniqRegex)) {
     const column = internal.match(uniqRegex)[1];
     return ['uniq', column, `uniq_${column}`];
+  }
+
+  if (internal.match(avgRegex)) {
+    const column = internal.match(avgRegex)[1];
+    return ['avg', column, `avg_${column}`];
   }
 
   const topKMatch = internal.match(topKRegex);

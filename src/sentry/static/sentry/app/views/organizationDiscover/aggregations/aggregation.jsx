@@ -32,6 +32,7 @@ export default class Aggregation extends React.Component {
       {value: 'count', label: 'count'},
       {value: 'uniq', label: 'uniq(...)'},
       {value: 'topK', label: 'topK(...)'},
+      {value: 'avg', label: 'avg(...)'},
     ];
 
     if (input.startsWith('uniq')) {
@@ -39,6 +40,15 @@ export default class Aggregation extends React.Component {
         value: `uniq(${name})`,
         label: `uniq(${name})`,
       }));
+    }
+
+    if (input.startsWith('avg')) {
+      optionList = this.props.columns
+        .filter(({type}) => type === 'number')
+        .map(({name}) => ({
+          value: `avg(${name})`,
+          label: `avg(${name})`,
+        }));
     }
 
     if (input.startsWith('topK')) {
@@ -69,7 +79,7 @@ export default class Aggregation extends React.Component {
   handleChange = option => {
     const topKValues = new Set([...TOPK_COUNTS.map(num => `topK(${num})`)]);
 
-    if (option.value === 'uniq' || option.value === 'topK') {
+    if (option.value === 'uniq' || option.value === 'avg' || option.value === 'topK') {
       this.setState({selectedFunction: option.value}, this.focus);
     } else if (topKValues.has(option.value)) {
       this.setState(
