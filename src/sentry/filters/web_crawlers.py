@@ -36,6 +36,8 @@ CRAWLERS = re.compile(
             r'spider[\/\s\)\;]',
             # Slack - see https://api.slack.com/robots
             r'Slack',
+            # Calypso AppCrawler (Android/iOS)
+            r'Calypso AppCrawler',
         )
     ),
     re.I
