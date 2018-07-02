@@ -52,6 +52,9 @@ class GitHubClientMixin(ApiClient):
         )
         return repositories['repositories']
 
+    def get_user(self, gh_username):
+        return self.get('/users/{}'.format(gh_username))
+
     def request(self, method, path, headers=None, data=None, params=None):
         if headers is None:
             headers = {
