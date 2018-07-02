@@ -54,8 +54,8 @@ const EmptyMessage = ({title, description, icon, children, action, size}) => {
 };
 
 EmptyMessage.propTypes = {
-  title: PropTypes.string,
-  description: PropTypes.string,
+  title: PropTypes.node,
+  description: PropTypes.node,
   icon: PropTypes.string,
   action: PropTypes.element,
   size: PropTypes.oneOf(['large', 'medium']),
