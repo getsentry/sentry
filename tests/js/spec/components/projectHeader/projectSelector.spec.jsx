@@ -4,70 +4,33 @@ import {mount, shallow} from 'enzyme';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
 describe('ProjectSelector', function() {
-  const mockOrg = {
+  const testTeam = TestStubs.Team({
+    id: 'test-team',
+    slug: 'test-team',
+    isMember: true,
+  });
+
+  const testProject = TestStubs.Project({
+    id: 'test-project',
+    slug: 'test-project',
+    isMember: true,
+    teams: [testTeam],
+  });
+  const anotherProject = TestStubs.Project({
+    id: 'another-project',
+    slug: 'another-project',
+    isMember: true,
+    teams: [testTeam],
+  });
+
+  const mockOrg = TestStubs.Organization({
     id: 'org',
     slug: 'org',
-    teams: [
-      {
-        name: 'Test Team',
-        slug: 'test-team',
-        isMember: true,
-        projects: [
-          {
-            slug: 'test-project',
-            name: 'Test Project',
-          },
-          {
-            slug: 'another-project',
-            name: 'Another Project',
-          },
-        ],
-      },
-    ],
-    projects: [
-      {
-        slug: 'test-project',
-        name: 'Test Project',
-        isMember: true,
-        team: {
-          name: 'Test Team',
-          slug: 'test-team',
-          isMember: true,
-          projects: [
-            {
-              slug: 'test-project',
-              name: 'Test Project',
-            },
-            {
-              slug: 'another-project',
-              name: 'Another Project',
-            },
-          ],
-        },
-      },
-      {
-        slug: 'another-project',
-        name: 'Another Project',
-        isMember: true,
-        team: {
-          name: 'Test Team',
-          slug: 'test-team',
-          isMember: true,
-          projects: [
-            {
-              slug: 'test-project',
-              name: 'Test Project',
-            },
-            {
-              slug: 'another-project',
-              name: 'Another Project',
-            },
-          ],
-        },
-      },
-    ],
+    teams: [testTeam],
+    projects: [testProject, anotherProject],
+    features: ['new-teams'],
     access: [],
-  };
+  });
 
   describe('render()', function() {
     beforeEach(function() {

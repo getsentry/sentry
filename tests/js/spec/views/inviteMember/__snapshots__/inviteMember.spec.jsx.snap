@@ -510,6 +510,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                           }
                                         >
                                           <BaseBadge
+                                            avatarProps={Object {}}
                                             avatarSize={24}
                                             displayName={
                                               <BadgeDisplayName
@@ -657,6 +658,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                           }
                                         >
                                           <BaseBadge
+                                            avatarProps={Object {}}
                                             avatarSize={24}
                                             displayName={
                                               <BadgeDisplayName

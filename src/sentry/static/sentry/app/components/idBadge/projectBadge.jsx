@@ -18,7 +18,7 @@ export default class ProjectBadge extends React.Component {
   };
 
   static defaultProps = {
-    hideAvatar: true,
+    hideAvatar: false,
     hideOverflow: true,
   };
 

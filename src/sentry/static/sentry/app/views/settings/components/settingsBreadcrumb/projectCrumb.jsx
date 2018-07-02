@@ -55,7 +55,7 @@ class ProjectCrumb extends React.Component {
                   projectId: latestProject.slug,
                 })}
               >
-                <IdBadge project={latestProject} />
+                <IdBadge project={latestProject} avatarSize={18} />
               </TextLink>
             )}
           </ProjectName>
@@ -77,7 +77,11 @@ class ProjectCrumb extends React.Component {
           value: project.slug,
           label: (
             <MenuItem>
-              <IdBadge project={project} />
+              <IdBadge
+                project={project}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+              />
             </MenuItem>
           ),
         }))}
