@@ -14,7 +14,6 @@ const Panel = styled(({title, body, ...props}) => {
   ) : (
     <div {...props}>
       <PanelHeader>{title}</PanelHeader>
-
       <PanelBody>{body}</PanelBody>
     </div>
   );
