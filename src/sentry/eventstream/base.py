@@ -7,11 +7,17 @@ from sentry.tasks.post_process import post_process_group
 
 class EventStream(Service):
     __all__ = (
-        'publish', 'consume',
+        'publish',
     )
 
-    def publish(self, event, primary_hash, **kwargs):
-        self.consume(event=event, primary_hash=primary_hash, **kwargs)
-
-    def consume(self, event, primary_hash, **kwargs):
-        post_process_group.delay(event=event, primary_hash=primary_hash, **kwargs)
+    def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
+        if not skip_consume:
+            post_process_group.delay(
+                group=group,
+                event=event,
+                is_new=is_new,
+                is_sample=is_sample,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                primary_hash=primary_hash,
+            )

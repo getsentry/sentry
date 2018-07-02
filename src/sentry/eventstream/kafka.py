@@ -39,7 +39,7 @@ class KafkaEventStream(EventStream):
         if not sync:
             self.pubsub = QueuedPublisher(self.pubsub)
 
-    def publish(self, event, primary_hash, **kwargs):
+    def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
         project = event.project
         retention_days = quotas.get_event_retention(
             organization=Organization(project.organization_id)
@@ -64,7 +64,3 @@ class KafkaEventStream(EventStream):
         except Exception as error:
             logger.warning('Could not publish event: %s', error, exc_info=True)
             raise
-
-    def consume(self, event, primary_hash, **kwargs):
-        # TODO talk to Ted
-        pass
