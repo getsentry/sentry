@@ -41,10 +41,11 @@ clean:
 
 setup-git:
 	@echo "--> Installing git hooks"
+	git config branch.autosetuprebase always
+	git config core.ignorecase false
+	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	pip install "pre-commit>=1.10.1,<1.11.0"
 	pre-commit install
-	git config branch.autosetuprebase always
-	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@echo ""
 
 update-submodules:
