@@ -52,7 +52,7 @@ class RecoveryOptionsModal extends AsyncComponent {
 
         <Body>
           <TextBlock>
-            {t(`Two-factor authentication via ${authenticatorName} has been enabled.`)}
+            {t('Two-factor authentication via %s has been enabled.', authenticatorName)}
           </TextBlock>
           <TextBlock>
             {t('You should now set up recovery options to secure your account.')}
