@@ -10,11 +10,11 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Feature from 'app/components/feature';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Link from 'app/components/link';
 import Switch from 'app/components/switch';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 export default class ProjectIntegrations extends AsyncComponent {
   getEndpoints() {
@@ -56,21 +56,36 @@ export default class ProjectIntegrations extends AsyncComponent {
             <Box flex={1}>
               <IntegrationItem integration={integration} />
             </Box>
-            <Box px={2}>
-              <Button
-                size="small"
-                disabled={!enabled}
-                to={`/settings/${orgId}/${projectId}/integrations/${integration.provider
-                  .key}/${integration.id}/`}
-              >
-                {t('Configure')}
-              </Button>
-            </Box>
-            <Switch
-              size="lg"
-              isActive={enabled}
-              toggle={() => this.onToggleEnabled(!enabled, integration)}
-            />
+            <Feature access={['project:integrations']}>
+              {({hasAccess}) => (
+                <React.Fragment>
+                  <Box px={2}>
+                    <Button
+                      size="small"
+                      disabled={!enabled || !hasAccess}
+                      to={`/settings/${orgId}/${projectId}/integrations/${integration
+                        .provider.key}/${integration.id}/`}
+                    >
+                      {t('Configure')}
+                    </Button>
+                  </Box>
+                  <Tooltip
+                    title="You don't have permission to enable or disable project integrations"
+                    tooltipOptions={{placement: 'left'}}
+                    disabled={hasAccess}
+                  >
+                    <span>
+                      <Switch
+                        size="lg"
+                        isActive={enabled}
+                        isDisabled={!hasAccess}
+                        toggle={() => this.onToggleEnabled(!enabled, integration)}
+                      />
+                    </span>
+                  </Tooltip>
+                </React.Fragment>
+              )}
+            </Feature>
           </PanelItem>
         );
       });
@@ -82,9 +97,24 @@ export default class ProjectIntegrations extends AsyncComponent {
             {t('Project Integrations')}
           </Box>
           <Box pr={1}>
-            <Button size="xsmall" to={`/settings/${orgId}/integrations/`}>
-              {t('Manage Integrations')}
-            </Button>
+            <Feature access={['org:integrations']}>
+              {({hasAccess}) => (
+                <Tooltip
+                  title="You don't have permission to manage organization integrations"
+                  disabled={hasAccess}
+                >
+                  <span>
+                    <Button
+                      size="xsmall"
+                      disabled={!hasAccess}
+                      to={`/settings/${orgId}/integrations/`}
+                    >
+                      {t('Manage Integrations')}
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
+            </Feature>
           </Box>
         </PanelHeader>
         <PanelBody>
@@ -92,16 +122,26 @@ export default class ProjectIntegrations extends AsyncComponent {
             <EmptyMessage
               size="large"
               title={t('No Integrations Enabled')}
-              description={tct(
-                'Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities. Visit the [link] to configure integrations.',
-                {
-                  link: (
-                    <Link to={`/settings/${orgId}/integrations`}>
-                      Organization Integration Settings
-                    </Link>
-                  ),
-                }
-              )}
+              description={
+                <Feature access={['org:integrations']}>
+                  {({hasAccess}) => {
+                    const description = t(
+                      'Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities.'
+                    );
+
+                    return hasAccess
+                      ? tct('[description] Visit the [link] to configure integrations.', {
+                          description,
+                          link: (
+                            <Link to={`/settings/${orgId}/integrations`}>
+                              {t('Organization Integration Settings')}
+                            </Link>
+                          ),
+                        })
+                      : description;
+                  }}
+                </Feature>
+              }
             />
           )}
           {integrations}
