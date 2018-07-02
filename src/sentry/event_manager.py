@@ -931,17 +931,21 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send(project=project, group=group, sender=Project)
 
-            eventstream.publish(
-                group=group,
-                event=event,
-                is_new=is_new,
-                is_sample=is_sample,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                primary_hash=hashes[0],
-            )
-        else:
-            self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
+        eventstream.publish(
+            group=group,
+            event=event,
+            is_new=is_new,
+            is_sample=is_sample,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            primary_hash=hashes[0],
+            # We are choosing to skip consuming the event back
+            # in the eventstream if it's flagged as raw.
+            # This means that we want to publish the event
+            # through the event stream, but we don't care
+            # about post processing and handling the commit.
+            skip_consume=raw,
+        )
 
         metrics.timing(
             'events.latency',
