@@ -70,7 +70,15 @@ class Search extends React.Component {
 
     analytics(`${this.props.source}.select`, {query: state && state.inputValue});
 
-    let {to} = item;
+    let {to, action} = item;
+
+    // `action` refers to a callback function while
+    // `to` is a react-router route
+    if (action) {
+      action(item, state);
+      return;
+    }
+
     if (!to) return;
 
     let {params, router} = this.props;

@@ -32,7 +32,24 @@ exports[`ProjectPluginRow renders 1`] = `
           "project:write",
         ]
       }
-      config={Array []}
+      configFeatures={Array []}
+      configUser={
+        Object {
+          "email": "foo@example.com",
+          "flags": Object {
+            "newsletter_consent_prompt": false,
+          },
+          "hasPasswordAuth": true,
+          "id": "1",
+          "isAuthenticated": true,
+          "name": "Foo Bar",
+          "options": Object {
+            "timezone": "UTC",
+          },
+          "permissions": Set {},
+          "username": "foo@example.com",
+        }
+      }
       organization={
         Object {
           "access": Array [
