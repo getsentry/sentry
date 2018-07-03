@@ -1,4 +1,41 @@
 /**
+ * Returns true if an aggregation is valid and false if not
+ *
+ * @param {Array} aggregation Aggregation in external Snuba format
+ * @param {Object} cols List of column objects
+ * @param {String} cols.name Column name
+ * @param {String} cols.type Type of column
+ * @returns {Boolean} True if valid aggregatoin, false if not
+ */
+export function isValidAggregation(aggregation, cols) {
+  const columns = new Set(cols.map(({name}) => name));
+  const topKRegex = /topK\((\d+)\)/;
+
+  const [func, col] = aggregation;
+
+  if (!func) {
+    return false;
+  }
+
+  if (func === 'count()') {
+    return col === null;
+  }
+
+  if (func === 'uniq' || func.match(topKRegex)) {
+    return columns.has(col);
+  }
+
+  if (func === 'avg') {
+    const validCols = new Set(
+      cols.filter(({type}) => type === 'number').map(({name}) => name)
+    );
+    return validCols.has(col);
+  }
+
+  return false;
+}
+
+/**
 * Converts aggregation from external Snuba format to internal format for dropdown
 *
 * @param {Array} external Aggregation in external Snuba format
