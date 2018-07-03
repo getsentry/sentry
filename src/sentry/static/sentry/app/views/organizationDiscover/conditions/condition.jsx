@@ -10,8 +10,10 @@ import {CONDITION_OPERATORS} from '../data';
 export default class Condition extends React.Component {
   static propTypes = {
     value: PropTypes.array,
-    onChange: PropTypes.func,
-    columns: PropTypes.array,
+    onChange: PropTypes.func.isRequired,
+    columns: PropTypes.arrayOf(
+      PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
+    ).isRequired,
   };
 
   constructor(props) {
@@ -115,7 +117,6 @@ export default class Condition extends React.Component {
 
     return (
       <input
-        id="custom-input"
         type="text"
         {...props}
         value={props.value || val}

@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
+import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
@@ -64,11 +65,9 @@ export default class Conditions extends React.Component {
               columns={columns}
             />
             <Box ml={1}>
-              <a
-                className="icon-circle-cross"
-                style={{lineHeight: '37px'}}
-                onClick={() => this.removeRow(idx)}
-              />
+              <a onClick={() => this.removeRow(idx)}>
+                <InlineSvg src="icon-circle-close" height="38px" />
+              </a>
             </Box>
           </Flex>
         ))}
