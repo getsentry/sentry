@@ -17,14 +17,13 @@ export function closeModal() {
 }
 
 export function openSudo({onClose, ...args} = {}) {
-  import(/* webpackChunkName: "SudoModal" */ '../components/modals/sudoModal')
-    .then(mod => mod.default)
-    .then(SudoModal =>
-      openModal(deps => <SudoModal {...deps} {...args} />, {
-        modalClassName: 'sudo-modal',
-        onClose,
-      })
-    );
+  // This is for getsentry, otherwise we get circular imports and
+  // getsentry can't dynamically import components
+  const SudoModal = require('app/components/modals/sudoModal').default;
+  openModal(deps => <SudoModal {...deps} {...args} />, {
+    modalClassName: 'sudo-modal',
+    onClose,
+  });
 }
 
 export function openDiffModal(options) {
