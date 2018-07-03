@@ -13,7 +13,7 @@ const ReleaseAnnouncement = ({close}) => {
     <div>
       <h3>
         Releases are better with commits{' '}
-        <span className="badge badge-square badge-new">NEW</span>
+        <span className="badge badge-square highlight">NEW</span>
       </h3>
       <p>
         <img src={mediaUrl + 'images/onboarding/release-commits-modal.gif'} />

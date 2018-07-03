@@ -5,15 +5,12 @@ import {cx} from 'react-emotion';
 class Badge extends React.Component {
   static propTypes = {
     text: PropTypes.string,
-    isNew: PropTypes.bool,
+    priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
   };
 
   render() {
-    let className = 'badge';
-    if (this.props.isNew) {
-      className += ' new';
-    }
-    return <span className={cx(className, this.props.className)}>{this.props.text}</span>;
+    const {priority, className, text} = this.props;
+    return <span className={cx('badge', priority, className)}>{text}</span>;
   }
 }
 
