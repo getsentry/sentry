@@ -9,7 +9,7 @@ import Button from 'app/components/buttons/button';
 import MultiSelectField from 'app/components/forms/multiSelectField';
 import {t} from 'app/locale';
 
-export default class Project extends React.Component {
+class MultipleProjectSelector extends React.Component {
   static propTypes = {
     value: PropTypes.array,
     projects: PropTypes.array,
@@ -22,7 +22,7 @@ export default class Project extends React.Component {
   }
 
   render() {
-    const {value, projects, onChange, runQuery} = this.props;
+    const {className, value, projects, onChange, runQuery} = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -41,7 +41,7 @@ export default class Project extends React.Component {
     });
 
     return (
-      <StyledProject direction="column" justify="center">
+      <Flex direction="column" justify="center" className={className}>
         <label>{t('Projects')}</label>
         <DropdownLink title={summary} keepMenuOpen={true} anchorRight={true}>
           <Box p={2}>
@@ -55,12 +55,12 @@ export default class Project extends React.Component {
             <Button onClick={runQuery}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
-      </StyledProject>
+      </Flex>
     );
   }
 }
 
-const StyledProject = styled(Flex)`
+export default styled(MultipleProjectSelector)`
   text-align: right;
   label {
     font-weight: 400;

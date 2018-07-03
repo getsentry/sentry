@@ -9,7 +9,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import Button from 'app/components/buttons/button';
 import {t} from 'app/locale';
 
-export default class TimeRange extends React.Component {
+class TimeRangeSelector extends React.Component {
   static propTypes = {
     start: PropTypes.string,
     end: PropTypes.string,
@@ -22,11 +22,11 @@ export default class TimeRange extends React.Component {
   }
 
   render() {
-    const {start, end, updateField, runQuery} = this.props;
+    const {className, start, end, updateField, runQuery} = this.props;
     const summary = `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
-      <Time direction="column" justify="center">
+      <Flex direction="column" justify="center" className={className}>
         <label>{t('Time range')}</label>
         <DropdownLink title={summary} keepMenuOpen={true} anchorRight={true}>
           <Box p={2}>
@@ -46,12 +46,12 @@ export default class TimeRange extends React.Component {
             <Button onClick={runQuery}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
-      </Time>
+      </Flex>
     );
   }
 }
 
-const Time = styled(Flex)`
+export default styled(TimeRangeSelector)`
   text-align: right;
   label {
     font-weight: 400;
