@@ -8,7 +8,7 @@ const getPadding = ({disablePadding, hasButtons}) => css`
   padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
 `;
 
-const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
+const PanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   <Flex align="center" justify="space-between" {...props} />
 ))`
   color: ${p => (p.lightText ? p.theme.gray2 : p.theme.gray3)};
@@ -22,17 +22,11 @@ const StyledPanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   ${getPadding};
 `;
 
-class PanelHeader extends React.Component {
-  static propTypes = {
-    disablePadding: PropTypes.bool,
-    hasButtons: PropTypes.bool,
-    lightText: PropTypes.bool,
-    ...Flex.propTypes,
-  };
-
-  render() {
-    return <StyledPanelHeader {...this.props} />;
-  }
-}
+PanelHeader.propTypes = {
+  disablePadding: PropTypes.bool,
+  hasButtons: PropTypes.bool,
+  lightText: PropTypes.bool,
+  ...Flex.propTypes,
+};
 
 export default PanelHeader;
