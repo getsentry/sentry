@@ -1,21 +1,22 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import PropTypes from 'prop-types';
+import React from 'react';
+import styled from 'react-emotion';
 
-import SentryTypes from 'app/proptypes';
-import SelectField from 'app/components/forms/selectField';
-import MultiSelectField from 'app/components/forms/multiSelectField';
-import NumberField from 'app/components/forms/numberField';
-import Button from 'app/components/buttons/button';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import HeaderSeparator from 'app/components/organizations/headerSeparator';
+import MultiSelectField from 'app/components/forms/multiSelectField';
+import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
+import NumberField from 'app/components/forms/numberField';
+import SelectField from 'app/components/forms/selectField';
+import SentryTypes from 'app/proptypes';
+import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
-import Result from './result';
-import Time from './time';
-import Project from './project';
-import Conditions from './conditions';
 import Aggregations from './aggregations';
+import Conditions from './conditions';
+import Result from './result';
 
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
@@ -76,14 +77,14 @@ export default class OrganizationDiscover extends React.Component {
         >
           <strong>{t('Discover')}</strong>
           <Flex>
-            <Project
+            <MultipleProjectSelector
               value={query.projects}
               projects={this.props.organization.projects}
               onChange={val => this.updateField('projects', val)}
               runQuery={this.runQuery}
             />
-            <Separator />
-            <Time
+            <HeaderSeparator />
+            <TimeRangeSelector
               start={query.start}
               end={query.end}
               updateField={(name, val) => this.updateField(name, val)}
@@ -139,10 +140,4 @@ export default class OrganizationDiscover extends React.Component {
 
 const Header = styled(Flex)`
   font-size: 18px;
-`;
-
-const Separator = styled(Box)`
-  width: 1px;
-  background-color: ${p => p.theme.offWhite};
-  margin: 4px 16px;
 `;
