@@ -38,9 +38,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
     def request(self, method, path, data=None, params=None, api_preview=False):
         self.check_auth(redirect_url=self.oauth_redirect_url)
-        api_version = self.api_version if api_preview is False else self.api_version + self.api_version_preview
         headers = {
-            'Accept': 'application/json; api-version={}'.format(api_version),
+            'Accept': 'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
             'X-HTTP-Method-Override': method,
             'X-TFS-FedAuthRedirect': 'Suppress',
