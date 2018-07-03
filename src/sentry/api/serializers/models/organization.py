@@ -140,6 +140,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('shared-issues')
         if getattr(obj.flags, 'require_2fa'):
             feature_list.append('require-2fa')
+        if features.has('organizations:event-attachments', obj, actor=user):
+            feature_list.append('event-attachments')
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)

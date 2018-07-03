@@ -20,7 +20,7 @@ from pytz import utc
 from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
-    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, Event,
+    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, EventAttachment, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
@@ -529,6 +529,19 @@ def main(num_events=1, extra_events=False):
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
                     user=generate_user(),
+                )
+
+                EventAttachment.objects.create(
+                    project_id=project.id,
+                    group_id=event1.group_id,
+                    event_id=event1.event_id,
+                    name='example-logfile.txt',
+                    file=File.objects.get_or_create(
+                        name='example-logfile.txt',
+                        type='text/plain',
+                        checksum='abcde' * 8,
+                        size=13043,
+                    )[0],
                 )
 
                 event2 = create_sample_event(

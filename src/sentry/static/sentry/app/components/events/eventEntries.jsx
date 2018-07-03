@@ -5,6 +5,7 @@ import createReactClass from 'create-react-class';
 
 import analytics from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
+import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventContexts from 'app/components/events/contexts';
 import EventContextSummary from 'app/components/events/contextSummary';
@@ -166,6 +167,10 @@ const EventEntries = createReactClass({
         {!utils.objectIsEmpty(event.device) && (
           <EventDevice group={group} event={event} />
         )}
+        {!isShare &&
+          features.has('event-attachments') && (
+            <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+          )}
         {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
         {!utils.objectIsEmpty(event.sdk) &&
           event.sdk.upstream.isNewer && (
