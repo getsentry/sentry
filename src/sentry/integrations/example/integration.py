@@ -65,7 +65,8 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         pass
 
-    def sync_status_outbound(external_issue, is_resolved):
+    def sync_status_outbound(external_issue, is_resolved, project_id):
+        # TODO(lb): should this have self?
         pass
 
 
