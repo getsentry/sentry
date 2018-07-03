@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
+import {Box} from 'grid-emotion';
 
 import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
 import {getOrganizationState} from 'app/mixins/organizationState';
@@ -61,14 +62,14 @@ const TeamRow = createReactClass({
     let {team, access, orgId, projectId} = this.props;
 
     return (
-      <StyledPanelItem>
-        <div>
+      <PanelItem p={2} align="center">
+        <Box flex={1}>
           {access.has('team:write') ? (
             <Link to={`/settings/${orgId}/teams/${team.slug}/`}>#{team.slug}</Link>
           ) : (
             `#${team.slug}`
           )}
-        </div>
+        </Box>
         {this.props.access.has('project:write') && (
           <Confirm
             message={tct(
@@ -86,7 +87,7 @@ const TeamRow = createReactClass({
             </Button>
           </Confirm>
         )}
-      </StyledPanelItem>
+      </PanelItem>
     );
   },
 });
@@ -274,12 +275,6 @@ const RemoveIcon = styled(props => (
 const TeamDropdownElement = styled('div')`
   padding: ${space(0.5)} ${space(0.25)};
   text-transform: none;
-`;
-
-const StyledPanelItem = styled(PanelItem)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 const StyledTeamsLabel = styled('div')`
