@@ -108,6 +108,7 @@ class VstsIssueSync(IssueSyncMixin):
                     break
 
             if assignee is None:
+                # TODO(lb): Email people when this happens
                 self.logger.info(
                     'vsts.assignee-not-found',
                     extra={
