@@ -8,9 +8,9 @@ import {TOPK_COUNTS} from '../data';
 
 export default class Aggregation extends React.Component {
   static propTypes = {
-    value: PropTypes.array,
-    onChange: PropTypes.func,
-    columns: PropTypes.array,
+    value: PropTypes.array.isRequired,
+    onChange: PropTypes.func.isRequired,
+    columns: PropTypes.array.isRequired,
   };
 
   constructor(props) {
@@ -25,7 +25,7 @@ export default class Aggregation extends React.Component {
     return [{label: currentValue, value: currentValue}];
   }
 
-  filterOptions = (options, input, value) => {
+  filterOptions = (_options, input, _value) => {
     input = input || this.state.selectedFunction || '';
 
     let optionList = [
