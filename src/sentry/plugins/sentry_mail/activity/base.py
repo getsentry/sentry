@@ -172,7 +172,7 @@ class ActivityEmail(object):
 
     def _get_sentry_avatar_url(self):
         url = '/images/sentry-email-avatar.png'
-        return get_asset_url('sentry', url)
+        return absolute_uri(get_asset_url('sentry', url))
 
     def _get_user_avatar_url(self, user, size=20):
         try:
