@@ -198,6 +198,32 @@ exports[`ProjectSecurityHeaders renders 1`] = `
             </Button>
           </Flex>
         </PanelItem>
+        <PanelItem
+          direction="column"
+          key="feature-policy/"
+          p={0}
+        >
+          <Flex
+            align="center"
+            flex="1"
+            p={2}
+          >
+            <Box
+              flex="1"
+            >
+              <HeaderName>
+                Feature Policy
+              </HeaderName>
+            </Box>
+            <Button
+              disabled={false}
+              priority="primary"
+              to="feature-policy/"
+            >
+              Instructions
+            </Button>
+          </Flex>
+        </PanelItem>
       </PanelBody>
     </Panel>
   </div>

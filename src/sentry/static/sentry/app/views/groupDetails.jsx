@@ -165,8 +165,8 @@ const GroupDetails = createReactClass({
         if (group.metadata.type && group.metadata.value)
           return `${group.metadata.type}: ${group.metadata.value}`;
         return group.metadata.type || group.metadata.value;
+      case 'policy-report':
       case 'csp':
-        return group.metadata.message;
       case 'expectct':
       case 'expectstaple':
       case 'hpkp':

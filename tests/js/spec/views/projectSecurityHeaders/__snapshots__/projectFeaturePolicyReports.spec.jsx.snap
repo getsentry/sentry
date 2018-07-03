@@ -1,0 +1,108 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectFeaturePolicyReports renders 1`] = `
+<SideEffect(DocumentTitle)
+  title="Sentry"
+>
+  <div>
+    <SettingsPageHeading
+      title="Feature Policy"
+    />
+    <PreviewFeature />
+    <ReportUri
+      keyList={Array []}
+      params={
+        Object {
+          "orgId": "org-slug",
+          "projectId": "project-slug",
+        }
+      }
+    />
+    <Panel>
+      <PanelHeader>
+        About
+      </PanelHeader>
+      <PanelBody
+        direction="column"
+        disablePadding={false}
+        flex={false}
+      >
+        <p>
+          <span
+            key="4"
+          >
+            <ExternalLink
+              href="https://github.com/WICG/feature-policy"
+              key="1"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <span
+                key="0"
+              >
+                Feature Policy
+              </span>
+            </ExternalLink>
+            <span
+              key="2"
+            >
+              
+      is a security standard which gives a website the ability to allow and deny the use of browser features in its own frame, and in iframes that it embeds
+            </span>
+          </span>
+        </p>
+        <p>
+          <span
+            key="4"
+          >
+            <span
+              key="0"
+            >
+              To configure reports in Sentry, you'll need to configure the 
+            </span>
+            <code
+              key="1"
+            >
+              Report-To
+            </code>
+            <span
+              key="2"
+            >
+               a header from your server:
+            </span>
+          </span>
+        </p>
+        <pre>
+          Report-To: {"url": "https://sentry.example.com/api/security-report/", "max-age": 86400}
+        </pre>
+        <p>
+          <span
+            key="5"
+          >
+            <span
+              key="0"
+            >
+              For more information, see 
+            </span>
+            <a
+              href="https://github.com/WICG/feature-policy/blob/master/reporting.md"
+              key="2"
+            >
+              <span
+                key="1"
+              >
+                the documentation on GitHub
+              </span>
+            </a>
+            <span
+              key="3"
+            >
+              .
+            </span>
+          </span>
+        </p>
+      </PanelBody>
+    </Panel>
+  </div>
+</SideEffect(DocumentTitle)>
+`;

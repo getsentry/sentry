@@ -46,6 +46,10 @@ export default class ProjectSecurityHeaders extends AsyncView {
         name: 'HTTP Public Key Pinning (HPKP)',
         url: recreateRoute('hpkp/', this.props),
       },
+      {
+        name: 'Feature Policy',
+        url: recreateRoute('feature-policy/', this.props),
+      },
     ];
   }
 

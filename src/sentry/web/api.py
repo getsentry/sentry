@@ -756,6 +756,8 @@ class SecurityReportView(StoreView):
             'known-pins': 'hpkp',
         }
         if isinstance(body, dict):
+            if 'type' in body and 'body' in body:
+                return 'policy-report'
             for k in report_type_for_key:
                 if k in body:
                     return report_type_for_key[k]

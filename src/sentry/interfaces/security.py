@@ -318,6 +318,85 @@ class ExpectCT(SecurityReport):
         return False
 
 
+# NOTE(dcramer): This isn't documented well, and none of the examples match the "spec"
+# currently, which is at https://github.com/w3c/reporting/blob/master/index.src.html
+class GenericPolicyReport(SecurityReport):
+    """
+    A generic security report using the w3c reporting spec.
+
+    See also: https://github.com/w3c/reporting
+
+    >>> {
+    >>>     "type": "feature-policy",
+    >>>     "url": "https://a.featurepolicy.rocks/fullscreen.html",
+    >>>     "user_agent": "",
+    >>>     "origin": "",
+    >>>     "group": "",
+    >>>     "timestamp": 0,
+    >>>     "attempts": 0,
+    >>>     "age": 60000,
+    >>>     "body": {
+    >>>         "policy": "fullscreen",
+    >>>         "url": "https://a.featurepolicy.rocks/fullscreen.html",
+    >>>         "line_number": 20,
+    >>>         "column_number": 37,
+    >>>         "disposition": "enforce"
+    >>>     }
+    >>> }
+    """
+
+    score = 1300
+    display_score = 1300
+
+    path = 'policy-report'
+    title = 'Policy Report'
+
+    @classmethod
+    def from_raw(cls, raw):
+        # Validate the raw data against the input schema (raises on failure)
+        schema = INPUT_SCHEMAS[cls.path]
+        jsonschema.validate(raw, schema)
+
+        if raw['type'] == 'csp':
+            return Csp.from_raw(raw['body'])
+
+        # Trim values and convert keys to use underscores
+        kwargs = {
+            k.replace('-', '_'): trim(v, 1024)
+            for k, v in six.iteritems(raw)
+            # strip some potentially useless attributes
+            if k not in ('group', 'timestamp', 'attempts', 'age')
+        }
+        return cls.to_python(**kwargs)
+
+    def get_culprit(self):
+        return self.type
+
+    def get_hash(self, is_processed_data=True):
+        if self.type == 'feature-policy':
+            return [self.type, self.body['policy']]
+        hostname = urlsplit(self.url)[1]
+        return [self.type, hostname]
+
+    def get_message(self):
+        return "{self.type} report for '{self.url}'".format(self=self)
+
+    def get_tags(self):
+        tags = [('url', self.url)]
+        if self.type == 'feature-policy':
+            tags.append(('policy', self.policy))
+        return tuple(tags)
+
+    def get_origin(self):
+        return self.url
+
+    def get_referrer(self):
+        return None
+
+    def should_filter(self, project=None):
+        return False
+
+
 class Csp(SecurityReport):
     """
     A CSP violation report.
