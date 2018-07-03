@@ -29,7 +29,7 @@ class ApiError(Exception):
                 self.json = None
         else:
             self.json = None
-        super(ApiError, self).__init__(text[:128])
+        super(ApiError, self).__init__(text[:1024])
 
     @classmethod
     def from_response(cls, response):
