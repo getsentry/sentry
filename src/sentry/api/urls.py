@@ -19,6 +19,7 @@ from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
@@ -664,7 +665,11 @@ urlpatterns = patterns(
         EventAttachmentsEndpoint.as_view(),
         name='sentry-api-0-event-attachments'
     ),
-
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/(?P<attachment_id>[\w-]+)/$',
+        EventAttachmentDetailsEndpoint.as_view(),
+        name='sentry-api-0-event-attachment-details'
+    ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$',
         EventFileCommittersEndpoint.as_view(),
