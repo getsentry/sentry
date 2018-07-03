@@ -72,18 +72,22 @@ export default class InstalledIntegration extends React.Component {
 
   renderRemoveIntegration(integration) {
     const {body, actionText} = integration.provider.aspects.removal_dialog;
+    const confirmText = actionText ? actionText : 'Delete';
+    const messageBody = body
+      ? body
+      : 'Deleting this integration will delete any associated project data. Are you sure you want to delete this integration?';
     const message = (
       <div>
         <Alert type="error" icon="icon-circle-exclamation">
           Deleting this integration has consequences!
         </Alert>
-        {body}
+        {messageBody}
       </div>
     );
     return (
       <Confirm
         message={message}
-        confirmText={actionText}
+        confirmText={confirmText}
         priority="danger"
         onConfirm={() => this.props.onRemove()}
       >
@@ -94,14 +98,13 @@ export default class InstalledIntegration extends React.Component {
 
   render() {
     const {integration, provider, orgId} = this.props;
-    const style =
-      integration.status === 'disabled' ? {filter: 'grayscale(1)', opacity: '0.4'} : {};
+    const style = integration.status === 'disabled' ? {color: '#bebebe'} : {};
 
     return (
       <React.Fragment>
         <PanelItem p={0} py={2} key={integration.id} align="center">
-          <Box px={2} flex={1} style={style}>
-            <IntegrationItem integration={integration} />
+          <Box px={2} flex={1}>
+            <IntegrationItem integration={integration} style={style} />
           </Box>
           {integration.status === 'active' &&
             this.hasConfiguration() && (
