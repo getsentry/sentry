@@ -42,7 +42,10 @@ clean:
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
+	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
+	pip install "pre-commit>=1.10.1,<1.11.0"
+	pre-commit install
 	@echo ""
 
 update-submodules:
@@ -106,7 +109,7 @@ test-cli:
 
 test-js: node-version-check
 	@echo "--> Building static assets"
-	@$(WEBPACK) --profile --json > webpack-stats.json
+	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 	@echo "--> Running JavaScript tests"
 	@npm run test-ci
 	@echo ""
@@ -119,26 +122,26 @@ test-styleguide:
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
-	py.test tests/integration tests/sentry --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" || exit 1
+	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	py.test tests/snuba -vv --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml"
+	py.test tests/snuba -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-acceptance: build-platform-assets node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance --cov . --cov-report="xml:coverage.xml" --junit-xml="junit.xml" --html="pytest.html"
+	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
 	@echo ""
 
 lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bash -eo pipefail -c "bin/lint --python --parseable | tee flake8.pycodestyle.log"
+	bash -eo pipefail -c "bin/lint --python --parseable | tee .artifacts/flake8.pycodestyle.log"
 	@echo ""
 
 lint-js:

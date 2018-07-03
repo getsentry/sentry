@@ -325,11 +325,13 @@ class Release(Model):
         """
         Bind a list of commits to this release.
 
-        These should be ordered from newest to oldest.
-
         This will clear any existing commit log and replace it with the given
         commits.
         """
+
+        # Sort commit list in reverse order
+        commit_list.sort(key=lambda commit: commit.get('date_added'), reverse=True)
+
         # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,

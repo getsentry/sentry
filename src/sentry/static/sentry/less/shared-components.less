@@ -812,7 +812,6 @@ table.integrations {
   &.switch-disabled {
     cursor: not-allowed;
     pointer-events: none;
-    background: @white-darker;
 
     .switch-toggle {
       opacity: 0.4;
@@ -1608,7 +1607,6 @@ ul.faces {
       max-width: 100%;
       .truncate;
       display: inline-block;
-      line-height: 1;
       vertical-align: text-bottom;
     }
 
@@ -1618,6 +1616,7 @@ ul.faces {
       display: inline;
       margin: 0 0 0 8px;
       color: @gray-light;
+      line-height: 1.2;
 
       &:hover {
         color: @gray;
@@ -2520,7 +2519,11 @@ header + .alert {
     background: inherit;
   }
 
-  &.badge-new {
+  &.strong {
+    background: @blue;
+  }
+
+  &.highlight {
     background: @green;
   }
 }

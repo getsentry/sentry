@@ -16,4 +16,3 @@ Subcommands
 
  purge <purge/index>
  list <list/index>
-

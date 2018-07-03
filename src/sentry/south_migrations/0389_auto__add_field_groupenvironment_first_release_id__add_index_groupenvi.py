@@ -35,14 +35,12 @@ class Migration(SchemaMigration):
         else:
             db.create_index(table, fields)
 
-
     def backwards(self, orm):
         # Removing index on 'GroupEnvironment', fields ['environment_id', 'first_release_id']
         db.delete_index('sentry_groupenvironment', ['environment_id', 'first_release_id'])
 
         # Deleting field 'GroupEnvironment.first_release_id'
         db.delete_column('sentry_groupenvironment', 'first_release_id')
-
 
     models = {
         'sentry.activity': {

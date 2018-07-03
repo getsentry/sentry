@@ -33,6 +33,7 @@ class IntegrationFeatures(Enum):
     ISSUE_BASIC = 'issue_basic'
     ISSUE_SYNC = 'issue_sync'
     COMMITS = 'commits'
+    CHAT_UNFURL = 'chat_unfurl'
 
 
 class IntegrationProvider(PipelineProvider):

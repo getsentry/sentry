@@ -1,17 +1,20 @@
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {fields} from 'app/data/forms/accountNotificationSettings';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Pagination from 'app/components/pagination';
 import ProjectsStore from 'app/stores/projectsStore';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import {fields} from 'app/data/forms/accountNotificationSettings';
 import withOrganizations from 'app/utils/withOrganizations';
 
 const ACCOUNT_NOTIFICATION_FIELDS = {
@@ -231,6 +234,8 @@ export default class AccountNotificationFineTuning extends AsyncView {
     const isProject = isGroupedByProject(fineTuneType);
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
     const {title, description} = field;
+    const [stateKey, url] = isProject ? this.getEndpoints()[2] : [];
+    const hasProjects = this.state.projects && !!this.state.projects.length;
 
     if (fineTuneType === 'email') {
       // Fetch verified email addresses
@@ -263,16 +268,40 @@ export default class AccountNotificationFineTuning extends AsyncView {
           initialData={this.state.fineTuneData}
         >
           <Panel>
-            {isProject && (
-              <AccountNotificationsByProject
-                projects={this.state.projects}
-                field={field}
-              />
-            )}
+            <PanelBody>
+              <PanelHeader hasButtons>
+                <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
+                <Box>
+                  {isProject &&
+                    this.renderSearchInput({
+                      placeholder: t('Search Projects'),
+                      url,
+                      stateKey,
+                    })}
+                </Box>
+              </PanelHeader>
 
-            {!isProject && <AccountNotificationsByOrganizationContainer field={field} />}
+              {isProject &&
+                hasProjects && (
+                  <AccountNotificationsByProject
+                    projects={this.state.projects}
+                    field={field}
+                  />
+                )}
+
+              {isProject &&
+                !hasProjects && <EmptyMessage>{t('No projects found')}</EmptyMessage>}
+
+              {!isProject && (
+                <AccountNotificationsByOrganizationContainer field={field} />
+              )}
+            </PanelBody>
           </Panel>
         </Form>
+
+        {this.state.projects && (
+          <Pagination pageLinks={this.state.projectsPageLinks} {...this.props} />
+        )}
       </div>
     );
   }

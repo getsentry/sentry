@@ -25,7 +25,7 @@ class ProjectIntegration extends AsyncView {
     const {orgId, projectId} = this.props.params;
     const {integration} = this.state;
 
-    const title = <IntegrationItem integration={integration} withProvider={true} />;
+    const title = <IntegrationItem integration={integration} />;
 
     return (
       <React.Fragment>
@@ -39,9 +39,7 @@ class ProjectIntegration extends AsyncView {
             allowUndo={true}
             apiMethod="POST"
             initialData={integration.configData}
-            apiEndpoint={`/projects/${orgId}/${projectId}/integrations/${
-              integration.id
-            }/`}
+            apiEndpoint={`/projects/${orgId}/${projectId}/integrations/${integration.id}/`}
           >
             <JsonForm
               fields={integration.configProject}

@@ -1,26 +1,26 @@
-import createReactClass from 'create-react-class';
+import {Flex, Box} from 'grid-emotion';
+import {withRouter} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import PropTypes from 'prop-types';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import {withRouter} from 'react-router';
-import {Flex, Box} from 'grid-emotion';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import SentryTypes from 'app/proptypes';
 import {Client} from 'app/api';
-import Link from 'app/components/link';
-import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {update, loadStatsForProject} from 'app/actionCreators/projects';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import SentryTypes from 'app/proptypes';
+import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import Platformicon from 'app/components/platformicon';
+import space from 'app/styles/space';
 
 import Chart from './chart';
-import NoEvents from './noEvents';
 import Deploys from './deploys';
+import NoEvents from './noEvents';
 
 class ProjectCard extends React.Component {
   static propTypes = {
@@ -68,17 +68,22 @@ class ProjectCard extends React.Component {
           <StyledProjectCard>
             <Flex justify="space-between" align="center">
               <Box ml={2}>
-                <StyledPlatformicon size="24" platform={project.platform || 'generic'} />
+                <IdBadge
+                  project={project}
+                  avatarSize={24}
+                  displayName={
+                    <StyledTitle>
+                      {hasProjectAccess ? (
+                        <Link to={`/${params.orgId}/${slug}/`}>
+                          <strong>{slug}</strong>
+                        </Link>
+                      ) : (
+                        <div>{slug}</div>
+                      )}
+                    </StyledTitle>
+                  }
+                />
               </Box>
-              <StyledTitle>
-                {hasProjectAccess ? (
-                  <Link to={`/${params.orgId}/${slug}/`}>
-                    <strong>{slug}</strong>
-                  </Link>
-                ) : (
-                  <div>{slug}</div>
-                )}
-              </StyledTitle>
               <Tooltip title={bookmarkText}>
                 <Star
                   active={isBookmarked}
@@ -100,13 +105,6 @@ class ProjectCard extends React.Component {
     );
   }
 }
-
-const StyledPlatformicon = styled(Platformicon)`
-  display: block;
-  color: white;
-  border-radius: 3px;
-  max-width: 24px;
-`;
 
 const ProjectCardContainer = createReactClass({
   propTypes: {
@@ -154,7 +152,7 @@ const ChartContainer = styled.div`
 
 const StyledTitle = styled.div`
   ${overflowEllipsis};
-  padding: 16px 8px;
+  padding: 16px 4px;
 `;
 
 const ProjectCardWrapper = styled(Box)`

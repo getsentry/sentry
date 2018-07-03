@@ -6,6 +6,7 @@ from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
     OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
@@ -128,7 +129,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('unreleased-changes')
         if features.has('organizations:relay', obj, actor=user):
             feature_list.append('relay')
-
+        if features.has('organizations:health', obj, actor=user):
+            feature_list.append('health')
+        if OrganizationOption.objects.filter(
+                organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
+            feature_list.append('legacy-rate-limits')
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):

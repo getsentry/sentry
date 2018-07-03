@@ -40,6 +40,7 @@ export default class GenericField extends React.Component {
       required,
       name: config.name,
       error: (this.props.formErrors || {})[config.name],
+      defaultValue: config.default,
       disabled: config.readonly,
       key: config.name,
       formState: this.props.formState,

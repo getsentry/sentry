@@ -115,6 +115,7 @@
       "lcov",
       "cobertura"
     ],
+    "coverageDirectory": ".artifacts/coverage/",
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ],
@@ -141,6 +142,9 @@
       "<rootDir>/node_modules/react",
       "<rootDir>/node_modules/reflux"
     ]
+  },
+  "jest-junit": {
+    "output": ".artifacts/jest.junit.xml"
   },
   "devDependencies": {
     "@percy-io/percy-storybook": "^1.3.3",

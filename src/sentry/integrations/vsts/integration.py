@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from time import time
+import logging
 
 from django.utils.translation import ugettext as _
 
@@ -27,6 +28,8 @@ metadata = IntegrationMetadata(
 
 
 class VstsIntegration(Integration, VstsIssueSync):
+    logger = logging.getLogger('sentry.integrations')
+
     def __init__(self, *args, **kwargs):
         super(VstsIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None
@@ -39,46 +42,68 @@ class VstsIntegration(Integration, VstsIssueSync):
 
     def get_project_config(self):
         client = self.get_client()
-        disabled = False
+        instance = self.model.metadata['domain_name']
+
         try:
-            projects = client.get_projects(self.model.metadata['domain_name'])
+            # NOTE(lb): vsts get workitem states does not give an id.
+            work_item_states = client.get_work_item_states(instance)['value']
+            statuses = [(c['name'], c['name']) for c in work_item_states]
+            disabled = False
         except ApiError:
-            # TODO(LB): Disable for now. Need to decide what to do with this in the future
-            # should a message be shown to the user?
-            #  If INVALID_ACCESS_TOKEN ask the user to reinstall integration?
-
-            project_choices = []
+            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
+            # statuses is a little heavy handed. Is there something better we
+            # can fall back to?
+            statuses = []
             disabled = True
-        else:
-            project_choices = [(project['id'], project['name']) for project in projects['value']]
-
-        try:
-            # TODO(LB): Will not work in the UI until the serliazer sends a `project_id` to get_installation()
-            # serializers and UI are being refactored and it's not worth trying to fix
-            # the old system. Revisit
-            default_project = self.project_integration.config.get('default_project')
-        except Exception:
-            default_project = None
-
-        initial_project = ('', '')
-        if default_project is not None:
-            for project_id, project_name in project_choices:
-                if default_project == project_id:
-                    initial_project = (project_id, project_name)
-                    break
 
         return [
             {
-                'name': 'default_project',
+                'name': 'resolve_status',
                 'type': 'choice',
                 'allowEmpty': True,
                 'disabled': disabled,
-                'required': True,
-                'choices': project_choices,
-                'initial': initial_project,
-                'label': _('Default Project Name'),
-                'placeholder': _('MyProject'),
-                'help': _('Enter the Visual Studio Team Services project name that you wish to use as a default for new work items'),
+                'choices': statuses,
+                'label': _('Visual Studio Team Services Resolved Status'),
+                'placeholder': _('Select a Status'),
+                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+            },
+            {
+                'name': 'resolve_when',
+                'type': 'choice',
+                'allowEmpty': True,
+                'disabled': disabled,
+                'choices': statuses,
+                'label': _('Resolve in Sentry When'),
+                'placeholder': _('Select a Status'),
+                'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
+            },
+            {
+                'name': 'regression_status',
+                'type': 'choice',
+                'allowEmpty': True,
+                'disabled': disabled,
+                'choices': statuses,
+                'label': _('Visual Studio Team Services Regression Status'),
+                'placeholder': _('Select a Status'),
+                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
+            },
+            {
+                'name': 'sync_comments',
+                'type': 'boolean',
+                'label': _('Post Comments to Visual Studio Team Services'),
+                'help': _('Synchronize comments from Sentry issues to linked Visual Studio Team Services tickets.'),
+            },
+            {
+                'name': 'sync_forward_assignment',
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to Visual Studio Team Services'),
+                'help': _('When assigning something in Sentry, the linked Visual Studio Team Services ticket will have the associated Visual Studio Team Services user assigned.'),
+            },
+            {
+                'name': 'sync_reverse_assignment',
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to Sentry'),
+                'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
 

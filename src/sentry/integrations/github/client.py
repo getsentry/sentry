@@ -69,6 +69,9 @@ class GitHubClientMixin(ApiClient):
         endpoint = '/repos/{}/issues/{}/comments'.format(repo, issue_id)
         return self.post(endpoint, data=data)
 
+    def get_user(self, gh_username):
+        return self.get('/users/{}'.format(gh_username))
+
     def request(self, method, path, headers=None, data=None, params=None):
         if headers is None:
             headers = {

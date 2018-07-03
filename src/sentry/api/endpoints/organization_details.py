@@ -15,12 +15,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Authenticator, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
 
@@ -86,6 +87,14 @@ class OrganizationSerializer(serializers.Serializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
 
+    @memoize
+    def _has_legacy_rate_limits(self):
+        org = self.context['organization']
+        return OrganizationOption.objects.filter(
+            organization=org,
+            key__in=LEGACY_RATE_LIMIT_OPTIONS,
+        ).exists()
+
     def validate_slug(self, attrs, source):
         value = attrs[source]
         # Historically, the only check just made sure there was more than 1
@@ -126,6 +135,18 @@ class OrganizationSerializer(serializers.Serializer):
         if value and not has_2fa:
             raise serializers.ValidationError(
                 'Cannot require two-factor authentication without personal two-factor enabled.')
+        return attrs
+
+    def validate_accountRateLimit(self, attrs, source):
+        if not self._has_legacy_rate_limits:
+            raise serializers.ValidationError(
+                'The accountRateLimit option cannot be configured for this organization')
+        return attrs
+
+    def validate_projectRateLimit(self, attrs, source):
+        if not self._has_legacy_rate_limits:
+            raise serializers.ValidationError(
+                'The accountRateLimit option cannot be configured for this organization')
         return attrs
 
     def validate(self, attrs):

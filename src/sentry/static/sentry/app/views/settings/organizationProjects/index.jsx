@@ -2,14 +2,12 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import idx from 'idx';
-import {debounce} from 'lodash';
 
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Input from 'app/views/settings/components/forms/controls/input';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -71,32 +69,18 @@ export default class OrganizationProjects extends AsyncView {
     return `${org.name} Projects`;
   }
 
-  handleChange = evt => {
-    let searchQuery = evt.target.value;
-    this.getProjects(searchQuery);
-    this.setState({searchQuery});
-  };
-
-  getProjects = debounce(searchQuery => {
-    let {params} = this.props;
-    let {orgId} = params || {};
-
-    this.api.request(`/organizations/${orgId}/projects/?query=${searchQuery}`, {
-      method: 'GET',
-      success: (data, _, jqXHR) => {
-        this.handleRequestSuccess({stateKey: 'projectList', data, jqXHR});
-      },
-    });
-  }, 200);
-
-  handleSearch = e => {
+  /**
+   * This is called when "Enter" (more specifically a "submit" event) is pressed.
+   * Update the URL to reflect search term.
+   */
+  handleSearch = (query, e) => {
     let {router} = this.context;
     let {location} = this.props;
     e.preventDefault();
     router.push({
       pathname: location.pathname,
       query: {
-        query: this.state.searchQuery,
+        query,
       },
     });
   };
@@ -107,6 +91,7 @@ export default class OrganizationProjects extends AsyncView {
     let canCreateProjects = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
+    let [stateKey, url] = this.getEndpoints()[0];
 
     let action = (
       <Button
@@ -132,14 +117,13 @@ export default class OrganizationProjects extends AsyncView {
           <PanelHeader hasButtons>
             {t('Projects')}
 
-            <form onSubmit={this.handleSearch}>
-              <Input
-                value={this.state.searchQuery}
-                onChange={this.handleChange}
-                className="search"
-                placeholder={t('Search Projects')}
-              />
-            </form>
+            {this.renderSearchInput({
+              onSearchSubmit: this.handleSearch,
+              placeholder: t('Search Projects'),
+              className: 'search',
+              url,
+              stateKey,
+            })}
           </PanelHeader>
           <PanelBody css={{width: '100%'}}>
             {sortProjects(projectList).map((project, i) => (

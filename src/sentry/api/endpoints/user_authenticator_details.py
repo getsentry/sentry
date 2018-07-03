@@ -77,6 +77,16 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         if interface.interface_id == 'recovery':
             interface.regenerate_codes()
 
+            capture_security_activity(
+                account=user,
+                type='recovery-codes-regenerated',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                context={
+                    'authenticator': authenticator,
+                },
+                send_email=True
+            )
         return Response(serialize(interface))
 
     @sudo_required
@@ -109,6 +119,8 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             interface.authenticator.save()
+            device_name = interface.get_device_name(interface_device_id)
+
             capture_security_activity(
                 account=user,
                 type='mfa-removed',
@@ -116,8 +128,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 ip_address=request.META['REMOTE_ADDR'],
                 context={
                     'authenticator': authenticator,
+                    'device_name': device_name
                 },
-                send_email=False
+                send_email=True
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 

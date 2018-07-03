@@ -135,30 +135,12 @@ class VstsIntegrationTest(APITestCase):
     @responses.activate
     def test_get_project_config(self):
         fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is False
-        assert project_field['choices'] == self.projects
-        assert project_field['initial'] == ('', '')
-
-    @responses.activate
-    def test_get_project_config_initial(self):
-        self.integration.project_integration.config = {'default_project': self.projects[1][0]}
-        self.integration.project_integration.save()
-        fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is False
-        assert project_field['choices'] == self.projects
-        assert project_field['initial'] == self.projects[1]
-
-    def test_get_project_config_failure(self):
-        fields = self.integration.get_project_config()
-        assert len(fields) == 1
-        project_field = fields[0]
-        assert project_field['name'] == 'default_project'
-        assert project_field['disabled'] is True
-        assert project_field['choices'] == []
-        assert project_field['initial'] == ('', '')
+        assert len(fields) == 6
+        names = [
+            'resolve_status',
+            'resolve_when',
+            'regression_status',
+            'sync_comments',
+            'sync_forward_assignment',
+            'sync_reverse_assignment']
+        assert [field['name'] for field in fields] == names

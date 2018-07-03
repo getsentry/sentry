@@ -139,7 +139,7 @@ const ProjectEnvironments = createReactClass({
           );
         },
         error: err => {
-          addSuccessMessage(
+          addErrorMessage(
             tct('Unable to update [environment]', {
               environment: env.displayName,
             })

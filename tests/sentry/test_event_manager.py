@@ -20,8 +20,9 @@ from sentry.event_manager import (
     md5_from_hash, process_timestamp
 )
 from sentry.models import (
-    Activity, Environment, Event, Group, GroupEnvironment, GroupHash, GroupRelease, GroupResolution,
-    GroupStatus, GroupTombstone, EventMapping, Release, ReleaseProjectEnvironment, UserReport
+    Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment, GroupHash, GroupLink,
+    GroupRelease, GroupResolution, GroupStatus, GroupTombstone, EventMapping, Integration, Release,
+    ReleaseProjectEnvironment, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
@@ -149,6 +150,47 @@ class EventManagerTest(TransactionTestCase):
         )
         data = manager.normalize()
         assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
+    @mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
+    def test_does_geo_from_ip(self, from_ip_address_mock):
+        from sentry.interfaces.geo import Geo
+
+        geo = {
+            'city': 'San Francisco',
+            'country_code': 'US',
+            'region': 'CA',
+        }
+        from_ip_address_mock.return_value = Geo.to_python(geo)
+
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'sentry.interfaces.User': {
+                        'ip_address': '192.168.0.1',
+                    },
+                }
+            )
+        )
+        data = manager.normalize()
+        assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
+        assert data['sentry.interfaces.User']['geo'] == geo
+
+    @mock.patch('sentry.interfaces.geo.geo_by_addr')
+    def test_skips_geo_with_no_result(self, geo_by_addr_mock):
+        geo_by_addr_mock.return_value = None
+
+        manager = EventManager(
+            self.make_event(
+                **{
+                    'sentry.interfaces.User': {
+                        'ip_address': '127.0.0.1',
+                    },
+                }
+            )
+        )
+        data = manager.normalize()
+        assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+        assert 'geo' not in data['sentry.interfaces.User']
 
     def test_does_default_ip_address_if_present(self):
         manager = EventManager(
@@ -452,6 +494,119 @@ class EventManagerTest(TransactionTestCase):
         )
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
+
+    @mock.patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
+    @mock.patch('sentry.tasks.activity.send_activity_notifications.delay')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
+    def test_marks_as_unresolved_with_new_release_with_integration(
+        self, plugin_is_regression, mock_send_activity_notifications_delay, mock_sync_status_outbound
+    ):
+        plugin_is_regression.return_value = True
+
+        old_release = Release.objects.create(
+            version='a',
+            organization_id=self.project.organization_id,
+            date_added=timezone.now() - timedelta(minutes=30),
+        )
+        old_release.add_project(self.project)
+
+        manager = EventManager(
+            self.make_event(
+                event_id='a' * 32,
+                checksum='a' * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(1)
+
+        group = event.group
+
+        org = group.organization
+
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org.id)
+        external_issue = ExternalIssue.objects.get_or_create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            key='APP-%s' % group.id,
+        )[0]
+
+        GroupLink.objects.get_or_create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )[0]
+
+        group.update(status=GroupStatus.RESOLVED)
+
+        resolution = GroupResolution.objects.create(
+            release=old_release,
+            group=group,
+        )
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={'version': ''},
+        )
+
+        manager = EventManager(
+            self.make_event(
+                event_id='b' * 32,
+                checksum='a' * 32,
+                timestamp=time(),
+                release=old_release.version,
+            )
+        )
+
+        with self.tasks():
+            with self.feature('organizations:internal-catchall'):
+                event = manager.save(1)
+                assert event.group_id == group.id
+
+                group = Group.objects.get(id=group.id)
+                assert group.status == GroupStatus.RESOLVED
+
+                activity = Activity.objects.get(id=activity.id)
+                assert activity.data['version'] == ''
+
+                assert GroupResolution.objects.filter(group=group).exists()
+
+                manager = EventManager(
+                    self.make_event(
+                        event_id='c' * 32,
+                        checksum='a' * 32,
+                        timestamp=time(),
+                        release='b',
+                    )
+                )
+                event = manager.save(1)
+                mock_sync_status_outbound.assert_called_once_with(
+                    external_issue, False
+                )
+                assert event.group_id == group.id
+
+                group = Group.objects.get(id=group.id)
+                assert group.status == GroupStatus.UNRESOLVED
+
+                activity = Activity.objects.get(id=activity.id)
+                assert activity.data['version'] == 'b'
+
+                assert not GroupResolution.objects.filter(group=group).exists()
+
+                activity = Activity.objects.get(
+                    group=group,
+                    type=Activity.SET_REGRESSION,
+                )
+
+                mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
     @mock.patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):

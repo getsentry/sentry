@@ -52,7 +52,13 @@
       <input type="hidden" name="init" value="1" />
 
       <div class="align-center">
-        <p>Sign in with your {{ provider_name }} account to continue.</p>
+        <p>
+          {% if authenticated %}
+          <b>{{ organization.name }}</b> requires signing in with {{ provider_name }}.
+          {% else %}
+          Sign in with your {{ provider_name }} account to continue.
+          {% endif %}
+        </p>
 
         <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
           <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
@@ -87,6 +93,10 @@
           <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
           </fieldset>
+
+          {% if github_login_template %}
+            {% include github_login_template %}
+          {% endif %}
         </form>
       </div>
       <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">

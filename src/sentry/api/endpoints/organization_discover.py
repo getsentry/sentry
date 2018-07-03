@@ -36,7 +36,7 @@ class DiscoverSerializer(serializers.Serializer):
     )
     limit = serializers.IntegerField(min_value=0, max_value=1000, required=False)
     rollup = serializers.IntegerField(required=False)
-    orderby = serializers.CharField(required=False, default='-last_seen')
+    orderby = serializers.CharField(required=False)
     conditions = ListField(
         child=ListField(),
         required=False,
@@ -46,6 +46,7 @@ class DiscoverSerializer(serializers.Serializer):
         child=ListField(),
         required=False,
         allow_null=True,
+        default=[]
     )
 
     def __init__(self, *args, **kwargs):
@@ -79,7 +80,7 @@ class DiscoverSerializer(serializers.Serializer):
             teams__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=member,
             ).values('team'),
-        ).values_list('id')
+        ).values_list('id', flat=True)
 
         return set(requested_projects).issubset(set(member_project_list))
 
@@ -109,11 +110,17 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
 
         serialized = serializer.object
 
+        has_aggregations = len(serialized.get('aggregations')) > 0
+
+        selected_columns = [] if has_aggregations else serialized.get('fields')
+
+        groupby = serialized.get('fields') if has_aggregations else []
+
         results = self.do_query(
             serialized.get('start'),
             serialized.get('end'),
-            serialized.get('groupby'),
-            selected_columns=serialized.get('fields'),
+            groupby,
+            selected_columns=selected_columns,
             conditions=serialized.get('conditions'),
             orderby=serialized.get('orderby'),
             limit=serialized.get('limit'),

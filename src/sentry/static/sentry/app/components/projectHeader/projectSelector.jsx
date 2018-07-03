@@ -1,21 +1,18 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
 import classNames from 'classnames';
-import {Flex} from 'grid-emotion';
-
-import ApiMixin from 'app/mixins/apiMixin';
-
-import ProjectLabel from 'app/components/projectLabel';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
-import Link from 'app/components/link';
-import PlatformList from 'app/components/platformList';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
-import styled from 'react-emotion';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/link';
+import MenuItem from 'app/components/menuItem';
+import ProjectLabel from 'app/components/projectLabel';
 
 const ProjectSelector = createReactClass({
   displayName: 'ProjectSelector',
@@ -202,12 +199,6 @@ const ProjectSelector = createReactClass({
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
     let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
-    let platforms;
-    if (typeof project.platforms !== 'undefined') {
-      platforms = project && project.platforms;
-    } else {
-      platforms = [];
-    }
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
@@ -223,14 +214,15 @@ const ProjectSelector = createReactClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {/*ideally an icon here...*/}
-        <ProjectBadge>
-          <Flex>
-            <StyledPlatformList platforms={platforms} direction="left" />
-            {label}
-          </Flex>
+        <ProjectRow>
+          <IdBadge
+            project={project}
+            avatarSize={16}
+            displayName={label}
+            avatarProps={{consistentWidth: true}}
+          />
           {project.isBookmarked && <BookmarkIcon />}
-        </ProjectBadge>
+        </ProjectRow>
       </MenuItem>
     );
   },
@@ -261,7 +253,6 @@ const ProjectSelector = createReactClass({
 
     // in case we have something to highlight we just render a replacement
     // selector without the callsigns.
-    // TODO(mitsuhiko): make this work with the project label.
     highlightText = highlightText.toLowerCase();
     let idx = text.toLowerCase().indexOf(highlightText);
     if (idx === -1) {
@@ -277,17 +268,23 @@ const ProjectSelector = createReactClass({
   },
 
   getLinkNode(team, project) {
-    let org = this.props.organization;
+    let {organization} = this.props;
     let label = this.getProjectLabel(team, project);
 
-    if (!this.context.location) {
-      return <a {...this.getProjectUrlProps(project)}>{label}</a>;
-    }
+    // TODO(billy): Only show platform icons for internal users
+    let internalOnly =
+      organization &&
+      organization.features &&
+      organization.features.includes('internal-catchall');
 
-    let orgId = org.slug;
-    let projectId = project.slug;
-
-    return <Link to={`/${orgId}/${projectId}/`}>{label}</Link>;
+    return (
+      <IdBadge
+        project={project}
+        avatarSize={16}
+        hideAvatar={!internalOnly}
+        displayName={<Link {...this.getProjectUrlProps(project)}>{label}</Link>}
+      />
+    );
   },
 
   renderProjectList({organization: org, projects, filter, hasProjectWrite}) {
@@ -408,15 +405,11 @@ const ProjectSelector = createReactClass({
   },
 });
 
-const StyledPlatformList = styled(PlatformList)`
-  width: 28px;
-  margin-right: 6px;
-`;
-
-const ProjectBadge = styled.div`
+const ProjectRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-left: 4px;
 `;
 
 const BookmarkIcon = styled(props => (

@@ -87,7 +87,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
         'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
-        'project-avatar', 'team-avatar', 'careers',
+        'project-avatar', 'team-avatar', 'careers', '_experiment',
     )
 )
 
@@ -359,3 +359,5 @@ class ObjectStatus(object):
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+
+LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))

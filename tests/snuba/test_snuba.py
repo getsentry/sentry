@@ -58,7 +58,7 @@ class SnubaTest(SnubaTestCase):
             )
 
         assert snuba.get_project_issues([self.project], [self.group.id]) == \
-            [(self.group.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
+            [(self.group.id, self.group.project_id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
 
         # GroupHash without a group_id, should not be included in get_project_issues
         GroupHash.objects.create(
@@ -66,8 +66,9 @@ class SnubaTest(SnubaTestCase):
             hash='0' * 32,
         )
 
-        assert self.group.id in dict(snuba.get_project_issues([self.project]))
-        assert None not in dict(snuba.get_project_issues([self.project]))
+        group_ids = [i[0] for i in (snuba.get_project_issues([self.project]))]
+        assert self.group.id in group_ids
+        assert None not in group_ids
 
     def test_project_issues_with_tombstones(self):
         base_time = datetime.utcnow()
@@ -106,7 +107,7 @@ class SnubaTest(SnubaTestCase):
             hash=a_hash
         )
         assert snuba.get_project_issues([self.project], [group1.id]) == \
-            [(group1.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
+            [(group1.id, group1.project_id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
 
         # 1 event in the groups, no deletes have happened
         _insert_event_for_time(base_time)
@@ -126,7 +127,7 @@ class SnubaTest(SnubaTestCase):
 
         # tombstone time is returned as expected
         assert snuba.get_project_issues([self.project], [group2.id]) == \
-            [(group2.id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            [(group2.id, group2.project_id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
                            ght.deleted_at.strftime("%Y-%m-%d %H:%M:%S"))])]
 
         # events <= to the tombstone date aren't returned

@@ -9,6 +9,10 @@ import {
   PanelHeader,
   PanelItem,
 } from 'app/components/panels';
+import {
+  addIntegrationToProject,
+  removeIntegrationFromProject,
+} from 'app/actionCreators/integrations';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
@@ -16,7 +20,6 @@ import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import IndicatorStore from 'app/stores/indicatorStore';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import withProjects from 'app/utils/withProjects';
 
@@ -44,59 +47,22 @@ class IntegrationProjects extends AsyncComponent {
   removeProject = project => {
     const orgId = this.context.organization.slug;
     const {integration} = this.state;
-    const saveIndicator = IndicatorStore.add(t('Removing integration from %s', project));
 
-    const options = {
-      method: 'DELETE',
-      success: () => {
-        this.setState({
-          integration: {
-            ...integration,
-            projects: integration.projects.filter(p => p !== project),
-          },
-        });
-        IndicatorStore.addSuccess(t('Removed integration from %s', project));
-      },
-      error: () =>
-        IndicatorStore.addError(t('Failed to remove integration from %s', project)),
-      complete: () => IndicatorStore.remove(saveIndicator),
-    };
-
-    this.api.request(
-      `/projects/${orgId}/${project}/integrations/${integration.id}/`,
-      options
-    );
+    removeIntegrationFromProject(orgId, project, integration).then(() => {
+      const projects = integration.projects.filter(p => p !== project);
+      this.setState({integration: {...integration, projects}});
+    });
   };
 
   addProject = ({value}) => {
     const project = value;
     const orgId = this.context.organization.slug;
     const {integration} = this.state;
-    const saveIndicator = IndicatorStore.add(t('Adding integration to %s', project));
-    this.setState({adding: true});
 
-    const options = {
-      method: 'PUT',
-      success: () => {
-        this.setState({
-          integration: {
-            ...integration,
-            projects: [...integration.projects, project],
-          },
-        });
-        IndicatorStore.addSuccess(t('Added integration to %s', project));
-      },
-      error: () => IndicatorStore.addError(t('Failed to add integration to %s', project)),
-      complete: () => {
-        IndicatorStore.remove(saveIndicator);
-        this.setState({adding: false});
-      },
-    };
-
-    this.api.request(
-      `/projects/${orgId}/${project}/integrations/${integration.id}/`,
-      options
-    );
+    addIntegrationToProject(orgId, project, integration).then(() => {
+      const intg = {...integration, projects: [...integration.projects, project]};
+      this.setState({integration: intg});
+    });
   };
 
   renderDropdown() {
@@ -185,7 +151,7 @@ class IntegrationProjects extends AsyncComponent {
                       </p>
                       <p>
                         {t(
-                          'Removing the this integration from the project will clear any project specific configurations and functionality for this project'
+                          'Removing the this integration from the project will clear any project specific configurations and functionality for this project.'
                         )}
                       </p>
                     </React.Fragment>

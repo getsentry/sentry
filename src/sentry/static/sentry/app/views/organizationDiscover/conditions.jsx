@@ -9,12 +9,13 @@ import SelectField from 'app/components/forms/selectField';
 
 import {t} from 'app/locale';
 
-import {COLUMNS, CONDITION_OPERATORS} from './data';
+import {CONDITION_OPERATORS} from './data';
 
 export default class Conditions extends React.Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.array).isRequired,
     onChange: PropTypes.func.isRequired,
+    columns: PropTypes.array,
   };
 
   constructor(props) {
@@ -61,7 +62,9 @@ export default class Conditions extends React.Component {
       conditions[conditionIdx][2] = conditions[conditionIdx][2]
         .split(',')
         .map(condition => {
-          const col = COLUMNS.find(({name}) => name === conditions[conditionIdx][0]);
+          const col = this.props.columns.find(
+            ({name}) => name === conditions[conditionIdx][0]
+          );
           return col.type === 'number' ? parseInt(condition, 10) : condition;
         });
     }
@@ -73,7 +76,7 @@ export default class Conditions extends React.Component {
     const stringOperators = new Set(['=', '!=', 'IN', 'IS NULL', 'IS NOT NULL', 'LIKE']);
 
     return CONDITION_OPERATORS.filter(op => {
-      const col = COLUMNS.find(({name}) => name === condition[0]);
+      const col = this.props.columns.find(({name}) => name === condition[0]);
       if (col && col.type === 'string') {
         return stringOperators.has(op);
       } else {
@@ -122,13 +125,15 @@ export default class Conditions extends React.Component {
   }
 
   renderCondition(condition, idx) {
+    const {columns} = this.props;
+
     if (this.state.editIndex === idx) {
       return (
         <React.Fragment>
           <Box w={1 / 3} pr={1}>
             <SelectField
               name="condition-1"
-              options={COLUMNS.map(({name}) => ({
+              options={columns.map(({name}) => ({
                 value: name,
                 label: name,
               }))}
