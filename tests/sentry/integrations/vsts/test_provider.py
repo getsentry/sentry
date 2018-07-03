@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from mock import Mock
 import responses
 from django.http import HttpRequest
-from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, AccountConfigView, AccountForm, VSTSIdentityProvider
+from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, VSTSIdentityProvider
+from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.testutils import TestCase
 from six.moves.urllib.parse import parse_qs
 from sentry.utils.http import absolute_uri
