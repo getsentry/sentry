@@ -10,6 +10,7 @@ import campfire from 'app/../images/integrations/campfire-logo.png';
 import clubhouse from 'app/../images/integrations/clubhouse-logo.png';
 import flowdock from 'app/../images/integrations/flowdock-logo.png';
 import github from 'app/../images/integrations/github-logo.png';
+import githubEnterprise from 'app/../images/integrations/github-enterprise-logo.png';
 import gitlab from 'app/../images/integrations/gitlab-logo.png';
 import heroku from 'app/../images/integrations/heroku-logo.png';
 import hipchat from 'app/../images/integrations/hipchat-logo.png';
@@ -47,6 +48,7 @@ export const ICON_PATHS = {
   clubhouse,
   flowdock,
   github,
+  'github-enterprise': githubEnterprise,
   gitlab,
   heroku,
   hipchat,
