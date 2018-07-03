@@ -8,6 +8,30 @@ class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
         return '{}#{}'.format(data['repo'], data['key'])
 
+    def after_link_issue(self, external_issue, **kwargs):
+        data = kwargs['data']
+        client = self.get_client()
+
+        repo, issue_num = external_issue.key.split('#')
+        if not repo:
+            raise IntegrationError('repo must be provided')
+
+        if not issue_num:
+            raise IntegrationError('issue number must be provided')
+
+        comment = data.get('comment')
+        if comment:
+            try:
+                client.create_comment(
+                    repo=repo,
+                    issue_id=issue_num,
+                    data={
+                        'body': comment,
+                    },
+                )
+            except ApiError as e:
+                raise IntegrationError(self.message_from_error(e))
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
         try:
@@ -123,19 +147,6 @@ class GitHubIssueBasic(IssueBasicMixin):
             issue = client.get_issue(repo, issue_num)
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
-
-        comment = data.get('comment')
-        if comment:
-            try:
-                client.create_comment(
-                    repo=repo,
-                    issue_id=issue['number'],
-                    data={
-                        'body': comment,
-                    },
-                )
-            except ApiError as e:
-                raise IntegrationError(self.message_from_error(e))
 
         return {
             'key': issue['number'],

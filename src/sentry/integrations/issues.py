@@ -113,6 +113,15 @@ class IssueBasicMixin(object):
         """
         raise NotImplementedError
 
+    def after_link_issue(self, external_issue, **kwargs):
+        """
+        Takes the external issue that has been linked via `get_issue`.
+
+        Does anything needed after an issue has been linked, i.e. creating
+        a comment for a linked issue.
+        """
+        pass
+
     def make_external_key(self, data):
         """
         Takes result of `get_issue` or `create_issue` and returns the formatted key

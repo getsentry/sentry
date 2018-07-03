@@ -89,6 +89,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         if not created:
             external_issue.update(**defaults)
 
+        installation.after_link_issue(external_issue, data=request.DATA)
+
         try:
             with transaction.atomic():
                 GroupLink.objects.create(
