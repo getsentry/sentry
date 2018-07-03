@@ -157,9 +157,6 @@ describe('AssigneeSelector', function() {
         <AssigneeSelector id={GROUP_1.id} />,
         TestStubs.routerContext()
       );
-      assigneeSelector.setContext({
-        organization: {id: '1', features: new Set(['new-teams'])},
-      });
 
       openMenu = () => assigneeSelector.find('a').simulate('click');
     });
@@ -288,7 +285,7 @@ describe('AssigneeSelector', function() {
       // Remove org:write access permission and make sure invite member button is not shown.
       sel = mount(<AssigneeSelector id={GROUP_1.id} />, TestStubs.routerContext());
       sel.setContext({
-        organization: {id: '1', features: new Set(['new-teams'])},
+        organization: {id: '1'},
       });
       sel.find('a').simulate('click');
       expect(sel.find('MenuItem.invite-member').exists()).toBe(false);

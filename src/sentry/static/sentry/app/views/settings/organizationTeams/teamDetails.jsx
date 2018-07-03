@@ -99,11 +99,7 @@ const TeamDetails = createReactClass({
     return (
       <div>
         <h3>
-          {features.has('new-teams') ? (
-            <IdBadge hideAvatar team={team} avatarSize={36} />
-          ) : (
-            team.name
-          )}
+          <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>
 
         {!features.has('new-settings') &&

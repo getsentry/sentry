@@ -6,7 +6,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features
 from sentry.api import client
 from sentry.web.frontend.base import ProjectView
 
@@ -34,12 +33,7 @@ class RemoveProjectView(ProjectView):
                 is_sudo=True
             )
 
-            has_new_teams = features.has(
-                'organizations:new-teams',
-                organization,
-                actor=request.user,
-            )
-            project_name = (project.slug if has_new_teams else project.name).encode('utf-8')
+            project_name = project.slug.encode('utf-8')
             messages.add_message(
                 request, messages.SUCCESS,
                 _(u'The project %r was scheduled for deletion.') % (project_name, )

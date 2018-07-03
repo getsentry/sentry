@@ -43,7 +43,7 @@ describe('OrganizationProjects', function() {
     );
     expect(wrapper).toMatchSnapshot();
 
-    expect(wrapper.find('.project-name').text()).toBe('Project Name');
+    expect(wrapper.find('.project-name').text()).toBe('project-slug');
 
     expect(projectsGetMock).toHaveBeenCalledTimes(1);
 

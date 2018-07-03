@@ -21,8 +21,6 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
     return parseInt(item / total * 100, 10) + '%';
   };
 
-  let features = new Set(organization.features);
-
   if (!projectTotals) {
     return <div />;
   }
@@ -35,11 +33,7 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
     return (
       <StyledProjectTableLayout key={index}>
         <StyledProjectTitle>
-          <Link to={`/${organization.slug}/${project.slug}/`}>
-            {features.has('new-teams')
-              ? project.slug
-              : `${project.team.name} / ${project.name}`}
-          </Link>
+          <Link to={`/${organization.slug}/${project.slug}/`}>{project.slug}</Link>
         </StyledProjectTitle>
         <ProjectTableDataElement>
           <Count value={item.accepted} />

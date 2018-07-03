@@ -85,33 +85,13 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderExplanation(features) {
-    if (features.has('new-teams')) {
-      if (features.has('open-membership')) {
-        return t('To view this data you must one of the following teams.');
-      } else {
-        return t(
-          'To view this data you must first request access to one of the following teams:'
-        );
-      }
-    }
-
-    let {project} = this.state;
-    let {team} = project;
-
-    if (team) {
-      if (features.has('open-membership')) {
-        return t('To view this data you must first join the %s team.', team.name);
-      }
-
+    if (features.has('open-membership')) {
+      return t('To view this data you must one of the following teams.');
+    } else {
       return t(
-        'To view this data you must first request access to the %s team.',
-        team.name
+        'To view this data you must first request access to one of the following teams:'
       );
     }
-
-    return t(
-      'This project is not associated with any teams. To view this data, an administrator must grant access to a team you are on.'
-    );
   },
 
   renderJoinTeams(features) {
@@ -137,7 +117,6 @@ const MissingProjectMembership = createReactClass({
 
   render() {
     let {organization} = this.props;
-    let {team} = this.state.project;
     let features = new Set(organization.features);
 
     return (
@@ -146,11 +125,7 @@ const MissingProjectMembership = createReactClass({
           <span className="icon icon-exclamation" />
           <p>{t("You're not a member of this project.")}</p>
           <p>{this.renderExplanation(features)}</p>
-          {features.has('new-teams') ? (
-            this.renderJoinTeams(features)
-          ) : (
-            <p>{this.renderJoinTeam(team, features)}</p>
-          )}
+          {this.renderJoinTeams(features)}
         </div>
       </div>
     );

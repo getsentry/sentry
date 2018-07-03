@@ -46,20 +46,10 @@ describe('TeamCreate', function() {
       );
     });
 
-    it('redirects to legacy team settings', function() {
-      wrapper.instance().handleSubmitSuccess({
-        slug: 'new-team',
-      });
-      expect(redirectMock).toBeCalledWith(
-        '/organizations/org/projects/new/?team=new-team'
-      );
-    });
-
-    it('redirects to new team settings', function() {
+    it('redirects to team settings', function() {
       wrapper.setContext({
         organization: {
           id: '1337',
-          features: ['new-teams'],
         },
       });
       wrapper.instance().handleSubmitSuccess({

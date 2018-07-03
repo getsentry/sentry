@@ -296,10 +296,9 @@ const NoteInput = createReactClass({
       mentionableTeams,
     } = this.state;
 
-    let hasTeamMentions = new Set(this.getOrganization().features).has('new-teams');
-    let placeHolderText = hasTeamMentions
-      ? t('Add details or updates to this event. \nTag users with @, or teams with #')
-      : t('Add details or updates to this event. \nTag users with @');
+    let placeHolderText = t(
+      'Add details or updates to this event. \nTag users with @, or teams with #'
+    );
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
@@ -351,15 +350,13 @@ const NoteInput = createReactClass({
                 onAdd={this.onAddMember}
                 appendSpaceOnAdd={true}
               />
-              {hasTeamMentions ? (
-                <Mention
-                  type="team"
-                  trigger="#"
-                  data={mentionableTeams}
-                  onAdd={this.onAddTeam}
-                  appendSpaceOnAdd={true}
-                />
-              ) : null}
+              <Mention
+                type="team"
+                trigger="#"
+                data={mentionableTeams}
+                onAdd={this.onAddTeam}
+                appendSpaceOnAdd={true}
+              />
             </MentionsInput>
           )}
           <div className="activity-actions">

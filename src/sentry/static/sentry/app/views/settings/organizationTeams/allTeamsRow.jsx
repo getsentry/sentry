@@ -114,9 +114,8 @@ const AllTeamsRow = createReactClass({
   },
 
   render() {
-    let {access, team, urlPrefix, openMembership, organization} = this.props;
-    let features = new Set(organization.features);
-    let display = features.has('new-teams') ? <IdBadge team={team} /> : team.name;
+    let {access, team, urlPrefix, openMembership} = this.props;
+    let display = <IdBadge team={team} />;
 
     return (
       <PanelItem p={0} align="center">

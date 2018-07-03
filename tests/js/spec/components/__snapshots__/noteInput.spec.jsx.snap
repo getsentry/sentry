@@ -50,7 +50,7 @@ exports[`NoteInput renders 1`] = `
       onChange={[Function]}
       onKeyDown={[Function]}
       placeholder="Add details or updates to this event. 
-Tag users with @"
+Tag users with @, or teams with #"
       required={true}
       style={
         Object {
@@ -120,6 +120,16 @@ Tag users with @"
         renderSuggestion={null}
         trigger="@"
         type="member"
+      />
+      <withDefaultStyle()
+        appendSpaceOnAdd={true}
+        data={Array []}
+        isLoading={false}
+        onAdd={[Function]}
+        onRemove={[Function]}
+        renderSuggestion={null}
+        trigger="#"
+        type="team"
       />
     </withDefaultStyle(MentionsInput)>
     <div
