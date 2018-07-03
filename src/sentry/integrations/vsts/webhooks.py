@@ -4,6 +4,8 @@ from .client import VstsApiClient
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 # from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 UNSET = object()
 
@@ -15,10 +17,9 @@ class WorkItemWebhook(Endpoint):
     def get_client(self, identity, oauth_redirect_url):
         return VstsApiClient(identity, oauth_redirect_url)
 
-    # @csrf_exempt
-    # def dispatch(self, request, *args, **kwargs):
-    #     import pdb; pdb.set_trace()
-    #     return super(WorkItemWebhook, self).dispatch(request, *args, **kwargs)
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(WorkItemWebhook, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         data = request.DATA
