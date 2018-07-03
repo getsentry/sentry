@@ -235,7 +235,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
     const {title, description} = field;
     const [stateKey, url] = isProject ? this.getEndpoints()[2] : [];
-    const hasProjects = !!this.state.projects.length;
+    const hasProjects = this.state.projects && !!this.state.projects.length;
 
     if (fineTuneType === 'email') {
       // Fetch verified email addresses
