@@ -124,6 +124,7 @@ export default {
     BarChart: require('app/components/barChart').default,
     i18n: il8n,
     ConfigStore: require('app/stores/configStore').default,
+    Confirm: require('app/components/confirm').default,
     Count: require('app/components/count').default,
     DateTime: require('app/components/dateTime').default,
     DropdownLink: require('app/components/dropdownLink').default,
