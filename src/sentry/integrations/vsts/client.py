@@ -234,22 +234,34 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def create_subscription(self, instance, external_id):
-        return self.patch(
+        return self.post(
             VstsApiPath.subscriptions.format(
                 account_name=instance
             ),
             data={
                 'publisherId': 'tfs',
                 'eventType': 'workitem.updated',
-                'resourceVersion': '1.0-preview.1',
                 'consumerId': 'webHooks',
                 'consumerActionId': 'httpRequest',
-                'publisherInputs': {
-                    'changedFields': ['System.AssignedTo'],
-                },
+                # 'publisherInputs': {
+                #     # 'changedFields': 'System.AssignedTo, System.State',
+                # },
                 'consumerInputs': {
-                    'url': absolute_uri('/extensions/vsts/webhook'),
-                    'external_id': external_id,
+                    'url': absolute_uri('/extensions/vsts/webhook/'),
                 }
             },
         )
+
+    def delete_all_subscriptions(self, instance):
+        subscriptions = self.get(VstsApiPath.subscriptions.format(
+            account_name=instance
+        ))
+        delete_url = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}?api-version=4.1'
+
+        for subscription in subscriptions['value']:
+            self.delete(
+                delete_url.format(
+                    account_name=instance,
+                    subscription_id=subscription['id'],
+                )
+            )
