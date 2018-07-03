@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 __all__ = ('Geo', )
 
+import six
+
 from sentry.interfaces.base import Interface
 from sentry.utils.geo import geo_by_addr
 
@@ -40,9 +42,13 @@ class Geo(Interface):
         if not geo:
             return None
 
-        data = {
-            'country_code': geo.get('country_code'),
-            'city': geo.get('city'),
-            'region': geo.get('region'),
-        }
+        data = {}
+        for k in ('country_code', 'city', 'region'):
+            d = geo.get(k)
+
+            if isinstance(d, six.binary_type):
+                d = d.decode('ISO-8859-1')
+
+            data[k] = d
+
         return cls.to_python(data)
