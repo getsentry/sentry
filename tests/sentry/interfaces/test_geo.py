@@ -44,3 +44,22 @@ class GeoTest(TestCase):
 
     def test_path(self):
         assert Geo().get_path() == 'geo'
+
+    @mock.patch('sentry.interfaces.geo.geo_by_addr')
+    def test_iso_8859_1_country_code(self, geo_by_addr_mock):
+        # https://github.com/maxmind/geoip-api-python/releases/tag/v1.3.2
+        # Previously GeoIP.country_names was populated from GeoIP_country_name in
+        # the libGeoIP C API. Some versions of the libGeoIP include non-ASCII
+        # ISO-8859-1 characters in these names, causing encoding errors under Python
+
+        geo_by_addr_mock.return_value = {
+            'city': 'San Francisco',
+            'country_code': '\xc5lborg',
+            'region': 'CA',
+        }
+
+        assert Geo.from_ip_address('192.168.0.1').to_json() == {
+            'city': u'San Francisco',
+            'country_code': u'\xc5lborg',
+            'region': u'CA'
+        }
