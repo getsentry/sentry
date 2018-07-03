@@ -440,7 +440,9 @@ class GroupUpdateTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org.id)
-
+        integration.add_project(
+            self.project.id, {
+                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id,
@@ -482,7 +484,7 @@ class GroupUpdateTest(APITestCase):
                     'statusDetails': {},
                 }
                 mock_sync_status_outbound.assert_called_once_with(
-                    external_issue, True
+                    external_issue, True, group.project_id
                 )
 
         response = self.client.get(
@@ -501,6 +503,9 @@ class GroupUpdateTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org.id)
+        integration.add_project(
+            group.project_id, {
+                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         GroupResolution.objects.create(
             group=group,
             release=release,
@@ -550,7 +555,7 @@ class GroupUpdateTest(APITestCase):
                     is_active=True,
                 ).exists()
                 mock_sync_status_outbound.assert_called_once_with(
-                    external_issue, False
+                    external_issue, False, group.project_id
                 )
 
     def test_self_assign_issue(self):
