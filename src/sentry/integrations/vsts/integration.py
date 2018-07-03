@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from time import time
+import logging
 
 from django.utils.translation import ugettext as _
 
@@ -27,6 +28,8 @@ metadata = IntegrationMetadata(
 
 
 class VstsIntegration(Integration, VstsIssueSync):
+    logger = logging.getLogger('sentry.integrations')
+
     def __init__(self, *args, **kwargs):
         super(VstsIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None

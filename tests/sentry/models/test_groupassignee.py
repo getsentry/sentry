@@ -112,6 +112,7 @@ class GroupAssigneeTestCase(TestCase):
             provider='example',
             external_id='123456',
         )
+        integration.add_organization(group.organization.id)
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
@@ -158,6 +159,7 @@ class GroupAssigneeTestCase(TestCase):
             provider='example',
             external_id='123456',
         )
+        integration.add_organization(group.organization.id)
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
