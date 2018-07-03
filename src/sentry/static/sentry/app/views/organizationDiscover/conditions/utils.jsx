@@ -43,7 +43,8 @@ export function getInternal(external) {
 * @param {Array} {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
 * @returns {Array} condition Condition in external Snuba format
 */
-export function getExternal(internal = '', columns) {
+export function getExternal(internal, columns) {
+  internal = internal || '';
   const external = [null, null, null];
 
   // Validate column

@@ -9,7 +9,7 @@ import {CONDITION_OPERATORS} from '../data';
 
 export default class Condition extends React.Component {
   static propTypes = {
-    value: PropTypes.array,
+    value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
     columns: PropTypes.arrayOf(
       PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
