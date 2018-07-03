@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Modal from 'react-bootstrap/lib/Modal';
-
+import Confirm from 'app/components/confirm';
+import Alert from 'app/components/alert';
 import Input from 'app/views/settings/components/forms/controls/input';
-import Button from 'app/components/buttons/button';
+import Field from 'app/views/settings/components/forms/field';
 import {t} from 'app/locale';
 
 class ConfirmDelete extends React.PureComponent {
@@ -13,9 +13,6 @@ class ConfirmDelete extends React.PureComponent {
     confirmInput: PropTypes.string.isRequired,
     cancelText: PropTypes.string.isRequired,
     priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
-    /**
-     * If true, will skip the confirmation modal and call `onConfirm`
-     */
     message: PropTypes.node,
     /**
      * Renderer that passes:
@@ -23,7 +20,6 @@ class ConfirmDelete extends React.PureComponent {
      * `close`: Allows renderer to toggle confirm modal
      */
     renderMessage: PropTypes.func,
-
     disabled: PropTypes.bool,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
@@ -39,43 +35,10 @@ class ConfirmDelete extends React.PureComponent {
     super(...args);
 
     this.state = {
-      isModalOpen: false,
-      disableConfirmButton: false,
-      confirmInput: '',
-    };
-    this.confirming = false;
-  }
-
-  openModal = () => {
-    let {onConfirming} = this.props;
-    if (typeof onConfirming === 'function') {
-      onConfirming();
-    }
-
-    this.setState(state => ({
-      isModalOpen: true,
       disableConfirmButton: true,
       confirmInput: '',
-    }));
-
-    // always reset `confirming` when modal visibility changes
-    this.confirming = false;
-  };
-
-  closeModal = () => {
-    let {onCancel} = this.props;
-    if (typeof onCancel === 'function') {
-      onCancel();
-    }
-    this.setState(state => ({
-      isModalOpen: false,
-      disableConfirmButton: false,
-      confirmInput: '',
-    }));
-
-    // always reset `confirming` when modal visibility changes
-    this.confirming = false;
-  };
+    };
+  }
 
   handleChange = evt => {
     let input = evt.currentTarget.value;
@@ -86,96 +49,38 @@ class ConfirmDelete extends React.PureComponent {
     }
   };
 
-  handleConfirm = e => {
-    // `confirming` is used to make sure `onConfirm` is only called once
-    if (!this.confirming) {
-      this.props.onConfirm();
-    }
-    // Close modal
-    this.setState({
-      isModalOpen: false,
-      disableConfirmButton: true,
-    });
-    this.confirming = true;
-  };
-
-  handleToggle = e => {
-    let {disabled} = this.props;
-    if (disabled) return;
-
-    // Current state is closed, means it will toggle open
-    if (!this.state.isModalOpen) {
-      this.openModal();
-    } else {
-      this.closeModal();
-    }
-  };
-
   render() {
-    let {
-      disabled,
-      message,
-      renderMessage,
-      priority,
-      confirmText,
-      cancelText,
-      children,
-    } = this.props;
-
-    let confirmMessage;
-    if (typeof renderMessage === 'function') {
-      confirmMessage = renderMessage({
-        confirm: this.handleConfirm,
-        close: this.handleToggle,
-      });
-    } else {
-      confirmMessage = React.isValidElement(message) ? (
-        message
-      ) : (
-        <p>
-          <strong>{message}</strong>
-        </p>
-      );
-    }
+    let {confirmInput, message, ...props} = this.props;
+    let {disableConfirmButton} = this.state;
 
     return (
-      <React.Fragment>
-        {typeof children === 'function'
-          ? children({
-              close: this.closeModal,
-              open: this.openModal,
-            })
-          : React.cloneElement(children, {disabled, onClick: this.handleToggle})}
-        <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
-          <div className="modal-body">
-            {confirmMessage}
-            <hr />
-            <p>
-              Please enter <strong>{this.props.confirmInput}</strong> to confirm the
-              deletion:
-            </p>
-          </div>
-          <Input
-            type="text"
-            onChange={this.handleChange}
-            value={this.state.confirmInput}
-          />
-          <div className="modal-footer">
-            <Button style={{marginRight: 10}} onClick={this.handleToggle}>
-              {cancelText}
-            </Button>
-            <Button
-              data-test-id="confirm-modal"
-              disabled={this.state.disableConfirmButton}
-              priority={priority}
-              onClick={this.handleConfirm}
-              autoFocus
+      <Confirm
+        {...props}
+        bypass={false}
+        disableConfirmButton={disableConfirmButton}
+        message={
+          <React.Fragment>
+            <Alert type="error">{message}</Alert>
+            <Field
+              p={0}
+              flexibleControlStateSize={true}
+              inline={false}
+              label={
+                <div>
+                  Please enter <code>{confirmInput}</code> to confirm the deletion
+                </div>
+              }
             >
-              {confirmText}
-            </Button>
-          </div>
-        </Modal>
-      </React.Fragment>
+              <Input
+                type="text"
+                placeholder={confirmInput}
+                onChange={this.handleChange}
+                value={this.state.confirmInput}
+              />
+            </Field>
+          </React.Fragment>
+        }
+      />
     );
   }
 }
