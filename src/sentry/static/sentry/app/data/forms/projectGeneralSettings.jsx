@@ -68,8 +68,7 @@ export const fields = {
     type: 'array',
     label: t('Team'),
     visible: ({organization}) => {
-      let features = new Set(organization.features);
-      return !features.has('new-teams') && organization.teams.length > 1;
+      return organization.teams.length > 1;
     },
     choices: ({organization}) =>
       organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),

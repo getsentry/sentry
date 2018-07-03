@@ -22,7 +22,7 @@ from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
-    ProjectStatus, ProjectTeam, UserOption, Team,
+    ProjectStatus, ProjectTeam, UserOption,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -275,37 +275,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         old_team_id = None
         new_team = None
         if result.get('team'):
-            if features.has('organizations:new-teams',
-                            project.organization, actor=request.user):
-                return Response(
-                    {
-                        'detail': ['Editing a team via this endpoint has been deprecated.']
-                    },
-                    status=400
-                )
-
-            team_list = [
-                t for t in Team.objects.get_for_user(
-                    organization=project.organization,
-                    user=request.user,
-                )
-                if request.access.has_team_scope(t, 'project:write')
-                if t.slug == result['team']
-            ]
-            if not team_list:
-                return Response(
-                    {
-                        'detail': ['The new team is not found.']
-                    }, status=400
-                )
-            # TODO(jess): update / deprecate this functionality
-            try:
-                old_team_id = project.teams.values_list('id', flat=True)[0]
-            except IndexError:
-                pass
-
-            new_team = team_list[0]
-            changed = True
+            return Response(
+                {
+                    'detail': ['Editing a team via this endpoint has been deprecated.']
+                },
+                status=400
+            )
 
         if result.get('platform'):
             project.platform = result['platform']
