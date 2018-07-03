@@ -4,6 +4,8 @@ from mistune import markdown
 
 
 from sentry.integrations.issues import IssueSyncMixin
+
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError
 from django.utils.translation import ugettext as _
 
 
@@ -86,3 +88,46 @@ class VstsIssueSync(IssueSyncMixin):
             'title': work_item['fields']['System.Title'],
             'description': work_item['fields'].get('System.Description')
         }
+
+    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+        client = self.get_client()
+        assignee = None
+
+        # TODO(LB): What's the scope here? is this correct?
+        # Get a list of all users in a given scope. How do we define scope?
+        # https://docs.microsoft.com/en-us/rest/api/vsts/graph/users/list?view=vsts-rest-4.1
+
+        if assign is True:
+            vsts_users = client.get_users(self.model.name)
+            sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
+
+            for vsts_user in vsts_users['value']:
+                vsts_email = vsts_user.get(u'mailAddress')
+                if vsts_email and vsts_email.lower() in sentry_emails:
+                    assignee = vsts_user['mailAddress']
+                    break
+
+            if assignee is None:
+                # TODO(lb): Email people when this happens
+                self.logger.info(
+                    'vsts.assignee-not-found',
+                    extra={
+                        'integration_id': external_issue.integration_id,
+                        'user_id': user.id,
+                        'issue_key': external_issue.key,
+                    }
+                )
+                return
+
+        try:
+            client.update_work_item(
+                self.instance, external_issue.key, assigned_to=assignee)
+        except (ApiUnauthorized, ApiError):
+            self.logger.info(
+                'vsts.failed-to-assign',
+                extra={
+                    'integration_id': external_issue.integration_id,
+                    'user_id': user.id,
+                    'issue_key': external_issue.key,
+                }
+            )
