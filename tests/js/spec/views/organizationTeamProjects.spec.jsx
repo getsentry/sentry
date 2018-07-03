@@ -100,7 +100,7 @@ describe('OrganizationTeamProjects', function() {
     wrapper.update();
 
     // find second project's remove button
-    let remove = wrapper.find('PanelItem Button').at(1);
+    let remove = wrapper.find('PanelBody Button').at(1);
     remove.simulate('click');
 
     expect(deleteMock).toHaveBeenCalledTimes(1);

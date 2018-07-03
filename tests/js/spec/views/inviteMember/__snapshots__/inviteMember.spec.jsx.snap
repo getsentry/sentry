@@ -139,37 +139,35 @@ exports[`CreateProject should render roles when available and allowed, and handl
         <Panel
           className="new-invite-team"
         >
-          <StyledPanel
-            className="new-invite-team"
+          <Component
+            className="new-invite-team css-10qfvek-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-team css-17lswg2-StyledPanel e1laxa7d0"
+              className="new-invite-team css-10qfvek-Panel e1laxa7d0"
             >
               <PanelHeader>
-                <StyledPanelHeader>
-                  <Component
-                    className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
+                <Component
+                  className="css-xib60i-PanelHeader-getPadding e1p8v8nv0"
+                >
+                  <Flex
+                    align="center"
+                    className="css-xib60i-PanelHeader-getPadding e1p8v8nv0"
+                    justify="space-between"
                   >
-                    <Flex
+                    <Base
                       align="center"
-                      className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
+                      className="e1p8v8nv0 css-1x41mt1-PanelHeader-getPadding"
                       justify="space-between"
                     >
-                      <Base
-                        align="center"
-                        className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
-                        justify="space-between"
+                      <div
+                        className="e1p8v8nv0 css-1x41mt1-PanelHeader-getPadding"
+                        is={null}
                       >
-                        <div
-                          className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
-                          is={null}
-                        >
-                          Role
-                        </div>
-                      </Base>
-                    </Flex>
-                  </Component>
-                </StyledPanelHeader>
+                        Role
+                      </div>
+                    </Base>
+                  </Flex>
+                </Component>
               </PanelHeader>
               <PanelBody
                 direction="column"
@@ -185,27 +183,34 @@ exports[`CreateProject should render roles when available and allowed, and handl
                     onClick={[Function]}
                     p={2}
                   >
-                    <StyledPanelItem
-                      className="css-0"
+                    <Base
+                      className="css-125s2dx-PanelItem eo8n7lk0"
                       onClick={[Function]}
                       p={2}
                     >
-                      <Base
-                        className="css-7bvhkr-StyledPanelItem eo8n7lk0"
+                      <div
+                        className="css-125s2dx-PanelItem eo8n7lk0"
+                        is={null}
                         onClick={[Function]}
-                        p={2}
                       >
-                        <div
-                          className="css-7bvhkr-StyledPanelItem eo8n7lk0"
-                          is={null}
-                          onClick={[Function]}
-                        >
-                          <Label>
-                            <label
-                              className="css-r8kahz-Label e1y9x5r70"
+                        <Label>
+                          <label
+                            className="css-r8kahz-Label e1y9x5r70"
+                          >
+                            <Radio
+                              checked={false}
+                              id="1"
+                              readOnly={true}
+                              style={
+                                Object {
+                                  "margin": 0,
+                                }
+                              }
+                              value="member"
                             >
-                              <Radio
+                              <input
                                 checked={false}
+                                className="radio-select"
                                 id="1"
                                 readOnly={true}
                                 style={
@@ -213,54 +218,41 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                     "margin": 0,
                                   }
                                 }
+                                type="radio"
                                 value="member"
-                              >
-                                <input
-                                  checked={false}
-                                  className="radio-select"
-                                  id="1"
-                                  readOnly={true}
-                                  style={
-                                    Object {
-                                      "margin": 0,
-                                    }
-                                  }
-                                  type="radio"
-                                  value="member"
-                                />
-                              </Radio>
-                              <div
-                                style={
-                                  Object {
-                                    "flex": 1,
-                                    "padding": "0 16px",
-                                  }
+                              />
+                            </Radio>
+                            <div
+                              style={
+                                Object {
+                                  "flex": 1,
+                                  "padding": "0 16px",
                                 }
+                              }
+                            >
+                              member
+                              <TextBlock
+                                className="css-gx0lhm"
                               >
-                                member
-                                <TextBlock
-                                  className="css-gx0lhm"
+                                <Component
+                                  className="css-1ai2po6-TextBlock ec8ep340"
                                 >
-                                  <Component
+                                  <div
                                     className="css-1ai2po6-TextBlock ec8ep340"
                                   >
                                     <div
-                                      className="css-1ai2po6-TextBlock ec8ep340"
+                                      className="help-block"
                                     >
-                                      <div
-                                        className="help-block"
-                                      >
-                                        a normal member
-                                      </div>
+                                      a normal member
                                     </div>
-                                  </Component>
-                                </TextBlock>
-                              </div>
-                            </label>
-                          </Label>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
+                                  </div>
+                                </Component>
+                              </TextBlock>
+                            </div>
+                          </label>
+                        </Label>
+                      </div>
+                    </Base>
                   </PanelItem>
                   <PanelItem
                     className="css-0"
@@ -268,27 +260,34 @@ exports[`CreateProject should render roles when available and allowed, and handl
                     onClick={[Function]}
                     p={2}
                   >
-                    <StyledPanelItem
-                      className="css-0"
+                    <Base
+                      className="css-125s2dx-PanelItem eo8n7lk0"
                       onClick={[Function]}
                       p={2}
                     >
-                      <Base
-                        className="css-7bvhkr-StyledPanelItem eo8n7lk0"
+                      <div
+                        className="css-125s2dx-PanelItem eo8n7lk0"
+                        is={null}
                         onClick={[Function]}
-                        p={2}
                       >
-                        <div
-                          className="css-7bvhkr-StyledPanelItem eo8n7lk0"
-                          is={null}
-                          onClick={[Function]}
-                        >
-                          <Label>
-                            <label
-                              className="css-r8kahz-Label e1y9x5r70"
+                        <Label>
+                          <label
+                            className="css-r8kahz-Label e1y9x5r70"
+                          >
+                            <Radio
+                              checked={false}
+                              id="2"
+                              readOnly={true}
+                              style={
+                                Object {
+                                  "margin": 0,
+                                }
+                              }
+                              value="bar"
                             >
-                              <Radio
+                              <input
                                 checked={false}
+                                className="radio-select"
                                 id="2"
                                 readOnly={true}
                                 style={
@@ -296,59 +295,46 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                     "margin": 0,
                                   }
                                 }
+                                type="radio"
                                 value="bar"
-                              >
-                                <input
-                                  checked={false}
-                                  className="radio-select"
-                                  id="2"
-                                  readOnly={true}
-                                  style={
-                                    Object {
-                                      "margin": 0,
-                                    }
-                                  }
-                                  type="radio"
-                                  value="bar"
-                                />
-                              </Radio>
-                              <div
-                                style={
-                                  Object {
-                                    "flex": 1,
-                                    "padding": "0 16px",
-                                  }
+                              />
+                            </Radio>
+                            <div
+                              style={
+                                Object {
+                                  "flex": 1,
+                                  "padding": "0 16px",
                                 }
+                              }
+                            >
+                              bar
+                              <TextBlock
+                                className="css-gx0lhm"
                               >
-                                bar
-                                <TextBlock
-                                  className="css-gx0lhm"
+                                <Component
+                                  className="css-1ai2po6-TextBlock ec8ep340"
                                 >
-                                  <Component
+                                  <div
                                     className="css-1ai2po6-TextBlock ec8ep340"
                                   >
                                     <div
-                                      className="css-1ai2po6-TextBlock ec8ep340"
+                                      className="help-block"
                                     >
-                                      <div
-                                        className="help-block"
-                                      >
-                                        another role
-                                      </div>
+                                      another role
                                     </div>
-                                  </Component>
-                                </TextBlock>
-                              </div>
-                            </label>
-                          </Label>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
+                                  </div>
+                                </Component>
+                              </TextBlock>
+                            </div>
+                          </label>
+                        </Label>
+                      </div>
+                    </Base>
                   </PanelItem>
                 </div>
               </PanelBody>
             </div>
-          </StyledPanel>
+          </Component>
         </Panel>
       </RoleSelect>
       <TeamSelect
@@ -378,37 +364,35 @@ exports[`CreateProject should render roles when available and allowed, and handl
         <Panel
           className="new-invite-team"
         >
-          <StyledPanel
-            className="new-invite-team"
+          <Component
+            className="new-invite-team css-10qfvek-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-team css-17lswg2-StyledPanel e1laxa7d0"
+              className="new-invite-team css-10qfvek-Panel e1laxa7d0"
             >
               <PanelHeader>
-                <StyledPanelHeader>
-                  <Component
-                    className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
+                <Component
+                  className="css-xib60i-PanelHeader-getPadding e1p8v8nv0"
+                >
+                  <Flex
+                    align="center"
+                    className="css-xib60i-PanelHeader-getPadding e1p8v8nv0"
+                    justify="space-between"
                   >
-                    <Flex
+                    <Base
                       align="center"
-                      className="css-18jrszy-StyledPanelHeader-getPadding e1p8v8nv0"
+                      className="e1p8v8nv0 css-1x41mt1-PanelHeader-getPadding"
                       justify="space-between"
                     >
-                      <Base
-                        align="center"
-                        className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
-                        justify="space-between"
+                      <div
+                        className="e1p8v8nv0 css-1x41mt1-PanelHeader-getPadding"
+                        is={null}
                       >
-                        <div
-                          className="e1p8v8nv0 css-16zagq0-StyledPanelHeader-getPadding"
-                          is={null}
-                        >
-                          Team
-                        </div>
-                      </Base>
-                    </Flex>
-                  </Component>
-                </StyledPanelHeader>
+                        Team
+                      </div>
+                    </Base>
+                  </Flex>
+                </Component>
               </PanelHeader>
               <PanelBody
                 className="grouping-controls team-choices"
@@ -423,29 +407,36 @@ exports[`CreateProject should render roles when available and allowed, and handl
                     className="css-1jkp9i7"
                     p={2}
                   >
-                    <StyledPanelItem
-                      className="css-1jkp9i7"
+                    <Base
+                      className="css-15ezwr8-PanelItem eo8n7lk0"
                       p={2}
                     >
-                      <Base
-                        className="css-1fnar07-StyledPanelItem eo8n7lk0"
-                        p={2}
+                      <div
+                        className="css-15ezwr8-PanelItem eo8n7lk0"
+                        is={null}
                       >
-                        <div
-                          className="css-1fnar07-StyledPanelItem eo8n7lk0"
-                          is={null}
+                        <TeamItem
+                          key="bar"
                         >
-                          <TeamItem
-                            key="bar"
+                          <div
+                            className="css-16v1fbz-TeamItem e1tbg1m40"
                           >
-                            <div
-                              className="css-16v1fbz-TeamItem e1tbg1m40"
+                            <label
+                              className="checkbox"
                             >
-                              <label
-                                className="checkbox"
+                              <Checkbox
+                                checked={false}
+                                id="bar"
+                                onChange={[Function]}
+                                style={
+                                  Object {
+                                    "marginTop": "1px",
+                                  }
+                                }
                               >
-                                <Checkbox
+                                <input
                                   checked={false}
+                                  className="chk-select"
                                   id="bar"
                                   onChange={[Function]}
                                   style={
@@ -453,40 +444,42 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                       "marginTop": "1px",
                                     }
                                   }
-                                >
-                                  <input
-                                    checked={false}
-                                    className="chk-select"
-                                    id="bar"
-                                    onChange={[Function]}
-                                    style={
-                                      Object {
-                                        "marginTop": "1px",
-                                      }
-                                    }
-                                    type="checkbox"
-                                  />
-                                </Checkbox>
-                                <IdBadge
-                                  hideAvatar={true}
-                                  team={
-                                    Object {
-                                      "hasAccess": true,
-                                      "id": "1",
-                                      "name": "bar",
-                                      "slug": "bar",
-                                    }
+                                  type="checkbox"
+                                />
+                              </Checkbox>
+                              <IdBadge
+                                hideAvatar={true}
+                                team={
+                                  Object {
+                                    "hasAccess": true,
+                                    "id": "1",
+                                    "name": "bar",
+                                    "slug": "bar",
                                   }
+                                }
+                              >
+                                <InlineErrorBoundary
+                                  mini={true}
                                 >
-                                  <InlineErrorBoundary
+                                  <ErrorBoundary
+                                    className="css-otlbo1-InlineErrorBoundary e83vi020"
                                     mini={true}
                                   >
-                                    <ErrorBoundary
-                                      className="css-otlbo1-InlineErrorBoundary e83vi020"
-                                      mini={true}
+                                    <TeamBadgeContainer
+                                      hideAvatar={true}
+                                      team={
+                                        Object {
+                                          "hasAccess": true,
+                                          "id": "1",
+                                          "name": "bar",
+                                          "slug": "bar",
+                                        }
+                                      }
                                     >
-                                      <TeamBadgeContainer
+                                      <TeamBadge
+                                        avatarSize={24}
                                         hideAvatar={true}
+                                        hideOverflow={true}
                                         team={
                                           Object {
                                             "hasAccess": true,
@@ -496,10 +489,18 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                           }
                                         }
                                       >
-                                        <TeamBadge
+                                        <BaseBadge
+                                          avatarProps={Object {}}
                                           avatarSize={24}
+                                          displayName={
+                                            <BadgeDisplayName
+                                              hideOverflow={true}
+                                            >
+                                              #
+                                              bar
+                                            </BadgeDisplayName>
+                                          }
                                           hideAvatar={true}
-                                          hideOverflow={true}
                                           team={
                                             Object {
                                               "hasAccess": true,
@@ -509,91 +510,81 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                             }
                                           }
                                         >
-                                          <BaseBadge
-                                            avatarProps={Object {}}
-                                            avatarSize={24}
-                                            displayName={
-                                              <BadgeDisplayName
-                                                hideOverflow={true}
-                                              >
-                                                #
-                                                bar
-                                              </BadgeDisplayName>
-                                            }
-                                            hideAvatar={true}
-                                            team={
-                                              Object {
-                                                "hasAccess": true,
-                                                "id": "1",
-                                                "name": "bar",
-                                                "slug": "bar",
-                                              }
-                                            }
+                                          <Flex
+                                            align="center"
                                           >
-                                            <Flex
+                                            <Base
                                               align="center"
+                                              className="css-5ipae5"
                                             >
-                                              <Base
-                                                align="center"
+                                              <div
                                                 className="css-5ipae5"
+                                                is={null}
                                               >
-                                                <div
-                                                  className="css-5ipae5"
-                                                  is={null}
-                                                >
-                                                  <DisplayNameAndDescription>
-                                                    <Base
+                                                <DisplayNameAndDescription>
+                                                  <Base
+                                                    className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                  >
+                                                    <div
                                                       className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                      is={null}
                                                     >
                                                       <div
-                                                        className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
-                                                        is={null}
+                                                        data-test-id="badge-display-name"
                                                       >
-                                                        <div
-                                                          data-test-id="badge-display-name"
+                                                        <BadgeDisplayName
+                                                          hideOverflow={true}
                                                         >
-                                                          <BadgeDisplayName
+                                                          <Component
+                                                            className="css-1boiawc-BadgeDisplayName eeoia0v0"
                                                             hideOverflow={true}
                                                           >
-                                                            <Component
+                                                            <span
                                                               className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              hideOverflow={true}
                                                             >
-                                                              <span
-                                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              >
-                                                                #
-                                                                bar
-                                                              </span>
-                                                            </Component>
-                                                          </BadgeDisplayName>
-                                                        </div>
+                                                              #
+                                                              bar
+                                                            </span>
+                                                          </Component>
+                                                        </BadgeDisplayName>
                                                       </div>
-                                                    </Base>
-                                                  </DisplayNameAndDescription>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </BaseBadge>
-                                        </TeamBadge>
-                                      </TeamBadgeContainer>
-                                    </ErrorBoundary>
-                                  </InlineErrorBoundary>
-                                </IdBadge>
-                              </label>
-                            </div>
-                          </TeamItem>
-                          <TeamItem
-                            key="foo"
+                                                    </div>
+                                                  </Base>
+                                                </DisplayNameAndDescription>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </BaseBadge>
+                                      </TeamBadge>
+                                    </TeamBadgeContainer>
+                                  </ErrorBoundary>
+                                </InlineErrorBoundary>
+                              </IdBadge>
+                            </label>
+                          </div>
+                        </TeamItem>
+                        <TeamItem
+                          key="foo"
+                        >
+                          <div
+                            className="css-16v1fbz-TeamItem e1tbg1m40"
                           >
-                            <div
-                              className="css-16v1fbz-TeamItem e1tbg1m40"
+                            <label
+                              className="checkbox"
                             >
-                              <label
-                                className="checkbox"
+                              <Checkbox
+                                checked={false}
+                                id="foo"
+                                onChange={[Function]}
+                                style={
+                                  Object {
+                                    "marginTop": "1px",
+                                  }
+                                }
                               >
-                                <Checkbox
+                                <input
                                   checked={false}
+                                  className="chk-select"
                                   id="foo"
                                   onChange={[Function]}
                                   style={
@@ -601,40 +592,42 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                       "marginTop": "1px",
                                     }
                                   }
-                                >
-                                  <input
-                                    checked={false}
-                                    className="chk-select"
-                                    id="foo"
-                                    onChange={[Function]}
-                                    style={
-                                      Object {
-                                        "marginTop": "1px",
-                                      }
-                                    }
-                                    type="checkbox"
-                                  />
-                                </Checkbox>
-                                <IdBadge
-                                  hideAvatar={true}
-                                  team={
-                                    Object {
-                                      "hasAccess": false,
-                                      "id": "2",
-                                      "name": "foo",
-                                      "slug": "foo",
-                                    }
+                                  type="checkbox"
+                                />
+                              </Checkbox>
+                              <IdBadge
+                                hideAvatar={true}
+                                team={
+                                  Object {
+                                    "hasAccess": false,
+                                    "id": "2",
+                                    "name": "foo",
+                                    "slug": "foo",
                                   }
+                                }
+                              >
+                                <InlineErrorBoundary
+                                  mini={true}
                                 >
-                                  <InlineErrorBoundary
+                                  <ErrorBoundary
+                                    className="css-otlbo1-InlineErrorBoundary e83vi020"
                                     mini={true}
                                   >
-                                    <ErrorBoundary
-                                      className="css-otlbo1-InlineErrorBoundary e83vi020"
-                                      mini={true}
+                                    <TeamBadgeContainer
+                                      hideAvatar={true}
+                                      team={
+                                        Object {
+                                          "hasAccess": false,
+                                          "id": "2",
+                                          "name": "foo",
+                                          "slug": "foo",
+                                        }
+                                      }
                                     >
-                                      <TeamBadgeContainer
+                                      <TeamBadge
+                                        avatarSize={24}
                                         hideAvatar={true}
+                                        hideOverflow={true}
                                         team={
                                           Object {
                                             "hasAccess": false,
@@ -644,10 +637,18 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                           }
                                         }
                                       >
-                                        <TeamBadge
+                                        <BaseBadge
+                                          avatarProps={Object {}}
                                           avatarSize={24}
+                                          displayName={
+                                            <BadgeDisplayName
+                                              hideOverflow={true}
+                                            >
+                                              #
+                                              foo
+                                            </BadgeDisplayName>
+                                          }
                                           hideAvatar={true}
-                                          hideOverflow={true}
                                           team={
                                             Object {
                                               "hasAccess": false,
@@ -657,88 +658,66 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                             }
                                           }
                                         >
-                                          <BaseBadge
-                                            avatarProps={Object {}}
-                                            avatarSize={24}
-                                            displayName={
-                                              <BadgeDisplayName
-                                                hideOverflow={true}
-                                              >
-                                                #
-                                                foo
-                                              </BadgeDisplayName>
-                                            }
-                                            hideAvatar={true}
-                                            team={
-                                              Object {
-                                                "hasAccess": false,
-                                                "id": "2",
-                                                "name": "foo",
-                                                "slug": "foo",
-                                              }
-                                            }
+                                          <Flex
+                                            align="center"
                                           >
-                                            <Flex
+                                            <Base
                                               align="center"
+                                              className="css-5ipae5"
                                             >
-                                              <Base
-                                                align="center"
+                                              <div
                                                 className="css-5ipae5"
+                                                is={null}
                                               >
-                                                <div
-                                                  className="css-5ipae5"
-                                                  is={null}
-                                                >
-                                                  <DisplayNameAndDescription>
-                                                    <Base
+                                                <DisplayNameAndDescription>
+                                                  <Base
+                                                    className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                  >
+                                                    <div
                                                       className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                      is={null}
                                                     >
                                                       <div
-                                                        className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
-                                                        is={null}
+                                                        data-test-id="badge-display-name"
                                                       >
-                                                        <div
-                                                          data-test-id="badge-display-name"
+                                                        <BadgeDisplayName
+                                                          hideOverflow={true}
                                                         >
-                                                          <BadgeDisplayName
+                                                          <Component
+                                                            className="css-1boiawc-BadgeDisplayName eeoia0v0"
                                                             hideOverflow={true}
                                                           >
-                                                            <Component
+                                                            <span
                                                               className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              hideOverflow={true}
                                                             >
-                                                              <span
-                                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
-                                                              >
-                                                                #
-                                                                foo
-                                                              </span>
-                                                            </Component>
-                                                          </BadgeDisplayName>
-                                                        </div>
+                                                              #
+                                                              foo
+                                                            </span>
+                                                          </Component>
+                                                        </BadgeDisplayName>
                                                       </div>
-                                                    </Base>
-                                                  </DisplayNameAndDescription>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </BaseBadge>
-                                        </TeamBadge>
-                                      </TeamBadgeContainer>
-                                    </ErrorBoundary>
-                                  </InlineErrorBoundary>
-                                </IdBadge>
-                              </label>
-                            </div>
-                          </TeamItem>
-                        </div>
-                      </Base>
-                    </StyledPanelItem>
+                                                    </div>
+                                                  </Base>
+                                                </DisplayNameAndDescription>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </BaseBadge>
+                                      </TeamBadge>
+                                    </TeamBadgeContainer>
+                                  </ErrorBoundary>
+                                </InlineErrorBoundary>
+                              </IdBadge>
+                            </label>
+                          </div>
+                        </TeamItem>
+                      </div>
+                    </Base>
                   </PanelItem>
                 </div>
               </PanelBody>
             </div>
-          </StyledPanel>
+          </Component>
         </Panel>
       </TeamSelect>
       <Button
