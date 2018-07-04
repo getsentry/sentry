@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {isString} from 'lodash';
 
-function deviceNameMapper(model, iOSDeviceList) {
+export function deviceNameMapper(model, iOSDeviceList) {
   if (!model || !isString(model)) {
     return null;
   }
@@ -13,6 +13,16 @@ function deviceNameMapper(model, iOSDeviceList) {
     .join(' ');
   const modelName = iOSDeviceList.generationByIdentifier(modelIdentifier);
   return modelName === undefined ? model : modelName + ' ' + modelId;
+}
+
+export async function loadDeviceListModule() {
+  return import(/*webpackChunkName: "iOSDeviceList"*/ 'ios-device-list');
+}
+
+export async function getDeviceName(model) {
+  const iOSDeviceList = await loadDeviceListModule();
+
+  return deviceNameMapper(model, iOSDeviceList);
 }
 
 /**
@@ -32,12 +42,10 @@ export default class DeviceName extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     // This library is very big, so we are codesplitting it based on size and
     // the relatively small utility this library provides
-    import(/*webpackChunkName: "iOSDeviceList"*/ 'ios-device-list')
-      .then(module => module.default)
-      .then(iOSDeviceList => this.setState({iOSDeviceList}));
+    loadDeviceListModule().then(iOSDeviceList => this.setState({iOSDeviceList}));
   }
 
   render() {

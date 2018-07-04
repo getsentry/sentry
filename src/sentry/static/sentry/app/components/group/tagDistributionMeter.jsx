@@ -1,14 +1,17 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import DeviceName from 'app/components/deviceName';
-import SentryTypes from 'app/proptypes';
-import Tooltip from 'app/components/tooltip';
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DeviceName, {
+  deviceNameMapper,
+  loadDeviceListModule,
+} from 'app/components/deviceName';
+import SentryTypes from 'app/proptypes';
+import Tooltip from 'app/components/tooltip';
 import withEnvironment from 'app/utils/withEnvironment';
 
 const TagDistributionMeter = createReactClass({
@@ -63,22 +66,26 @@ const TagDistributionMeter = createReactClass({
       error: false,
     });
 
-    this.api.request(url, {
-      query,
-      success: data => {
+    Promise.all([
+      this.api.requestPromise(url, {
+        query,
+      }),
+      loadDeviceListModule(),
+    ])
+      .then(([data, iOSDeviceList]) => {
         this.setState({
           data,
+          iOSDeviceList,
           error: false,
           loading: false,
         });
-      },
-      error: () => {
+      })
+      .catch(() => {
         this.setState({
           error: true,
           loading: false,
         });
-      },
-    });
+      });
   },
 
   /**
@@ -111,7 +118,7 @@ const TagDistributionMeter = createReactClass({
 
           const tooltipHtml =
             '<div class="truncate">' +
-            escape(<DeviceName>{value.name || ''}</DeviceName>) +
+            escape(deviceNameMapper(value.name || '', this.state.iOSDeviceList)) +
             '</div>' +
             pctLabel +
             '%';
