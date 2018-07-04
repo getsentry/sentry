@@ -142,16 +142,17 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             status = project_integration.config[status_name]
         except KeyError:
-            return  # TODO(lb): what's the expected behavior here?
+            return
         try:
             self.get_client().update_work_item(
                 self.instance, external_issue.key, state=status)
-        except (ApiUnauthorized, ApiError):
+        except (ApiUnauthorized, ApiError) as error:
             self.logger.info(
                 'vsts.failed-to-change-status',
                 extra={
                     'integration_id': external_issue.integration_id,
                     'is_resolved': is_resolved,
                     'issue_key': external_issue.key,
+                    'exception': error,
                 }
             )
