@@ -67,7 +67,6 @@ var appEntry = {
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
-    'react-sparklines',
     'reflux',
     'select2',
     'vendor/simple-slider/simple-slider',
