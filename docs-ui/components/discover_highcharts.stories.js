@@ -4,11 +4,11 @@ import {withInfo} from '@storybook/addon-info';
 
 import HighchartsDiscover from 'app/components/highchartsDiscover';
 import HighstockDiscover from 'app/components/highstockDiscover';
-import HighchartsDiscoverWrapper from 'app/components/highchartsDiscoverWrapper';
 
 storiesOf('Discover: High Charts', module).add(
   'default',
-  withInfo('Sample chart using highcharts; using data from: {\n' +
+  withInfo(
+    'Sample chart using highcharts; using data from: {\n' +
       '    "aggregations": [\n' +
       '        [\n' +
       '            "count()",\n' +
@@ -23,11 +23,12 @@ storiesOf('Discover: High Charts', module).add(
       '    "project": 1,\n' +
       '    "orderby": "time",\n' +
       '    "to_date": "2018-06-20T18:26:46"\n' +
-      '}')(() => (
+      '}'
+  )(() => (
     <div style={{padding: 20, backgroundColor: '#ffffff'}}>
-        <HighchartsDiscover />
-        {/*<HighchartsDiscoverWrapper/>*/}
-        <HighstockDiscover/>
+      <HighchartsDiscover />
+      {/*<HighchartsDiscoverWrapper/>*/}
+      <HighstockDiscover />
     </div>
   ))
 );
