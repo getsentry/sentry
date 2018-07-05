@@ -55,7 +55,7 @@ class ExampleIntegration(Integration, IssueSyncMixin):
             'description': 'This is a test external issue description',
         }
 
-    def get_issue(self, issue_id):
+    def get_issue(self, issue_id, **kwargs):
         return {
             'key': issue_id,
             'title': 'This is a test external issue title',
