@@ -34,13 +34,13 @@ const COLUMNS = [
   {name: 'device_charging', type: 'string'},
   {name: 'event_id', type: 'string'},
   {name: 'project_id', type: 'string'},
-  {name: 'timestamp', type: 'datetime'},
+  {name: 'timestamp', type: 'string'}, // TODO: handling datetime as string for now
   {name: 'deleted', type: 'number'},
   {name: 'retention_days', type: 'number'},
   {name: 'platform', type: 'string'},
   {name: 'message', type: 'string'},
   {name: 'primary_hash', type: 'string'},
-  {name: 'received', type: 'datetime'},
+  {name: 'received', type: 'string'}, // TODO: handling datetime as string for now
   {name: 'user_id', type: 'string'},
   {name: 'username', type: 'string'},
   {name: 'email', type: 'string'},
@@ -75,7 +75,7 @@ const CONDITION_OPERATORS = [
   '<=',
   '=',
   '!=',
-  'IN',
+  // 'IN', commented out since condition input doesn't support arrays yet :(
   'IS NULL',
   'IS NOT NULL',
   'LIKE',
