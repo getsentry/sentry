@@ -278,23 +278,23 @@ class U2fSettingsView(TwoFactorSettingsView):
         # 'remove' in the form and bring up the remove screen for the
         # entire authentication method.
         key_handle = request.POST.get('key_handle')
-        if key_handle and 'remove' in request.POST and \
-           interface.remove_u2f_device(key_handle):
-            interface.authenticator.save()
+        if key_handle:
             device_name = interface.get_device_name(key_handle)
+            if 'remove' in request.POST and interface.remove_u2f_device(key_handle):
+                interface.authenticator.save()
 
-            capture_security_activity(
-                account=request.user,
-                type='mfa-removed',
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                context={
-                    'authenticator': interface.authenticator,
-                    'device_name': device_name
-                },
-                send_email=True,
-            )
-            return HttpResponseRedirect(request.path)
+                capture_security_activity(
+                    account=request.user,
+                    type='mfa-removed',
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    context={
+                        'authenticator': interface.authenticator,
+                        'device_name': device_name
+                    },
+                    send_email=True,
+                )
+                return HttpResponseRedirect(request.path)
 
         return TwoFactorSettingsView.configure(self, request, interface)
 

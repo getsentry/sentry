@@ -114,12 +114,11 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         # Remove a single device and not entire authentication method
         if interface.interface_id == 'u2f' and interface_device_id is not None:
+            device_name = interface.get_device_name(interface_device_id)
             # Can't remove if this is the last device, will return False if so
             if not interface.remove_u2f_device(interface_device_id):
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
             interface.authenticator.save()
-            device_name = interface.get_device_name(interface_device_id)
 
             capture_security_activity(
                 account=user,
