@@ -7,7 +7,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 
-class IssueSyncMixin(object):
+class IssueBasicMixin(object):
+
     def get_group_title(self, group, event, **kwargs):
         return event.error()
 
@@ -111,6 +112,24 @@ class IssueSyncMixin(object):
         >>>     }
         """
         raise NotImplementedError
+
+    def after_link_issue(self, external_issue, **kwargs):
+        """
+        Takes the external issue that has been linked via `get_issue`.
+
+        Does anything needed after an issue has been linked, i.e. creating
+        a comment for a linked issue.
+        """
+        pass
+
+    def make_external_key(self, data):
+        """
+        Takes result of `get_issue` or `create_issue` and returns the formatted key
+        """
+        return data['key']
+
+
+class IssueSyncMixin(IssueBasicMixin):
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """

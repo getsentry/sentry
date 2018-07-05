@@ -52,6 +52,23 @@ class GitHubClientMixin(ApiClient):
         )
         return repositories['repositories']
 
+    def get_assignees(self, repo):
+        return self.get('/repos/{}/assignees'.format(repo))
+
+    def get_issues(self, repo):
+        return self.get('/repos/{}/issues'.format(repo))
+
+    def get_issue(self, repo, number):
+        return self.get('/repos/{}/issues/{}'.format(repo, number))
+
+    def create_issue(self, repo, data):
+        endpoint = '/repos/{}/issues'.format(repo)
+        return self.post(endpoint, data=data)
+
+    def create_comment(self, repo, issue_id, data):
+        endpoint = '/repos/{}/issues/{}/comments'.format(repo, issue_id)
+        return self.post(endpoint, data=data)
+
     def get_user(self, gh_username):
         return self.get('/users/{}'.format(gh_username))
 
