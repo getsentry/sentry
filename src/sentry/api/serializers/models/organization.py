@@ -178,6 +178,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
             'safeFields': obj.get_option('sentry:safe_fields', None) or [],
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
+            'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', True)),
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
