@@ -165,7 +165,7 @@ def create_sample_time_series(event, release=None):
     if event is None:
         return
 
-    Event.objects.bind_nodes([event], 'data')
+    Event.objects.bind_nodes([event], 'node_data')
 
     group = event.group
 
