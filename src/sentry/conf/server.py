@@ -751,7 +751,7 @@ SENTRY_FEATURES = {
     'organizations:event-attachments': False,
     'organizations:repos': True,
     'organizations:sso': True,
-    'organizations:sso-saml2': False,
+    'organizations:sso-saml2': True,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
     'organizations:github-apps': False,
