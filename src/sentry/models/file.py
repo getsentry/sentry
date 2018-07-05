@@ -27,7 +27,6 @@ from jsonfield import JSONField
 
 from sentry.app import locks
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
-from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -139,7 +138,8 @@ class FileBlob(Model):
     def deletefile(self, commit=False):
         assert self.path
 
-        delete_file_task.delay(self.path, self.checksum)
+        storage = get_storage()
+        storage.delete(self.path)
 
         self.path = None
 
@@ -393,7 +393,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         def fetch_file(offset, getfile):
             with getfile() as sf:
-                while True:
+                while 1:
                     chunk = sf.read(65535)
                     if not chunk:
                         break
