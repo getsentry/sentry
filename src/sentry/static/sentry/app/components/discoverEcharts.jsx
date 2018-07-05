@@ -14,7 +14,7 @@ export default class discoverEcharts extends React.Component {
         text: 'Echarts Demo',
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis', //https://ecomfe.github.io/echarts-doc/public/en/option.html#tooltip.trigger
       },
       legend: {
         data: labels,
@@ -55,11 +55,6 @@ export default class discoverEcharts extends React.Component {
   };
 
   render() {
-    let code =
-      '<ReactEcharts \n' +
-      '  option={this.getOtion()} \n' +
-      "  style={{height: '350px', width: '100%'}}  \n" +
-      "  className='react_for_echarts' />";
     return (
       <div>
         <ReactEcharts
