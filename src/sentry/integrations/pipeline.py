@@ -128,7 +128,7 @@ class IntegrationPipeline(Pipeline):
                                 False,
                             )
                 identity_model = Identity.reattach(
-                    idp, identity['external_id'], self.request.user, **identity_data)
+                    idp, identity['external_id'], self.request.user, identity_data)
 
         org_integration_args = {}
 

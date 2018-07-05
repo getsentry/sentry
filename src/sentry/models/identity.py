@@ -66,7 +66,7 @@ class Identity(Model):
         return get(self.idp.type)
 
     @classmethod
-    def reattach(cls, idp, external_id, user, **kwargs):
+    def reattach(cls, idp, external_id, user, defaults):
         """
         Removes identities under `idp` associated with either `external_id` or `user`
         and creates a new identity linking them.
@@ -78,5 +78,5 @@ class Identity(Model):
             idp=idp,
             user=user,
             external_id=external_id,
-            **kwargs
+            **defaults
         )
