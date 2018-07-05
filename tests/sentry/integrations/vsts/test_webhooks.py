@@ -12,9 +12,9 @@ from sentry.models import ExternalIssue, Identity, IdentityProvider, Integration
 from sentry.integrations.vsts.integration import VstsIntegration
 # from sentry.integrations.vsts.webhooks import WorkItemWebhook
 from sentry.utils.http import absolute_uri
-# from .testutils import (
-#    WORK_ITEM_UPDATED,
-# )
+from .testutils import (
+    WORK_ITEM_UPDATED,
+)
 
 
 class VstsWebhookWorkItemTest(APITestCase):
@@ -59,37 +59,12 @@ class VstsWebhookWorkItemTest(APITestCase):
             key=work_item_id,
         )
 
-        work_item_updated = {
-            'id': work_item_id,
-            'eventType': 'workitem.updated',
-            'resource': {
-                'workItemId': 1,
-                'fields': {
-                    'System.State': {
-                        'oldValue': 'New',
-                        'newValue': 'Approved'
-                    },
-                    'System.Reason': {
-                        'oldValue': 'New defect reported',
-                        'newValue': 'Approved by the Product Owner'
-                    },
-                    'System.AssignedTo': {
-                        'newValue': 'Jamal Hartnet'
-                    },
-                }
-            },
-            'resourceContainers': {
-                'account': {
-                    'id': self.account_id,
-                },
-            }
-        }
         resp = self.client.post(
             absolute_uri('/extensions/vsts/webhooks/'),
-            data=work_item_updated,
+            data=WORK_ITEM_UPDATED,
         )
         assert resp.status_code == 200
         external_issue = ExternalIssue.objects.get(id=external_issue.id)
         mock_sync_group_assignee_inbound.assert_called_with(
-            self.integration, 'sentryuseremail@email.com', work_item_id, assign=True,
+            self.integration, 'lauryn@sentry.io', work_item_id, assign=True,
         )

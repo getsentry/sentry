@@ -38,7 +38,8 @@ class WorkItemWebhook(Endpoint):
             external_id=data['resourceContainers']['collection']['id'],
         )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
-        self.handle_status_change(integration, external_issue_key, status_change)
+        # TODO(lb): Implement Status change
+        # self.handle_status_change(integration, external_issue_key, status_change)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
@@ -56,25 +57,9 @@ class WorkItemWebhook(Endpoint):
             external_issue_key=external_issue_key,
             assign=assign,
         )
-        return
-        # Can't find user by display name
 
-    def find_user_by_display_name(self, display_name, integration):
-        from sentry.integrations.vsts.integration import VstsIntegrationProvider
-        # TODO(lb): I need to talk to Microsoft because display names are not unique
-        # but they are the only thing given!
-        identity = Identity.objects.get(
-            id=OrganizationIntegration.objects.filter(
-                integration_id=integration.id
-            ).values_list('default_auth_id', flat=True)[0]  # any default idenity will do
-        )
-        client = self.get_client(identity, VstsIntegrationProvider.oauth_redirect_url)
-        users = client.get_users(integration.metadata['domain_name'])
-        display_name = display_name.lower()
-        for user in users['value']:
-            if user['displayName'].lower() == display_name:
-                return user
-        return None
+    def parse_email(self, email):
+        return EMAIL_PARSER.search(email).group(1)
 
     def handle_status_change(self, integration, external_issue_key, status_change):
         new_value = status_change.get('newValue', UNSET)
