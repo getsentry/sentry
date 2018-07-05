@@ -864,6 +864,7 @@ SENTRY_INTERFACES = {
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
 }
+PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     'smtp': 'django.core.mail.backends.smtp.EmailBackend',
