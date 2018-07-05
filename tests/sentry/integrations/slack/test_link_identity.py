@@ -85,13 +85,13 @@ class SlackIntegrationLinkIdentityTest(TestCase):
     @responses.activate
     @patch('sentry.integrations.slack.link_identity.unsign')
     def test_overwrites_existing_identities(self, unsign):
-        existing_id1 = Identity.objects.create(
+        Identity.objects.create(
             user=self.user1,
             idp=self.idp,
             external_id='slack-id1',
             status=IdentityStatus.VALID,
         )
-        existing_id2 = Identity.objects.create(
+        Identity.objects.create(
             user=self.user2,
             idp=self.idp,
             external_id='slack-id2',
@@ -123,10 +123,6 @@ class SlackIntegrationLinkIdentityTest(TestCase):
 
         self.client.post(linking_url)
 
-        assert Identity.objects.filter(
-            id=existing_id1.id,
-            external_id='slack-id2',
-            user=self.user1,
-        ).exists()
-
-        assert not Identity.objects.filter(id=existing_id2.id).exists()
+        Identity.objects.get(external_id='slack-id2', user=self.user1)
+        assert not Identity.objects.filter(external_id='slack-id1', user=self.user1).exists()
+        assert not Identity.objects.filter(external_id='slack-id2', user=self.user2).exists()
