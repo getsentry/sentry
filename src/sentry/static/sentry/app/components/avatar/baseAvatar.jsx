@@ -131,7 +131,7 @@ class BaseAvatar extends React.Component {
   }
 
   render() {
-    let {className, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
+    let {className, round, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -145,6 +145,7 @@ class BaseAvatar extends React.Component {
       <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
         <StyledBaseAvatar
           className={classNames('avatar', className)}
+          round={round}
           style={{
             ...sizeStyle,
             ...style,
@@ -164,6 +165,8 @@ export default BaseAvatar;
 // sensible default.
 const StyledBaseAvatar = styled('span')`
   flex-shrink: 0;
+  background-color: ${p => p.theme.whiteDark};
+  ${p => p.round && 'border-radius: 100%;'};
 `;
 
 const Image = styled('img')`

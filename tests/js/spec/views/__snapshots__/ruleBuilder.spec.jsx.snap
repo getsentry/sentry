@@ -2490,6 +2490,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             >
                                               <StyledBaseAvatar
                                                 className="tip avatar"
+                                                round={true}
                                                 style={
                                                   Object {
                                                     "height": "28px",
@@ -2499,7 +2500,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                 title="Jane Doe (janedoe@example.com)"
                                               >
                                                 <span
-                                                  className="tip avatar css-15umz1j-StyledBaseAvatar e1z0ohzl0"
+                                                  className="tip avatar css-1ttlt2k-StyledBaseAvatar e1z0ohzl0"
                                                   style={
                                                     Object {
                                                       "height": "28px",

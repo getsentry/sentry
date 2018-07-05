@@ -67,6 +67,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         alignMenu="right"
                         blendCorner={true}
                         emptyMessage="No projects"
+                        itemPadding="8px"
                         items={
                           Array [
                             Object {
@@ -78,7 +79,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             },
                           ]
                         }
+                        maxHeight={300}
                         onSelect={[Function]}
+                        searchPadding="8px"
+                        searchPlaceholder="Filter search"
                       >
                         <AutoComplete
                           disabled={false}

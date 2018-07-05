@@ -32,6 +32,8 @@ class DropdownAutoCompleteMenu extends React.Component {
               searchKey: PropTypes.string,
             })
           ),
+          // Should hide group label
+          hideGroupLabel: PropTypes.bool,
         })
       ),
     ]),
@@ -47,6 +49,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      * When AutoComplete input changes
      */
     onChange: PropTypes.func,
+
+    /**
+     * Callback for when dropdown menu opens
+     */
+    onOpen: PropTypes.func,
 
     /**
      * Message to display when there are no items initially
@@ -66,10 +73,45 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Dropdown menu alignment.
      */
     alignMenu: PropTypes.oneOf(['left', 'right']),
+
     /**
      * Should menu visually lock to a direction (so we don't display a rounded corner)
      */
     blendCorner: PropTypes.bool,
+
+    /**
+     * Max height of dropdown menu
+     */
+    maxHeight: PropTypes.number,
+
+    /**
+     * Add z-index to menu. Note this is not added by default because some
+     * implementations of DropdownAutocomplete DEPEND on no z-index.
+     * This is when we want to blend the bottom border of the actor button with the dropdown menu
+     * so that it looks a bit more seamless.
+     */
+    zIndex: PropTypes.number,
+
+    /**
+     * Search input's placeholder text
+     */
+    searchPlaceholder: PropTypes.string,
+
+    /**
+     * Padding value for search input (requires the `padding` shortcut value)
+     */
+    searchPadding: PropTypes.string,
+
+    /**
+     * Padding value for dropdown items (requires the `padding` shortcut value)
+     */
+    itemPadding: PropTypes.string,
+
+    /**
+     * Changes the menu style to have an arrow at the top
+     */
+    menuWithArrow: PropTypes.bool,
+
     menuFooter: PropTypes.element,
     menuHeader: PropTypes.element,
 
@@ -84,8 +126,12 @@ class DropdownAutoCompleteMenu extends React.Component {
 
   static defaultProps = {
     onSelect: () => {},
+    maxHeight: 300,
     blendCorner: true,
     emptyMessage: t('No items'),
+    searchPlaceholder: t('Filter search'),
+    searchPadding: `${space(1)}`,
+    itemPadding: `${space(1)}`,
   };
 
   filterItems = (items, inputValue) =>
@@ -127,17 +173,24 @@ class DropdownAutoCompleteMenu extends React.Component {
     let {
       onSelect,
       onChange,
+      onOpen,
       children,
       items,
       menuProps,
       alignMenu,
       blendCorner,
+      maxHeight,
       emptyMessage,
       noResultsMessage,
       style,
       menuHeader,
       menuFooter,
+      menuWithArrow,
+      searchPlaceholder,
+      searchPadding,
+      itemPadding,
       busy,
+      zIndex,
       ...props
     } = this.props;
 
@@ -147,6 +200,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         itemToString={item => ''}
         onSelect={onSelect}
         inputIsActor={false}
+        onOpen={onOpen}
         {...props}
       >
         {({
@@ -188,12 +242,15 @@ class DropdownAutoCompleteMenu extends React.Component {
                     css: this.props.css,
                     blendCorner,
                     alignMenu,
+                    menuWithArrow,
+                    zIndex,
                   })}
                 >
                   <Flex>
                     <StyledInput
                       autoFocus
-                      placeholder="Filter search"
+                      placeholder={searchPlaceholder}
+                      padding={searchPadding}
                       {...getInputProps({onChange})}
                     />
                     <InputLoadingWrapper>
@@ -201,36 +258,46 @@ class DropdownAutoCompleteMenu extends React.Component {
                     </InputLoadingWrapper>
                   </Flex>
                   <div>
-                    {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
+                    {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
 
-                    {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
-                    {showNoResultsMessage && (
-                      <EmptyMessage>
-                        {noResultsMessage || `${emptyMessage} ${t('found')}`}
-                      </EmptyMessage>
-                    )}
-                    {busy && (
-                      <Flex justify="center" p={1}>
-                        <EmptyMessage>{t('Searching...')}</EmptyMessage>
-                      </Flex>
-                    )}
-                    {!busy &&
-                      autoCompleteResults.map(
-                        ({index, ...item}) =>
-                          item.groupLabel ? (
-                            <StyledLabel key={item.value}>{item.label}</StyledLabel>
-                          ) : (
-                            <AutoCompleteItem
-                              key={`${item.value}-${index}`}
-                              index={index}
-                              highlightedIndex={highlightedIndex}
-                              {...getItemProps({item, index})}
-                            >
-                              {item.label}
-                            </AutoCompleteItem>
-                          )
+                    <StyledItemList maxHeight={maxHeight}>
+                      {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                      {showNoResultsMessage && (
+                        <EmptyMessage>
+                          {noResultsMessage || `${emptyMessage} ${t('found')}`}
+                        </EmptyMessage>
                       )}
-                    {menuFooter && <StyledLabel>{menuFooter}</StyledLabel>}
+                      {busy && (
+                        <Flex justify="center" p={1}>
+                          <EmptyMessage>{t('Searching...')}</EmptyMessage>
+                        </Flex>
+                      )}
+                      {!busy &&
+                        autoCompleteResults.map(
+                          ({index, ...item}) =>
+                            item.groupLabel ? (
+                              !item.hideGroupLabel && (
+                                <LabelWithBorder key={item.label || item.id}>
+                                  {item.label && <GroupLabel>{item.label}</GroupLabel>}
+                                </LabelWithBorder>
+                              )
+                            ) : (
+                              <AutoCompleteItem
+                                padding={itemPadding}
+                                key={`${item.value}-${index}`}
+                                index={index}
+                                highlightedIndex={highlightedIndex}
+                                {...getItemProps({item, index})}
+                              >
+                                {typeof item.label === 'function'
+                                  ? item.label({inputValue})
+                                  : item.label}
+                              </AutoCompleteItem>
+                            )
+                        )}
+                    </StyledItemList>
+
+                    {menuFooter && <LabelWithPadding>{menuFooter}</LabelWithPadding>}
                   </div>
                 </StyledMenu>
               )}
@@ -264,6 +331,47 @@ const getMenuBorderRadius = ({blendCorner, alignMenu, theme}) => {
   `;
 };
 
+const getMenuArrow = ({menuWithArrow, alignMenu}) => {
+  if (!menuWithArrow) return '';
+  let alignRight = alignMenu === 'right';
+
+  return css`
+    top: 32px;
+
+    &::before {
+      width: 0;
+      height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-bottom: 9px solid rgba(52, 60, 69, 0.35);
+      content: '';
+      display: block;
+      position: absolute;
+      top: -9px;
+      left: 10px;
+      z-index: -2;
+      ${alignRight && 'left: auto;'};
+      ${alignRight && 'right: 10px;'};
+    }
+
+    &:after {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid #fff;
+      content: '';
+      display: block;
+      position: absolute;
+      top: -8px;
+      left: 11px;
+      z-index: -1;
+      ${alignRight && 'left: auto;'};
+      ${alignRight && 'right: 11px;'};
+    }
+  `;
+};
+
 const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   position: relative;
   display: inline-block;
@@ -285,10 +393,10 @@ const StyledInput = styled(Input)`
   &:hover {
     border: 1px solid transparent;
     border-bottom: 1px solid ${p => p.theme.borderLight};
-    border-radius: 0;
+    border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
     box-shadow: none;
     font-size: 13px;
-    padding: ${space(2)} ${space(1)};
+    padding: ${p => p.padding};
     font-weight: normal;
     color: ${p => p.gray2};
   }
@@ -298,7 +406,7 @@ const AutoCompleteItem = styled('div')`
   font-size: 0.9em;
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
-  padding: ${space(1)};
+  padding: ${p => p.padding};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLighter};
 
@@ -311,8 +419,7 @@ const AutoCompleteItem = styled('div')`
   }
 `;
 
-const StyledLabel = styled('div')`
-  padding: ${space(0.25)} ${space(1)};
+const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
@@ -320,6 +427,17 @@ const StyledLabel = styled('div')`
   &:first-child {
     border-top: none;
   }
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const LabelWithPadding = styled(LabelWithBorder)`
+  padding: ${space(0.25)} ${space(1)};
+`;
+
+const GroupLabel = styled('div')`
+  padding: ${space(0.25)} ${space(1)};
 `;
 
 const StyledMenu = styled('div')`
@@ -328,14 +446,19 @@ const StyledMenu = styled('div')`
   position: absolute;
   top: calc(100% - 1px);
   min-width: 250px;
-  z-index: 1;
-  max-height: 300px;
-  overflow-y: auto;
+  ${p => (p.zIndex > 0 ? `z-index: ${p.zIndex};` : '')};
   right: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
+
+  ${getMenuArrow};
+`;
+
+const StyledItemList = styled('div')`
+  max-height: ${p => p.maxHeight}px;
+  overflow-y: auto;
 `;
 
 const EmptyMessage = styled('div')`
@@ -346,3 +469,5 @@ const EmptyMessage = styled('div')`
 `;
 
 export default DropdownAutoCompleteMenu;
+
+export {StyledMenu};

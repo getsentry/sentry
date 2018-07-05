@@ -1,28 +1,31 @@
+import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {StyledMenu} from 'app/components/dropdownAutoCompleteMenu';
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
-import DropdownLink from 'app/components/dropdownLink';
-import FlowLayout from 'app/components/flowLayout';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import Feature from 'app/components/feature';
 import GroupStore from 'app/stores/groupStore';
+import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
-import MenuItem from 'app/components/menuItem';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
-const AssigneeSelector = createReactClass({
+const AssigneeSelectorComponent = createReactClass({
   displayName: 'AssigneeSelector',
 
   propTypes: {
@@ -39,21 +42,10 @@ const AssigneeSelector = createReactClass({
   ],
 
   statics: {
-    filterAssignees(itemList, filter) {
-      if (!itemList) return [];
-      if (!filter) return itemList;
-
-      filter = filter.toLowerCase();
-
-      return itemList.filter(item => {
-        let fullName = [item.name, item.email, item.slug].join(' ').toLowerCase();
-
-        return fullName.indexOf(filter) !== -1;
-      });
-    },
-
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
+      if (!members) return [];
+
       let sessionUser = ConfigStore.get('user');
       let sessionUserIndex = members.findIndex(
         member => sessionUser && member.id === sessionUser.id
@@ -75,18 +67,19 @@ const AssigneeSelector = createReactClass({
 
   getInitialState() {
     let group = GroupStore.get(this.props.id);
+    let memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
+    let loading = GroupStore.hasStatus(this.props.id, 'assignTo');
+
     return {
       assignedTo: group && group.assignedTo,
-      memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
-      filter: '',
-      isOpen: false,
-      loading: false,
+      memberList,
+      loading,
     };
   },
 
   componentWillReceiveProps(nextProps) {
     let loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
-    if (nextProps.id != this.props.id || loading != this.state.loading) {
+    if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       let group = GroupStore.get(this.props.id);
       this.setState({
         loading,
@@ -96,11 +89,7 @@ const AssigneeSelector = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (
-      nextState.isOpen !== this.state.isOpen ||
-      nextState.filter !== this.state.filter ||
-      nextState.loading !== this.state.loading
-    ) {
+    if (nextState.loading !== this.state.loading) {
       return true;
     }
 
@@ -119,17 +108,16 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
 
-    return AssigneeSelector.filterAssignees(
-      (ProjectsStore.getBySlug(group.project.slug) || {
-        teams: [],
-      }).teams.sort((a, b) => a.slug.localeCompare(b.slug)),
-      this.state.filter
-    ).map(team => ({
-      id: buildTeamId(team.id),
-      display: `#${team.slug}`,
-      email: team.id,
-      team,
-    }));
+    return (ProjectsStore.getBySlug(group.project.slug) || {
+      teams: [],
+    }).teams
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: `#${team.slug}`,
+        email: team.id,
+        team,
+      }));
   },
 
   onGroupChange(itemIds) {
@@ -145,258 +133,194 @@ const AssigneeSelector = createReactClass({
 
   assignToUser(user) {
     assignToUser({id: this.props.id, user});
-    this.setState({filter: '', loading: true});
+    this.setState({loading: true});
   },
 
   assignToTeam(team) {
     assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
-    this.setState({filter: '', loading: true});
+    this.setState({loading: true});
   },
 
-  clearAssignTo() {
-    //clears assignment
-    clearAssignment(this.props.id);
-    this.setState({filter: '', loading: true});
-  },
-
-  onFilterKeyUp(evt) {
-    if (evt.key === 'Escape') {
-      this.onDropdownClose();
-    } else {
-      this.setState({
-        filter: evt.target.value,
-      });
+  handleAssign({value: {type, assignee}}, state, e) {
+    if (type === 'member') {
+      this.assignToUser(assignee);
     }
-  },
 
-  onFilterKeyDown(evt) {
-    if (evt.key === 'Enter' && this.state.filter) {
-      let members = AssigneeSelector.filterAssignees(
-        this.state.memberList,
-        this.state.filter
-      );
-      if (members.length > 0) {
-        this.assignToUser(members[0]);
-      }
+    if (type === 'team') {
+      this.assignToTeam(assignee);
     }
-  },
 
-  onFilterMount(ref) {
-    if (ref) {
-      // focus filter input
-      ref.focus();
-    }
-  },
-
-  onFilterClick(e) {
-    // Prevent dropdown menu from closing when filter input is clicked
     e.stopPropagation();
   },
 
-  onDropdownOpen() {
-    this.setState({isOpen: true});
+  clearAssignTo(e) {
+    // clears assignment
+    clearAssignment(this.props.id);
+    this.setState({loading: true});
+    e.stopPropagation();
   },
 
-  onDropdownClose() {
-    this.setState({
-      isOpen: false,
-      filter: '',
-    });
-  },
-
-  highlight(text, highlightText) {
-    if (!highlightText) {
-      return text;
-    }
-    highlightText = highlightText.toLowerCase();
-    let idx = text.toLowerCase().indexOf(highlightText);
-    if (idx === -1) {
-      return text;
-    }
-    return (
-      <React.Fragment>
-        {text.substr(0, idx)}
-        <strong className="highlight">{text.substr(idx, highlightText.length)}</strong>
-        {text.substr(idx + highlightText.length)}
-      </React.Fragment>
-    );
-  },
-
-  renderMemberNodes() {
-    let {filter, memberList} = this.state;
+  renderNewMemberNodes() {
+    let {memberList} = this.state;
     let {size} = this.props;
-    let members = AssigneeSelector.filterAssignees(memberList, filter);
-    members = AssigneeSelector.putSessionUserFirst(members);
+    let members = AssigneeSelectorComponent.putSessionUserFirst(memberList);
 
-    return members.map(item => {
-      return (
-        <MenuItem
-          key={buildUserId(item.id)}
-          onSelect={this.assignToUser.bind(this, item)}
-        >
-          <MenuItemWrapper>
+    return members.map(member => {
+      return {
+        value: {type: 'member', assignee: member},
+        searchKey: `${member.email} ${member.name} ${member.slug}`,
+        label: ({inputValue}) => (
+          <MenuItemWrapper
+            key={buildUserId(member.id)}
+            onSelect={this.assignToUser.bind(this, member)}
+          >
             <IconContainer>
-              <Avatar user={item} size={size} />
+              <Avatar user={member} size={size} />
             </IconContainer>
-            <Label>{this.highlight(item.name || item.email, filter)}</Label>
+            <Label>
+              <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            </Label>
           </MenuItemWrapper>
-        </MenuItem>
-      );
+        ),
+      };
     });
   },
 
-  renderTeamNodes() {
-    let {filter} = this.state;
+  renderNewTeamNodes() {
     let {size} = this.props;
 
     return this.assignableTeams().map(({id, display, team}) => {
-      return (
-        <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
-          <MenuItemWrapper>
+      return {
+        value: {type: 'team', assignee: team},
+        searchKey: team.slug,
+        label: ({inputValue}) => (
+          <MenuItemWrapper key={id} onSelect={this.assignToTeam.bind(this, team)}>
             <IconContainer>
               <Avatar team={team} size={size} />
             </IconContainer>
-            <Label>{this.highlight(display, filter)}</Label>
+            <Label>
+              <Highlight text={inputValue}>{display}</Highlight>
+            </Label>
           </MenuItemWrapper>
-        </MenuItem>
-      );
+        ),
+      };
     });
   },
 
-  renderDropdownItems() {
-    let {loading, assignedTo} = this.state;
-    let teams = this.renderTeamNodes();
-    let members = this.renderMemberNodes();
-    let hasTeamsAndMembers = teams.length && members.length;
-    let hasTeamsOrMembers = teams.length || members.length;
+  renderNewDropdownItems() {
+    let teams = this.renderNewTeamNodes();
+    let members = this.renderNewMemberNodes();
 
-    return (
-      <React.Fragment>
-        <MenuItem noAnchor>
-          <input
-            type="text"
-            className="form-control input-sm"
-            placeholder={t('Filter teams and people')}
-            ref={ref => this.onFilterMount(ref)}
-            onClick={this.onFilterClick}
-            onKeyDown={this.onFilterKeyDown}
-            onKeyUp={this.onFilterKeyUp}
-          />
-        </MenuItem>
-
-        {assignedTo && (
-          <MenuItem
-            className="clear-assignee"
-            disabled={!loading}
-            onSelect={this.clearAssignTo}
-          >
-            <MenuItemWrapper py={0}>
-              <IconContainer>
-                <ClearAssigneeIcon />
-              </IconContainer>
-              <Label>{t('Clear Assignee')}</Label>
-            </MenuItemWrapper>
-          </MenuItem>
-        )}
-
-        <li>
-          <ul>
-            {teams}
-            {hasTeamsAndMembers ? <Divider key="divider" /> : null}
-            {members}
-            {!hasTeamsOrMembers && (
-              <li className="not-found">
-                <span>{t('No matches found.')}</span>
-              </li>
-            )}
-          </ul>
-        </li>
-      </React.Fragment>
-    );
+    return [
+      {id: 'team-header', hideGroupLabel: true, items: teams},
+      {id: 'members-header', items: members},
+    ];
   },
 
   render() {
-    let {loading, assignedTo} = this.state;
-    let group = GroupStore.get(this.props.id);
-
-    let org = this.context.organization;
-    let access = new Set(org.access);
-
-    let assigneeListLoading = this.state.memberList === null || !group;
-
-    if (loading) {
-      return (
-        <div>
-          <div className="assignee-selector anchor-right">
-            <LoadingIndicator mini style={{marginRight: '10px'}} />
-          </div>
-        </div>
-      );
-    }
-
-    let className = classNames('assignee-selector anchor-right', {
-      unassigned: !assignedTo,
-    });
+    let {className} = this.props;
+    let {loading, assignedTo, memberList} = this.state;
+    let canInvite = ConfigStore.get('invitesEnabled');
 
     return (
       <div className={className}>
-        <DropdownLink
-          className="assignee-selector-toggle"
-          onOpen={this.onDropdownOpen}
-          onClose={this.onDropdownClose}
-          isOpen={this.state.isOpen}
-          alwaysRenderMenu={false}
-          title={
-            assignedTo ? (
-              <ActorAvatar actor={assignedTo} className="avatar" size={24} />
-            ) : (
-              <span className="icon-user" />
-            )
-          }
-        >
-          {assigneeListLoading ? (
-            <li>
-              <FlowLayout center className="list-loading-container">
-                <LoadingIndicator mini />
-              </FlowLayout>
-            </li>
-          ) : (
-            this.renderDropdownItems()
-          )}
-          {ConfigStore.get('invitesEnabled') &&
-            access.has('org:write') && (
-              <React.Fragment>
-                <Divider />
-                <MenuItem
-                  className="invite-member"
+        {loading && (
+          <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
+        )}
+        {!loading && (
+          <DropdownAutoComplete
+            maxHeight={400}
+            zIndex={2}
+            onOpen={e => {
+              // This can be called multiple times and does not always have `event`
+              if (!e) return;
+              e.stopPropagation();
+            }}
+            busy={memberList === null}
+            items={memberList !== null ? this.renderNewDropdownItems() : []}
+            alignMenu="right"
+            onSelect={this.handleAssign}
+            itemPadding={`5px ${space(1)}`}
+            searchPadding={`${space(1)}`}
+            searchPlaceholder={t('Filter teams and people')}
+            menuWithArrow
+            menuHeader={
+              assignedTo && (
+                <ClearAssignee
+                  data-test-id="clear-assignee"
                   disabled={!loading}
-                  to={`/settings/${this.context.organization.slug}/members/new/`}
-                  query={{referrer: 'assignee_selector'}}
+                  onClick={this.clearAssignTo}
+                  py={0}
                 >
-                  <MenuItemWrapper>
+                  <IconContainer>
+                    <ClearAssigneeIcon />
+                  </IconContainer>
+                  <Label>{t('Clear Assignee')}</Label>
+                </ClearAssignee>
+              )
+            }
+            menuFooter={
+              canInvite && (
+                <Feature access={['org:write']}>
+                  <InviteMemberLink
+                    data-test-id="invite-member"
+                    disabled={loading}
+                    to={`/settings/${this.context.organization
+                      .slug}/members/new/?referrer=assignee_selector`}
+                  >
                     <IconContainer>
                       <InviteMemberIcon />
                     </IconContainer>
                     <Label>{t('Invite Member')}</Label>
-                  </MenuItemWrapper>
-                </MenuItem>
-              </React.Fragment>
-            )}
-        </DropdownLink>
+                  </InviteMemberLink>
+                </Feature>
+              )
+            }
+          >
+            {({getActorProps}) => {
+              return (
+                <DropdownButton {...getActorProps({})}>
+                  {assignedTo ? (
+                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                  ) : (
+                    <IconUser />
+                  )}
+                  <StyledChevron src="icon-chevron-down" />
+                </DropdownButton>
+              );
+            }}
+          </DropdownAutoComplete>
+        )}
       </div>
     );
   },
 });
 
+const AssigneeSelector = styled(AssigneeSelectorComponent)`
+  display: flex;
+  justify-content: flex-end;
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${StyledMenu} {
+    right: -14px;
+  }
+`;
+
 export default AssigneeSelector;
+export {AssigneeSelectorComponent};
 
 const getSvgStyle = () => `
   font-size: 16px;
   opacity: 0.3;
 `;
 
-const Divider = styled.hr`
-  margin: 0;
+const IconUser = styled(props => (
+  <div {...props}>
+    <span className="icon-user" />
+  </div>
+))`
+  width: 24px;
+  text-align: center;
 `;
 
 const IconContainer = styled.div`
@@ -408,16 +332,30 @@ const IconContainer = styled.div`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
+const menuItemCss = props => css`
+  cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 5px 8px;
-  ${p =>
-    typeof p.py !== 'undefined' &&
+  font-size: 13px;
+  ${typeof props.py !== 'undefined' &&
     `
-      padding-top: ${p.py};
-      padding-bottom: ${p.py};
+      padding-top: ${props.py};
+      padding-bottom: ${props.py};
     `};
+`;
+
+const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
+  ${menuItemCss};
+`;
+
+const ClearAssignee = styled(MenuItemWrapper)`
+  background: rgba(52, 60, 69, 0.03);
+  border-bottom: 1px solid rgba(52, 60, 69, 0.06);
+`;
+
+const InviteMemberLink = styled(Link)`
+  ${menuItemCss};
+  color: ${p => p.theme.textColor};
 `;
 
 const Label = styled(TextOverflow)`
@@ -432,4 +370,15 @@ const ClearAssigneeIcon = styled(props => (
 
 const InviteMemberIcon = styled(props => <InlineSvg {...props} src="icon-circle-add" />)`
   ${getSvgStyle};
+`;
+
+const StyledChevron = styled(InlineSvg)`
+  margin-left: ${space(1)};
+  font-size: 12px;
+`;
+
+const DropdownButton = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 20px;
 `;
