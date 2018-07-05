@@ -105,6 +105,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
             "name": "Organization Name",
             "onboardingTasks": Array [],
             "projects": Array [],
+            "scrapeJavaScript": true,
             "slug": "org-slug",
             "status": Object {
               "id": "active",
@@ -1316,6 +1317,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
             "name": "Organization Name",
             "onboardingTasks": Array [],
             "projects": Array [],
+            "scrapeJavaScript": true,
             "slug": "org-slug",
             "status": Object {
               "id": "active",

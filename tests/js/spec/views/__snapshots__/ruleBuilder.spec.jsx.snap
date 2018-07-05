@@ -29,6 +29,7 @@ exports[`RuleBuilder renders 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "projects": Array [],
+      "scrapeJavaScript": true,
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -440,6 +441,7 @@ exports[`RuleBuilder renders 1`] = `
                   "name": "Organization Name",
                   "onboardingTasks": Array [],
                   "projects": Array [],
+                  "scrapeJavaScript": true,
                   "slug": "org-slug",
                   "status": Object {
                     "id": "active",
@@ -998,6 +1000,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "projects": Array [],
+      "scrapeJavaScript": true,
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -1631,6 +1634,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   "name": "Organization Name",
                   "onboardingTasks": Array [],
                   "projects": Array [],
+                  "scrapeJavaScript": true,
                   "slug": "org-slug",
                   "status": Object {
                     "id": "active",

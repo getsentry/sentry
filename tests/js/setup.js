@@ -667,6 +667,7 @@ window.TestStubs = {
         id: 'active',
         name: 'active',
       },
+      scrapeJavaScript: true,
       features: [],
       onboardingTasks: [],
       teams: [],

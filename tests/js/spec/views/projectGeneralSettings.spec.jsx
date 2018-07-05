@@ -73,6 +73,9 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('TextArea[name="allowedDomains"]').prop('value')).toBe(
       'example.com\nhttps://example.com'
     );
+    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isDisabled')).toBe(
+      false
+    );
     expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeTruthy();
     expect(wrapper.find('Input[name="securityToken"]').prop('value')).toBe(
       'security-token'
@@ -96,6 +99,16 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isActive')).toBeFalsy();
     expect(wrapper.find('Switch[name="dataScrubber"]').prop('isDisabled')).toBe(true);
     expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBe(true);
+  });
+
+  it('disables scrapeJavaScript when equivalent org setting is false', function() {
+    routerContext.context.organization.scrapeJavaScript = false;
+    let wrapper = mount(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
+      routerContext
+    );
+    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isDisabled')).toBe(true);
+    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeFalsy();
   });
 
   it('project admins can remove project', function() {
