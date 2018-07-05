@@ -213,7 +213,7 @@ class AccountConfigView(PipelineView):
                 pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
                 return pipeline.next_step()
 
-        access_token = pipeline.fetch_state(key='data')['access_token']
+        access_token = pipeline.fetch_state(key='identity')['data']['access_token']
         accounts = self.get_accounts(access_token)
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
