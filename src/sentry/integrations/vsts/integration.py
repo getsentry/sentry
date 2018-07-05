@@ -163,6 +163,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state['identity']['data']
+        oauth_data = self.get_oauth_data(data)
         account = state['account']
         instance = state['instance']
         user = get_user_info(data['access_token'])
@@ -182,7 +183,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'type': 'vsts',
                 'external_id': user['id'],
                 'scopes': scopes,
-                'data': self.get_oauth_data(data),
+                'data': oauth_data,
             },
         }
 
