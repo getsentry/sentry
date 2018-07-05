@@ -29,7 +29,7 @@ class GroupEventJsonView(ProjectView):
         else:
             event = get_object_or_404(group.event_set, pk=event_id_or_latest)
 
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
         GroupMeta.objects.populate_cache([group])
 
         return HttpResponse(json.dumps(event.as_dict()), content_type='application/json')

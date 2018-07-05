@@ -129,7 +129,7 @@ class EventNodeStoreTest(TestCase):
         node_id = event.node_data.id
         event = Event.objects.get(id=event_id)
 
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
 
         assert event.node_data == data
         assert event.node_data.id == node_id
@@ -147,14 +147,14 @@ class EventNodeStoreTest(TestCase):
         assert event.node_data.get_ref(event) != event.node_data.get_ref(invalid_event)
 
         with pytest.raises(NodeIntegrityFailure):
-            Event.objects.bind_nodes([event], 'node_data')
+            Event.objects.bind_nodes([event], 'data')
 
     def test_accepts_valid_ref(self):
         event = self.create_event()
         event.node_data.bind_ref(event)
         event.save()
 
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
 
         assert event.node_data.ref == event.project.id
 

@@ -479,7 +479,7 @@ class CspReportTest(TestCase):
         assert resp.status_code == 201, resp.content
         assert Event.objects.count() == 1
         e = Event.objects.all()[0]
-        Event.objects.bind_nodes([e], 'node_data')
+        Event.objects.bind_nodes([e], 'data')
         assert output['message'] == e.data['sentry.interfaces.Message']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value

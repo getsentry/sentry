@@ -261,7 +261,7 @@ def _rehash_group_events(group, limit=100):
     environment_cache = {}
     project = group.project
     event_list = list(Event.objects.filter(group_id=group.id)[:limit])
-    Event.objects.bind_nodes(event_list, 'node_data')
+    Event.objects.bind_nodes(event_list, 'data')
 
     for event in event_list:
         fingerprint = event.data.get('fingerprint', ['{{ default }}'])

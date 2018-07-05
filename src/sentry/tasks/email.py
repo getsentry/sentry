@@ -57,7 +57,7 @@ def process_inbound_email(mailfrom, group_id, payload):
     event = group.get_latest_event()
 
     if event:
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
         event.group = group
         event.project = group.project
 

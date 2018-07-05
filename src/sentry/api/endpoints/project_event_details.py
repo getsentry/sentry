@@ -47,7 +47,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         except Event.DoesNotExist:
             return Response({'detail': 'Event not found'}, status=404)
 
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
 
         # HACK(dcramer): work around lack of unique sorting on datetime
         base_qs = Event.objects.filter(

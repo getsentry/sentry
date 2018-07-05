@@ -36,7 +36,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
         self.check_object_permissions(request, event.group)
 
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
 
         if event.platform not in ('cocoa', 'native'):
             return HttpResponse(

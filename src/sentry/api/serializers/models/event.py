@@ -38,7 +38,7 @@ class EventSerializer(Serializer):
         return [i[1] for i in interface_list]
 
     def get_attrs(self, item_list, user, is_public=False):
-        Event.objects.bind_nodes(item_list, 'node_data')
+        Event.objects.bind_nodes(item_list, 'data')
 
         results = {}
         for item in item_list:

@@ -30,7 +30,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             return Response({'detail': 'Event not found'}, status=404)
 
         # populate event data
-        Event.objects.bind_nodes([event], 'node_data')
+        Event.objects.bind_nodes([event], 'data')
 
         try:
             committers = get_event_file_committers(

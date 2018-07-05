@@ -160,7 +160,7 @@ def get_previous_releases(project, start_version, limit=5):
 
 def get_event_file_committers(project, event, frame_limit=25):
     # populate event data
-    Event.objects.bind_nodes([event], 'node_data')
+    Event.objects.bind_nodes([event], 'data')
 
     group = Group.objects.get(id=event.group_id)
 
