@@ -38,15 +38,19 @@ def send_beacon():
     from sentry import options
     from sentry.models import Broadcast, Organization, Project, Team, User
 
-    if not settings.SENTRY_BEACON:
-        logger.info('Not sending beacon (disabled)')
-        return
-
     install_id = options.get('sentry:install-id')
     if not install_id:
-        logger.info('Generated installation ID: %s', install_id)
         install_id = sha1(uuid4().bytes).hexdigest()
+        logger.info('beacon.generated-install-id', extra={'install_id': install_id})
         options.set('sentry:install-id', install_id)
+
+    if not settings.SENTRY_BEACON:
+        logger.info('beacon.skipped', extra={'install_id': install_id, 'reason': 'disabled'})
+        return
+
+    if settings.DEBUG:
+        logger.info('beacon.skipped', extra={'install_id': install_id, 'reason': 'debug'})
+        return
 
     end = timezone.now()
     events_24h = tsdb.get_sums(
@@ -85,8 +89,10 @@ def send_beacon():
         request = safe_urlopen(BEACON_URL, json=payload, timeout=5)
         response = safe_urlread(request)
     except Exception:
-        logger.warning('Failed sending beacon', exc_info=True)
+        logger.warning('beacon.failed', exc_info=True, extra={'install_id': install_id})
         return
+    else:
+        logger.info('beacon.sent', extra={'install_id': install_id})
 
     data = json.loads(response)
 
