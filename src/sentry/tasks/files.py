@@ -17,5 +17,5 @@ def delete_file(path, checksum, **kwargs):
 
     lock = locks.get('fileblob:upload:{}'.format(checksum), duration=60 * 10)
     with TimedRetryPolicy(60)(lock.acquire):
-        if FileBlob.objects.filter(checksum=checksum).exists():
+        if not FileBlob.objects.filter(checksum=checksum).exists():
             get_storage().delete(path)
