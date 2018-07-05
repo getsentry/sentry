@@ -20,7 +20,7 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import buffer, eventtypes, features, tsdb
+from sentry import buffer, eventtypes, eventstream, features, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
@@ -42,7 +42,6 @@ from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
-from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import is_float
@@ -52,14 +51,6 @@ from sentry.stacktraces import normalize_in_app
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
-
-
-post_process_callback = getattr(settings, 'SENTRY_POST_PROCESS_CALLBACK', None)
-if post_process_callback is None:
-    from sentry.tasks.post_process import post_process_group
-    post_process_callback = post_process_group.delay
-else:
-    post_process_callback = import_string(post_process_callback)
 
 
 def count_limit(count):
@@ -940,17 +931,21 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send(project=project, group=group, sender=Project)
 
-            post_process_callback(
-                group=group,
-                event=event,
-                is_new=is_new,
-                is_sample=is_sample,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                primary_hash=hashes[0],
-            )
-        else:
-            self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
+        eventstream.publish(
+            group=group,
+            event=event,
+            is_new=is_new,
+            is_sample=is_sample,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            primary_hash=hashes[0],
+            # We are choosing to skip consuming the event back
+            # in the eventstream if it's flagged as raw.
+            # This means that we want to publish the event
+            # through the event stream, but we don't care
+            # about post processing and handling the commit.
+            skip_consume=raw,
+        )
 
         metrics.timing(
             'events.latency',
