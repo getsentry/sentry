@@ -52,8 +52,7 @@ class Gravatar extends React.Component {
       s: remoteSize || undefined,
       // If gravatar is not found we need the request to return an error,
       // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
-      d: placeholder || '404', 
-     
+      d: placeholder || '404',
     };
 
     url += '?' + qs.stringify(query);
