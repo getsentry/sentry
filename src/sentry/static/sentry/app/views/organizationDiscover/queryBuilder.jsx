@@ -3,7 +3,7 @@
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
-import {COLUMNS} from './data';
+import {COLUMNS, PROMOTED_TAGS} from './data';
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -57,9 +57,13 @@ export default function createQueryBuilder(initial = {}, organization) {
         .subtract(90, 'days')
         .format(DATE_TIME_FORMAT),
       end: moment().format(DATE_TIME_FORMAT),
-    }).then(res => {
-      tags = res.data[0].tags_key;
-    });
+    })
+      .then(res => {
+        tags = res.data[0].tags_key.map(tag => ({name: tag, type: 'string'}));
+      })
+      .catch(err => {
+        tags = PROMOTED_TAGS;
+      });
   }
 
   function getInternal() {
@@ -110,6 +114,6 @@ export default function createQueryBuilder(initial = {}, organization) {
 
   // Get all columns, including tags
   function getColumns() {
-    return [...COLUMNS, ...tags.map(tag => ({name: tag, type: 'string'}))];
+    return [...COLUMNS, ...tags];
   }
 }
