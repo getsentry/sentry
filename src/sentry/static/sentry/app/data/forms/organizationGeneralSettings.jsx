@@ -183,6 +183,17 @@ const formGroups = [
           ),
         },
       },
+      {
+        name: 'scrapeJavaScript',
+        type: 'boolean',
+        confirm: {
+          false: t(
+            "Are you sure you want to disable sourcecode fetching for JavaScript events? This will affect Sentry's ability to aggregate issues if you're not already uploading sourcemaps as artifacts."
+          ),
+        },
+        label: t('Allow JavaScript source fetching'),
+        help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+      },
     ],
   },
 ];

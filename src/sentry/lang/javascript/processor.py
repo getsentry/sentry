@@ -476,7 +476,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         self.max_fetches = MAX_RESOURCE_FETCHES
-        self.allow_scraping = self.project.get_option('sentry:scrape_javascript', True)
+        self.allow_scraping = (
+            self.project.organization.get_option('sentry:scrape_javascript', True) is not False
+            and self.project.get_option('sentry:scrape_javascript', True)
+        )
         self.fetch_count = 0
         self.sourcemaps_touched = set()
         self.cache = SourceCache()

@@ -45,6 +45,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
           ],
         },
       ],
+      "scrapeJavaScript": true,
       "slug": "org",
       "status": Object {
         "id": "active",
@@ -506,6 +507,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
           ],
         },
       ],
+      "scrapeJavaScript": true,
       "slug": "org",
       "status": Object {
         "id": "active",
@@ -1196,6 +1198,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
           ],
         },
       ],
+      "scrapeJavaScript": true,
       "slug": "org",
       "status": Object {
         "id": "active",

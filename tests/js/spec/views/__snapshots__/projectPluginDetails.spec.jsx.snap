@@ -26,6 +26,7 @@ exports[`ProjectPluginDetails renders 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "projects": Array [],
+      "scrapeJavaScript": true,
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -78,6 +79,7 @@ exports[`ProjectPluginDetails renders 1`] = `
         "name": "Organization Name",
         "onboardingTasks": Array [],
         "projects": Array [],
+        "scrapeJavaScript": true,
         "slug": "org-slug",
         "status": Object {
           "id": "active",
@@ -370,6 +372,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     "name": "Organization Name",
                     "onboardingTasks": Array [],
                     "projects": Array [],
+                    "scrapeJavaScript": true,
                     "slug": "org-slug",
                     "status": Object {
                       "id": "active",
@@ -526,6 +529,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     "name": "Organization Name",
                                     "onboardingTasks": Array [],
                                     "projects": Array [],
+                                    "scrapeJavaScript": true,
                                     "slug": "org-slug",
                                     "status": Object {
                                       "id": "active",

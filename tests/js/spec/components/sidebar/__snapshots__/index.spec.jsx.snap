@@ -157,6 +157,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "projects": Array [],
+      "scrapeJavaScript": true,
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -191,6 +192,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           "name": "Organization Name",
           "onboardingTasks": Array [],
           "projects": Array [],
+          "scrapeJavaScript": true,
           "slug": "org-slug",
           "status": Object {
             "id": "active",
@@ -225,6 +227,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 "name": "Organization Name",
                 "onboardingTasks": Array [],
                 "projects": Array [],
+                "scrapeJavaScript": true,
                 "slug": "org-slug",
                 "status": Object {
                   "id": "active",
@@ -256,6 +259,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   "name": "Organization Name",
                   "onboardingTasks": Array [],
                   "projects": Array [],
+                  "scrapeJavaScript": true,
                   "slug": "org-slug",
                   "status": Object {
                     "id": "active",
@@ -463,6 +467,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           "name": "Organization Name",
           "onboardingTasks": Array [],
           "projects": Array [],
+          "scrapeJavaScript": true,
           "slug": "org-slug",
           "status": Object {
             "id": "active",

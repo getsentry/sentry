@@ -36,6 +36,7 @@ ORG_OPTIONS = (
     ('sensitiveFields', 'sentry:sensitive_fields', list),
     ('safeFields', 'sentry:safe_fields', list),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
+    ('scrapeJavaScript', 'sentry:scrape_javascript', bool),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -84,6 +85,7 @@ class OrganizationSerializer(serializers.Serializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
+    scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
 
