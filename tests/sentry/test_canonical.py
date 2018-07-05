@@ -141,3 +141,45 @@ class CanonicalKeyDictTests(TestCase):
             'sentry.interfaces.Exception': {'type': 'INVALID'},
             'sentry.interfaces.User': {'id': 'INVALID'},
         })) == 3
+
+
+class LegacyCanonicalKeyDictTests(TestCase):
+    canonical_data = {
+        'release': 'asdf',
+        'sentry.interfaces.Exception': {'type': 'DemoException'},
+        'sentry.interfaces.User': {'id': 'DemoUser'},
+    }
+
+    def test_canonical(self):
+        assert CanonicalKeyDict({
+            'release': 'asdf',
+            'exception': {'type': 'DemoException'},
+            'user': {'id': 'DemoUser'},
+        }, legacy=True) == self.canonical_data
+
+    def test_legacy(self):
+        assert CanonicalKeyDict({
+            'release': 'asdf',
+            'sentry.interfaces.Exception': {'type': 'DemoException'},
+            'sentry.interfaces.User': {'id': 'DemoUser'},
+        }, legacy=True) == self.canonical_data
+
+    def test_mixed(self):
+        assert CanonicalKeyDict({
+            'release': 'asdf',
+            'sentry.interfaces.Exception': {'type': 'DemoException'},
+            'sentry.interfaces.User': {'id': 'DemoUser'},
+            'exception': {'type': 'INVALID'},
+            'user': {'id': 'INVALID'},
+        }, legacy=True) == self.canonical_data
+
+    def test_getitem_setitem(self):
+        d = CanonicalKeyDict({'user': {'id': 'DemoUser'}}, legacy=True)
+        d['user'] = {'id': 'other'}
+        assert d['user'] == {'id': 'other'}
+        assert d['sentry.interfaces.User'] == {'id': 'other'}
+
+        d = CanonicalKeyDict({'user': {'id': 'DemoUser'}}, legacy=True)
+        d['sentry.interfaces.User'] = {'id': 'other'}
+        assert d['user'] == {'id': 'other'}
+        assert d['sentry.interfaces.User'] == {'id': 'other'}
