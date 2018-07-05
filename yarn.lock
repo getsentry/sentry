@@ -3375,6 +3375,13 @@ ecc-jsbn@~0.1.1:
   dependencies:
     jsbn "~0.1.0"
 
+echarts-for-react@^2.0.13:
+  version "2.0.13"
+  resolved "https://registry.yarnpkg.com/echarts-for-react/-/echarts-for-react-2.0.13.tgz#fd1bff5bcf6ebf2709b0fd28355f42b762dc89a4"
+  dependencies:
+    fast-deep-equal "^2.0.1"
+    size-sensor "^0.0.4"
+
 echarts@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/echarts/-/echarts-4.1.0.tgz#d588c95f73c1a9928b9c73d5b769751c3185bcdc"
@@ -4019,6 +4026,10 @@ extsprintf@1.3.0, extsprintf@^1.2.0:
 fast-deep-equal@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-1.0.0.tgz#96256a3bc975595eb36d82e9929d060d893439ff"
+
+fast-deep-equal@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz#7b05218ddf9667bf7f370bf7fdb2cb15fdd0aa49"
 
 fast-json-stable-stringify@^2.0.0:
   version "2.0.0"
@@ -8960,6 +8971,10 @@ sinon@1.17.2:
     lolex "1.3.2"
     samsam "1.1.2"
     util ">=0.10.3 <1"
+
+size-sensor@^0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/size-sensor/-/size-sensor-0.0.4.tgz#e72a2b5346fa6009ce8703a72859fafbd75a5b7b"
 
 slash@^1.0.0:
   version "1.0.0"

@@ -2,13 +2,13 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import DiscoverChartJS from 'app/components/discoverChartJS';
+import DiscoverEcharts from 'app/components/discoverEcharts';
 
-storiesOf('Discover: Chart.JS', module).add(
+storiesOf('Discover: Echarts', module).add(
   'default',
   withInfo('Sample chart using chart.js')(() => (
     <div style={{padding: 20, backgroundColor: '#ffffff'}}>
-      <DiscoverChartJS />
+      <DiscoverEcharts />
     </div>
   ))
 );

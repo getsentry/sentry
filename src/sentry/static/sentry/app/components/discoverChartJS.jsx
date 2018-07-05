@@ -53,6 +53,6 @@ export default class discoverChartJS extends React.Component {
         <h2>Line Example</h2>
         <Line data={dataAgg} options={optionStuff}/>
       </div>
-    )
+    );
   }
 }
