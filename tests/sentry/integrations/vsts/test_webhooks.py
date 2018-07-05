@@ -14,6 +14,7 @@ from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.utils.http import absolute_uri
 from .testutils import (
     WORK_ITEM_UPDATED,
+    WORK_ITEM_UNASSIGNED,
 )
 
 
@@ -22,7 +23,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.access_token = '1234567890'
-        self.account_id = 'f844ec47-a9db-4511-8281-8b63f4eaf94e'
+        self.account_id = u'80ded3e8-3cd3-43b1-9f96-52032624aa3a'
         self.instance = 'instance.visualstudio.com'
         self.model = Integration.objects.create(
             provider='vsts',
@@ -50,21 +51,49 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.user_to_assign = self.create_user('sentryuseremail@email.com')
 
     @responses.activate
-    @patch('sentry.integrations.vsts.webhooks.sync_group_assignee_inbound')
-    def test_workitem_change_assignee(self, mock_sync_group_assignee_inbound):
-        work_item_id = '27646e0e-b520-4d2b-9411-bba7524947cd'
+    def test_workitem_change_assignee(self):
+        work_item_id = 31
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.model.id,
             key=work_item_id,
         )
+        with patch('sentry.integrations.vsts.webhooks.sync_group_assignee_inbound') as mock:
+            resp = self.client.post(
+                absolute_uri('/extensions/vsts/webhook/'),
+                data=WORK_ITEM_UPDATED,
+            )
 
-        resp = self.client.post(
-            absolute_uri('/extensions/vsts/webhooks/'),
-            data=WORK_ITEM_UPDATED,
+            assert resp.status_code == 200
+            external_issue = ExternalIssue.objects.get(id=external_issue.id)
+            assert mock.call_count == 1
+            args = mock.call_args[1]
+
+            assert args['integration'].__class__ == Integration
+            assert args['email'] == 'lauryn@sentry.io'
+            assert args['external_issue_key'] == work_item_id
+            assert args['assign'] is True
+
+    @responses.activate
+    def test_workitem_unassign(self):
+        work_item_id = 33
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.model.id,
+            key=work_item_id,
         )
-        assert resp.status_code == 200
-        external_issue = ExternalIssue.objects.get(id=external_issue.id)
-        mock_sync_group_assignee_inbound.assert_called_with(
-            self.integration, 'lauryn@sentry.io', work_item_id, assign=True,
-        )
+        with patch('sentry.integrations.vsts.webhooks.sync_group_assignee_inbound') as mock:
+            resp = self.client.post(
+                absolute_uri('/extensions/vsts/webhook/'),
+                data=WORK_ITEM_UNASSIGNED,
+            )
+
+            assert resp.status_code == 200
+            external_issue = ExternalIssue.objects.get(id=external_issue.id)
+            assert mock.call_count == 1
+            args = mock.call_args[1]
+
+            assert args['integration'].__class__ == Integration
+            assert args['email'] is None
+            assert args['external_issue_key'] == work_item_id
+            assert args['assign'] is False

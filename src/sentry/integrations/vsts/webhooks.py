@@ -43,11 +43,15 @@ class WorkItemWebhook(Endpoint):
         # self.handle_status_change(integration, external_issue_key, status_change)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
-        new_value = assigned_to.get('newValue', UNSET)
-        if new_value == UNSET:
+        if not assigned_to:
             return
-        email = self.parse_email(new_value)
-        assign = True if new_value is not None else False
+        new_value = assigned_to.get('newValue')
+        if new_value is not None:
+            email = self.parse_email(new_value)
+            assign = True
+        else:
+            email = None
+            assign = False
         sync_group_assignee_inbound(
             integration=integration,
             email=email,
