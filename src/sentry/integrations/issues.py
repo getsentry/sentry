@@ -42,7 +42,7 @@ class IssueBasicMixin(object):
         >>>{'title': 'TypeError: Object [object Object] has no method "updateFrom"''}
 
         to `create_issue`, which handles creation of the issue
-        in JIRA, VSTS, Github, etc
+        in Jira, VSTS, GitHub, etc
         """
         event = group.get_latest_event()
         if event is not None:

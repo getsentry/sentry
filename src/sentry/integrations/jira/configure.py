@@ -11,7 +11,7 @@ from sentry.models import OrganizationIntegration, ProjectIntegration
 class JiraConfigForm(forms.Form):
     organizations = forms.TypedMultipleChoiceField(
         label='Enabled Sentry Organizations',
-        help_text="Select which Sentry organizations the JIRA Integration is enabled for. Note, removing the integration from an organization will clear it's settings.",
+        help_text="Select which Sentry organizations the Jira Integration is enabled for. Note, removing the integration from an organization will clear it's settings.",
         coerce=int,
         choices=tuple(),
         required=False,
@@ -56,7 +56,7 @@ class JiraConfigureView(BaseView):
         enabled_orgs = form.cleaned_data['organizations']
         disabled_orgs = list(set(o.id for o in organizations) - set(enabled_orgs))
 
-        # Remove organization and project JIRA integrations not in the set of
+        # Remove organization and project Jira integrations not in the set of
         # enabled organizations
         OrganizationIntegration.objects.filter(
             integration__provider='jira',

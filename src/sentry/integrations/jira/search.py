@@ -68,7 +68,7 @@ class JiraSearchEndpoint(OrganizationEndpoint):
                 jira_query['username'] = query.encode('utf8')
                 jira_query.pop(
                     'issueKey', False
-                )  # some reason JIRA complains if this key is in the URL.
+                )  # some reason Jira complains if this key is in the URL.
                 jira_query['project'] = request.GET.get('project', '').encode('utf8')
             elif is_user_picker:
                 is_xml = False
@@ -114,7 +114,7 @@ class JiraSearchEndpoint(OrganizationEndpoint):
                         if user.get('name'):
                             users.append(self._get_formatted_user(user))
 
-            # if JIRA user doesn't have proper permission for user api,
+            # if Jira user doesn't have proper permission for user api,
             # try the assignee api instead
             if not users and is_user_api:
                 try:
@@ -123,7 +123,7 @@ class JiraSearchEndpoint(OrganizationEndpoint):
                         jira_query.get('username'),
                     )
                 except (ApiUnauthorized, ApiError):
-                    return Response({'detail': 'Unable to fetch users from JIRA'}, status=400)
+                    return Response({'detail': 'Unable to fetch users from Jira'}, status=400)
 
                 for user in autocomplete_response:
                     if user.get('name'):

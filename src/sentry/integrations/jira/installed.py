@@ -23,8 +23,8 @@ class JiraInstalledEndpoint(Endpoint):
         data = JiraIntegrationProvider().build_integration(state)
         integration = ensure_integration('jira', data)
 
-        # Sync integration metadata from JIRA. This msut be executed *after*
-        # the integration has been isntalled on JIRA as the access tokens will
+        # Sync integration metadata from Jira. This msut be executed *after*
+        # the integration has been isntalled on Jira as the access tokens will
         # not work until then.
         sync_metadata.apply_async([integration.get_installation()], countdown=10)
 

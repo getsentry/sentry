@@ -44,7 +44,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         integration = Integration.objects.create(
             provider='jira',
-            name='Example JIRA',
+            name='Example Jira',
         )
         integration.add_organization(org.id)
 

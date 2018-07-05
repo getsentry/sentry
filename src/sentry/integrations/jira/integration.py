@@ -28,14 +28,14 @@ metadata = IntegrationMetadata(
     description='Sync Sentry and JIRA issues.',
     author='The Sentry Team',
     noun=_('Instance'),
-    issue_url='https://github.com/getsentry/sentry/issues/new?title=JIRA%20Integration:%20&labels=Component%3A%20Integrations',
+    issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira',
     aspects={
         'alert_link': alert_link,
     },
 )
 
-# A list of common builtin custom field types for JIRA for easy reference.
+# A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
     'select': 'com.atlassian.jira.plugin.system.customfieldtypes:select',
     'textarea': 'com.atlassian.jira.plugin.system.customfieldtypes:textarea',
@@ -51,17 +51,17 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'name': 'resolve_status',
                 'type': 'choice',
                 'allowEmpty': True,
-                'label': _('JIRA Resolved Status'),
+                'label': _('Jira Resolved Status'),
                 'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked JIRA ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+                'help': _('Declares what the linked Jira ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
             },
             {
                 'name': 'unresolve_status',
                 'type': 'choice',
                 'allowEmpty': True,
-                'label': _('JIRA Un-Resolved Status'),
+                'label': _('Jira Un-Resolved Status'),
                 'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked JIRA ticket workflow status should be transitioned to when the Sentry issue is unresolved.'),
+                'help': _('Declares what the linked Jira ticket workflow status should be transitioned to when the Sentry issue is unresolved.'),
             },
             {
                 'name': 'resolve_when',
@@ -69,7 +69,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'allowEmpty': True,
                 'label': _('Resolve in Sentry When'),
                 'placeholder': _('Select a Status'),
-                'help': _('When a JIRA ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
+                'help': _('When a Jira ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
             },
             {
                 'name': 'unresolve_when',
@@ -77,25 +77,25 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'allowEmpty': True,
                 'label': _('Un-Resolve in Sentry When'),
                 'placeholder': _('Select a Status'),
-                'help': _('When a JIRA ticket is transitioned to this status, mark the Sentry issue as unresolved.'),
+                'help': _('When a Jira ticket is transitioned to this status, mark the Sentry issue as unresolved.'),
             },
             {
                 'name': 'sync_comments',
                 'type': 'boolean',
-                'label': _('Post Comments to JIRA'),
-                'help': _('Synchronize comments from Sentry issues to linked JIRA tickets.'),
+                'label': _('Post Comments to Jira'),
+                'help': _('Synchronize comments from Sentry issues to linked Jira tickets.'),
             },
             {
                 'name': 'sync_forward_assignment',
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to JIRA'),
-                'help': _('When assigning something in Sentry, the linked JIRA ticket will have the associated JIRA user assigned.'),
+                'label': _('Synchronize Assignment to Jira'),
+                'help': _('When assigning something in Sentry, the linked Jira ticket will have the associated Jira user assigned.'),
             },
             {
                 'name': 'sync_reverse_assignment',
                 'type': 'boolean',
                 'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assigning a user to a Linked JIRA ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'help': _('When assigning a user to a Linked Jira ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
 
@@ -129,7 +129,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         self.model.name = server_info['serverTitle']
 
-        # There is no JIRA instance icon (there is a favicon, but it doesn't seem
+        # There is no Jira instance icon (there is a favicon, but it doesn't seem
         # possible to query that with the API). So instead we just use the first
         # project Icon.
         if len(projects) > 0:
@@ -200,7 +200,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
     def build_dynamic_field(self, group, field_meta):
         """
-        Builds a field based on JIRA's meta field information
+        Builds a field based on Jira's meta field information
         """
         schema = field_meta['schema']
 
@@ -273,7 +273,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             resp = client.get_create_meta(params.get('project'))
         except ApiUnauthorized:
             raise IntegrationError(
-                'JIRA returned: Unauthorized. '
+                'Jira returned: Unauthorized. '
                 'Please check your configuration settings.'
             )
 
@@ -281,7 +281,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             meta = resp['projects'][0]
         except IndexError:
             raise IntegrationError(
-                'Error in JIRA configuration, no projects found.'
+                'Error in Jira configuration, no projects found.'
             )
 
         # check if the issuetype was passed as a parameter
@@ -319,14 +319,14 @@ class JiraIntegration(Integration, IssueSyncMixin):
             }
         ]
 
-        # title is renamed to summary before sending to JIRA
+        # title is renamed to summary before sending to Jira
         standard_fields = [f['name'] for f in fields] + ['summary']
 
         # TODO(jess): are we going to allow ignored fields?
         # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
         ignored_fields = set()
 
-        # apply ordering to fields based on some known built-in JIRA fields.
+        # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
@@ -365,7 +365,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         jira_project = data.get('project')
         if not jira_project:
-            raise IntegrationError('JIRA project is required.')
+            raise IntegrationError('Jira project is required.')
 
         meta = client.get_create_meta_for_project(jira_project)
 
@@ -420,7 +420,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 cleaned_data[field] = v
 
         if not (isinstance(cleaned_data['issuetype'], dict) and 'id' in cleaned_data['issuetype']):
-            # something fishy is going on with this field, working on some JIRA
+            # something fishy is going on with this field, working on some Jira
             # instances, and some not.
             # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
             # in the projectmeta API call, and would normally be converted in the
@@ -494,7 +494,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
 class JiraIntegrationProvider(IntegrationProvider):
     key = 'jira'
-    name = 'JIRA'
+    name = 'Jira'
     metadata = metadata
     integration_cls = JiraIntegration
 
