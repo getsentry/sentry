@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import json
+import responses
 import sentry
 
 from mock import patch
@@ -16,6 +17,7 @@ class SendBeaconTest(TestCase):
     @patch('sentry.tasks.beacon.get_all_package_versions')
     @patch('sentry.tasks.beacon.safe_urlopen')
     @patch('sentry.tasks.beacon.safe_urlread')
+    @responses.activate
     def test_simple(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
         mock_get_all_package_versions.return_value = {'foo': '1.0'}
         safe_urlread.return_value = json.dumps({
@@ -58,6 +60,7 @@ class SendBeaconTest(TestCase):
     @patch('sentry.tasks.beacon.get_all_package_versions')
     @patch('sentry.tasks.beacon.safe_urlopen')
     @patch('sentry.tasks.beacon.safe_urlread')
+    @responses.activate
     def test_anonymous(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
         mock_get_all_package_versions.return_value = {'foo': '1.0'}
         safe_urlread.return_value = json.dumps({
@@ -99,6 +102,7 @@ class SendBeaconTest(TestCase):
     @patch('sentry.tasks.beacon.get_all_package_versions')
     @patch('sentry.tasks.beacon.safe_urlopen')
     @patch('sentry.tasks.beacon.safe_urlread')
+    @responses.activate
     def test_with_broadcasts(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
         broadcast_id = uuid4().hex
         mock_get_all_package_versions.return_value = {}
@@ -141,3 +145,27 @@ class SendBeaconTest(TestCase):
         broadcast = Broadcast.objects.get(upstream_id=broadcast_id)
 
         assert not broadcast.is_active
+
+    @patch('sentry.tasks.beacon.get_all_package_versions')
+    @patch('sentry.tasks.beacon.safe_urlopen')
+    @patch('sentry.tasks.beacon.safe_urlread')
+    @responses.activate
+    def test_disabled(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        mock_get_all_package_versions.return_value = {'foo': '1.0'}
+
+        with self.settings(SENTRY_BEACON=False):
+            send_beacon()
+
+        assert not safe_urlopen.mock_calls
+
+    @patch('sentry.tasks.beacon.get_all_package_versions')
+    @patch('sentry.tasks.beacon.safe_urlopen')
+    @patch('sentry.tasks.beacon.safe_urlread')
+    @responses.activate
+    def test_debug(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        mock_get_all_package_versions.return_value = {'foo': '1.0'}
+
+        with self.settings(DEBUG=True):
+            send_beacon()
+
+        assert not safe_urlopen.mock_calls
