@@ -12,7 +12,7 @@ WEBHOOK_EVENTS = ['push', 'pull_request']
 class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
     name = 'GitHub Enterprise'
     logger = logging.getLogger('sentry.plugins.github_enterprise')
-    repo_provider = 'github-enterprise'
+    repo_provider = 'github_enterprise'
 
     def create_repository(self, organization, data, actor=None):
         integration = Integration.objects.get(

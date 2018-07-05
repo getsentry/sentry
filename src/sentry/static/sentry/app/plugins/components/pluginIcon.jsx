@@ -48,7 +48,7 @@ export const ICON_PATHS = {
   clubhouse,
   flowdock,
   github,
-  'github-enterprise': githubEnterprise,
+  github_enterprise: githubEnterprise,
   gitlab,
   heroku,
   hipchat,

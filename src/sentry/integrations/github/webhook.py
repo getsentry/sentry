@@ -32,7 +32,6 @@ logger = logging.getLogger('sentry.webhooks')
 
 class Webhook(object):
     provider = 'github'
-    repo_provider = 'github'
 
     def _handle(self, event, organization, repo):
         raise NotImplementedError
@@ -52,7 +51,7 @@ class Webhook(object):
 
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
-                provider='integrations:%s' % self.repo_provider,
+                provider='integrations:%s' % self.provider,
                 external_id=six.text_type(event['repository']['id']),
             )
             for repo in repos:
@@ -83,7 +82,7 @@ class InstallationEventWebhook(Webhook):
 
         Repository.objects.filter(
             organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:%s' % self.repo_provider,
+            provider='integrations:%s' % self.provider,
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
 

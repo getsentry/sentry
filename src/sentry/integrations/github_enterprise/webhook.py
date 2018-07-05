@@ -25,20 +25,18 @@ def get_installation_metadata(event):
     try:
         integration = Integration.objects.get(
             external_id=event['installation']['id'],
-            provider='github-enterprise')
+            provider='github_enterprise')
     except Integration.DoesNotExist:
         return
     return integration.metadata['installation']
 
 
 class GitHubEnterpriseInstallationEventWebhook(InstallationEventWebhook):
-    provider = 'github-enterprise'
-    repo_provider = 'github_enterprise'
+    provider = 'github_enterprise'
 
 
 class GitHubEnterpriseInstallationRepositoryEventWebhook(InstallationRepositoryEventWebhook):
-    provider = 'github-enterprise'
-    repo_provider = 'github_enterprise'
+    provider = 'github_enterprise'
 
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
     def _handle(self, event, organization, repo):
@@ -46,8 +44,7 @@ class GitHubEnterpriseInstallationRepositoryEventWebhook(InstallationRepositoryE
 
 
 class GitHubEnterprisePushEventWebhook(PushEventWebhook):
-    provider = 'github-enterprise'
-    repo_provider = 'github_enterprise'
+    provider = 'github_enterprise'
 
     # https://developer.github.com/v3/activity/events/types/#pushevent
     def is_anonymous_email(self, email):
@@ -72,8 +69,7 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
 
 
 class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
-    provider = 'github-enterprise'
-    repo_provider = 'github_enterprise'
+    provider = 'github_enterprise'
 
     # https://developer.github.com/v3/activity/events/types/#pullrequestevent
     def is_anonymous_email(self, email):

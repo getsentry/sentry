@@ -25,7 +25,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     }
 
     @patch('sentry.integrations.github_enterprise.integration.get_jwt', return_value='jwt_token_1')
-    def assert_setup_flow(self, get_jwt, installation_id='install_id_1', app_id='app_1', user_id='user_id_1'):
+    def assert_setup_flow(self, get_jwt, installation_id='install_id_1',
+                          app_id='app_1', user_id='user_id_1'):
         responses.reset()
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
@@ -143,7 +144,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
         assert oi.config == {}
 
-        idp = IdentityProvider.objects.get(type='github-enterprise')
+        idp = IdentityProvider.objects.get(type='github_enterprise')
         identity = Identity.objects.get(
             idp=idp,
             user=self.user,
