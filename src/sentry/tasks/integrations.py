@@ -61,17 +61,21 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
 def sync_status_outbound(group_id, external_issue_id, **kwargs):
     try:
-        group_status = Group.objects.filter(
+        group = Group.objects.filter(
             id=group_id,
             status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED],
-        ).values_list('status', flat=True)[0]
+        )[0]
     except IndexError:
         return
 
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     integration = Integration.objects.get(id=external_issue.integration_id)
-    integration.get_installation().sync_status_outbound(
-        external_issue, group_status == GroupStatus.RESOLVED,
+    installation = integration.get_installation(
+        organization_id=external_issue.organization_id,
+        project_id=group.project_id,
+    )
+    installation.sync_status_outbound(
+        external_issue, group.status == GroupStatus.RESOLVED, group.project_id
     )
 
 

@@ -9,6 +9,7 @@ FIELD_MAP = {
     'comment': '/fields/System.History',
     'link': '/relations/-',
     'assigned_to': '/fields/System.AssignedTo',
+    'state': '/fields/System.State',
 }
 INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not valid'
 
@@ -89,11 +90,11 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def update_work_item(self, instance, id, title=UNSET, description=UNSET, link=UNSET,
-                         comment=UNSET, assigned_to=UNSET):
+                         comment=UNSET, assigned_to=UNSET, state=UNSET):
         data = []
 
         for f_name, f_value in (('title', title), ('description', description),
-                                ('link', link), ('assigned_to', assigned_to)):
+                                ('link', link), ('assigned_to', assigned_to), ('state', state)):
             if f_name == 'link':
                 # XXX: Link is not yet used, as we can't explicitly bind it to Sentry.
                 continue

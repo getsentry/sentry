@@ -119,7 +119,7 @@ class IssueSyncMixin(object):
         """
         raise NotImplementedError
 
-    def sync_status_outbound(self, external_issue, is_resolved, **kwargs):
+    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         """
         Propagate a sentry issue's status to a linked issue's status.
         """

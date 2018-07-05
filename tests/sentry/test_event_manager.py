@@ -529,6 +529,9 @@ class EventManagerTest(TransactionTestCase):
             name='Example',
         )
         integration.add_organization(org.id)
+        integration.add_project(
+            group.project_id, {
+                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id,
             integration_id=integration.id,
@@ -589,7 +592,7 @@ class EventManagerTest(TransactionTestCase):
                 )
                 event = manager.save(1)
                 mock_sync_status_outbound.assert_called_once_with(
-                    external_issue, False
+                    external_issue, False, event.group.project_id
                 )
                 assert event.group_id == group.id
 

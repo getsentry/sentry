@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from mistune import markdown
 
-
+from sentry.models import ProjectIntegration
 from sentry.integrations.issues import IssueSyncMixin
 
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError
@@ -129,5 +129,30 @@ class VstsIssueSync(IssueSyncMixin):
                     'integration_id': external_issue.integration_id,
                     'user_id': user.id,
                     'issue_key': external_issue.key,
+                }
+            )
+
+    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+        project_integration = ProjectIntegration.objects.get(
+            integration_id=external_issue.integration_id,
+            project_id=project_id,
+        )
+
+        status_name = 'resolve_status' if is_resolved else 'regression_status'
+        try:
+            status = project_integration.config[status_name]
+        except KeyError:
+            return
+        try:
+            self.get_client().update_work_item(
+                self.instance, external_issue.key, state=status)
+        except (ApiUnauthorized, ApiError) as error:
+            self.logger.info(
+                'vsts.failed-to-change-status',
+                extra={
+                    'integration_id': external_issue.integration_id,
+                    'is_resolved': is_resolved,
+                    'issue_key': external_issue.key,
+                    'exception': error,
                 }
             )
