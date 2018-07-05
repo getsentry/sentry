@@ -213,108 +213,68 @@ CREATE_SUBSCRIPTION = """
 """
 WORK_ITEM_UPDATED = """
 {
-  "id": "27646e0e-b520-4d2b-9411-bba7524947cd",
-  "eventType": "workitem.updated",
-  "publisherId": "tfs",
-  "scope": "all",
-  "message": {
-    "text": "Bug #5 (Some great new idea!) updated by Jamal Hartnett.\r\n(http://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=74e918bf-3376-436d-bd20-8e8c1287f465&id=5)",
-    "html": "<a href=\"http://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=74e918bf-3376-436d-bd20-8e8c1287f465&amp;id=5\">Bug #5</a> (Some great new idea!) updated by Jamal Hartnett.",
-    "markdown": "[Bug #5](http://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=74e918bf-3376-436d-bd20-8e8c1287f465&id=5) (Some great new idea!) updated by Jamal Hartnett."
+  u'resourceContainers': {
+    u'project': {u'id': u'c0bf429a-c03c-4a99-9336-d45be74db5a6', u'baseUrl': u'https://laurynsentry.visualstudio.com/'},
+    u'account': {u'id': u'90e9a854-eb98-4c56-ae1a-035a0f331dd6', u'baseUrl': u'https://laurynsentry.visualstudio.com/'},
+    u'collection': {u'id': u'80ded3e8-3cd3-43b1-9f96-52032624aa3a', u'baseUrl': u'https://laurynsentry.visualstudio.com/'}
   },
-  "detailedMessage": {
-    "text": "Bug #5 (Some great new idea!) updated by Jamal Hartnett.\r\n(http://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=74e918bf-3376-436d-bd20-8e8c1287f465&id=5)\r\n\r\n- New State: Approved\r\n",
-    "html": "<a href=\"http://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=74e918bf-3376-436d-bd20-8e8c1287f465&amp;id=5\">Bug #5</a> (Some great new idea!) updated by Jamal Hartnett.<ul>\r\n<li>New State: Approved</li></ul>",
-    "markdown": "[Bug #5](http://fabrikam-fiber-inc.visualstudio.com/web/wi.aspx?pcguid=74e918bf-3376-436d-bd20-8e8c1287f465&id=5) (Some great new idea!) updated by Jamal Hartnett.\r\n\r\n* New State: Approved\r\n"
-  },
-  "resource": {
-    "id": 2,
-    "workItemId": 0,
-    "rev": 2,
-    "revisedBy": null,
-    "revisedDate": "0001-01-01T00:00:00",
-    "fields": {
-      "System.Rev": {
-        "oldValue": "1",
-        "newValue": "2"
+  u'resource': {
+      u'revisedBy': {
+        u'displayName': u'lauryn', u'name': u'lauryn <lauryn@sentry.io>', u'url': u'https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e', u'imageUrl': u'https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e', u'descriptor': u'msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl', u'_links': {u'avatar': {u'href': u'https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl'}},
+        u'uniqueName': u'lauryn@sentry.io', u'id': u'21354f98-ab06-67d9-b974-5a54d992082e'
       },
-      "System.AuthorizedDate": {
-        "oldValue": "2014-07-15T16:48:44.663Z",
-        "newValue": "2014-07-15T17:42:44.663Z"
-      },
-      "System.RevisedDate": {
-        "oldValue": "2014-07-15T17:42:44.663Z",
-        "newValue": "9999-01-01T00:00:00Z"
-      },
-      "System.State": {
-        "oldValue": "New",
-        "newValue": "Approved"
-      },
-      "System.Reason": {
-        "oldValue": "New defect reported",
-        "newValue": "Approved by the Product Owner"
-      },
-      "System.AssignedTo": {
-        "newValue": "Jamal Hartnet"
-      },
-      "System.ChangedDate": {
-        "oldValue": "2014-07-15T16:48:44.663Z",
-        "newValue": "2014-07-15T17:42:44.663Z"
-      },
-      "System.Watermark": {
-        "oldValue": "2",
-        "newValue": "5"
-      },
-      "Microsoft.VSTS.Common.Severity": {
-        "oldValue": "3 - Medium",
-        "newValue": "2 - High"
-      }
+    u'revisedDate': u'9999-01-01T00:00:00Z',
+    u'url': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates/2',
+    u'fields': {
+      u'System.AuthorizedDate': {u'newValue': u'2018-07-05T20:52:14.777Z', u'oldValue': u'2018-07-05T20:51:58.927Z'},
+      u'System.AssignedTo': {u'newValue': u'lauryn <lauryn@sentry.io>'},
+      u'System.Watermark': {u'newValue': 78, u'oldValue': 77},
+      u'System.Rev': {u'newValue': 2, u'oldValue': 1},
+      u'System.RevisedDate': {u'newValue': u'9999-01-01T00:00:00Z', u'oldValue': u'2018-07-05T20:52:14.777Z'},
+      u'System.ChangedDate': {u'newValue': u'2018-07-05T20:52:14.777Z', u'oldValue': u'2018-07-05T20:51:58.927Z'}
     },
-    "_links": {
-      "self": {
-        "href": "http://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/5/updates/2"
-      },
-      "parent": {
-        "href": "http://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/5"
-      },
-      "workItemUpdates": {
-        "href": "http://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/5/updates"
-      }
+    u'workItemId': 31,
+    u'rev': 2,
+    u'_links': {
+      u'self': {u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates/2'},
+      u'workItemUpdates': {u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates'},
+      u'html': {u'href': u'https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=31'},
+      u'parent': {u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31'}
     },
-    "url": "http://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/5/updates/2",
-    "revision": {
-      "id": 5,
-      "rev": 2,
-      "fields": {
-        "System.AreaPath": "FabrikamCloud",
-        "System.TeamProject": "FabrikamCloud",
-        "System.IterationPath": "FabrikamCloud\\Release 1\\Sprint 1",
-        "System.WorkItemType": "Bug",
-        "System.State": "New",
-        "System.Reason": "New defect reported",
-        "System.CreatedDate": "2014-07-15T16:48:44.663Z",
-        "System.CreatedBy": "Jamal Hartnett",
-        "System.ChangedDate": "2014-07-15T16:48:44.663Z",
-        "System.ChangedBy": "Jamal Hartnett",
-        "System.Title": "Some great new idea!",
-        "Microsoft.VSTS.Common.Severity": "3 - Medium",
-        "WEF_EB329F44FE5F4A94ACB1DA153FDF38BA_Kanban.Column": "New"
-      },
-      "url": "http://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workItems/5/revisions/2"
+    u'id': 2,
+    u'revision': {
+      u'url': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions/2',
+      u'fields': {
+        u'System.AreaPath': u'MyFirstProject',
+        u'System.WorkItemType': u'Bug',
+        u'System.Reason': u'New',
+        u'System.Title': u"NameError: global name 'BitbucketRepositoryProvider' is not defined",
+        u'Microsoft.VSTS.Common.Priority': 2,
+        u'System.CreatedBy': u'lauryn <lauryn@sentry.io>',
+        u'System.AssignedTo': u'lauryn <lauryn@sentry.io>',
+        u'System.CreatedDate': u'2018-07-05T20:51:58.927Z',
+        u'System.TeamProject': u'MyFirstProject',
+        u'Microsoft.VSTS.Common.Severity': u'3 - Medium',
+        u'Microsoft.VSTS.Common.ValueArea': u'Business',
+        u'System.State': u'New',
+        u'System.Description': u'<p><a href="https://lauryn.ngrok.io/sentry/internal/issues/55/">https://lauryn.ngrok.io/sentry/internal/issues/55/</a></p>\n<pre><code>NameError: global name \'BitbucketRepositoryProvider\' is not defined\n(1 additional frame(s) were not displayed)\n...\n  File &quot;sentry/runner/__init__.py&quot;, line 125, in configure\n    configure(ctx, py, yaml, skip_service_validation)\n  File &quot;sentry/runner/settings.py&quot;, line 152, in configure\n    skip_service_validation=skip_service_validation\n  File &quot;sentry/runner/initializer.py&quot;, line 315, in initialize_app\n    register_plugins(settings)\n  File &quot;sentry/runner/initializer.py&quot;, line 60, in register_plugins\n    integration.setup()\n  File &quot;sentry/integrations/bitbucket/integration.py&quot;, line 78, in setup\n    BitbucketRepositoryProvider,\n\nNameError: global name \'BitbucketRepositoryProvider\' is not defined\n</code></pre>\n',
+        u'System.ChangedBy': u'lauryn <lauryn@sentry.io>',
+        u'System.ChangedDate': u'2018-07-05T20:52:14.777Z',
+        u'Microsoft.VSTS.Common.StateChangeDate': u'2018-07-05T20:51:58.927Z',
+        u'System.IterationPath': u'MyFirstProject'},
+        u'rev': 2,
+        u'id': 31,
+        u'_links': {u'self': {u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions/2'}, u'workItemRevisions': {u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions'}, u'parent': {u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31'}}
     }
   },
-  "resourceVersion": "1.0",
-  "resourceContainers": {
-    "collection": {
-      "id": "c12d0eb8-e382-443b-9f9c-c52cba5014c2"
-    },
-    "account": {
-      "id": "f844ec47-a9db-4511-8281-8b63f4eaf94e"
-    },
-    "project": {
-      "id": "be9b3917-87e6-42a4-a549-2bc06a7a878f"
-    }
-  },
-  "createdDate": "2016-09-19T13:03:30.6438544Z"
+  u'eventType': u'workitem.updated',
+  u'detailedMessage': None,
+  u'createdDate': u'2018-07-05T20:52:16.3051288Z',
+  u'id': u'18f51331-2640-4bce-9ebd-c59c855956a2',
+  u'resourceVersion': u'1.0',
+  u'notificationId': 1,
+  u'subscriptionId': u'7bf628eb-b3a7-4fb2-ab4d-8b60f2e8cb9b',
+  u'publisherId': u'tfs',
+  u'message': None
 }
 """

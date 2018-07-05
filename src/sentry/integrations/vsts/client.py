@@ -241,13 +241,15 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             data={
                 'publisherId': 'tfs',
                 'eventType': 'workitem.updated',
+                'resourceVersion': '1.0',
                 'consumerId': 'webHooks',
                 'consumerActionId': 'httpRequest',
                 # 'publisherInputs': {
-                #     # 'changedFields': 'System.AssignedTo, System.State',
+                #     'changedFields': 'System.AssignedTo, System.State'
                 # },
                 'consumerInputs': {
                     'url': absolute_uri('/extensions/vsts/webhook/'),
+                    'resourceDetailsToSend': 'all',
                 }
             },
         )
