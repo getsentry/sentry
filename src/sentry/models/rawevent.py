@@ -15,6 +15,13 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 
 
+class RawEventManager(BaseManager):
+
+    def bind_nodes(self, object_list, *node_names):
+        node_names = [x == 'data' and 'node_data' or x for x in node_names]
+        return BaseManager.bind_nodes(self, object_list, *node_names)
+
+
 class RawEvent(Model):
     __core__ = False
 
@@ -29,7 +36,7 @@ class RawEvent(Model):
         db_column='data',
     )
 
-    objects = BaseManager()
+    objects = RawEventManager()
 
     class Meta:
         app_label = 'sentry'
