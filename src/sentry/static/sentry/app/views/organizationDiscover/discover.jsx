@@ -46,6 +46,31 @@ export default class OrganizationDiscover extends React.Component {
     );
   };
 
+  getOrderbyOptions = () => {
+    const {queryBuilder} = this.props;
+    const columns = queryBuilder.getColumns();
+    const query = queryBuilder.getInternal();
+
+    // If there are aggregations, only allow summarized fields in orderby
+    const hasAggregations = query.aggregations.length > 0;
+    const hasFields = query.fields.length > 0;
+
+    return columns.reduce((acc, {name}) => {
+      if (hasAggregations) {
+        const isInvalidField = hasFields && !query.fields.includes(name);
+        if (!hasFields || isInvalidField) {
+          return acc;
+        }
+      }
+
+      return [
+        ...acc,
+        {value: name, label: `${name} asc`},
+        {value: `-${name}`, label: `${name} desc`},
+      ];
+    }, []);
+  };
+
   render() {
     const {result} = this.state;
     const {queryBuilder} = this.props;
@@ -57,14 +82,6 @@ export default class OrganizationDiscover extends React.Component {
       value: name,
       label: name,
     }));
-
-    const orderbyOptions = columns.reduce((acc, {name}) => {
-      return [
-        ...acc,
-        {value: name, label: `${name} asc`},
-        {value: `-${name}`, label: `${name} desc`},
-      ];
-    }, []);
 
     return (
       <div className="organization-home">
@@ -109,7 +126,7 @@ export default class OrganizationDiscover extends React.Component {
             <SelectField
               name="orderby"
               label={t('Order By')}
-              options={orderbyOptions}
+              options={this.getOrderbyOptions()}
               value={query.orderby}
               onChange={val => this.updateField('orderby', val)}
             />
