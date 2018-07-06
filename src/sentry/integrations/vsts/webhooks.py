@@ -32,15 +32,11 @@ class WorkItemWebhook(Endpoint):
     def handle_updated_workitem(self, data):
         external_issue_key = data['resource']['workItemId']
         assigned_to = data['resource']['fields'].get('System.AssignedTo')
-        # status_change = data['resource']['fields'].get('System.State')
-
         integration = Integration.objects.get(
             provider='vsts',
             external_id=data['resourceContainers']['collection']['id'],
         )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
-        # TODO(lb): Implement Status change
-        # self.handle_status_change(integration, external_issue_key, status_change)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
@@ -61,11 +57,6 @@ class WorkItemWebhook(Endpoint):
 
     def parse_email(self, email):
         return EMAIL_PARSER.search(email).group(1)
-
-    def handle_status_change(self, integration, external_issue_key, status_change):
-        new_value = status_change.get('newValue', UNSET)
-        if new_value == UNSET:
-            return
 
     def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
