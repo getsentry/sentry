@@ -9,7 +9,7 @@ const PanelItemGroup = styled.div`
 
   /* stylelint-disable-next-line no-duplicate-selectors */
   ${PanelItem} {
-    border-bottom-color: ${p => p.theme.borderLighter};
+    border-bottom-color: ${p => p.theme.borderLight};
 
     &:last-child {
       border-bottom: none;
