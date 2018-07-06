@@ -14,6 +14,10 @@ class SettingsPageHeading extends React.Component {
     noTitleStyles: PropTypes.bool,
   };
 
+  static defualtProps = {
+    noTitleStyles: false,
+  };
+
   render() {
     return (
       <Wrapper tabs={this.props.tabs}>
