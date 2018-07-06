@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
@@ -7,7 +7,7 @@ describe('KeyValueList', function() {
   describe('render', function() {
     it('should render a definition list of key/value pairs', function() {
       let data = [['a', 'x'], ['b', 'y']];
-      let wrapper = shallow(<KeyValueList data={data} />);
+      let wrapper = mount(<KeyValueList data={data} />);
 
       expect(
         wrapper
@@ -38,7 +38,7 @@ describe('KeyValueList', function() {
 
     it('should sort sort key/value pairs', function() {
       let data = [['b', 'y'], ['a', 'x']];
-      let wrapper = shallow(<KeyValueList data={data} />);
+      let wrapper = mount(<KeyValueList data={data} />);
 
       expect(
         wrapper
@@ -72,7 +72,7 @@ describe('KeyValueList', function() {
         ['b', 'y'],
         ['a', ''], // empty string
       ];
-      let wrapper = shallow(<KeyValueList data={data} />);
+      let wrapper = mount(<KeyValueList data={data} />);
 
       expect(
         wrapper
@@ -122,7 +122,7 @@ describe('KeyValueList', function() {
 
     it('should coerce non-strings into strings', function() {
       let data = [['a', false]];
-      let wrapper = shallow(<KeyValueList data={data} />);
+      let wrapper = mount(<KeyValueList data={data} />);
 
       expect(
         wrapper
@@ -140,7 +140,7 @@ describe('KeyValueList', function() {
 
     it("shouldn't blow up on null", function() {
       let data = [['a', null]];
-      let wrapper = shallow(<KeyValueList data={data} />);
+      let wrapper = mount(<KeyValueList data={data} />);
 
       expect(
         wrapper

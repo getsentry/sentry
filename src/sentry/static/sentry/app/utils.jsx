@@ -2,7 +2,6 @@ import _ from 'lodash';
 
 // import/export sub-utils
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import deviceNameMapper from 'app/utils/deviceNameMapper';
 import Collection from 'app/utils/collection';
 import PendingChangeQueue from 'app/utils/pendingChangeQueue';
 import CursorPoller from 'app/utils/cursorPoller';
@@ -225,7 +224,7 @@ export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 
 // re-export under utils
-export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
+export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
 
 // backwards compatible default export for use w/ getsentry (exported
 // as a single object w/ function refs for consumption by getsentry)
@@ -245,7 +244,6 @@ export default {
   buildTeamId,
 
   // external imports
-  deviceNameMapper,
   objectToArray,
   Collection,
   PendingChangeQueue,

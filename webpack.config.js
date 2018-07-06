@@ -69,7 +69,6 @@ var appEntry = {
     'reflux',
     'select2',
     'vendor/simple-slider/simple-slider',
-    'ios-device-list',
     'emotion',
     'react-emotion',
     'grid-emotion',

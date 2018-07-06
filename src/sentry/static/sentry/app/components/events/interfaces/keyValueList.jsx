@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
+import DeviceName from 'app/components/deviceName';
 import ContextData from 'app/components/contextData';
-import {deviceNameMapper} from 'app/utils';
 
 class KeyValueList extends React.Component {
   static propTypes = {
@@ -52,7 +52,9 @@ class KeyValueList extends React.Component {
                 <tr key={key}>
                   <td className="key">{key}</td>
                   <td className="value">
-                    <pre>{deviceNameMapper('' + value || ' ')}</pre>
+                    <pre>
+                      <DeviceName>{'' + value || ' '}</DeviceName>
+                    </pre>
                   </td>
                 </tr>,
               ];
