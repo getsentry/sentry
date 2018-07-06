@@ -93,9 +93,4 @@ class SyncGroupStatusInboundTest(TestCase):
         assert sorted(
             self.get_group_ids(
                 self.project3_group_ids,
-                GroupStatus.RESOLVED)) == [
-            11,
-            12,
-            13,
-            14,
-            15]
+                GroupStatus.RESOLVED)) == [11, 12, 13, 14, 15]
