@@ -81,14 +81,14 @@ export default class OrganizationDiscover extends React.Component {
               value={query.projects}
               projects={this.props.organization.projects}
               onChange={val => this.updateField('projects', val)}
-              runQuery={this.runQuery}
+              onUpdate={this.runQuery}
             />
             <HeaderSeparator />
             <TimeRangeSelector
               start={query.start}
               end={query.end}
-              updateField={(name, val) => this.updateField(name, val)}
-              runQuery={this.runQuery}
+              onChange={(name, val) => this.updateField(name, val)}
+              onUpdate={this.runQuery}
             />
           </Flex>
         </Header>
