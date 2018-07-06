@@ -12,7 +12,7 @@ describe('Query Builder', function() {
     expect(external.fields).toEqual(['event_id', 'timestamp']);
     expect(external.conditions).toHaveLength(0);
     expect(external.aggregations).toHaveLength(0);
-    expect(external.orderby).toBe('-event_id');
+    expect(external.orderby).toBe('-timestamp');
     expect(external.limit).toBe(1000);
   });
 
@@ -76,6 +76,41 @@ describe('Query Builder', function() {
         name: 'tag1',
         type: 'string',
       });
+    });
+  });
+
+  describe('updateField()', function() {
+    let queryBuilder;
+    beforeEach(function() {
+      queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+    });
+
+    it('updates field', function() {
+      queryBuilder.updateField('projects', [5]);
+      queryBuilder.updateField('conditions', [['event_id', '=', 'event1']]);
+
+      const query = queryBuilder.getInternal();
+      expect(query.conditions).toEqual([['event_id', '=', 'event1']]);
+    });
+
+    it('updates orderby if there is an aggregation and value is not a summarized field', function() {
+      queryBuilder.updateField('fields', ['environment']);
+      queryBuilder.updateField('aggregations', [['count', null, 'count']]);
+
+      const query = queryBuilder.getInternal();
+      expect(query.orderby).toEqual('environment');
+    });
+
+    it('removes orderby and limit if there is aggregation but no summarize', function() {
+      queryBuilder.updateField('fields', []);
+      queryBuilder.updateField('aggregations', [['count', null, 'count']]);
+
+      const query = queryBuilder.getInternal();
+      expect(query.orderby).toEqual(null);
+      expect(query.limit).toEqual(null);
     });
   });
 });
