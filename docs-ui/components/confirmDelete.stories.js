@@ -9,8 +9,7 @@ import Button from 'app/components/buttons/button';
 storiesOf('Confirm/ConfirmDelete', module).add(
   'default',
   withInfo({
-    text:
-      'Component whose child is rendered as the "action" component that when clicked opens the "Confirm Delete Modal"',
+    text: 'A Confirm Modal that requires a user to enter a confirmation string.',
     propTablesExclude: [Button],
   })(() => (
     <div>
