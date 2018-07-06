@@ -244,9 +244,6 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 'resourceVersion': '1.0',
                 'consumerId': 'webHooks',
                 'consumerActionId': 'httpRequest',
-                # 'publisherInputs': {
-                #     'changedFields': 'System.AssignedTo, System.State'
-                # },
                 'consumerInputs': {
                     'url': absolute_uri('/extensions/vsts/webhook/'),
                     'resourceDetailsToSend': 'all',
