@@ -37,6 +37,8 @@ env:
     - YARN_VERSION="1.3.2"
 
 script:
+  - echo "\nFINAL VENV:"
+  - pip freeze --exclude-editable
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
