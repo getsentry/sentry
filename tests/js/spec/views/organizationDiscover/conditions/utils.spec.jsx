@@ -23,6 +23,10 @@ const conditionList = [
     internal: 'retention_days = 3',
     external: ['retention_days', '=', 3],
   },
+  {
+    internal: 'retention_days >= 0',
+    external: ['retention_days', '>=', 0],
+  },
 ];
 
 describe('Conditions', function() {
