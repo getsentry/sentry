@@ -13,8 +13,8 @@ class TimeRangeSelector extends React.Component {
   static propTypes = {
     start: PropTypes.string,
     end: PropTypes.string,
-    updateField: PropTypes.func,
-    runQuery: PropTypes.func,
+    onChange: PropTypes.func,
+    onUpdate: PropTypes.func,
   };
 
   formatDate(date) {
@@ -22,7 +22,7 @@ class TimeRangeSelector extends React.Component {
   }
 
   render() {
-    const {className, start, end, updateField, runQuery} = this.props;
+    const {className, start, end, onChange, onUpdate} = this.props;
     const summary = `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
@@ -35,15 +35,15 @@ class TimeRangeSelector extends React.Component {
               name="start"
               label={t('From')}
               value={start}
-              onChange={val => updateField('start', val)}
+              onChange={val => onChange('start', val)}
             />
             <DateTimeField
               name="end"
               label={t('To')}
               value={end}
-              onChange={val => updateField('end', val)}
+              onChange={val => onChange('end', val)}
             />
-            <Button onClick={runQuery}>{t('Update')}</Button>
+            <Button onClick={onUpdate}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
       </Flex>

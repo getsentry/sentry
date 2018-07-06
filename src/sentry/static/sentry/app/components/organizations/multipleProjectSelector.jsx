@@ -14,7 +14,7 @@ class MultipleProjectSelector extends React.Component {
     value: PropTypes.array,
     projects: PropTypes.array,
     onChange: PropTypes.func,
-    runQuery: PropTypes.func,
+    onUpdate: PropTypes.func,
   };
 
   formatDate(date) {
@@ -22,7 +22,7 @@ class MultipleProjectSelector extends React.Component {
   }
 
   render() {
-    const {className, value, projects, onChange, runQuery} = this.props;
+    const {className, value, projects, onChange, onUpdate} = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -52,7 +52,7 @@ class MultipleProjectSelector extends React.Component {
               options={options}
               onChange={onChange}
             />
-            <Button onClick={runQuery}>{t('Update')}</Button>
+            <Button onClick={onUpdate}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
       </Flex>
