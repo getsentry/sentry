@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import CustomPropTypes from 'app/proptypes';
 import Avatar from 'app/components/avatar';
 import DateTime from 'app/components/dateTime';
-import deviceNameMapper from 'app/utils/deviceNameMapper';
+import DeviceName from 'app/components/deviceName';
 
 import 'app/../less/components/eventsTableRow.less';
 
@@ -83,9 +83,11 @@ class EventsTableRow extends React.Component {
           return (
             <td key={tag.key}>
               <div className={truncate ? 'truncate' : ''}>
-                {tag.key === 'device'
-                  ? deviceNameMapper(tagMap[tag.key])
-                  : tagMap[tag.key]}
+                {tag.key === 'device' ? (
+                  <DeviceName>{tagMap[tag.key]}</DeviceName>
+                ) : (
+                  tagMap[tag.key]
+                )}
               </div>
             </td>
           );

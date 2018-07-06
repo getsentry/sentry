@@ -6,7 +6,8 @@ import _ from 'lodash';
 import SentryTypes from 'app/proptypes';
 
 import EventDataSection from 'app/components/events/eventDataSection';
-import {isUrl, deviceNameMapper} from 'app/utils';
+import DeviceName from 'app/components/deviceName';
+import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
@@ -44,7 +45,7 @@ class EventTags extends React.Component {
                     query: {query: `${tag.key}:"${tag.value}"`},
                   }}
                 >
-                  {deviceNameMapper(tag.value)}
+                  <DeviceName>{tag.value}</DeviceName>
                 </Link>
                 {isUrl(tag.value) && (
                   <a href={tag.value} className="external-icon">
