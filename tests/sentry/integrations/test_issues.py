@@ -82,15 +82,13 @@ class SyncGroupStatusInboundTest(TestCase):
             external_issue_key=self.external_issue_key,
         )
         assert sorted(self.get_group_ids(self.project1_group_ids,
-                                         GroupStatus.RESOLVED)) == sorted([1, 2, 3, 4, 5])
+                                         GroupStatus.RESOLVED)) == sorted(self.project1_group_ids)
         assert self.get_group_ids(self.project1_group_ids, GroupStatus.UNRESOLVED) == []
 
         assert self.get_group_ids(self.project2_group_ids, GroupStatus.RESOLVED) == []
         assert sorted(self.get_group_ids(self.project2_group_ids,
-                                         GroupStatus.UNRESOLVED)) == sorted([6, 7, 8, 9, 10])
+                                         GroupStatus.UNRESOLVED)) == sorted(self.project2_group_ids)
 
         assert self.get_group_ids(self.project3_group_ids, GroupStatus.UNRESOLVED) == []
-        assert sorted(
-            self.get_group_ids(
-                self.project3_group_ids,
-                GroupStatus.RESOLVED)) == [11, 12, 13, 14, 15]
+        assert sorted(self.get_group_ids(self.project3_group_ids,
+                                         GroupStatus.RESOLVED)) == sorted(self.project3_group_ids)

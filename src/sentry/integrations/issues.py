@@ -184,6 +184,8 @@ def determine_group_statuses(integration, affected_groups,
                 }
             )
             continue
+        # TODO(lb): Given David's Changes, unresolve_when and resolve_when
+        # will be a list rather than a single value.
         if status_value == unresolve_when:
             groups_to_unresolve.append(group)
         elif status_value == resolve_when:
