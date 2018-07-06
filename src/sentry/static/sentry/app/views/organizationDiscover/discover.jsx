@@ -18,6 +18,9 @@ import Aggregations from './aggregations';
 import Conditions from './conditions';
 import Result from './result';
 
+import {isValidCondition} from './conditions/utils';
+import {isValidAggregation} from './aggregations/utils';
+
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -37,6 +40,25 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   runQuery = () => {
+    const {queryBuilder} = this.props;
+    // Strip any invalid conditions and aggregations
+    const {conditions, aggregations} = queryBuilder.getInternal();
+    const filteredConditions = conditions.filter(condition =>
+      isValidCondition(condition, queryBuilder.getColumns())
+    );
+
+    const filteredAggregations = aggregations.filter(aggregation =>
+      isValidAggregation(aggregation, queryBuilder.getColumns())
+    );
+
+    if (filteredConditions.length !== conditions.length) {
+      this.updateField('conditions', filteredConditions);
+    }
+
+    if (filteredAggregations.length !== aggregations.length) {
+      this.updateField('aggregations', filteredAggregations);
+    }
+
     this.props.queryBuilder.fetch().then(
       result => this.setState({result}),
       () => {
