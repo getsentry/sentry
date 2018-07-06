@@ -11,7 +11,9 @@ describe('ConfirmDelete', function() {
       </ConfirmDelete>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('Confirm')).toMatchSnapshot();
+    wrapper.find('button').simulate('click');
+    // jest had an issue rendering root component snapshot so using ModalDialog instead
+    expect(wrapper.find('ModalDialog')).toMatchSnapshot();
   });
 
   it('confirm button is disabled and bypass prop is false when modal opens', function() {
@@ -38,8 +40,7 @@ describe('ConfirmDelete', function() {
       TestStubs.routerContext()
     );
     wrapper.find('button').simulate('click');
-    // simulating handleChange()
-    wrapper.setState({confirmInput: 'Cool', disableConfirmButton: true});
+    wrapper.find('input').simulate('change', {target: {value: 'Cool'}});
     expect(wrapper.find('Confirm').prop('disableConfirmButton')).toBe(true);
   });
 
@@ -52,8 +53,7 @@ describe('ConfirmDelete', function() {
       TestStubs.routerContext()
     );
     wrapper.find('button').simulate('click');
-    // simulating handleChange()
-    wrapper.setState({confirmInput: 'CoolOrg', disableConfirmButton: false});
+    wrapper.find('input').simulate('change', {target: {value: 'CoolOrg'}});
     expect(wrapper.find('Confirm').prop('disableConfirmButton')).toBe(false);
 
     wrapper

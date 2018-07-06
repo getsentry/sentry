@@ -95,6 +95,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
         <Confirm
           cancelText="Cancel"
           confirmText="Resolve"
+          disableConfirmButton={false}
           message="Are you sure???"
           onConfirm={[Function]}
           priority="primary"
@@ -271,6 +272,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                       <Confirm
                         cancelText="Cancel"
                         confirmText="Resolve"
+                        disableConfirmButton={false}
                         message="Are you sure???"
                         onConfirm={[Function]}
                         priority="primary"
@@ -353,6 +355,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                       <Confirm
                         cancelText="Cancel"
                         confirmText="Resolve"
+                        disableConfirmButton={false}
                         message="Are you sure???"
                         onConfirm={[Function]}
                         priority="primary"
