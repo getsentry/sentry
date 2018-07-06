@@ -2,7 +2,6 @@ import React from 'react';
 import moment from 'moment/moment';
 import {Line} from 'react-chartjs-2';
 
-import PropTypes from 'prop-types';
 import theme from 'app/utils/theme';
 const { data } = require('./tempData.js');
 
@@ -95,7 +94,3 @@ export default class discoverChartJS extends React.Component {
     );
   }
 }
-
-// discoverChartJS.defaultProps = {
-//   fill: false
-// };
