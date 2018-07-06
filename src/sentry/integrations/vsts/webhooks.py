@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from .client import VstsApiClient
 
 from sentry.models import Identity, Integration, sync_group_assignee_inbound
+from sentry.integrations.issues import sync_group_status_inbound
 from sentry.api.base import Endpoint
 from sentry.app import raven
 from uuid import uuid4
@@ -42,10 +43,16 @@ class WorkItemWebhook(Endpoint):
     def check_webhook_secret(self, request, integration):
         assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
 
-    def handle_updated_workitem(self, data, integration):
+    def handle_updated_workitem(self, data):
         external_issue_key = data['resource']['workItemId']
         assigned_to = data['resource']['fields'].get('System.AssignedTo')
+        status_change = data['resource']['fields'].get('System.State')
+        integration = Integration.objects.get(
+            provider='vsts',
+            external_id=data['resourceContainers']['collection']['id'],
+        )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
+        self.handle_status_change(integration, external_issue_key, status_change)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
@@ -62,6 +69,16 @@ class WorkItemWebhook(Endpoint):
             email=email,
             external_issue_key=external_issue_key,
             assign=assign,
+        )
+
+    def handle_status_change(self, integration, external_issue_key, status_change):
+        new_value = status_change.get('newValue', UNSET)
+        if new_value == UNSET:
+            return
+        sync_group_status_inbound(
+            integration=integration,
+            status_value=new_value,
+            external_issue_key=external_issue_key,
         )
 
     def parse_email(self, email):
