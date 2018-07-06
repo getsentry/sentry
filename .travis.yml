@@ -38,7 +38,8 @@ env:
 
 script:
   - echo "\nFINAL VENV:"
-  - pip freeze --exclude-editable
+  # --exclude-editable is a pip 10+ feature, so just grep those away
+  - pip freeze | egrep -v '\-e.*'
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
