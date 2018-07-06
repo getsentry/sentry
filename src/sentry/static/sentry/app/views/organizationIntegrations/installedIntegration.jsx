@@ -70,24 +70,37 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 
+  getRemovalBodyAndText(aspects) {
+    if (aspects && aspects.removal_dialog) {
+      return {
+        body: aspects.removal_dialog.body,
+        actionText: aspects.removal_dialog.actionText,
+      };
+    } else {
+      return {
+        body: t(
+          'Deleting this integration will remove any project associated data. This action cannot be undone. Are you sure you want to delete this integration?'
+        ),
+        actionText: t('Delete'),
+      };
+    }
+  }
+
   renderRemoveIntegration(integration) {
-    const {body, actionText} = integration.provider.aspects.removal_dialog;
-    const confirmText = actionText ? actionText : 'Delete';
-    const messageBody = body
-      ? body
-      : 'Deleting this integration will delete any associated project data. Are you sure you want to delete this integration?';
+    const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
+
     const message = (
       <div>
         <Alert type="error" icon="icon-circle-exclamation">
           Deleting this integration has consequences!
         </Alert>
-        {messageBody}
+        {body}
       </div>
     );
     return (
       <Confirm
         message={message}
-        confirmText={confirmText}
+        confirmText={actionText}
         priority="danger"
         onConfirm={() => this.props.onRemove()}
       >
