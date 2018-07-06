@@ -18,7 +18,11 @@ const OrganizationDiscoverContainer = createReactClass({
   },
 
   componentDidMount: function() {
-    this.queryBuilder = createQueryBuilder({}, this.context.organization);
+    const query = this.props.location.query;
+    // TODO: validate query
+    console.log(query);
+
+    this.queryBuilder = createQueryBuilder(query, this.context.organization);
     this.queryBuilder.load().then(() => {
       this.setState({isLoading: false});
     });
