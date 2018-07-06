@@ -88,7 +88,11 @@ describe('GuideStore', function() {
     GuideStore.onRegisterAnchor(anchor2);
     GuideStore.state.forceShow = true;
     GuideStore.onFetchSucceeded(data);
-    expect(GuideStore.state.currentGuide).not.toEqual(null);
+    expect(GuideStore.state.currentGuide.id).toEqual(1);
+    GuideStore.onCloseGuideOrSupport();
+    expect(GuideStore.state.currentGuide.id).toEqual(2);
+    GuideStore.onCloseGuideOrSupport();
+    expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
   it('should record analytics events when guide is cued', function() {
