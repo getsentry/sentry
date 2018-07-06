@@ -1,16 +1,12 @@
 from __future__ import absolute_import
 
 import responses
-
-# from exam import fixture
 from mock import patch
-
 from time import time
 
 from sentry.testutils import APITestCase
 from sentry.models import ExternalIssue, Identity, IdentityProvider, Integration
 from sentry.integrations.vsts.integration import VstsIntegration
-# from sentry.integrations.vsts.webhooks import WorkItemWebhook
 from sentry.utils.http import absolute_uri
 from .testutils import (
     WORK_ITEM_UPDATED,
