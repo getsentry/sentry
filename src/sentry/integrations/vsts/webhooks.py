@@ -38,8 +38,6 @@ class WorkItemWebhook(Endpoint):
             external_id=data['resourceContainers']['collection']['id'],
         )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
-        # TODO(lb): Implement Status change
-        # self.handle_status_change(integration, external_issue_key, status_change)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
