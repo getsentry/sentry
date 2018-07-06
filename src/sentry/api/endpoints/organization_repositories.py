@@ -73,7 +73,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             }, status=403)
 
         provider_id = request.DATA.get('provider')
-
         if features.has('organizations:internal-catchall', organization, actor=request.user):
             if provider_id is not None and provider_id.startswith('integrations:'):
                 try:

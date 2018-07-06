@@ -89,7 +89,7 @@ class PushEventWebhookTest(APITestCase):
         )
         integration = Integration.objects.create(
             external_id="12345",
-            provider='github-enterprise',
+            provider='github_enterprise',
         )
         integration.add_organization(project.organization.id)
 
@@ -144,7 +144,7 @@ class PushEventWebhookTest(APITestCase):
         }
 
         integration = Integration.objects.create(
-            provider='github-enterprise',
+            provider='github_enterprise',
             external_id='12345',
             name='octocat',
         )
@@ -224,7 +224,7 @@ class PushEventWebhookTest(APITestCase):
         )
         integration = Integration.objects.create(
             external_id="12345",
-            provider='github-enterprise',
+            provider='github_enterprise',
         )
         integration.add_organization(project.organization.id)
 
@@ -239,7 +239,7 @@ class PushEventWebhookTest(APITestCase):
         )
         integration = Integration.objects.create(
             external_id="99",
-            provider='github-enterprise',
+            provider='github_enterprise',
         )
         integration.add_organization(org2.id)
 
@@ -285,7 +285,7 @@ class PullRequestEventWebhook(APITestCase):
         }
 
         integration = Integration.objects.create(
-            provider='github-enterprise',
+            provider='github_enterprise',
             external_id='234',
             name='octocat',
         )
@@ -337,7 +337,7 @@ class PullRequestEventWebhook(APITestCase):
         }
 
         integration = Integration.objects.create(
-            provider='github-enterprise',
+            provider='github_enterprise',
             external_id='234',
             name='octocat',
         )
@@ -388,7 +388,7 @@ class PullRequestEventWebhook(APITestCase):
         }
 
         integration = Integration.objects.create(
-            provider='github-enterprise',
+            provider='github_enterprise',
             external_id='234',
             name='octocat',
         )
