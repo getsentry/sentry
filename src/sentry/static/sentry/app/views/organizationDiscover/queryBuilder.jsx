@@ -16,7 +16,7 @@ const DEFAULTS = {
     .subtract(14, 'days')
     .format(DATE_TIME_FORMAT),
   end: moment().format(DATE_TIME_FORMAT),
-  orderby: '-event_id',
+  orderby: '-timestamp',
   limit: 1000,
 };
 
@@ -74,7 +74,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     // Default to all projects if none is selected
     const projects = query.projects.length ? query.projects : defaultProjects;
 
-    // Default to all fields if there are none selected, and no aggregation or groupby is specified
+    // Default to all fields if there are none selected, and no aggregation is specified
     const useDefaultFields =
       !query.fields.length && !query.aggregations.length && !query.groupby;
 
@@ -95,9 +95,26 @@ export default function createQueryBuilder(initial = {}, organization) {
   function updateField(field, value) {
     query[field] = value;
 
-    // If an aggregation is added, we need to remove the orderby parameter if it's not in the selected fields
-    if (field === 'aggregations' && value.length > 0) {
-      query.orderby = null;
+    // If there are aggregations, we need to remove or update the orderby parameter
+    // if it's not in the list of selected fields
+    const hasAggregations = query.aggregations.length > 0;
+    const hasFields = query.fields.length > 0;
+    const orderbyField = (query.orderby || '').replace(/^-/, '');
+    const hasOrderFieldInFields = query.fields.includes(orderbyField);
+
+    if (hasAggregations) {
+      // Check for invalid order by parameter
+      if (hasFields && !hasOrderFieldInFields) {
+        query.orderby = query.fields ? query.fields[0] : null;
+      }
+
+      // Disable orderby for aggregations without any summarize fields
+      if (!hasFields) {
+        query.orderby = null;
+      }
+    }
+
+    if (!query.orderby) {
       query.limit = null;
     }
   }
