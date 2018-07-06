@@ -1,5 +1,4 @@
-{% load sentry_helpers %}
-// Sentry Loader
+{% load sentry_helpers %}// Sentry Loader
 (function(_window, _document, _script, _onerror, _onunhandledrejection) {
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
@@ -49,8 +48,18 @@
 
       var data = queue.data;
       var SDK = _window.Sentry;
+
       // Configure it using provided DSN and config object
-      SDK.init({{ config|to_json|safe }});
+      var options = {{ config|to_json|safe }};
+      for (var key in window.SENTRY_OPTIONS) {
+        options[key] = SENTRY_OPTIONS[key];
+      }
+      SDK.init(options);
+
+      var event = document.createEvent('HTMLEvents');
+      event.initEvent('sentryLoaded', true, true);
+      document.dispatchEvent(event);
+
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
@@ -59,7 +68,7 @@
       if (data.length) {
         for (var i = 0; i < data.length; i++) {
           if (data[i].e) {
-            tracekitErrorHandler(data[i].e);
+            tracekitErrorHandler.apply(_window, data[i].e);
           } else if (data[i].p) {
             SDK.captureException(data[i].p);
           }
