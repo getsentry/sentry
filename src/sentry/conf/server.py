@@ -1263,7 +1263,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 SENTRY_INTERNAL_INTEGRATIONS = (
     'bitbucket',
     'github',
-    'github-enterprise',
+    'github_enterprise',
     'jira',
     'vsts',
 )

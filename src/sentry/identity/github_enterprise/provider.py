@@ -19,7 +19,7 @@ def get_user_info(url, access_token):
 
 
 class GitHubEnterpriseIdentityProvider(OAuth2Provider):
-    key = 'github-enterprise'
+    key = 'github_enterprise'
     name = 'GitHub Enterprise'
 
     oauth_scopes = ()
@@ -30,7 +30,7 @@ class GitHubEnterpriseIdentityProvider(OAuth2Provider):
         user = get_user_info(data['access_token'])
 
         return {
-            'type': 'github-enterprise',
+            'type': 'github_enterprise',
             'id': user['id'],
             'email': user['email'],
             'scopes': [],  # GitHub apps do not have user scopes

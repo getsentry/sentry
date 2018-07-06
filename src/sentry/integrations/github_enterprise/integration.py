@@ -11,10 +11,10 @@ from sentry.identity.github_enterprise import get_user_info
 from sentry.integrations import IntegrationMetadata, Integration
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.exceptions import ApiError
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-
 from sentry.integrations.github.utils import get_jwt
 
 from .repository import GitHubEnterpriseRepositoryProvider
@@ -41,7 +41,7 @@ API_ERRORS = {
 }
 
 
-class GitHubEnterpriseIntegration(Integration):
+class GitHubEnterpriseIntegration(Integration, RepositoryMixin):
     def get_client(self):
         return GitHubEnterpriseAppsClient(
             base_url=self.model.metadata['domain_name'],
@@ -49,6 +49,9 @@ class GitHubEnterpriseIntegration(Integration):
             private_key=self.model.metadata['installation']['private_key'],
             app_id=self.model.metadata['installation']['id'],
         )
+
+    def get_repositories(self):
+        return self.get_client().get_repositories()
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
@@ -147,7 +150,7 @@ class InstallationConfigView(PipelineView):
 
 
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
-    key = 'github-enterprise'
+    key = 'github_enterprise'
     name = 'GitHub Enterprise'
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration
@@ -168,7 +171,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
         return NestedPipelineView(
             bind_key='identity',
-            provider_key='github-enterprise',
+            provider_key='github_enterprise',
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
@@ -236,7 +239,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 'installation': installation_data
             },
             'user_identity': {
-                'type': 'github-enterprise',
+                'type': 'github_enterprise',
                 'external_id': user['id'],
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
