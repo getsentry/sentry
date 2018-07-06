@@ -8,7 +8,8 @@ storiesOf('Discover: Chart.JS', module).add(
   'default',
   withInfo('Sample chart using chart.js')(() => (
     <div style={{padding: 20, backgroundColor: '#ffffff'}}>
-      <DiscoverChartJS />
+      <DiscoverChartJS title="Area Example" fill={'origin'}/>
+      <DiscoverChartJS title="Line Example"/>
     </div>
   ))
 );
