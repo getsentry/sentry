@@ -28,6 +28,8 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
 
             providers.append(provider)
 
+        providers.sort(key=lambda i: i.key)
+
         serialized = serialize(
             providers,
             organization=organization,
