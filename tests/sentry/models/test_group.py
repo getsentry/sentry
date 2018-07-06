@@ -230,3 +230,6 @@ class GroupTest(TestCase):
         group = self.create_group(project=project)
 
         assert group.get_email_subject() == '%s - %s' % (group.qualified_short_id, group.title)
+
+    def test_get_groups_by_external_issue(self):
+        pass
