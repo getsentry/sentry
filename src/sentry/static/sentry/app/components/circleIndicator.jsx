@@ -7,7 +7,6 @@ const getBackgroundColor = p => `
 `;
 
 const getSize = p => `
-  border-radius: ${p.size}px;
   height: ${p.size}px;
   width: ${p.size}px;
 `;
@@ -15,6 +14,7 @@ const getSize = p => `
 const Circle = styled.div`
   display: inline-block;
   position: relative;
+  border-radius: 50%;
   ${getSize} ${getBackgroundColor};
 `;
 
