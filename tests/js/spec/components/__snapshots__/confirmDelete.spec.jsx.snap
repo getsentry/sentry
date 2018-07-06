@@ -1,0 +1,104 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ConfirmDelete renders 1`] = `
+<Confirm
+  bypass={false}
+  cancelText="Cancel"
+  confirmText="Confirm"
+  disableConfirmButton={true}
+  message={
+    <UNDEFINED>
+      <Alert
+        type="error"
+      >
+        Are you sure?
+      </Alert>
+      <Field
+        alignRight={false}
+        disabled={false}
+        flexibleControlStateSize={true}
+        inline={false}
+        label={
+          <div>
+            Please enter 
+            <code>
+              CoolOrg
+            </code>
+             to confirm the deletion
+          </div>
+        }
+        p={0}
+        required={false}
+        visible={true}
+      >
+        <Input
+          onChange={[Function]}
+          placeholder="CoolOrg"
+          type="text"
+          value=""
+        />
+      </Field>
+    </UNDEFINED>
+  }
+  onConfirm={[MockFunction]}
+  priority="primary"
+>
+  <button
+    onClick={[Function]}
+  >
+    Confirm?
+  </button>
+  <Modal
+    animation={false}
+    autoFocus={true}
+    backdrop={true}
+    bsClass="modal"
+    dialogComponentClass={[Function]}
+    enforceFocus={true}
+    keyboard={true}
+    manager={
+      ModalManager {
+        "add": [Function],
+        "containers": Array [],
+        "data": Array [],
+        "handleContainerOverflow": true,
+        "hideSiblingNodes": true,
+        "isTopModal": [Function],
+        "modals": Array [],
+        "remove": [Function],
+      }
+    }
+    onHide={[Function]}
+    renderBackdrop={[Function]}
+    restoreFocus={true}
+    show={false}
+  >
+    <Modal
+      autoFocus={true}
+      backdrop={true}
+      backdropClassName="modal-backdrop"
+      containerClassName="modal-open"
+      enforceFocus={true}
+      keyboard={true}
+      manager={
+        ModalManager {
+          "add": [Function],
+          "containers": Array [],
+          "data": Array [],
+          "handleContainerOverflow": true,
+          "hideSiblingNodes": true,
+          "isTopModal": [Function],
+          "modals": Array [],
+          "remove": [Function],
+        }
+      }
+      onEntering={[Function]}
+      onExited={[Function]}
+      onHide={[Function]}
+      renderBackdrop={[Function]}
+      restoreFocus={true}
+      show={false}
+    />
+  </Modal>
+</Confirm>
+`;
