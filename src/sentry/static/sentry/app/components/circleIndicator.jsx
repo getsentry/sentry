@@ -15,7 +15,8 @@ const Circle = styled.div`
   display: inline-block;
   position: relative;
   border-radius: 50%;
-  ${getSize} ${getBackgroundColor};
+  ${getSize};
+  ${getBackgroundColor};
 `;
 
 class CircleIndicator extends React.Component {
