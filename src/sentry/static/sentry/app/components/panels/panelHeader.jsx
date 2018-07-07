@@ -19,6 +19,7 @@ const PanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite};
   line-height: 1;
+  position: relative;
   ${getPadding};
 `;
 
