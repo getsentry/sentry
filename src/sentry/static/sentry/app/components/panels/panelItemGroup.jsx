@@ -2,7 +2,7 @@ import styled from 'react-emotion';
 
 import PanelItem from './panelItem';
 
-const PanelItemGroup = styled.div`
+const PanelItemGroup = styled('div')`
   border-left: 4px solid ${p => p.theme.borderLight};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   background: ${p => p.theme.offWhite};
