@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
 
-import PanelItem from 'app/components/panels/panelItem';
+import PanelItem from './panelItem';
 
 const PanelItemGroup = styled.div`
   border-left: 4px solid ${p => p.theme.borderLight};
