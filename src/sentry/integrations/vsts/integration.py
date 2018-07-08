@@ -17,7 +17,6 @@ from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
-from .webhooks import WorkItemWebhook
 DESCRIPTION = """
 VSTS
 """
@@ -163,12 +162,9 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state['identity']['data']
-        oauth_data = self.get_oauth_data(data)
         account = state['account']
         instance = state['instance']
         user = get_user_info(data['access_token'])
-        work_item_subscription = WorkItemWebhook().create_subscription(
-            instance, oauth_data, self.oauth_redirect_url, account['AccountId'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
 
         return {
@@ -176,14 +172,12 @@ class VstsIntegrationProvider(IntegrationProvider):
             'external_id': account['AccountId'],
             'metadata': {
                 'domain_name': instance,
-                'scopes': scopes,
-                'work_item_subscription': work_item_subscription['publisherInputs']['tfsSubscriptionId'],
             },
             'user_identity': {
                 'type': 'vsts',
                 'external_id': user['id'],
                 'scopes': scopes,
-                'data': oauth_data,
+                'data': self.get_oauth_data(data),
             },
         }
 

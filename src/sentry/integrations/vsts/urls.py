@@ -1,8 +1,7 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import patterns, url
-from .webhooks import WorkItemWebhook
+from django.conf.urls import patterns  # , url
+
 urlpatterns = patterns(
     '',
-    url(r'^webhook/$', WorkItemWebhook.as_view(), name='sentry-extensions-vsts-issue-updated'),
 )
