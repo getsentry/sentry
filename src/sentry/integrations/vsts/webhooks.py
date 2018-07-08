@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from .client import VstsApiClient
-from sentry.integrations.issues import sync_group_status_inbound
 from sentry.models import Identity, Integration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from django.utils.decorators import method_decorator
@@ -38,6 +37,7 @@ class WorkItemWebhook(Endpoint):
             external_id=data['resourceContainers']['collection']['id'],
         )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
+        self.handle_status_change(integration, external_issue_key, status_change)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
@@ -56,14 +56,12 @@ class WorkItemWebhook(Endpoint):
             assign=assign,
         )
 
-    def parse_email(self, email):
-        return EMAIL_PARSER.search(email).group(1)
-
     def handle_status_change(self, integration, external_issue_key, status_change):
         new_value = status_change.get('newValue', UNSET)
         if new_value == UNSET:
             return
-        sync_group_status_inbound(
+        installation = integration.get_installation()
+        installation.sync_group_status_inbound(
             integration=integration,
             status_value=new_value,
             external_issue_key=external_issue_key,
