@@ -37,9 +37,6 @@ env:
     - YARN_VERSION="1.3.2"
 
 script:
-  - echo "\nFINAL VENV:"
-  # --exclude-editable is a pip 10+ feature, so just grep those away
-  - pip freeze | egrep -v '\-e.*'
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
   - make travis-scan-$TEST_SUITE
