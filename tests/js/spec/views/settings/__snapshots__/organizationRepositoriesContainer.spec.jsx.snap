@@ -17,6 +17,7 @@ exports[`OrganizationRepositoriesContainer render() without any providers is loa
         "orgId": "org-slug",
       }
     }
+    reloading={false}
     remainingRequests={0}
     repoConfig={
       Object {
