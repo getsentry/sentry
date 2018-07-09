@@ -61,7 +61,7 @@ class DashboardTest(AcceptanceTestCase):
         self.project.update(first_event=None)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('[data-test-id] figure')
+        self.browser.wait_until('[data-test-id="awaiting-events"]')
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
