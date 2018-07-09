@@ -167,11 +167,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                      className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                        className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box
@@ -412,11 +412,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                      className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                        className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box
@@ -657,11 +657,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                      className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                        className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box
@@ -902,11 +902,11 @@ exports[`ProjectTags renders 1`] = `
                   >
                     <Base
                       align="center"
-                      className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                      className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                       p={0}
                     >
                       <div
-                        className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                        className="ref-tag-row css-11kxedw-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box
