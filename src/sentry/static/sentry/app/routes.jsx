@@ -60,6 +60,8 @@ import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import Stream from 'app/views/stream';
 import errorHandler from 'app/utils/errorHandler';
 
+import HookOrDefault from 'app/components/hookOrDefault';
+
 function appendTrailingSlash(nextState, replace) {
   let lastChar = nextState.location.pathname.slice(-1);
   if (lastChar !== '/') {
@@ -470,11 +472,7 @@ function routes() {
       <Route
         path="auth/"
         name="Auth Providers"
-        component={
-          HookStore.get('component:org-auth-view').length
-            ? HookStore.get('component:org-auth-view')[0]()
-            : OrganizationAuth
-        }
+        component={HookOrDefault({hookName:'component:org-auth-view', defaultComponent: OrganizationAuth})}
       />
 
       <Route path="members/" name="Members">

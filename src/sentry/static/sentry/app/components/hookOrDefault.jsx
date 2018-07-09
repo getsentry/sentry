@@ -1,68 +1,36 @@
-import PropTypes from 'prop-types';
+import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import HookStore from 'app/stores/hookStore';
-import Hook from 'app/components/hook'
-import OrganizationAuth from 'app/views/settings/organizationAuth/index';
 
-/**
- * Instead of accessing the HookStore directly, use this.
- *
- * If the hook slot needs to perform anything w/ the hooks, you can pass a function as a child and you will receive an object with a `hooks` key
- *
- * example:
- *
- * <Hook name="my-hook">
- * {({hooks}) => hooks.map(hook => (
- *  <Wrapper>
- *    {hook}
- * </Wrapper>
- * ))}
- * </Hook>
- *
- */
-const HookOrDefault = createReactClass({
-  displayName: 'HookOrDefault',
-  propTypes: {
-    name: PropTypes.string.isRequired,
-  },
-  // mixins: [Reflux.listenTo(HookStore, 'handleHooks')],
+function HookOrDefault({hookName, defaultComponent}) {
 
-  getInitialState() {
-    let {name, ...props} = this.props;
+	const HookOrDefaultComponent = createReactClass({
+	  displayName: 'HookOrDefaultComponent',
+	  mixins: [Reflux.listenTo(HookStore, 'handleHooks')],
 
-    return {
-      hooks: HookStore.get(name).map(cb => cb(props)),
-    };
-  },
+	  getInitialState() {
+	    return {
+	      hooks: HookStore.get(hookName),
+	    };
+	  },
 
-  // handleHooks(hookName, hooks) {
-  //   let {name, ...props} = this.props;
+	  handleHooks(hookNameFromStore, hooks) {
+	    // Make sure that the incoming hook update matches this component's hook name
+	    if (hookName !== hookNameFromStore) return;
 
-  //   // Make sure that the incoming hook update matches this component's hook name
-  //   if (hookName !== name) return;
+	    this.setState(state => ({
+	      hooks,
+	    }));
+	  },
 
-  //   this.setState(state => ({
-  //     hooks: hooks.map(cb => cb(props)),
-  //   }));
-  // },
-
-  render() {
-    let {children} = this.props;
-    let hookComponent = HookStore.get('component:org-auth-view')[0]()
-    console.log("hook", hookComponent)
-    console.log("regular", OrganizationAuth)
-    window.hook = hookComponent
-    console.log("CHILDREN ", children, "STATE", this.state);
-    // if (!this.state.hooks || !this.state.hooks.length) return null;
-
-    // if (typeof children === 'function') {
-    //   return children({hooks: this.state.hooks});
-    // }
-
-    return {OrganizationAuth}; 
-  },
-});
+	  render() {
+	    let HookComponent = this.state.hooks && this.state.hooks.length > 0 ? this.state.hooks[0]() : defaultComponent;
+	    return <HookComponent {...this.props}/>;
+	  },
+	});
+	return HookOrDefaultComponent;
+}
 
 export default HookOrDefault;
