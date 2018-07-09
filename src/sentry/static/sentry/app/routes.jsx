@@ -425,6 +425,13 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
+        path="integrations/:providerKey/:integrationId/"
+        name="Integration Configuration"
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectIntegration" */ './views/settings/project/projectIntegration')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="install/"
         name="Configuration"
         component={errorHandler(ProjectDocsContext)}
