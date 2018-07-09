@@ -9,7 +9,7 @@ describe('Query Builder', function() {
     const external = queryBuilder.getExternal();
 
     expect(external.projects).toEqual([2]);
-    expect(external.fields).toEqual(['event_id', 'timestamp']);
+    expect(external.fields).toHaveLength(47);
     expect(external.conditions).toHaveLength(0);
     expect(external.aggregations).toHaveLength(0);
     expect(external.orderby).toBe('-timestamp');

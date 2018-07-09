@@ -1,13 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Aggregation from './aggregation';
+import {PlaceholderText, SelectListItem} from '../styles';
 
 export default class Aggregations extends React.Component {
   static propTypes = {
@@ -45,9 +46,9 @@ export default class Aggregations extends React.Component {
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
           </Add>
         </div>
-        {!value.length && 'None'}
+        {!value.length && <PlaceholderText>{t('None')}</PlaceholderText>}
         {value.map((aggregation, idx) => (
-          <Flex key={idx}>
+          <SelectListItem key={idx}>
             <Aggregation
               value={aggregation}
               onChange={val => this.handleChange(val, idx)}
@@ -58,7 +59,7 @@ export default class Aggregations extends React.Component {
                 <InlineSvg src="icon-circle-close" height="38px" />
               </a>
             </Box>
-          </Flex>
+          </SelectListItem>
         ))}
       </div>
     );

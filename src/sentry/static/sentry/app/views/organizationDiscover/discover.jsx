@@ -20,6 +20,7 @@ import Result from './result';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
+import {Fieldset, PlaceholderText} from './styles';
 
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
@@ -93,6 +94,16 @@ export default class OrganizationDiscover extends React.Component {
     }, []);
   };
 
+  getSummarizePlaceholder = () => {
+    const {queryBuilder} = this.props;
+    const query = queryBuilder.getInternal();
+    const text =
+      query.aggregations.length > 0
+        ? t('Select fields')
+        : t('None selected, using all fields');
+    return <PlaceholderText>{text}</PlaceholderText>;
+  };
+
   render() {
     const {result} = this.state;
     const {queryBuilder} = this.props;
@@ -133,37 +144,51 @@ export default class OrganizationDiscover extends React.Component {
         </Header>
         <Flex px={2}>
           <Box w={[1 / 3, 1 / 3, 1 / 3, 1 / 4]}>
-            <MultiSelectField
-              name="fields"
-              label={t('Summarize')}
-              options={fieldOptions}
-              value={query.fields}
-              onChange={val => this.updateField('fields', val)}
-            />
-            <Aggregations
-              value={query.aggregations}
-              columns={columns}
-              onChange={val => this.updateField('aggregations', val)}
-            />
-            <SelectField
-              name="orderby"
-              label={t('Order By')}
-              options={this.getOrderbyOptions()}
-              value={query.orderby}
-              onChange={val => this.updateField('orderby', val)}
-            />
-            <NumberField
-              name="limit"
-              label={t('Limit')}
-              value={query.limit}
-              onChange={val =>
-                this.updateField('limit', typeof val === 'number' ? val : null)}
-            />
-            <Conditions
-              value={query.conditions}
-              columns={columns}
-              onChange={val => this.updateField('conditions', val)}
-            />
+            <Fieldset>
+              <MultiSelectField
+                name="fields"
+                label={t('Summarize')}
+                placeholder={this.getSummarizePlaceholder()}
+                options={fieldOptions}
+                value={query.fields}
+                onChange={val => this.updateField('fields', val)}
+              />
+            </Fieldset>
+            <Fieldset>
+              <Aggregations
+                value={query.aggregations}
+                columns={columns}
+                onChange={val => this.updateField('aggregations', val)}
+              />
+            </Fieldset>
+            <Fieldset>
+              <Conditions
+                value={query.conditions}
+                columns={columns}
+                onChange={val => this.updateField('conditions', val)}
+              />
+            </Fieldset>
+            <Fieldset>
+              <SelectField
+                name="orderby"
+                label={t('Order By')}
+                placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
+                options={this.getOrderbyOptions()}
+                value={query.orderby}
+                onChange={val => this.updateField('orderby', val)}
+              />
+            </Fieldset>
+            <Fieldset>
+              <NumberField
+                name="limit"
+                label={t('Limit')}
+                placeholder="#"
+                value={query.limit}
+                onChange={val =>
+                  this.updateField('limit', typeof val === 'number' ? val : null)}
+              />
+            </Fieldset>
+
             <Button onClick={this.runQuery} style={{marginTop: 8}} priority="primary">
               {t('Run Query')}
             </Button>
