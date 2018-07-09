@@ -7,7 +7,7 @@ describe('Aggregation', function() {
   describe('render()', function() {
     it('renders empty, count, topK, uniq and avg', function() {
       const data = [
-        {value: [null, null, null], expectedTextValue: ''},
+        {value: [null, null, null], expectedTextValue: 'Select...'},
         {value: ['count', null, 'count'], expectedTextValue: 'count'},
         {
           value: ['uniq', 'environment', 'uniq_environment'],
