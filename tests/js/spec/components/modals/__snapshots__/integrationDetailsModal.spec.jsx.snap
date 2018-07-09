@@ -1,0 +1,98 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IntegrationDetailsModal renders simple integration 1`] = `
+<React.Fragment>
+  <Flex
+    align="center"
+    mb={2}
+  >
+    <PluginIcon
+      pluginId="github"
+      size={32}
+    />
+    <ProviderName>
+      GitHub Integration
+    </ProviderName>
+  </Flex>
+  <Description
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "<p><em>markdown</em> formatted <em>description</em></p>
+",
+      }
+    }
+  />
+  <Metadata>
+    <AuthorName
+      flex={1}
+    >
+      By Morty
+    </AuthorName>
+    <Box>
+      <a
+        href="http://example.com/integration_source_url"
+      >
+        View Source
+      </a>
+      <a
+        href="http://example.com/integration_issue_url"
+      >
+        Report Issue
+      </a>
+    </Box>
+  </Metadata>
+  <Alert
+    key="0"
+    type="warning"
+  >
+    This is a an alert example
+  </Alert>
+  <div
+    className="modal-footer"
+  >
+    <Button
+      disabled={false}
+      onClick={[MockFunction]}
+      size="small"
+    >
+      Cancel
+    </Button>
+    <AddIntegrationButton
+      className="css-1isemmb"
+      onAddIntegration={[Function]}
+      priority="primary"
+      provider={
+        Object {
+          "canAdd": true,
+          "canAddProject": false,
+          "config": Array [],
+          "features": Array [],
+          "key": "github",
+          "metadata": Object {
+            "aspects": Object {
+              "alerts": Array [
+                Object {
+                  "text": "This is a an alert example",
+                  "type": "warning",
+                },
+              ],
+            },
+            "author": "Morty",
+            "description": "*markdown* formatted _description_",
+            "issue_url": "http://example.com/integration_issue_url",
+            "noun": "Installation",
+            "source_url": "http://example.com/integration_source_url",
+          },
+          "name": "GitHub",
+          "setupDialog": Object {
+            "height": 100,
+            "url": "/github-integration-setup-uri/",
+            "width": 100,
+          },
+        }
+      }
+      size="small"
+    />
+  </div>
+</React.Fragment>
+`;

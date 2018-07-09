@@ -516,10 +516,40 @@ window.TestStubs = {
         issue_url: 'http://example.com/integration_issue_url',
         source_url: 'http://example.com/integration_source_url',
         aspects: {
-          alert_link: {
-            text: 'This is a *alert link* with markdown formatting',
-            link: '/url/with/params/{orgId}/',
-          },
+          alerts: [
+            {
+              type: 'warning',
+              text: 'This is a an alert example',
+            },
+          ],
+        },
+      },
+      ...params,
+    };
+  },
+
+  JiraIntegrationProvider: params => {
+    return {
+      key: 'jira',
+      name: 'Jira',
+      canAdd: false,
+      canAddProject: true,
+      config: [],
+      features: [],
+      metadata: {
+        description: '*markdown* formatted Jira _description_',
+        author: 'Rick',
+        noun: 'Instance',
+        issue_url: 'http://example.com/jira_integration_issue_url',
+        source_url: 'http://example.com/jira_integration_source_url',
+        aspects: {
+          externalInstall: [
+            {
+              url: 'http://jira.com',
+              buttonText: 'Visit Jira',
+              noticeText: 'You must visit jira to install the integration',
+            },
+          ],
         },
       },
       ...params,

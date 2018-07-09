@@ -7,12 +7,11 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 
-class IntegrationDetailsModal extends AsyncComponent {
+class IntegrationDetailsModal extends React.Component {
   static propTypes = {
     closeModal: PropTypes.func.isRequired,
     onAddIntegration: PropTypes.func.isRequired,
@@ -24,7 +23,7 @@ class IntegrationDetailsModal extends AsyncComponent {
     this.props.onAddIntegration(integration);
   };
 
-  renderBody() {
+  render() {
     const {provider, closeModal} = this.props;
     const {metadata} = provider;
     const description = marked(metadata.description);
