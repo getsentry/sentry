@@ -20,20 +20,6 @@ class AsyncComponent extends React.Component {
     router: PropTypes.object,
   };
 
-  // Override this flag to have the component reload it's state when the window
-  // becomes visible again. This will set the loading and reloading state, but
-  // will not render a loading state during reloading.
-  //
-  // eslint-disable-next-line react/sort-comp
-  reloadOnVisible = false;
-
-  // When enabling reloadOnVisible, this flag may be used to turn on and off
-  // the reloading. This is useful if your component only needs to reload when
-  // becoming visible during certain states.
-  //
-  // eslint-disable-next-line react/sort-comp
-  shouldReloadOnVisible = false;
-
   constructor(props, context) {
     super(props, context);
 
@@ -46,10 +32,6 @@ class AsyncComponent extends React.Component {
   componentWillMount() {
     this.api = new Client();
     this.fetchData();
-
-    if (this.reloadOnVisible) {
-      document.addEventListener('visibilitychange', this.visibilityReloader);
-    }
   }
 
   componentWillReceiveProps(nextProps, nextContext) {
@@ -75,7 +57,6 @@ class AsyncComponent extends React.Component {
 
   componentWillUnmount() {
     this.api.clear();
-    document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
   // XXX: cant call this getInitialState as React whines
@@ -84,8 +65,6 @@ class AsyncComponent extends React.Component {
     let state = {
       // has all data finished requesting?
       loading: true,
-      // is the component reload
-      reloading: false,
       // is there an error loading ANY data?
       error: false,
       errors: {},
@@ -100,16 +79,14 @@ class AsyncComponent extends React.Component {
     this.setState(this.getDefaultState(), this.fetchData);
   };
 
-  visibilityReloader = () =>
-    this.shouldReloadOnVisible && !document.hidden && this.reloadData();
-
-  reloadData = () => this.fetchData({reloading: true});
-
-  fetchData = extraState => {
+  fetchData = () => {
     let endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
-      this.setState({loading: false, error: false});
+      this.setState({
+        loading: false,
+        error: false,
+      });
       return;
     }
 
@@ -118,7 +95,6 @@ class AsyncComponent extends React.Component {
       loading: true,
       error: false,
       remainingRequests: endpoints.length,
-      ...extraState,
     });
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
@@ -165,7 +141,6 @@ class AsyncComponent extends React.Component {
       if (initialRequest) {
         state.remainingRequests = prevState.remainingRequests - 1;
         state.loading = prevState.remainingRequests > 1;
-        state.reloading = prevState.reloading && state.loading;
       }
 
       return state;
@@ -182,20 +157,16 @@ class AsyncComponent extends React.Component {
       });
     }
     this.setState(prevState => {
-      let state = {
+      return {
         [stateKey]: null,
         errors: {
           ...prevState.errors,
           [stateKey]: error,
         },
+        remainingRequests: prevState.remainingRequests - 1,
+        loading: prevState.remainingRequests > 1,
         error: prevState.error || !!error,
       };
-
-      state.remainingRequest = prevState.remainingRequests - 1;
-      state.loading = prevState.remainingRequests > 1;
-      state.reloading = prevState.reloading && state.loading;
-
-      return state;
     });
   }
 
@@ -274,7 +245,7 @@ class AsyncComponent extends React.Component {
   }
 
   renderComponent() {
-    return this.state.loading && !this.state.reloading
+    return this.state.loading
       ? this.renderLoading()
       : this.state.error
         ? this.renderError(new Error('Unable to load all required endpoints'))
