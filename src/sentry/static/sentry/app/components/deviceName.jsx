@@ -49,11 +49,15 @@ export default class DeviceName extends React.Component {
   }
 
   render() {
+    let {children} = this.props;
     let {iOSDeviceList} = this.state;
 
-    // If library has not loaded yet, then just render the raw model string, better than empty
-    if (!iOSDeviceList) return this.props.children;
+    // Children can be undefined, need to return null or else react throws
+    if (!children) return null;
 
-    return deviceNameMapper(this.props.children, iOSDeviceList);
+    // If library has not loaded yet, then just render the raw model string, better than empty
+    if (!iOSDeviceList) return children;
+
+    return deviceNameMapper(children, iOSDeviceList);
   }
 }
