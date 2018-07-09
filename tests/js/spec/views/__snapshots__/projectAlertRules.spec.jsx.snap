@@ -521,6 +521,7 @@ exports[`projectAlertRules renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Confirm"
+                                disableConfirmButton={false}
                                 disabled={false}
                                 message="Are you sure you want to remove this rule?"
                                 onConfirm={[Function]}

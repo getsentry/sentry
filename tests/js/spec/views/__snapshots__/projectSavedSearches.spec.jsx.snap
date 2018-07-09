@@ -347,6 +347,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Confirm"
+                                          disableConfirmButton={false}
                                           message="Are you sure you want to remove this?"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -680,6 +681,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Confirm"
+                                          disableConfirmButton={false}
                                           message="Are you sure you want to remove this?"
                                           onConfirm={[Function]}
                                           priority="primary"

@@ -515,6 +515,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             <Confirm
                               cancelText="Cancel"
                               confirmText="Confirm"
+                              disableConfirmButton={false}
                               message="Are you sure you want to remove this API key?"
                               onConfirm={[Function]}
                               priority="primary"

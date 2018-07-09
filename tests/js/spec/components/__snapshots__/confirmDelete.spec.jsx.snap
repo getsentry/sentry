@@ -1,0 +1,382 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ConfirmDelete renders 1`] = `
+<ModalDialog
+  bsClass="modal"
+  className="in"
+  onClick={[Function]}
+  role="document"
+  style={Object {}}
+  tabIndex="-1"
+>
+  <div
+    className="in modal"
+    onClick={[Function]}
+    role="dialog"
+    style={
+      Object {
+        "display": "block",
+      }
+    }
+    tabIndex="-1"
+  >
+    <div
+      className="modal-dialog"
+    >
+      <div
+        className="modal-content"
+        role="document"
+      >
+        <div
+          className="modal-body"
+        >
+          <Alert
+            type="error"
+          >
+            <AlertWrapper
+              className="ref-error"
+              type="error"
+            >
+              <div
+                className="ref-error css-1gmjigt-AlertWrapper e1xb5l7j1"
+                type="error"
+              >
+                <StyledTextBlock>
+                  <Component
+                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                  >
+                    <div
+                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    >
+                      Are you sure?
+                    </div>
+                  </Component>
+                </StyledTextBlock>
+              </div>
+            </AlertWrapper>
+          </Alert>
+          <Field
+            alignRight={false}
+            disabled={false}
+            flexibleControlStateSize={true}
+            inline={false}
+            label={
+              <div>
+                Please enter 
+                <code>
+                  CoolOrg
+                </code>
+                 to confirm the deletion
+              </div>
+            }
+            p={0}
+            required={false}
+            visible={true}
+          >
+            <FieldWrapper
+              hasControlState={false}
+              inline={false}
+              p={0}
+            >
+              <Component
+                className="css-1vm8clh-FieldWrapper-inlineStyle etqqcs20"
+                hasControlState={false}
+                inline={false}
+                p={0}
+              >
+                <Flex
+                  className="css-1vm8clh-FieldWrapper-inlineStyle etqqcs20"
+                >
+                  <Base
+                    className="etqqcs20 css-1hq624p-FieldWrapper-inlineStyle"
+                  >
+                    <div
+                      className="etqqcs20 css-1hq624p-FieldWrapper-inlineStyle"
+                      is={null}
+                    >
+                      <FieldDescription
+                        inline={false}
+                      >
+                        <Component
+                          className="css-19gs2h3-FieldDescription-inlineStyle e12jefmo0"
+                          inline={false}
+                        >
+                          <label
+                            className="css-19gs2h3-FieldDescription-inlineStyle e12jefmo0"
+                          >
+                            <FieldLabel>
+                              <div
+                                className="css-qzvhly-FieldLabel ejkuyjq0"
+                              >
+                                <div>
+                                  Please enter 
+                                  <code>
+                                    CoolOrg
+                                  </code>
+                                   to confirm the deletion
+                                </div>
+                                 
+                              </div>
+                            </FieldLabel>
+                          </label>
+                        </Component>
+                      </FieldDescription>
+                      <FieldControl
+                        alignRight={false}
+                        disabled={false}
+                        flexibleControlStateSize={true}
+                        inline={false}
+                      >
+                        <FieldControlErrorWrapper
+                          inline={false}
+                        >
+                          <Component
+                            className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
+                            inline={false}
+                          >
+                            <Box
+                              className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
+                            >
+                              <Base
+                                className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
+                              >
+                                <div
+                                  className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
+                                  is={null}
+                                >
+                                  <FieldControlWrapper>
+                                    <Component
+                                      className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                    >
+                                      <Flex
+                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
+                                      >
+                                        <Base
+                                          className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                        >
+                                          <div
+                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
+                                            is={null}
+                                          >
+                                            <FieldControlStyled
+                                              alignRight={false}
+                                            >
+                                              <Component
+                                                alignRight={false}
+                                                className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                              >
+                                                <Box
+                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
+                                                >
+                                                  <Base
+                                                    className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                  >
+                                                    <div
+                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
+                                                      is={null}
+                                                    >
+                                                      <Input
+                                                        onChange={[Function]}
+                                                        placeholder="CoolOrg"
+                                                        type="text"
+                                                        value=""
+                                                      >
+                                                        <input
+                                                          className="css-1m7xmcf-Input-inputStyles e1xej46s0"
+                                                          onChange={[Function]}
+                                                          placeholder="CoolOrg"
+                                                          type="text"
+                                                          value=""
+                                                        />
+                                                      </Input>
+                                                    </div>
+                                                  </Base>
+                                                </Box>
+                                              </Component>
+                                            </FieldControlStyled>
+                                            <FieldControlState
+                                              flexibleControlStateSize={true}
+                                            >
+                                              <Component
+                                                className="css-1x60lk6-FieldControlState e1rziqw00"
+                                                flexibleControlStateSize={true}
+                                              >
+                                                <Flex
+                                                  className="css-1x60lk6-FieldControlState e1rziqw00"
+                                                >
+                                                  <Base
+                                                    className="e1rziqw00 css-dgyrfj-FieldControlState"
+                                                  >
+                                                    <div
+                                                      className="e1rziqw00 css-dgyrfj-FieldControlState"
+                                                      is={null}
+                                                    />
+                                                  </Base>
+                                                </Flex>
+                                              </Component>
+                                            </FieldControlState>
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </Component>
+                                  </FieldControlWrapper>
+                                </div>
+                              </Base>
+                            </Box>
+                          </Component>
+                        </FieldControlErrorWrapper>
+                      </FieldControl>
+                    </div>
+                  </Base>
+                </Flex>
+              </Component>
+            </FieldWrapper>
+          </Field>
+        </div>
+        <div
+          className="modal-footer"
+        >
+          <Button
+            disabled={false}
+            onClick={[Function]}
+            style={
+              Object {
+                "marginRight": 10,
+              }
+            }
+          >
+            <StyledButton
+              aria-label="Cancel"
+              disabled={false}
+              onClick={[Function]}
+              role="button"
+              style={
+                Object {
+                  "marginRight": 10,
+                }
+              }
+            >
+              <Component
+                aria-label="Cancel"
+                className="css-cmo08-StyledButton-getColors e17811v30"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                style={
+                  Object {
+                    "marginRight": 10,
+                  }
+                }
+              >
+                <button
+                  aria-label="Cancel"
+                  className="css-cmo08-StyledButton-getColors e17811v30"
+                  disabled={false}
+                  onClick={[Function]}
+                  role="button"
+                  style={
+                    Object {
+                      "marginRight": 10,
+                    }
+                  }
+                >
+                  <ButtonLabel>
+                    <Component
+                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      >
+                        <Base
+                          align="center"
+                          className="e17811v31 css-mvnt76-ButtonLabel"
+                        >
+                          <div
+                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            is={null}
+                          >
+                            Cancel
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
+          <Button
+            autoFocus={true}
+            data-test-id="confirm-modal"
+            disabled={true}
+            onClick={[Function]}
+            priority="primary"
+          >
+            <StyledButton
+              aria-label="Confirm"
+              autoFocus={true}
+              data-test-id="confirm-modal"
+              disabled={true}
+              href={null}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
+              to={null}
+            >
+              <Component
+                aria-label="Confirm"
+                autoFocus={true}
+                className="css-fn4jle-StyledButton-getColors e17811v30"
+                data-test-id="confirm-modal"
+                disabled={true}
+                href={null}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+                to={null}
+              >
+                <button
+                  aria-label="Confirm"
+                  autoFocus={true}
+                  className="css-fn4jle-StyledButton-getColors e17811v30"
+                  data-test-id="confirm-modal"
+                  disabled={true}
+                  href={null}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                  to={null}
+                >
+                  <ButtonLabel>
+                    <Component
+                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                    >
+                      <Flex
+                        align="center"
+                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      >
+                        <Base
+                          align="center"
+                          className="e17811v31 css-mvnt76-ButtonLabel"
+                        >
+                          <div
+                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            is={null}
+                          >
+                            Confirm
+                          </div>
+                        </Base>
+                      </Flex>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ModalDialog>
+`;

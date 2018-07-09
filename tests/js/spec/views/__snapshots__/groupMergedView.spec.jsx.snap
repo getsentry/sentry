@@ -320,6 +320,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           <Confirm
                             cancelText="Cancel"
                             confirmText="Confirm"
+                            disableConfirmButton={false}
                             disabled={true}
                             message="These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?"
                             onConfirm={[Function]}
@@ -1784,6 +1785,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           <Confirm
                             cancelText="Cancel"
                             confirmText="Confirm"
+                            disableConfirmButton={false}
                             disabled={true}
                             message="These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?"
                             onConfirm={[Function]}
