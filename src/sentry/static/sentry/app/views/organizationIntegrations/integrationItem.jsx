@@ -31,11 +31,15 @@ export default class IntegrationItem extends React.Component {
         <Box pl={2}>
           <IntegrationName style={style}>
             {integration.name}
-            <Tooltip
-              title={'This Integration has been disconnected from the external provider'}
-            >
-              {integration.status === 'disabled' && <small> — Disabled</small>}
-            </Tooltip>
+            {integration.status === 'disabled' && (
+              <Tooltip
+                title={
+                  'This Integration has been disconnected from the external provider'
+                }
+              >
+                <small> — Disabled</small>
+              </Tooltip>
+            )}
           </IntegrationName>
           <DomainName style={style}>{integration.domainName}</DomainName>
         </Box>
