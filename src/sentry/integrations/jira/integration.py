@@ -1,19 +1,17 @@
 from __future__ import absolute_import
 
 import logging
+from six.moves.urllib.parse import quote_plus
 
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider,
+    Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 )
-from sentry.integrations.exceptions import (
-    ApiError, ApiUnauthorized, IntegrationError,
-)
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.utils.http import absolute_uri
-from six.moves.urllib.parse import quote_plus
 
 from .client import JiraApiClient
 
