@@ -819,7 +819,7 @@ class ProjectEmailOptionsForm(forms.Form):
 
 class TwoFactorForm(forms.Form):
     otp = forms.CharField(
-        label=_('One-time password'),
+        label=_('Authenticator code'),
         max_length=20,
         widget=forms.TextInput(
             attrs={
