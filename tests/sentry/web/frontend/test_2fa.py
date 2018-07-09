@@ -65,7 +65,7 @@ class TwoFactorAuthTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/twofactor/enroll_totp.html')
         assert 'otp_form' in resp.context
-        self.assertContains(resp, 'One-time password')
+        self.assertContains(resp, 'Authenticator code')
         self.assertContains(resp, 'Authenticator App')
         self.assertNotContains(resp, 'Sentry account password')
 
@@ -133,7 +133,7 @@ class TwoFactorAuthTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/twofactor/enroll_totp.html')
         assert 'otp_form' in resp.context
-        self.assertContains(resp, 'One-time password')
+        self.assertContains(resp, 'Authenticator code')
         self.assertContains(resp, 'Authenticator App')
         self.assertNotContains(resp, 'Sentry account password')
         assert not LostPasswordHash.objects.filter(user=user).exists()
