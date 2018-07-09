@@ -22,6 +22,15 @@ class VstsIntegrationProviderTest(TestCase):
                 'emailAddress': 'sentry@user.com',
             },
         )
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/connectionData/',
+            json={
+                'authenticatedUser': {
+                    'subjectDescriptor': 'user1-subject-desc',
+                },
+            },
+        )
 
     @responses.activate
     def test_build_integration(self):
@@ -43,7 +52,7 @@ class VstsIntegrationProviderTest(TestCase):
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
 
         assert integration_dict['user_identity']['type'] == 'vsts'
-        assert integration_dict['user_identity']['external_id'] == 'user1'
+        assert integration_dict['user_identity']['external_id'] == 'user1-subject-desc'
         assert integration_dict['user_identity']['scopes'] == sorted(
             VSTSIdentityProvider.oauth_scopes)
 
