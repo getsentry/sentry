@@ -27,6 +27,13 @@ class AsyncComponent extends React.Component {
   // eslint-disable-next-line react/sort-comp
   reloadOnVisible = false;
 
+  // When enabling reloadOnVisible, this flag may be used to turn on and off
+  // the reloading. This is useful if your component only needs to reload when
+  // becoming visible during certain states.
+  //
+  // eslint-disable-next-line react/sort-comp
+  shouldReloadOnVisible = false;
+
   constructor(props, context) {
     super(props, context);
 
@@ -93,7 +100,8 @@ class AsyncComponent extends React.Component {
     this.setState(this.getDefaultState(), this.fetchData);
   };
 
-  visibilityReloader = () => !document.hidden && this.reloadData();
+  visibilityReloader = () =>
+    this.shouldReloadOnVisible && !document.hidden && this.reloadData();
 
   reloadData = () => this.fetchData({reloading: true});
 
