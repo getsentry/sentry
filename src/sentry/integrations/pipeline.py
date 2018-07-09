@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
 from sentry.utils import json
@@ -55,7 +56,15 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        if 'expect_exists' in data:
+        if 'reinstall_id' in data:
+            integration = Integration.objects.get(
+                provider=self.provider.key,
+                id=data['reinstall_id'],
+            )
+            integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
+            integration.get_installation().reinstall()
+
+        elif 'expect_exists' in data:
             integration = Integration.objects.get(
                 provider=self.provider.key,
                 external_id=data['external_id'],

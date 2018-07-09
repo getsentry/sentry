@@ -2,6 +2,7 @@ import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
+import Tooltip from 'app/components/tooltip';
 
 import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
 
@@ -21,15 +22,26 @@ export default class IntegrationItem extends React.Component {
   };
 
   render() {
-    const {integration} = this.props;
+    const {integration, style} = this.props;
     return (
       <Flex>
         <Box>
           <IntegrationIcon integration={integration} />
         </Box>
         <Box pl={2}>
-          <IntegrationName>{integration.name}</IntegrationName>
-          <DomainName>{integration.domainName}</DomainName>
+          <IntegrationName style={style}>
+            {integration.name}
+            {integration.status === 'disabled' && (
+              <Tooltip
+                title={
+                  'This Integration has been disconnected from the external provider'
+                }
+              >
+                <small> — Disabled</small>
+              </Tooltip>
+            )}
+          </IntegrationName>
+          <DomainName style={style}>{integration.domainName}</DomainName>
         </Box>
       </Flex>
     );

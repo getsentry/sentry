@@ -24,6 +24,15 @@ Define a relationship between Sentry and GitHub.
  * Authorize repositories to be added for syncing commit data.
  * Create or link existing GitHub issues. (coming soon)
 """
+disable_dialog = {
+    'actionText': 'Visit GitHub',
+    'body': 'Before deleting this integration, you must uninstall this integration from GitHub. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.'
+}
+
+removal_dialog = {
+    'actionText': 'Delete',
+    'body': 'Deleting this integration will delete all associated repositories and commit data. This action cannot be undone. Are you sure you want to delete your integration?'
+}
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -31,7 +40,10 @@ metadata = IntegrationMetadata(
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github',
-    aspects={},
+    aspects={
+        'disable_dialog': disable_dialog,
+        'removal_dialog': removal_dialog,
+    },
 )
 
 API_ERRORS = {
@@ -49,6 +61,9 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
 
     def get_repositories(self):
         return self.get_client().get_repositories()
+
+    def reinstall(self):
+        self.reinstall_repositories()
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
@@ -129,7 +144,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         installation = self.get_installation_info(
             identity['access_token'], state['installation_id'])
 
-        return {
+        integration = {
             'name': installation['account']['login'],
             # TODO(adhiraj): This should be a constant representing the entire github cloud.
             'external_id': installation['id'],
@@ -142,6 +157,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
                 'domain_name': installation['account']['html_url'].replace('https://', ''),
+                'account_type': installation['account']['type'],
             },
             'user_identity': {
                 'type': 'github',
@@ -150,6 +166,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 'data': {'access_token': identity['access_token']},
             },
         }
+
+        if state.get('reinstall_id'):
+            integration['reinstall_id'] = state['reinstall_id']
+
+        return integration
 
     def setup(self):
         from sentry.plugins import bindings
@@ -166,6 +187,9 @@ class GitHubInstallationRedirect(PipelineView):
         return 'https://github.com/apps/%s' % name
 
     def dispatch(self, request, pipeline):
+        if 'reinstall_id' in request.GET:
+            pipeline.bind_state('reinstall_id', request.GET['reinstall_id'])
+
         if 'installation_id' in request.GET:
             pipeline.bind_state('installation_id', request.GET['installation_id'])
             return pipeline.next_step()

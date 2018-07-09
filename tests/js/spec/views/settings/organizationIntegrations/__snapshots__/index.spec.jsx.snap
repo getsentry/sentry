@@ -60,6 +60,7 @@ exports[`Integration render() with one integration renders 1`] = `
                 },
               }
             }
+            reinstall={false}
             size="xsmall"
           />
         </Box>
@@ -91,6 +92,7 @@ exports[`Integration render() with one integration renders 1`] = `
           }
           key="1"
           onDisable={[Function]}
+          onReinstallIntegration={[Function]}
           onRemove={[Function]}
           onToggleEnabled={[Function]}
           orgId="org-slug"

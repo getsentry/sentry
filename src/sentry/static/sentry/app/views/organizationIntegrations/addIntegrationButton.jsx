@@ -31,6 +31,8 @@ export default class AddIntegrationButton extends React.Component {
   static propTypes = {
     provider: PropTypes.object.isRequired,
     onAddIntegration: PropTypes.func.isRequired,
+    integration: PropTypes.object,
+    reinstall: PropTypes.bool,
   };
 
   componentDidMount() {
@@ -50,10 +52,13 @@ export default class AddIntegrationButton extends React.Component {
     const name = 'sentryAddIntegration';
 
     const {url, width, height} = provider.setupDialog;
+    const {integration, reinstall} = this.props;
     const {left, top} = computeCenteredWindow(width, height);
 
+    const installUrl = reinstall ? url + `?reinstall_id=${integration.id}` : url;
+
     this.dialog = window.open(
-      url,
+      installUrl,
       name,
       `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`
     );
@@ -85,7 +90,8 @@ export default class AddIntegrationButton extends React.Component {
 
   render() {
     // eslint-disable-next-line no-unused-vars
-    const {provider, onAddIntegration, ...buttonProps} = this.props;
+    const {provider, onAddIntegration, reinstall, ...buttonProps} = this.props;
+    let buttonText = reinstall ? t('Reinstall') : t('Add') + ' ' + provider.metadata.noun;
 
     return (
       <Tooltip
@@ -99,7 +105,8 @@ export default class AddIntegrationButton extends React.Component {
             disabled={!provider.canAdd}
             onClick={() => this.handleAddIntegration(provider)}
           >
-            <span className="icon icon-add" /> {t('Add') + ' ' + provider.metadata.noun}
+            {!reinstall && <span className="icon icon-add" />}
+            {buttonText}
           </Button>
         </span>
       </Tooltip>
