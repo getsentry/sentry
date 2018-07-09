@@ -14,11 +14,6 @@ const PanelItem = styled(Flex)`
   /* stylelint-disable-next-line */
   ${PanelItemGroup} & {
     border-bottom-color: ${p => p.theme.borderLight};
-
-    /* stylelint-disable-next-line */
-    &:last-child {
-      border-bottom: none;
-    }
   }
 `;
 
