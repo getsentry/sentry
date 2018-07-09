@@ -11,6 +11,7 @@ import functools
 import os.path
 from collections import namedtuple
 from datetime import timedelta
+from random import randint
 
 import pytz
 import six
@@ -430,3 +431,10 @@ def soft_break(value, length):
         length,
         functools.partial(soft_hyphenate, length=max(length // 10, 10)),
     )
+
+
+@register.assignment_tag
+def random_int(a, b=None):
+    if b is None:
+        a, b = 0, a
+    return randint(a, b)
