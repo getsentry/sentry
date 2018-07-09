@@ -78,7 +78,8 @@ export function getExternal(internal, columns) {
     const type = columns.find(({name}) => name === colValue).type;
 
     if (type === 'number') {
-      external[2] = parseInt(external[2], 10) || null;
+      const num = parseInt(external[2], 10);
+      external[2] = !isNaN(num) ? num : null;
     }
   }
 
