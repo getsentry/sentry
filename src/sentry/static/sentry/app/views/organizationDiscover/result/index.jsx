@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
+import Link from 'app/components/link';
 import AutoSelectText from 'app/components/autoSelectText';
 
-import {getDisplayValue} from './utils';
+import {getDisplayValue, downloadAsCsv} from './utils';
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
@@ -43,7 +44,8 @@ export default class Result extends React.Component {
   }
 
   render() {
-    const {error, timing, data} = this.props.result;
+    const {result} = this.props;
+    const {error, timing, data} = result;
 
     if (error) {
       return <div>{error}</div>;
@@ -52,7 +54,8 @@ export default class Result extends React.Component {
     return (
       <div style={{overflowX: 'scroll'}}>
         <Summary mb={1}>
-          snuba query time: {timing.duration_ms}ms, {data.length} rows
+          snuba query time: {timing.duration_ms}ms, {data.length} rows,{' '}
+          <Link onClick={() => downloadAsCsv(result)}>download as csv</Link>
         </Summary>
         {this.renderTable()}
       </div>
