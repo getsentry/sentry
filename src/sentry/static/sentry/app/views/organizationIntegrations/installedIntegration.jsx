@@ -9,6 +9,7 @@ import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
+import Tooltip from 'app/components/tooltip';
 
 const CONFIGURABLE_FEATURES = ['commits'];
 
@@ -19,7 +20,7 @@ export default class InstalledIntegration extends React.Component {
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
     onDisable: PropTypes.func.isRequired,
-    onReinstallIntegration: PropTypes.func,
+    onReinstallIntegration: PropTypes.func.isRequired,
   };
 
   /**
@@ -65,7 +66,7 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onDisable(integration)}
       >
-        <Button size="small" icon="icon-trash" />
+        <Button size="xsmall" icon="icon-trash" />
       </Confirm>
     );
   }
@@ -104,45 +105,49 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onRemove()}
       >
-        <Button size="small" icon="icon-trash" />
+        <Button size="xsmall" icon="icon-trash" />
       </Confirm>
     );
   }
 
   render() {
     const {integration, provider, orgId} = this.props;
-    const style = integration.status === 'disabled' ? {color: '#bebebe'} : {};
 
     return (
       <React.Fragment>
-        <PanelItem p={0} py={2} key={integration.id} align="center">
-          <Box px={2} flex={1}>
-            <IntegrationItem integration={integration} style={style} />
+        <PanelItem py={1} px={2} key={integration.id} align="center">
+          <Box flex={1}>
+            <IntegrationItem compact integration={integration} />
           </Box>
-          {integration.status === 'active' &&
-            this.hasConfiguration() && (
-              <Box mr={1}>
-                <Button
-                  size="small"
-                  to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
-                >
-                  {t('Configure')}
-                </Button>
-              </Box>
-            )}
-          {integration.status === 'disabled' && (
-            <Box mr={1}>
+          <Box mr={1}>
+            {integration.status === 'disabled' && (
               <AddIntegrationButton
-                size="small"
+                size="xsmall"
                 priority="danger"
                 provider={provider}
                 integration={integration}
                 onAddIntegration={this.reinstallIntegration}
                 reinstall={true}
               />
-            </Box>
-          )}
-          <Box mr={1} pr={2}>
+            )}
+            {integration.status === 'active' && (
+              <Tooltip
+                disabled={this.hasConfiguration()}
+                tooltipOptions={{placement: 'left'}}
+                title="Integration not configurable"
+              >
+                <span>
+                  <Button
+                    size="xsmall"
+                    icon="icon-settings"
+                    disabled={!this.hasConfiguration()}
+                    to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
+                  />
+                </span>
+              </Tooltip>
+            )}
+          </Box>
+          <Box>
             {integration.status === 'active' && integration.provider.key === 'github'
               ? this.renderDisableIntegration(integration)
               : this.renderRemoveIntegration(integration)}

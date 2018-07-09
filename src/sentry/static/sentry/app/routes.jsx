@@ -408,22 +408,6 @@ function routes() {
           component={errorHandler(ProjectPluginDetails)}
         />
       </Route>
-      {/* XXX(epurkhiser): This lives under project configurations for now until
-        we've migrated enough integrations that it can live at the org level. */}
-      <Route
-        path="integrations/:providerKey/"
-        name="Integration Configuration"
-        componentPromise={() =>
-          import(/* webpackChunkName: "Integration" */ './views/settings/organizationIntegrations/integration')}
-        component={errorHandler(LazyLoad)}
-      />
-      <Route
-        path="integrations/:providerKey/:integrationId/"
-        name="Integration Configuration"
-        componentPromise={() =>
-          import(/* webpackChunkName: "ProjectIntegration" */ './views/settings/project/projectIntegration')}
-        component={errorHandler(LazyLoad)}
-      />
       <Route
         path="integrations/:providerKey/:integrationId/"
         name="Integration Configuration"
@@ -587,13 +571,6 @@ function routes() {
         <IndexRoute
           componentPromise={() =>
             import(/*webpackChunkName: OrganizationIntegrations*/ './views/organizationIntegrations')}
-          component={errorHandler(LazyLoad)}
-        />
-        <Route
-          name="Integration"
-          path=":providerKey/"
-          componentPromise={() =>
-            import(/*webpackChunkName: Integration*/ './views/settings/organizationIntegrations/integration')}
           component={errorHandler(LazyLoad)}
         />
         <Route
