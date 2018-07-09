@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.issues import IssueBasicMixin
 from sentry.integrations.exceptions import ApiError
 
 
@@ -19,16 +19,11 @@ ERR_404 = (
 )
 
 
-class BitbucketIssueSyncMixin(IssueSyncMixin):
+class BitbucketIssueSyncMixin(IssueBasicMixin):
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(BitbucketIssueSyncMixin, self).get_create_issue_config(group, **kwargs)
         client = self.get_client()
-        try:
-            default_repo = self.get_default_repo(group.project_id)
-        except Exception:
-            default_repo = ('', '')
-
         try:
             repos = client.get_repos(self.model.name)
         except ApiError:
@@ -40,7 +35,6 @@ class BitbucketIssueSyncMixin(IssueSyncMixin):
             {
                 'name': 'repo',
                 'label': 'Bitbucket Repository',
-                'default': default_repo,
                 'type': 'select',
                 'choices': repo_choices,
                 'required': True,

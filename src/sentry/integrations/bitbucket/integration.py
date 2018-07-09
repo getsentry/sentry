@@ -58,7 +58,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset([IntegrationFeatures.ISSUE_BASIC])
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
