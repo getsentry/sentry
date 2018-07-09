@@ -2,7 +2,6 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import jQuery from 'jquery';
 
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -14,7 +13,7 @@ import TimeSince from 'app/components/timeSince';
 import DeviceName from 'app/components/deviceName';
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
-import withEnvironment from 'app/utils/withEnvironment';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const GroupTagValues = createReactClass({
   displayName: 'GroupTagValues',
@@ -49,8 +48,6 @@ const GroupTagValues = createReactClass({
 
   fetchData() {
     let params = this.props.params;
-    let queryParams = this.props.location.query;
-    let querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
@@ -79,24 +76,22 @@ const GroupTagValues = createReactClass({
       },
     });
 
-    this.api.request(
-      `/issues/${params.groupId}/tags/${params.tagKey}/values/?${querystring}`,
-      {
-        success: (data, _, jqXHR) => {
-          this.setState({
-            tagValueList: data,
-            loading: this.state.tagKey === null,
-            pageLinks: jqXHR.getResponseHeader('Link'),
-          });
-        },
-        error: error => {
-          this.setState({
-            error: true,
-            loading: false,
-          });
-        },
-      }
-    );
+    this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/values/`, {
+      query,
+      success: (data, _, jqXHR) => {
+        this.setState({
+          tagValueList: data,
+          loading: this.state.tagKey === null,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
+      },
+      error: error => {
+        this.setState({
+          error: true,
+          loading: false,
+        });
+      },
+    });
   },
 
   getUserDisplayName(item) {
@@ -189,4 +184,4 @@ const GroupTagValues = createReactClass({
   },
 });
 
-export default withEnvironment(GroupTagValues);
+export default withEnvironmentInQueryString(GroupTagValues);
