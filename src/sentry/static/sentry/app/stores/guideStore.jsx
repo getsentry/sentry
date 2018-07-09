@@ -34,10 +34,11 @@ const GuideStore = Reflux.createStore({
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeSlug);
 
-    window.addEventListener('hashchange', this.onHashChange, false);
+    window.addEventListener('hashchange', this.onURLChange, false);
+    window.addEventListener('load', this.onURLChange, false);
   },
 
-  onHashChange() {
+  onURLChange() {
     this.state.forceShow = window.location.hash === '#assistant';
     this.updateCurrentGuide();
   },
@@ -71,6 +72,8 @@ const GuideStore = Reflux.createStore({
         })
       ].seen = true;
     }
+    // Don't continue to force show if the user dismissed the guide.
+    this.state.forceShow = false;
     this.updateCurrentGuide();
   },
 
