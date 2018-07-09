@@ -199,39 +199,6 @@ def get_numeric_field_value(field, raw_value, type=int):
         }
 
 
-reserved_tag_names = frozenset(
-    [
-        'query',
-        'is',
-        'assigned',
-        'bookmarks',
-        'subscribed',
-        'first-release',
-        'firstRelease',
-        'release',
-        'level',
-        'user',
-        'user.id',
-        'user.ip',
-        'has',
-        'age',
-        'firstSeen',
-        'activeSince',
-        'last_seen',
-        'lastSeen',
-        'environment',
-        'browser',
-        'device',
-        'os',
-        'app',
-        'os.name',
-        'url',
-        'event.timestamp'
-        'timesSeen',
-    ]
-)
-
-
 def tokenize_query(query):
     """
     Tokenizes a standard Sentry search query.
