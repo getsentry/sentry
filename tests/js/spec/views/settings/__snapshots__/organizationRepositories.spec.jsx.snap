@@ -99,6 +99,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
             <Confirm
               cancelText="Cancel"
               confirmText="Confirm"
+              disableConfirmButton={false}
               disabled={false}
               message="Are you sure you want to remove this repository?"
               onConfirm={[Function]}

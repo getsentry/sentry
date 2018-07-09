@@ -245,6 +245,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
         <Confirm
           cancelText="Cancel"
           confirmText="Ignore"
+          disableConfirmButton={false}
           message="Yoooooo"
           onConfirm={[Function]}
           priority="primary"
@@ -456,6 +457,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -550,6 +552,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -644,6 +647,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -738,6 +742,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -832,6 +837,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -1035,6 +1041,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1123,6 +1130,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1211,6 +1219,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1299,6 +1308,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1431,6 +1441,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1519,6 +1530,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1607,6 +1619,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1695,6 +1708,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1827,6 +1841,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1915,6 +1930,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2003,6 +2019,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2091,6 +2108,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2223,6 +2241,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2311,6 +2330,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2399,6 +2419,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2487,6 +2508,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2619,6 +2641,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2707,6 +2730,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2795,6 +2819,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2883,6 +2908,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3085,6 +3111,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3173,6 +3200,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3261,6 +3289,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3349,6 +3378,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3481,6 +3511,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3569,6 +3600,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3657,6 +3689,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3745,6 +3778,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3877,6 +3911,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3965,6 +4000,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4053,6 +4089,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4141,6 +4178,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4273,6 +4311,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4361,6 +4400,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4449,6 +4489,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4537,6 +4578,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4669,6 +4711,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4757,6 +4800,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4845,6 +4889,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4933,6 +4978,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"

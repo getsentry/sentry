@@ -22,37 +22,48 @@ class Confirm extends React.PureComponent {
      * `close`: Allows renderer to toggle confirm modal
      */
     renderMessage: PropTypes.func,
-
     disabled: PropTypes.bool,
+    disableConfirmButton: PropTypes.bool,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
   };
 
   static defaultProps = {
     priority: 'primary',
+    disableConfirmButton: false,
     cancelText: t('Cancel'),
     confirmText: t('Confirm'),
   };
 
-  constructor(...args) {
-    super(...args);
+  static getDerivedStateFromProps(props, state) {
+    // Reset the state to handle prop changes from ConfirmDelete
+    if (props.disableConfirmButton !== state.disableConfirmButton) {
+      return {
+        disableConfirmButton: props.disableConfirmButton,
+      };
+    }
+    return null;
+  }
+
+  constructor(props) {
+    super(props);
 
     this.state = {
       isModalOpen: false,
-      disableConfirmButton: false,
+      disableConfirmButton: props.disableConfirmButton,
     };
     this.confirming = false;
   }
 
   openModal = () => {
-    let {onConfirming} = this.props;
+    let {onConfirming, disableConfirmButton} = this.props;
     if (typeof onConfirming === 'function') {
       onConfirming();
     }
 
     this.setState(state => ({
       isModalOpen: true,
-      disableConfirmButton: false,
+      disableConfirmButton,
     }));
 
     // always reset `confirming` when modal visibility changes
@@ -60,13 +71,13 @@ class Confirm extends React.PureComponent {
   };
 
   closeModal = () => {
-    let {onCancel} = this.props;
+    let {onCancel, disableConfirmButton} = this.props;
     if (typeof onCancel === 'function') {
       onCancel();
     }
     this.setState(state => ({
       isModalOpen: false,
-      disableConfirmButton: false,
+      disableConfirmButton,
     }));
 
     // always reset `confirming` when modal visibility changes
@@ -138,7 +149,10 @@ class Confirm extends React.PureComponent {
               close: this.closeModal,
               open: this.openModal,
             })
-          : React.cloneElement(children, {disabled, onClick: this.handleToggle})}
+          : React.cloneElement(children, {
+              disabled,
+              onClick: this.handleToggle,
+            })}
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
           <div className="modal-body">{confirmMessage}</div>
           <div className="modal-footer">
