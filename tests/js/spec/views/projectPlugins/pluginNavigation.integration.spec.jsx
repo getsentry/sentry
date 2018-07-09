@@ -14,9 +14,9 @@ describe('PluginNavigation Integration', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/`,
+      url: `/organizations/${org.slug}/integrations/`,
       method: 'GET',
-      body: {providers: [TestStubs.GitHubIntegrationProvider()]},
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/`,

@@ -1,75 +1,80 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPlugins renders 1`] = `
-<Panel
-  body={
-    <UNDEFINED>
-      <PanelItem
-        p={2}
-      >
-        <ProjectPluginRow
-          assets={Array []}
-          author={
-            Object {
-              "name": "Sentry Team",
-              "url": "https://github.com/getsentry/sentry",
-            }
+<Panel>
+  <PanelHeader>
+    <div>
+      Legacy Integration
+    </div>
+    <div>
+      Enabled
+    </div>
+  </PanelHeader>
+  <PanelBody
+    direction="column"
+    disablePadding={true}
+    flex={false}
+  >
+    <PanelAlert
+      m={0}
+      mb={0}
+      type="warning"
+    >
+      Legacy Integrations must be configured per-project. It's recommended to prefer organization-integrations over the legacy project integrations when available, as features will be more robust and flexible.
+    </PanelAlert>
+    <PanelItem
+      key="amazon-sqs"
+      p={2}
+    >
+      <ProjectPluginRow
+        assets={Array []}
+        author={
+          Object {
+            "name": "Sentry Team",
+            "url": "https://github.com/getsentry/sentry",
           }
-          canDisable={true}
-          enabled={false}
-          hasConfiguration={true}
-          id="amazon-sqs"
-          name="Amazon SQS"
-          onChange={undefined}
-          params={
-            Object {
-              "orgId": "org-slug",
-              "projectId": "project-slug",
-            }
+        }
+        canDisable={true}
+        enabled={false}
+        hasConfiguration={true}
+        id="amazon-sqs"
+        name="Amazon SQS"
+        params={
+          Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
           }
-          routes={undefined}
-          slug="amazon-sqs"
-          version="8.23.0.dev0"
-        />
-      </PanelItem>
-      <PanelItem
-        p={2}
-      >
-        <ProjectPluginRow
-          assets={Array []}
-          author={
-            Object {
-              "name": "Sentry Team",
-              "url": "https://github.com/getsentry/sentry",
-            }
+        }
+        slug="amazon-sqs"
+        version="8.23.0.dev0"
+      />
+    </PanelItem>
+    <PanelItem
+      key="github"
+      p={2}
+    >
+      <ProjectPluginRow
+        assets={Array []}
+        author={
+          Object {
+            "name": "Sentry Team",
+            "url": "https://github.com/getsentry/sentry",
           }
-          canDisable={false}
-          enabled={true}
-          id="github"
-          name="GitHub"
-          onChange={undefined}
-          params={
-            Object {
-              "orgId": "org-slug",
-              "projectId": "project-slug",
-            }
+        }
+        canDisable={false}
+        enabled={true}
+        id="github"
+        name="GitHub"
+        params={
+          Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
           }
-          routes={undefined}
-          slug="github"
-          version="8.23.0.dev0"
-        />
-      </PanelItem>
-    </UNDEFINED>
-  }
-  title={
-    <UNDEFINED>
-      <div>
-        Legacy Integration
-      </div>
-      <div>
-        Enabled
-      </div>
-    </UNDEFINED>
-  }
-/>
+        }
+        slug="github"
+        version="8.23.0.dev0"
+      />
+    </PanelItem>
+  </PanelBody>
+</Panel>
 `;

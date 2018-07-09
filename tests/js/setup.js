@@ -529,6 +529,34 @@ window.TestStubs = {
     };
   },
 
+  JiraIntegrationProvider: params => {
+    return {
+      key: 'jira',
+      name: 'Jira',
+      canAdd: false,
+      canAddProject: true,
+      config: [],
+      features: [],
+      metadata: {
+        description: '*markdown* formatted Jira _description_',
+        author: 'Rick',
+        noun: 'Instance',
+        issue_url: 'http://example.com/jira_integration_issue_url',
+        source_url: 'http://example.com/jira_integration_source_url',
+        aspects: {
+          externalInstall: [
+            {
+              url: 'http://jira.com',
+              buttonText: 'Visit Jira',
+              noticeText: 'You must visit jira to install the integration',
+            },
+          ],
+        },
+      },
+      ...params,
+    };
+  },
+
   GitHubIntegration: params => {
     return {
       domainName: 'gtithub.com/test-integration',
@@ -542,10 +570,31 @@ window.TestStubs = {
         canAddProject: false,
         features: [],
       },
+      projects: [],
       configOrganization: [],
       configProject: [],
       configData: {},
-      configDataProjects: {},
+      ...params,
+    };
+  },
+
+  JiraIntegration: params => {
+    return {
+      domainName: 'jira.com/test-integration',
+      icon: 'http://jira.example.com/integration_icon.png',
+      id: '1',
+      name: 'Jira Test Integration',
+      provider: {
+        name: 'Jira',
+        key: 'jira',
+        canAdd: true,
+        canAddProject: true,
+        features: [],
+      },
+      projects: [],
+      configOrganization: [],
+      configProject: [],
+      configData: {},
       ...params,
     };
   },
