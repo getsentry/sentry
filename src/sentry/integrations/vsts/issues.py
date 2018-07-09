@@ -15,6 +15,7 @@ class VstsIssueSync(IssueSyncMixin):
     conf_key = slug
 
     issue_fields = frozenset(['id', 'title', 'url'])
+    DONE_CATEGORIES = ['Resolved', 'Completed']
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
@@ -133,14 +134,14 @@ class VstsIssueSync(IssueSyncMixin):
             )
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
-        project_integration = ProjectIntegration.objects.get(
-            integration_id=external_issue.integration_id,
-            project_id=project_id,
-        )
-
         status_name = 'resolve_status' if is_resolved else 'regression_status'
         try:
-            status = project_integration.config[status_name]
+            # TODO: Replace with a new model called ExternalProjectIntegration
+            # status = ExternalProjectIntegration.objects.get(
+            status = ProjectIntegration.objects.get(
+                integration_id=external_issue.integration_id,
+                external_project_id=external_issue.external_project_id,
+            ).config[status_name]
         except KeyError:
             return
         try:
@@ -156,3 +157,18 @@ class VstsIssueSync(IssueSyncMixin):
                     'exception': error,
                 }
             )
+
+    def determine_status_category(self, integration, status_value, external_project_id):
+        statuses = self.get_client().get_statuses(
+            integration.metadata['instance'], external_project_id)
+        category = None
+        for status in statuses['value']:
+            if status == status_value:
+                category = status['category']
+        if category is None:
+            # log? raise error?
+            raise ValueError(
+                'Could not determine status category for %s possible statues are %s',
+                status,
+                statuses)
+        return category

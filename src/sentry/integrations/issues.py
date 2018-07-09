@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
-from sentry.models import Event
+from sentry.models import Activity, ExternalIssue, Event, Group, GroupStatus
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+logger = logging.getLogger(__name__)
 
 
 class IssueBasicMixin(object):
@@ -130,6 +133,7 @@ class IssueBasicMixin(object):
 
 
 class IssueSyncMixin(IssueBasicMixin):
+    DONE_CATEGORIES = []
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
@@ -143,3 +147,46 @@ class IssueSyncMixin(IssueBasicMixin):
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
+
+    def sync_group_status_inbound(self, integration, status_value, external_issue_key):
+        affected_groups = list(
+            Group.objects.get_groups_by_external_issue(
+                integration, external_issue_key,
+            )
+        )
+        # assuming changed external_issues table
+        # get external_project_id
+        external_project_id = ExternalIssue.objects.filter(
+            integration_id=integration.id,
+            key=external_issue_key,
+        )[0].external_project_id
+
+        # GET Statuses and find category of status_value with external_project_id
+        category = self.determine_status_category(integration, status_value, external_project_id)
+        if category in self.DONE_CATEGORIES:
+            self.change_group_statuses(affected_groups, GroupStatus.RESOLVED)
+        else:
+            self.change_group_statuses(affected_groups, GroupStatus.UNRESOLVED)
+
+    def determine_status_category(self, integration, status_value, external_project_id):
+        # Can be overwritten by the inheriting class
+        raise NotImplementedError
+
+    def change_group_statuses(self, groups, status):
+        if not groups:
+            return
+        updated_groups = Group.objects.filter(
+            id__in=[g.id for g in groups],
+        ).exclude(
+            status=status,
+        ).update(
+            status=status,
+        )
+        if not updated_groups:
+            return
+        for group in groups:
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=status,
+            )
