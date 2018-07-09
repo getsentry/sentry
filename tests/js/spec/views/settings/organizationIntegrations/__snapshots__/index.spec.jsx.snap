@@ -73,13 +73,13 @@ exports[`Integration render() with one integration renders 1`] = `
           integration={
             Object {
               "configData": Object {},
-              "configDataProjects": Object {},
               "configOrganization": Array [],
               "configProject": Array [],
               "domainName": "gtithub.com/test-integration",
               "icon": "http://example.com/integration_icon.png",
               "id": "1",
               "name": "Test Integration",
+              "projects": Array [],
               "provider": Object {
                 "canAdd": true,
                 "canAddProject": false,
