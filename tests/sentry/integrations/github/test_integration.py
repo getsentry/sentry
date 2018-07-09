@@ -5,6 +5,7 @@ import six
 from mock import patch
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider
 from sentry.models import (
     Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration,
@@ -70,6 +71,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     'login': 'Test Organization',
                     'avatar_url': 'http://example.com/avatar.png',
                     'html_url': 'https://github.com/Test-Organization',
+                    'type': 'Organization',
                 },
             }
         )
@@ -118,6 +120,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             'expires_at': None,
             'icon': 'http://example.com/avatar.png',
             'domain_name': 'github.com/Test-Organization',
+            'account_type': 'Organization',
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,
@@ -156,3 +159,105 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.assert_setup_flow()
         assert '"success":false' in resp.content
         assert 'The provided Github account is linked to a different user' in resp.content
+
+    @responses.activate
+    @patch('sentry.integrations.github.integration.get_jwt', return_value='jwt_token_1')
+    def test_reinstall_flow(self, get_jwt, installation_id='install_id_2',
+                            app_id='app_1', user_id='user_id_1'):
+        self.assert_setup_flow()
+        responses.reset()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        integration.update(status=ObjectStatus.DISABLED)
+        assert integration.status == ObjectStatus.DISABLED
+        assert integration.external_id == 'install_id_1'
+
+        resp = self.client.get('{}?{}'.format(
+            self.init_path,
+            urlencode({'reinstall_id': integration.id})
+        ))
+
+        assert resp.status_code == 302
+        redirect = urlparse(resp['Location'])
+        assert redirect.scheme == 'https'
+        assert redirect.netloc == 'github.com'
+        assert redirect.path == '/apps/sentry-test-app'
+
+        resp = self.client.get('{}?{}'.format(
+            self.setup_path,
+            urlencode({'installation_id': installation_id})
+        ))
+
+        assert resp.status_code == 302
+        redirect = urlparse(resp['Location'])
+        assert redirect.scheme == 'https'
+        assert redirect.netloc == 'github.com'
+        assert redirect.path == '/login/oauth/authorize'
+
+        params = parse_qs(redirect.query)
+        assert params['state']
+        assert params['redirect_uri'] == ['http://testserver/extensions/github/setup/']
+        assert params['response_type'] == ['code']
+        assert params['client_id'] == ['github-client-id']
+        # once we've asserted on it, switch to a singular values to make life
+        # easier
+        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+
+        access_token = 'xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx'
+
+        responses.add(
+            responses.POST, 'https://github.com/login/oauth/access_token',
+            json={'access_token': access_token}
+        )
+
+        responses.add(
+            responses.GET, 'https://api.github.com/user',
+            json={'id': user_id}
+        )
+
+        responses.add(
+            responses.GET,
+            u'https://api.github.com/app/installations/{}'.format(installation_id),
+            json={
+                'id': installation_id,
+                'app_id': app_id,
+                'account': {
+                    'login': 'Test Organization',
+                    'avatar_url': 'http://example.com/avatar.png',
+                    'html_url': 'https://github.com/Test-Organization',
+                    'type': 'Organization',
+                },
+            }
+        )
+
+        responses.add(
+            responses.GET, u'https://api.github.com/user/installations',
+            json={
+                'installations': [{'id': installation_id}],
+            }
+        )
+
+        resp = self.client.get('{}?{}'.format(
+            self.setup_path,
+            urlencode({
+                'code': 'oauth-code',
+                'state': authorize_params['state'],
+            })
+        ))
+
+        mock_access_token_request = responses.calls[0].request
+        req_params = parse_qs(mock_access_token_request.body)
+        assert req_params['grant_type'] == ['authorization_code']
+        assert req_params['code'] == ['oauth-code']
+        assert req_params['redirect_uri'] == ['http://testserver/extensions/github/setup/']
+        assert req_params['client_id'] == ['github-client-id']
+        assert req_params['client_secret'] == ['github-client-secret']
+
+        assert resp.status_code == 200
+
+        auth_header = responses.calls[2].request.headers['Authorization']
+        assert auth_header == 'Bearer jwt_token_1'
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        assert integration.status == ObjectStatus.VISIBLE
+        assert integration.external_id == 'install_id_2'

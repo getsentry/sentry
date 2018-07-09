@@ -139,9 +139,12 @@ describe('Integration', function() {
           method: 'DELETE',
           statusCode: 200,
         });
-
         wrapper.find('PanelBody Button').simulate('click');
-        wrapper.find('PanelBody Modal Button[priority="primary"]').simulate('click');
+        wrapper
+          .find('PanelBody Modal Button')
+          // Delete button should be last
+          .last()
+          .simulate('click');
 
         expect(wrapper.find('PanelBody EmptyMessage').exists()).toBe(true);
       });

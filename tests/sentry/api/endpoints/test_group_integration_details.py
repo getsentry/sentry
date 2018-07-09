@@ -28,6 +28,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
             'domainName': integration.metadata.get('domain_name'),
+            'accountType': integration.metadata.get('account_type'),
             'status': integration.get_status_display(),
             'provider': {
                 'key': provider.key,
@@ -35,6 +36,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 'canAdd': provider.can_add,
                 'canAddProject': provider.can_add_project,
                 'features': [f.value for f in provider.features],
+                'aspects': provider.metadata.aspects,
             },
             'linkIssueConfig': [{
                 'default': '',
@@ -65,6 +67,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             'name': integration.name,
             'icon': integration.metadata.get('icon'),
             'domainName': integration.metadata.get('domain_name'),
+            'accountType': integration.metadata.get('account_type'),
             'status': integration.get_status_display(),
             'provider': {
                 'key': provider.key,
@@ -72,6 +75,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 'canAdd': provider.can_add,
                 'canAddProject': provider.can_add_project,
                 'features': [f.value for f in provider.features],
+                'aspects': provider.metadata.aspects,
             },
             'createIssueConfig': [
                 {
