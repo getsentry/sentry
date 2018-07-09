@@ -8,6 +8,7 @@ sentry.utils.canonical
 
 from __future__ import absolute_import, print_function
 
+from collections import OrderedDict
 from django.conf import settings
 
 import copy
@@ -57,12 +58,8 @@ class CanonicalKeyView(collections.Mapping):
         return self._len
 
     def __iter__(self):
-        # Preserve the order of iteration while prioritizing canonical keys if
-        # they exist
-        for key in self.data:
-            canonical = get_canonical_name(key)
-            if canonical == key or canonical not in self.data:
-                yield canonical
+        # Preserve the order of iteration while prioritizing canonical keys
+        return iter(OrderedDict.fromkeys(get_canonical_name(key) for key in self.data))
 
     def __getitem__(self, key):
         canonical = get_canonical_name(key)
