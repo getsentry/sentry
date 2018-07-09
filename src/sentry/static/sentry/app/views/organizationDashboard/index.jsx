@@ -47,6 +47,10 @@ class Dashboard extends React.Component {
 
     const hasTeamAdminAccess = access.has('team:admin');
 
+    if (projects.length === 1 && !projects[0].firstEvent) {
+      return <Resources org={organization} project={projects[0]} />;
+    }
+
     return (
       <React.Fragment>
         {favorites.length > 0 && (
@@ -88,10 +92,6 @@ class Dashboard extends React.Component {
         {teamSlugs.length === 0 &&
           favorites.length === 0 && (
             <EmptyState projects={projects} teams={teams} organization={organization} />
-          )}
-        {projects.length === 1 &&
-          !projects[0].firstEvent && (
-            <Resources org={organization} project={projects[0]} />
           )}
       </React.Fragment>
     );

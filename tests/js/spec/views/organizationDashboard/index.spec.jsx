@@ -95,7 +95,10 @@ describe('OrganizationDashboard', function() {
     beforeEach(function() {});
 
     it('renders TeamSection', function() {
-      const projects = [TestStubs.Project({teams})];
+      const projects = [TestStubs.Project({
+        teams,
+        firstEvent: true,
+      })];
 
       const wrapper = shallow(
         <Dashboard
@@ -115,7 +118,11 @@ describe('OrganizationDashboard', function() {
     });
 
     it('renders favorited project in favorites section ', function() {
-      const projects = [TestStubs.Project({teams, isBookmarked: true})];
+      const projects = [TestStubs.Project({
+        teams,
+        isBookmarked: true,
+        firstEvent: true,
+      })];
 
       const wrapper = shallow(
         <Dashboard
