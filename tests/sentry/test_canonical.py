@@ -29,26 +29,6 @@ class CanonicalKeyViewTests(TestCase):
         ('sentry.interfaces.Exception', {'type': 'INVALID'}),
     ])
 
-    # canonical_data = {
-    #     'release': 'asdf',
-    #     'exception': {'type': 'DemoException'},
-    #     'user': {'id': 'DemoUser'},
-    # }
-
-    # legacy_data = {
-    #     'release': 'asdf',
-    #     'sentry.interfaces.Exception': {'type': 'DemoException'},
-    #     'sentry.interfaces.User': {'id': 'DemoUser'},
-    # }
-
-    # mixed_data = {
-    #     'release': 'asdf',
-    #     'exception': {'type': 'DemoException'},
-    #     'user': {'id': 'DemoUser'},
-    #     'sentry.interfaces.Exception': {'type': 'INVALID'},
-    #     'sentry.interfaces.User': {'id': 'INVALID'},
-    # }
-
     def test_len(self):
         assert len(CanonicalKeyView(self.canonical_data)) == 3
         assert len(CanonicalKeyView(self.legacy_data)) == 3
