@@ -51,7 +51,8 @@ export default class Condition extends React.Component {
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
-    return [{label: currentValue, value: currentValue}];
+    const shouldDisplayValue = currentValue || this.state.selectedColumn;
+    return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
   getConditionsForColumn(colName) {

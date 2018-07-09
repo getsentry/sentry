@@ -6,7 +6,8 @@ import Condition from 'app/views/organizationDiscover/conditions/condition';
 describe('Condition', function() {
   describe('render()', function() {
     it('renders text', function() {
-      const conditionsList = [
+      const data = [
+        {value: [null, null, null], expectedText: 'Select...'},
         {value: ['device_name', '=', 'test'], expectedText: 'device_name = test'},
         {value: ['device_name', 'IS NULL', null], expectedText: 'device_name IS NULL'},
         {
@@ -14,7 +15,7 @@ describe('Condition', function() {
           expectedText: 'device_battery_level > 5',
         },
       ];
-      conditionsList.forEach(function(condition) {
+      data.forEach(function(condition) {
         const wrapper = mount(
           <Condition value={condition.value} onChange={jest.fn()} columns={[]} />
         );

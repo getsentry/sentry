@@ -22,7 +22,8 @@ export default class Aggregation extends React.Component {
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
-    return [{label: currentValue, value: currentValue}];
+    const shouldDisplayValue = currentValue || this.state.selectedFunction;
+    return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
   filterOptions = (_options, input, _value) => {
