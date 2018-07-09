@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import tagstore
 from sentry.models import (
-    Group, GroupRedirect, GroupSnooze, GroupStatus, Release, get_group_with_redirect
+    ExternalIssue, Group, GroupLink, GroupRedirect, GroupSnooze, GroupStatus, Integration, Release, get_group_with_redirect
 )
 from sentry.testutils import TestCase
 
@@ -230,3 +230,49 @@ class GroupTest(TestCase):
         group = self.create_group(project=project)
 
         assert group.get_email_subject() == '%s - %s' % (group.qualified_short_id, group.title)
+
+
+class ExternalIssueGroupsTest(TestCase):
+    def setUp(self):
+        organization1 = self.create_organization()
+        organization2 = self.create_organization()
+
+        project1 = self.create_project(organization=organization1)
+        project2 = self.create_project(organization=organization2)
+
+        self.external_issue_key = 'APP-123'
+        self.integration = Integration.objects.create(
+            provider='example',
+            external_id='example',
+            name='example',
+        )
+        self.integration.add_organization(organization1.id)
+        self.integration.add_organization(organization2.id)
+        external_issue_org1 = ExternalIssue.objects.create(
+            organization_id=organization1.id,
+            integration_id=self.integration.id,
+            key=self.external_issue_key,
+        )
+        external_issue_org2 = ExternalIssue.objects.create(
+            organization_id=organization2.id,
+            integration_id=self.integration.id,
+            key=self.external_issue_key,
+        )
+        self.groups = [self.create_group(project=project1), self.create_group(project=project2)]
+        GroupLink.objects.create(
+            linked_id=external_issue_org1.id,
+            linked_type=GroupLink.LinkedType.issue,
+            group_id=self.groups[0].id,
+            project_id=project1.id,
+        )
+        GroupLink.objects.create(
+            linked_id=external_issue_org2.id,
+            linked_type=GroupLink.LinkedType.issue,
+            group_id=self.groups[1].id,
+            project_id=project2.id,
+        )
+
+    def test_get_groups_by_external_issue(self):
+        groups = Group.objects.get_groups_by_external_issue(
+            self.integration, self.external_issue_key)
+        assert sorted([g.id for g in groups]) == sorted([g.id for g in self.groups])

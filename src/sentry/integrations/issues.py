@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
-from sentry.models import Event
+from sentry.models import Activity, Event, Group, GroupStatus, ProjectIntegration
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+logger = logging.getLogger(__name__)
 
 
 class IssueBasicMixin(object):
@@ -143,3 +146,68 @@ class IssueSyncMixin(IssueBasicMixin):
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
+
+
+def sync_group_status_inbound(integration, status_value, external_issue_key):
+    affected_groups = list(
+        Group.objects.get_groups_by_external_issue(
+            integration, external_issue_key,
+        ).select_related('project'),
+    )
+    project_integration_configs = {
+        pi.project_id: pi.config for pi in ProjectIntegration.objects.filter(
+            project_id__in=[g.project_id for g in affected_groups]
+        )
+    }
+    groups_to_resolve, groups_to_unresolve = determine_group_statuses(
+        integration, affected_groups, project_integration_configs, status_value)
+    change_group_statuses(groups_to_resolve, GroupStatus.RESOLVED)
+    change_group_statuses(groups_to_unresolve, GroupStatus.UNRESOLVED)
+
+
+def determine_group_statuses(integration, affected_groups,
+                             project_integration_configs, status_value):
+    groups_to_resolve = []
+    groups_to_unresolve = []
+    for group in affected_groups:
+        project_config = project_integration_configs.get(group.project_id, {})
+        resolve_when = project_config.get('resolve_when')
+        unresolve_when = project_config.get('unresolve_when')
+
+        # TODO(jess): make sure config validation doesn't
+        # allow these to be the same
+        if (unresolve_when and resolve_when) and (resolve_when == unresolve_when):
+            logger.warning(
+                'project-config-conflict', extra={
+                    'project_id': group.project_id,
+                    'integration_id': integration.id,
+                }
+            )
+            continue
+        # TODO(lb): Given David's Changes, unresolve_when and resolve_when
+        # will be a list rather than a single value.
+        if status_value == unresolve_when:
+            groups_to_unresolve.append(group)
+        elif status_value == resolve_when:
+            groups_to_resolve.append(group)
+    return groups_to_resolve, groups_to_unresolve
+
+
+def change_group_statuses(groups, status):
+    if not groups:
+        return
+    updated_groups = Group.objects.filter(
+        id__in=[g.id for g in groups],
+    ).exclude(
+        status=status,
+    ).update(
+        status=status,
+    )
+    if not updated_groups:
+        return
+    for group in groups:
+        Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=status,
+        )
