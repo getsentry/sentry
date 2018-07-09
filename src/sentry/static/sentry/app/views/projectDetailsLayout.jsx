@@ -27,8 +27,10 @@ const ProjectDetailsLayout = createReactClass({
   },
 
   componentWillUnmount() {
+    let {location} = this.props;
+    let {pathname, search} = location;
     // Save last route so that we can jump back to view from settings
-    setLastRoute(this.props.location.pathname);
+    setLastRoute(`${pathname}${search || ''}`);
   },
 
   /**
