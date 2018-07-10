@@ -98,7 +98,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(hours=12)
         result = self.parse_query('age:+12h')
-        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': True}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_weeks(self, now):
@@ -106,7 +106,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(days=35)
         result = self.parse_query('age:+5w')
-        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': True}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_days(self, now):
@@ -114,7 +114,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(days=10)
         result = self.parse_query('age:+10d')
-        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': True}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_hours(self, now):
@@ -122,7 +122,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(hours=10)
         result = self.parse_query('age:+10h')
-        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': True}
 
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_minutes(self, now):
@@ -130,7 +130,7 @@ class ParseQueryTest(TestCase):
         now.return_value = start
         expected = start - timedelta(minutes=30)
         result = self.parse_query('age:+30m')
-        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': False}
+        assert result == {'tags': {}, 'query': '', 'age_to': expected, 'age_to_inclusive': True}
 
     @mock.patch('django.utils.timezone.now')
     def test_two_age_tags(self, now):
@@ -144,8 +144,8 @@ class ParseQueryTest(TestCase):
             'query': '',
             'age_to': expected_to,
             'age_from': expected_from,
-            'age_to_inclusive': False,
-            'age_from_inclusive': True
+            'age_to_inclusive': True,
+            'age_from_inclusive': True,
         }
 
     def test_event_timestamp_syntax(self):
@@ -382,9 +382,16 @@ class ParseQueryTest(TestCase):
     def test_date_range(self):
         result = self.parse_query('event.timestamp:>2016-01-01 event.timestamp:<2016-01-02')
         assert result['date_from'] == datetime(2016, 1, 1, tzinfo=timezone.utc)
-        assert result['date_from_inclusive']
+        assert result['date_from_inclusive'] is False
         assert result['date_to'] == datetime(2016, 1, 2, tzinfo=timezone.utc)
-        assert not result['date_to_inclusive']
+        assert result['date_to_inclusive'] is False
+
+    def test_date_range_inclusive(self):
+        result = self.parse_query('event.timestamp:>=2016-01-01 event.timestamp:<=2016-01-02')
+        assert result['date_from'] == datetime(2016, 1, 1, tzinfo=timezone.utc)
+        assert result['date_from_inclusive'] is True
+        assert result['date_to'] == datetime(2016, 1, 2, tzinfo=timezone.utc)
+        assert result['date_to_inclusive'] is True
 
     def test_date_approx_day(self):
         date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
