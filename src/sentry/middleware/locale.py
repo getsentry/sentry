@@ -12,6 +12,7 @@ import pytz
 
 from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
+from django.utils.translation import _trans
 
 from sentry.models import UserOption
 from sentry.utils.safe import safe_execute
@@ -29,7 +30,18 @@ class SentryLocaleMiddleware(LocaleMiddleware):
 
         safe_execute(self.load_user_conf, request, _with_transaction=False)
 
-        super(SentryLocaleMiddleware, self).process_request(request)
+        lang_code = request.GET.get('lang')
+        # user is explicitly forcing language
+        if lang_code:
+            try:
+                language = _trans.get_supported_language_variant(lang_code)
+            except LookupError:
+                super(SentryLocaleMiddleware, self).process_request(request)
+            else:
+                _trans.activate(language)
+                request.LANGUAGE_CODE = _trans.get_language()
+        else:
+            super(SentryLocaleMiddleware, self).process_request(request)
 
     def load_user_conf(self, request):
         if not request.user.is_authenticated():
