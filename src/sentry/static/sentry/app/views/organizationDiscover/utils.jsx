@@ -12,19 +12,19 @@ export function getQueryFromQueryString(queryString) {
       result[key] = value;
     }
   });
-  console.log('result is', result);
+
   return result;
 }
 
 export function getQueryStringFromQuery(query) {
-  console.log('Entered getQueryString');
   let str = '?';
 
-  console.log(Object.entries(query));
-
-  //TODO get rid of amp at the end
-  for (let key in query) {
-    str += key + '=' + encodeURIComponent(JSON.stringify(query[key])) + '&';
+  let keys = Object.keys(query);
+  keys.sort();
+  for (let i = 0; i < keys.length; ++i) {
+    console.log(keys[i], ': ', query[keys[i]]);
+    str += keys[i] + '=' + encodeURIComponent(JSON.stringify(query[keys[i]])) + '&';
   }
+
   return str;
 }
