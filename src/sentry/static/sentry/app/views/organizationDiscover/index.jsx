@@ -7,6 +7,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
 
+import {getQueryFromQueryString} from './utils';
+
 const OrganizationDiscoverContainer = createReactClass({
   displayName: 'OrganizationDiscoverContainer',
   mixins: [OrganizationState],
@@ -18,11 +20,16 @@ const OrganizationDiscoverContainer = createReactClass({
   },
 
   componentDidMount: function() {
-    const query = this.props.location.query;
-    // TODO: validate query
-    console.log(query);
+    const query = this.props.location.search;
 
-    this.queryBuilder = createQueryBuilder(query, this.context.organization);
+    console.log('location', this.props.location);
+    console.log('query is...', query);
+    // TODO: validate query
+
+    this.queryBuilder = createQueryBuilder(
+      getQueryFromQueryString(query),
+      this.context.organization
+    );
     this.queryBuilder.load().then(() => {
       this.setState({isLoading: false});
     });

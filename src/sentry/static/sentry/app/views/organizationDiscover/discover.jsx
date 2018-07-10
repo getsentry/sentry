@@ -22,6 +22,8 @@ import Result from './result';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 
+import {getQueryStringFromQuery} from './utils';
+
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -62,11 +64,13 @@ export default class OrganizationDiscover extends React.Component {
 
     queryBuilder.fetch().then(
       result => {
+        const query = queryBuilder.getInternal();
         this.setState({result});
 
         browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/`,
-          query: queryBuilder.getInternal(),
+          pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
+            query
+          )}`,
         });
       },
       () => {
