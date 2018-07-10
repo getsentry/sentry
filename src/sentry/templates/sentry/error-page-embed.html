@@ -255,28 +255,28 @@
 
 <div class="sentry-error-embed clearfix">
   <header>
-    <h2>{% blocktrans %}It looks like we're having <span>some internal</span> issues.{% endblocktrans %}</h2>
-    <p><span>{% trans "Our team has been notified." %}</span> {% trans "If you'd like to help, tell us what happened below." %}</p>
+    <h2>{{ title }}</h2>
+    <p>{{ subtitle }} <span>{{ subtitle2 }}</span></p>
   </header>
   <form>
     <div class="error-wrapper"></div>
     <div class="form-content">
       <div class="form-field clearfix">
-        <label>{% trans "Name" %}</label>
+        <label>{{ name_label }}</label>
         {{ form.name }}
       </div>
       <div class="form-field clearfix">
-        <label>{% trans "Email" %}</label>
+        <label>{{ email_label }}</label>
         {{ form.email }}
       </div>
       <div class="form-field clearfix">
-        <label>{% trans "What happened?" %}</label>
+        <label>{{ comments_label }}</label>
         {{ form.comments }}
       </div>
     </div>
     <div class="form-submit clearfix">
-      <button type="submit" class="btn">{% trans "Submit Crash Report" %}</button>
-      <a class="close">{% trans "Close" %}</a>
+      <button type="submit" class="btn">{{ submit_label }}</button>
+      <a class="close">{{ close_label }}</a>
       {% if show_branding %}
       <p class="powered-by">
         {% trans "Crash reports powered by <a href=\"https://sentry.io\">Sentry</a>" %}
