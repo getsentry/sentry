@@ -4,7 +4,7 @@ import {Flex} from 'grid-emotion';
 import space from 'app/styles/space';
 
 export const PlaceholderText = styled.div`
-  color: #afa3bb;
+  color: ${p => p.theme.gray6};
   font-size: 15px;
 `;
 

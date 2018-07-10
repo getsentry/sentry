@@ -65,7 +65,7 @@ export default styled(MultipleProjectSelector)`
   label {
     font-weight: 400;
     font-size: 13px;
-    color: #afa3bb;
+    color: ${p => p.theme.gray6};
     margin-bottom: 12px;
   }
   .dropdown-actor-title {
