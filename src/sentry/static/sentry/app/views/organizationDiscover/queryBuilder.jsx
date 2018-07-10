@@ -9,7 +9,7 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 const DEFAULTS = {
   projects: [],
-  fields: ['event_id', 'timestamp'],
+  fields: [],
   conditions: [],
   aggregations: [],
   start: moment()

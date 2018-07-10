@@ -7,7 +7,7 @@ describe('Condition', function() {
   describe('render()', function() {
     it('renders text', function() {
       const data = [
-        {value: [null, null, null], expectedText: 'Select...'},
+        {value: [null, null, null], expectedText: 'Add condition...'},
         {value: ['device_name', '=', 'test'], expectedText: 'device_name = test'},
         {value: ['device_name', 'IS NULL', null], expectedText: 'device_name IS NULL'},
         {

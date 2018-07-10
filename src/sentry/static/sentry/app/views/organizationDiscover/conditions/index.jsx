@@ -1,13 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
+import {PlaceholderText, SelectListItem} from '../styles';
 
 export default class Conditions extends React.Component {
   static propTypes = {
@@ -56,9 +57,11 @@ export default class Conditions extends React.Component {
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
           </Add>
         </div>
-        {!value.length && 'None, showing all events'}
+        {!value.length && (
+          <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
+        )}
         {value.map((condition, idx) => (
-          <Flex key={idx}>
+          <SelectListItem key={idx}>
             <Condition
               value={condition}
               onChange={val => this.handleChange(val, idx)}
@@ -69,7 +72,7 @@ export default class Conditions extends React.Component {
                 <InlineSvg src="icon-circle-close" height="38px" />
               </a>
             </Box>
-          </Flex>
+          </SelectListItem>
         ))}
       </div>
     );
