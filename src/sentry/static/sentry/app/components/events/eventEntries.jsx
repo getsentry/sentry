@@ -75,7 +75,7 @@ const EventEntries = createReactClass({
     if (!event.errors || !event.errors.length > 0) return;
     let errors = event.errors;
     let errorTypes = errors.map(errorEntries => errorEntries.type);
-    let errorMessages = errors.map(errorEntries => errorEntries.message)
+    let errorMessages = errors.map(errorEntries => errorEntries.message);
 
     this.recordIssueError(errorTypes, errorMessages);
   },
@@ -89,12 +89,12 @@ const EventEntries = createReactClass({
     let orgId = this.getOrganization().id;
 
     analytics('issue_error_banner.viewed', {
-      'org_id': orgId,
-      'platform': project.platform,
-      'group': event.groupID,
-      'error_type': errorTypes,
-      'error_message': errorMessages,
-    })
+      org_id: orgId,
+      platform: project.platform,
+      group: event.groupID,
+      error_type: errorTypes,
+      error_message: errorMessages,
+    });
   },
 
   interfaces: INTERFACES,
