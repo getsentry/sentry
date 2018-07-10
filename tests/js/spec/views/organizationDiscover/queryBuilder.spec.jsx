@@ -9,6 +9,7 @@ describe('Query Builder', function() {
     const external = queryBuilder.getExternal();
 
     expect(external.projects).toEqual([2]);
+    expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
     expect(external.fields).toHaveLength(47);
     expect(external.conditions).toHaveLength(0);
     expect(external.aggregations).toHaveLength(0);
