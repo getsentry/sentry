@@ -27,6 +27,7 @@ scopes = (
     'account',
     'issue:write',
     'repository',
+    'repository:admin',
     'team',
     'webhook',
 )
@@ -50,6 +51,10 @@ class BitbucketIntegration(Integration, BitbucketIssueSyncMixin):
             project_id=project_id,
             integration_id=self.model.id,
         ).config['default_repo']
+
+    @property
+    def username(self):
+        return self.model.name
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
