@@ -36,6 +36,7 @@ def remove_lost_password_hashes(sender, user, **kwargs):
     # Remove pending password recovery hashes; user was able to login
     user.clear_lost_passwords()
 
+
 user_logged_in.disconnect(update_last_login)
 user_logged_in.connect(
     safe_update_last_login,

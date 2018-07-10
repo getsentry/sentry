@@ -305,5 +305,6 @@ class User(BaseModel, AbstractBaseUser):
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
 
+
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field('last_login').null = True

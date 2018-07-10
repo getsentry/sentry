@@ -35,6 +35,7 @@ def timer(name, prefix='snuba.client'):
     finally:
         metrics.timing('{}.{}'.format(prefix, name), time.time() - t)
 
+
 _snuba_pool = urllib3.connectionpool.connection_from_url(
     settings.SENTRY_SNUBA,
     retries=False,
