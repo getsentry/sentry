@@ -86,3 +86,17 @@ export function openRecoveryOptions(options = {}) {
       });
     });
 }
+
+/**
+ * @param Object options.provider The integration provider to show the details for
+ * @param Function options.onAddIntegration Called after a new integration is added
+ */
+export function openIntegrationDetails(options = {}) {
+  import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'integration-details',
+      });
+    });
+}

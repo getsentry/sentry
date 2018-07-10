@@ -41,10 +41,12 @@ exports[`Integration render() with one integration renders 1`] = `
                 "key": "github",
                 "metadata": Object {
                   "aspects": Object {
-                    "alert_link": Object {
-                      "link": "/url/with/params/{orgId}/",
-                      "text": "This is a *alert link* with markdown formatting",
-                    },
+                    "alerts": Array [
+                      Object {
+                        "text": "This is a an alert example",
+                        "type": "warning",
+                      },
+                    ],
                   },
                   "author": "Morty",
                   "description": "*markdown* formatted _description_",
@@ -105,10 +107,12 @@ exports[`Integration render() with one integration renders 1`] = `
               "key": "github",
               "metadata": Object {
                 "aspects": Object {
-                  "alert_link": Object {
-                    "link": "/url/with/params/{orgId}/",
-                    "text": "This is a *alert link* with markdown formatting",
-                  },
+                  "alerts": Array [
+                    Object {
+                      "text": "This is a an alert example",
+                      "type": "warning",
+                    },
+                  ],
                 },
                 "author": "Morty",
                 "description": "*markdown* formatted _description_",
@@ -127,17 +131,6 @@ exports[`Integration render() with one integration renders 1`] = `
         />
       </PanelBody>
     </Panel>
-    <AlertLink
-      onClick={[Function]}
-    >
-      <span
-        dangerouslySetInnerHTML={
-          Object {
-            "__html": "This is a <em>alert link</em> with markdown formatting",
-          }
-        }
-      />
-    </AlertLink>
     <hr />
     <h5>
       GitHub Integration
