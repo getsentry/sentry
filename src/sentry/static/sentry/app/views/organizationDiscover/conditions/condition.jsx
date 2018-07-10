@@ -1,11 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
-
+import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal, isValidCondition} from './utils';
 import {CONDITION_OPERATORS} from '../data';
+import {PlaceholderText} from '../styles';
 
 export default class Condition extends React.Component {
   static propTypes = {
@@ -161,6 +162,7 @@ export default class Condition extends React.Component {
         <SelectControl
           forwardedRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}
+          placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}
           filterOptions={this.filterOptions}
           onChange={this.handleChange}

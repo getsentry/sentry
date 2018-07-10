@@ -12,6 +12,7 @@ const theme = {
   gray3: '#645574',
   gray4: '#4A3E56',
   gray5: '#302839',
+  gray6: '#AFA3BB', // form disabled
 
   blue: '#3B6ECC',
   blueLight: '#628BD6',

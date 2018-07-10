@@ -2,9 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 
 import {getInternal, getExternal} from './utils';
 import {TOPK_COUNTS} from '../data';
+import {PlaceholderText} from '../styles';
 
 export default class Aggregation extends React.Component {
   static propTypes = {
@@ -129,6 +131,9 @@ export default class Aggregation extends React.Component {
         <SelectControl
           forwardedRef={ref => (this.select = ref)}
           value={value}
+          placeholder={
+            <PlaceholderText>{t('Add aggregation function...')}</PlaceholderText>
+          }
           options={this.getOptions()}
           filterOptions={this.filterOptions}
           onChange={this.handleChange}

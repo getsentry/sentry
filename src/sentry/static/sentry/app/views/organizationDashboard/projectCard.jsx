@@ -167,7 +167,7 @@ const StyledProjectCard = styled.div`
 `;
 
 const Star = styled.a`
-  color: ${p => (p.active ? p.theme.yellowOrange : '#afa3bb')};
+  color: ${p => (p.active ? p.theme.yellowOrange : p.theme.gray6)};
   margin-right: 16px;
   &:hover {
     color: ${p => p.theme.yellowOrange};

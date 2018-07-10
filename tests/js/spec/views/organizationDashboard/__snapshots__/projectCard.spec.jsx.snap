@@ -405,7 +405,7 @@ exports[`ProjectCard renders 1`] = `
                       title="Add to bookmarks"
                     >
                       <a
-                        className="tip project-select-bookmark icon icon-star-solid css-31kf5u-Star efesc7i4"
+                        className="tip project-select-bookmark icon icon-star-solid css-9lfgnk-Star efesc7i4"
                         onClick={[Function]}
                         title="Add to bookmarks"
                       />
