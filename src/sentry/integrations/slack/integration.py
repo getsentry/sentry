@@ -15,7 +15,7 @@ Connect your Sentry organization to one or more Slack workspaces, and start
 getting errors right in front of you where all the action happens in your
 office!
 
- * Unfurls Sentry URLs in directly within Slack, providing you context and
+ * Unfurls Sentry URLs directly within Slack, providing you context and
    actionability on issues right at your fingertips.
  * Resolve, ignore, and assign issues with minimal context switching.
  * Configure rule based Slack notifications to automatically be posted into a
