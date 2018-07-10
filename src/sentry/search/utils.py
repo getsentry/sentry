@@ -51,74 +51,126 @@ def parse_datetime_range(value):
         raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag == '-':
-        return (timezone.now() - delta, None)
+        return (
+            (timezone.now() - delta, True),
+            None,
+        )
     else:
-        return (None, timezone.now() - delta)
+        return (
+            None,
+            (timezone.now() - delta, True),
+        )
 
 
-def parse_datetime_comparison(value):
-    # TODO(dcramer): currently inclusitivity is not controllable by the query
-    # as from date is always inclusive, and to date is always exclusive
-    if value[:2] in ('>=', '=>'):
-        return (parse_datetime_value(value[2:])[0], None)
-    if value[:2] in ('<=', '=<'):
-        return (None, parse_datetime_value(value[2:])[0])
-    if value[:1] in ('>'):
-        return (parse_datetime_value(value[1:])[0], None)
-    if value[:1] in ('<'):
-        return (None, parse_datetime_value(value[1:])[0])
-    if value[0] == '=':
-        return parse_datetime_value(value[1:])
-    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
+DATE_FORMAT = '%Y-%m-%d'
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+DATETIME_FORMAT_MICROSECONDS = '%Y-%m-%dT%H:%M:%S.%f'
 
 
-def parse_datetime_value(value):
-    try:
-        return _parse_datetime_value(value)
-    except (ValueError, IndexError):
-        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
+def parse_unix_timestamp(value):
+    return datetime.utcfromtimestamp(float(value)).replace(tzinfo=timezone.utc)
 
 
-def _parse_datetime_value(value):
-    # this one is fuzzy, and not entirely correct
-    if value.startswith(('-', '+')):
-        return parse_datetime_range(value)
-
+def parse_datetime_string(value):
     # timezones are not supported and are assumed UTC
     if value[-1] == 'Z':
         value = value[:-1]
 
-    value_len = len(value)
-    if value_len in (8, 10):
-        value = datetime.strptime(value, '%Y-%m-%d').replace(
-            tzinfo=timezone.utc,
-        )
-        return [value, value + timedelta(days=1)]
-    elif value[4] == '-':
+    for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
         try:
-            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S').replace(
-                tzinfo=timezone.utc,
-            )
+            return datetime.strptime(value, format).replace(tzinfo=timezone.utc)
         except ValueError:
-            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f').replace(
-                tzinfo=timezone.utc,
-            )
-    else:
-        value = datetime.utcfromtimestamp(float(value)).replace(
+            pass
+
+    try:
+        return parse_unix_timestamp(value)
+    except ValueError:
+        pass
+
+    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
+
+
+def parse_datetime_comparison(value):
+    if value[:2] == '>=':
+        return (
+            (parse_datetime_string(value[2:]), True),
+            None,
+        )
+    if value[:2] == '<=':
+        return (
+            None,
+            (parse_datetime_string(value[2:]), True),
+        )
+    if value[:1] == '>':
+        return (
+            (parse_datetime_string(value[1:]), False),
+            None,
+        )
+    if value[:1] == '<':
+        return (
+            None,
+            (parse_datetime_string(value[1:]), False),
+        )
+
+    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
+
+
+def parse_datetime_value(value):
+    # timezones are not supported and are assumed UTC
+    if value[-1] == 'Z':
+        value = value[:-1]
+
+    # A value that only specifies the date (without a time component) should be
+    # expanded to an interval that spans the entire day.
+    if len(value) in (8, 10):
+        value = datetime.strptime(value, DATE_FORMAT).replace(
             tzinfo=timezone.utc,
         )
-    return [value - timedelta(minutes=5), value + timedelta(minutes=6)]
+        return (
+            (value, True),
+            (value + timedelta(days=1), False),
+        )
+
+    # A value that contains the time should converted to an interval.
+    if value[4] == '-':
+        try:
+            value = datetime.strptime(value, DATETIME_FORMAT).replace(tzinfo=timezone.utc)
+        except ValueError:
+            value = datetime.strptime(value, DATETIME_FORMAT_MICROSECONDS).replace(tzinfo=timezone.utc)
+    else:
+        value = parse_unix_timestamp(value)
+
+    return (
+        (value - timedelta(minutes=5), True),
+        (value + timedelta(minutes=6), False),
+    )
 
 
 def parse_datetime_expression(value):
-    # result must be (from inclusive, to exclusive)
     if value.startswith(('-', '+')):
         return parse_datetime_range(value)
-
-    if value.startswith(('>', '<', '=', '<=', '>=')):
+    elif value.startswith(('>', '<', '<=', '>=')):
         return parse_datetime_comparison(value)
+    else:
+        return parse_datetime_value(value)
 
-    return parse_datetime_value(value)
+
+def get_date_params(value, from_field, to_field):
+    date_from, date_to = parse_datetime_expression(value)
+    result = {}
+    if date_from is not None:
+        date_from_value, date_from_inclusive = date_from
+        result.update({
+            from_field: date_from_value,
+            '{}_inclusive'.format(from_field): date_from_inclusive,
+        })
+    if date_to is not None:
+        date_to_value, date_to_inclusive = date_to
+        result.update({
+            to_field: date_to_value,
+            '{}_inclusive'.format(to_field): date_to_inclusive,
+        })
+    return result
 
 
 def parse_team_value(project, value, user):
@@ -144,22 +196,6 @@ def parse_user_value(value, user):
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
         return User(id=0)
-
-
-def get_date_params(value, from_field, to_field):
-    date_from, date_to = parse_datetime_expression(value)
-    result = {}
-    if date_from:
-        result.update({
-            from_field: date_from,
-            '{}_inclusive'.format(from_field): True,
-        })
-    if date_to:
-        result.update({
-            to_field: date_to,
-            '{}_inclusive'.format(to_field): False,
-        })
-    return result
 
 
 numeric_modifiers = [
