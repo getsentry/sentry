@@ -29,16 +29,20 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       By Morty
     </AuthorName>
     <Box>
-      <a
+      <ExternalLink
         href="http://example.com/integration_source_url"
+        rel="noreferrer noopener"
+        target="_blank"
       >
         View Source
-      </a>
-      <a
+      </ExternalLink>
+      <ExternalLink
         href="http://example.com/integration_issue_url"
+        rel="noreferrer noopener"
+        target="_blank"
       >
         Report Issue
-      </a>
+      </ExternalLink>
     </Box>
   </Metadata>
   <Alert

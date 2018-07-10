@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/buttons/button';
+import ExternalLink from 'app/components/externalLink';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 
@@ -38,8 +39,8 @@ class IntegrationDetailsModal extends React.Component {
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>
           <Box>
-            <a href={metadata.source_url}>{t('View Source')}</a>
-            <a href={metadata.issue_url}>{t('Report Issue')}</a>
+            <ExternalLink href={metadata.source_url}>{t('View Source')}</ExternalLink>
+            <ExternalLink href={metadata.issue_url}>{t('Report Issue')}</ExternalLink>
           </Box>
         </Metadata>
 
