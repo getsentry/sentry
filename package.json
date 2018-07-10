@@ -164,7 +164,7 @@
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-jest": "^21.15.0",
     "eslint-plugin-react": "7.4.0",
-    "jest": "22.1.2",
+    "jest": "23.4.0",
     "jest-junit": "^3.4.1",
     "mockdate": "2.0.2",
     "prettier": "1.7.4",

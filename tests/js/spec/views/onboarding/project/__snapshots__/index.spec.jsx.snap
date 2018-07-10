@@ -82,6 +82,12 @@ exports[`Project render() should set required class on empty submit 1`] = `
       "calls": Array [
         Array [],
       ],
+      "results": Array [
+        Object {
+          "isThrow": false,
+          "value": undefined,
+        },
+      ],
     }
   }
   params={
@@ -114,6 +120,12 @@ exports[`Project render() should set required class on empty submit 1`] = `
         [MockFunction] {
           "calls": Array [
             Array [],
+          ],
+          "results": Array [
+            Object {
+              "isThrow": false,
+              "value": undefined,
+            },
           ],
         }
       }

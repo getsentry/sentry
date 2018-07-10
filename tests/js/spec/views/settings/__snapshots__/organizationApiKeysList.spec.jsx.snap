@@ -46,10 +46,8 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <SettingsPageHeading
       action={
         <Button
-          busy={undefined}
           disabled={false}
           icon="icon-circle-add"
-          onClick={undefined}
           priority="primary"
           size="small"
         >

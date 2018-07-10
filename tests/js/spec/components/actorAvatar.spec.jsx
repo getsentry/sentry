@@ -60,7 +60,7 @@ describe('Avatar', function() {
     });
 
     it('should return null when actor type is a unknown', function() {
-      window.console.error = jest.genMockFunction();
+      window.console.error = jest.fn();
 
       let avatar = mount(
         <ActorAvatar
@@ -75,6 +75,8 @@ describe('Avatar', function() {
       expect(avatar.html()).toBe(null);
       //proptype warning
       expect(window.console.error.mock.calls.length).toBeGreaterThan(0);
+
+      window.console.error.mockRestore();
     });
   });
 });
