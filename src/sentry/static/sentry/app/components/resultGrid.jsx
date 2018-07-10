@@ -85,7 +85,7 @@ class SortBy extends React.Component {
   static propTypes = {
     options: PropTypes.array.isRequired,
     path: PropTypes.string.isRequired,
-    location: PropTypes.string.isRequired,
+    location: PropTypes.object,
     value: PropTypes.any,
   };
 
@@ -147,7 +147,7 @@ const ResultGrid = createReactClass({
     hasPagination: PropTypes.bool,
     hasSearch: PropTypes.bool,
     keyForRow: PropTypes.func,
-    location: PropTypes.string,
+    location: PropTypes.object,
     method: PropTypes.string,
     options: PropTypes.array,
     path: PropTypes.string,
