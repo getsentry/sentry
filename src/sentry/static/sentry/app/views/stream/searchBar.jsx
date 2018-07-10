@@ -130,7 +130,7 @@ const SearchBar = createReactClass({
 
   componentWillReceiveProps(nextProps) {
     // query was updated by another source (e.g. sidebar filters)
-    if (nextProps.query !== this.state.query) {
+    if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,
       });
