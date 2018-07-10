@@ -63,9 +63,6 @@ window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
 window.scrollTo = jest.fn();
 
-// Instead of wrapping codeblocks in `setTimeout`
-window.tick = () => new Promise(res => setTimeout(res));
-
 // emotion context broadcast
 const broadcast = createBroadcast(theme);
 
