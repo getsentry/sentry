@@ -9,6 +9,12 @@ exports[`RuleBuilder renders 1`] = `
           "path:some/path/* janedoe@example.com",
         ],
       ],
+      "results": Array [
+        Object {
+          "isThrow": false,
+          "value": undefined,
+        },
+      ],
     }
   }
   organization={

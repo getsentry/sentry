@@ -52,7 +52,7 @@ describe('retryableImport', function() {
 
   it('only retries 3 times', async function() {
     const importMock = jest.fn(
-      () => new Promise((resolve, reject) => reject('Unable to import'))
+      () => new Promise((resolve, reject) => reject(new Error('Unable to import')))
     );
 
     await expect(retryableImport(() => importMock())).rejects.toThrow('Unable to import');

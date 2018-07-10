@@ -976,6 +976,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   "csharp",
                 ],
               ],
+              "results": Array [
+                Object {
+                  "isThrow": false,
+                  "value": undefined,
+                },
+              ],
             }
           }
           setTeam={[Function]}
@@ -999,6 +1005,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     Array [
                       "csharp",
                     ],
+                  ],
+                  "results": Array [
+                    Object {
+                      "isThrow": false,
+                      "value": undefined,
+                    },
                   ],
                 }
               }

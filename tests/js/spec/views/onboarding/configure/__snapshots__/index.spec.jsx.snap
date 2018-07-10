@@ -146,6 +146,16 @@ exports[`Configure should render correctly render() should render platform docs 
                       "/onboarding/testOrg/project-slug/configure/node/",
                     ],
                   ],
+                  "results": Array [
+                    Object {
+                      "isThrow": false,
+                      "value": undefined,
+                    },
+                    Object {
+                      "isThrow": false,
+                      "value": undefined,
+                    },
+                  ],
                 },
                 "go": [MockFunction],
                 "goBack": [MockFunction],

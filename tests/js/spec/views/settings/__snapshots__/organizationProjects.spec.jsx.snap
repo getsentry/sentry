@@ -22,7 +22,6 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
               icon="icon-circle-add"
               priority="primary"
               size="small"
-              title={undefined}
               to="/organizations/org-slug/projects/new/"
             >
               Create Project

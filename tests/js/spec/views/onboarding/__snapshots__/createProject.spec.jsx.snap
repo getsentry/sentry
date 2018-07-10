@@ -4,7 +4,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
 <div>
   <Panel
     body={
-      <UNDEFINED>
+      <React.Fragment>
         <PanelAlert
           m={0}
           mb={0}
@@ -22,7 +22,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
             Create a Team
           </Button>
         </CreateTeamBody>
-      </UNDEFINED>
+      </React.Fragment>
     }
     title="Cannot Create Project"
   />
