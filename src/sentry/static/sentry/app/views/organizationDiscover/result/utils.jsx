@@ -59,8 +59,10 @@ export function downloadAsCsv(result) {
     }),
   ];
 
+  const escapeUnsafeCols = col => (`${col}`.match(/^[\=\+\-\@]/) ? `'${col}'` : col);
+
   const csvContent = `data:text/csv;charset=utf-8,${rows
-    .map(row => row.join(','))
+    .map(row => row.map(escapeUnsafeCols).join(','))
     .join('\n')}`; // Do not care about windows formats right now
 
   window.location.assign(encodeURIComponent(csvContent));

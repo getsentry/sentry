@@ -37,4 +37,17 @@ describe('downloadAsCsv()', function() {
       expect.stringContaining(encodeURIComponent('count\n3'))
     );
   });
+
+  it('quotes unsafe strings', function() {
+    const result = {
+      meta: [{name: 'message'}],
+      data: [{message: '=HYPERLINK(http://some-bad-website)'}],
+    };
+    downloadAsCsv(result);
+    expect(locationSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        encodeURIComponent("message\n'=HYPERLINK(http://some-bad-website)'")
+      )
+    );
+  });
 });
