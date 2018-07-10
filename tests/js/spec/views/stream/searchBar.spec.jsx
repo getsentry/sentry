@@ -35,6 +35,34 @@ describe('SearchBar', function() {
     sandbox.restore();
   });
 
+  describe('componentWillReceiveProps()', function() {
+    it('should update state.query if props.query is updated from outside', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+
+      searchBar.setProps({query: 'two'});
+
+      expect(searchBar.state().query).toEqual('two');
+    });
+
+    it('should not reset user input if a noop props change happens', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+      searchBar.setState({query: 'two'});
+
+      searchBar.setProps({query: 'one'});
+
+      expect(searchBar.state().query).toEqual('two');
+    });
+
+    it('should reset user input if a meaningful props change happens', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+      searchBar.setState({query: 'two'});
+
+      searchBar.setProps({query: 'three'});
+
+      expect(searchBar.state().query).toEqual('three');
+    });
+  });
+
   describe('getQueryTerms()', function() {
     it('should extract query terms from a query string', function() {
       let query = 'tagname: ';
