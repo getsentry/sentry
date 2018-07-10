@@ -516,10 +516,12 @@ window.TestStubs = {
         issue_url: 'http://example.com/integration_issue_url',
         source_url: 'http://example.com/integration_source_url',
         aspects: {
-          alert_link: {
-            text: 'This is a *alert link* with markdown formatting',
-            link: '/url/with/params/{orgId}/',
-          },
+          alerts: [
+            {
+              type: 'warning',
+              text: 'This is a an alert example',
+            },
+          ],
         },
       },
       ...params,
