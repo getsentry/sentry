@@ -71,10 +71,15 @@ const IntegrationIcon = styled(InlineSvg)`
 
 const IntegrationLink = styled('a')`
   text-decoration: none;
-  border-bottom: 1px solid ${p => p.theme.gray4};
   padding-bottom: ${space(0.25)};
-  color: ${p => p.theme.gray4};
   margin-left: ${space(1)};
+  color: ${p => p.theme.gray4};
+  border-bottom: 1px solid ${p => p.theme.gray4};
+
+  &,
+  &:hover {
+    border-bottom: 1px solid ${p => p.theme.linkColor};
+  }
 `;
 
 const IntegrationName = styled('span')`
