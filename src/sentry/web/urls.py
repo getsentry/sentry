@@ -353,12 +353,13 @@ urlpatterns += patterns(
     # User settings use generic_react_page_view, while any view
     # acting on behalf of an organization should use react_page_view
     url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings"),
+    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-appearance"),
     url(r'^settings/account/security/$', generic_react_page_view, name='sentry-account-settings-security'),
     url(r'^settings/account/avatar/$', generic_react_page_view, name='sentry-account-settings-avatar'),
     url(r'^settings/account/identities/$', generic_react_page_view, name='sentry-account-settings-identities'),
     url(r'^settings/account/subscriptions/$', generic_react_page_view, name='sentry-account-settings-subscriptions'),
     url(r'^settings/account/notifications/$', generic_react_page_view, name='sentry-account-settings-notifications'),
-    url(r'^settings/account/email/$', generic_react_page_view, name='sentry-account-settings-email'),
+    url(r'^settings/account/email/$', generic_react_page_view, name='sentry-account-settings-emails'),
     url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
     url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
     url(r'^settings/account/', generic_react_page_view),
