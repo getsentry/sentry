@@ -25,7 +25,7 @@ const MESSAGES = {
   ),
   native_missing_dsym: t('A required debug information file was missing.'),
   native_missing_system_dsym: t('A system debug information file was missing.'),
-  native_missing_symbol: t('Unable to resolve a symbol.'),
+  native_missing_symbol: t('Could not resolve one or more frames in debug information file.'),
   native_simulator_frame: t('Encountered an unprocessable simulator frame.'),
   native_unknown_image: t('A binary image is referenced that is unknown.'),
   proguard_missing_mapping: t('A proguard mapping file was missing.'),

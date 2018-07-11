@@ -93,7 +93,7 @@ class EventError(object):
         NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: u'An optional debug information file was missing.',
         NATIVE_MISSING_DSYM: u'A required debug information file was missing.',
         NATIVE_MISSING_SYSTEM_DSYM: u'A system debug information file was missing.',
-        NATIVE_MISSING_SYMBOL: u'Unable to resolve a symbol.',
+        NATIVE_MISSING_SYMBOL: u'Could not resolve one or more frames in debug information file.',
         NATIVE_SIMULATOR_FRAME: u'Encountered an unprocessable simulator frame.',
         NATIVE_UNKNOWN_IMAGE: u'A binary image is referenced that is unknown.',
         PROGUARD_MISSING_MAPPING: u'A proguard mapping file was missing.',
