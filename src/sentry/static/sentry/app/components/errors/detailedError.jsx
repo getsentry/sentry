@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
+import * as sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/buttons/button';
@@ -24,7 +25,6 @@ class DetailedError extends React.Component {
   };
 
   componentDidMount() {
-    // window.Raven.lastEventId() may not be immediatly true, so double-check after raven has time to send an error
     setTimeout(() => {
       this.forceUpdate();
     }, 100);
@@ -32,8 +32,8 @@ class DetailedError extends React.Component {
 
   openFeedback(e) {
     e.preventDefault();
-    if (window.Raven) {
-      window.Raven.lastEventId() && window.Raven.showReportDialog();
+    if (sdk) {
+      sdk.lastEventId() && sdk.showReportDialog();
     }
   }
 
@@ -65,8 +65,8 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  {window.Raven &&
-                    window.Raven.lastEventId() && (
+                  {sdk &&
+                    sdk.lastEventId() && (
                       <Button priority="link" onClick={this.openFeedback}>
                         {t('Fill out a report')}
                       </Button>

@@ -59,7 +59,6 @@ var appEntry = {
     'marked',
     'moment',
     'moment-timezone',
-    'raven-js',
     'react',
     'react-dom',
     'react-dom/server',
@@ -176,7 +175,7 @@ var appConfig = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js',
+      sdk: 'sdk',
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
@@ -199,6 +198,16 @@ var appConfig = {
   ],
   resolve: {
     alias: {
+      sdk: path.join(
+        __dirname,
+        'src',
+        'sentry',
+        'static',
+        'sentry',
+        'app',
+        'utils',
+        'sdk.js'
+      ),
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST

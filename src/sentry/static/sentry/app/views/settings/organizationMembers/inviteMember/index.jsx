@@ -1,10 +1,10 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 
+import * as sdk from 'app/utils/sdk';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -89,7 +89,7 @@ const InviteMember = createReactClass({
             },
           });
 
-          Raven.captureMessage('[members]: data fetch invalid response', {
+          sdk.captureMessage('[members]: data fetch invalid response', {
             extra: {resp, state: this.state},
           });
         } else {
@@ -106,7 +106,7 @@ const InviteMember = createReactClass({
           // use the static list
           this.setState({roleList: STATIC_ROLE_LIST, loading: false});
         } else {
-          Raven.captureMessage('[members]: data fetch error ', {
+          sdk.captureMessage('[members]: data fetch error ', {
             extra: {error, state: this.state},
           });
         }
@@ -179,7 +179,7 @@ const InviteMember = createReactClass({
       .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (error && !error.email && !error.role) {
-          Raven.captureMessage('Unknown invite member api response', {
+          sdk.captureMessage('Unknown invite member api response', {
             extra: {error, state: this.state},
           });
         }

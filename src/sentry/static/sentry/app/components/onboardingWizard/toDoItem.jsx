@@ -1,11 +1,11 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
-import {t, tct} from 'app/locale';
 
+import {t, tct} from 'app/locale';
+import * as sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
 import OrganizationState from 'app/mixins/organizationState';
 import Confirmation from 'app/components/onboardingWizard/confirmation';
@@ -57,7 +57,7 @@ const TodoItem = createReactClass({
     } else if (task.featureLocation === 'absolute') {
       learnMoreUrl = task.location;
     } else {
-      Raven.captureMessage('No learnMoreUrl created for this featureLocation ', {
+      sdk.captureMessage('No learnMoreUrl created for this featureLocation ', {
         extra: {props: this.props, state: this.state},
       });
     }

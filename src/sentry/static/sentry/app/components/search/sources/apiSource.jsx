@@ -1,9 +1,9 @@
 import {flatten, debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
+import * as sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
@@ -226,7 +226,7 @@ class ApiSource extends React.Component {
   }, 150);
 
   handleRequestError = (err, {url, orgId}) => {
-    Raven.captureException(
+    sdk.captureException(
       new Error(
         `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
       ),

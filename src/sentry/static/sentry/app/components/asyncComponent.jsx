@@ -1,8 +1,8 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
+import * as sdk from 'app/utils/sdk';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
@@ -150,7 +150,7 @@ class AsyncComponent extends React.Component {
 
   handleError(error, [stateKey]) {
     if (error && error.responseText) {
-      Raven.captureBreadcrumb({
+      sdk.captureBreadcrumb({
         message: error.responseText,
         category: 'xhr',
         level: 'error',

@@ -1,6 +1,8 @@
 {% load sentry_api %}
 {% load sentry_dsn %}
 
+<!-- TODO: Also use loader here -->
+<script src="https://cdn.ravenjs.com/3.26.0/raven.min.js"></script>
 <script>
 Raven.config('{% public_dsn %}', {
   release: '{{ sentry_version.build }}',

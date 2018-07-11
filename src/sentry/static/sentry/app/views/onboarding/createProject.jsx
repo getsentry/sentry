@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import * as sdk from 'app/utils/sdk';
 import {Panel} from 'app/components/panels';
 import {getPlatformName} from 'app/views/onboarding/utils';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -81,7 +81,7 @@ const CreateProject = createReactClass({
     this.setState({inFlight: true});
 
     if (!projectName) {
-      Raven.captureMessage('Onboarding no project name ', {
+      sdk.captureMessage('Onboarding no project name ', {
         extra: {props: this.props, state: this.state},
       });
     }
@@ -110,7 +110,7 @@ const CreateProject = createReactClass({
         // * The user not having access to create a project, or,
         // * A project with that slug already exists
         if (err.status !== 403 && err.status !== 409) {
-          Raven.captureMessage('Onboarding project creation failed', {
+          sdk.captureMessage('Onboarding project creation failed', {
             extra: {
               err,
               props: this.props,

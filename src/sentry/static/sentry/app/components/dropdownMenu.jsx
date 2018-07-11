@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+import * as sdk from 'app/utils/sdk';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
@@ -74,7 +74,7 @@ class DropdownMenu extends React.Component {
 
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
-      Raven.captureException(new Error('DropdownMenu does not have "Actor" attached'), {
+      sdk.captureException(new Error('DropdownMenu does not have "Actor" attached'), {
         level: 'warning',
       });
     }
@@ -143,7 +143,7 @@ class DropdownMenu extends React.Component {
         }, MENU_CLOSE_DELAY);
       }
     } catch (err) {
-      Raven.captureException(err, {
+      sdk.captureException(err, {
         event: e,
         toElement: e.toElement,
         relatedTarget: e.relatedTarget,

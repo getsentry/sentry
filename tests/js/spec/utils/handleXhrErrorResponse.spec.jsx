@@ -1,7 +1,7 @@
-import Raven from 'raven-js';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
+import * as sdk from 'app/utils/sdk';
 
-jest.mock('raven-js', () => ({
+jest.mock('app/utils/sdk', () => ({
   captureException: jest.fn(),
 }));
 
@@ -12,27 +12,27 @@ describe('handleXhrErrorResponse', function() {
     responseJSON: {detail: {code: 'api-err-code', message: 'Error message'}},
   };
   beforeEach(function() {
-    Raven.captureException.mockReset();
+    sdk.captureException.mockReset();
   });
 
   it('does nothing if we have invalid response', function() {
     handleXhrErrorResponse('')(null);
-    expect(Raven.captureException).not.toHaveBeenCalled();
+    expect(sdk.captureException).not.toHaveBeenCalled();
     handleXhrErrorResponse('')({});
-    expect(Raven.captureException).not.toHaveBeenCalled();
+    expect(sdk.captureException).not.toHaveBeenCalled();
   });
 
-  it('captures an exception to raven when `resp.detail` is a string', function() {
+  it('captures an exception to sdk when `resp.detail` is a string', function() {
     handleXhrErrorResponse('String error')(stringError);
-    expect(Raven.captureException).toHaveBeenCalledWith(new Error('String error'), {
+    expect(sdk.captureException).toHaveBeenCalledWith(new Error('String error'), {
       status: 400,
       detail: 'Error',
     });
   });
 
-  it('captures an exception to raven when `resp.detail` is an object', function() {
+  it('captures an exception to sdk when `resp.detail` is an object', function() {
     handleXhrErrorResponse('Object error')(objError);
-    expect(Raven.captureException).toHaveBeenCalledWith(new Error('Object error'), {
+    expect(sdk.captureException).toHaveBeenCalledWith(new Error('Object error'), {
       status: 400,
       detail: 'Error message',
       code: 'api-err-code',
@@ -48,6 +48,6 @@ describe('handleXhrErrorResponse', function() {
         },
       },
     });
-    expect(Raven.captureException).not.toHaveBeenCalled();
+    expect(sdk.captureException).not.toHaveBeenCalled();
   });
 });
