@@ -345,7 +345,7 @@ urlpatterns += patterns(
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
     name='sentry-api-old'),
     url(r'^api/applications/$',
-        RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
+        RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False)),
     url(r'^api/[^0]+/',
         RedirectView.as_view(pattern_name="sentry-api-details", permanent=False),
     ),
@@ -363,6 +363,7 @@ urlpatterns += patterns(
     url(r'^settings/account/notifications/$', generic_react_page_view, name='sentry-account-settings-notifications'),
     url(r'^settings/account/email/$', generic_react_page_view, name='sentry-account-settings-emails'),
     url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
+    url(r'^settings/account/api/applications/$', generic_react_page_view, name='sentry-api-applications'),
     url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
     url(r'^settings/account/', generic_react_page_view),
 
