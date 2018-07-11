@@ -75,21 +75,25 @@ const EventEntries = createReactClass({
     if (!event.errors || !event.errors.length > 0) return;
     let errors = event.errors;
     let errorTypes = errors.map(errorEntries => errorEntries.type);
+    let errorMessages = errors.map(errorEntries => errorEntries.message);
 
-    this.recordSourcemapError(errorTypes);
+    this.recordIssueError(errorTypes, errorMessages);
   },
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
   },
 
-  recordSourcemapError(errorTypes) {
+  recordIssueError(errorTypes, errorMessages) {
     let {project, event} = this.props;
+    let orgId = this.getOrganization().id;
 
-    analytics('sourcemap.sourcemap_error', {
-      org_id: project.organization.id,
+    analytics('issue_error_banner.viewed', {
+      org_id: orgId,
+      platform: project.platform,
       group: event.groupID,
       error_type: errorTypes,
+      error_message: errorMessages,
     });
   },
 
