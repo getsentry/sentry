@@ -96,7 +96,7 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()
-        issue = client.create_issue(self.username, data.get('repo'), data)
+        issue = client.create_issue(data.get('repo'), data)
         return {
             'key': issue['id'],
             'title': issue['title'],
@@ -106,7 +106,7 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
     def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         repo = kwargs['data'].get('repo')
-        issue = client.get_issue(self.username, repo, issue_id)
+        issue = client.get_issue(repo, issue_id)
         return {
             'key': issue['id'],
             'title': issue['title'],
@@ -123,7 +123,7 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
         client = self.get_client()
 
         try:
-            response = client.get_issues(self.username, repo)['values']
+            response = client.get_issues(repo)['values']
         except Exception as e:
             self.raise_error(e)
 
@@ -150,7 +150,6 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
         if comment:
             try:
                 client.create_comment(
-                    username=self.username,
                     repo=repo,
                     issue_id=issue_num,
                     data={'content': {'raw': comment}}

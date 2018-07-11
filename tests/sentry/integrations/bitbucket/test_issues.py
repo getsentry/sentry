@@ -15,7 +15,7 @@ class BitbucketIssueTest(APITestCase):
         self.integration = Integration.objects.create(
             provider='bitbucket',
             external_id=self.subject,
-            name='MyBitBucket',
+            name='myaccount',
             metadata={
                 'base_url': self.base_url,
                 'shared_secret': self.shared_secret,
@@ -29,7 +29,7 @@ class BitbucketIssueTest(APITestCase):
         repo = 'myaccount/myrepo'
         responses.add(
             responses.GET,
-            'https://api.bitbucket.org/2.0/repositories/MyBitBucket/{repo}/issues/{issue_id}'.format(
+            'https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}'.format(
                 repo=repo, issue_id=issue_id),
             json={'id': issue_id, 'title': 'hello', 'content': {'html': 'This is the description'}}
         )
@@ -54,7 +54,7 @@ class BitbucketIssueTest(APITestCase):
         comment = {'comment': 'hello I\'m a comment'}
         responses.add(
             responses.POST,
-            'https://api.bitbucket.org/2.0/repositories/MyBitBucket/{repo}/issues/{issue_id}/comments'.format(
+            'https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments'.format(
                 repo=repo, issue_id=issue_id),
             status=201,
             json={'content': {'raw': comment}},
