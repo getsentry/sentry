@@ -41,6 +41,14 @@ const DarkGray = styled.span`
   color: ${p => p.theme.gray5};
 `;
 
+function escapeCol(col) {
+  if (typeof col === 'number') {
+    return col;
+  } else {
+    return `${col}`.match(/^[\=\+\-\@]/) ? `"'${col}'"` : `"${col}"`;
+  }
+}
+
 /**
  * Downloads a Snuba result object as CSV format
  *
@@ -59,11 +67,9 @@ export function downloadAsCsv(result) {
     }),
   ];
 
-  const escapeUnsafeCols = col => (`${col}`.match(/^[\=\+\-\@]/) ? `'${col}'` : col);
-
   const csvContent = `data:text/csv;charset=utf-8,${rows
-    .map(row => row.map(escapeUnsafeCols).join(','))
+    .map(row => row.map(escapeCol).join(','))
     .join('\n')}`; // Do not care about windows formats right now
 
-  window.location.assign(encodeURIComponent(csvContent));
+  window.location.assign(encodeURI(csvContent));
 }

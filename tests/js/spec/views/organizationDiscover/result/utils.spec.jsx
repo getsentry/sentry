@@ -22,7 +22,7 @@ describe('downloadAsCsv()', function() {
     downloadAsCsv(result);
     expect(locationSpy).toHaveBeenCalledWith(
       expect.stringContaining(
-        encodeURIComponent('message,environment\ntest 1,prod\ntest 2,test')
+        encodeURI('"message","environment"\n"test 1","prod"\n"test 2","test"')
       )
     );
   });
@@ -34,7 +34,7 @@ describe('downloadAsCsv()', function() {
     };
     downloadAsCsv(result);
     expect(locationSpy).toHaveBeenCalledWith(
-      expect.stringContaining(encodeURIComponent('count\n3'))
+      expect.stringContaining(encodeURI('"count"\n3'))
     );
   });
 
@@ -46,7 +46,7 @@ describe('downloadAsCsv()', function() {
     downloadAsCsv(result);
     expect(locationSpy).toHaveBeenCalledWith(
       expect.stringContaining(
-        encodeURIComponent("message\n'=HYPERLINK(http://some-bad-website)'")
+        encodeURI('"message"\n"\'=HYPERLINK(http://some-bad-website)\'"')
       )
     );
   });
