@@ -7,7 +7,6 @@ python: 2.7
 branches:
   only:
   - master
-  - build/upgrade-flake8
 
 cache:
   yarn: true
