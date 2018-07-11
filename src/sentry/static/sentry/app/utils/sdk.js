@@ -5,13 +5,11 @@ let _showReportDialog = function() {};
 let _lastEventId = function() {};
 
 document.addEventListener('ravenLoaded', function() {
-  if (window.Raven) {
-    _addBreadcrumb = window.Raven.captureBreadcrumb.bind(window.Raven);
-    _captureException = window.Raven.captureBreadcrumb.bind(window.Raven);
-    _captureMessage = window.Raven.captureMessage.bind(window.Raven);
-    _showReportDialog = window.Raven.showReportDialog.bind(window.Raven);
-    _lastEventId = window.Raven.lastEventId.bind(window.Raven);
-  }
+  _addBreadcrumb = window.Raven.captureBreadcrumb.bind(window.Raven);
+  _captureException = window.Raven.captureBreadcrumb.bind(window.Raven);
+  _captureMessage = window.Raven.captureMessage.bind(window.Raven);
+  _showReportDialog = window.Raven.showReportDialog.bind(window.Raven);
+  _lastEventId = window.Raven.lastEventId.bind(window.Raven);
 });
 
 function setContextInScope(context) {

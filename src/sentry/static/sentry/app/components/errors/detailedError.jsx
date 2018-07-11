@@ -32,7 +32,7 @@ class DetailedError extends React.Component {
 
   openFeedback(e) {
     e.preventDefault();
-    if (sdk) {
+    if (sdk.lastEventId) {
       sdk.lastEventId() && sdk.showReportDialog();
     }
   }
@@ -65,7 +65,7 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  {sdk &&
+                  {sdk.lastEventId &&
                     sdk.lastEventId() && (
                       <Button priority="link" onClick={this.openFeedback}>
                         {t('Fill out a report')}
