@@ -22,7 +22,7 @@ const ConfigStore = Reflux.createStore({
     return this.config;
   },
 
-  loadInitialData(config) {
+  loadInitialData(config, languageOverride = null) {
     config.features = new Set(config.features || []);
     this.config = config;
 
@@ -30,7 +30,9 @@ const ConfigStore = Reflux.createStore({
     if (config.user) {
       config.user.permissions = new Set(config.user.permissions);
       moment.tz.setDefault(config.user.options.timezone);
-      setLocale(config.user.options.language || 'en');
+      setLocale(languageOverride || config.user.options.language || 'en');
+    } else if (languageOverride) {
+      setLocale(languageOverride);
     }
 
     this.trigger(config);
