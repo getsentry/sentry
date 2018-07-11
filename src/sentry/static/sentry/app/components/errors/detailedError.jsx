@@ -32,9 +32,7 @@ class DetailedError extends React.Component {
 
   openFeedback(e) {
     e.preventDefault();
-    if (sdk.lastEventId) {
-      sdk.lastEventId() && sdk.showReportDialog();
-    }
+    sdk.lastEventId() && sdk.showReportDialog();
   }
 
   render() {
@@ -65,12 +63,11 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  {sdk.lastEventId &&
-                    sdk.lastEventId() && (
-                      <Button priority="link" onClick={this.openFeedback}>
-                        {t('Fill out a report')}
-                      </Button>
-                    )}
+                  {sdk.lastEventId() && (
+                    <Button priority="link" onClick={this.openFeedback}>
+                      {t('Fill out a report')}
+                    </Button>
+                  )}
                   <a href="https://status.sentry.io/">{t('Service status')}</a>
 
                   <a href="https://sentry.io/support/">{t('Contact support')}</a>
