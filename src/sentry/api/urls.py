@@ -46,6 +46,7 @@ from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
+from .endpoints.integration_installation import IntegrationInstallationEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
@@ -251,6 +252,10 @@ urlpatterns = patterns(
     # Project transfer
     url(r'^accept-transfer/$', AcceptProjectTransferEndpoint.as_view(),
         name='sentry-api-0-accept-project-transfer'),
+
+    # Integration installation
+    url(r'^integration-installation/$', IntegrationInstallationEndpoint.as_view(),
+        name='sentry-api-0-integration-installation'),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
