@@ -58,6 +58,7 @@ from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover import OrganizationDiscoverEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
@@ -563,6 +564,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/onboarding-tasks/$',
         OrganizationOnboardingTaskEndpoint.as_view(),
         name='sentry-api-0-organization-onboardingtasks'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/environments/$',
+        OrganizationEnvironmentsEndpoint.as_view(),
+        name='sentry-api-0-organization-environments',
     ),
 
     # Teams
