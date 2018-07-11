@@ -216,6 +216,8 @@ class ApiSource extends React.Component {
       return this.api.requestPromise(url).then(
         resp => resp,
         err => {
+          // No need to log 404 errors
+          if (err && err.status === 404) return null;
           this.handleRequestError(err, {orgId, url});
           return null;
         }
