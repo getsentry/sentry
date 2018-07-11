@@ -17,6 +17,10 @@ class IssueSyncElement extends React.Component {
     extenalIssueLink: '#',
   };
 
+  isLinked() {
+    return this.props.externalIssueLink && this.props.externalIssueId;
+  }
+
   getIcon() {
     switch (this.props.integrationType) {
       case 'github':
@@ -31,7 +35,7 @@ class IssueSyncElement extends React.Component {
   }
 
   getText() {
-    return this.props.externalIssueLink && this.props.externalIssueId ? (
+    return this.isLinked() ? (
       <IntegrationLink href={this.props.externalIssueLink}>
         {this.props.externalIssueId}
       </IntegrationLink>
@@ -49,7 +53,11 @@ class IssueSyncElement extends React.Component {
           {this.getIcon()}
           {this.getText()}
         </div>
-        <IconClose src="icon-close" onClick={this.props.onClose} />
+        <IconClose
+          src="icon-close"
+          onClick={this.props.onClose}
+          isLinked={this.isLinked()}
+        />
       </Flex>
     );
   }
@@ -76,6 +84,8 @@ const IntegrationName = styled('span')`
 const IconClose = styled(InlineSvg)`
   height: 1.25rem;
   color: ${p => p.theme.gray4};
+  transition: 0.2s transform;
+  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.75);')};
 `;
 
 export default IssueSyncElement;
