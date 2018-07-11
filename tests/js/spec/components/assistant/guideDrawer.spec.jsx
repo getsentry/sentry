@@ -15,51 +15,77 @@ describe('GuideDrawer', function() {
     ],
   };
 
-  it('gets dismissed', function() {
-    let mock = jest.fn();
-    let mock2 = jest.fn();
-    let slug = 'test';
-    let wrapper = shallow(
-      <GuideDrawer
-        guide={data}
-        step={1}
-        onFinish={mock}
-        onDismiss={mock2}
-        orgSlug={slug}
-      />
-    );
+  beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+    });
+    MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: '/assistant/',
+    });
+  });
+
+  it('renders drawer', function() {
+    const wrapper = shallow(<GuideDrawer />);
+    const component = wrapper.instance();
+    component.onGuideStateChange({
+      currentGuide: data,
+      currentStep: 0,
+    });
+    wrapper.update();
+    wrapper
+      .find('.assistant-cue')
+      .first()
+      .simulate('click');
     expect(wrapper).toMatchSnapshot();
+  });
+
+  it('gets dismissed', function() {
+    let wrapper = shallow(<GuideDrawer />);
+    const component = wrapper.instance();
+    component.onGuideStateChange({
+      currentGuide: data,
+      currentStep: 1,
+      currentOrg: {slug: 'testorg'},
+    });
+    wrapper.update();
+    expect(wrapper).toMatchSnapshot();
+
+    let closeMock = Client.addMockResponse({
+      url: '/assistant/',
+      method: 'PUT',
+    });
     wrapper
       .find('.close-button')
       .last()
-      .simulate('click');
-    expect(mock2).toHaveBeenCalled();
+      .simulate('click', {stopPropagation: () => {}});
+    expect(closeMock).toHaveBeenCalledWith(
+      '/assistant/',
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          guide_id: 1,
+          status: 'dismissed',
+        },
+      })
+    );
   });
 
   it('renders next step', function() {
-    let mock = jest.fn();
-    let mock2 = jest.fn();
-    let slug = 'test';
-    let wrapper = shallow(
-      <GuideDrawer
-        guide={data}
-        step={2}
-        onFinish={mock}
-        onDismiss={mock2}
-        orgSlug={slug}
-      />
-    );
+    let wrapper = shallow(<GuideDrawer />);
+    const component = wrapper.instance();
+    component.onGuideStateChange({
+      currentGuide: data,
+      currentStep: 2,
+      currentOrg: {slug: 'testorg'},
+    });
+    wrapper.update();
     expect(wrapper).toMatchSnapshot();
 
     // Mark as useful.
     let usefulMock = Client.addMockResponse({
       url: '/assistant/',
       method: 'PUT',
-      data: {
-        guide_id: 1,
-        status: 'viewed',
-        useful: true,
-      },
     });
     wrapper
       .find('Button')

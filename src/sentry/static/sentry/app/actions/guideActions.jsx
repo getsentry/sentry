@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
 let GuideActions = Reflux.createActions([
-  'closeGuideOrSupport',
+  'closeGuide',
   'fetchSucceeded',
   'nextStep',
   'registerAnchor',

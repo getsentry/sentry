@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
@@ -8,9 +7,13 @@ import {t} from 'app/locale';
 import analytics from 'app/utils/analytics';
 import ExternalLink from 'app/components/externalLink';
 import HookStore from 'app/stores/hookStore';
-import CueIcon from 'app/components/assistant/cueIcon';
-import CloseIcon from 'app/components/assistant/closeIcon';
-import AssistantContainer from 'app/components/assistant/assistantContainer';
+import {
+  AssistantContainer,
+  CloseIcon,
+  CueContainer,
+  CueIcon,
+  CueText,
+} from 'app/components/assistant/styles';
 import Input from 'app/views/settings/components/forms/controls/input';
 import InlineSvg from 'app/components/inlineSvg';
 
@@ -18,15 +21,12 @@ import InlineSvg from 'app/components/inlineSvg';
 const SupportDrawer = createReactClass({
   displayName: 'SupportDrawer',
 
-  propTypes: {
-    onClose: PropTypes.func.isRequired,
-  },
-
   getInitialState() {
     return {
       inputVal: '',
       docResults: [],
       helpcenterResults: [],
+      isOpen: false,
     };
   },
 
@@ -101,9 +101,9 @@ const SupportDrawer = createReactClass({
     let results = helpcenterResults.concat(docsResults);
     let hasResults = results && results.length > 0;
 
-    return (
-      <StyledAssistantContainer hasResults={hasResults}>
-        <StyledAssistantInputRow>
+    return this.state.isOpen ? (
+      <SupportContainer hasResults={hasResults}>
+        <SupportInputRow>
           <CueIcon />
           <StyledSearchContainer>
             <StyledSearchIcon src="icon-search" />
@@ -116,28 +116,60 @@ const SupportDrawer = createReactClass({
             />
             <div
               className="close-button"
-              onClick={this.props.onClose}
+              onClick={() => this.setState({isOpen: false})}
               style={{display: 'flex'}}
             >
               <CloseIcon />
             </div>
           </StyledSearchContainer>
-        </StyledAssistantInputRow>
+        </SupportInputRow>
         {hasResults && <StyledResults>{results}</StyledResults>}
         {HookStore.get('assistant:support-button').map(cb => cb(this.state.inputVal))}
-      </StyledAssistantContainer>
+      </SupportContainer>
+    ) : (
+      <StyledCueContainer
+        onClick={() => this.setState({isOpen: true})}
+        className="assistant-cue"
+      >
+        <CueIcon hasGuide={false} />
+        <StyledCueText>{t('Need Help?')}</StyledCueText>
+      </StyledCueContainer>
     );
   },
 });
 
-const StyledAssistantContainer = styled(AssistantContainer)`
+const StyledCueText = styled(CueText)`
+  width: 0px;
+  opacity: 0;
+`;
+
+const StyledCueContainer = styled(CueContainer)`
+  background: ${p => p.theme.offWhite};
+  right: 1vw;
+  color: ${p => p.theme.purple};
+  border: 1px solid ${p => p.theme.borderLight};
+  &:hover ${StyledCueText} {
+    width: 6em;
+    /* this is roughly long enough for the copy 'need help?'
+       at any base font size. if you change the copy, change this value
+    */
+    opacity: 1;
+    margin: 0 0.5em;
+  }
+`;
+
+const SupportContainer = styled(AssistantContainer)`
   display: flex;
   flex-direction: column;
   transition: 0.1s height;
   ${p => (p.hasResults ? 'height: 300px' : '')};
+  right: 1vw;
+  background: ${p => p.theme.offWhite};
+  color: ${p => p.theme.purple};
+  border: 1px solid ${p => p.theme.borderLight};
 `;
 
-const StyledAssistantInputRow = styled('div')`
+const SupportInputRow = styled('div')`
   display: flex;
   align-items: center;
 `;
