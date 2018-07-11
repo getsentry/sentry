@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="31px" viewBox="0 0 32 31" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 50.2 (55047) - http://www.bohemiancoding.com/sketch -->
+    <title>icon-jira</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="51.6445163%" y1="66.4656804%" x2="78.6699425%" y2="48.9034385%" id="linearGradient-1">
+            <stop stop-color="#000000" stop-opacity="0" offset="0%"></stop>
+            <stop stop-color="#000000" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="51.711576%" y1="66.4221022%" x2="80.4180561%" y2="47.7674419%" id="linearGradient-2">
+            <stop stop-color="#1E1A23" offset="0%"></stop>
+            <stop stop-color="#0F0C11" stop-opacity="0" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="icon-jira" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Group" transform="translate(1.000000, 1.000000)" fill-rule="nonzero">
+            <g id="Group-3-Copy">
+                <path d="M28.6527664,13.68849 L15.750636,1.20960929 L14.5,0 L4.78778278,9.3936114 L0.347233586,13.68849 C-0.115744529,14.1368378 -0.115744529,14.8631622 0.347233586,15.31151 L9.22041656,23.8936114 L14.5,29 L24.2122172,19.6063886 L24.3626102,19.4609293 L28.6527664,15.31151 C29.1157445,14.8631622 29.1157445,14.1368378 28.6527664,13.68849 Z M14.5,18.7872228 L10.0673662,14.5 L14.5,10.2127772 L18.9326338,14.5 L14.5,18.7872228 Z" id="color-shape" fill="#363636"></path>
+                <path d="M14.5,10.1890856 C11.6173278,7.37883387 11.6032787,2.82710886 14.4685509,0 L4.83333333,9.38821353 L10.0774705,14.5 L14.5,10.1890856 Z" id="Shape" fill="url(#linearGradient-1)"></path>
+                <path d="M18.9182608,14.5 L14.5,18.7953047 C15.8925048,20.1482522 16.6748754,21.9837262 16.6748754,23.8976523 C16.6748754,25.8115785 15.8925048,27.6470524 14.5,29 L24.1666667,19.6023477 L18.9182608,14.5 Z" id="Shape" fill="url(#linearGradient-2)"></path>
+            </g>
+        </g>
+    </g>
+</svg>

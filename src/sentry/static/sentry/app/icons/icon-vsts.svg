@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="31px" viewBox="0 0 32 31" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 50.2 (55047) - http://www.bohemiancoding.com/sketch -->
+    <title>icon-vsts</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="icon-vsts" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M23.24845,0 L23.24845,26.625125 L0,23.171725 L23.24845,31 L30.997675,27.776 L30.997675,3.224 L23.24845,0 Z M7.9887,14.9141 L15.108625,21.958075 L19.371125,20.144575 L19.371125,6.334075 L15.108625,4.520575 L7.9887,11.565325 L3.7014,8.333575 L1.935175,8.9249 L1.935175,17.554525 L3.7014,18.14585 L7.9887,14.9141 Z M15.108625,9.547225 L15.108625,16.932975 L10.20985,13.2401 L15.108625,9.547225 Z M3.7014,10.672525 L6.2961,13.239325 L3.7014,15.8069 L3.7014,10.672525 Z" id="iconBg" fill="#000000" fill-rule="nonzero"></path>
+    </g>
+</svg>
