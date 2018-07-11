@@ -6,6 +6,7 @@ import * as EmotionTheming from 'emotion-theming';
 import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
+import Raven from 'raven-js';
 import React from 'react';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
@@ -62,6 +63,7 @@ if (module.hot) {
 export default {
   jQuery,
   moment,
+  Raven,
   React,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
