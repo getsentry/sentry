@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
-from sentry.models import Event
+from sentry.models import Activity, Event, Group, GroupStatus, ProjectIntegration
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+logger = logging.getLogger('sentry.integrations.issues')
 
 
 class IssueBasicMixin(object):
@@ -143,3 +146,87 @@ class IssueSyncMixin(IssueBasicMixin):
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
+
+    def should_resolve(self, configuration, data):
+        """
+        Given webhook data and the configuration settings, determine
+        if we should mark linked groups as resolved
+        """
+        raise NotImplementedError
+
+    def should_unresolve(self, configuration, data):
+        """
+        Given webhook data and the configuration settings, determine
+        if we should mark linked groups as unresolved
+        """
+        raise NotImplementedError
+
+    def sync_status_inbound(self, issue_key, data):
+        affected_groups = list(
+            Group.objects.get_groups_by_external_issue(
+                self.model, issue_key,
+            ).select_related('project'),
+        )
+
+        # TODO(jess): this needs to be changed to use the new model
+        project_integration_configs = {
+            pi.project_id: pi.config for pi in ProjectIntegration.objects.filter(
+                project_id__in=[g.project_id for g in affected_groups]
+            )
+        }
+
+        groups_to_resolve = []
+        groups_to_unresolve = []
+
+        for group in affected_groups:
+            project_config = project_integration_configs.get(group.project_id, {})
+            should_resolve = self.should_resolve(project_config, data)
+            should_unresolve = self.should_unresolve(project_config, data)
+            # TODO(jess): make sure config validation doesn't
+            # allow these to be the same
+            if should_resolve and should_unresolve:
+                logger.warning(
+                    'sync-config-conflict', extra={
+                        'project_id': group.project_id,
+                        'integration_id': self.model.id,
+                        'provider': self.model.get_provider(),
+                    }
+                )
+                continue
+
+            if should_unresolve:
+                groups_to_unresolve.append(group)
+            elif should_resolve:
+                groups_to_resolve.append(group)
+
+        if groups_to_resolve:
+            updated_resolve = Group.objects.filter(
+                id__in=[g.id for g in groups_to_resolve],
+            ).exclude(
+                status=GroupStatus.RESOLVED,
+            ).update(
+                status=GroupStatus.RESOLVED,
+            )
+            if updated_resolve:
+                for group in groups_to_resolve:
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_RESOLVED,
+                    )
+
+        if groups_to_unresolve:
+            updated_unresolve = Group.objects.filter(
+                id__in=[g.id for g in groups_to_resolve],
+            ).exclude(
+                status=GroupStatus.UNRESOLVED,
+            ).update(
+                status=GroupStatus.UNRESOLVED,
+            )
+            if updated_unresolve:
+                for group in groups_to_unresolve:
+                    Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=Activity.SET_UNRESOLVED,
+                    )
