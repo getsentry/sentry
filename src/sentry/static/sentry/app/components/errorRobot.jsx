@@ -4,6 +4,7 @@ import {Link, browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import analytics from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import {t} from 'app/locale';
 
@@ -67,6 +68,8 @@ const ErrorRobot = createReactClass({
   createSampleEvent() {
     let {org, project} = this.props;
     let url = `/projects/${org.slug}/${project.slug}/create-sample/`;
+
+    analytics('sample_event.created', {org_id: org.id, project_id: project.id});
     this.api.request(url, {
       method: 'POST',
       success: data => {
