@@ -23,8 +23,18 @@ storiesOf('IssueSyncListElement', module)
       <StyledIssueSyncList>
         <IssueSyncListElement
           integrationType="github"
-          externalIssueLink="google.com"
+          externalIssueLink="github.com/issues/gh-101"
           externalIssueId="GH-101"
+        />
+        <IssueSyncListElement
+          integrationType="jira"
+          externalIssueLink="getsentry.atlassian.net/browse/APP-367"
+          externalIssueId="APP-367"
+        />
+        <IssueSyncListElement
+          integrationType="vsts"
+          externalIssueLink="visualstudio.microsoft.com/issues/vsts-35"
+          externalIssueId="VSTS-35"
         />
       </StyledIssueSyncList>
     ))
