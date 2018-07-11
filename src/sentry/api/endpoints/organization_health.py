@@ -8,8 +8,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.utils import timezone
 
-from sentry.api.bases import OrganizationEndpoint
-from sentry.models import Project, ProjectStatus, Release, OrganizationMemberTeam
+from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models import (
+    Project, ProjectStatus, Release, OrganizationMemberTeam,
+    Environment,
+)
 from sentry.utils import snuba
 
 
@@ -141,7 +145,7 @@ MIN_STATS_PERIOD = timedelta(hours=1)
 MAX_STATS_PERIOD = timedelta(days=45)
 
 
-class OrganizationHealthEndpoint(OrganizationEndpoint):
+class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def empty(self):
         return Response({'data': []})
 
@@ -179,6 +183,21 @@ class OrganizationHealthEndpoint(OrganizationEndpoint):
         if not project_ids:
             return self.empty()
 
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                organization.id,
+            )
+        except Environment.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        if environment is None:
+            env_condition = []
+        elif environment.name == '':
+            env_condition = ['tags[environment]', 'IS NULL', None]
+        else:
+            env_condition = ['tags[environment]', '=', environment.name]
+
         now = timezone.now()
 
         project_ids = list(
@@ -187,8 +206,6 @@ class OrganizationHealthEndpoint(OrganizationEndpoint):
                 status=ProjectStatus.VISIBLE,
             ).values_list('id', flat=True)
         )
-
-        # project_ids = range(1, 8)
 
         if not project_ids:
             return self.empty()
@@ -208,6 +225,7 @@ class OrganizationHealthEndpoint(OrganizationEndpoint):
             },
             conditions=[
                 [tagkey, 'IS NOT NULL', None],
+                env_condition,
             ],
             groupby=[tagkey],
             orderby='-count',
@@ -231,6 +249,7 @@ class OrganizationHealthEndpoint(OrganizationEndpoint):
             },
             conditions=[
                 [tagkey, 'IN', values],
+                env_condition,
             ],
             groupby=[tagkey],
             referrer='health',
