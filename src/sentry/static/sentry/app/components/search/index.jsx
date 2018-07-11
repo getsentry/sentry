@@ -58,8 +58,14 @@ class Search extends React.Component {
     ),
   };
 
+  componentDidMount() {
+    analytics('omnisearch.open');
+  }
+
   handleSelect = (item, state) => {
     if (!item) return;
+
+    analytics('omnisearch.select', {query: state && state.inputValue});
 
     let {to} = item;
     if (!to) return;

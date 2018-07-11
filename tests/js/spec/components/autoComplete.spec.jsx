@@ -196,7 +196,10 @@ describe('AutoComplete', function() {
         .find('li')
         .at(1)
         .simulate('click');
-      expect(mocks.onSelect).toHaveBeenCalledWith(items[1]);
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[1],
+        expect.objectContaining({inputValue: '', highlightedIndex: 0})
+      );
 
       expect(wrapper.state('inputValue')).toBe('Pineapple');
       expect(wrapper.instance().items.size).toBe(0);
@@ -216,7 +219,10 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(3);
       input.simulate('keyDown', {key: 'Enter'});
 
-      expect(mocks.onSelect).toHaveBeenCalledWith(items[2]);
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[2],
+        expect.objectContaining({inputValue: '', highlightedIndex: 2})
+      );
       expect(wrapper.instance().items.size).toBe(0);
       expect(wrapper.state('inputValue')).toBe('Orange');
     });
@@ -277,7 +283,10 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(2);
 
       input.simulate('keyDown', {key: 'Enter'});
-      expect(mocks.onSelect).toHaveBeenCalledWith(items[1]);
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[1],
+        expect.objectContaining({inputValue: 'ap', highlightedIndex: 1})
+      );
       expect(wrapper.instance().items.size).toBe(0);
       expect(wrapper.state('inputValue')).toBe('Pineapple');
     });
@@ -383,7 +392,10 @@ describe('AutoComplete', function() {
         .find('li')
         .at(1)
         .simulate('click');
-      expect(mocks.onSelect).toHaveBeenCalledWith(items[1]);
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[1],
+        expect.objectContaining({inputValue: '', highlightedIndex: 0})
+      );
 
       expect(wrapper.state('inputValue')).toBe('Pineapple');
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
@@ -402,7 +414,10 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(3);
       input.simulate('keyDown', {key: 'Enter'});
 
-      expect(mocks.onSelect).toHaveBeenCalledWith(items[2]);
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[2],
+        expect.objectContaining({inputValue: '', highlightedIndex: 2})
+      );
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
       expect(wrapper.state('inputValue')).toBe('Orange');
     });
@@ -461,7 +476,10 @@ describe('AutoComplete', function() {
       expect(wrapper.instance().items.size).toBe(2);
 
       input.simulate('keyDown', {key: 'Enter'});
-      expect(mocks.onSelect).toHaveBeenCalledWith(items[1]);
+      expect(mocks.onSelect).toHaveBeenCalledWith(
+        items[1],
+        expect.objectContaining({inputValue: 'ap', highlightedIndex: 1})
+      );
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
       expect(wrapper.state('inputValue')).toBe('Pineapple');
     });
