@@ -1,21 +1,15 @@
 from __future__ import absolute_import
 
+import re
 from collections import namedtuple
 from datetime import timedelta
-from operator import or_
-from six.moves import reduce
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from django.db.models import Q
 from django.utils import timezone
 
-from sentry import roles
-from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
-# from sentry.api.serializers import serialize
-# from sentry.api.permissions import SuperuserPermission
-from sentry.models import Project, ProjectStatus, Release
+from sentry.models import Project, ProjectStatus, Release, OrganizationMemberTeam
 from sentry.utils import snuba
 
 
@@ -102,6 +96,21 @@ class SnubaResultSerializer(object):
         }
 
 
+def parse_stats_period(period):
+    """
+    Convert a value such as 1h into a
+    proper timedelta.
+    """
+    m = re.match('^(\d+)([hd])$', period)
+    if not m:
+        return None
+    value, unit = m.groups()
+    value = int(value)
+    return timedelta(**{
+        {'h': 'hours', 'd': 'days'}[unit]: value,
+    })
+
+
 TAG_USER = 'tags[sentry:user]'
 TAG_RELEASE = 'tags[sentry:release]'
 
@@ -128,15 +137,48 @@ serializer_by_tagkey = {
     TAG_USER: serialize_eventusers,
 }
 
+MIN_STATS_PERIOD = timedelta(hours=1)
+MAX_STATS_PERIOD = timedelta(days=45)
+
 
 class OrganizationHealthEndpoint(OrganizationEndpoint):
-    # permission_classes = (SuperuserPermission, )
-
     def empty(self):
         return Response({'data': []})
 
     def get(self, request, organization, page):
-        period = int(request.GET.get('period', '7'))
+        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
+        if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
+            return Response({'detail': 'Invalid statsPeriod'}, status=400)
+
+        project_ids = set(map(int, request.GET.getlist('project')))
+        if not project_ids:
+            return self.empty()
+
+        before = project_ids.copy()
+        if request.user.is_superuser:
+            # Superusers can query any projects within the organization
+            project_ids = set(Project.objects.filter(
+                organization=organization,
+                id__in=project_ids,
+            ).values_list('id', flat=True))
+        else:
+            # Anyone else needs membership of the project
+            project_ids = set(Project.objects.filter(
+                organization=organization,
+                teams__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=request.user,
+                    organizationmember__organization=organization,
+                ).values_list('team'),
+                status=ProjectStatus.VISIBLE,
+                id__in=project_ids,
+            ).values_list('id', flat=True))
+
+        if project_ids != before:
+            raise PermissionDenied
+
+        if not project_ids:
+            return self.empty()
+
         now = timezone.now()
 
         project_ids = list(
@@ -159,7 +201,7 @@ class OrganizationHealthEndpoint(OrganizationEndpoint):
 
         data = snuba.raw_query(
             end=now,
-            start=now - timedelta(days=period),
+            start=now - stats_period,
             aggregations=aggregations,
             filter_keys={
                 'project_id': project_ids,
@@ -179,8 +221,8 @@ class OrganizationHealthEndpoint(OrganizationEndpoint):
         values = [r[tagkey] for r in data]
 
         previous = snuba.raw_query(
-            end=now - timedelta(days=period),
-            start=now - timedelta(days=period * 2),
+            end=now - stats_period,
+            start=now - (stats_period * 2),
             aggregations=[
                 ('count()', '', 'count'),
             ],
