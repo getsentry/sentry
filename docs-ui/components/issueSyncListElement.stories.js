@@ -23,7 +23,7 @@ storiesOf('IssueSyncListElement', module)
       <StyledIssueSyncList>
         <IssueSyncListElement
           integrationType="github"
-          extenalIssueLink="google.com"
+          externalIssueLink="google.com"
           externalIssueId="GH-101"
         />
       </StyledIssueSyncList>
