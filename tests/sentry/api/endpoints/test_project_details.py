@@ -214,7 +214,6 @@ class ProjectUpdateTest(APITestCase):
 
     def test_options(self):
         options = {
-            'sentry:origins': 'foo\nbar',
             'sentry:resolve_age': 1,
             'sentry:scrub_data': False,
             'sentry:scrub_defaults': False,
