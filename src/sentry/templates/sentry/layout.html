@@ -54,7 +54,7 @@
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
 
-    Sentry.ConfigStore.loadInitialData({% get_react_config %});
+    Sentry.ConfigStore.loadInitialData({% get_react_config %}, {{ request.LANGUAGE_CODE|to_json|safe }});
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
 
