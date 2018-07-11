@@ -180,7 +180,7 @@ class AutoComplete extends React.Component {
   handleSelect = item => {
     let {onSelect, itemToString} = this.props;
 
-    callIfFunction(onSelect, item);
+    callIfFunction(onSelect, item, this.state);
 
     this.closeMenu();
     this.setState({
