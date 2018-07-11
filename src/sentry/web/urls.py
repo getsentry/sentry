@@ -344,6 +344,8 @@ urlpatterns += patterns(
     url(r'^api/$',
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
     name='sentry-api-old'),
+    url(r'^api/applications/$',
+        RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
     url(r'^api/[^0]+/',
         RedirectView.as_view(pattern_name="sentry-api-details", permanent=False),
     ),
@@ -353,7 +355,7 @@ urlpatterns += patterns(
     # User settings use generic_react_page_view, while any view
     # acting on behalf of an organization should use react_page_view
     url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings"),
-    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-appearance"),
+    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings-appearance"),
     url(r'^settings/account/security/$', generic_react_page_view, name='sentry-account-settings-security'),
     url(r'^settings/account/avatar/$', generic_react_page_view, name='sentry-account-settings-avatar'),
     url(r'^settings/account/identities/$', generic_react_page_view, name='sentry-account-settings-identities'),
