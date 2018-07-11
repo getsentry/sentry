@@ -1,5 +1,5 @@
 export function selectText(node) {
-  if(node.type && node.type === 'text') {
+  if (node.type && node.type === 'text') {
     node.select();
   } else if (document.selection) {
     let range = document.body.createTextRange();
