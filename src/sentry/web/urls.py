@@ -13,11 +13,9 @@ from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
-from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
+from sentry.web.frontend import accounts, admin, generic
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
-from sentry.web.frontend.account_security import AccountSecurityView
-from sentry.web.frontend.account_notification import AccountNotificationView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -216,50 +214,28 @@ urlpatterns += patterns(
         accounts.set_password_confirm,
         name='sentry-account-set-password-confirm'
     ),
-    url(r'^account/settings/$', accounts.account_settings,
-        name='sentry-account-settings'),
-    url(
-        r'^account/settings/2fa/$', accounts.twofactor_settings, name='sentry-account-settings-2fa'
+    url(r'^account/settings/$',
+        RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
     ),
     url(
-        r'^account/settings/2fa/recovery/$',
-        accounts_twofactor.RecoveryCodeSettingsView.as_view(),
-        name='sentry-account-settings-2fa-recovery'
-    ),
-    url(
-        r'^account/settings/2fa/totp/$',
-        accounts_twofactor.TotpSettingsView.as_view(),
-        name='sentry-account-settings-2fa-totp'
-    ),
-    url(
-        r'^account/settings/2fa/sms/$',
-        accounts_twofactor.SmsSettingsView.as_view(),
-        name='sentry-account-settings-2fa-sms'
-    ),
-    url(
-        r'^account/settings/2fa/u2f/$',
-        accounts_twofactor.U2fSettingsView.as_view(),
-        name='sentry-account-settings-2fa-u2f'
+        r'^account/settings/2fa/$',
+        RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
     ),
     url(
         r'^account/settings/avatar/$',
-        accounts.avatar_settings,
-        name='sentry-account-settings-avatar'
+        RedirectView.as_view(pattern_name="sentry-account-settings-avatar", permanent=False),
     ),
     url(
         r'^account/settings/appearance/$',
-        accounts.appearance_settings,
-        name='sentry-account-settings-appearance'
+        RedirectView.as_view(pattern_name="sentry-account-settings-appearance", permanent=False),
     ),
     url(
         r'^account/settings/identities/$',
-        accounts.list_identities,
-        name='sentry-account-settings-identities'
+        RedirectView.as_view(pattern_name="sentry-account-settings-identities", permanent=False),
     ),
     url(
         r'^account/settings/subscriptions/$',
-        accounts.manage_subscriptions,
-        name='sentry-account-settings-subscriptions'
+        RedirectView.as_view(pattern_name="sentry-account-settings-subscriptions", permanent=False),
     ),
     url(
         r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
@@ -278,16 +254,15 @@ urlpatterns += patterns(
     ),
     url(
         r'^account/settings/notifications/$',
-        AccountNotificationView.as_view(),
-        name='sentry-account-settings-notifications'
+        RedirectView.as_view(pattern_name="sentry-account-settings-notifications", permanent=False),
     ),
     url(
         r'^account/settings/security/$',
-        AccountSecurityView.as_view(),
-        name='sentry-account-security'
+        RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
     ),
-    url(r'^account/settings/emails/$', accounts.show_emails,
-        name='sentry-account-settings-emails'),
+    url(r'^account/settings/emails/$',
+        RedirectView.as_view(pattern_name="sentry-account-settings-emails", permanent=False),
+    ),
 
     # Project Wizard
     url(
@@ -359,17 +334,32 @@ urlpatterns += patterns(
             url='https://docs.sentry.io/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'
     ),
-    url(r'^api/$', generic_react_page_view, name='sentry-api'),
-    url(r'^api/[^0]+/', generic_react_page_view),
+    url(r'^api/$',
+        RedirectView.as_view(pattern_name="sentry-api", permanent=False),
+    ),
+    url(r'^api/applications/$',
+        RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False)),
+    url(r'^api/[^0]+/',
+        RedirectView.as_view(pattern_name="sentry-api-details", permanent=False),
+    ),
     url(r'^out/$', OutView.as_view()),
 
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     # User settings use generic_react_page_view, while any view
     # acting on behalf of an organization should use react_page_view
-    url(r'^settings/account/security/$',
-        generic_react_page_view,
-        name='sentry-account-settings-security'),
+    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings"),
+    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings-appearance"),
+    url(r'^settings/account/security/$', generic_react_page_view, name='sentry-account-settings-security'),
+    url(r'^settings/account/avatar/$', generic_react_page_view, name='sentry-account-settings-avatar'),
+    url(r'^settings/account/identities/$', generic_react_page_view, name='sentry-account-settings-identities'),
+    url(r'^settings/account/subscriptions/$', generic_react_page_view, name='sentry-account-settings-subscriptions'),
+    url(r'^settings/account/notifications/$', generic_react_page_view, name='sentry-account-settings-notifications'),
+    url(r'^settings/account/email/$', generic_react_page_view, name='sentry-account-settings-emails'),
+    url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
+    url(r'^settings/account/api/applications/$', generic_react_page_view, name='sentry-api-applications'),
+    url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
     url(r'^settings/account/', generic_react_page_view),
+
     url(r'^settings/', react_page_view),
     url(
         r'^settings/(?P<organization_slug>[\w_-]+)/members/$',
