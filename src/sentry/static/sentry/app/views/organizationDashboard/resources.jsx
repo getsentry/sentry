@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 
 import analytics from 'app/utils/analytics';
 import ResourceCard from 'app/components/resourceCard';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ErrorRobot from 'app/components/errorRobot';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';

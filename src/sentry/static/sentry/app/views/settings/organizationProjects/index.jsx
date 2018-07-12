@@ -12,7 +12,7 @@ import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import ProjectStatsGraph from './projectStatsGraph';

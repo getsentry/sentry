@@ -13,7 +13,7 @@ import {update, loadStatsForProject} from 'app/actionCreators/projects';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';

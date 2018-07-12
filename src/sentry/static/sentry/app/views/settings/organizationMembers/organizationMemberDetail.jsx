@@ -9,7 +9,7 @@ import DateTime from 'app/components/dateTime';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
 

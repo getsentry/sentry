@@ -3,7 +3,7 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import Count from 'app/components/count';
 import DeviceName from 'app/components/deviceName';

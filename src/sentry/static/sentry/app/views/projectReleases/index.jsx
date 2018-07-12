@@ -6,7 +6,7 @@ import {Box} from 'grid-emotion';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';

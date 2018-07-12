@@ -16,7 +16,7 @@ import MissingProjectMembership from 'app/components/missingProjectMembership';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStore from 'app/stores/projectsStore';
 import recreateRoute from 'app/utils/recreateRoute';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {

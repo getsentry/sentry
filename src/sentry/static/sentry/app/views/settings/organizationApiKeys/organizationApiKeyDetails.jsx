@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import ApiForm from 'app/components/forms/apiForm';
 import MultipleCheckboxField from 'app/components/forms/multipleCheckboxField';
 import AsyncView from 'app/views/asyncView';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SplitLayout from 'app/components/splitLayout';
 import TextField from 'app/components/forms/textField';
 import TextareaField from 'app/components/forms/textareaField';

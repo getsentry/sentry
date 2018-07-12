@@ -8,7 +8,7 @@ import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import IdBadge from 'app/components/idBadge';
 
@@ -119,10 +119,11 @@ class SidebarDropdown extends React.Component {
                         </SidebarMenuItem>
                       )}
 
-                      {!config.singleOrganization &&
+                      {!config.singleOrganization && (
                         <SidebarMenuItem>
                           <SwitchOrganization canCreateOrganization={hasOrgWrite} />
-                        </SidebarMenuItem>}
+                        </SidebarMenuItem>
+                      )}
 
                       <Divider />
                     </React.Fragment>

@@ -5,7 +5,7 @@ import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Form from 'app/views/settings/components/forms/form';

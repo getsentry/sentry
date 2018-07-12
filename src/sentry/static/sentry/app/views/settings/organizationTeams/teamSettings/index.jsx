@@ -12,7 +12,7 @@ import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import teamSettingsFields from 'app/data/forms/teamSettingsFields';
 
 import TeamModel from './model';

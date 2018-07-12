@@ -3,7 +3,7 @@ import React from 'react';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectSettingsNavigation from 'app/views/settings/project/projectSettingsNavigation';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class ProjectSettingsLayout extends React.Component {
   static contextTypes = {

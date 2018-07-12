@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Avatar from 'app/components/avatar';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class SidebarOrgSummary extends React.Component {

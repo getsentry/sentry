@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import EventDataSection from 'app/components/events/eventDataSection';
 import ClippedBox from 'app/components/clippedBox';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';

@@ -6,7 +6,7 @@ import {t, tct} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import getCookie from 'app/utils/getCookie';
 
