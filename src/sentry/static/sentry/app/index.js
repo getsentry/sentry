@@ -28,9 +28,7 @@ import plugins from 'app/plugins';
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
   //jQuery won't allow using the ajaxCsrfSetup function directly
-  beforeSend: function(xhr, settings) {
-    ajaxCsrfSetup(xhr, settings);
-  },
+  beforeSend: ajaxCsrfSetup,
 });
 
 // these get exported to a global variable, which is important as its the only
