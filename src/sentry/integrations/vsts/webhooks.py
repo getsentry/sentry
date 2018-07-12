@@ -26,16 +26,23 @@ class WorkItemWebhook(Endpoint):
     def post(self, request, *args, **kwargs):
         data = request.DATA
         if data['eventType'] == 'workitem.updated':
-            self.handle_updated_workitem(data)
+            integration = Integration.objects.get(
+                provider='vsts',
+                external_id=data['resourceContainers']['collection']['id'],
+            )
+            try:
+                self.check_webhook_secret(request, integration)
+            except AssertionError:
+                return self.respond(status=401)
+            self.handle_updated_workitem(data, integration)
         return self.respond()
 
-    def handle_updated_workitem(self, data):
+    def check_webhook_secret(self, request, integration):
+        assert integration.metadata['subscription_secret'] == request.HEADERS['shared_secret']
+
+    def handle_updated_workitem(self, data, integration):
         external_issue_key = data['resource']['workItemId']
         assigned_to = data['resource']['fields'].get('System.AssignedTo')
-        integration = Integration.objects.get(
-            provider='vsts',
-            external_id=data['resourceContainers']['collection']['id'],
-        )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
