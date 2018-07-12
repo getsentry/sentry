@@ -55,6 +55,7 @@ class U2fRestSerializer(serializers.Serializer):
         required=True,
     )
 
+
 serializer_map = {
     'totp': TotpRestSerializer,
     'sms': SmsRestSerializer,

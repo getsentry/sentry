@@ -114,7 +114,7 @@ def get_python_files(file_list=None):
 
 # parseable is a no-op
 def py_lint(file_list, parseable=False):
-    from flake8.engine import get_style_guide
+    from flake8.api.legacy import get_style_guide
 
     file_list = get_python_files(file_list)
     flake8_style = get_style_guide(parse_argv=True)

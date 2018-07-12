@@ -271,12 +271,6 @@ class BasicResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -633,12 +627,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -787,12 +775,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         "name": object_name,
                     }
                 ]
-            },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
             },
             "sentry.interfaces.Exception": {
                 "values": [
