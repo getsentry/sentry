@@ -9,6 +9,22 @@ from sentry.db.models import (
 )
 
 
+class ExternalIntegrationProject(Model):
+    __core__ = False
+
+    organization_integration_id = BoundedPositiveIntegerField(db_index=True)
+    date_added = models.DateTimeField(default=timezone.now)
+    name = models.CharField(max_length=128)
+    external_id = models.CharField(max_length=64)
+    resolved_status = models.CharField(max_length=64)
+    unresolved_status = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_externalintegrationproject'
+        unique_together = (('organization_integration_id', 'external_id'),)
+
+
 class OrganizationIntegration(Model):
     __core__ = False
 
