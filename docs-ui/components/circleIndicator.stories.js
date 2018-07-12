@@ -16,7 +16,14 @@ storiesOf('CircleIndicator', module).add(
           size={number('Size', 14)}
           enabled={enabled}
         />
-        <CircleIndicator size={number('Size', 14)} enabled={!enabled} />
+
+        <CircleIndicator
+          style={{marginRight: 12}}
+          size={number('Size', 14)}
+          enabled={!enabled}
+        />
+
+        <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple" />
       </React.Fragment>
     );
   })
