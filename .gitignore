@@ -42,3 +42,4 @@ coverage.xml
 junit.xml
 *.codestyle.xml
 .pytest_cache/
+package-lock.json
