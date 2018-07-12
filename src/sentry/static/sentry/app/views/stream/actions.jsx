@@ -12,6 +12,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import IndicatorStore from 'app/stores/indicatorStore';
 import MenuItem from 'app/components/menuItem';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import SentryTypes from 'app/proptypes';
 import {t, tct, tn} from 'app/locale';
 
 import Checkbox from 'app/components/checkbox';
@@ -145,7 +146,7 @@ const StreamActions = createReactClass({
     realtimeActive: PropTypes.bool.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
-    environment: PropTypes.instanceOf(Object),
+    environment: SentryTypes.Environment,
     queryCount: PropTypes.number,
     hasReleases: PropTypes.bool,
     latestRelease: PropTypes.object,
