@@ -759,6 +759,7 @@ const Stream = createReactClass({
               projectId={params.projectId}
               hasReleases={projectFeatures.has('releases')}
               latestRelease={this.context.project.latestRelease}
+              environment={this.state.environment}
               query={this.state.query}
               queryCount={this.state.queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}
