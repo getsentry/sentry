@@ -50,12 +50,12 @@ export default class InstalledIntegration extends React.Component {
   renderDisableIntegration(integration) {
     const {body, actionText} = integration.provider.aspects.disable_dialog;
     const message = (
-      <div>
+      <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
           This integration cannot be removed on Sentry
         </Alert>
         {body}
-      </div>
+      </React.Fragment>
     );
 
     return (
@@ -90,12 +90,12 @@ export default class InstalledIntegration extends React.Component {
     const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
 
     const message = (
-      <div>
+      <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
           Deleting this integration has consequences!
         </Alert>
         {body}
-      </div>
+      </React.Fragment>
     );
     return (
       <Confirm
