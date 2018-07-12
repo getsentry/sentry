@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.integrations import Integration, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
@@ -8,6 +8,7 @@ from sentry.utils.http import absolute_uri
 
 from .repository import BitbucketRepositoryProvider
 from .client import BitbucketApiClient
+from .issues import BitbucketIssueBasicMixin
 
 DESCRIPTION = """
 Bitbucket for Sentry.io
@@ -24,18 +25,23 @@ scopes = (
     'account',
     'issue:write',
     'repository',
+    'repository:admin',
     'team',
     'webhook',
 )
 
 
-class BitbucketIntegration(Integration):
+class BitbucketIntegration(Integration, BitbucketIssueBasicMixin):
     def get_client(self):
         return BitbucketApiClient(
             self.model.metadata['base_url'],
             self.model.metadata['shared_secret'],
             self.model.external_id,
         )
+
+    @property
+    def username(self):
+        return self.model.name
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
@@ -44,6 +50,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
+    features = frozenset([IntegrationFeatures.ISSUE_BASIC])
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
