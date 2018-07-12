@@ -1,8 +1,7 @@
 import $ from 'jquery';
-import {isUndefined} from 'lodash';
+import {isUndefined, isNil} from 'lodash';
 import idx from 'idx';
 
-import {defined} from 'app/utils';
 import {openSudo} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 
@@ -30,7 +29,7 @@ export function paramsToQueryArgs(params) {
       : undefined; // all items
 
   // only include environment if it is not null/undefined
-  if (params.query && defined(params.environment)) {
+  if (params.query && !isNil(params.environment)) {
     p.environment = params.environment;
   }
   return p;
