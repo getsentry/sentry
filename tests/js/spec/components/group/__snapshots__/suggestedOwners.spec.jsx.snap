@@ -166,6 +166,35 @@ exports[`SuggestedOwners render() should not show owners committers without feat
     className="m-b-1"
   >
     <h6>
+      <GuideAnchor
+        target="owners"
+        type="text"
+      >
+        <GuideAnchorContainer
+          innerRef={[Function]}
+          type="text"
+        >
+          <div
+            className="css-9u5for-GuideAnchorContainer e130o4350"
+            type="text"
+          >
+            <StyledGuideAnchor
+              active={false}
+              className="guide-anchor-ping owners"
+            >
+              <div
+                className="guide-anchor-ping owners css-1yndvnf-StyledGuideAnchor e130o4351"
+              >
+                <StyledGuideAnchorRipples>
+                  <div
+                    className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                  />
+                </StyledGuideAnchorRipples>
+              </div>
+            </StyledGuideAnchor>
+          </div>
+        </GuideAnchorContainer>
+      </GuideAnchor>
       <span>
         Ownership Rules
       </span>

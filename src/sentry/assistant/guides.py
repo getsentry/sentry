@@ -87,6 +87,14 @@ GUIDES = {
                     'errors you don\'t care about.'),
                 'target': 'ignore_delete_discard',
             },
+            {
+                'title': _('Owners'),
+                'message': _(
+                    'Define users or teams that are responsible for specific paths or URLS so '
+                    'that notifications can be routed to the correct owner. Learn more '
+                    '<a href="https://docs.sentry.io/learn/issue-owners/" target="_blank">here</a>.'),
+                'target': 'owners',
+            },
         ],
     },
     'releases': {
