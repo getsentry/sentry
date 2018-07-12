@@ -29,6 +29,7 @@ class BitbucketAPIPath(object):
     issue_comments = u'/2.0/repositories/{repo}/issues/{issue_id}/comments'
 
     repository = u'/2.0/repositories/{repo}'
+    repositories = u'/2.0/repositories/{username}'
     repository_commits = u'/2.0/repositories/{repo}/commits/{revision}'
     repository_diff = u'/2.0/repositories/{repo}/diff/{spec}'
     repository_hook = u'/2.0/repositories/{repo}/hooks/{uid}'
@@ -69,6 +70,11 @@ class BitbucketApiClient(ApiClient):
             issue_id=issue_id,
         ))
 
+    def get_issues(self, repo):
+        return self.get(BitbucketAPIPath.issues.format(
+            repo=repo,
+        ))
+
     def create_issue(self, repo, data):
         return self.post(
             path=BitbucketAPIPath.issues.format(
@@ -102,6 +108,11 @@ class BitbucketApiClient(ApiClient):
     def get_repo(self, repo):
         return self.get(BitbucketAPIPath.repository.format(
             repo=repo,
+        ))
+
+    def get_repos(self, username):
+        return self.get(BitbucketAPIPath.repositories.format(
+            username=username,
         ))
 
     def create_hook(self, repo, data):
