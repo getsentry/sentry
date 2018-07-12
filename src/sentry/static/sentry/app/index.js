@@ -19,25 +19,16 @@ import moment from 'moment';
 
 import 'app/utils/emotion-setup';
 
-import {CSRF_COOKIE_NAME} from 'app/constants';
 import Main from 'app/main';
 import * as api from 'app/api';
-import getCookie from 'app/utils/getCookie';
+import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
-function csrfSafeMethod(method) {
-  // these HTTP methods do not require CSRF protection
-  return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
-}
-
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
-  beforeSend: function(xhr, settings) {
-    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader('X-CSRFToken', getCookie(CSRF_COOKIE_NAME));
-    }
-  },
+  //jQuery won't allow using the ajaxCsrfSetup function directly
+  beforeSend: ajaxCsrfSetup,
 });
 
 // these get exported to a global variable, which is important as its the only
@@ -174,6 +165,7 @@ export default {
     theme: require('app/utils/theme').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
+      ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
     },
   },
