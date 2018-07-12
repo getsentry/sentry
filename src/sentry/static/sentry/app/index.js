@@ -1,5 +1,3 @@
-/* global module */
-import {AppContainer} from 'react-hot-loader';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
 import * as EmotionTheming from 'emotion-theming';
@@ -45,20 +43,8 @@ jQuery.ajaxSetup({
 
 let render = Component => {
   let rootEl = document.getElementById('blk_router');
-  ReactDOM.render(
-    <AppContainer>
-      <Component />
-    </AppContainer>,
-    rootEl
-  );
+  ReactDOM.render(<Component />, rootEl);
 };
-
-if (module.hot) {
-  // webpack 2 has built in support for es2015 modules, so don't have to re-require
-  module.hot.accept('./main', () => {
-    render(Main);
-  });
-}
 
 export default {
   jQuery,

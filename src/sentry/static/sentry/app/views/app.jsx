@@ -1,6 +1,7 @@
-/*global __webpack_public_path__ */
+/*global module __webpack_public_path__ */
 /*eslint no-native-reassign:0 */
 import $ from 'jquery';
+import {hot} from 'react-hot-loader';
 import {ThemeProvider} from 'emotion-theming';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
@@ -209,4 +210,4 @@ const App = createReactClass({
   },
 });
 
-export default App;
+export default hot(module)(App);
