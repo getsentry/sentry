@@ -9,6 +9,8 @@ services:
   postgres:
     image: postgres
     restart: always
+    ports:
+      - 8010:5432
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: sentry
