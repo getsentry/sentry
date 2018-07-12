@@ -9,7 +9,7 @@ from sentry.db.models import (
 )
 
 
-class ExternalIntegrationProject(Model):
+class IntegrationExternalProject(Model):
     __core__ = False
 
     organization_integration_id = BoundedPositiveIntegerField(db_index=True)
@@ -21,7 +21,7 @@ class ExternalIntegrationProject(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_externalintegrationproject'
+        db_table = 'sentry_integrationexternalproject'
         unique_together = (('organization_integration_id', 'external_id'),)
 
 
