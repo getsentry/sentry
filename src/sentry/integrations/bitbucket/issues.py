@@ -19,11 +19,11 @@ ERR_404 = (
 )
 
 
-class BitbucketIssueSyncMixin(IssueBasicMixin):
+class BitbucketIssueBasicMixin(IssueBasicMixin):
 
-    def get_create_issue_config(self, group, **kwargs):
-        fields = super(BitbucketIssueSyncMixin, self).get_create_issue_config(group, **kwargs)
+    def get_repo_choices(self, **kwargs):
         client = self.get_client()
+
         try:
             repos = client.get_repos(self.username)
         except ApiError:
@@ -31,11 +31,20 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
         else:
             repo_choices = [(repo['uuid'], repo['full_name']) for repo in repos['values']]
 
+        params = kwargs.get('params', {})
+        default_repo = params.get('repo', repo_choices[0][0])
+        issues = self.get_repo_issues(default_repo)
+        return repo_choices, default_repo, issues
+
+    def get_create_issue_config(self, group, **kwargs):
+        fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
+        repo_choices, default_repo, issues = self.get_repo_choices(**kwargs)
         return [
             {
                 'name': 'repo',
                 'label': 'Bitbucket Repository',
                 'type': 'select',
+                'default': default_repo,
                 'choices': repo_choices,
                 'required': True,
             }
@@ -56,18 +65,7 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
         ]
 
     def get_link_issue_config(self, group, **kwargs):
-        client = self.get_client()
-
-        try:
-            repos = client.get_repos(self.username)
-        except ApiError:
-            repo_choices = []
-        else:
-            repo_choices = [(repo['uuid'], repo['full_name']) for repo in repos['values']]
-
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
-        issues = self.get_repo_issues(default_repo)
+        repo_choices, default_repo, issues = self.get_repo_choices(**kwargs)
 
         return [{
             'name': 'repo',
@@ -117,7 +115,7 @@ class BitbucketIssueSyncMixin(IssueBasicMixin):
     def message_from_error(self, exc):
         if isinstance(exc, ApiError) and exc.code == 404:
             return ERR_404
-        return super(BitbucketIssueSyncMixin, self).message_from_error(exc)
+        return super(BitbucketIssueBasicMixin, self).message_from_error(exc)
 
     def get_repo_issues(self, repo):
         client = self.get_client()
