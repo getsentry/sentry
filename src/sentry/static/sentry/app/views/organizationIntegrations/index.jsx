@@ -184,7 +184,7 @@ const Status = styled(props => {
   return (
     <React.Fragment>
       <StatusCircle enabled={enabled} />
-      <div {...p}>{enabled ? 'Installed' : 'Not Installed'}</div>
+      <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
     </React.Fragment>
   );
 })`
