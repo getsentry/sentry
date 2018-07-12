@@ -143,6 +143,7 @@ serializer_by_tagkey = {
 
 MIN_STATS_PERIOD = timedelta(hours=1)
 MAX_STATS_PERIOD = timedelta(days=45)
+MAX_LIMIT = 50
 
 
 class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
@@ -153,6 +154,10 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
         stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
         if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
             return Response({'detail': 'Invalid statsPeriod'}, status=400)
+
+        limit = int(request.GET.get('limit', '5'))
+        if limit > MAX_LIMIT:
+            return Response({'detail': 'Invalid limit: max %d' % MAX_LIMIT}, status=400)
 
         project_ids = set(map(int, request.GET.getlist('project')))
         if not project_ids:
