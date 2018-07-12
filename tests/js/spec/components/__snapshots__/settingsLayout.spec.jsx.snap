@@ -29,9 +29,7 @@ exports[`SettingsLayout renders 1`] = `
   </SettingsHeader>
   <ContentContainerWrapper>
     <Container>
-      <Content>
-        <NewSettingsWarning />
-      </Content>
+      <Content />
     </Container>
   </ContentContainerWrapper>
   <Footer />
