@@ -20,6 +20,7 @@ class VstsApiPath(object):
     commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    delete = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repositories = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
@@ -255,11 +256,10 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         subscriptions = self.get(VstsApiPath.subscriptions.format(
             account_name=instance
         ))
-        delete_url = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}?api-version=4.1'
 
         for subscription in subscriptions['value']:
             self.delete(
-                delete_url.format(
+                self.VstsApiPath.delete_url.format(
                     account_name=instance,
                     subscription_id=subscription['id'],
                 )
