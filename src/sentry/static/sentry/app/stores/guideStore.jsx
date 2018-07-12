@@ -26,7 +26,7 @@ const GuideStore = Reflux.createStore({
       prevGuide: null,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
-    this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
+    this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
     this.listenTo(GuideActions.nextStep, this.onNextStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
@@ -62,16 +62,13 @@ const GuideStore = Reflux.createStore({
     this.updateCurrentGuide();
   },
 
-  // This handles both closing a guide and the support drawer.
-  onCloseGuideOrSupport() {
+  onCloseGuide() {
     let {currentGuide} = this.state;
-    if (currentGuide) {
-      this.state.guides[
-        Object.keys(this.state.guides).find(key => {
-          return this.state.guides[key].id == currentGuide.id;
-        })
-      ].seen = true;
-    }
+    this.state.guides[
+      Object.keys(this.state.guides).find(key => {
+        return this.state.guides[key].id == currentGuide.id;
+      })
+    ].seen = true;
     // Don't continue to force show if the user dismissed the guide.
     this.state.forceShow = false;
     this.updateCurrentGuide();
