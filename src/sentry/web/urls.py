@@ -216,31 +216,26 @@ urlpatterns += patterns(
     ),
     url(r'^account/settings/$',
         RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
-        name='sentry-account-settings-old'),
+    ),
     url(
         r'^account/settings/2fa/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
-        name='sentry-account-settings-2fa'
     ),
     url(
         r'^account/settings/avatar/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-avatar", permanent=False),
-        name='sentry-account-settings-avatar-old'
     ),
     url(
         r'^account/settings/appearance/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-appearance", permanent=False),
-        name='sentry-account-settings-appearance-old'
     ),
     url(
         r'^account/settings/identities/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-identities", permanent=False),
-        name='sentry-account-settings-identities-old'
     ),
     url(
         r'^account/settings/subscriptions/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-subscriptions", permanent=False),
-        name='sentry-account-settings-subscriptions-old'
     ),
     url(
         r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
@@ -260,16 +255,14 @@ urlpatterns += patterns(
     url(
         r'^account/settings/notifications/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-notifications", permanent=False),
-        name='sentry-account-settings-notifications-old'
     ),
     url(
         r'^account/settings/security/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
-        name='sentry-account-security-old'
     ),
     url(r'^account/settings/emails/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-emails", permanent=False),
-        name='sentry-account-settings-emails-old'),
+    ),
 
     # Project Wizard
     url(
@@ -343,7 +336,7 @@ urlpatterns += patterns(
     ),
     url(r'^api/$',
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
-    name='sentry-api-old'),
+    ),
     url(r'^api/applications/$',
         RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False)),
     url(r'^api/[^0]+/',
