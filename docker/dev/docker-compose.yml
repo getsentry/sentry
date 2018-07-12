@@ -28,7 +28,7 @@ services:
       - redis
       - postgres
     volumes:
-      - ../:/usr/src/sentry
+      - ../../:/usr/src/sentry
     environment:
       C_FORCE_ROOT: "1"
 

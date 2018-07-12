@@ -1,5 +1,6 @@
 #!/bin/bash
 set -x
+cd /usr/src/sentry
 #wait for postgres and redis
 # wait for pg to be available!!
 sleep 10
