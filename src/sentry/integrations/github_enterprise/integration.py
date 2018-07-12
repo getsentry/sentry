@@ -77,37 +77,37 @@ class InstallationForm(forms.Form):
     ))
     id = forms.CharField(widget=forms.TextInput(
         attrs={
-            'label': "Github App ID",
+            'label': "GitHub App ID",
             'placeholder': _('1'),
         }
     ))
     name = forms.CharField(widget=forms.TextInput(
         attrs={
-            'label': "Github App Name",
+            'label': "GitHub App Name",
             'placeholder': _('sentry-app'),
         }
     ))
     client_id = forms.CharField(widget=forms.TextInput(
         attrs={
-            'label': "Github App Client ID",
+            'label': "GitHub App Client ID",
             'placeholder': _('1'),
         }
     ))
     client_secret = forms.CharField(widget=forms.TextInput(
         attrs={
-            'label': "Github App Client Secret",
+            'label': "GitHub App Client Secret",
             'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
         }
     ))
     webhook_secret = forms.CharField(required=False, widget=forms.TextInput(
         attrs={
-            'label': "Github App Webhook Secret",
+            'label': "GitHub App Webhook Secret",
             'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
         }
     ))
     private_key = forms.CharField(
         widget=forms.Textarea(attrs={'rows': '60',
-                                     'label': "Github App Private Key",
+                                     'label': "GitHub App Private Key",
                                      'placeholder': _("-----BEGIN RSA PRIVATE KEY-----\n"
                                                       "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
                                                       "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"

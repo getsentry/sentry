@@ -6,17 +6,17 @@
 {% block wrapperclass %} narrow auth {% endblock %}
 {% block modal_header_signout %} {% endblock %}
 
-{% block title %} {% trans "Github Enterprise Setup" %} | {{ block.super }} {% endblock %}
+{% block title %} {% trans "GitHub Enterprise Setup" %} | {{ block.super }} {% endblock %}
 
 {% block main %}
-<h3>Github Enterprise Configuration</h3>
+<h3>GitHub Enterprise Configuration</h3>
 
 <form action="" method="post" class="form-stacked">
   {% csrf_token %}
   <input type="hidden" name="provider" value="vsts" />
 
   <p>
-    Configure Github Enterprise to use with Sentry.io.
+    Configure GitHub Enterprise to use with Sentry.io.
   </p>
 
   {{ form|as_crispy_errors }}

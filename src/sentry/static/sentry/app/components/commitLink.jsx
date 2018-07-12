@@ -6,7 +6,7 @@ import InlineSvg from 'app/components/inlineSvg';
 
 const isBitbucket = providerId =>
   ['bitbucket', 'integrations:bitbucket'].includes(providerId);
-const isGithub = providerId =>
+const isGitHub = providerId =>
   ['github', 'integrations:github', 'integrations:github_enterprise'].includes(
     providerId
   );
@@ -20,7 +20,7 @@ class CommitLink extends React.Component {
 
   getCommitUrl = () => {
     // TODO(jess): move this to plugins
-    if (isGithub(this.props.repository.provider.id)) {
+    if (isGitHub(this.props.repository.provider.id)) {
       return this.props.repository.url + '/commit/' + this.props.commitId;
     }
     if (isBitbucket(this.props.repository.provider.id)) {
@@ -45,7 +45,7 @@ class CommitLink extends React.Component {
         href={commitUrl}
         target="_blank"
       >
-        {isGithub(repository.provider.id) && (
+        {isGitHub(repository.provider.id) && (
           <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
         )}
         {isBitbucket(repository.provider.id) && (

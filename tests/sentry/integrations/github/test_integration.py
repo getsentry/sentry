@@ -158,7 +158,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         Identity.objects.get().update(user=user2)
         resp = self.assert_setup_flow()
         assert '"success":false' in resp.content
-        assert 'The provided Github account is linked to a different user' in resp.content
+        assert 'The provided GitHub account is linked to a different user' in resp.content
 
     @responses.activate
     @patch('sentry.integrations.github.integration.get_jwt', return_value='jwt_token_1')

@@ -23,7 +23,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='github',
-            name='Example Github',
+            name='Example GitHub',
         )
         integration.add_organization(organization.id)
         data = {

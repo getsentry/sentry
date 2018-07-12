@@ -112,7 +112,7 @@ class IntegrationPipeline(Pipeline):
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
-                # identities and recreate it, except in the case of Github
+                # identities and recreate it, except in the case of GitHub
                 # where we need to be more careful because users may be using
                 # those identities to log in.
                 if idp.type == 'github':
@@ -131,8 +131,8 @@ class IntegrationPipeline(Pipeline):
                         if not other_identity.user.has_usable_password():
                             return self._dialog_response({
                                 'error': _(
-                                    'The provided Github account is linked to a different user. '
-                                    'Please try again with a different Github account.'
+                                    'The provided GitHub account is linked to a different user. '
+                                    'Please try again with a different GitHub account.'
                                 )},
                                 False,
                             )
