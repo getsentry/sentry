@@ -253,15 +253,10 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             },
         )
 
-    def delete_all_subscriptions(self, instance):
-        subscriptions = self.get(VstsApiPath.subscriptions.format(
-            account_name=instance
-        ))
-
-        for subscription in subscriptions['value']:
-            self.delete(
-                self.VstsApiPath.delete_url.format(
-                    account_name=instance,
-                    subscription_id=subscription['id'],
-                )
+    def delete_subscription(self, instance, subscription_id):
+        self.delete(
+            self.VstsApiPath.delete_url.format(
+                account_name=instance,
+                subscription_id=subscription_id,
             )
+        )
