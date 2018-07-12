@@ -45,6 +45,15 @@ describe('api', function() {
         })
       ).toBeUndefined();
     });
+
+    it('should keep environment when query is provided', function() {
+      expect(
+        paramsToQueryArgs({
+          query: 'is:unresolved',
+          environment: 'production',
+        })
+      ).toEqual({query: 'is:unresolved', environment: 'production'});
+    });
   });
 
   describe('Client', function() {

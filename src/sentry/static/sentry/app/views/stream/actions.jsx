@@ -145,6 +145,7 @@ const StreamActions = createReactClass({
     realtimeActive: PropTypes.bool.isRequired,
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
+    environment: PropTypes.instanceOf(Object),
     queryCount: PropTypes.number,
     hasReleases: PropTypes.bool,
     latestRelease: PropTypes.object,
@@ -208,6 +209,7 @@ const StreamActions = createReactClass({
           itemIds,
           data,
           query: this.props.query,
+          environment: this.props.environment && this.props.environment.name,
         },
         {
           complete: () => {
@@ -228,6 +230,7 @@ const StreamActions = createReactClass({
           projectId: this.props.projectId,
           itemIds,
           query: this.props.query,
+          environment: this.props.environment && this.props.environment.name,
         },
         {
           complete: () => {
@@ -248,6 +251,7 @@ const StreamActions = createReactClass({
           projectId: this.props.projectId,
           itemIds,
           query: this.props.query,
+          environment: this.props.environment && this.props.environment.name,
         },
         {
           complete: () => {
