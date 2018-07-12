@@ -234,7 +234,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def create_subscription(self, instance, external_id):
+    def create_subscription(self, instance, external_id, shared_secret):
         return self.post(
             VstsApiPath.subscriptions.format(
                 account_name=instance
@@ -246,8 +246,9 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 'consumerId': 'webHooks',
                 'consumerActionId': 'httpRequest',
                 'consumerInputs': {
-                    'url': absolute_uri('/extensions/vsts/webhook/'),
+                    'url': absolute_uri('/extensions/vsts/issue-updated/'),
                     'resourceDetailsToSend': 'all',
+                    'httpHeaders': 'shared-secret:%s' % shared_secret,
                 }
             },
         )

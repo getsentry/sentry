@@ -6,7 +6,6 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 from sentry import http
-from uuid import uuid4
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.vsts.issues import VstsIssueSync
@@ -191,16 +190,10 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def create_subscription(self, instance, account_id, oauth_data):
         webhook = WorkItemWebhook()
-        subscription = webhook.create_subscription(
+        subscription, shared_secret = webhook.create_subscription(
             instance, oauth_data, self.oauth_redirect_url, account_id)
         subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
-        subscription_secret = self.create_webhook_secret()
-        return subscription_id, subscription_secret
-
-    def create_webhook_secret(self):
-        # following this example
-        # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
-        return uuid4().hex + uuid4().hex
+        return subscription_id, shared_secret
 
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}

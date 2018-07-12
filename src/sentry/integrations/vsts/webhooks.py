@@ -3,6 +3,7 @@ from .client import VstsApiClient
 
 from sentry.models import Identity, Integration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
+from uuid import uuid4
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
@@ -67,5 +68,10 @@ class WorkItemWebhook(Endpoint):
 
     def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
-        client.delete_all_subscriptions(instance)
-        return client.create_subscription(instance, external_id)
+        shared_secret = self.create_webhook_secret()
+        return client.create_subscription(instance, external_id, shared_secret), shared_secret
+
+    def create_webhook_secret(self):
+        # following this example
+        # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
+        return uuid4().hex + uuid4().hex
