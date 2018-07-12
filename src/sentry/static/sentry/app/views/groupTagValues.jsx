@@ -2,6 +2,7 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import {sortBy, property} from 'lodash';
 
 import SentryTypes from 'app/proptypes';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -107,7 +108,10 @@ const GroupTagValues = createReactClass({
 
     let {orgId, projectId} = this.props.params;
     let tagKey = this.state.tagKey;
-    let children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
+
+    let sortedTagValueList = sortBy(this.state.tagValueList, property('count')).reverse();
+
+    let children = sortedTagValueList.map((tagValue, tagValueIdx) => {
       let pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
       return (
         <tr key={tagValueIdx}>
