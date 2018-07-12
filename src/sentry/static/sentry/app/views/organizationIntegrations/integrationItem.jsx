@@ -1,6 +1,7 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import {t} from 'app/locale';
 import PropTypes from 'prop-types';
 import Tooltip from 'app/components/tooltip';
 
@@ -33,11 +34,11 @@ export default class IntegrationItem extends React.Component {
             {integration.name}
             {integration.status === 'disabled' && (
               <Tooltip
-                title={
+                title={t(
                   'This Integration has been disconnected from the external provider'
-                }
+                )}
               >
-                <small> — Disabled</small>
+                <small> — {t('Disabled')}</small>
               </Tooltip>
             )}
           </IntegrationName>
