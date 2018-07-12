@@ -2,7 +2,7 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';

@@ -3,7 +3,7 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/externalLink';
 import LoadingError from 'app/components/loadingError';

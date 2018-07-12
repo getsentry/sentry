@@ -1,6 +1,6 @@
 import {isString} from 'lodash';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {

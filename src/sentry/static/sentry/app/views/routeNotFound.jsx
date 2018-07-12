@@ -1,7 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import Footer from 'app/components/footer';
 import Sidebar from 'app/components/sidebar';
 import NotFound from 'app/components/errors/notFound';

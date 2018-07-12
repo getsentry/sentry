@@ -4,7 +4,7 @@ import React from 'react';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';

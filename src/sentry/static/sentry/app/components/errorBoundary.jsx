@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
@@ -26,6 +26,9 @@ class ErrorBoundary extends React.Component {
 
   constructor(props) {
     super(props);
+    setTimeout(() => {
+      sdk.captureMessage('test');
+    }, 1000);
     this.state = {error: null};
   }
 

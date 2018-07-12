@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
 import {t, tct} from 'app/locale';
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
 import OrganizationState from 'app/mixins/organizationState';
 import Confirmation from 'app/components/onboardingWizard/confirmation';

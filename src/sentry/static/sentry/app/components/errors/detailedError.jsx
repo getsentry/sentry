@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/buttons/button';

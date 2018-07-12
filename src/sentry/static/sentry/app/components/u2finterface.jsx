@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
 import ConfigStore from 'app/stores/configStore';
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {t, tct} from 'app/locale';
 
 class U2fInterface extends React.Component {

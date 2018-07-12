@@ -198,16 +198,6 @@ var appConfig = {
   ],
   resolve: {
     alias: {
-      sdk: path.join(
-        __dirname,
-        'src',
-        'sentry',
-        'static',
-        'sentry',
-        'app',
-        'utils',
-        'sdk.js'
-      ),
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST

@@ -1,5 +1,5 @@
 import {logAjaxError} from 'app/utils/logging';
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 
 describe('logging', function() {
   describe('logAjaxError()', function() {

@@ -1,5 +1,5 @@
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 
 jest.mock('app/utils/sdk', () => ({
   captureException: jest.fn(),

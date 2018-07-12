@@ -4,7 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {Panel} from 'app/components/panels';
 import {getPlatformName} from 'app/views/onboarding/utils';
 import {openCreateTeamModal} from 'app/actionCreators/modal';

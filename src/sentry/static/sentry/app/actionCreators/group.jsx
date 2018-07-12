@@ -1,4 +1,4 @@
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import {Client} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
 import {buildUserId, buildTeamId} from 'app/utils';

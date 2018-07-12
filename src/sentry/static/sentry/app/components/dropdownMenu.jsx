@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 

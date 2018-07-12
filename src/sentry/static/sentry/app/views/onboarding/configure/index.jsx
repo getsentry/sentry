@@ -2,7 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
 import Waiting from 'app/views/onboarding/configure/waiting';
 import ApiMixin from 'app/mixins/apiMixin';

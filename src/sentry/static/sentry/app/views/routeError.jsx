@@ -3,7 +3,7 @@ import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {

@@ -1,5 +1,5 @@
 import React from 'react';
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 
 import {mount} from 'enzyme';
 import {RouteError} from 'app/views/routeError';

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import * as sdk from 'app/utils/sdk';
+import sdk from 'app/utils/sdk';
 import Avatar from 'app/components/avatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';

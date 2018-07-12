@@ -1,8 +1,8 @@
-let _addBreadcrumb = function() {};
-let _captureException = function() {};
-let _captureMessage = function() {};
-let _showReportDialog = function() {};
-let _lastEventId = function() {};
+let _addBreadcrumb = () => {};
+let _captureException = () => {};
+let _captureMessage = () => {};
+let _showReportDialog = () => {};
+let _lastEventId = () => {};
 
 document.addEventListener('ravenLoaded', function() {
   _addBreadcrumb = window.Raven.captureBreadcrumb.bind(window.Raven);
@@ -32,51 +32,53 @@ function setContextInScope(context) {
 
 document.addEventListener('sentryLoaded', function() {
   _addBreadcrumb = window.Sentry.addBreadcrumb;
-  _captureMessage = function() {
+  _captureMessage = (...args) => {
     window.Sentry.getDefaultHub().pushScope();
-    if (arguments[1]) {
-      setContextInScope(arguments[1]);
+    if (args[1]) {
+      setContextInScope(args[1]);
     }
-    if (arguments[0]) {
-      window.Sentry.captureMessage(arguments[0]);
+    if (args[0]) {
+      window.Sentry.captureMessage(args[0]);
     }
     window.Sentry.getDefaultHub().popScope();
   };
-  _captureException = function() {
+  _captureException = (...args) => {
     window.Sentry.getDefaultHub().pushScope();
-    if (arguments[1]) {
-      setContextInScope(arguments[1]);
+    if (args[1]) {
+      setContextInScope(args[1]);
     }
-    if (arguments[0]) {
-      window.Sentry.captureException(arguments[0]);
+    if (args[0]) {
+      window.Sentry.captureException(args[0]);
     }
     window.Sentry.getDefaultHub().popScope();
   };
-  _showReportDialog = function() {
+  _showReportDialog = () => {
     // TODO: eventually implement this
     window.Sentry.captureMessage('Would have shown report dialog');
   };
-  _lastEventId = function() {
+  _lastEventId = () => {
     // TODO: eventually implement this
     window.Sentry.lastEventId('Would have called lastEventId()');
   };
 });
 
-export function captureBreadcrumb() {
-  return _addBreadcrumb.apply(null, arguments);
-}
-export function addBreadcrumb() {
-  return _addBreadcrumb.apply(null, arguments);
-}
-export function captureMessage() {
-  return _captureMessage.apply(null, arguments);
-}
-export function captureException() {
-  return _captureException.apply(null, arguments);
-}
-export function showReportDialog() {
-  return _showReportDialog.apply(null, arguments);
-}
-export function lastEventId() {
-  return _lastEventId.apply(null, arguments);
-}
+export default {
+  captureBreadcrumb: (...args) => {
+    return _addBreadcrumb(args);
+  },
+  addBreadcrumb: (...args) => {
+    return _addBreadcrumb(args);
+  },
+  captureMessage: (...args) => {
+    return _captureMessage(args);
+  },
+  captureException: (...args) => {
+    return _captureException(args);
+  },
+  showReportDialog: (...args) => {
+    return _showReportDialog(args);
+  },
+  lastEventId: (...args) => {
+    return _lastEventId(args);
+  },
+};
