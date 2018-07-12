@@ -21,15 +21,15 @@ import 'app/utils/emotion-setup';
 
 import Main from 'app/main';
 import * as api from 'app/api';
-import ajaxCSRFSetup from 'app/utils/ajaxCSRFSetup';
+import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
-  //jQuery won't allow using the ajaxCSRFSetup function directly
+  //jQuery won't allow using the ajaxCsrfSetup function directly
   beforeSend: function(xhr, settings) {
-    ajaxCSRFSetup(xhr, settings);
+    ajaxCsrfSetup(xhr, settings);
   },
 });
 
@@ -167,7 +167,7 @@ export default {
     theme: require('app/utils/theme').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
-      ajaxCSRFSetup: require('app/utils/ajaxCSRFSetup').default,
+      ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
     },
   },

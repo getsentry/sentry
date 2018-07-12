@@ -6,7 +6,7 @@ function csrfSafeMethod(method) {
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
 }
 
-export default function ajaxCSRFSetup(xhr, settings) {
+export default function ajaxCsrfSetup(xhr, settings) {
   if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
     xhr.setRequestHeader('X-CSRFToken', getCookie(CSRF_COOKIE_NAME));
   }
