@@ -69,6 +69,7 @@ def get_requirements(env):
     with open('requirements-{}.txt'.format(env)) as fp:
         return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
 
+
 install_requires = get_requirements('base')
 dev_requires = get_requirements('dev')
 tests_require = get_requirements('test')
