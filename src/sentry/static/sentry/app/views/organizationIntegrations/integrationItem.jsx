@@ -42,32 +42,27 @@ export default class IntegrationItem extends React.Component {
   }
 }
 
-const IntegrationName = styled.div`
+const ExpandedLabels = styled(p => <Flex direction="column" pl={1} {...p} />)``;
+
+const CompactLabels = styled(p => (
+  <Flex align="center" direction="row" pl={1} {...p} />
+))``;
+
+const IntegrationName = styled('div')`
   font-size: 1.6rem;
 `;
 
-const DomainName = styled.div`
+const DomainName = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 1.4rem;
-`;
-
-const ExpandedLabels = styled(p => <Box pl={1} {...p} />)`
-  display: flex;
-  flex-direction: column;
 
   /* stylelint-disable-next-line no-duplicate-selectors */
-  ${DomainName} {
+  ${ExpandedLabels} & {
     margin-top: 3px;
   }
-`;
-
-const CompactLabels = styled(p => <Box pl={1} {...p} />)`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
 
   /* stylelint-disable-next-line no-duplicate-selectors */
-  ${DomainName} {
+  ${CompactLabels} & {
     color: ${p => p.theme.gray1};
     margin-left: ${space(1)};
   }
