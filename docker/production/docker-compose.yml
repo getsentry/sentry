@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  redis:
+    image: redis
+    command: redis-server --maxmemory 1000mb  --maxmemory-policy allkeys-lru --maxmemory-samples 5
+  postgres:
+    ports:
+      - 8010:5432
+    image: 'eeacms/postgres:9.5'
+    env_file:
+      - ./production.env
+    volumes:
+      - /VOLUMES/PGDB:/var/lib/postgresql/data
+
+  sentry:
+    image: sentry:latest
+    env_file:
+      - ./production.env
+    depends_on:
+     - redis
+     - postgres
+    ports:
+     - 9000:9000
+    links:
+     - redis
+     - postgres
+  sentry_celery_beat:
+    env_file:
+      - ./production.env
+    image: sentry:latest
+    depends_on:
+     - redis
+     - postgres
+    command: "sentry run cron --pidfile=/tmp/celerybeat-sentry.pid"
+
+
+
+  sentry_celery_worker:
+    env_file:
+      - ./production.env
+    image: sentry:latest
+    depends_on:
+     - redis
+     - postgres
+    command: "sentry run worker"
+
+
