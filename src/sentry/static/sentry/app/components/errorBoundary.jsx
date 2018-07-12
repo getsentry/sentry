@@ -26,9 +26,6 @@ class ErrorBoundary extends React.Component {
 
   constructor(props) {
     super(props);
-    setTimeout(() => {
-      sdk.captureMessage('test');
-    }, 1000);
     this.state = {error: null};
   }
 
