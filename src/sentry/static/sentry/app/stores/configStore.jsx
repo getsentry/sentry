@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 import Reflux from 'reflux';
+import qs from 'query-string';
 import {setLocale} from 'app/locale';
 
 const ConfigStore = Reflux.createStore({
@@ -30,7 +31,15 @@ const ConfigStore = Reflux.createStore({
     if (config.user) {
       config.user.permissions = new Set(config.user.permissions);
       moment.tz.setDefault(config.user.options.timezone);
-      setLocale(languageOverride || config.user.options.language || 'en');
+
+      // Parse query string for `lang`
+      let queryString = qs.parse(window.location.search) || {};
+
+      // Priority:
+      // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
+      setLocale(
+        queryString.lang || config.user.options.language || languageOverride || 'en'
+      );
     } else if (languageOverride) {
       setLocale(languageOverride);
     }
