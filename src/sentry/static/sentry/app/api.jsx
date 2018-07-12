@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {isUndefined} from 'lodash';
+import {isUndefined, isNil} from 'lodash';
 import idx from 'idx';
 
 import {openSudo} from 'app/actionCreators/modal';
@@ -22,11 +22,17 @@ export class Request {
  * @param params
  */
 export function paramsToQueryArgs(params) {
-  return params.itemIds
+  let p = params.itemIds
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
       ? {query: params.query} // items matching search query
       : undefined; // all items
+
+  // only include environment if it is not null/undefined
+  if (params.query && !isNil(params.environment)) {
+    p.environment = params.environment;
+  }
+  return p;
 }
 
 export class Client {
