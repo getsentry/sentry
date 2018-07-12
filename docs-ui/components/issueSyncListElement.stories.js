@@ -41,7 +41,7 @@ storiesOf('IssueSyncListElement', module)
   );
 
 const StyledIssueSyncList = styled('div')`
-  max-width: 500px;
+  max-width: 300px;
   margin: 0 auto;
   background: #fff;
   padding: ${space(1)};

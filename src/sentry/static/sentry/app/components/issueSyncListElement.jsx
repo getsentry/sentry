@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
@@ -48,7 +47,7 @@ class IssueSyncElement extends React.Component {
 
   render() {
     return (
-      <Flex align="center" justify="space-between" p={1}>
+      <IssueSyncListElementContainer>
         <div>
           {this.getIcon()}
           {this.getText()}
@@ -58,10 +57,18 @@ class IssueSyncElement extends React.Component {
           onClick={this.props.onClose}
           isLinked={this.isLinked()}
         />
-      </Flex>
+      </IssueSyncListElementContainer>
     );
   }
 }
+
+const IssueSyncListElementContainer = styled('div')`
+  line-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${space(1.5)} ${space(1)};
+`;
 
 const IntegrationIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray4};
