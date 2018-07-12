@@ -74,11 +74,16 @@ export default class OrganizationDiscover extends React.Component {
     const columns = queryBuilder.getColumns();
     const query = queryBuilder.getInternal();
 
-    // If there are aggregations, only allow summarized fields in orderby
-    const hasAggregations = query.aggregations.length > 0;
+    // If there are valid aggregations, only allow summarized fields and aggregations in orderby
+    const validAggregations = query.aggregations.filter(agg =>
+      isValidAggregation(agg, columns)
+    );
+
+    const hasAggregations = validAggregations > 0;
+
     const hasFields = query.fields.length > 0;
 
-    return columns.reduce((acc, {name}) => {
+    const columnOptions = columns.reduce((acc, {name}) => {
       if (hasAggregations) {
         const isInvalidField = hasFields && !query.fields.includes(name);
         if (!hasFields || isInvalidField) {
@@ -92,6 +97,19 @@ export default class OrganizationDiscover extends React.Component {
         {value: `-${name}`, label: `${name} desc`},
       ];
     }, []);
+
+    const aggregationOptions = [
+      // Ensure aggregations are unique (since users might input duplicates)
+      ...new Set(validAggregations.map(aggregation => aggregation[2])),
+    ].reduce((acc, agg) => {
+      return [
+        ...acc,
+        {value: agg, label: `${agg} asc`},
+        {value: `-${agg}`, label: `${agg} desc`},
+      ];
+    }, []);
+
+    return [...columnOptions, ...aggregationOptions];
   };
 
   getSummarizePlaceholder = () => {
