@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
 import {COLUMNS, PROMOTED_TAGS} from './data';
+import {isValidAggregation} from './aggregations/utils';
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -31,7 +32,8 @@ function applyDefaults(query) {
 
 /**
  * This function is responsible for storing and managing updates to query state,
- * It applies sensible defaults if query parameters are not provided on initialization.
+ * It applies sensible defaults if query parameters are not provided on
+ * initialization.
  */
 export default function createQueryBuilder(initial = {}, organization) {
   const query = applyDefaults(initial);
@@ -49,6 +51,13 @@ export default function createQueryBuilder(initial = {}, organization) {
     load,
   };
 
+  /**
+   * Loads tags keys for user's projectsand updates `tags` with the result.
+   * If the request fails updates `tags` to be the hardcoded list of predefined
+   * promoted tags.
+   *
+   * @returns {Promise<Void>}
+   */
   function load() {
     return fetch({
       projects: defaultProjects,
@@ -66,19 +75,32 @@ export default function createQueryBuilder(initial = {}, organization) {
       });
   }
 
+  /**
+   * Returns the query object (internal state of the query)
+   *
+   * @returns {Object}
+   */
   function getInternal() {
     return query;
   }
 
+  /**
+   * Returns the external representation of the query as required by Snuba.
+   * Applies default projects and fields if these properties were not specified
+   * by the user.
+   *
+   * @returns {Object}
+   */
   function getExternal() {
     // Default to all projects if none is selected
     const projects = query.projects.length ? query.projects : defaultProjects;
 
-    // Default to all fields if there are none selected, and no aggregation is specified
+    // Default to all fields if there are none selected, and no aggregation is
+    // specified
     const useDefaultFields =
       !query.fields.length && !query.aggregations.length && !query.groupby;
 
-    const fields = useDefaultFields ? COLUMNS.map(({name}) => name) : query.fields;
+    const fields = useDefaultFields ? getColumns().map(({name}) => name) : query.fields;
 
     // Remove orderby property if it is not set
     if (!query.orderby) {
@@ -92,33 +114,48 @@ export default function createQueryBuilder(initial = {}, organization) {
     };
   }
 
+  /**
+   * Updates field in query to value provided. Also updates orderby and limit
+   * parameters if this causes their values to become invalid.
+   *
+   * @param {String} field Name of field to be updated
+   * @param {*} value Value to update field to
+   * @returns {Void}
+   */
   function updateField(field, value) {
     query[field] = value;
 
-    // If there are aggregations, we need to remove or update the orderby parameter
-    // if it's not in the list of selected fields
-    const hasAggregations = query.aggregations.length > 0;
-    const hasFields = query.fields.length > 0;
+    // Ignore non valid aggregations (e.g. user halfway inputting data)
+    const validAggregations = query.aggregations.filter(agg =>
+      isValidAggregation(agg, getColumns())
+    );
+
     const orderbyField = (query.orderby || '').replace(/^-/, '');
     const hasOrderFieldInFields = query.fields.includes(orderbyField);
+    const hasOrderFieldInAggregations = query.aggregations.some(
+      agg => orderbyField === agg[2]
+    );
 
-    if (hasAggregations) {
-      // Check for invalid order by parameter
-      if (hasFields && !hasOrderFieldInFields) {
-        query.orderby = query.fields ? query.fields[0] : null;
-      }
+    const hasInvalidOrderbyField = !hasOrderFieldInFields && !hasOrderFieldInAggregations;
 
-      // Disable orderby for aggregations without any summarize fields
-      if (!hasFields) {
-        query.orderby = null;
-      }
+    // If orderby value becomes invalid, update it to the first valid aggregation
+    if (validAggregations.length > 0 && hasInvalidOrderbyField) {
+      query.orderby = validAggregations[0][2];
     }
 
+    // Snuba doesn't allow limit without orderby
     if (!query.orderby) {
       query.limit = null;
     }
   }
 
+  /**
+   * Fetches either the query provided as an argument or the current query state
+   * if this is not provided and returns the result wrapped in a promise
+   *
+   * @param {Object} [data] Optional field to provide data to fetch
+   * @returns {Promise<Object>}
+   */
   function fetch(data) {
     const api = new Client();
     const endpoint = `/organizations/${organization.slug}/discover/`;
@@ -129,7 +166,11 @@ export default function createQueryBuilder(initial = {}, organization) {
     });
   }
 
-  // Get all columns, including tags
+  /**
+   * Returns all column objects, including tags
+   *
+   * @returns {Array<{name: String, type: String}>}
+   */
   function getColumns() {
     return [...COLUMNS, ...tags];
   }

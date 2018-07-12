@@ -1,20 +1,22 @@
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Query Builder', function() {
-  it('generates default query with all projects', function() {
-    const queryBuilder = createQueryBuilder(
-      {},
-      TestStubs.Organization({projects: [TestStubs.Project()]})
-    );
-    const external = queryBuilder.getExternal();
+  describe('applyDefaults()', function() {
+    it('generates default query with all projects', function() {
+      const queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+      const external = queryBuilder.getExternal();
 
-    expect(external.projects).toEqual([2]);
-    expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-    expect(external.fields).toHaveLength(47);
-    expect(external.conditions).toHaveLength(0);
-    expect(external.aggregations).toHaveLength(0);
-    expect(external.orderby).toBe('-timestamp');
-    expect(external.limit).toBe(1000);
+      expect(external.projects).toEqual([2]);
+      expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
+      expect(external.fields).toHaveLength(47);
+      expect(external.conditions).toHaveLength(0);
+      expect(external.aggregations).toHaveLength(0);
+      expect(external.orderby).toBe('-timestamp');
+      expect(external.limit).toBe(1000);
+    });
   });
 
   describe('loads()', function() {
@@ -97,21 +99,11 @@ describe('Query Builder', function() {
       expect(query.conditions).toEqual([['event_id', '=', 'event1']]);
     });
 
-    it('updates orderby if there is an aggregation and value is not a summarized field', function() {
-      queryBuilder.updateField('fields', ['environment']);
-      queryBuilder.updateField('aggregations', [['count', null, 'count']]);
+    it('updates orderby if there is an aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.orderby).toEqual('environment');
-    });
-
-    it('removes orderby and limit if there is aggregation but no summarize', function() {
-      queryBuilder.updateField('fields', []);
-      queryBuilder.updateField('aggregations', [['count', null, 'count']]);
-
-      const query = queryBuilder.getInternal();
-      expect(query.orderby).toEqual(null);
-      expect(query.limit).toEqual(null);
+      expect(query.orderby).toEqual('count');
     });
   });
 });
