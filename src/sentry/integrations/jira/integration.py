@@ -17,21 +17,41 @@ from .client import JiraApiClient
 
 logger = logging.getLogger('sentry.integrations.jira')
 
-alert_link = {
-    'text': 'Visit the **Atlassian Marketplace** to install this integration.',
+DESCRIPTION = """
+Connect your Sentry organization into one or more of your Jira cloud instances.
+Get started streamlining your bug squashing workflow by unifying your Sentry and
+Jira instances together.
+
+ * Create and link Sentry issue groups directly to a Jira ticket in any of your
+   projects, providing a quick way to jump from Sentry bug to tracked ticket!
+ * Automatically synchronize assignees to and from Jira. Don't get confused
+   who's fixing what, let us handle ensuring your issues and tickets match up
+   to your Sentry and Jira assignees.
+ * Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
+"""
+
+INSTALL_NOTICE_TEXt = """
+Visit the Jira Marketplace to install this integration. After installing the
+Sentry add-on, access the settings panel in your Jira instance to enable the
+integration for this Organization.
+"""
+
+external_install = {
     # TODO(jess): update this when we have our app listed on the
     # atlassian marketplace
-    'link': 'https://marketplace.atlassian.com/',
+    'url': 'https://marketplace.atlassian.com/',
+    'buttonText': _('Jira Marketplace'),
+    'noticeText': _(INSTALL_NOTICE_TEXt.strip()),
 }
 
 metadata = IntegrationMetadata(
-    description='Sync Sentry and JIRA issues.',
+    description=_(DESCRIPTION.strip()),
     author='The Sentry Team',
     noun=_('Instance'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira',
     aspects={
-        'alert_link': alert_link,
+        'externalInstall': external_install,
     },
 )
 
