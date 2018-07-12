@@ -28,6 +28,7 @@ class FilterStatKeys(object):
     CORS = 'cors'
     DISCARDED_HASH = 'discarded-hash'
 
+
 FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.IP_ADDRESS: tsdb.models.project_total_received_ip_address,
     FilterStatKeys.RELEASE_VERSION: tsdb.models.project_total_received_release_version,

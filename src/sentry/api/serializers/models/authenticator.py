@@ -38,5 +38,6 @@ class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
         data['phone'] = obj.phone_number
         return data
 
+
 for interface in RecoveryCodeInterface, TotpInterface, U2fInterface:
     register(interface)(AuthenticatorInterfaceSerializer)

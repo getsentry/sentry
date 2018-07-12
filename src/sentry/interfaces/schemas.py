@@ -34,6 +34,7 @@ def apierror(message="Invalid data"):
     from sentry.coreapi import APIForbidden
     raise APIForbidden(message)
 
+
 PAIRS = {
     'type': 'array',
     'items': {

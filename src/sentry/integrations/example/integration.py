@@ -26,6 +26,7 @@ class ExampleSetupView(PipelineView):
 
         return HttpResponse(self.TEMPLATE)
 
+
 DESCRIPTION = """
 This is an example integration
 

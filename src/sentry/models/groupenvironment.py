@@ -44,6 +44,7 @@ class GroupEnvironment(Model):
 
         return instance, created
 
+
 post_delete.connect(
     lambda instance, **kwargs: cache.delete(
         GroupEnvironment._get_cache_key(
