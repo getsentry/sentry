@@ -25,8 +25,8 @@ export function nextStep() {
   GuideActions.nextStep();
 }
 
-export function closeGuideOrSupport() {
-  GuideActions.closeGuideOrSupport();
+export function closeGuide() {
+  GuideActions.closeGuide();
 }
 
 export function recordFinish(guideId, useful) {

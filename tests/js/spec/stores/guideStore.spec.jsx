@@ -65,7 +65,7 @@ describe('GuideStore', function() {
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(2);
-    GuideStore.onCloseGuideOrSupport();
+    GuideStore.onCloseGuide();
     expect(
       Object.keys(GuideStore.state.guides).filter(
         key => GuideStore.state.guides[key].seen == true
@@ -89,9 +89,9 @@ describe('GuideStore', function() {
     GuideStore.state.forceShow = true;
     GuideStore.onFetchSucceeded(data);
     expect(GuideStore.state.currentGuide.id).toEqual(1);
-    GuideStore.onCloseGuideOrSupport();
+    GuideStore.onCloseGuide();
     expect(GuideStore.state.currentGuide.id).toEqual(2);
-    GuideStore.onCloseGuideOrSupport();
+    GuideStore.onCloseGuide();
     expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
@@ -104,7 +104,7 @@ describe('GuideStore', function() {
     GuideStore.onFetchSucceeded(data);
     expect(mockRecordCue).toHaveBeenCalledWith(data.issue.id, data.issue.cue);
     expect(mockRecordCue).toHaveBeenCalledTimes(1);
-    GuideStore.onCloseGuideOrSupport();
+    GuideStore.onCloseGuide();
 
     // Should trigger a record when a new guide is cued
     expect(GuideStore.state.currentGuide).toEqual(data.other);
