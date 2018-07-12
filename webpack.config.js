@@ -162,6 +162,10 @@ var appConfig = {
       /marked\/lib\/marked\.js/,
     ],
   },
+  watchOptions: {
+      aggregateTimeout: 300,
+      poll: 1000
+  },
   plugins: [
     new LodashModuleReplacementPlugin({
       collections: true,

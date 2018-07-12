@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  redis:
+    image: redis
+    command: redis-server --maxmemory-policy allkeys-lru --maxmemory-samples 5
+
+
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sentry
+    volumes:
+      - ./VOLUMES/PGDB:/var/lib/postgresql/data
+
+  sentry:
+    build: .
+    ports:
+      - 8000:8000
+    depends_on:
+      - redis
+      - postgres
+    links:
+      - redis
+      - postgres
+    volumes:
+      - ../:/usr/src/sentry
+    environment:
+      C_FORCE_ROOT: "1"
+
