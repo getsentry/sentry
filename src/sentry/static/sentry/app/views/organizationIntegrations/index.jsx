@@ -101,8 +101,8 @@ export default class OrganizationIntegrations extends AsyncComponent {
             orgId={orgId}
             provider={provider}
             integration={integration}
-            onRemove={() => this.handleDeleteIntegration(integration)}
-            onDisable={() => this.handleDisableIntegration()}
+            onRemove={this.handleDeleteIntegration}
+            onDisable={this.handleDisableIntegration}
             onReinstallIntegration={this.mergeIntegration}
           />
         ));

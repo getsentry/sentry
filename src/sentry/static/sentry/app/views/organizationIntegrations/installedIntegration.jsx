@@ -103,7 +103,7 @@ export default class InstalledIntegration extends React.Component {
         message={message}
         confirmText={actionText}
         priority="danger"
-        onConfirm={() => this.props.onRemove()}
+        onConfirm={() => this.props.onRemove(integration)}
       >
         <Button size="xsmall" icon="icon-trash" />
       </Confirm>
