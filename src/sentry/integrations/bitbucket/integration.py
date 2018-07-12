@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
@@ -31,7 +32,7 @@ scopes = (
 )
 
 
-class BitbucketIntegration(Integration, BitbucketIssueBasicMixin):
+class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixin):
     def get_client(self):
         return BitbucketApiClient(
             self.model.metadata['base_url'],
@@ -42,6 +43,12 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin):
     @property
     def username(self):
         return self.model.name
+
+    def get_repositories(self):
+        return self.get_client().get_repos()
+
+    def reinstall(self):
+        self.reinstall_repositories()
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
