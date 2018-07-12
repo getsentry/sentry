@@ -1,6 +1,5 @@
 import {Box, Flex} from 'grid-emotion';
 import {keyBy} from 'lodash';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -25,11 +24,12 @@ import InstalledIntegration from 'app/views/organizationIntegrations/installedIn
 import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import SentryTypes from 'app/proptypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 export default class OrganizationIntegrations extends AsyncComponent {
   static contextTypes = {
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
   };
 
   // Some integrations require visiting a different website to add them. When
