@@ -1139,7 +1139,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations'
+                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
