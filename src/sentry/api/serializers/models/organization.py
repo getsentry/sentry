@@ -134,8 +134,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if OrganizationOption.objects.filter(
                 organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
             feature_list.append('legacy-rate-limits')
-        if features.has('organizations:sso-paywall-experiment', obj, actor=user):
-            feature_list.append('sso-paywall-experiment')
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
@@ -144,6 +142,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('require-2fa')
         if features.has('organizations:event-attachments', obj, actor=user):
             feature_list.append('event-attachments')
+
+        # this is slightly gross but necessary until we have the get on the endpoint
+        # to give the frontend a way to know when to log exposures
+        sso_experiment = features.has('organizations:sso-paywall-experiment', obj, actor=user)
+        if sso_experiment:
+            feature_list.append('sso-paywall-experiment-treatment')
+        elif sso_experiment is False:
+            feature_list.append('sso-paywall-experiment-control')
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
