@@ -68,7 +68,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       end: moment().format(DATE_TIME_FORMAT),
     })
       .then(res => {
-        tags = res.data[0].tags_key.map(tag => ({name: tag, type: 'string'}));
+        tags = res.data[0].tags_key.map(tag => ({name: `tags[${tag}]`, type: 'string'}));
       })
       .catch(err => {
         tags = PROMOTED_TAGS;

@@ -50,10 +50,16 @@ describe('Query Builder', function() {
         })
       );
 
-      expect(queryBuilder.getColumns()).toContainEqual({name: 'tag1', type: 'string'});
-      expect(queryBuilder.getColumns()).toContainEqual({name: 'tag2', type: 'string'});
+      expect(queryBuilder.getColumns()).toContainEqual({
+        name: 'tags[tag1]',
+        type: 'string',
+      });
+      expect(queryBuilder.getColumns()).toContainEqual({
+        name: 'tags[tag2]',
+        type: 'string',
+      });
       expect(queryBuilder.getColumns()).not.toContainEqual({
-        name: 'environment',
+        name: 'tags[environment]',
         type: 'string',
       });
     });
@@ -72,11 +78,11 @@ describe('Query Builder', function() {
       expect(discoverMock).toHaveBeenCalled();
 
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'environment',
+        name: 'tags[environment]',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).not.toContainEqual({
-        name: 'tag1',
+        name: 'tags[tag1]',
         type: 'string',
       });
     });
