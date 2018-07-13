@@ -104,7 +104,12 @@ class ApiTokenRow extends React.Component {
           <Box>
             <Heading>{t('Created')}</Heading>
             <Time>
-              <DateTime date={token.dateCreated} />
+              <DateTime
+                date={getDynamicText({
+                  value: token.dateCreated,
+                  fixed: new Date(1508208080000), //National Pasta Day
+                })}
+              />
             </Time>
           </Box>
         </Details>
