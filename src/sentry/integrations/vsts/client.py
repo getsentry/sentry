@@ -18,6 +18,7 @@ class VstsApiPath(object):
     commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    extension = u'https://{account_name}.extmgmt.visualstudio.com/_apis/extensionmanagement/installedextensionsbyname/{publisher_name}/{extension_name}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repositories = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
@@ -226,6 +227,16 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.users.format(
                 account_name=account_name,
+            ),
+            api_preview=True,
+        )
+
+    def uninstall_vsts(self, account_name):
+        return self.delete(
+            VstsApiPath.extension.format(
+                account_name=account_name,
+                publisher_name='Sentry.io',
+                extension_name='SentryVSTSProd',
             ),
             api_preview=True,
         )
