@@ -10,6 +10,8 @@ const space = size => {
       return '4px';
     case 1:
       return '8px';
+    case 1.5:
+      return '12px';
     case 2:
       return '16px';
     case 3:
