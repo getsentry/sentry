@@ -3,7 +3,7 @@
 {% block twofactor_form_body %}
   <div id="u2f-container"></div>
   <script>
-    ReactDOM.render(React.createElement(Sentry.U2fSign, {
+    ReactDOM.render(React.createElement(SentryApp.U2fSign, {
       challengeData: {{ activation.challenge|to_json|safe }}
     }), document.getElementById('u2f-container'));
   </script>

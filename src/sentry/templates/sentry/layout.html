@@ -54,7 +54,7 @@
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
 
-    Sentry.ConfigStore.loadInitialData({% get_react_config %}, {{ request.LANGUAGE_CODE|to_json|safe }});
+    SentryApp.ConfigStore.loadInitialData({% get_react_config %}, {{ request.LANGUAGE_CODE|to_json|safe }});
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
 
@@ -87,8 +87,8 @@
               }
             },
             render: function () {
-              return React.createElement(Sentry.OrganizationsLoader, {},
-                React.createElement(Sentry.Sidebar));
+              return React.createElement(SentryApp.OrganizationsLoader, {},
+                React.createElement(SentryApp.Sidebar));
             }
           });
           SidebarWrapper.childContextTypes = {
@@ -177,7 +177,7 @@
         {% block header_nav %}{% endblock %}
         <script>
         $(function(){
-          ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
+          ReactDOM.render(React.createFactory(SentryApp.ProjectSelector)({
             organization: {% serialize_detailed_org organization %},
             projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
           }), document.getElementById('blk_projectselect'));
