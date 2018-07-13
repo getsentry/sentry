@@ -202,24 +202,14 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
         else:
             env_condition = ['tags[environment]', '=', environment.name]
 
-        now = timezone.now()
-
-        project_ids = list(
-            Project.objects.filter(
-                organization=organization,
-                status=ProjectStatus.VISIBLE,
-            ).values_list('id', flat=True)
-        )
-
-        if not project_ids:
-            return self.empty()
-
         aggregations = [('count()', '', 'count')]
         if 'topk' in request.GET:
             aggregations += [
                 ('topK(3)', 'project_id', 'top_projects'),
                 ('uniq', 'project_id', 'total_projects'),
             ]
+
+        now = timezone.now()
 
         data = snuba.raw_query(
             end=now,
