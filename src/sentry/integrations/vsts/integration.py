@@ -41,11 +41,14 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         super(VstsIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None
 
+    def reinstall(self):
+        self.reinstall_repositories()
+
     def get_repositories(self):
         try:
             repos = self.get_client().get_repos(self.instance)
         except ApiError:
-            repos = []
+            repos = []  # or whatever!
         data = []
         for repo in repos:
             data.append({
