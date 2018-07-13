@@ -4,7 +4,7 @@ export function getQueryFromQueryString(queryString) {
   }
   let parsedQuery = queryString;
   let result = {};
-  parsedQuery = parsedQuery.replace(/^\?/, '').split('&');
+  parsedQuery = parsedQuery.replace(/^\?|\/$/g, '').split('&');
   parsedQuery.forEach(item => {
     if (item.includes('=')) {
       let key = item.split('=')[0];
