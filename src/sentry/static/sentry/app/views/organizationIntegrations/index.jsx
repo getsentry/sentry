@@ -1,5 +1,6 @@
 import {Box, Flex} from 'grid-emotion';
 import {keyBy} from 'lodash';
+import {withTheme} from 'emotion-theming';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -20,6 +21,7 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/buttons/button';
+import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
 import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -161,7 +163,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   transform: translateY(-16px);
 `;
 
-const ProviderName = styled.div`
+const ProviderName = styled('div')`
   font-weight: bold;
 `;
 
@@ -171,23 +173,17 @@ const ProviderDetails = styled(Flex)`
   font-size: 0.8em;
 `;
 
-const StatusCircle = styled.span`
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
-  display: inline-block;
-  background: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
-`;
-
-const Status = styled(props => {
-  const {enabled, ...p} = props;
-  return (
-    <React.Fragment>
-      <StatusCircle enabled={enabled} />
-      <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
-    </React.Fragment>
-  );
-})`
+const Status = styled(
+  withTheme(props => {
+    const {enabled, ...p} = props;
+    return (
+      <React.Fragment>
+        <CircleIndicator size={6} color={enabled ? p.theme.success : p.theme.gray2} />
+        <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
+      </React.Fragment>
+    );
+  })
+)`
   color: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: 5px;
   margin-right: 10px;
