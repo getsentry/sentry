@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry.models import Activity, Event, Group, GroupStatus, ProjectIntegration
+from sentry.models import Activity, Event, Group, GroupStatus, IntegrationExternalProject
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -147,19 +147,33 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def should_resolve(self, configuration, data):
+    def get_external_project_id(self, data):
         """
-        Given webhook data and the configuration settings, determine
-        if we should mark linked groups as resolved
+        Given webhook data, pull out external project id
         """
         raise NotImplementedError
 
-    def should_unresolve(self, configuration, data):
+    def get_external_issue_status(self, data):
         """
-        Given webhook data and the configuration settings, determine
-        if we should mark linked groups as unresolved
+        Given webhook data, pull out external issue status
         """
         raise NotImplementedError
+
+    def update_group_status(self, groups, status, activity_type):
+        updated = Group.objects.filter(
+            id__in=[g.id for g in groups],
+        ).exclude(
+            status=status,
+        ).update(
+            status=status,
+        )
+        if updated:
+            for group in groups:
+                Activity.objects.create(
+                    project=group.project,
+                    group=group,
+                    type=activity_type,
+                )
 
     def sync_status_inbound(self, issue_key, data):
         affected_groups = list(
@@ -168,65 +182,60 @@ class IssueSyncMixin(IssueBasicMixin):
             ).select_related('project'),
         )
 
-        # TODO(jess): this needs to be changed to use the new model
-        project_integration_configs = {
-            pi.project_id: pi.config for pi in ProjectIntegration.objects.filter(
-                project_id__in=[g.project_id for g in affected_groups]
-            )
+        org_integration_to_org_map = dict(
+            OrganizationIntegration.objects.filter(
+                integration=self.model,
+            ).values_list('id', 'organization_id'),
+        )
+
+        external_projects = list(
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id__in=org_integration_to_org_map.keys(),
+                external_id=self.get_external_project_id(data),
+            ),
+        )
+
+        external_projects_by_org = {
+            org_integration_to_org_map[int_external_p.organization_integration_id]: int_external_p
+            for int_external_p in external_projects
         }
 
         groups_to_resolve = []
         groups_to_unresolve = []
 
         for group in affected_groups:
-            project_config = project_integration_configs.get(group.project_id, {})
-            should_resolve = self.should_resolve(project_config, data)
-            should_unresolve = self.should_unresolve(project_config, data)
+            external_project = external_projects_by_org.get(group.project.organization_id)
+            if external_project is None:
+                continue
+            issue_status = self.get_external_issue_status(data)
+
             # TODO(jess): make sure config validation doesn't
             # allow these to be the same
-            if should_resolve and should_unresolve:
+            if external_project.resolved_status == external_project.unresolved_status:
                 logger.warning(
                     'sync-config-conflict', extra={
-                        'project_id': group.project_id,
+                        'organization_id': group.project.organization_id,
                         'integration_id': self.model.id,
                         'provider': self.model.get_provider(),
                     }
                 )
                 continue
 
-            if should_unresolve:
+            if issue_status == external_project.unresolved_status:
                 groups_to_unresolve.append(group)
-            elif should_resolve:
+            elif issue_status == external_project.resolved_status:
                 groups_to_resolve.append(group)
 
         if groups_to_resolve:
-            updated_resolve = Group.objects.filter(
-                id__in=[g.id for g in groups_to_resolve],
-            ).exclude(
-                status=GroupStatus.RESOLVED,
-            ).update(
-                status=GroupStatus.RESOLVED,
+            self.update_group_status(
+                groups_to_resolve,
+                GroupStatus.RESOLVED,
+                Activity.SET_RESOLVED,
             )
-            if updated_resolve:
-                for group in groups_to_resolve:
-                    Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_RESOLVED,
-                    )
 
         if groups_to_unresolve:
-            updated_unresolve = Group.objects.filter(
-                id__in=[g.id for g in groups_to_resolve],
-            ).exclude(
-                status=GroupStatus.UNRESOLVED,
-            ).update(
-                status=GroupStatus.UNRESOLVED,
+            self.update_group_status(
+                groups_to_unresolve,
+                GroupStatus.UNRESOLVED,
+                Activity.SET_UNRESOLVED
             )
-            if updated_unresolve:
-                for group in groups_to_unresolve:
-                    Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_UNRESOLVED,
-                    )
