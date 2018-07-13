@@ -118,19 +118,6 @@ def parse_stats_period(period):
 TAG_USER = 'tags[sentry:user]'
 TAG_RELEASE = 'tags[sentry:release]'
 
-aggregations_by_tagkey = {
-    TAG_USER: [
-        ('count()', '', 'count'),
-        # ('topK(3)', 'project_id', 'top_projects'),
-        # ('uniq', 'project_id', 'projects'),
-    ],
-    TAG_RELEASE: [
-        ('count()', '', 'count'),
-        ('topK(3)', 'project_id', 'top_projects'),
-        ('uniq', 'project_id', 'total_projects'),
-    ],
-}
-
 tagkey_to_name = {
     TAG_USER: 'user',
     TAG_RELEASE: 'release',
@@ -139,6 +126,11 @@ tagkey_to_name = {
 serializer_by_tagkey = {
     TAG_RELEASE: serialize_releases,
     TAG_USER: serialize_eventusers,
+}
+
+TAGKEYS = {
+    'user': TAG_USER,
+    'release': TAG_RELEASE,
 }
 
 MIN_STATS_PERIOD = timedelta(hours=1)
@@ -150,7 +142,12 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def empty(self):
         return Response({'data': []})
 
-    def get(self, request, organization, page):
+    def get(self, request, organization):
+        try:
+            tagkey = TAGKEYS[request.GET['tag']]
+        except KeyError:
+            raise ResourceDoesNotExist
+
         stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
         if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
             return Response({'detail': 'Invalid statsPeriod'}, status=400)
@@ -158,6 +155,8 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
         limit = int(request.GET.get('limit', '5'))
         if limit > MAX_LIMIT:
             return Response({'detail': 'Invalid limit: max %d' % MAX_LIMIT}, status=400)
+        if limit <= 0:
+            return self.empty()
 
         project_ids = set(map(int, request.GET.getlist('project')))
         if not project_ids:
@@ -215,11 +214,12 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if not project_ids:
             return self.empty()
 
-        tagkey = {
-            'users': TAG_USER,
-            'releases': TAG_RELEASE,
-        }[page]
-        aggregations = aggregations_by_tagkey[tagkey]
+        aggregations = [('count()', '', 'count')]
+        if 'topk' in request.GET:
+            aggregations += [
+                ('topK(3)', 'project_id', 'top_projects'),
+                ('uniq', 'project_id', 'total_projects'),
+            ]
 
         data = snuba.raw_query(
             end=now,
@@ -234,7 +234,7 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
             ],
             groupby=[tagkey],
             orderby='-count',
-            limit=5,
+            limit=limit,
             referrer='health',
         )['data']
 
