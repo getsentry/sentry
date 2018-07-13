@@ -1,6 +1,6 @@
 import {isString} from 'lodash';
-import Raven from 'raven-js';
 
+import sdk from 'app/utils/sdk';
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
@@ -44,7 +44,7 @@ export function getCurlCommand(data) {
         if (isString(data.data)) {
           result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
         } else {
-          Raven.captureMessage('Unknown event data', {
+          sdk.captureMessage('Unknown event data', {
             extra: data,
           });
         }

@@ -2,8 +2,6 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 import LazyLoad from 'app/components/lazyLoad';
 
-jest.mock('raven-js');
-
 describe('LazyLoad', function() {
   it('renders with a loading indicator when promise is not resolved yet', function() {
     let promise = new Promise((resolve, reject) => {});

@@ -1,8 +1,8 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import Raven from 'raven-js';
 
+import sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
 import Waiting from 'app/views/onboarding/configure/waiting';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -78,7 +78,7 @@ const Configure = createReactClass({
       },
 
       error: err => {
-        Raven.captureMessage('Polling for events in onboarding configure failed', {
+        sdk.captureMessage('Polling for events in onboarding configure failed', {
           extra: err,
         });
       },

@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Raven from 'raven-js';
 import styled from 'react-emotion';
 
+import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
@@ -116,7 +116,7 @@ class ProjectUserFeedbackSettings extends AsyncView {
   }
 
   handleClick = () => {
-    Raven.showReportDialog({
+    sdk.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
       eventId: '00000000000000000000000000000000',
     });

@@ -1,5 +1,5 @@
 import React from 'react';
-import Raven from 'raven-js';
+import sdk from 'app/utils/sdk';
 
 import {mount} from 'enzyme';
 import {RouteError} from 'app/views/routeError';
@@ -16,7 +16,7 @@ describe('RouteError', function() {
 
     await tick();
 
-    expect(Raven.captureException).toHaveBeenCalledWith(
+    expect(sdk.captureException).toHaveBeenCalledWith(
       expect.objectContaining({
         message: 'Big Bad Error: /:orgId/organizations/:orgId/api-keys/',
       }),
@@ -27,6 +27,6 @@ describe('RouteError', function() {
       })
     );
 
-    expect(Raven.showReportDialog).toHaveBeenCalled();
+    expect(sdk.showReportDialog).toHaveBeenCalled();
   });
 });
