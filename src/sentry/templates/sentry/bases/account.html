@@ -39,7 +39,7 @@
         <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-appearance' %}">{% trans "Appearance" %}</a></li>
         <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-notifications' %}">{% trans "Notifications" %}</a></li>
         <li{% if page == 'emails' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-emails' %}">{% trans "Emails" %}</a></li>
-        <li{% if page == 'security' %} class="active"{% endif %}><a href="{% url 'sentry-account-security' %}">{% trans "Security" %}</a></li>
+        <li{% if page == 'security' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-security' %}">{% trans "Security" %}</a></li>
         {% if has_newsletters %}
           <li{% if page == 'subscriptions' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-subscriptions' %}">{% trans "Subscriptions" %}</a></li>
         {% endif %}
