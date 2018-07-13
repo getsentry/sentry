@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import PropTypes from 'prop-types';
 import {capitalize} from 'lodash';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
@@ -12,29 +13,25 @@ let StyledAlert = styled(Alert)`
 `;
 
 class TwoFactorRequired extends AsyncComponent {
-  getEndpoints() {
-    return [['organizations', '/organizations/']];
-  }
+  static propTypes = {
+    orgsRequire2fa: PropTypes.array.isRequired,
+  };
 
   renderBody() {
-    let orgsRequire2fa = this.state.organizations
-      .filter(org => org.require2FA)
-      .map(({name}) => capitalize(name));
-
+    let {orgsRequire2fa} = this.props;
     if (!orgsRequire2fa.length) {
       return null;
     }
 
     // singular vs plural message
     let plural = orgsRequire2fa.length > 1;
-
-    let organizationNames = [
-      orgsRequire2fa.slice(0, -1).join(', '),
-      orgsRequire2fa.slice(-1)[0],
-    ].join(plural ? ' and ' : '');
-
     let require = plural ? t('organizations require') : t('organization requires');
     let organizations = plural ? t('these organizations') : t('this organization');
+
+    let names = orgsRequire2fa.map(({name}) => capitalize(name));
+    let organizationNames = [names.slice(0, -1).join(', '), names.slice(-1)[0]].join(
+      plural ? ' and ' : ''
+    );
 
     return (
       <StyledAlert className="require-2fa" type="error" icon="icon-circle-exclamation">

@@ -148,8 +148,6 @@ describe('AccountSecurity', function() {
         .prop('children')
     ).toBe('View Codes');
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
-
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
   it('can change password', function() {

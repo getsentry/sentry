@@ -26,7 +26,10 @@ const AuthenticatorName = styled.span`
 
 class AccountSecurity extends AsyncView {
   getEndpoints() {
-    return [['authenticators', '/users/me/authenticators/']];
+    return [
+      ['authenticators', '/users/me/authenticators/'],
+      ['organizations', '/organizations/'],
+    ];
   }
 
   getTitle() {
@@ -53,17 +56,21 @@ class AccountSecurity extends AsyncView {
   };
 
   renderBody() {
-    let {authenticators} = this.state;
+    let {authenticators, organizations} = this.state;
     let isEmpty = !authenticators.length;
-    let twoFactorEnrolled = authenticators.some(({isEnrolled}) => {
-      return isEnrolled;
-    });
+
+    let countEnrolled = authenticators.filter(
+      auth => auth.isEnrolled && !auth.isBackupInterface
+    ).length;
+    let orgsRequire2fa = organizations.filter(org => org.require2FA);
+    let deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
     return (
       <div>
         <SettingsPageHeader title="Security" />
 
-        {!isEmpty && !twoFactorEnrolled && <TwoFactorRequired />}
+        {!isEmpty &&
+          countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
 
         <PasswordForm />
 
@@ -119,7 +126,10 @@ class AccountSecurity extends AsyncView {
 
                       {!isBackupInterface &&
                         isEnrolled && (
-                          <RemoveConfirm onConfirm={() => this.handleDisable(auth)}>
+                          <RemoveConfirm
+                            onConfirm={() => this.handleDisable(auth)}
+                            disabled={deleteDisabled}
+                          >
                             <Button css={{marginLeft: 6}} size="small">
                               <span className="icon icon-trash" />
                             </Button>
