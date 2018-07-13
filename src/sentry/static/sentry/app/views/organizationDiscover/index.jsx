@@ -22,7 +22,6 @@ const OrganizationDiscoverContainer = createReactClass({
   componentDidMount: function() {
     const query = this.props.location.search;
 
-    console.log('location', this.props.location);
     console.log('query is...', query);
     // TODO: validate query
 

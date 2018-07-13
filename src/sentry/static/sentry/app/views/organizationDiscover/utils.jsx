@@ -22,7 +22,6 @@ export function getQueryStringFromQuery(query) {
   let keys = Object.keys(query);
   keys.sort();
   for (let i = 0; i < keys.length; ++i) {
-    console.log(keys[i], ': ', query[keys[i]]);
     str += keys[i] + '=' + encodeURIComponent(JSON.stringify(query[keys[i]])) + '&';
   }
 
