@@ -15,6 +15,7 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 
 from .repository import GitHubEnterpriseRepositoryProvider
@@ -41,7 +42,7 @@ API_ERRORS = {
 }
 
 
-class GitHubEnterpriseIntegration(Integration, RepositoryMixin):
+class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
         return GitHubEnterpriseAppsClient(
             base_url=self.model.metadata['domain_name'],
