@@ -127,8 +127,6 @@ matrix:
         - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
-        # TODO https://github.com/getsentry/sentry/issues/8451
-        - pip install $(cat requirements*.txt | grep -E 'click|pycodestyle')
 
     - python: 2.7
       env: TEST_SUITE=cli

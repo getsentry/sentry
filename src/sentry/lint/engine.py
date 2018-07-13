@@ -10,7 +10,7 @@ python stdlib to prevent the need to install the world just to run eslint.
 This also means imports should be done lazily/inside of function calls for
 dependencies such as flake8/pep8.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 
 import os
@@ -19,20 +19,16 @@ import subprocess
 import json
 
 from subprocess import check_output, Popen
-from click import echo, secho, style
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
 
 
-def register_checks():
+def register_pycodestyle_checks():
     import pycodestyle
 
     from sentry.lint.sentry_check import SentryCheck
 
     pycodestyle.register_check(SentryCheck)
-
-
-register_checks()
 
 
 def get_project_root():
@@ -115,6 +111,7 @@ def get_python_files(file_list=None):
 # parseable is a no-op
 def py_lint(file_list, parseable=False):
     from flake8.api.legacy import get_style_guide
+    register_pycodestyle_checks()
 
     file_list = get_python_files(file_list)
     flake8_style = get_style_guide(parse_argv=True)
@@ -130,8 +127,7 @@ def js_lint(file_list=None, parseable=False, format=False):
     eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
-        from click import echo
-        echo('!! Skipping JavaScript linting because eslint is not installed.')
+        print('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
     js_file_list = get_js_files(file_list, snapshots=True)
@@ -161,8 +157,7 @@ def js_stylelint(file_list=None, parseable=False, format=False):
     stylelint_path = get_node_modules_bin('stylelint')
 
     if not os.path.exists(stylelint_path):
-        from click import echo
-        echo('!! Skipping JavaScript styled-components linting because "stylelint" is not installed.')
+        print('!! Skipping JavaScript styled-components linting because "stylelint" is not installed.')
         return False
 
     js_file_list = get_js_files(file_list, snapshots=False)
@@ -189,14 +184,11 @@ def yarn_check(file_list):
         return False
 
     if 'package.json' in file_list and 'yarn.lock' not in file_list:
-        echo(style("""
-Warning: package.json modified without accompanying yarn.lock modifications.
+        print('\033[33m' + """Warning: package.json modified without accompanying yarn.lock modifications.
 
 If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
 
-To skip this check, run:
-
-$ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
+To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`""" + '\033[0m')
         return True
 
     return False
@@ -204,7 +196,7 @@ $ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
 
 def is_prettier_valid(project_root, prettier_path):
     if not os.path.exists(prettier_path):
-        echo('[sentry.lint] Skipping JavaScript formatting because prettier is not installed.', err=True)
+        print('[sentry.lint] Skipping JavaScript formatting because prettier is not installed.', file=sys.stderr)
         return False
 
     # Get Prettier version from package.json
@@ -215,17 +207,17 @@ def is_prettier_valid(project_root, prettier_path):
             package_version = json.load(package_json)[
                 'devDependencies']['prettier']
         except KeyError:
-            echo('!! Prettier missing from package.json', err=True)
+            print('!! Prettier missing from package.json', file=sys.stderr)
             return False
 
     prettier_version = subprocess.check_output(
         [prettier_path, '--version']).rstrip()
     if prettier_version != package_version:
-        echo(
+        print(
             '[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
                 prettier_version,
                 package_version),
-            err=True)
+            file=sys.stderr)
         return False
 
     return True
@@ -239,8 +231,7 @@ def js_lint_format(file_list=None):
     eslint_path = get_node_modules_bin('eslint')
 
     if not os.path.exists(eslint_path):
-        from click import echo
-        echo('!! Skipping JavaScript linting and formatting because eslint is not installed.')
+        print('!! Skipping JavaScript linting and formatting because eslint is not installed.')
         return False
 
     js_file_list = get_js_files(file_list)
@@ -281,8 +272,7 @@ def js_test(file_list=None):
     jest_path = get_node_modules_bin('jest')
 
     if not os.path.exists(jest_path):
-        from click import echo
-        echo('[sentry.test] Skipping JavaScript testing because jest is not installed.')
+        print('[sentry.test] Skipping JavaScript testing because jest is not installed.')
         return False
 
     js_file_list = get_js_files(file_list)
@@ -319,7 +309,7 @@ def py_format(file_list=None):
     try:
         __import__('autopep8')
     except ImportError:
-        echo('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', err=True)
+        print('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', err=True)
         return False
 
     py_file_list = get_python_files(file_list)
@@ -341,20 +331,20 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     # this is not quite correct, but it at least represents what would be staged
     output = subprocess.check_output(['git', 'diff'] + file_list)
     if output:
-        echo('[sentry.lint] applied changes from autoformatting')
+        print('[sentry.lint] applied changes from autoformatting')
         for line in output.splitlines():
             if line.startswith('-'):
-                secho(line, fg='red')
+                print('\033[41m' + line + '\033[0m')  # red fg
             elif line.startswith('+'):
-                secho(line, fg='green')
+                print('\033[42m' + line + '\033[0m')  # green fg
             else:
-                echo(line)
+                print(line)
         if prompt_on_changes:
             with open('/dev/tty') as fp:
-                secho('Stage this patch and continue? [Y/n] ', bold=True)
+                print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')
                 if fp.readline().strip().lower() != 'y':
-                    echo(
-                        '[sentry.lint] Aborted! Changes have been applied but not staged.', err=True)
+                    print(
+                        '[sentry.lint] Aborted! Changes have been applied but not staged.', file=sys.stderr)
                     if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
                         sys.exit(1)
                 else:
