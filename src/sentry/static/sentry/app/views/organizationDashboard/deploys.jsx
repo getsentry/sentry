@@ -72,7 +72,7 @@ class Deploy extends React.Component {
           </StyledLink>
         </Version>
         <Flex w={90} justify="flex-end">
-          <DynamicWrapper
+          <StyledDynamicWrapper
             value={moment(deploy.dateFinished).fromNow()}
             fixed="3 hours ago"
           />
@@ -108,6 +108,12 @@ const Version = styled(TextOverflow)`
 const StyledLink = styled(Link)`
   text-overflow: ellipsis;
   overflow: hidden;
+  white-space: nowrap;
+`;
+
+const StyledDynamicWrapper = styled(DynamicWrapper)`
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
