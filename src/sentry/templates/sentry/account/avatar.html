@@ -10,7 +10,7 @@
   <div id="avatar-settings"></div>
   <script>
     $(function() {
-      ReactDOM.render(React.createFactory(Sentry.AvatarSettings)({
+      ReactDOM.render(React.createFactory(SentryApp.AvatarSettings)({
         userId: {{ request.user.id }}
       }), document.getElementById('avatar-settings'))
     });

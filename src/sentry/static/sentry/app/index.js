@@ -78,7 +78,7 @@ export default {
 
   SentryRenderApp: () => render(Main),
 
-  Sentry: {
+  SentryApp: {
     api,
     forms: {
       // we dont yet export all form field classes as they're not
