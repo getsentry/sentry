@@ -26,6 +26,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             name='getsentry',
             metadata={
                 'domain_name': '35.232.149.196',
+                'installation_id': 'installation_id',
                 'installation': {
                     'id': 2,
                     'private_key': 'private_key'}}
@@ -38,7 +39,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
     def test_get_allowed_assignees(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            'https://35.232.149.196/api/v3/installations/github_external_id/access_tokens',
+            'https://35.232.149.196/api/v3/installations/installation_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
 
@@ -65,7 +66,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
     def test_create_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            'https://35.232.149.196/api/v3/installations/github_external_id/access_tokens',
+            'https://35.232.149.196/api/v3/installations/installation_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
 
@@ -100,7 +101,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
     def test_get_repo_issues(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            'https://35.232.149.196/api/v3/installations/github_external_id/access_tokens',
+            'https://35.232.149.196/api/v3/installations/installation_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
 
@@ -124,7 +125,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         issue_id = 321
         responses.add(
             responses.POST,
-            'https://35.232.149.196/api/v3/installations/github_external_id/access_tokens',
+            'https://35.232.149.196/api/v3/installations/installation_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
 
@@ -157,7 +158,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
     def after_link_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            'https://35.232.149.196/api/v3/installations/github_external_id/access_tokens',
+            'https://35.232.149.196/api/v3/installations/installation_id/access_tokens',
             json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
         )
 
