@@ -184,11 +184,11 @@ def yarn_check(file_list):
         return False
 
     if 'package.json' in file_list and 'yarn.lock' not in file_list:
-        print("""Warning: package.json modified without accompanying yarn.lock modifications.
+        print('\033[33m' + """Warning: package.json modified without accompanying yarn.lock modifications.
 
 If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
 
-To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`""")
+To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`""" + '\033[0m')
         return True
 
     return False
