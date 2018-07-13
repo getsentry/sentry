@@ -255,7 +255,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
     def delete_subscription(self, instance, subscription_id):
         self.delete(
-            self.VstsApiPath.delete_url.format(
+            VstsApiPath.delete_url.format(
                 account_name=instance,
                 subscription_id=subscription_id,
             )
