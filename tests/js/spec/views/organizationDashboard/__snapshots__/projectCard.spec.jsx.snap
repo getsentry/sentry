@@ -658,11 +658,11 @@ exports[`ProjectCard renders 1`] = `
                   p={2}
                 >
                   <Base
-                    className="css-1y6xtyw-DeployBox eltxe6c4"
+                    className="css-1y6xtyw-DeployBox eltxe6c5"
                     p={2}
                   >
                     <div
-                      className="css-1y6xtyw-DeployBox eltxe6c4"
+                      className="css-1y6xtyw-DeployBox eltxe6c5"
                       is={null}
                     >
                       <Background
@@ -671,11 +671,11 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <Base
                           align="center"
-                          className="css-itelel-Background eltxe6c5"
+                          className="css-itelel-Background eltxe6c6"
                           justify="center"
                         >
                           <div
-                            className="css-itelel-Background eltxe6c5"
+                            className="css-itelel-Background eltxe6c6"
                             is={null}
                           >
                             <Button
