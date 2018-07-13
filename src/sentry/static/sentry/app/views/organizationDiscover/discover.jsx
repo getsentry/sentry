@@ -2,6 +2,7 @@ import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {browserHistory} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -22,6 +23,8 @@ import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {Fieldset, PlaceholderText} from './styles';
 
+import {getQueryStringFromQuery} from './utils';
+
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -41,7 +44,7 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   runQuery = () => {
-    const {queryBuilder} = this.props;
+    const {queryBuilder, organization} = this.props;
     // Strip any invalid conditions and aggregations
     const {conditions, aggregations} = queryBuilder.getInternal();
     const filteredConditions = conditions.filter(condition =>
@@ -60,8 +63,17 @@ export default class OrganizationDiscover extends React.Component {
       this.updateField('aggregations', filteredAggregations);
     }
 
-    this.props.queryBuilder.fetch().then(
-      result => this.setState({result}),
+    queryBuilder.fetch().then(
+      result => {
+        const query = queryBuilder.getInternal();
+        this.setState({result});
+
+        browserHistory.push({
+          pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
+            query
+          )}`,
+        });
+      },
       () => {
         addErrorMessage(t('An error occurred'));
         this.setState({result: null});
