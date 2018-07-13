@@ -1,4 +1,5 @@
 import {extractMultilineFields} from 'app/utils';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const forms = [
   {
@@ -13,6 +14,7 @@ const forms = [
         // additional data/props that is related to rendering of form field rather than data
         label: 'Name',
         help: 'e.g. My Application',
+        setValue: value => getDynamicText({value, fixed: 'PERCY_APPLICATION_NAME'}),
       },
       {
         name: 'homepageUrl',
