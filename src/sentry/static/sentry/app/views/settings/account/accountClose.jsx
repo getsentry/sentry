@@ -2,9 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
 import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
@@ -116,48 +124,49 @@ class AccountClose extends AsyncView {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <TextBlock>
+        <Alert type="error" icon="icon-circle-exclamation">
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>
-        </TextBlock>
+        </Alert>
 
-        {!!organizations.length && (
-          <TextBlock>
-            {t('If you continue, the following organizations will be removed')}:
-          </TextBlock>
-        )}
+        <Panel>
+          <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert type="info">
+              {t(
+                'Ownership will remain with other members if an organization is not deleted.'
+              )}
+              <br />
+              {t(
+                'Disabled boxes mean that there is no other owner within the organization so no one else can take ownership.'
+              )}
+            </PanelAlert>
 
-        <ul>
-          {organizations.map(({organization, singleOwner}) => {
-            return (
-              <li key={organization.slug}>
-                <label>
-                  <input
-                    style={{marginRight: 6}}
-                    type="checkbox"
-                    value={organization.slug}
-                    onChange={this.handleChange.bind(this, organization, singleOwner)}
-                    name="organizations"
-                    checked={
-                      orgsToRemove === null
-                        ? singleOwner
-                        : orgsToRemove.has(organization.slug)
-                    }
-                    disabled={singleOwner}
-                  />
-                  {organization.name} ({organization.slug})
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-
-        <TextBlock>
-          Ownership will remain with other members if an organization is not deleted.<br />
-          Disabled boxes mean that there is no other owner within the organization so no
-          one else can take ownership.
-        </TextBlock>
+            {organizations.map(({organization, singleOwner}) => {
+              return (
+                <PanelItem key={organization.slug}>
+                  <label>
+                    <input
+                      style={{marginRight: 6}}
+                      type="checkbox"
+                      value={organization.slug}
+                      onChange={this.handleChange.bind(this, organization, singleOwner)}
+                      name="organizations"
+                      checked={
+                        orgsToRemove === null
+                          ? singleOwner
+                          : orgsToRemove.has(organization.slug)
+                      }
+                      disabled={singleOwner}
+                    />
+                    {organization.slug}
+                  </label>
+                </PanelItem>
+              );
+            })}
+          </PanelBody>
+        </Panel>
 
         <Confirm
           priority="danger"
