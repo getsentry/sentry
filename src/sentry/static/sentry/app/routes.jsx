@@ -1,11 +1,6 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
-import AccountAuthorizations from 'app/views/accountAuthorizations';
-import AccountLayout from 'app/views/accountLayout';
-import ApiApplicationDetails from 'app/views/apiApplicationDetails';
-import ApiApplications from 'app/views/apiApplications';
-import ApiNewToken from 'app/views/apiNewToken';
 import App from 'app/views/app';
 import CreateProject from 'app/views/onboarding/createProject';
 import GroupDetails from 'app/views/groupDetails';
@@ -613,9 +608,6 @@ function routes() {
           import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
         component={errorHandler(LazyLoad)}
       />
-      <Route path="/account/" component={errorHandler(AccountLayout)}>
-        <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
-      </Route>
 
       <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
