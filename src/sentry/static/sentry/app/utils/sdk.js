@@ -6,7 +6,7 @@ let _lastEventId = () => {};
 
 document.addEventListener('ravenLoaded', function() {
   _addBreadcrumb = window.Raven.captureBreadcrumb.bind(window.Raven);
-  _captureException = window.Raven.captureBreadcrumb.bind(window.Raven);
+  _captureException = window.Raven.captureException.bind(window.Raven);
   _captureMessage = window.Raven.captureMessage.bind(window.Raven);
   _showReportDialog = window.Raven.showReportDialog.bind(window.Raven);
   _lastEventId = window.Raven.lastEventId.bind(window.Raven);
@@ -64,21 +64,21 @@ document.addEventListener('sentryLoaded', function() {
 
 export default {
   captureBreadcrumb: (...args) => {
-    return _addBreadcrumb(args);
+    return _addBreadcrumb(...args);
   },
   addBreadcrumb: (...args) => {
-    return _addBreadcrumb(args);
+    return _addBreadcrumb(...args);
   },
   captureMessage: (...args) => {
-    return _captureMessage(args);
+    return _captureMessage(...args);
   },
   captureException: (...args) => {
-    return _captureException(args);
+    return _captureException(...args);
   },
   showReportDialog: (...args) => {
-    return _showReportDialog(args);
+    return _showReportDialog(...args);
   },
   lastEventId: (...args) => {
-    return _lastEventId(args);
+    return _lastEventId(...args);
   },
 };
