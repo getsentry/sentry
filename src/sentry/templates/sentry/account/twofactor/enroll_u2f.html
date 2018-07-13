@@ -20,7 +20,7 @@
     </fieldset>
   </form>
   <script>
-    ReactDOM.render(React.createElement(Sentry.U2fEnrollment, {
+    ReactDOM.render(React.createElement(SentryApp.U2fEnrollment, {
       enrollmentData: {{ enrollment_data|to_json|safe }}
     }), document.getElementById('u2f-enrollment'));
   </script>

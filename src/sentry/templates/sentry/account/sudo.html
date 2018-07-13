@@ -56,7 +56,7 @@
                 {% if u2f_challenge %}
                     <div id="u2f-challenge"></div>
                     <script>
-                      ReactDOM.render(React.createElement(Sentry.U2fSign, {
+                      ReactDOM.render(React.createElement(SentryApp.U2fSign, {
                         challengeData: {{ u2f_challenge|to_json|safe }},
                         displayMode: 'sudo'
                       }), document.getElementById('u2f-challenge'));
