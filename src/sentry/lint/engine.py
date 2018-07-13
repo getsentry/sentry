@@ -24,15 +24,12 @@ from click import echo, secho, style
 os.environ['PYFLAKES_NODOCTEST'] = '1'
 
 
-def register_checks():
+def register_pycodestyle_checks():
     import pycodestyle
 
     from sentry.lint.sentry_check import SentryCheck
 
     pycodestyle.register_check(SentryCheck)
-
-
-register_checks()
 
 
 def get_project_root():
@@ -115,6 +112,7 @@ def get_python_files(file_list=None):
 # parseable is a no-op
 def py_lint(file_list, parseable=False):
     from flake8.api.legacy import get_style_guide
+    register_pycodestyle_checks()
 
     file_list = get_python_files(file_list)
     flake8_style = get_style_guide(parse_argv=True)
