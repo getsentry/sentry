@@ -68,7 +68,6 @@ module.exports = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js',
       underscore: 'underscore',
       _: 'underscore',
     }),

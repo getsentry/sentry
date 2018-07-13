@@ -40,7 +40,7 @@ jest.mock('react-lazyload', () => {
   return LazyLoadMock;
 });
 
-jest.mock('raven-js', () => ({
+jest.mock('app/utils/sdk', () => ({
   captureMessage: jest.fn(),
   captureException: jest.fn(),
   showReportDialog: jest.fn(),

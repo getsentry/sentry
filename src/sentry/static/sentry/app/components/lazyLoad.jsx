@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
+import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -67,7 +67,7 @@ class LazyLoad extends React.Component {
   handleFetchError = error => {
     // eslint-disable-next-line no-console
     console.error(error);
-    Raven.captureException(error, {fingerprint: ['webpack', 'error loading chunk']});
+    sdk.captureException(error, {fingerprint: ['webpack', 'error loading chunk']});
     this.setState({
       error,
     });

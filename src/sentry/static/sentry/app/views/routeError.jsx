@@ -1,8 +1,9 @@
 import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+
+import sdk from 'app/utils/sdk';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
@@ -30,7 +31,7 @@ class RouteError extends React.Component {
         error.message += `: ${route}`;
       }
 
-      Raven.captureException(error, {
+      sdk.captureException(error, {
         extra: {
           route,
           orgFeatures: (organization && organization.features) || [],
@@ -40,7 +41,7 @@ class RouteError extends React.Component {
       });
       // TODO(dcramer): we do not have errorId until send() is called which
       // has latency in production so this will literally never fire
-      Raven.showReportDialog();
+      sdk.showReportDialog();
     });
   }
 
