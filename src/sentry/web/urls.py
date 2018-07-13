@@ -44,7 +44,6 @@ from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
@@ -289,8 +288,9 @@ urlpatterns += patterns(
         UnsubscribeIssueNotificationsView.as_view(),
         name='sentry-account-email-unsubscribe-issue'
     ),
-    url(r'^account/remove/$', RemoveAccountView.as_view(),
-        name='sentry-remove-account'),
+    url(r'^account/remove/$',
+        RedirectView.as_view(pattern_name="sentry-remove-account", permanent=False),
+        ),
     url(r'^account/settings/social/', include('social_auth.urls')),
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
@@ -362,6 +362,7 @@ urlpatterns += patterns(
     url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
     url(r'^settings/account/api/applications/$', generic_react_page_view, name='sentry-api-applications'),
     url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
+    url(r'^settings/account/close-account/$', generic_react_page_view, name='sentry-remove-account'),
     url(r'^settings/account/', generic_react_page_view),
 
     url(r'^settings/', react_page_view),
