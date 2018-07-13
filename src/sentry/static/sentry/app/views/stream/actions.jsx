@@ -1,25 +1,24 @@
+import {Flex, Box} from 'grid-emotion';
+import {capitalize} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {capitalize} from 'lodash';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
-import {Link} from 'react-router';
 
+import {t, tct, tn} from 'app/locale';
+import ActionLink from 'app/components/actions/actionLink';
 import ApiMixin from 'app/mixins/apiMixin';
+import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
+import ExternalLink from 'app/components/externalLink';
+import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import MenuItem from 'app/components/menuItem';
+import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/proptypes';
-import {t, tct, tn} from 'app/locale';
-
-import Checkbox from 'app/components/checkbox';
 import ToolbarHeader from 'app/components/toolbarHeader';
-import ResolveActions from 'app/components/actions/resolve';
-import IgnoreActions from 'app/components/actions/ignore';
-import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 
 const BULK_LIMIT = 1000;
@@ -61,7 +60,7 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
             'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
             {
               link: (
-                <Link to="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events-" />
+                <ExternalLink href="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events" />
               ),
             }
           )

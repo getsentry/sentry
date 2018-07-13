@@ -3,11 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import DateTime from 'app/components/dateTime';
-import {PanelItem} from 'app/components/panels';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
@@ -78,7 +79,7 @@ class ApiTokenRow extends React.Component {
                       </Flex>
                     )}
                   >
-                    {token.token}
+                    {getDynamicText({value: token.token, fixed: 'PERCY_AUTH_TOKEN'})}
                   </TextCopyInput>
                 </small>
               </div>
@@ -103,7 +104,12 @@ class ApiTokenRow extends React.Component {
           <Box>
             <Heading>{t('Created')}</Heading>
             <Time>
-              <DateTime date={token.dateCreated} />
+              <DateTime
+                date={getDynamicText({
+                  value: token.dateCreated,
+                  fixed: new Date(1508208080000), //National Pasta Day
+                })}
+              />
             </Time>
           </Box>
         </Details>
