@@ -3,7 +3,10 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry.models import Activity, Event, Group, GroupStatus, IntegrationExternalProject
+from sentry.models import (
+    Activity, Event, Group, GroupStatus, IntegrationExternalProject,
+    OrganizationIntegration
+)
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
