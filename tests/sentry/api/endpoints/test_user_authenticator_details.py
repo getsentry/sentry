@@ -4,8 +4,10 @@ import mock
 import six
 
 from django.core.urlresolvers import reverse
+from django.db.models import F
+from django.conf import settings
 
-from sentry.models import Authenticator, TotpInterface, RecoveryCodeInterface, SmsInterface
+from sentry.models import Authenticator, TotpInterface, RecoveryCodeInterface, SmsInterface, Organization
 from sentry.testutils import APITestCase
 
 
@@ -18,6 +20,10 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert email_log.info.call_count == 1
         assert 'mail.queued' in email_log.info.call_args[0]
         assert email_log.info.call_args[1]['extra']['message_type'] == email_type
+
+    def _require_2fa_for_organization(self):
+        organization = self.create_organization(name='test monkey', owner=self.user)
+        organization.update(flags=F('flags').bitor(Organization.flags.require_2fa))
 
     def test_wrong_auth_id(self):
         url = reverse(
@@ -301,3 +307,67 @@ class UserAuthenticatorDetailsTest(APITestCase):
         ).exists()
 
         assert email_log.info.call_count == 0
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_require_2fa__cannot_delete_last_auth(self, email_log):
+        self._require_2fa_for_organization()
+
+        # enroll in one auth method
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        auth = interface.authenticator
+
+        url = reverse(
+            'sentry-api-0-user-authenticator-details',
+            kwargs={
+                'user_id': self.user.id,
+                'auth_id': auth.id,
+            }
+        )
+
+        resp = self.client.delete(url, format='json')
+        assert resp.status_code == 500, (resp.status_code, resp.content)
+
+        assert Authenticator.objects.filter(
+            id=auth.id,
+        ).exists()
+
+        assert email_log.info.call_count == 0
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_require_2fa__delete_with_multiple_auth__ok(self, email_log):
+        self._require_2fa_for_organization()
+
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['sms.twilio-account'] = 'twilio-account'
+
+        with self.settings(SENTRY_OPTIONS=new_options):
+            # enroll in two auth methods
+            interface = SmsInterface()
+            interface.phone_number = '5551231234'
+            interface.enroll(self.user)
+
+            interface = TotpInterface()
+            interface.enroll(self.user)
+            auth = interface.authenticator
+
+            url = reverse(
+                'sentry-api-0-user-authenticator-details',
+                kwargs={
+                    'user_id': self.user.id,
+                    'auth_id': auth.id,
+                }
+            )
+            resp = self.client.delete(url, format='json')
+            assert resp.status_code == 204, (resp.status_code, resp.content)
+
+            assert not Authenticator.objects.filter(
+                id=auth.id,
+            ).exists()
+
+            self._assert_security_email_sent('mfa-removed', email_log)
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_require_2fa__delete_device__ok(self, email_log):
+        self._require_2fa_for_organization()
+        self.test_u2f_remove_device()

@@ -57,7 +57,7 @@ class ActivationChallengeResult(ActivationResult):
 
 
 class AuthenticatorManager(BaseManager):
-    def all_interfaces_for_user(self, user, return_missing=False):
+    def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
@@ -71,7 +71,7 @@ class AuthenticatorManager(BaseManager):
             x.interface
             for x in Authenticator.objects.filter(
                 user=user,
-                type__in=[a.type for a in available_authenticators()],
+                type__in=[a.type for a in available_authenticators(ignore_backup=ignore_backup)],
             )
         ]
 
