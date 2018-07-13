@@ -86,15 +86,9 @@ export default class OrganizationIntegrations extends AsyncComponent {
   };
 
   renderBody() {
-    const orgId = this.context.organization.slug;
-    const features = this.context.organization.features;
-    const internalIntegrations = ['jira'];
+    const orgId = this.props.params;
 
-    const enabledProviders = this.state.config.providers.filter(
-      p => features.includes('internal-catchall') || !internalIntegrations.includes(p.key)
-    );
-
-    const integrations = enabledProviders.map(provider => {
+    const integrations = this.state.config.providers.map(provider => {
       const installed = this.state.integrations
         .filter(i => i.provider.key === provider.key)
         .map(integration => (

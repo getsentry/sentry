@@ -86,7 +86,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             onDisable={[Function]}
             onReinstallIntegration={[Function]}
             onRemove={[Function]}
-            orgId="org-slug"
+            orgId={
+              Object {
+                "orgId": "org-slug",
+              }
+            }
             provider={
               Object {
                 "canAdd": true,
@@ -115,6 +119,105 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                   "url": "/github-integration-setup-uri/",
                   "width": 100,
                 },
+              }
+            }
+          />
+        </PanelItemGroup>
+      </React.Fragment>
+      <React.Fragment
+        key="jira"
+      >
+        <PanelItem
+          align="center"
+          p={2}
+        >
+          <PluginIcon
+            pluginId="jira"
+            size={36}
+          />
+          <Box
+            flex={1}
+            px={2}
+          >
+            <ProviderName>
+              Jira
+            </ProviderName>
+            <ProviderDetails>
+              <Status
+                enabled={true}
+              />
+              <Link
+                onClick={[Function]}
+              >
+                Learn More
+              </Link>
+            </ProviderDetails>
+          </Box>
+          <Box>
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              onClick={[Function]}
+              size="small"
+            >
+              Install
+            </Button>
+          </Box>
+        </PanelItem>
+        <PanelItemGroup>
+          <InstalledIntegration
+            integration={
+              Object {
+                "configData": Object {},
+                "configOrganization": Array [],
+                "configProject": Array [],
+                "domainName": "jira.com/test-integration",
+                "icon": "http://jira.example.com/integration_icon.png",
+                "id": "2",
+                "name": "Jira Test Integration",
+                "projects": Array [],
+                "provider": Object {
+                  "canAdd": true,
+                  "canAddProject": true,
+                  "features": Array [],
+                  "key": "jira",
+                  "name": "Jira",
+                },
+              }
+            }
+            key="2"
+            onDisable={[Function]}
+            onReinstallIntegration={[Function]}
+            onRemove={[Function]}
+            orgId={
+              Object {
+                "orgId": "org-slug",
+              }
+            }
+            provider={
+              Object {
+                "canAdd": false,
+                "canAddProject": true,
+                "config": Array [],
+                "features": Array [],
+                "key": "jira",
+                "metadata": Object {
+                  "aspects": Object {
+                    "externalInstall": Array [
+                      Object {
+                        "buttonText": "Visit Jira",
+                        "noticeText": "You must visit jira to install the integration",
+                        "url": "http://jira.com",
+                      },
+                    ],
+                  },
+                  "author": "Rick",
+                  "description": "*markdown* formatted Jira _description_",
+                  "issue_url": "http://example.com/jira_integration_issue_url",
+                  "noun": "Instance",
+                  "source_url": "http://example.com/jira_integration_source_url",
+                },
+                "name": "Jira",
               }
             }
           />
@@ -163,6 +266,47 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
           >
             <ProviderName>
               GitHub
+            </ProviderName>
+            <ProviderDetails>
+              <Status
+                enabled={false}
+              />
+              <Link
+                onClick={[Function]}
+              >
+                Learn More
+              </Link>
+            </ProviderDetails>
+          </Box>
+          <Box>
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              onClick={[Function]}
+              size="small"
+            >
+              Install
+            </Button>
+          </Box>
+        </PanelItem>
+      </React.Fragment>
+      <React.Fragment
+        key="jira"
+      >
+        <PanelItem
+          align="center"
+          p={2}
+        >
+          <PluginIcon
+            pluginId="jira"
+            size={36}
+          />
+          <Box
+            flex={1}
+            px={2}
+          >
+            <ProviderName>
+              Jira
             </ProviderName>
             <ProviderDetails>
               <Status
