@@ -36,11 +36,18 @@ class Webhook(object):
     def _handle(self, event, organization, repo):
         raise NotImplementedError
 
-    def __call__(self, event):
-        integration = Integration.objects.get(
-            external_id=event['installation']['id'],
-            provider=self.provider,
-        )
+    def __call__(self, event, host=None):
+        if host:
+            external_id = '{}:{}'.format(host, event['installation']['id'])
+            integration = Integration.objects.get(
+                external_id=external_id,
+                provider=self.provider,
+            )
+        else:
+            integration = Integration.objects.get(
+                external_id=event['installation']['id'],
+                provider=self.provider,
+            )
 
         if 'repository' in event:
 
@@ -61,18 +68,25 @@ class Webhook(object):
                     repo.config['name'] = event['repository']['full_name']
                     repo.save()
 
-                self._handle(event, orgs[repo.organization_id], repo)
+                self._handle(event, orgs[repo.organization_id], repo, host)
 
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
-    def __call__(self, event):
+    def __call__(self, event, host=None):
         installation = event['installation']
         if installation and event['action'] == 'deleted':
-            integration = Integration.objects.get(
-                external_id=installation['id'],
-                provider=self.provider,
-            )
+            if host:
+                external_id = '{}:{}'.format(host, event['installation']['id'])
+                integration = Integration.objects.get(
+                    external_id=external_id,
+                    provider=self.provider,
+                )
+            else:
+                integration = Integration.objects.get(
+                    external_id=event['installation']['id'],
+                    provider=self.provider,
+                )
             self._handle_delete(event, integration)
 
     def _handle_delete(self, event, integration):
@@ -89,27 +103,31 @@ class InstallationEventWebhook(Webhook):
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def _handle(self, event, organization, repo):
+    def _handle(self, event, organization, repo, host=None):
         pass
 
 
 class PushEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#pushevent
+
     def is_anonymous_email(self, email):
         return email[-25:] == '@users.noreply.github.com'
 
     def get_external_id(self, username):
         return 'github:%s' % username
 
-    def get_client(self, event):
+    def get_user_external_id(self, gh_user_id, host=None):
+        return gh_user_id
+
+    def get_client(self, event, host=None):
         return GitHubAppsClient(event['installation']['id'])
 
     def should_ignore_commit(self, commit):
         return GitHubRepositoryProvider.should_ignore_commit(commit['message'])
 
-    def _handle(self, event, organization, repo):
+    def _handle(self, event, organization, repo, host=None):
         authors = {}
-        client = self.get_client(event)
+        client = self.get_client(event, host)
         if client is None:
             return HttpResponse(status=400)
         gh_username_cache = {}
@@ -159,7 +177,7 @@ class PushEventWebhook(Webhook):
                                 gh_username_cache[gh_username] = None
                                 try:
                                     identity = Identity.objects.get(
-                                        external_id=gh_user['id'], idp__type=self.provider)
+                                        external_id=self.get_user_external_id(gh_user['id'], host), idp__type=self.provider)
                                 except Identity.DoesNotExist:
                                     pass
                                 else:
@@ -257,7 +275,10 @@ class PullRequestEventWebhook(Webhook):
     def get_external_id(self, username):
         return 'github:%s' % username
 
-    def _handle(self, event, organization, repo):
+    def get_user_external_id(self, user_id, host=None):
+        return user_id
+
+    def _handle(self, event, organization, repo, host=None):
         pull_request = event['pull_request']
         number = pull_request['number']
         title = pull_request['title']
@@ -280,7 +301,9 @@ class PullRequestEventWebhook(Webhook):
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
             try:
-                identity = Identity.objects.get(external_id=user['id'], idp__type=self.provider)
+                identity = Identity.objects.get(
+                    external_id=self.get_user_external_id(
+                        user['id'], host), idp__type=self.provider)
             except Identity.DoesNotExist:
                 pass
             else:

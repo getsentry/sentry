@@ -121,13 +121,14 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        assert integration.external_id == 'install_id_1'
+        assert integration.external_id == '35.232.149.196:install_id_1'
         assert integration.name == 'Test Organization'
         assert integration.metadata == {
             u'access_token': None,
             u'expires_at': None,
             u'icon': u'https://35.232.149.196/avatar.png',
             u'domain_name': u'35.232.149.196',
+            u'installation_id': u'install_id_1',
             u'installation': {
                 u'client_id': u'client_id',
                 u'client_secret': u'client_secret',
@@ -148,7 +149,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         identity = Identity.objects.get(
             idp=idp,
             user=self.user,
-            external_id='user_id_1',
+            external_id='35.232.149.196:user_id_1',
         )
         assert identity.status == IdentityStatus.VALID
         assert identity.data == {

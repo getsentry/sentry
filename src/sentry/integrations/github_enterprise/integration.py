@@ -46,7 +46,7 @@ class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin
     def get_client(self):
         return GitHubEnterpriseAppsClient(
             base_url=self.model.metadata['domain_name'],
-            external_id=self.model.external_id,
+            installation_id=self.model.metadata['installation_id'],
             private_key=self.model.metadata['installation']['private_key'],
             app_id=self.model.metadata['installation']['id'],
         )
@@ -225,23 +225,29 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             identity['access_token'],
             state['installation_id'])
 
+        domain_name = installation['account']['html_url'].replace('https://', '').split("/")[0]
+
         return {
             'name': installation['account']['login'],
-            'external_id': installation['id'],
+            # installation id is not enough to be unique for self-hosted GH
+            'external_id': '{}:{}'.format(domain_name, installation['id']),
             # GitHub identity is associated directly to the application, *not*
             # to the installation itself.
-            'idp_external_id': installation['app_id'],
+            # app id is not enough to be unique for self-hosted GH
+            'idp_external_id': '{}:{}'.format(domain_name, installation['app_id']),
             'metadata': {
                 # The access token will be populated upon API usage
                 'access_token': None,
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
-                'domain_name': installation['account']['html_url'].replace('https://', '').split("/")[0],
+                'domain_name': domain_name,
+                'installation_id': installation['id'],
                 'installation': installation_data
             },
             'user_identity': {
                 'type': 'github_enterprise',
-                'external_id': user['id'],
+                # used id is not enough to be unique for self-hosted GH
+                'external_id': '{}:{}'.format(domain_name, user['id']),
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
             },
