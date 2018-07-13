@@ -45,7 +45,17 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
         return self.model.name
 
     def get_repositories(self):
-        return self.get_client().get_repos()
+        repos = self.get_client().get_repos(self.username)['values']
+        data = []
+        for repo in repos:
+            data.append(
+                {
+                    'search_key': repo['name'],
+                    'value': repo['full_name'],
+                    'label': repo['name'],
+                }
+            )
+        return [{'id': repo['uuid'], 'name': repo['name'], 'full_name': repo['full_name']}]
 
     def reinstall(self):
         self.reinstall_repositories()
@@ -57,7 +67,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC])
+    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
