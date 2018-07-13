@@ -21,12 +21,14 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.access_token = '1234567890'
         self.account_id = u'80ded3e8-3cd3-43b1-9f96-52032624aa3a'
         self.instance = 'instance.visualstudio.com'
+        self.shared_secret = '1234567890'
         self.model = Integration.objects.create(
             provider='vsts',
             external_id=self.account_id,
             name='vsts_name',
             metadata={
-                 'domain_name': 'instance.visualstudio.com'
+                 'domain_name': 'instance.visualstudio.com',
+                 'subscription_secret': self.shared_secret,
             }
         )
         self.identity_provider = IdentityProvider.objects.create(type='vsts')
@@ -49,6 +51,7 @@ class VstsWebhookWorkItemTest(APITestCase):
     @responses.activate
     def test_workitem_change_assignee(self):
         work_item_id = 31
+
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.model.id,
@@ -56,8 +59,10 @@ class VstsWebhookWorkItemTest(APITestCase):
         )
         with patch('sentry.integrations.vsts.webhooks.sync_group_assignee_inbound') as mock:
             resp = self.client.post(
-                absolute_uri('/extensions/vsts/webhook/'),
+                absolute_uri('/extensions/vsts/issue-updated/'),
                 data=WORK_ITEM_UPDATED,
+                # HTTP_SHARED_SECRET=self.shared_secret,
+                shared_secret=self.shared_secret,
             )
 
             assert resp.status_code == 200
@@ -80,8 +85,9 @@ class VstsWebhookWorkItemTest(APITestCase):
         )
         with patch('sentry.integrations.vsts.webhooks.sync_group_assignee_inbound') as mock:
             resp = self.client.post(
-                absolute_uri('/extensions/vsts/webhook/'),
+                absolute_uri('/extensions/vsts/issue-updated/'),
                 data=WORK_ITEM_UNASSIGNED,
+                shared_secret=self.shared_secret,
             )
 
             assert resp.status_code == 200
