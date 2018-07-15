@@ -57,6 +57,9 @@ class AuthenticatorDate extends React.Component {
 }
 
 class AccountSecurityDetails extends AsyncView {
+  static PropTypes = {
+    deleteDisabled: PropTypes.bool.isRequired,
+  };
   constructor(...args) {
     super(...args);
     this._form = {};
@@ -137,7 +140,10 @@ class AccountSecurityDetails extends AsyncView {
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (
-              <RemoveConfirm onConfirm={this.handleRemove}>
+              <RemoveConfirm
+                onConfirm={this.handleRemove}
+                disabled={this.props.deleteDisabled}
+              >
                 <Button priority="danger">{authenticator.removeButton}</Button>
               </RemoveConfirm>
             )

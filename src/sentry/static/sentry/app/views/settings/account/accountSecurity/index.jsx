@@ -4,6 +4,7 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -25,13 +26,12 @@ const AuthenticatorName = styled.span`
 `;
 
 class AccountSecurity extends AsyncView {
-  getEndpoints() {
-    return [
-      ['authenticators', '/users/me/authenticators/'],
-      ['organizations', '/organizations/'],
-    ];
-  }
-
+  static PropTypes = {
+    authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
+    orgsRequire2fa: PropTypes.arrayOf(PropTypes.string).isRequired,
+    countEnrolled: PropTypes.number.isRequired,
+    deleteDisabled: PropTypes.bool.isRequired,
+  };
   getTitle() {
     return t('Security');
   }
@@ -48,7 +48,7 @@ class AccountSecurity extends AsyncView {
           .requestPromise(`${ENDPOINT}${auth.authId}/`, {
             method: 'DELETE',
           })
-          .then(this.remountComponent, () => {
+          .then(this.props.remountParent, () => {
             this.setState({loading: false});
             addErrorMessage(t('Error disabling', auth.name));
           })
@@ -56,14 +56,8 @@ class AccountSecurity extends AsyncView {
   };
 
   renderBody() {
-    let {authenticators, organizations} = this.state;
+    let {authenticators, orgsRequire2fa, countEnrolled, deleteDisabled} = this.props;
     let isEmpty = !authenticators.length;
-
-    let countEnrolled = authenticators.filter(
-      auth => auth.isEnrolled && !auth.isBackupInterface
-    ).length;
-    let orgsRequire2fa = organizations.filter(org => org.require2FA);
-    let deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
     return (
       <div>

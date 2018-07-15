@@ -331,7 +331,7 @@ class AccountSecurityEnroll extends AsyncView {
               initialData={{...defaultValues, ...authenticator}}
               hideFooter
             >
-              <JsonForm {...this.props} forms={[{title: 'Configuration', fields}]} />
+              <JsonForm forms={[{title: 'Configuration', fields}]} />
             </Form>
           )}
       </div>
