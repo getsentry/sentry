@@ -22,7 +22,7 @@ from sentry.db.models import (
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
-from sentry.utils.canonical import CanonicalKeyView
+from sentry.utils.canonical import CanonicalKeyView, CanonicalKeyDict
 from sentry.utils.strings import truncatechars
 
 
@@ -65,6 +65,19 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+        # Downgrade the canonical dict since old workers did not have
+        # that.
+        if 'data' in state:
+            state['data'] = dict(state['data'].items())
+        return state
+
+    def __setstate__(self, state):
+        if 'data' in state:
+            state['data'] = CanonicalKeyView(state['data'])
+        return Model.__setstate__(self, state)
 
     @memoize
     def data(self):

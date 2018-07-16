@@ -48,6 +48,21 @@ class NodeData(collections.MutableMapping):
         self.ref_version = None
         self._node_data = data
 
+    def __reduce__(self):
+        data = dict(self.__dict__)
+        # downgrade this into a normal dict in case it's a shim dict.
+        # This is needed as older workers might not know about newer
+        # collection types.  For isntance we have events where this is a
+        # CanonicalKeyDict
+        data['_node_data'] = dict(data['_node_data'].items())
+        if 'data' in data:
+            data['data'] = dict(data['data'].items())
+        return (
+            object.__new__,
+            (self.__class__,),
+            data,
+        )
+
     def __getitem__(self, key):
         return self.data[key]
 
