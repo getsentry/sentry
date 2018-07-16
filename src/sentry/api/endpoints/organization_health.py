@@ -51,7 +51,7 @@ MAX_STATS_PERIOD = timedelta(days=45)
 MAX_LIMIT = 50
 
 
-class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationHealthTopEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def empty(self):
         return Response({'data': []})
 
