@@ -8,21 +8,34 @@ class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.string,
+    issue: PropTypes.object,
+    openModal: PropTypes.func,
     onClose: PropTypes.func,
-    integrationType: PropTypes.oneOf(['github', 'jira', 'vsts']),
+    integrationType: PropTypes.oneOf(['github', 'github_enterprise', 'jira', 'vsts']),
   };
 
   static defaultProps = {
-    extenalIssueLink: '#',
+    externalIssueLink: '#',
   };
 
   isLinked() {
-    return this.props.externalIssueLink && this.props.externalIssueId;
+    return this.props.issue;
   }
+
+  handleClick = evt => {
+    return this.props.openModal();
+  };
+
+  handleDelete = evt => {
+    const issue = this.props.externalIssueId;
+    return this.props.onClose(issue);
+  };
 
   getIcon() {
     switch (this.props.integrationType) {
       case 'github':
+        return <IntegrationIcon src="icon-github" />;
+      case 'github_enterprise':
         return <IntegrationIcon src="icon-github" />;
       case 'jira':
         return <IntegrationIcon src="icon-jira" />;
@@ -33,13 +46,28 @@ class IssueSyncElement extends React.Component {
     }
   }
 
+  getPrefix() {
+    switch (this.props.integrationType) {
+      case 'github':
+        return 'GH-';
+      case 'github_enterprise':
+        return 'GHE-';
+      case 'jira':
+        return 'JIRA-';
+      case 'vsts':
+        return 'VSTS-';
+      default:
+        return null;
+    }
+  }
+
   getText() {
     return this.isLinked() ? (
       <IntegrationLink href={this.props.externalIssueLink}>
-        {this.props.externalIssueId}
+        {`${this.getPrefix()}${this.props.externalIssueId}`}
       </IntegrationLink>
     ) : (
-      <IntegrationLink href={'#'}>
+      <IntegrationLink onClick={this.handleClick}>
         Link <IntegrationName>{this.props.integrationType}</IntegrationName> Issue
       </IntegrationLink>
     );
@@ -54,7 +82,7 @@ class IssueSyncElement extends React.Component {
         </div>
         <IconClose
           src="icon-close"
-          onClick={this.props.onClose}
+          onClick={this.handleDelete}
           isLinked={this.isLinked()}
         />
       </IssueSyncListElementContainer>

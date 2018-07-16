@@ -17,6 +17,8 @@ import LoadingError from 'app/components/loadingError';
 import {t, tct} from 'app/locale';
 import withEnvironment from 'app/utils/withEnvironment';
 
+import ExternalIssueList from 'app/components/group/externalIssuesList';
+
 const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',
 
@@ -223,6 +225,7 @@ const GroupSidebar = createReactClass({
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
+        <ExternalIssueList group={this.props.group} />
         <GroupReleaseStats
           group={this.props.group}
           allEnvironments={this.state.allEnvironmentsGroupData}

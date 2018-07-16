@@ -153,12 +153,18 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({'detail': 'That issue is already linked'}, status=400)
 
         # TODO(jess): return serialized issue
-        return Response(status=201)
+        context = {
+            'id': external_issue.id,
+            'key': external_issue.key,
+            'integrationId': external_issue.integration_id,
+
+        }
+        return Response(context, status=201)
 
     def delete(self, request, group, integration_id):
         # note here externalIssue refers to `ExternalIssue.id` wheras above
         # it refers to the id from the provider
-        external_issue_id = request.GET.get('externalIssue')
+        external_issue_id = request.DATA.get('externalIssue')
         if not external_issue_id:
             return Response({'detail': 'External ID required'}, status=400)
 
