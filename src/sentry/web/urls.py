@@ -28,7 +28,7 @@ from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
-from sentry.web.frontend.integration_setup import IntegrationSetupView
+from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.mailgun_inbound_webhook import \
     MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
@@ -49,7 +49,7 @@ from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.transfer_project import TransferProjectView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
-from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
+from sentry.web.frontend.account_identity import AccountIdentityAssociateView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
@@ -249,11 +249,6 @@ urlpatterns += patterns(
         r'^account/settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$',
         AccountIdentityAssociateView.as_view(),
         name='sentry-account-associate-identity'
-    ),
-    url(
-        r'^account/settings/identities/associate/$',
-        AccountIdentityLinkView.as_view(),
-        name='sentry-account-link-identity'
     ),
     url(
         r'^account/settings/security/',
@@ -517,8 +512,8 @@ urlpatterns += patterns(
     # assets for the time being
     url(
         r'^extensions/(?P<provider_id>[\w_-]+)/setup/$',
-        IntegrationSetupView.as_view(),
-        name='sentry-integrations-setup'
+        PipelineAdvancerView.as_view(),
+        name='sentry-extension-setup'
     ),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/jira/', include('sentry.integrations.jira.urls')),
