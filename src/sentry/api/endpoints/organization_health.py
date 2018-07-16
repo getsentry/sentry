@@ -11,93 +11,14 @@ from django.utils import timezone
 from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    Project, ProjectStatus, Release, OrganizationMemberTeam,
+    Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
 )
+from sentry.api.serializers.snuba import SnubaResultSerializer, TAG_USER, TAG_RELEASE
 from sentry.utils import snuba
 
 
 SnubaResultSet = namedtuple('SnubaResultSet', ('current', 'previous'))
-
-
-def serialize_releases(organization, item_list, user):
-    return {
-        r.version: {
-            'id': r.id,
-            'version': r.version,
-            'shortVersion': r.short_version,
-        }
-        for r in Release.objects.filter(
-            organization=organization,
-            version__in=item_list,
-        )
-    }
-
-
-def serialize_eventusers(organization, item_list, user):
-    # We have no reliable way to map the tag value format
-    # back into real EventUser rows. EventUser is only unique
-    # per-project, and this is an organization aggregate.
-    # This means a single value maps to multiple rows.
-    return {
-        u: {
-            'id': u,
-            'type': u.split(':', 1)[0],
-            'value': u.split(':', 1)[1],
-        }
-        for u in item_list
-    }
-
-
-def serialize_projects(organization, item_list, user):
-    return {
-        id: {
-            'id': id,
-            'slug': slug,
-        }
-        for id, slug in Project.objects.filter(
-            id__in=item_list,
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ).values_list('id', 'slug')
-    }
-
-
-class SnubaResultSerializer(object):
-    def __init__(self, organization, tagkey, user):
-        self.organization = organization
-        self.tagkey = tagkey
-        self.user = user
-        self.name = tagkey_to_name[tagkey]
-
-    def get_attrs(self, item_list):
-        return serializer_by_tagkey[self.tagkey](self.organization, item_list, self.user)
-
-    def serialize(self, result):
-        counts_by_value = {
-            r[self.tagkey]: r['count']
-            for r in result.previous
-        }
-        projects = serialize_projects(
-            self.organization,
-            {p for r in result.current for p in r.get('top_projects', [])},
-            self.user,
-        )
-        attrs = self.get_attrs(
-            [r[self.tagkey] for r in result.current],
-        )
-        return {
-            'data': [
-                {
-                    'count': r['count'],
-                    'lastCount': counts_by_value.get(r[self.tagkey], 0),
-                    'topProjects': [projects[p] for p in r.get('top_projects', [])],
-                    'totalProjects': r.get('total_projects'),
-                    self.name: attrs.get(r[self.tagkey]),
-                }
-                for r in result.current
-            ],
-        }
 
 
 def parse_stats_period(period):
@@ -115,18 +36,10 @@ def parse_stats_period(period):
     })
 
 
-TAG_USER = 'tags[sentry:user]'
-TAG_RELEASE = 'tags[sentry:release]'
+def query(**kwargs):
+    kwargs['referrer'] = 'health'
+    return snuba.raw_query(**kwargs)['data']
 
-tagkey_to_name = {
-    TAG_USER: 'user',
-    TAG_RELEASE: 'release',
-}
-
-serializer_by_tagkey = {
-    TAG_RELEASE: serialize_releases,
-    TAG_USER: serialize_eventusers,
-}
 
 TAGKEYS = {
     'user': TAG_USER,
@@ -187,6 +100,10 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if not project_ids:
             return self.empty()
 
+        # Make sure project_ids is now a list, otherwise
+        # snuba isn't happy with it being a set
+        project_ids = list(project_ids)
+
         try:
             environment = self._get_environment_from_request(
                 request,
@@ -211,7 +128,7 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         now = timezone.now()
 
-        data = snuba.raw_query(
+        data = query(
             end=now,
             start=now - stats_period,
             aggregations=aggregations,
@@ -225,15 +142,14 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
             groupby=[tagkey],
             orderby='-count',
             limit=limit,
-            referrer='health',
-        )['data']
+        )
 
         if not data:
             return self.empty()
 
         values = [r[tagkey] for r in data]
 
-        previous = snuba.raw_query(
+        previous = query(
             end=now - stats_period,
             start=now - (stats_period * 2),
             aggregations=[
@@ -247,8 +163,7 @@ class OrganizationHealthEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 env_condition,
             ],
             groupby=[tagkey],
-            referrer='health',
-        )['data']
+        )
 
         serializer = SnubaResultSerializer(organization, tagkey, request.user)
         return Response(
