@@ -37,6 +37,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
   reloadOnVisible = true;
+  shouldReloadOnVisible = true;
 
   getEndpoints() {
     let {orgId} = this.props.params;
