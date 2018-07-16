@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import six
 
 from sentry.plugins import providers
-from six.moves.urllib.parse import urlparse
 from sentry.models import Integration
 
 MAX_COMMIT_DATA_REQUESTS = 90
@@ -61,12 +60,10 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         if config.get('url'):
             installation = self.get_installation(config['integration_id'], organization.id)
             client = installation.get_client()
+            instance = installation.instance
 
-            # parse out the repo name and the instance
-            parts = urlparse(config['url'])
-            instance = parts.netloc
-            name = parts.path.rsplit('_git/', 1)[-1]
-            project = config.get('project') or name
+            name = config['name']
+            project = config['project']
 
             try:
                 repo = client.get_repo(instance, name, project)
@@ -79,7 +76,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'external_id': six.text_type(repo['id']),
                 'url': repo['_links']['web']['href'],
             })
-        return config
+            return config
 
     def create_repository(self, organization, data):
         return {
