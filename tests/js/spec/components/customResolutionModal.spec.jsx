@@ -44,10 +44,9 @@ describe('CustomResolutionModal', function() {
 
     wrapper.find('input[id="version"]').simulate('keyDown', {keyCode: 13});
 
-    expect(wrapper.find('SelectControl').prop('value')).toEqual({
-      value: '92eccef279d966b2319f0802fa4b22b430a5f72b',
-      label: expect.anything(),
-    });
+    expect(wrapper.find('SelectControl').prop('value')).toEqual(
+      '92eccef279d966b2319f0802fa4b22b430a5f72b'
+    );
     wrapper.find('form').simulate('submit');
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: '92eccef279d966b2319f0802fa4b22b430a5f72b',

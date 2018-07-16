@@ -59,7 +59,7 @@ export default class SelectField extends React.Component {
             <SelectControl
               {...props}
               clearable={allowClear}
-              multi={multiple}
+              multiple={multiple}
               disabled={disabled}
               onChange={this.handleChange.bind(this, onBlur, onChange)}
               value={props.value}

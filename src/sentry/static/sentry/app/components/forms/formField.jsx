@@ -112,8 +112,9 @@ export default class FormField extends React.PureComponent {
         value,
       },
       () => {
-        this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
-        form && form.onFieldChange(this.props.name, this.coerceValue(this.state.value));
+        let finalValue = this.coerceValue(this.state.value);
+        this.props.onChange && this.props.onChange(finalValue);
+        form && form.onFieldChange(this.props.name, finalValue);
       }
     );
   };

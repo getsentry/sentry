@@ -14,10 +14,19 @@ export default class SelectControl extends React.Component {
         value: PropTypes.any,
       })
     ),
+    // react-select knows this as multi, but for standardization
+    // and compatibility we use multiple
+    multiple: PropTypes.bool,
+    // multi is supported for compatibility
+    multi: PropTypes.bool,
     choices: PropTypes.oneOfType([
       PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
       PropTypes.func,
     ]),
+  };
+
+  static defaultPropTypes = {
+    multiple: false,
   };
 
   renderArrow = () => {
@@ -39,6 +48,7 @@ export default class SelectControl extends React.Component {
         async={async}
         creatable={creatable}
         {...props}
+        multi={this.props.multiple || this.props.multi}
         options={choicesOrOptions}
       />
     );

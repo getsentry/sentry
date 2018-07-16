@@ -12,6 +12,11 @@ import theme from 'app/utils/theme';
 import RoleList from './fixtures/roleList';
 import Release from './fixtures/release';
 import {AsanaPlugin, AsanaCreate, AsanaAutocomplete} from './fixtures/asana';
+import {
+  PhabricatorPlugin,
+  PhabricatorCreate,
+  PhabricatorAutocomplete,
+} from './fixtures/phabricator';
 import {VstsPlugin, VstsCreate} from './fixtures/vsts-old';
 
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
@@ -1132,6 +1137,9 @@ window.TestStubs = {
   AsanaPlugin,
   AsanaCreate,
   AsanaAutocomplete,
+  PhabricatorPlugin,
+  PhabricatorCreate,
+  PhabricatorAutocomplete,
   VstsPlugin,
   VstsCreate,
 };
