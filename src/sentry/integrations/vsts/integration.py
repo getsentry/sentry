@@ -17,6 +17,7 @@ from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
+from .webhooks import WorkItemWebhook
 DESCRIPTION = """
 VSTS
 """
@@ -162,9 +163,12 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state['identity']['data']
+        oauth_data = self.get_oauth_data(data)
         account = state['account']
         instance = state['instance']
         user = get_user_info(data['access_token'])
+        subscription_id, subscription_secret = self.create_subscription(
+            instance, account['AccountId'], oauth_data)
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
 
         return {
@@ -172,14 +176,24 @@ class VstsIntegrationProvider(IntegrationProvider):
             'external_id': account['AccountId'],
             'metadata': {
                 'domain_name': instance,
+                'scopes': scopes,
+                'subscription_id': subscription_id,
+                'subscription_secret': subscription_secret,
             },
             'user_identity': {
                 'type': 'vsts',
                 'external_id': user['id'],
                 'scopes': scopes,
-                'data': self.get_oauth_data(data),
+                'data': oauth_data,
             },
         }
+
+    def create_subscription(self, instance, account_id, oauth_data):
+        webhook = WorkItemWebhook()
+        subscription, shared_secret = webhook.create_subscription(
+            instance, oauth_data, self.oauth_redirect_url, account_id)
+        subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
+        return subscription_id, shared_secret
 
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}

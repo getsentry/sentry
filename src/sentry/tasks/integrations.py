@@ -49,7 +49,9 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
         user = None
     else:
         user = User.objects.get(id=user_id)
-    integration.get_installation().sync_assignee_outbound(external_issue, user, assign=assign)
+    integration.get_installation(
+        organization_id=external_issue.organization_id).sync_assignee_outbound(
+        external_issue, user, assign=assign)
 
 
 @instrumented_task(

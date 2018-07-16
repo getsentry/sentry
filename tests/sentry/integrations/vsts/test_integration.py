@@ -8,6 +8,7 @@ from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import APITestCase, TestCase
+from .testutils import CREATE_SUBSCRIPTION
 
 
 class VstsIntegrationProviderTest(TestCase):
@@ -30,6 +31,11 @@ class VstsIntegrationProviderTest(TestCase):
                     'subjectDescriptor': 'user1-subject-desc',
                 },
             },
+        )
+        responses.add(
+            responses.POST,
+            'https://sentry.visualstudio.com/_apis/hooks/subscriptions',
+            json=CREATE_SUBSCRIPTION,
         )
 
     @responses.activate
