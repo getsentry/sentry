@@ -73,7 +73,7 @@ def parse_unix_timestamp(value):
 
 def parse_datetime_string(value):
     # timezones are not supported and are assumed UTC
-    if value[-1] == 'Z':
+    if value[-1:] == 'Z':
         value = value[:-1]
 
     for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
@@ -117,32 +117,43 @@ def parse_datetime_comparison(value):
 
 def parse_datetime_value(value):
     # timezones are not supported and are assumed UTC
-    if value[-1] == 'Z':
+    if value[-1:] == 'Z':
         value = value[:-1]
+
+    result = None
 
     # A value that only specifies the date (without a time component) should be
     # expanded to an interval that spans the entire day.
-    if len(value) in (8, 10):
-        value = datetime.strptime(value, DATE_FORMAT).replace(
-            tzinfo=timezone.utc,
-        )
+    try:
+        result = datetime.strptime(value, DATE_FORMAT).replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
+    else:
         return (
-            (value, True),
-            (value + timedelta(days=1), False),
+            (result, True),
+            (result + timedelta(days=1), False),
         )
 
     # A value that contains the time should converted to an interval.
-    if value[4] == '-':
+    for format in [DATETIME_FORMAT, DATETIME_FORMAT_MICROSECONDS]:
         try:
-            value = datetime.strptime(value, DATETIME_FORMAT).replace(tzinfo=timezone.utc)
+            result = datetime.strptime(value, format).replace(tzinfo=timezone.utc)
         except ValueError:
-            value = datetime.strptime(value, DATETIME_FORMAT_MICROSECONDS).replace(tzinfo=timezone.utc)
+            pass
+        else:
+            break  # avoid entering the else clause below
     else:
-        value = parse_unix_timestamp(value)
+        try:
+            result = parse_unix_timestamp(value)
+        except ValueError:
+            pass
+
+    if result is None:
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     return (
-        (value - timedelta(minutes=5), True),
-        (value + timedelta(minutes=6), False),
+        (result - timedelta(minutes=5), True),
+        (result + timedelta(minutes=6), False),
     )
 
 
