@@ -25,8 +25,6 @@ class WorkItemWebhook(Endpoint):
 
     def post(self, request, *args, **kwargs):
         data = request.DATA
-        print(data)
-        print(request.META)
         if data['eventType'] == 'workitem.updated':
             integration = Integration.objects.get(
                 provider='vsts',
