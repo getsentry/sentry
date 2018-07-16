@@ -8,7 +8,6 @@ class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.string,
-    issue: PropTypes.object,
     openModal: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.oneOf(['github', 'github_enterprise', 'jira', 'vsts']),
@@ -19,7 +18,7 @@ class IssueSyncElement extends React.Component {
   };
 
   isLinked() {
-    return this.props.issue;
+    return this.props.externalIssueLink && this.props.externalIssueId;
   }
 
   handleClick = evt => {
@@ -27,8 +26,7 @@ class IssueSyncElement extends React.Component {
   };
 
   handleDelete = evt => {
-    const issue = this.props.externalIssueId;
-    return this.props.onClose(issue);
+    return this.props.onClose(this.props.externalIssueId);
   };
 
   getIcon() {

@@ -19,7 +19,7 @@ class ExternalIssueList extends AsyncComponent {
     const externalIssues = [];
     integrations.forEach(integration => {
       externalIssues.push(
-        <ExternalIssueActionModal
+        <ExternalIssueActions
           key={integration.id}
           integration={integration}
           group={group}

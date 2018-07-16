@@ -14,7 +14,6 @@ import _ from 'lodash';
 
 import {Flex, Box} from 'grid-emotion';
 import PluginActions from 'app/components/group/pluginActions';
-import PluginIcon from 'app/plugins/components/pluginIcon';
 
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
@@ -171,7 +170,7 @@ class ExternalIssueForm extends AsyncComponent {
   }
 }
 
-class ExternalIssueActionModal extends AsyncComponent {
+class ExternalIssueActions extends AsyncComponent {
   static propTypes = {
     group: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
@@ -238,19 +237,13 @@ class ExternalIssueActionModal extends AsyncComponent {
 
   renderBody() {
     let {action, selectedIntegration, issue} = this.state;
-    let externalIssueId;
-    let externalIssueLink;
-    if (selectedIntegration.externalIssues.length > 0) {
-      externalIssueId = selectedIntegration.externalIssues[0].id;
-      externalIssueLink = selectedIntegration.externalIssues[0].key;
-    }
+
     return (
       <React.Fragment key={selectedIntegration.id}>
         <IssueSyncListElement
           openModal={this.openModal}
-          issue={issue}
-          externalIssueLink={externalIssueLink}
-          externalIssueId={externalIssueId}
+          externalIssueLink={issue ? issue.key : null}
+          externalIssueId={issue ? issue.id : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
         />
