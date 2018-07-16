@@ -179,38 +179,38 @@ GET_USERS_RESPONSE = b"""{
       "descriptor": "TWljcm9zb2Z0LklkZW50aXR5TW9kZWwuQ2xhaW1zLkNsYWltc0lkZW50aXR5OzQ1YWEzZDJkLTc0NDItNDczZC1iNGQzLTNjNjcwZGE5ZGQ5NlxmdG90dGVuQHZzY3NpLnVz"
     }
   ]
-"""
-CREATE_SUBSCRIPTION = """
-{
-  "id": "fd672255-8b6b-4769-9260-beea83d752ce",
-  "url": "https://fabrikam.visualstudio.com/_apis/hooks/subscriptions/fd672255-8b6b-4769-9260-beea83d752ce",
-  "publisherId": "tfs",
-  "eventType": "workitem.update",
-  "resourceVersion": "1.0-preview.1",
-  "eventDescription": "WorkItem Updated",
-  "consumerId": "webHooks",
-  "consumerActionId": "httpRequest",
-  "actionDescription": "To host myservice",
-  "createdBy": {
-    "id": "00ca946b-2fe9-4f2a-ae2f-40d5c48001bc"
-  },
-  "createdDate": "2014-10-27T15:37:24.873Z",
-  "modifiedBy": {
-    "id": "00ca946b-2fe9-4f2a-ae2f-40d5c48001bc"
-  },
-  "modifiedDate": "2014-10-27T15:37:26.23Z",
-  "publisherInputs": {
-    "buildStatus": "Failed",
-    "definitionName": "MyWebSite CI",
-    "hostId": "d81542e4-cdfa-4333-b082-1ae2d6c3ad16",
-    "projectId": "6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c",
-    "tfsSubscriptionId": "3e8b33e7-426d-4c92-9bf9-58e163dd7dd5"
-  },
-  "consumerInputs": {
-    "url": "https://myservice/newreceiver"
-  }
 }
 """
+CREATE_SUBSCRIPTION = {
+    'id': 'fd672255-8b6b-4769-9260-beea83d752ce',
+    'url': 'https://fabrikam.visualstudio.com/_apis/hooks/subscriptions/fd672255-8b6b-4769-9260-beea83d752ce',
+    'publisherId': 'tfs',
+    'eventType': 'workitem.update',
+    'resourceVersion': '1.0-preview.1',
+    'eventDescription': 'WorkItem Updated',
+    'consumerId': 'webHooks',
+    'consumerActionId': 'httpRequest',
+    'actionDescription': 'To host myservice',
+    'createdBy': {
+        'id': '00ca946b-2fe9-4f2a-ae2f-40d5c48001bc'
+    },
+    'createdDate': '2014-10-27T15:37:24.873Z',
+    'modifiedBy': {
+        'id': '00ca946b-2fe9-4f2a-ae2f-40d5c48001bc'
+    },
+    'modifiedDate': '2014-10-27T15:37:26.23Z',
+    'publisherInputs': {
+        'buildStatus': 'Failed',
+        'definitionName': 'MyWebSite CI',
+        'hostId': 'd81542e4-cdfa-4333-b082-1ae2d6c3ad16',
+        'projectId': '6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c',
+        'tfsSubscriptionId': '3e8b33e7-426d-4c92-9bf9-58e163dd7dd5'
+    },
+    'consumerInputs': {
+        'url': 'https://myservice/newreceiver'
+    }
+}
+
 WORK_ITEM_UPDATED = {
     u'resourceContainers': {
         u'project': {u'id': u'c0bf429a-c03c-4a99-9336-d45be74db5a6', u'baseUrl': u'https://laurynsentry.visualstudio.com/'},
