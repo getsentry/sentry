@@ -4,7 +4,7 @@ import moment from 'moment';
 import Cookies from 'js-cookie';
 
 import {tct} from 'app/locale';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import space from '../../styles/space';
 import InlineSvg from '../inlineSvg';
 import {slideInRight} from '../../styles/animations';

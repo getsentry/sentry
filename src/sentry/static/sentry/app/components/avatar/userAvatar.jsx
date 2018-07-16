@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import {userDisplayName} from 'app/utils/formatters';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class UserAvatar extends React.Component {
   static propTypes = {

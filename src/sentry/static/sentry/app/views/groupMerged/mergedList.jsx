@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Event} from 'app/proptypes';
+import {Event} from 'app/sentryTypes';
 import {t} from 'app/locale';
 import MergedItem from 'app/views/groupMerged/mergedItem';
 import MergedToolbar from 'app/views/groupMerged/mergedToolbar';

@@ -6,7 +6,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
 

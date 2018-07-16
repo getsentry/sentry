@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-import CustomPropTypes from 'app/proptypes';
+import CustomPropTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';

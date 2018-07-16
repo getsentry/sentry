@@ -38,8 +38,8 @@
           {{ field|as_crispy_field }}
         {% endfor %}
 
-        <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+        <fieldset class="form-actions" style="text-align: center">
+          <button type="submit" class="btn btn-primary" style="width: 50%">{% trans "Continue" %}</button>
         </fieldset>
 
         {% if github_login_template %}
@@ -49,6 +49,10 @@
         {% if vsts_login_template %}
           {% include vsts_login_template %}
         {% endif %}
+
+        <p style="text-align: center">
+          <a style="margin-top: 7px; width: 50%; color: gray" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+        </p>
       </form>
     </div>
     <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">

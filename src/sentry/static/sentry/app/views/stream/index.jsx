@@ -4,7 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {omit} from 'lodash';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ProjectState from 'app/mixins/projectState';
 import TagStore from 'app/stores/tagStore';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';

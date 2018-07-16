@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory, Link} from 'react-router';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';

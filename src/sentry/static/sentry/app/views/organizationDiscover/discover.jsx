@@ -12,7 +12,7 @@ import MultiSelectField from 'app/components/forms/multiSelectField';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import NumberField from 'app/components/forms/numberField';
 import SelectField from 'app/components/forms/selectField';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';
@@ -140,6 +140,8 @@ export default class OrganizationDiscover extends React.Component {
 
     const query = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
+    // Do not allow conditions on projectID field
+    const columnsForConditions = columns.filter(({name}) => name !== 'project_id');
 
     const fieldOptions = columns.map(({name}) => ({
       value: name,
@@ -194,7 +196,7 @@ export default class OrganizationDiscover extends React.Component {
             <Fieldset>
               <Conditions
                 value={query.conditions}
-                columns={columns}
+                columns={columnsForConditions}
                 onChange={val => this.updateField('conditions', val)}
               />
             </Fieldset>

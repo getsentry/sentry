@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ProjectLink from 'app/components/projectLink';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import BookmarkToggle from 'app/components/projects/bookmarkToggle';

@@ -4,7 +4,7 @@ import _ from 'lodash';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';

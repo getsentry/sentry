@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import _ from 'lodash';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';

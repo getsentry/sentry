@@ -6,7 +6,7 @@ import React from 'react';
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TextLink from 'app/components/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
 import withLatestContext from 'app/utils/withLatestContext';

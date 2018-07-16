@@ -25,6 +25,15 @@ class AccountSettingsTest(AcceptanceTestCase):
             role='owner',
             teams=[self.team],
         )
+        second_org = self.create_organization(
+            name='Multiple Owners',
+            owner=self.user,
+        )
+        self.create_member(
+            user=self.create_user('bar@example.com'),
+            organization=second_org,
+            role='owner',
+        )
         self.login_as(self.user)
 
     # TODO(billy): Enable this and remove the slower tests below

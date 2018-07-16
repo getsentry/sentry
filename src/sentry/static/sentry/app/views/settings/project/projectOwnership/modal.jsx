@@ -6,7 +6,7 @@ import idx from 'idx';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 class ProjectOwnershipModal extends AsyncComponent {

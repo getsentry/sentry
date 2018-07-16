@@ -17,7 +17,7 @@ import TimeSince from 'app/components/timeSince';
 import ApiMixin from 'app/mixins/apiMixin';
 
 import {t} from 'app/locale';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import OrganizationState from 'app/mixins/organizationState';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 

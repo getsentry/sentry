@@ -3,7 +3,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
 import AsyncView from 'app/views/asyncView';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 import OrganizationAuthList from './organizationAuthList';
 
