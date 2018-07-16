@@ -581,7 +581,7 @@ window.TestStubs = {
     return {
       domainName: 'jira.com/test-integration',
       icon: 'http://jira.example.com/integration_icon.png',
-      id: '1',
+      id: '2',
       name: 'Jira Test Integration',
       provider: {
         name: 'Jira',

@@ -1,37 +1,96 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Integration render() with one integration renders 1`] = `
-<SideEffect(DocumentTitle)
-  title="GitHub Integration - Sentry"
->
-  <React.Fragment>
-    <BreadcrumbTitle
-      title="GitHub"
-    />
-    <SettingsPageHeading
-      icon={
-        <PluginIcon
-          pluginId="github"
-          size={28}
-        />
-      }
-      title="GitHub"
-    />
-    <Panel>
-      <PanelHeader
-        disablePadding={true}
-        hasButtons={true}
+exports[`OrganizationIntegrations render() with installed integrations Displays InstalledIntegration 1`] = `
+<React.Fragment>
+  <SettingsPageHeading
+    title="Integrations"
+  />
+  <Panel>
+    <PanelHeader
+      disablePadding={true}
+    >
+      <Box
+        flex="1"
+        px={2}
       >
-        <Box
-          px={2}
+        Integrations
+      </Box>
+    </PanelHeader>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
+    >
+      <React.Fragment
+        key="github"
+      >
+        <PanelItem
+          align="center"
+          p={2}
         >
-          Installation
-        </Box>
-        <Box
-          mr={1}
-        >
-          <AddIntegrationButton
-            onAddIntegration={[Function]}
+          <PluginIcon
+            pluginId="github"
+            size={36}
+          />
+          <Box
+            flex={1}
+            px={2}
+          >
+            <ProviderName>
+              GitHub
+            </ProviderName>
+            <ProviderDetails>
+              <Status
+                enabled={true}
+              />
+              <Link
+                onClick={[Function]}
+              >
+                Learn More
+              </Link>
+            </ProviderDetails>
+          </Box>
+          <Box>
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              onClick={[Function]}
+              size="small"
+            >
+              Install
+            </Button>
+          </Box>
+        </PanelItem>
+        <PanelItemGroup>
+          <InstalledIntegration
+            integration={
+              Object {
+                "configData": Object {},
+                "configOrganization": Array [],
+                "configProject": Array [],
+                "domainName": "gtithub.com/test-integration",
+                "icon": "http://example.com/integration_icon.png",
+                "id": "1",
+                "name": "Test Integration",
+                "projects": Array [],
+                "provider": Object {
+                  "canAdd": true,
+                  "canAddProject": false,
+                  "features": Array [],
+                  "key": "github",
+                  "name": "GitHub",
+                },
+              }
+            }
+            key="1"
+            onDisable={[Function]}
+            onReinstallIntegration={[Function]}
+            onRemove={[Function]}
+            orgId={
+              Object {
+                "orgId": "org-slug",
+              }
+            }
             provider={
               Object {
                 "canAdd": true,
@@ -62,105 +121,217 @@ exports[`Integration render() with one integration renders 1`] = `
                 },
               }
             }
-            reinstall={false}
-            size="xsmall"
           />
-        </Box>
-      </PanelHeader>
-      <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
+        </PanelItemGroup>
+      </React.Fragment>
+      <React.Fragment
+        key="jira"
       >
-        <InstalledIntegration
-          integration={
-            Object {
-              "configData": Object {},
-              "configOrganization": Array [],
-              "configProject": Array [],
-              "domainName": "gtithub.com/test-integration",
-              "icon": "http://example.com/integration_icon.png",
-              "id": "1",
-              "name": "Test Integration",
-              "projects": Array [],
-              "provider": Object {
-                "canAdd": true,
-                "canAddProject": false,
-                "features": Array [],
-                "key": "github",
-                "name": "GitHub",
-              },
-            }
-          }
-          key="1"
-          onDisable={[Function]}
-          onReinstallIntegration={[Function]}
-          onRemove={[Function]}
-          onToggleEnabled={[Function]}
-          orgId="org-slug"
-          provider={
-            Object {
-              "canAdd": true,
-              "canAddProject": false,
-              "config": Array [],
-              "features": Array [],
-              "key": "github",
-              "metadata": Object {
-                "aspects": Object {
-                  "alerts": Array [
-                    Object {
-                      "text": "This is a an alert example",
-                      "type": "warning",
-                    },
-                  ],
+        <PanelItem
+          align="center"
+          p={2}
+        >
+          <PluginIcon
+            pluginId="jira"
+            size={36}
+          />
+          <Box
+            flex={1}
+            px={2}
+          >
+            <ProviderName>
+              Jira
+            </ProviderName>
+            <ProviderDetails>
+              <Status
+                enabled={true}
+              />
+              <Link
+                onClick={[Function]}
+              >
+                Learn More
+              </Link>
+            </ProviderDetails>
+          </Box>
+          <Box>
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              onClick={[Function]}
+              size="small"
+            >
+              Install
+            </Button>
+          </Box>
+        </PanelItem>
+        <PanelItemGroup>
+          <InstalledIntegration
+            integration={
+              Object {
+                "configData": Object {},
+                "configOrganization": Array [],
+                "configProject": Array [],
+                "domainName": "jira.com/test-integration",
+                "icon": "http://jira.example.com/integration_icon.png",
+                "id": "2",
+                "name": "Jira Test Integration",
+                "projects": Array [],
+                "provider": Object {
+                  "canAdd": true,
+                  "canAddProject": true,
+                  "features": Array [],
+                  "key": "jira",
+                  "name": "Jira",
                 },
-                "author": "Morty",
-                "description": "*markdown* formatted _description_",
-                "issue_url": "http://example.com/integration_issue_url",
-                "noun": "Installation",
-                "source_url": "http://example.com/integration_source_url",
-              },
-              "name": "GitHub",
-              "setupDialog": Object {
-                "height": 100,
-                "url": "/github-integration-setup-uri/",
-                "width": 100,
-              },
+              }
             }
-          }
-        />
-      </PanelBody>
-    </Panel>
-    <hr />
-    <h5>
-      GitHub Integration
-    </h5>
-    <IntegrationDetails
-      author="Morty"
-      links={
-        Array [
-          Object {
-            "href": "http://example.com/integration_issue_url",
-            "title": "Report an Issue",
-          },
-          Object {
-            "href": "http://example.com/integration_source_url",
-            "title": "View Source",
-          },
-        ]
-      }
-      markdownDescription="*markdown* formatted _description_"
-    />
-  </React.Fragment>
-</SideEffect(DocumentTitle)>
+            key="2"
+            onDisable={[Function]}
+            onReinstallIntegration={[Function]}
+            onRemove={[Function]}
+            orgId={
+              Object {
+                "orgId": "org-slug",
+              }
+            }
+            provider={
+              Object {
+                "canAdd": false,
+                "canAddProject": true,
+                "config": Array [],
+                "features": Array [],
+                "key": "jira",
+                "metadata": Object {
+                  "aspects": Object {
+                    "externalInstall": Array [
+                      Object {
+                        "buttonText": "Visit Jira",
+                        "noticeText": "You must visit jira to install the integration",
+                        "url": "http://jira.com",
+                      },
+                    ],
+                  },
+                  "author": "Rick",
+                  "description": "*markdown* formatted Jira _description_",
+                  "issue_url": "http://example.com/jira_integration_issue_url",
+                  "noun": "Instance",
+                  "source_url": "http://example.com/jira_integration_source_url",
+                },
+                "name": "Jira",
+              }
+            }
+          />
+        </PanelItemGroup>
+      </React.Fragment>
+    </PanelBody>
+  </Panel>
+</React.Fragment>
 `;
 
-exports[`Integration render() without any integrations Displays an error for an invalid provider key 1`] = `
-<SideEffect(DocumentTitle)
-  title="Integration - Sentry"
->
-  <LoadingError
-    message="Invalid integration provider"
+exports[`OrganizationIntegrations render() without integrations Displays integration providers 1`] = `
+<React.Fragment>
+  <SettingsPageHeading
+    title="Integrations"
   />
-</SideEffect(DocumentTitle)>
+  <Panel>
+    <PanelHeader
+      disablePadding={true}
+    >
+      <Box
+        flex="1"
+        px={2}
+      >
+        Integrations
+      </Box>
+    </PanelHeader>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
+    >
+      <React.Fragment
+        key="github"
+      >
+        <PanelItem
+          align="center"
+          p={2}
+        >
+          <PluginIcon
+            pluginId="github"
+            size={36}
+          />
+          <Box
+            flex={1}
+            px={2}
+          >
+            <ProviderName>
+              GitHub
+            </ProviderName>
+            <ProviderDetails>
+              <Status
+                enabled={false}
+              />
+              <Link
+                onClick={[Function]}
+              >
+                Learn More
+              </Link>
+            </ProviderDetails>
+          </Box>
+          <Box>
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              onClick={[Function]}
+              size="small"
+            >
+              Install
+            </Button>
+          </Box>
+        </PanelItem>
+      </React.Fragment>
+      <React.Fragment
+        key="jira"
+      >
+        <PanelItem
+          align="center"
+          p={2}
+        >
+          <PluginIcon
+            pluginId="jira"
+            size={36}
+          />
+          <Box
+            flex={1}
+            px={2}
+          >
+            <ProviderName>
+              Jira
+            </ProviderName>
+            <ProviderDetails>
+              <Status
+                enabled={false}
+              />
+              <Link
+                onClick={[Function]}
+              >
+                Learn More
+              </Link>
+            </ProviderDetails>
+          </Box>
+          <Box>
+            <Button
+              disabled={false}
+              icon="icon-circle-add"
+              onClick={[Function]}
+              size="small"
+            >
+              Install
+            </Button>
+          </Box>
+        </PanelItem>
+      </React.Fragment>
+    </PanelBody>
+  </Panel>
+</React.Fragment>
 `;
