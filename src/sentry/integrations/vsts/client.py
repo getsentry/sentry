@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.utils.http import absolute_uri
+
 UNSET = object()
 
 FIELD_MAP = {
@@ -18,8 +20,10 @@ class VstsApiPath(object):
     commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    delete = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repositories = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
+    subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
     work_items_types_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
@@ -228,4 +232,31 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 account_name=account_name,
             ),
             api_preview=True,
+        )
+
+    def create_subscription(self, instance, external_id, shared_secret):
+        return self.post(
+            VstsApiPath.subscriptions.format(
+                account_name=instance
+            ),
+            data={
+                'publisherId': 'tfs',
+                'eventType': 'workitem.updated',
+                'resourceVersion': '1.0',
+                'consumerId': 'webHooks',
+                'consumerActionId': 'httpRequest',
+                'consumerInputs': {
+                    'url': absolute_uri('/extensions/vsts/issue-updated/'),
+                    'resourceDetailsToSend': 'all',
+                    'httpHeaders': 'shared-secret:%s' % shared_secret,
+                }
+            },
+        )
+
+    def delete_subscription(self, instance, subscription_id):
+        self.delete(
+            VstsApiPath.delete_url.format(
+                account_name=instance,
+                subscription_id=subscription_id,
+            )
         )
