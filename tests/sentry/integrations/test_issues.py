@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (
     Group, GroupStatus, Integration, GroupLink, ExternalIssue,
     IntegrationExternalProject, OrganizationIntegration
