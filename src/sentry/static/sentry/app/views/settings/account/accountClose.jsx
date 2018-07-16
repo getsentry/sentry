@@ -143,28 +143,26 @@ class AccountClose extends AsyncView {
               )}
             </PanelAlert>
 
-            {organizations.map(({organization, singleOwner}) => {
-              return (
-                <PanelItem key={organization.slug}>
-                  <label>
-                    <input
-                      style={{marginRight: 6}}
-                      type="checkbox"
-                      value={organization.slug}
-                      onChange={this.handleChange.bind(this, organization, singleOwner)}
-                      name="organizations"
-                      checked={
-                        orgsToRemove === null
-                          ? singleOwner
-                          : orgsToRemove.has(organization.slug)
-                      }
-                      disabled={singleOwner}
-                    />
-                    {organization.slug}
-                  </label>
-                </PanelItem>
-              );
-            })}
+            {organizations.map(({organization, singleOwner}) => (
+              <PanelItem key={organization.slug}>
+                <label>
+                  <input
+                    style={{marginRight: 6}}
+                    type="checkbox"
+                    value={organization.slug}
+                    onChange={this.handleChange.bind(this, organization, singleOwner)}
+                    name="organizations"
+                    checked={
+                      orgsToRemove === null
+                        ? singleOwner
+                        : orgsToRemove.has(organization.slug)
+                    }
+                    disabled={singleOwner}
+                  />
+                  {organization.slug}
+                </label>
+              </PanelItem>
+            ))}
           </PanelBody>
         </Panel>
 
