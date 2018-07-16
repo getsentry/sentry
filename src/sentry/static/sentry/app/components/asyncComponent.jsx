@@ -191,7 +191,7 @@ class AsyncComponent extends React.Component {
         error: prevState.error || !!error,
       };
 
-      state.remainingRequest = prevState.remainingRequests - 1;
+      state.remainingRequests = prevState.remainingRequests - 1;
       state.loading = prevState.remainingRequests > 1;
       state.reloading = prevState.reloading && state.loading;
 
