@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
+from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from sentry.models import IdentityProvider
@@ -40,11 +42,14 @@ class AccountIdentityAssociateView(OrganizationView):
 
 
 class AccountIdentityLinkView(BaseView):
+    auth_required = False
+
     @never_cache
     def handle(self, request):
         pipeline = IdentityProviderPipeline.get_for_request(request)
 
         if pipeline is None or not pipeline.is_valid():
-            return self.redirect(reverse('sentry-account-settings-identities'))
+            messages.add_message(request, messages.ERROR, _("Invalid request."))
+            return self.redirect(reverse('sentry-login'))
 
         return pipeline.current_step()
