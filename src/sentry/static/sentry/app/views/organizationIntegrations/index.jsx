@@ -11,11 +11,7 @@ import {
   PanelItem,
   PanelItemGroup,
 } from 'app/components/panels';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
@@ -60,16 +56,18 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
   handleDeleteIntegration = integration => {
     const {orgId} = this.props.params;
-    addLoadingMessage();
+
+    const origIntegrations = [...this.state.integrations];
+
+    const integrations = this.state.integrations.filter(i => i.id !== integration.id);
+    this.setState({integrations});
 
     const options = {
       method: 'DELETE',
-      success: () => {
-        const integrations = this.state.integrations.filter(i => i.id !== integration.id);
-        this.setState({integrations});
-        addSuccessMessage(t('Integration removed'));
+      error: () => {
+        this.setState({integrations: origIntegrations});
+        addErrorMessage(t('Failed to remove Integration'));
       },
-      error: () => addErrorMessage(t('Failed to remove Integration')),
     };
 
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
