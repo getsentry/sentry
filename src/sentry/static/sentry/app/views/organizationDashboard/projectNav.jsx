@@ -38,7 +38,7 @@ const ProjectNav = createReactClass({
       },
       {
         title: t('Member'),
-        to: `settings/${org.slug}/members/new/`,
+        to: `/settings/${org.slug}/members/new/`,
         disabled: !hasTeamWrite,
         tooltip: t('You do not have permission to manage teams'),
       },
