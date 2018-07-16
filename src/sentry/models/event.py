@@ -22,7 +22,7 @@ from sentry.db.models import (
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
-from sentry.utils.canonical import CanonicalKeyView, CanonicalKeyDict
+from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.strings import truncatechars
 
 
