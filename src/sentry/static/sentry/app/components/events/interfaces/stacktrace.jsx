@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from 'app/stores/configStore';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';

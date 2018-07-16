@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import NavSection from 'app/views/settings/components/navSection.styled';
 import SettingsHeading from 'app/views/settings/components/settingsHeading.styled';

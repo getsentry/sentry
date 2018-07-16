@@ -3,7 +3,7 @@ import React from 'react';
 
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
 

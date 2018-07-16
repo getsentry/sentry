@@ -5,7 +5,7 @@ import sdk from 'app/utils/sdk';
 import Avatar from 'app/components/avatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
-import {Actor} from 'app/proptypes';
+import {Actor} from 'app/sentryTypes';
 
 class ActorAvatar extends React.Component {
   static propTypes = {

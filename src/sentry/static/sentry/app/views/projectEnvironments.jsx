@@ -25,7 +25,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';

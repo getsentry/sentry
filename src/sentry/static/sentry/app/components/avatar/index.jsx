@@ -1,6 +1,6 @@
 import React from 'react';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import ProjectAvatar from 'app/components/avatar/projectAvatar';

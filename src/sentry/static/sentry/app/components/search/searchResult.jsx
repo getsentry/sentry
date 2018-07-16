@@ -5,7 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import IdBadge from 'app/components/idBadge';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 

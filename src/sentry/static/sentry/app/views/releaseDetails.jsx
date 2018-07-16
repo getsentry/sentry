@@ -12,7 +12,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectState from 'app/mixins/projectState';
 import ReleaseStats from 'app/components/releaseStats';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';

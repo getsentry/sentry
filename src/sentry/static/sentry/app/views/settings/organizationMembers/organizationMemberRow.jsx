@@ -11,7 +11,7 @@ import Confirm from 'app/components/confirm';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';

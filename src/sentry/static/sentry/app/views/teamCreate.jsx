@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import CreateTeamForm from 'app/components/createTeam/createTeamForm';
 import NarrowLayout from 'app/components/narrowLayout';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class TeamCreate extends AsyncView {
   static contextTypes = {

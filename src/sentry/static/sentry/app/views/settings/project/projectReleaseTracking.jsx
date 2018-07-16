@@ -13,7 +13,7 @@ import DynamicWrapper from 'app/components/dynamicWrapper';
 import Field from 'app/views/settings/components/forms/field';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';

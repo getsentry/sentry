@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import BarChart from 'app/components/barChart';
 import DynamicWrapper from 'app/components/dynamicWrapper';

@@ -4,7 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 
 import ConfigStore from 'app/stores/configStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 /**
  * Interface to handle feature tags as well as user's organization access levels

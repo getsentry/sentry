@@ -2,7 +2,7 @@ import React from 'react';
 
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class OrganizationAvatar extends React.Component {
   static propTypes = {

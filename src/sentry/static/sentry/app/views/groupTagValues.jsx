@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {sortBy, property} from 'lodash';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import Avatar from 'app/components/avatar';
 import LoadingError from 'app/components/loadingError';

@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import withOrganizations from 'app/utils/withOrganizations';
 
 import SidebarOrgSummary from './sidebarOrgSummary';

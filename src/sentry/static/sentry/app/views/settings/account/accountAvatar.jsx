@@ -12,7 +12,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const AccountAvatar = createReactClass({
   displayName: 'AccountAvatar',

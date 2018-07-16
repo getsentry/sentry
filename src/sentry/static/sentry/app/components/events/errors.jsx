@@ -3,7 +3,7 @@ import _ from 'lodash';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventErrorItem from 'app/components/events/errorItem';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t, tn} from 'app/locale';
 
 class EventErrors extends React.Component {

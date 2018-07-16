@@ -11,7 +11,7 @@ import LatestContextStore from 'app/stores/latestContextStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import SelectControl from 'app/components/forms/selectControl';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import withProjects from 'app/utils/withProjects';
 import space from 'app/styles/space';
