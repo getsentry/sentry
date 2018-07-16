@@ -4,7 +4,6 @@ from .client import VstsApiClient
 from sentry.models import Identity, Integration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from uuid import uuid4
-from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 import re
@@ -20,12 +19,14 @@ class WorkItemWebhook(Endpoint):
     def get_client(self, identity, oauth_redirect_url):
         return VstsApiClient(identity, oauth_redirect_url)
 
-    @method_decorator(csrf_exempt)
+    @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         return super(WorkItemWebhook, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         data = request.DATA
+        print(data)
+        print(request.META)
         if data['eventType'] == 'workitem.updated':
             integration = Integration.objects.get(
                 provider='vsts',
@@ -39,7 +40,7 @@ class WorkItemWebhook(Endpoint):
         return self.respond()
 
     def check_webhook_secret(self, request, integration):
-        assert integration.metadata['subscription_secret'] == request.META['shared_secret']  # request.META['HTTP_SHARED_SECRET']
+        assert integration.metadata['subscription_secret'] == request.META['HTTP_SHARED_SECRET']
 
     def handle_updated_workitem(self, data, integration):
         external_issue_key = data['resource']['workItemId']

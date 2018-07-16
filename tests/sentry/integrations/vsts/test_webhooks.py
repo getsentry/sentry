@@ -61,8 +61,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             resp = self.client.post(
                 absolute_uri('/extensions/vsts/issue-updated/'),
                 data=WORK_ITEM_UPDATED,
-                # HTTP_SHARED_SECRET=self.shared_secret,
-                shared_secret=self.shared_secret,
+                HTTP_SHARED_SECRET=self.shared_secret,
             )
 
             assert resp.status_code == 200
@@ -87,7 +86,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             resp = self.client.post(
                 absolute_uri('/extensions/vsts/issue-updated/'),
                 data=WORK_ITEM_UNASSIGNED,
-                shared_secret=self.shared_secret,
+                HTTP_SHARED_SECRET=self.shared_secret,
             )
 
             assert resp.status_code == 200
