@@ -387,7 +387,6 @@ const Stream = createReactClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          console.log('direct hit', data);
           if (data && data[0].matchingEventId) {
             let {project, id, matchingEventId, matchingEventEnvironment} = data[0];
             let redirect = `/${this.props.params
