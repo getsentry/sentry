@@ -51,29 +51,14 @@ MAX_STATS_PERIOD = timedelta(days=45)
 MAX_LIMIT = 50
 
 
-class OrganizationHealthTopEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
     def empty(self):
         return Response({'data': []})
 
-    def get(self, request, organization):
-        try:
-            tagkey = TAGKEYS[request.GET['tag']]
-        except KeyError:
-            raise ResourceDoesNotExist
-
-        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
-        if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
-            return Response({'detail': 'Invalid statsPeriod'}, status=400)
-
-        limit = int(request.GET.get('limit', '5'))
-        if limit > MAX_LIMIT:
-            return Response({'detail': 'Invalid limit: max %d' % MAX_LIMIT}, status=400)
-        if limit <= 0:
-            return self.empty()
-
+    def get_project_ids(self, request, organization):
         project_ids = set(map(int, request.GET.getlist('project')))
         if not project_ids:
-            return self.empty()
+            return
 
         before = project_ids.copy()
         if request.user.is_superuser:
@@ -98,19 +83,44 @@ class OrganizationHealthTopEndpoint(OrganizationEndpoint, EnvironmentMixin):
             raise PermissionDenied
 
         if not project_ids:
-            return self.empty()
+            return
 
         # Make sure project_ids is now a list, otherwise
         # snuba isn't happy with it being a set
-        project_ids = list(project_ids)
+        return list(project_ids)
 
+    def get_environment(self, request, organization):
         try:
-            environment = self._get_environment_from_request(
+            return self._get_environment_from_request(
                 request,
                 organization.id,
             )
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
+
+
+class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
+    def get(self, request, organization):
+        try:
+            tagkey = TAGKEYS[request.GET['tag']]
+        except KeyError:
+            raise ResourceDoesNotExist
+
+        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
+        if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
+            return Response({'detail': 'Invalid statsPeriod'}, status=400)
+
+        limit = int(request.GET.get('limit', '5'))
+        if limit > MAX_LIMIT:
+            return Response({'detail': 'Invalid limit: max %d' % MAX_LIMIT}, status=400)
+        if limit <= 0:
+            return self.empty()
+
+        project_ids = self.get_project_ids(request, organization)
+        if not project_ids:
+            return self.empty()
+
+        environment = self.get_environment(request, organization)
 
         if environment is None:
             env_condition = []
