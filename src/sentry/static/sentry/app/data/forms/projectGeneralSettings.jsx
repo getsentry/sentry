@@ -63,17 +63,6 @@ export const fields = {
     saveMessageAlertType: 'info',
     saveMessage: t('You will be redirected to the new project slug after saving'),
   },
-  team: {
-    name: 'team',
-    type: 'array',
-    label: t('Team'),
-    visible: ({organization}) => {
-      return organization.teams.length > 1;
-    },
-    choices: ({organization}) =>
-      organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),
-    help: t('Update the team that owns this project'),
-  },
 
   subjectPrefix: {
     name: 'subjectPrefix',
