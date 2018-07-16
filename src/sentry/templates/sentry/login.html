@@ -45,6 +45,10 @@
         {% if github_login_template %}
           {% include github_login_template %}
         {% endif %}
+
+        {% if vsts_login_template %}
+          {% include vsts_login_template %}
+        {% endif %}
       </form>
     </div>
     <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
