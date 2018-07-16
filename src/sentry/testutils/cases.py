@@ -742,7 +742,7 @@ class IntegrationTestCase(TestCase):
             'provider_id': self.provider.key,
         })
 
-        self.setup_path = reverse('sentry-integrations-setup', kwargs={
+        self.setup_path = reverse('sentry-extension-setup', kwargs={
             'provider_id': self.provider.key,
         })
 
