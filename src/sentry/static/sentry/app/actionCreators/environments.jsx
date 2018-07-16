@@ -6,7 +6,10 @@ export function setActiveEnvironment(environment) {
 }
 
 export function setActiveEnvironmentName(name) {
-  setActiveEnvironment(EnvironmentStore.getByName(name));
+  let environment = EnvironmentStore.getByName(name);
+
+  if (!environment) return;
+  setActiveEnvironment(environment);
 }
 
 export function clearActiveEnvironment() {
