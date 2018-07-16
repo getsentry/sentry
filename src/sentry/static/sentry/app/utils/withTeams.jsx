@@ -3,7 +3,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
 import TeamStore from 'app/stores/teamStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 /**
  * Higher order component that uses TeamStore and provides a list of teams

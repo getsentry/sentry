@@ -30,7 +30,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';

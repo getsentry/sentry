@@ -14,7 +14,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 
 let ERROR_TYPES = {

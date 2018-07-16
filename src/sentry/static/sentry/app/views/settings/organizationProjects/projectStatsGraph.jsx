@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 
 import BarChart from 'app/components/barChart';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const ProjectStatsGraph = createReactClass({
   displayName: 'ProjectListItem',

@@ -8,7 +8,7 @@ import Tooltip from 'app/components/tooltip';
 
 import Link from 'app/components/link';
 import ProjectLabel from 'app/components/projectLabel';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const InlineButton = styled('button')`
   color: ${p => p.theme.gray1};

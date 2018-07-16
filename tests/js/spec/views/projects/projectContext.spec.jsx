@@ -3,7 +3,7 @@ import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import {ProjectContext} from 'app/views/projects/projectContext';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 jest.unmock('app/utils/recreateRoute');
 

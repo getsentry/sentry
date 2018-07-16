@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import {t} from 'app/locale';
-import CustomPropTypes from 'app/proptypes';
+import CustomPropTypes from 'app/sentryTypes';
 import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
 
 class EventsTable extends React.Component {

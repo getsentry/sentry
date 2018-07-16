@@ -1,5 +1,5 @@
 import React from 'react';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 import GroupEventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';

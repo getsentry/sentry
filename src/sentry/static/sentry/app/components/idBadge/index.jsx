@@ -7,7 +7,7 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import TeamBadge from 'app/components/idBadge/teamBadge';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import OrganizationBadge from 'app/components/idBadge/organizationBadge';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const COMPONENT_MAP = new Map([
   ['organization', OrganizationBadge],

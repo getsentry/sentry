@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import IdBadge from 'app/components/idBadge';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';

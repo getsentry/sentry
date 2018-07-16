@@ -12,7 +12,7 @@ import {t} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 import RouteError from 'app/views/routeError';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class ProjectPlugins extends Component {
   static propTypes = {

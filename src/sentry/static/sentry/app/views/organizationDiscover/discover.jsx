@@ -12,7 +12,7 @@ import MultiSelectField from 'app/components/forms/multiSelectField';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import NumberField from 'app/components/forms/numberField';
 import SelectField from 'app/components/forms/selectField';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';

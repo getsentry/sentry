@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
 

@@ -5,7 +5,7 @@ import {Client} from 'app/api';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import OrganizationApiKeysList from './organizationApiKeysList';

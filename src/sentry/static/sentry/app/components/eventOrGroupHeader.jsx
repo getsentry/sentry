@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import {capitalize} from 'lodash';
 
 import ProjectLink from 'app/components/projectLink';
-import {Metadata} from 'app/proptypes';
+import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 

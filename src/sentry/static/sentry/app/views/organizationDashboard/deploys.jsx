@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import moment from 'moment-timezone';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/buttons/button';
 import Link from 'app/components/link';
 import {t} from 'app/locale';

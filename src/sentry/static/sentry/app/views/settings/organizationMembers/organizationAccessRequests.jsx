@@ -5,7 +5,7 @@ import {Flex, Box} from 'grid-emotion';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class OrganizationAccessRequests extends React.Component {
   static propTypes = {

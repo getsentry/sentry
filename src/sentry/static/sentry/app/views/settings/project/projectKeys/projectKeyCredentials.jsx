@@ -5,7 +5,7 @@ import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
 class ProjectKeyCredentials extends React.Component {

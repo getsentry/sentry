@@ -21,7 +21,7 @@ import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';

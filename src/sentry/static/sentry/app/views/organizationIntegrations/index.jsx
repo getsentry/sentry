@@ -22,7 +22,7 @@ import InstalledIntegration from 'app/views/organizationIntegrations/installedIn
 import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 export default class OrganizationIntegrations extends AsyncComponent {

@@ -10,7 +10,7 @@ import DeviceName, {
   deviceNameMapper,
   loadDeviceListModule,
 } from 'app/components/deviceName';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import withEnvironment from 'app/utils/withEnvironment';
 

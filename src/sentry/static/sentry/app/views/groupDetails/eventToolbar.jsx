@@ -6,7 +6,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import ConfigStore from 'app/stores/configStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import Tooltip from 'app/components/tooltip';

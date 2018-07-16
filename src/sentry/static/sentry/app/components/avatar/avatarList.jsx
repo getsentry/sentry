@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import Tooltip from 'app/components/tooltip';
 

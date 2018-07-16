@@ -4,7 +4,7 @@ import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plug
 import {t} from 'app/locale';
 import ProjectIntegrations from 'app/views/settings/project/projectIntegrations';
 import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
 

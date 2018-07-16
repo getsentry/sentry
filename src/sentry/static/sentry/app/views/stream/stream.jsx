@@ -9,7 +9,7 @@ import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
 
 import analytics from 'app/utils/analytics';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';

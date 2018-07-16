@@ -10,7 +10,7 @@ import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IndicatorStore from 'app/stores/indicatorStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const InputColumn = props => <Flex flex="1" justify="center" {...props} />;

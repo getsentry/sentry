@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ProjectLink from 'app/components/projectLink';
 import ApiMixin from 'app/mixins/apiMixin';
 import DateTime from 'app/components/dateTime';

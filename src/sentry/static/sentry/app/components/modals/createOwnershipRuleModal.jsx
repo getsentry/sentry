@@ -3,7 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class CreateOwnershipRuleModal extends React.Component {
   static propTypes = {

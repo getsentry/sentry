@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
 import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
 import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';

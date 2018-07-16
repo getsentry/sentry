@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import StackedBarChart from 'app/components/stackedBarChart';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {escape, intcomma} from 'app/utils';
 

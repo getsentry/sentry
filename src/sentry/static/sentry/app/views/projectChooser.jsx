@@ -14,7 +14,7 @@ import TodoList from 'app/components/onboardingWizard/todos';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ProjectLabel from 'app/components/projectLabel';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const ProjectChooser = createReactClass({
   displayName: 'ProjectChooser',

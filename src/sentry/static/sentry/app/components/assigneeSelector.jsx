@@ -19,7 +19,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import MenuItem from 'app/components/menuItem';
 import ProjectsStore from 'app/stores/projectsStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 
 const AssigneeSelector = createReactClass({

@@ -5,7 +5,7 @@ import Avatar from 'app/components/avatar';
 import Link from 'app/components/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const UserBadge = ({
   displayName,

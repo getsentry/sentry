@@ -9,7 +9,7 @@ import DynamicWrapper from 'app/components/dynamicWrapper';
 import ExternalLink from 'app/components/externalLink';
 import Feature from 'app/components/feature';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
 import recreateRoute from 'app/utils/recreateRoute';
 

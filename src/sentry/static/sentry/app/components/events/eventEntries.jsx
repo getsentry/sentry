@@ -17,7 +17,7 @@ import EventTags from 'app/components/events/eventTags';
 import EventSdk from 'app/components/events/sdk';
 import EventDevice from 'app/components/events/device';
 import EventUserFeedback from 'app/components/events/userFeedback';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import GroupState from 'app/mixins/groupState';
 import utils from 'app/utils';
 import {t} from 'app/locale';

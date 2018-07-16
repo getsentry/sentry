@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import Tooltip from 'app/components/tooltip';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import img from '../../../images/dashboard/hair-on-fire.svg';
 
 export default class EmptyState extends React.Component {

@@ -13,7 +13,7 @@ import ConfigStore from 'app/stores/configStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Pagination from 'app/components/pagination';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
 

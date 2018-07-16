@@ -6,7 +6,7 @@ import {defined} from 'app/utils';
 import {fetchPlugins} from 'app/actionCreators/plugins';
 import PluginsStore from 'app/stores/pluginsStore';
 import ProjectState from 'app/mixins/projectState';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 /**
  * Higher order component that fetches list of plugins and

@@ -10,7 +10,7 @@ import GroupHeader from 'app/views/groupDetails/header';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import withEnvironment from 'app/utils/withEnvironment';
 

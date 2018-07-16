@@ -4,7 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import {setLastRoute} from 'app/actionCreators/navigation';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ProjectHeader from 'app/components/projectHeader';
 import ProjectState from 'app/mixins/projectState';

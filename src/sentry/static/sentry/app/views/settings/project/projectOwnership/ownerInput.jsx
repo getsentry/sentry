@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 import memberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import Button from 'app/components/buttons/button';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {

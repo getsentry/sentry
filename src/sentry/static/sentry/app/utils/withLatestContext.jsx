@@ -3,7 +3,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import LatestContextStore from 'app/stores/latestContextStore';
 import withOrganizations from 'app/utils/withOrganizations';
 

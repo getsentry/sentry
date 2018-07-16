@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import Avatar from 'app/components/avatar';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class BaseBadge extends React.Component {
   static propTypes = {
