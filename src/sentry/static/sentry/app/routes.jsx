@@ -1,13 +1,6 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
-import AccountAuthorizations from 'app/views/accountAuthorizations';
-import AccountLayout from 'app/views/accountLayout';
-import ApiApplicationDetails from 'app/views/apiApplicationDetails';
-import ApiApplications from 'app/views/apiApplications';
-import ApiLayout from 'app/views/apiLayout';
-import ApiNewToken from 'app/views/apiNewToken';
-import ApiTokens from 'app/views/apiTokens';
 import App from 'app/views/app';
 import CreateProject from 'app/views/onboarding/createProject';
 import GroupDetails from 'app/views/groupDetails';
@@ -615,18 +608,6 @@ function routes() {
           import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
         component={errorHandler(LazyLoad)}
       />
-      <Route path="/account/" component={errorHandler(AccountLayout)}>
-        <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
-      </Route>
-
-      <Route path="/api/" component={errorHandler(ApiLayout)}>
-        <IndexRoute component={errorHandler(ApiTokens)} />
-        <Route path="applications/" component={errorHandler(ApiApplications)} />
-        <Route
-          path="applications/:appId/"
-          component={errorHandler(ApiApplicationDetails)}
-        />
-      </Route>
 
       <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
@@ -676,8 +657,6 @@ function routes() {
           </Route>
         </Route>
       </Route>
-
-      <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
       <Route
         path="/manage/"
