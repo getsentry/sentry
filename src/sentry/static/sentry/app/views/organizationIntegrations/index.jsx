@@ -85,7 +85,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
   };
 
   renderBody() {
-    const orgId = this.props.params;
+    const {orgId} = this.props.params;
 
     const integrations = this.state.config.providers.map(provider => {
       const installed = this.state.integrations

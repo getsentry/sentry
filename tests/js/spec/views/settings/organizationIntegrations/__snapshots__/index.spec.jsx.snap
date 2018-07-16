@@ -86,11 +86,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             onDisable={[Function]}
             onReinstallIntegration={[Function]}
             onRemove={[Function]}
-            orgId={
-              Object {
-                "orgId": "org-slug",
-              }
-            }
+            orgId="org-slug"
             provider={
               Object {
                 "canAdd": true,
@@ -189,11 +185,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             onDisable={[Function]}
             onReinstallIntegration={[Function]}
             onRemove={[Function]}
-            orgId={
-              Object {
-                "orgId": "org-slug",
-              }
-            }
+            orgId="org-slug"
             provider={
               Object {
                 "canAdd": false,
