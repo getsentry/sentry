@@ -58,7 +58,7 @@ class OnboardingProject extends React.Component {
             name="select-team"
             clearable={false}
             value={team}
-            style={{width: 180}}
+            style={{width: 180, marginBottom: 0}}
             onChange={val => setTeam(val)}
             options={teams.map(({slug}) => ({
               label: `#${slug}`,

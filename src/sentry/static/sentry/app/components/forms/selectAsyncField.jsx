@@ -65,7 +65,9 @@ class SelectAsyncField extends SelectField {
   // Otherwise, when you hit "enter" to create a new item, the "selected value" does
   // not update with new value (and also new value is not displayed in dropdown)
   coerceValue(value) {
-    return value ? value.value : '';
+    if (value && value.hasOwnProperty(value)) return value.value;
+    else if (value) return value;
+    return '';
   }
 
   onResults = data => {
@@ -81,7 +83,13 @@ class SelectAsyncField extends SelectField {
   };
 
   onChange = opt => {
-    this.setValue(opt);
+    let value;
+    if (this.isMultiple()) {
+      value = opt.map(v => v.value);
+    } else {
+      value = opt ? opt.value : null;
+    }
+    this.setValue(value);
   };
 
   getField() {
@@ -93,6 +101,7 @@ class SelectAsyncField extends SelectField {
         onResults={this.onResults}
         onQuery={this.onQuery}
         {...this.props}
+        multiple={this.isMultiple()}
         value={this.state.value}
         onChange={this.onChange}
       />

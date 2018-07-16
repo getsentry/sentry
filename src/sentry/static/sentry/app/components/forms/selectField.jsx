@@ -11,15 +11,22 @@ export default class SelectField extends FormField {
     choices: SelectControl.propTypes.choices,
     clearable: SelectControl.propTypes.clearable,
     onChange: PropTypes.func,
+    multiple: PropTypes.bool,
   };
 
   static defaultProps = {
     ...FormField.defaultProps,
     clearable: true,
+    multiple: false,
   };
 
+  isMultiple() {
+    // this is to maintain compatibility with the 'multi' prop
+    return this.props.multi || this.props.multiple;
+  }
+
   getClassName() {
-    return '';
+    return 'control-group';
   }
 
   onChange = opt => {
@@ -40,6 +47,7 @@ export default class SelectField extends FormField {
         value={this.state.value}
         onChange={this.onChange.bind(this)}
         clearable={this.props.clearable}
+        multiple={this.isMultiple()}
       />
     );
   }

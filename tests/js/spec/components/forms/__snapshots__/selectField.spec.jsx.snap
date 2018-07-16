@@ -5,6 +5,7 @@ exports[`SelectField render() renders with form context 1`] = `
   clearable={true}
   disabled={false}
   hideErrorMessage={false}
+  multiple={false}
   name="fieldName"
   options={
     Array [
@@ -21,7 +22,7 @@ exports[`SelectField render() renders with form context 1`] = `
   required={false}
 >
   <div
-    className=""
+    className="control-group"
   >
     <div
       className="controls"
@@ -30,6 +31,7 @@ exports[`SelectField render() renders with form context 1`] = `
         clearable={true}
         disabled={false}
         id="id-fieldName"
+        multiple={false}
         onChange={[Function]}
         options={
           Array [
@@ -51,6 +53,7 @@ exports[`SelectField render() renders with form context 1`] = `
           clearable={true}
           disabled={false}
           id="id-fieldName"
+          multiple={false}
           onChange={[Function]}
           options={
             Array [
@@ -73,6 +76,7 @@ exports[`SelectField render() renders with form context 1`] = `
             clearable={true}
             disabled={false}
             id="id-fieldName"
+            multiple={false}
             onChange={[Function]}
             options={
               Array [
@@ -117,6 +121,7 @@ exports[`SelectField render() renders with form context 1`] = `
               menuBuffer={0}
               menuRenderer={[Function]}
               multi={false}
+              multiple={false}
               noResultsText="No results found"
               onBlurResetsInput={true}
               onChange={[Function]}
@@ -292,6 +297,7 @@ exports[`SelectField render() renders without form context 1`] = `
   clearable={true}
   disabled={false}
   hideErrorMessage={false}
+  multiple={false}
   name="fieldName"
   options={
     Array [
@@ -309,7 +315,7 @@ exports[`SelectField render() renders without form context 1`] = `
   value="a"
 >
   <div
-    className=""
+    className="control-group"
   >
     <div
       className="controls"
@@ -318,6 +324,7 @@ exports[`SelectField render() renders without form context 1`] = `
         clearable={true}
         disabled={false}
         id="id-fieldName"
+        multiple={false}
         onChange={[Function]}
         options={
           Array [
@@ -339,6 +346,7 @@ exports[`SelectField render() renders without form context 1`] = `
           clearable={true}
           disabled={false}
           id="id-fieldName"
+          multiple={false}
           onChange={[Function]}
           options={
             Array [
@@ -361,6 +369,7 @@ exports[`SelectField render() renders without form context 1`] = `
             clearable={true}
             disabled={false}
             id="id-fieldName"
+            multiple={false}
             onChange={[Function]}
             options={
               Array [
@@ -405,6 +414,7 @@ exports[`SelectField render() renders without form context 1`] = `
               menuBuffer={0}
               menuRenderer={[Function]}
               multi={false}
+              multiple={false}
               noResultsText="No results found"
               onBlurResetsInput={true}
               onChange={[Function]}

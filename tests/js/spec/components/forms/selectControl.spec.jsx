@@ -12,6 +12,20 @@ describe('SelectControl', function() {
     ]);
   });
 
+  it('renders with react-select "multi"', function() {
+    let wrapper = shallow(<SelectControl multiple />);
+
+    expect(wrapper.find('StyledSelect').prop('multi')).toEqual(true);
+
+    wrapper = shallow(<SelectControl multi />);
+
+    expect(wrapper.find('StyledSelect').prop('multi')).toEqual(true);
+
+    wrapper = shallow(<SelectControl />);
+
+    expect(wrapper.find('StyledSelect').prop('multi')).toBeUndefined();
+  });
+
   it('renders with select2 flat "choices"', function() {
     let wrapper = shallow(<SelectControl choices={['a', 'b', 'c']} name="fieldName" />);
     expect(wrapper.find('StyledSelect').prop('options')).toEqual([
