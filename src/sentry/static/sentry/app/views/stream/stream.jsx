@@ -1,36 +1,39 @@
+import {Link, browserHistory} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Link, browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 import qs from 'query-string';
-import {omit, isEqual} from 'lodash';
 
-import analytics from 'app/utils/analytics';
-import SentryTypes from 'app/sentryTypes';
+import {Panel, PanelBody} from 'app/components/panels';
+import {logAjaxError} from 'app/utils/logging';
+import {
+  setActiveEnvironment,
+  setActiveEnvironmentName,
+} from 'app/actionCreators/environments';
+import {t, tn, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
-import GroupStore from 'app/stores/groupStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
+import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectState from 'app/mixins/projectState';
 import Pagination from 'app/components/pagination';
-import StreamGroup from 'app/components/stream/group';
+import ProjectState from 'app/mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
+import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
 import TimeSince from 'app/components/timeSince';
-import utils from 'app/utils';
-import queryString from 'app/utils/queryString';
-import {logAjaxError} from 'app/utils/logging';
+import analytics from 'app/utils/analytics';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {t, tn, tct} from 'app/locale';
-import {setActiveEnvironment} from 'app/actionCreators/environments';
-import {Panel, PanelBody} from 'app/components/panels';
+import queryString from 'app/utils/queryString';
+import utils from 'app/utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -384,15 +387,22 @@ const Stream = createReactClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          if (data[0].matchingEventId) {
-            return void browserHistory.push(
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
-                .id}/events/${data[0].matchingEventId}/`
-            );
+          console.log('direct hit', data);
+          if (data && data[0].matchingEventId) {
+            let {project, id, matchingEventId, matchingEventEnvironment} = data[0];
+            let redirect = `/${this.props.params
+              .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
+            // Also direct to the environment of this specific event if this
+            // key exists. We need to explicitly check against undefined becasue
+            // an environment name may be an empty string, which is perfectly valid.
+            if (typeof matchingEventEnvironment !== 'undefined') {
+              setActiveEnvironmentName(matchingEventEnvironment);
+              redirect = `${redirect}?${qs.stringify({
+                environment: matchingEventEnvironment,
+              })}`;
+            }
+            return void browserHistory.push(redirect);
           }
-          return void browserHistory.push(
-            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
-          );
         }
 
         this._streamManager.push(data);

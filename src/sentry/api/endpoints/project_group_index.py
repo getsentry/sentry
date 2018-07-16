@@ -323,6 +323,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             event_id=query, project_id=project.id)
                     except Event.DoesNotExist:
                         pass
+                    else:
+                        Event.objects.bind_nodes([matching_event], 'data')
 
             # If the query looks like a short id, we want to provide some
             # information about where that is.  Note that this can return
@@ -341,6 +343,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     serialize(
                         [matching_group], request.user, serializer(
                             matching_event_id=getattr(matching_event, 'id', None),
+                            matching_event_environment=matching_event.get_environment().name if matching_event else None,
                         )
                     )
                 )
