@@ -140,6 +140,8 @@ def parse_datetime_value(value):
             result = datetime.strptime(value, format).replace(tzinfo=timezone.utc)
         except ValueError:
             pass
+        else:
+            break  # avoid entering the else clause below
     else:
         try:
             result = parse_unix_timestamp(value)
