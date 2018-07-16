@@ -41,16 +41,6 @@ def query(**kwargs):
     return snuba.raw_query(**kwargs)['data']
 
 
-TAGKEYS = {
-    'user': TAG_USER,
-    'release': TAG_RELEASE,
-}
-
-MIN_STATS_PERIOD = timedelta(hours=1)
-MAX_STATS_PERIOD = timedelta(days=45)
-MAX_LIMIT = 50
-
-
 class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
     def empty(self):
         return Response({'data': []})
@@ -91,28 +81,42 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
 
     def get_environment(self, request, organization):
         try:
-            return self._get_environment_from_request(
+            environment = self._get_environment_from_request(
                 request,
                 organization.id,
             )
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
+        if environment is None:
+            return []
+        if environment.name == '':
+            return ['tags[environment]', 'IS NULL', None]
+        return ['tags[environment]', '=', environment.name]
+
 
 class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
+    MIN_STATS_PERIOD = timedelta(hours=1)
+    MAX_STATS_PERIOD = timedelta(days=45)
+    MAX_LIMIT = 50
+    TAGKEYS = {
+        'user': TAG_USER,
+        'release': TAG_RELEASE,
+    }
+
     def get(self, request, organization):
         try:
-            tagkey = TAGKEYS[request.GET['tag']]
+            tagkey = self.TAGKEYS[request.GET['tag']]
         except KeyError:
             raise ResourceDoesNotExist
 
         stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
-        if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
+        if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
             return Response({'detail': 'Invalid statsPeriod'}, status=400)
 
         limit = int(request.GET.get('limit', '5'))
-        if limit > MAX_LIMIT:
-            return Response({'detail': 'Invalid limit: max %d' % MAX_LIMIT}, status=400)
+        if limit > self.MAX_LIMIT:
+            return Response({'detail': 'Invalid limit: max %d' % self.MAX_LIMIT}, status=400)
         if limit <= 0:
             return self.empty()
 
@@ -121,13 +125,6 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             return self.empty()
 
         environment = self.get_environment(request, organization)
-
-        if environment is None:
-            env_condition = []
-        elif environment.name == '':
-            env_condition = ['tags[environment]', 'IS NULL', None]
-        else:
-            env_condition = ['tags[environment]', '=', environment.name]
 
         aggregations = [('count()', '', 'count')]
         if 'topk' in request.GET:
@@ -147,7 +144,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             },
             conditions=[
                 [tagkey, 'IS NOT NULL', None],
-                env_condition,
+                environment,
             ],
             groupby=[tagkey],
             orderby='-count',
@@ -170,7 +167,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             },
             conditions=[
                 [tagkey, 'IN', values],
-                env_condition,
+                environment,
             ],
             groupby=[tagkey],
         )
@@ -182,3 +179,53 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             ),
             status=200,
         )
+
+
+class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
+    MIN_STATS_PERIOD = timedelta(hours=1)
+    MAX_STATS_PERIOD = timedelta(days=90)
+    TAGKEYS = {
+        'user': TAG_USER,
+        'release': TAG_RELEASE,
+    }
+
+    def get(self, request, organization):
+        try:
+            tagkey = self.TAGKEYS[request.GET['tag']]
+        except KeyError:
+            raise ResourceDoesNotExist
+
+        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
+        if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
+            return Response({'detail': 'Invalid statsPeriod'}, status=400)
+
+        interval = parse_stats_period(request.GET.get('interval', '1h'))
+        if interval is None:
+            interval = timedelta(hours=1)
+
+        project_ids = self.get_project_ids(request, organization)
+        if not project_ids:
+            return self.empty()
+
+        environment = self.get_environment(request, organization)
+
+        now = timezone.now()
+
+        data = query(
+            end=now,
+            start=now - stats_period,
+            rollup=interval.total_seconds(),
+            aggregations=[
+                ('uniq', tagkey, 'count'),
+            ],
+            filter_keys={
+                'project_id': project_ids,
+            },
+            conditions=[
+                [tagkey, 'IS NOT NULL', None],
+                environment,
+            ],
+            groupby=['time'],
+            orderby='time',
+        )
+        return Response({'data': data})
