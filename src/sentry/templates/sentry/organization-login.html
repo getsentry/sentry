@@ -98,6 +98,10 @@
             {% include github_login_template %}
           {% endif %}
 
+          {% if vsts_login_template %}
+            {% include vsts_login_template %}
+          {% endif %}
+
           <p style="text-align: center">
             <a style="margin-top: 9px; width: 50%; color: gray" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
           </p>
