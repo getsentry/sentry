@@ -40,7 +40,7 @@ class JiraSearchEndpoint(OrganizationEndpoint):
         if not query:
             return Response({'detail': 'query is a required parameter'}, status=400)
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(organization.id)
 
         if field == 'externalIssue':
             if not query:

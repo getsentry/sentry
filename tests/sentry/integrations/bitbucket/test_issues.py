@@ -40,7 +40,7 @@ class BitbucketIssueTest(APITestCase):
             'comment': 'hello',
         }
 
-        assert self.integration.get_installation().get_issue(issue_id, data=data) == {
+        assert self.integration.get_installation(None).get_issue(issue_id, data=data) == {
             'key': issue_id,
             'description': 'This is the description',
             'title': 'hello',
@@ -66,7 +66,9 @@ class BitbucketIssueTest(APITestCase):
             key='%s#%d' % (repo, issue_id),
         )
 
-        self.integration.get_installation().after_link_issue(external_issue, data=comment)
+        self.integration.get_installation(
+            external_issue.organization_id).after_link_issue(
+            external_issue, data=comment)
 
         request = responses.calls[0].request
         assert responses.calls[0].response.status_code == 201

@@ -320,7 +320,7 @@ class JiraIntegrationTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(org.id)
 
         def get_client():
             return MockJiraApiClient()
@@ -367,7 +367,7 @@ class JiraIntegrationTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(org.id)
 
         assert installation.get_link_issue_config(group) == [
             {
@@ -391,7 +391,7 @@ class JiraIntegrationTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(org.id)
 
         def get_client():
             return MockJiraApiClient()

@@ -40,7 +40,7 @@ class IssueSyncIntegration(TestCase):
             resolved_status='12345',
         )
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(group.organization.id)
 
         installation.sync_status_inbound(external_issue.key, {
             'project_id': 'APP',
@@ -83,7 +83,7 @@ class IssueSyncIntegration(TestCase):
             unresolved_status='12345',
         )
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(group.organization.id)
 
         installation.sync_status_inbound(external_issue.key, {
             'project_id': 'APP',

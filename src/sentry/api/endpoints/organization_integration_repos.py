@@ -24,7 +24,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
             context = {'repos': []}
             return self.respond(context)
 
-        install = integration.get_installation()
+        install = integration.get_installation(organization.id)
         if isinstance(install, RepositoryMixin):
             repositories = install.get_repositories()
             context = {'repos': repositories}

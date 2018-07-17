@@ -18,7 +18,7 @@ from .webhook import parse_raw_user_email, parse_raw_user_name
 class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'Bitbucket v2'
 
-    def get_installation(self, integration_id):
+    def get_installation(self, integration_id, organization_id):
         if integration_id is None:
             raise ValueError('Bitbucket version 2 requires an integration id.')
 
@@ -27,7 +27,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Integration.DoesNotExist as error:
             self.handle_api_error(error)
 
-        return integration_model.get_installation()
+        return integration_model.get_installation(organization_id)
 
     def get_config(self, organization):
         choices = []
@@ -65,7 +65,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         ```
         """
         if config.get('name'):
-            installation = self.get_installation(config['integration_id'])
+            installation = self.get_installation(config['integration_id'], organization.id)
             client = installation.get_client()
             try:
                 repo = client.get_repo(config['name'])
@@ -93,7 +93,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         return secret
 
     def create_repository(self, organization, data, actor=None):
-        installation = self.get_installation(data['integration_id'])
+        installation = self.get_installation(data['integration_id'], organization.id)
         client = installation.get_client()
         try:
             resp = client.create_hook(
@@ -121,7 +121,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             }
 
     def delete_repository(self, repo, actor=None):
-        installation = self.get_installation(repo.integration_id)
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
         try:
@@ -144,7 +144,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         ]
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
-        installation = self.get_installation(repo.integration_id)
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']

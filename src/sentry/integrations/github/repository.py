@@ -68,7 +68,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         if config.get('name') and config.get('installation'):
             integration = Integration.objects.get(
                 id=config['installation'], organizations=organization)
-            installation = integration.get_installation()
+            installation = integration.get_installation(organization.id)
             client = installation.get_client()
 
             repo = self._validate_repo(client, installation, config['name'])
@@ -104,7 +104,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         if integration_id is None:
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
         integration = Integration.objects.get(id=integration_id)
-        installation = integration.get_installation()
+        installation = integration.get_installation(repo.organization_id)
         client = installation.get_client()
 
         # use config name because that is kept in sync via webhooks
@@ -130,7 +130,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             if integration_id is None:
                 raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
             integration = Integration.objects.get(id=integration_id)
-            installation = integration.get_installation()
+            installation = integration.get_installation(repo.organization_id)
             client = installation.get_client()
 
             # use config name because that is kept in sync via webhooks
