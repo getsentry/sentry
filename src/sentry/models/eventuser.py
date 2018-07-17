@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
+from functools import reduce
 from operator import or_
-from six.moves import reduce
 
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.hashlib import md5_text
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
+
 
 KEYWORD_MAP = {
     'id': 'ident',
@@ -15,6 +16,14 @@ KEYWORD_MAP = {
     'username': 'username',
     'ip': 'ip_address',
 }
+
+INVERSE_KEYWORD_MAP = {
+    v: k for k, v in KEYWORD_MAP.iteritems()
+}
+
+# Do not change this, this is the priority of fields used for
+# determining a hash and uniqueness.
+PRIORITY = ('ident', 'username', 'email', 'ip_address')
 
 
 class EventUser(Model):
@@ -70,24 +79,25 @@ class EventUser(Model):
         self.hash = self.build_hash()
 
     def build_hash(self):
-        value = self.ident or self.username or self.email or self.ip_address
-        if not value:
-            return None
-        return md5_text(value).hexdigest()
+        for key, value in self.iter_attributes():
+            if value:
+                return md5_text(value).hexdigest()
 
     @property
     def tag_value(self):
         """
         Return the identifier used with tags to link this user.
         """
-        if self.ident:
-            return u'id:{}'.format(self.ident)
-        if self.email:
-            return u'email:{}'.format(self.email)
-        if self.username:
-            return u'username:{}'.format(self.username)
-        if self.ip_address:
-            return u'ip:{}'.format(self.ip_address)
+        for key, value in self.iter_attributes():
+            if value:
+                return u'{}:{}'.format(INVERSE_KEYWORD_MAP[key], value)
+
+    def iter_attributes(self):
+        """
+        Iterate over key/value pairs for this EventUser in priority order.
+        """
+        for key in PRIORITY:
+            yield key, getattr(self, key)
 
     def get_label(self):
         return self.email or self.username or self.ident or self.ip_address
