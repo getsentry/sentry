@@ -36,7 +36,6 @@ export default class InstalledIntegration extends React.Component {
 
     return (
       integration.configOrganization.length > 0 ||
-      integration.configProject.length > 0 ||
       provider.canAddProject ||
       provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
     );
