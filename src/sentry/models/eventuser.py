@@ -1,20 +1,27 @@
 from __future__ import absolute_import
 
+from collections import OrderedDict
+from functools import reduce
+from operator import or_
+
 from django.db import models
 from django.utils import timezone
-from operator import or_
-from six.moves import reduce
 
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.hashlib import md5_text
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
-KEYWORD_MAP = {
-    'id': 'ident',
-    'email': 'email',
-    'username': 'username',
-    'ip': 'ip_address',
-}
+
+# The order of these keys are significant to also indicate priority
+# when used in hashing and determining uniqueness. If you change the order
+# you will break stuff.
+KEYWORD_MAP = BidirectionalMapping(OrderedDict((
+    ('ident', 'id'),
+    ('username', 'username'),
+    ('email', 'email'),
+    ('ip_address', 'ip'),
+)))
 
 
 class EventUser(Model):
@@ -44,7 +51,7 @@ class EventUser(Model):
 
     @classmethod
     def attr_from_keyword(cls, keyword):
-        return KEYWORD_MAP[keyword]
+        return KEYWORD_MAP.get_key(keyword)
 
     @classmethod
     def for_tags(cls, project_id, values):
@@ -70,24 +77,25 @@ class EventUser(Model):
         self.hash = self.build_hash()
 
     def build_hash(self):
-        value = self.ident or self.username or self.email or self.ip_address
-        if not value:
-            return None
-        return md5_text(value).hexdigest()
+        for key, value in self.iter_attributes():
+            if value:
+                return md5_text(value).hexdigest()
 
     @property
     def tag_value(self):
         """
         Return the identifier used with tags to link this user.
         """
-        if self.ident:
-            return u'id:{}'.format(self.ident)
-        if self.email:
-            return u'email:{}'.format(self.email)
-        if self.username:
-            return u'username:{}'.format(self.username)
-        if self.ip_address:
-            return u'ip:{}'.format(self.ip_address)
+        for key, value in self.iter_attributes():
+            if value:
+                return u'{}:{}'.format(KEYWORD_MAP[key], value)
+
+    def iter_attributes(self):
+        """
+        Iterate over key/value pairs for this EventUser in priority order.
+        """
+        for key in KEYWORD_MAP.keys():
+            yield key, getattr(self, key)
 
     def get_label(self):
         return self.email or self.username or self.ident or self.ip_address
