@@ -149,7 +149,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         identity = Identity.objects.get(
             idp=idp,
             user=self.user,
-            external_id='35.232.149.196:user_id_1',
+            external_id='user_id_1',
         )
         assert identity.status == IdentityStatus.VALID
         assert identity.data == {
