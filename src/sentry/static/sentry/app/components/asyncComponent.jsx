@@ -101,7 +101,10 @@ class AsyncComponent extends React.Component {
   };
 
   visibilityReloader = () =>
-    this.shouldReloadOnVisible && !document.hidden && this.reloadData();
+    this.shouldReloadOnVisible &&
+    !this.state.loading &&
+    !document.hidden &&
+    this.reloadData();
 
   reloadData = () => this.fetchData({reloading: true});
 
