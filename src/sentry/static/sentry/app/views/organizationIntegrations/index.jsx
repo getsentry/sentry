@@ -102,6 +102,12 @@ export default class OrganizationIntegrations extends AsyncComponent {
           />
         ));
 
+      const openModal = () =>
+        openIntegrationDetails({
+          provider,
+          onAddIntegration: this.mergeIntegration,
+        });
+
       return (
         <React.Fragment key={provider.key}>
           <PanelItem align="center">
@@ -110,19 +116,11 @@ export default class OrganizationIntegrations extends AsyncComponent {
               <ProviderName>{provider.name}</ProviderName>
               <ProviderDetails>
                 <Status enabled={installed.length > 0} />
-                <Link onClick={() => openIntegrationDetails({provider})}>Learn More</Link>
+                <Link onClick={openModal}>Learn More</Link>
               </ProviderDetails>
             </Box>
             <Box>
-              <Button
-                icon="icon-circle-add"
-                size="small"
-                onClick={() =>
-                  openIntegrationDetails({
-                    provider,
-                    onAddIntegration: this.mergeIntegration,
-                  })}
-              >
+              <Button icon="icon-circle-add" size="small" onClick={openModal}>
                 {t('Install')}
               </Button>
             </Box>
