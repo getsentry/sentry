@@ -83,12 +83,9 @@ class IntegrationProvider(PipelineProvider):
     features = frozenset()
 
     @classmethod
-    def get_installation(cls, model, organization_id=None, project_id=None, **kwargs):
+    def get_installation(cls, model, organization_id, project_id=None, **kwargs):
         if cls.integration_cls is None:
             raise NotImplementedError
-
-        if cls.needs_default_identity is True and organization_id is None:
-            raise NotImplementedError('%s requires an organization_id' % cls.name)
 
         return cls.integration_cls(model, organization_id, project_id, **kwargs)
 
@@ -160,15 +157,10 @@ class Integration(object):
 
     logger = logging.getLogger('sentry.integrations')
 
-    def __init__(self, model, organization_id=None, project_id=None):
+    def __init__(self, model, organization_id, project_id=None):
         self.model = model
-        if organization_id is not None:
-            self.org_integration = OrganizationIntegration.objects.get(
-                organization_id=organization_id,
-                integration_id=model.id,
-            )
-        else:
-            self.org_integration = None
+        self.organization_id = organization_id
+        self._org_integration = None
 
         if project_id is not None:
             self.project_integration = ProjectIntegration.objects.get(
@@ -177,6 +169,15 @@ class Integration(object):
             )
         else:
             self.project_integration = None
+
+    @property
+    def org_integration(self):
+        if self._org_integration is None:
+            self._org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization_id,
+                integration_id=self.model.id,
+            )
+        return self._org_integration
 
     def get_organization_config(self):
         """
@@ -203,8 +204,6 @@ class Integration(object):
         """
         For Integrations that rely solely on user auth for authentication
         """
-        if self.org_integration is None:
-            raise NotImplementedError('%s requires an organization_id' % self.name)
 
         identity = Identity.objects.get(id=self.org_integration.default_auth_id)
         return identity
