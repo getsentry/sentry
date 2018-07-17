@@ -58,7 +58,7 @@ document.addEventListener('sentryLoaded', function() {
   };
   _lastEventId = () => {
     // TODO: eventually implement this
-    window.Sentry.lastEventId('Would have called lastEventId()');
+    window.Sentry.captureMessage('Would have called lastEventId()');
   };
 });
 
