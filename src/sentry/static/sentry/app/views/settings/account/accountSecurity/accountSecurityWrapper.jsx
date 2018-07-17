@@ -1,13 +1,34 @@
 import React from 'react';
 import AsyncView from 'app/views/asyncView';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+
+const ENDPOINT = '/users/me/authenticators/';
+
 class AccountSecurityWrapper extends AsyncView {
   getEndpoints() {
-    return [
-      ['authenticators', '/users/me/authenticators/'],
-      ['organizations', '/organizations/'],
-    ];
+    return [['authenticators', ENDPOINT], ['organizations', '/organizations/']];
   }
+
+  handleDisable = auth => {
+    if (!auth || !auth.authId) return;
+
+    this.setState(
+      {
+        loading: true,
+      },
+      () =>
+        this.api
+          .requestPromise(`${ENDPOINT}${auth.authId}/`, {
+            method: 'DELETE',
+          })
+          .then(this.remountComponent, () => {
+            this.setState({loading: false});
+            addErrorMessage(t('Error disabling', auth.name));
+          })
+    );
+  };
 
   renderBody() {
     let {authenticators, organizations} = this.state;
@@ -19,7 +40,7 @@ class AccountSecurityWrapper extends AsyncView {
     let deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
     return React.cloneElement(this.props.children, {
-      remountParent: this.remountComponent.bind(this),
+      handleDisable: this.handleDisable.bind(this),
       authenticators,
       deleteDisabled,
       orgsRequire2fa,

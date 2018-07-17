@@ -6,7 +6,6 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
@@ -18,8 +17,6 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import PasswordForm from 'app/views/settings/account/passwordForm';
-
-const ENDPOINT = '/users/me/authenticators/';
 
 const AuthenticatorName = styled.span`
   font-size: 1.2em;
@@ -35,25 +32,6 @@ class AccountSecurity extends AsyncView {
   getTitle() {
     return t('Security');
   }
-
-  handleDisable = auth => {
-    if (!auth || !auth.authId) return;
-
-    this.setState(
-      {
-        loading: true,
-      },
-      () =>
-        this.api
-          .requestPromise(`${ENDPOINT}${auth.authId}/`, {
-            method: 'DELETE',
-          })
-          .then(this.props.remountParent, () => {
-            this.setState({loading: false});
-            addErrorMessage(t('Error disabling', auth.name));
-          })
-    );
-  };
 
   renderBody() {
     let {authenticators, orgsRequire2fa, countEnrolled, deleteDisabled} = this.props;
@@ -123,7 +101,7 @@ class AccountSecurity extends AsyncView {
                       {!isBackupInterface &&
                         isEnrolled && (
                           <RemoveConfirm
-                            onConfirm={() => this.handleDisable(auth)}
+                            onConfirm={() => this.props.handleDisable(auth)}
                             disabled={deleteDisabled}
                           >
                             <Button css={{marginLeft: 6}} size="small">
