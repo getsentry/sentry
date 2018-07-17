@@ -71,7 +71,7 @@ export default class IntegrationRepos extends AsyncComponent {
     this.api.request(`/organizations/${orgId}/repos/`, {
       data: {
         installation: integration.id,
-        name: selection.value,
+        identifier: selection.value,
         provider: `integrations:${integration.provider.key}`,
       },
       method: 'POST',

@@ -13,10 +13,10 @@ class RepositoryMixin(object):
         >>> def get_repositories(self):
         >>>     return self.get_client().get_repositories()
 
-        return [{
-            'name': 'repo_name',
-            'full_name': 'account_name/repo_name',
-        }]
+        return {
+            'name': display_name,
+            'identifier': external_repo_id,
+        }
         """
         raise NotImplementedError
 

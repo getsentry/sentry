@@ -50,10 +50,10 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         except ApiError:
             repos = []  # or whatever!
         data = []
-        for repo in repos:
+        for repo in repos['value']:
             data.append({
-                'name': repo['name'],
-                'identifier': repo['id'],  # TODO(lb): uhhh???? there is no full name
+                'name': '%s\%s' % (repo['project']['name'], repo['name']),
+                'identifier': repo['id'],
             })
         return data
 
