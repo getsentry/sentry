@@ -28,7 +28,7 @@ export default class SelectField extends FormField {
   }
 
   getClassName() {
-    return 'control-group';
+    return '';
   }
 
   onChange = opt => {

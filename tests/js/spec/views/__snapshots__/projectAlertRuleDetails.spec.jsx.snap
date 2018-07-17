@@ -304,7 +304,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           }
                         >
                           <div
-                            className="control-group required"
+                            className="required"
                             style={
                               Object {
                                 "marginBottom": 0,
@@ -790,7 +790,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
-                            clearable={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -808,9 +807,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
-                              backspaceRemoves={false}
-                              clearable={false}
-                              deleteRemoves={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -828,10 +824,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                backspaceRemoves={false}
                                 className="css-16280ey-StyledSelect eho28m20"
-                                clearable={false}
-                                deleteRemoves={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -850,15 +843,15 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={false}
+                                  backspaceRemoves={true}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
                                   className="css-16280ey-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={false}
+                                  clearable={true}
                                   closeOnSelect={true}
-                                  deleteRemoves={false}
+                                  deleteRemoves={true}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
@@ -908,7 +901,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-searchable Select--single"
+                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -1046,7 +1039,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                       value="staging"
                     >
                       <div
-                        className="control-group required"
+                        className="required"
                         style={
                           Object {
                             "marginBottom": 0,
@@ -1550,7 +1543,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
-                            clearable={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -1568,9 +1560,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
-                              backspaceRemoves={false}
-                              clearable={false}
-                              deleteRemoves={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -1588,10 +1577,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                backspaceRemoves={false}
                                 className="css-16280ey-StyledSelect eho28m20"
-                                clearable={false}
-                                deleteRemoves={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -1610,15 +1596,15 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={false}
+                                  backspaceRemoves={true}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
                                   className="css-16280ey-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={false}
+                                  clearable={true}
                                   closeOnSelect={true}
-                                  deleteRemoves={false}
+                                  deleteRemoves={true}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
@@ -1668,7 +1654,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-searchable Select--single"
+                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -1832,7 +1818,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           }
                         >
                           <div
-                            className="control-group required"
+                            className="required"
                             style={
                               Object {
                                 "marginBottom": 0,
@@ -2684,7 +2670,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           value="all"
                         >
                           <div
-                            className="control-group required"
+                            className="required"
                             style={
                               Object {
                                 "marginBottom": 0,
@@ -3019,7 +3005,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
-                            clearable={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -3037,9 +3022,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
-                              backspaceRemoves={false}
-                              clearable={false}
-                              deleteRemoves={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -3057,10 +3039,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                backspaceRemoves={false}
                                 className="css-16280ey-StyledSelect eho28m20"
-                                clearable={false}
-                                deleteRemoves={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -3079,15 +3058,15 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={false}
+                                  backspaceRemoves={true}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
                                   className="css-16280ey-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={false}
+                                  clearable={true}
                                   closeOnSelect={true}
-                                  deleteRemoves={false}
+                                  deleteRemoves={true}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
@@ -3137,7 +3116,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-searchable Select--single"
+                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -3275,7 +3254,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                       value="__all_environments__"
                     >
                       <div
-                        className="control-group required"
+                        className="required"
                         style={
                           Object {
                             "marginBottom": 0,
@@ -3607,7 +3586,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
-                            clearable={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -3625,9 +3603,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
-                              backspaceRemoves={false}
-                              clearable={false}
-                              deleteRemoves={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -3645,10 +3620,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                backspaceRemoves={false}
                                 className="css-16280ey-StyledSelect eho28m20"
-                                clearable={false}
-                                deleteRemoves={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -3667,15 +3639,15 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={false}
+                                  backspaceRemoves={true}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
                                   className="css-16280ey-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={false}
+                                  clearable={true}
                                   closeOnSelect={true}
-                                  deleteRemoves={false}
+                                  deleteRemoves={true}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
@@ -3725,7 +3697,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-searchable Select--single"
+                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -3890,7 +3862,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           value={30}
                         >
                           <div
-                            className="control-group required"
+                            className="required"
                             style={
                               Object {
                                 "marginBottom": 0,

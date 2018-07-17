@@ -2,7 +2,7 @@
 
 exports[`SelectField renders with flat choices 1`] = `
 <div
-  className="control-group"
+  className=""
 >
   <div
     className="controls"
@@ -29,7 +29,7 @@ exports[`SelectField renders with flat choices 1`] = `
 
 exports[`SelectField renders with paired choices 1`] = `
 <div
-  className="control-group"
+  className=""
 >
   <div
     className="controls"
@@ -86,7 +86,7 @@ exports[`SelectField renders without form context 1`] = `
   value="a"
 >
   <div
-    className="control-group"
+    className=""
   >
     <div
       className="controls"

@@ -121,7 +121,7 @@ exports[`RuleBuilder renders 1`] = `
           value="path"
         >
           <div
-            className="css-1bclqmz-BuilderSelect e1hyuoc76 control-group"
+            className="css-1bclqmz-BuilderSelect e1hyuoc76"
             style={
               Object {
                 "width": 140,
@@ -1362,7 +1362,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           value="path"
         >
           <div
-            className="css-1bclqmz-BuilderSelect e1hyuoc76 control-group"
+            className="css-1bclqmz-BuilderSelect e1hyuoc76"
             style={
               Object {
                 "width": 140,
