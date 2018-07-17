@@ -31,7 +31,6 @@ class OrganizationIntegration(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     integration = FlexibleForeignKey('sentry.Integration')
     config = EncryptedJsonField(default=lambda: {})
-
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
