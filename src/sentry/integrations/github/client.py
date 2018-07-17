@@ -95,7 +95,7 @@ class GitHubClientMixin(ApiClient):
     def create_token(self):
         return self.post(
             '/installations/{}/access_tokens'.format(
-                self.external_id,
+                self.installation_id,
             ),
             headers={
                 'Authorization': 'Bearer %s' % self.get_jwt(),
@@ -110,8 +110,8 @@ class GitHubClientMixin(ApiClient):
 
 class GitHubAppsClient(GitHubClientMixin):
 
-    def __init__(self, external_id):
-        self.external_id = external_id
+    def __init__(self, installation_id):
+        self.installation_id = installation_id
         self.token = None
         self.expires_at = None
         super(GitHubAppsClient, self).__init__()
