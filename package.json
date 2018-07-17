@@ -30,6 +30,8 @@
     "crypto-js": "3.1.5",
     "css-loader": "^0.28.2",
     "diff": "^3.3.0",
+    "echarts": "^4.1.0",
+    "echarts-for-react": "^2.0.13",
     "emotion": "9.1.2",
     "emotion-theming": "9.1.2",
     "enzyme-adapter-react-16": "^1.1.1",
