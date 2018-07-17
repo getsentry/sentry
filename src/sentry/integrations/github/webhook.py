@@ -110,9 +110,7 @@ class PushEventWebhook(Webhook):
         return 'github:%s' % username
 
     def get_idp_external_id(self, host=None):
-        # todo(meredith): when we have the integration will return
-        # integration.external_id
-        return
+        return options.get('github-app.id')
 
     def get_client(self, event, host=None):
         return GitHubAppsClient(event['installation']['id'])
@@ -172,7 +170,7 @@ class PushEventWebhook(Webhook):
                                 gh_username_cache[gh_username] = None
                                 try:
                                     identity = Identity.objects.get(
-                                        external_id=gh_user['id'], idp__external_id=self.get_idp_external_id(host))
+                                        external_id=gh_user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(host))
                                 except Identity.DoesNotExist:
                                     pass
                                 else:
@@ -271,9 +269,7 @@ class PullRequestEventWebhook(Webhook):
         return 'github:%s' % username
 
     def get_idp_external_id(self, host=None):
-        # todo(meredith): when we have the integration will return
-        # options.get(github-app.id)
-        return
+        return options.get('github-app.id')
 
     def _handle(self, event, organization, repo, host=None):
         pull_request = event['pull_request']
@@ -299,7 +295,7 @@ class PullRequestEventWebhook(Webhook):
         except CommitAuthor.DoesNotExist:
             try:
                 identity = Identity.objects.get(
-                    external_id=user['id'], idp__external_id=self.get_idp_external_id(host))
+                    external_id=user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(host))
             except Identity.DoesNotExist:
                 pass
             else:
