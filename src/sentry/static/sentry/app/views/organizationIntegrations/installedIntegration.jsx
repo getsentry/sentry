@@ -11,6 +11,7 @@ import IntegrationItem from 'app/views/organizationIntegrations/integrationItem'
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Tooltip from 'app/components/tooltip';
 
+const CONFIGURABLE_FEATURES = ['commits'];
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
