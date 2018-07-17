@@ -1,29 +1,27 @@
 from __future__ import absolute_import
 
-from django.db import models
-from django.utils import timezone
+from collections import OrderedDict
 from functools import reduce
 from operator import or_
 
+from django.db import models
+from django.utils import timezone
+
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.hashlib import md5_text
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
 
-KEYWORD_MAP = {
-    'id': 'ident',
-    'email': 'email',
-    'username': 'username',
-    'ip': 'ip_address',
-}
-
-INVERSE_KEYWORD_MAP = {
-    v: k for k, v in KEYWORD_MAP.iteritems()
-}
-
-# Do not change this, this is the priority of fields used for
-# determining a hash and uniqueness.
-PRIORITY = ('ident', 'username', 'email', 'ip_address')
+# The order of these keys are significant to also indicate priority
+# when used in hashing and determining uniqueness. If you change the order
+# you will break stuff.
+KEYWORD_MAP = BidirectionalMapping(OrderedDict((
+    ('ident', 'id'),
+    ('username', 'username'),
+    ('email', 'email'),
+    ('ip_address', 'ip'),
+)))
 
 
 class EventUser(Model):
@@ -53,7 +51,7 @@ class EventUser(Model):
 
     @classmethod
     def attr_from_keyword(cls, keyword):
-        return KEYWORD_MAP[keyword]
+        return KEYWORD_MAP.get_key(keyword)
 
     @classmethod
     def for_tags(cls, project_id, values):
@@ -90,13 +88,13 @@ class EventUser(Model):
         """
         for key, value in self.iter_attributes():
             if value:
-                return u'{}:{}'.format(INVERSE_KEYWORD_MAP[key], value)
+                return u'{}:{}'.format(KEYWORD_MAP[key], value)
 
     def iter_attributes(self):
         """
         Iterate over key/value pairs for this EventUser in priority order.
         """
-        for key in PRIORITY:
+        for key in KEYWORD_MAP.keys():
             yield key, getattr(self, key)
 
     def get_label(self):

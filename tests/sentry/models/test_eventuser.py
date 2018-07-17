@@ -26,3 +26,13 @@ class EventUserTestCase(TestCase):
         ]
         for kw, value in cases:
             assert EventUser(**kw).tag_value == value
+
+    def test_attr_from_keyword(self):
+        cases = [
+            ('id', 'ident'),
+            ('username', 'username'),
+            ('email', 'email'),
+            ('ip', 'ip_address'),
+        ]
+        for keyword, attr in cases:
+            assert EventUser.attr_from_keyword(keyword) == attr
