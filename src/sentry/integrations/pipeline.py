@@ -62,8 +62,7 @@ class IntegrationPipeline(Pipeline):
                 id=data['reinstall_id'],
             )
             integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
-            # this can't be scoped to organization
-            integration.get_installation(None).reinstall()
+            integration.get_installation(self.organization.id).reinstall()
 
         elif 'expect_exists' in data:
             integration = Integration.objects.get(

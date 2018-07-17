@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import pytest
 
 from sentry.models import Integration as IntegrationModel, Identity, IdentityProvider
 from sentry.integrations import Integration
@@ -33,14 +32,10 @@ class IntegrationTestCase(TestCase):
         self.project_integration = self.model.add_project(self.project.id)
 
     def test_no_context(self):
-        integration = Integration(self.model)
+        integration = Integration(self.model, self.organization.id)
         integration.name = 'Base'
 
-        assert integration.org_integration is None
         assert integration.project_integration is None
-
-        with pytest.raises(NotImplementedError):
-            integration.get_default_identity()
 
     def test_with_context(self):
         integration = Integration(self.model, self.organization.id, self.project.id)
