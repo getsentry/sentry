@@ -8,9 +8,9 @@ from sentry.integrations.github.client import GitHubClientMixin
 class GitHubEnterpriseAppsClient(GitHubClientMixin):
     base_url = None
 
-    def __init__(self, base_url, app_id, external_id, private_key):
+    def __init__(self, base_url, app_id, installation_id, private_key):
         self.base_url = "https://{}/api/v3".format(base_url)
-        self.external_id = external_id
+        self.installation_id = installation_id
         self.app_id = app_id
         self.private_key = private_key
         self.token = None

@@ -21,10 +21,12 @@ from .client import GitHubEnterpriseAppsClient
 logger = logging.getLogger('sentry.webhooks')
 
 
-def get_installation_metadata(event):
+def get_installation_metadata(event, host):
+    if not host:
+        return
     try:
         integration = Integration.objects.get(
-            external_id=event['installation']['id'],
+            external_id='{}:{}'.format(host, event['installation']['id']),
             provider='github_enterprise')
     except Integration.DoesNotExist:
         return
@@ -53,8 +55,13 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_client(self, event):
-        metadata = get_installation_metadata(event)
+    def get_idp_external_id(self, host):
+        # Todo(meredith): when we have integration will return
+        # host + integration.metadata['installation']['id']
+        return
+
+    def get_client(self, event, host):
+        metadata = get_installation_metadata(event, host)
         if metadata is None:
             return None
 
@@ -77,6 +84,11 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
 
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
+
+    def get_idp_external_id(self, host):
+        # Todo(meredith): when we have integration will return
+        # host + integration.metadata['installation']['id']
+        return
 
 
 class GitHubEnterpriseWebhookBase(View):
@@ -106,8 +118,8 @@ class GitHubEnterpriseWebhookBase(View):
     def get_logging_data(self):
         pass
 
-    def get_secret(self, event):
-        metadata = get_installation_metadata(event)
+    def get_secret(self, event, host):
+        metadata = get_installation_metadata(event, host)
         if metadata:
             return metadata.get('webhook_secret')
         else:
@@ -153,7 +165,12 @@ class GitHubEnterpriseWebhookBase(View):
             )
             return HttpResponse(status=400)
 
-        secret = self.get_secret(event)
+        try:
+            host = request.META['HTTP_X_GITHUB_ENTERPRISE_HOST']
+        except KeyError:
+            return HttpResponse(status=401)
+
+        secret = self.get_secret(event, host)
         if secret is None:
             logger.error(
                 'github_enterprise.webhook.missing-secret',
@@ -161,14 +178,14 @@ class GitHubEnterpriseWebhookBase(View):
             )
             return HttpResponse(status=401)
 
-        if not self.is_valid_signature(method, body, self.get_secret(event), signature):
+        if not self.is_valid_signature(method, body, self.get_secret(event, host), signature):
             logger.error(
                 'github_enterprise.webhook.invalid-signature',
                 extra=self.get_logging_data(),
             )
             return HttpResponse(status=401)
 
-        handler()(event)
+        handler()(event, host)
         return HttpResponse(status=204)
 
 

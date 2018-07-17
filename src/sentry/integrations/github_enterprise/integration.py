@@ -44,9 +44,10 @@ API_ERRORS = {
 
 class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
+        base_url = urlparse(self.model.metadata['domain_name']).netloc
         return GitHubEnterpriseAppsClient(
-            base_url=self.model.metadata['domain_name'],
-            external_id=self.model.external_id,
+            base_url=base_url,
+            installation_id=self.model.metadata['installation_id'],
             private_key=self.model.metadata['installation']['private_key'],
             app_id=self.model.metadata['installation']['id'],
         )
@@ -225,18 +226,22 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             identity['access_token'],
             state['installation_id'])
 
+        domain = urlparse(installation['account']['html_url']).netloc
         return {
             'name': installation['account']['login'],
-            'external_id': installation['id'],
+            # installation id is not enough to be unique for self-hosted GH
+            'external_id': '{}:{}'.format(domain, installation['id']),
             # GitHub identity is associated directly to the application, *not*
             # to the installation itself.
-            'idp_external_id': installation['app_id'],
+            # app id is not enough to be unique for self-hosted GH
+            'idp_external_id': '{}:{}'.format(domain, installation['app_id']),
             'metadata': {
                 # The access token will be populated upon API usage
                 'access_token': None,
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
-                'domain_name': installation['account']['html_url'].replace('https://', '').split("/")[0],
+                'domain_name': installation['account']['html_url'],
+                'installation_id': installation['id'],
                 'installation': installation_data
             },
             'user_identity': {
