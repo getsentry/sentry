@@ -8,11 +8,18 @@
 
 {% block wrapperclass %}narrow auth org-login{% endblock %}
 
-{% block main %}
-  <div class="pattern-bg"></div>
+{% block content %}
+<div class="pattern-bg"></div>
+<div class="box">
+  <div class="auth-sidebar p-t-1">
+    <a href="/">
+      <span class="icon-sentry-logo"></span>
+    </a>
+  </div>
   <section class="org-login">
     {% block auth_main %}{% endblock %}
   </section>
+</div>
 {% endblock %}
 
 {% block footer %}
