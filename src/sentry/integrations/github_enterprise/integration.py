@@ -246,8 +246,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             },
             'user_identity': {
                 'type': 'github_enterprise',
-                # used id is not enough to be unique for self-hosted GH
-                'external_id': '{}:{}'.format(domain_name, user['id']),
+                'external_id': user['id'],
                 'scopes': [],  # GitHub apps do not have user scopes
                 'data': {'access_token': identity['access_token']},
             },

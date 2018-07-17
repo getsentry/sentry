@@ -55,8 +55,10 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_user_external_id(self, gh_user_id, host=None):
-        return '{}:{}'.format(host, gh_user_id)
+    def get_idp_external_id(self, host):
+        # Todo(meredith): when we have integration will return
+        # host + integration.metadata['installation']['id']
+        return
 
     def get_client(self, event, host):
         metadata = get_installation_metadata(event, host)
@@ -83,8 +85,10 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_user_external_id(self, user_id, host):
-        return '{}:{}'.format(host, user_id)
+    def get_idp_external_id(self, host):
+        # Todo(meredith): when we have integration will return
+        # host + integration.metadata['installation']['id']
+        return
 
 
 class GitHubEnterpriseWebhookBase(View):
