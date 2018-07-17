@@ -31,6 +31,7 @@ class OrganizationIntegration(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     integration = FlexibleForeignKey('sentry.Integration')
     config = EncryptedJsonField(default=lambda: {})
+
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -85,7 +86,7 @@ class Integration(Model):
         from sentry import integrations
         return integrations.get(self.provider)
 
-    def get_installation(self, organization_id=None, project_id=None, **kwargs):
+    def get_installation(self, organization_id, project_id=None, **kwargs):
         return self.get_provider().get_installation(self, organization_id, project_id, **kwargs)
 
     def has_feature(self, feature):
