@@ -130,7 +130,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return commit_list
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id=None):
+    def compare_commits(self, repo, start_sha, end_sha, organization_id):
         installation = self.get_installation(repo.integration_id, organization_id)
         client = installation.get_client()
         instance = repo.config['instance']
