@@ -45,7 +45,7 @@ class VstsIntegration(Integration, VstsIssueSync):
 
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
-    def get_project_config(self):
+    def get_organization_config(self):
         client = self.get_client()
         instance = self.model.metadata['domain_name']
 
@@ -136,7 +136,6 @@ class VstsIntegrationProvider(IntegrationProvider):
     oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
     integration_cls = VstsIntegration
-    can_add_project = True
     features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     setup_dialog_config = {
