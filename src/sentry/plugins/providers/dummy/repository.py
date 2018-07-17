@@ -19,7 +19,7 @@ class DummyRepositoryProvider(RepositoryProvider):
             }
         ]
 
-    def create_repository(self, organization, data):
+    def create_repository(self, organization, data, actor=None):
         return {
             'name': data['name'],
         }
