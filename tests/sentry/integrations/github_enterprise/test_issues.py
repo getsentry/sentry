@@ -25,7 +25,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
             external_id='github_external_id',
             name='getsentry',
             metadata={
-                'domain_name': '35.232.149.196',
+                'domain_name': 'https://35.232.149.196',
                 'installation_id': 'installation_id',
                 'installation': {
                     'id': 2,

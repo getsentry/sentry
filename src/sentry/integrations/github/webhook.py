@@ -73,17 +73,13 @@ class InstallationEventWebhook(Webhook):
     def __call__(self, event, host=None):
         installation = event['installation']
         if installation and event['action'] == 'deleted':
+            external_id = event['installation']['id']
             if host:
                 external_id = '{}:{}'.format(host, event['installation']['id'])
-                integration = Integration.objects.get(
-                    external_id=external_id,
-                    provider=self.provider,
-                )
-            else:
-                integration = Integration.objects.get(
-                    external_id=event['installation']['id'],
-                    provider=self.provider,
-                )
+            integration = Integration.objects.get(
+                external_id=external_id,
+                provider=self.provider,
+            )
             self._handle_delete(event, integration)
 
     def _handle_delete(self, event, integration):
@@ -276,7 +272,7 @@ class PullRequestEventWebhook(Webhook):
 
     def get_idp_external_id(self, host=None):
         # todo(meredith): when we have the integration will return
-        # integration.external_id
+        # options.get(github-app.id)
         return
 
     def _handle(self, event, organization, repo, host=None):
