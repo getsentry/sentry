@@ -158,8 +158,8 @@ class VstsIntegrationTest(APITestCase):
         assert projects[1]['id'] == self.projects[1][0] and projects[1]['name'] == self.projects[1][1]
 
     @responses.activate
-    def test_get_project_config(self):
-        fields = self.integration.get_project_config()
+    def test_get_organization_config(self):
+        fields = self.integration.get_organization_config()
         assert len(fields) == 6
         names = [
             'resolve_status',
