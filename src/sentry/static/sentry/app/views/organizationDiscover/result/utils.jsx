@@ -6,9 +6,9 @@ import styled from 'react-emotion';
  * rendering in the "discover" result table. Handles only the 3 types
  * that we would expect to be present in Snuba data - string, null and array
  */
-function getDisplayValue(val) {
+function getDisplayValue(val, idx) {
   if (typeof val === 'string') {
-    return <DarkGray key={val}>{`"${val}"`}</DarkGray>;
+    return <DarkGray key={idx}>{`"${val}"`}</DarkGray>;
   }
 
   if (val === null) {
@@ -19,8 +19,8 @@ function getDisplayValue(val) {
     return (
       <span>
         [
-        {val.map(getDisplayValue).reduce((acc, curr, idx) => {
-          if (idx !== 0) {
+        {val.map(getDisplayValue).reduce((acc, curr, arrayIdx) => {
+          if (arrayIdx !== 0) {
             return [...acc, ',', curr];
           }
           return [...acc, curr];
