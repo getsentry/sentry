@@ -32,7 +32,7 @@ const ProjectSettingsNavigation = createReactClass({
 
     return (
       <SettingsNavigation
-        navigationObjects={getConfiguration(project)}
+        navigationObjects={getConfiguration({project})}
         access={access}
         features={features}
         organization={org}
