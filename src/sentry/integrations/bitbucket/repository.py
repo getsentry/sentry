@@ -56,7 +56,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             },
         ]
 
-    def validate_config(self, organization, config, actor=None):
+    def validate_config(self, organization, config):
         """
         ```
         if config['foo'] and not config['bar']:
@@ -92,7 +92,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 )
         return secret
 
-    def create_repository(self, organization, data, actor=None):
+    def create_repository(self, organization, data):
         installation = self.get_installation(data['integration_id'], organization.id)
         client = installation.get_client()
         try:
@@ -120,7 +120,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'integration_id': data['integration_id'],
             }
 
-    def delete_repository(self, repo, actor=None):
+    def delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
@@ -143,7 +143,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             } for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None):
+    def compare_commits(self, repo, start_sha, end_sha):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         # use config name because that is kept in sync via webhooks

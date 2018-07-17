@@ -61,6 +61,10 @@ def handle_invalid_identity(identity, commit_failure=False):
     default_retry_delay=60 * 5,
     max_retries=5
 )
+def is_integration_provider(provider):
+    return provider and provider.startswith('integrations:')
+
+
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist, ))
 def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
     # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
@@ -92,8 +96,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             continue
 
-        binding_key = 'integration-repository.provider' if repo.provider and repo.provider.startswith(
-            'integrations:') else 'repository.provider'
+        binding_key = 'integration-repository.provider' if is_integration_provider(repo.provider) else 'repository.provider'
         try:
             provider_cls = bindings.get(binding_key).get(repo.provider)
         except KeyError:
@@ -120,7 +123,10 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
         try:
-            repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
+            if is_integration_provider(provider):
+                repo_commits = provider.compare_commits(repo, start_sha, end_sha, organization_id=repo.organization_id)
+            else:
+                repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
             pass
         except Exception as exc:

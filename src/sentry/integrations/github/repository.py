@@ -57,7 +57,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return repo_data
 
-    def validate_config(self, organization, config, actor=None):
+    def validate_config(self, organization, config):
         """
         ```
         if config['foo'] and not config['bar']:
@@ -77,7 +77,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return config
 
-    def create_repository(self, organization, data, actor=None):
+    def create_repository(self, organization, data):
         return {
             'name': data['name'],
             'external_id': data['external_id'],
@@ -99,7 +99,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             } for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None):
+    def compare_commits(self, repo, start_sha, end_sha):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')

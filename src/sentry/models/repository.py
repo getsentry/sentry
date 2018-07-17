@@ -35,9 +35,12 @@ class Repository(Model):
 
     __repr__ = sane_repr('organization_id', 'name', 'provider')
 
+    def has_integration_provider(self):
+        return self.provider and self.provider.startswith('integrations:')
+
     def get_provider(self):
         from sentry.plugins import bindings
-        if self.provider and self.provider.startswith('integrations:'):
+        if self.has_integration_provider():
             provider_cls = bindings.get('integration-repository.provider').get(self.provider)
             return provider_cls(self.provider)
 
@@ -62,21 +65,31 @@ class Repository(Model):
 
 
 def on_delete(instance, actor=None, **kwargs):
-    from sentry.exceptions import InvalidIdentity, PluginError
-    try:
-        instance.get_provider().delete_repository(
-            repo=instance,
-            actor=actor,
-        )
-    except Exception as exc:
-        if isinstance(exc, (PluginError, InvalidIdentity)):
+    # TODO(lb): I'm assuming that this is used by integrations... is it?
+    def handle_exception(exc):
+        from sentry.exceptions import InvalidIdentity, PluginError
+        from sentry.integrations.exceptions import IntegrationError
+        if isinstance(exc, (IntegrationError, PluginError, InvalidIdentity)):
             error = exc.message
         else:
             error = 'An unknown error occurred'
-
         if actor is not None:
             msg = instance.generate_delete_fail_email(error)
             msg.send_async(to=[actor.email])
+
+    if instance.has_integration_provider():
+        try:
+            instance.get_provider().delete_repository(repo=instance)
+        except Exception as exc:
+            handle_exception(exc)
+    else:
+        try:
+            instance.get_provider().delete_repository(
+                repo=instance,
+                actor=actor,
+            )
+        except Exception as exc:
+            handle_exception(exc, actor)
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)
