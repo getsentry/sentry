@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
-from sentry.integrations.exception import IntegrationError
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Repository
 
 
