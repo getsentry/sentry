@@ -119,11 +119,8 @@ class ErrorPageEmbedView(View):
             return self._json_response(request, {'dsn': 'Missing or invalid parameter.'}, status=404)
 
         origin = self._get_origin(request)
-        if not origin:
-            return self._json_response(request, status=403)
-
         if not is_valid_origin(origin, key.project):
-            return HttpResponse(status=403)
+            return self._json_response(request, status=403)
 
         if request.method == 'OPTIONS':
             return self._json_response(request)
