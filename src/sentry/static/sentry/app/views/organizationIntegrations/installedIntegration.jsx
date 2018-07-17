@@ -11,7 +11,6 @@ import IntegrationItem from 'app/views/organizationIntegrations/integrationItem'
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits'];
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
@@ -23,21 +22,11 @@ export default class InstalledIntegration extends React.Component {
     onReinstallIntegration: PropTypes.func.isRequired,
   };
 
-  /**
-   * Integrations have additional configuration when any of the conditions are
-   * met:
-   *
-   * - The Integration has organization-specific configuration options.
-   * - The Integration can be enabled for projects.
-   * - The Integration has configurable features
-   */
   hasConfiguration() {
     const {integration, provider} = this.props;
 
     return (
-      integration.configProject.length > 0 ||
-      provider.canAddProject ||
-      provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
+      integration.configOrganization.length > 0
     );
   }
 
@@ -134,7 +123,7 @@ export default class InstalledIntegration extends React.Component {
               <Tooltip
                 disabled={this.hasConfiguration()}
                 tooltipOptions={{placement: 'left'}}
-                title="Integration not configurable"
+                title="Integration not configurable at the organization level"
               >
                 <span>
                   <Button
