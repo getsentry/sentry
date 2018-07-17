@@ -136,7 +136,7 @@ function routes() {
         name="Security"
         path="security/"
         componentPromise={() =>
-          import(/*webpackChunkName: "AccountSecurityWrapper"*/ './views/settings/account/accountSecurity/AccountSecurityWrapper')}
+          import(/*webpackChunkName: "AccountSecurityWrapper"*/ './views/settings/account/accountSecurity/accountSecurityWrapper')}
         component={errorHandler(LazyLoad)}
       >
         <IndexRoute

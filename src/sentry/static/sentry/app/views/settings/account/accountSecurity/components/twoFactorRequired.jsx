@@ -14,7 +14,7 @@ let StyledAlert = styled(Alert)`
 
 class TwoFactorRequired extends AsyncComponent {
   static propTypes = {
-    orgsRequire2fa: PropTypes.arrayOf(PropTypes.string).isRequired,
+    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
   };
 
   renderBody() {

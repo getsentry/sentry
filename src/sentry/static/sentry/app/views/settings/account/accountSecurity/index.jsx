@@ -28,7 +28,7 @@ const AuthenticatorName = styled.span`
 class AccountSecurity extends AsyncView {
   static PropTypes = {
     authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
-    orgsRequire2fa: PropTypes.arrayOf(PropTypes.string).isRequired,
+    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
     countEnrolled: PropTypes.number.isRequired,
     deleteDisabled: PropTypes.bool.isRequired,
   };
@@ -103,6 +103,7 @@ class AccountSecurity extends AsyncView {
                             to={`/settings/account/security/${id}/enroll/`}
                             size="small"
                             priority="primary"
+                            className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
@@ -113,6 +114,7 @@ class AccountSecurity extends AsyncView {
                           <Button
                             to={`/settings/account/security/${authId}/`}
                             size="small"
+                            className="details-button"
                           >
                             {configureButton}
                           </Button>
