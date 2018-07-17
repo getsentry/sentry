@@ -89,7 +89,7 @@ def on_delete(instance, actor=None, **kwargs):
                 actor=actor,
             )
         except Exception as exc:
-            handle_exception(exc, actor)
+            handle_exception(exc)
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)
