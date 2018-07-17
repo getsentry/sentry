@@ -92,16 +92,23 @@ class ErrorPageEmbedView(View):
     def _get_origin(self, request):
         return origin_from_request(request)
 
-    def _json_response(self, request, context=None, status=200):
-        if context:
-            content = json.dumps(context)
-        else:
+    def _smart_response(self, request, context=None, status=200):
+        json_context = json.dumps(context or {})
+        accept = request.META.get('HTTP_ACCEPT') or ''
+        if 'text/javascript' in accept:
+            content_type = 'text/javascript'
             content = ''
-        response = HttpResponse(content, status=status, content_type='application/json')
+        else:
+            content_type = 'application/json'
+            content = json_context
+        response = HttpResponse(content, status=status, content_type=content_type)
         response['Access-Control-Allow-Origin'] = request.META.get('HTTP_ORIGIN', '')
         response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
         response['Access-Control-Max-Age'] = '1000'
         response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        response['Vary'] = 'Accept'
+        if content == '' and context:
+            response['X-Sentry-Context'] = json_context
         return response
 
     @csrf_exempt
@@ -109,21 +116,21 @@ class ErrorPageEmbedView(View):
         try:
             event_id = request.GET['eventId']
         except KeyError:
-            return self._json_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
+            return self._smart_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
         if event_id and not is_event_id(event_id):
-            return self._json_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
+            return self._smart_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
         key = self._get_project_key(request)
         if not key:
-            return self._json_response(request, {'dsn': 'Missing or invalid parameter.'}, status=404)
+            return self._smart_response(request, {'dsn': 'Missing or invalid parameter.'}, status=404)
 
         origin = self._get_origin(request)
         if not is_valid_origin(origin, key.project):
-            return self._json_response(request, status=403)
+            return self._smart_response(request, status=403)
 
         if request.method == 'OPTIONS':
-            return self._json_response(request)
+            return self._smart_response(request)
 
         # customization options
         options = DEFAULT_OPTIONS.copy()
@@ -183,9 +190,9 @@ class ErrorPageEmbedView(View):
 
             user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
-            return self._json_response(request)
+            return self._smart_response(request)
         elif request.method == 'POST':
-            return self._json_response(
+            return self._smart_response(
                 request, {
                     "errors": dict(form.errors),
                 }, status=400
