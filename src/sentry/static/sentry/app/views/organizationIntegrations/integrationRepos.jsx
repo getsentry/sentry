@@ -149,7 +149,7 @@ export default class IntegrationRepos extends AsyncComponent {
     let items = (repositories || []).map(repo => {
       return {
         searchKey: `${repo.name}`,
-        value: `${repo.full_name}`,
+        value: `${repo.identifier}`,
         label: (
           <StyledListElement>
             <StyledName>{repo.name}</StyledName>

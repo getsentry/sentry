@@ -23,7 +23,7 @@ class VstsApiPath(object):
     delete = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repository = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
-    repositories = u'https://{accountName}.visualstudio.com/{project}/_apis/git/repositories'
+    repositories = u'https://{account_name}.visualstudio.com/{project}/_apis/git/repositories'
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'

@@ -53,7 +53,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         for repo in repos:
             data.append({
                 'name': repo['name'],
-                'full_name': repo['id'],  # TODO(lb): uhhh???? there is no full name
+                'identifier': repo['id'],  # TODO(lb): uhhh???? there is no full name
             })
         return data
 
@@ -154,7 +154,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
     integration_cls = VstsIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset([IntegrationFeatures.ISSUE_SYNC, IntegrationFeatures.COMMITS])
 
     setup_dialog_config = {
         'width': 600,
