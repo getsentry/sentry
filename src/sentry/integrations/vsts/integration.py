@@ -168,21 +168,14 @@ class VstsIntegrationProvider(IntegrationProvider):
         account = state['account']
         instance = state['instance']
         user = get_user_info(data['access_token'])
-        try:
-            IntegrationModel.objects.get(provider='vsts', external_id=account['AccountId'])
-        except IntegrationModel.DoesNotExist:
-            subscription_id, subscription_secret = self.create_subscription(
-                instance, account['AccountId'], oauth_data)
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
 
-        return {
+        integration = {
             'name': account['AccountName'],
             'external_id': account['AccountId'],
             'metadata': {
                 'domain_name': instance,
                 'scopes': scopes,
-                'subscription_id': subscription_id,
-                'subscription_secret': subscription_secret,
             },
             'user_identity': {
                 'type': 'vsts',
@@ -191,6 +184,18 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'data': oauth_data,
             },
         }
+
+        try:
+            IntegrationModel.objects.get(provider='vsts', external_id=account['AccountId'])
+        except IntegrationModel.DoesNotExist:
+            subscription_id, subscription_secret = self.create_subscription(
+                instance, account['AccountId'], oauth_data)
+            integration['metadata']['subscription'] = {
+                'id': subscription_id,
+                'secret': subscription_secret,
+            }
+
+        return integration
 
     def create_subscription(self, instance, account_id, oauth_data):
         webhook = WorkItemWebhook()
