@@ -195,6 +195,8 @@ class IssueSyncMixin(IssueBasicMixin):
         affected_groups = list(
             Group.objects.get_groups_by_external_issue(
                 self.model, issue_key,
+            ).filter(
+                project__organization_id=self.organization_id,
             ).select_related('project'),
         )
 
