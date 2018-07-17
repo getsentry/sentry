@@ -197,11 +197,29 @@ class GroupListTest(APITestCase):
         )
 
         self.login_as(user=self.user)
+
         response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
         assert response.data[0]['matchingEventId'] == event.id
+
+    def test_lookup_by_event_with_matching_environment(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        self.create_environment(name="test", project=project)
+        group = self.create_group(checksum='a' * 32)
+        self.create_group(checksum='b' * 32)
+        event_id = 'c' * 32
+        event = self.create_event(project_id=self.project.id, group=group, event_id=event_id, tags={'environment': 'test'})
+        self.login_as(user=self.user)
+
+        response = self.client.get('{}?query={}&environment=test'.format(self.path, 'c' * 32), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['matchingEventId'] == event.id
+        assert response.data[0]['matchingEventEnvironment'] == 'test'
 
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project

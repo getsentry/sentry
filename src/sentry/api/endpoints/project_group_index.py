@@ -339,11 +339,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     matching_group = None
 
             if matching_group is not None:
+                matching_event_environment = None
+
+                try:
+                    matching_event_environment = matching_event.get_environment().name if matching_event else None
+                except Environment.DoesNotExist:
+                    pass
+
                 response = Response(
                     serialize(
                         [matching_group], request.user, serializer(
                             matching_event_id=getattr(matching_event, 'id', None),
-                            matching_event_environment=matching_event.get_environment().name if matching_event else None,
+                            matching_event_environment=matching_event_environment,
                         )
                     )
                 )
