@@ -59,6 +59,7 @@ class AuthenticatorDate extends React.Component {
 class AccountSecurityDetails extends AsyncView {
   static PropTypes = {
     deleteDisabled: PropTypes.bool.isRequired,
+    handleRegenerateBackupCodes: PropTypes.func.isRequired,
   };
   constructor(...args) {
     super(...args);
@@ -113,20 +114,9 @@ class AccountSecurityDetails extends AsyncView {
     // TODO(billy): Implement me
   };
 
-  handleRegenerateBackupCodes = () => {
-    this.setState({loading: true}, () =>
-      this.api
-        .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
-          method: 'PUT',
-        })
-        .then(this.remountComponent, () =>
-          this.addError(t('Error regenerating backup codes'))
-        )
-    );
-  };
-
   renderBody() {
     let {authenticator} = this.state;
+    let {deleteDisabled, handleRegenerateBackupCodes} = this.props;
 
     return (
       <div>
@@ -140,10 +130,7 @@ class AccountSecurityDetails extends AsyncView {
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (
-              <RemoveConfirm
-                onConfirm={this.handleRemove}
-                disabled={this.props.deleteDisabled}
-              >
+              <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
                 <Button priority="danger">{authenticator.removeButton}</Button>
               </RemoveConfirm>
             )
@@ -170,7 +157,7 @@ class AccountSecurityDetails extends AsyncView {
           )}
 
         <RecoveryCodes
-          onRegenerateBackupCodes={this.handleRegenerateBackupCodes}
+          onRegenerateBackupCodes={handleRegenerateBackupCodes}
           isEnrolled={authenticator.isEnrolled}
           codes={authenticator.codes}
         />

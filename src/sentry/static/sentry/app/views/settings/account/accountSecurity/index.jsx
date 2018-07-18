@@ -28,13 +28,20 @@ class AccountSecurity extends AsyncView {
     orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
     countEnrolled: PropTypes.number.isRequired,
     deleteDisabled: PropTypes.bool.isRequired,
+    handleDisable: PropTypes.func.isRequired,
   };
   getTitle() {
     return t('Security');
   }
 
   renderBody() {
-    let {authenticators, orgsRequire2fa, countEnrolled, deleteDisabled} = this.props;
+    let {
+      authenticators,
+      orgsRequire2fa,
+      countEnrolled,
+      deleteDisabled,
+      handleDisable,
+    } = this.props;
     let isEmpty = !authenticators.length;
 
     return (
@@ -101,7 +108,7 @@ class AccountSecurity extends AsyncView {
                       {!isBackupInterface &&
                         isEnrolled && (
                           <RemoveConfirm
-                            onConfirm={() => this.props.handleDisable(auth)}
+                            onConfirm={() => handleDisable(auth)}
                             disabled={deleteDisabled}
                           >
                             <Button css={{marginLeft: 6}} size="small">

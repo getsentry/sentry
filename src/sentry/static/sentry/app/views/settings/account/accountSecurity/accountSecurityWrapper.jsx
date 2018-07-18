@@ -1,3 +1,4 @@
+import {withRouter} from 'react-router';
 import React from 'react';
 import AsyncView from 'app/views/asyncView';
 
@@ -30,6 +31,18 @@ class AccountSecurityWrapper extends AsyncView {
     );
   };
 
+  handleRegenerateBackupCodes = () => {
+    this.setState({loading: true}, () =>
+      this.api
+        .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
+          method: 'PUT',
+        })
+        .then(this.remountComponent, () =>
+          this.addError(t('Error regenerating backup codes'))
+        )
+    );
+  };
+
   renderBody() {
     let {authenticators, organizations} = this.state;
 
@@ -41,6 +54,7 @@ class AccountSecurityWrapper extends AsyncView {
 
     return React.cloneElement(this.props.children, {
       handleDisable: this.handleDisable.bind(this),
+      handleRegenerateBackupCodes: this.handleRegenerateBackupCodes.bind(this),
       authenticators,
       deleteDisabled,
       orgsRequire2fa,
@@ -49,4 +63,4 @@ class AccountSecurityWrapper extends AsyncView {
   }
 }
 
-export default AccountSecurityWrapper;
+export default withRouter(AccountSecurityWrapper);

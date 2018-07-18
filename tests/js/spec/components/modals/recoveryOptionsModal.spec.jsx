@@ -14,7 +14,7 @@ describe('RecoveryOptionsModal', function() {
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: Object.values(TestStubs.Authenticators()).map(x => x()),
+      body: TestStubs.AllAuthenticators(),
     });
     wrapper = mount(
       <RecoveryOptionsModal

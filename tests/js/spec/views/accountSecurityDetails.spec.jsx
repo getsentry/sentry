@@ -3,8 +3,10 @@ import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import AccountSecurityDetails from 'app/views/settings/account/accountSecurity/accountSecurityDetails';
+import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
+const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurityDetails', function() {
   let wrapper;
@@ -13,11 +15,21 @@ describe('AccountSecurityDetails', function() {
     Client.clearMockResponses();
     beforeAll(function() {
       Client.addMockResponse({
+        url: ENDPOINT,
+        body: TestStubs.AllAuthenticators(),
+      });
+      Client.addMockResponse({
+        url: ORG_ENDPOINT,
+        body: TestStubs.Organizations(),
+      });
+      Client.addMockResponse({
         url: `${ENDPOINT}15/`,
         body: TestStubs.Authenticators().Totp(),
       });
       wrapper = mount(
-        <AccountSecurityDetails />,
+        <AccountSecurityWrapper>
+          <AccountSecurityDetails />
+        </AccountSecurityWrapper>,
         TestStubs.routerContext([
           {
             router: {
@@ -59,11 +71,21 @@ describe('AccountSecurityDetails', function() {
     beforeEach(function() {
       Client.clearMockResponses();
       Client.addMockResponse({
+        url: ENDPOINT,
+        body: TestStubs.AllAuthenticators(),
+      });
+      Client.addMockResponse({
+        url: ORG_ENDPOINT,
+        body: TestStubs.Organizations(),
+      });
+      Client.addMockResponse({
         url: `${ENDPOINT}16/`,
         body: TestStubs.Authenticators().Recovery(),
       });
       wrapper = mount(
-        <AccountSecurityDetails />,
+        <AccountSecurityWrapper>
+          <AccountSecurityDetails />
+        </AccountSecurityWrapper>,
         TestStubs.routerContext([
           {
             router: {
