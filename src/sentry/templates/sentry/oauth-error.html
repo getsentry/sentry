@@ -7,6 +7,7 @@
 {% block title %}{% trans "Authorization Error" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
+  <div class="auth-container">
     <div style="font-size:24px;margin-bottom:10px">
       <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
       <span>Authorization Error</span>
@@ -17,4 +18,5 @@
     <ul>
       <li>{{ error }}</li>
     </ul>
+  </div>
 {% endblock %}
