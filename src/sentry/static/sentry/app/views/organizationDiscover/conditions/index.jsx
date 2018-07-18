@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
@@ -8,7 +7,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
-import {PlaceholderText, SelectListItem} from '../styles';
+import {PlaceholderText, SelectListItem, AddText} from '../styles';
 
 export default class Conditions extends React.Component {
   static propTypes = {
@@ -17,18 +16,7 @@ export default class Conditions extends React.Component {
     columns: PropTypes.array,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      editIndex: null,
-    };
-  }
-
   addRow() {
-    const idx = this.props.value.length;
-    this.setState({
-      editIndex: idx,
-    });
     this.props.onChange([...this.props.value, [null, null, null]]);
   }
 
@@ -53,9 +41,9 @@ export default class Conditions extends React.Component {
       <div>
         <div>
           <strong>{t('Conditions')}</strong>
-          <Add>
+          <AddText>
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </Add>
+          </AddText>
         </div>
         {!value.length && (
           <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
@@ -78,12 +66,3 @@ export default class Conditions extends React.Component {
     );
   }
 }
-
-const Add = styled.span`
-  font-style: italic;
-  text-decoration: underline;
-  margin-left: 4px;
-  font-size: 13px;
-  line-height: 16px;
-  color: ${p => p.theme.gray1};
-`;
