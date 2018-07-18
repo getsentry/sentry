@@ -61,7 +61,7 @@ class GitHubAppsProviderTest(PluginTestCase):
             config={'name': 'example-repo'},
         )
 
-        self.provider.compare_commits(repo, None, 'a' * 40)
+        self.provider.compare_commits(repo, None, 'a' * 40, organization.id)
 
         assert mock_get_last_commits.called
 
@@ -96,6 +96,6 @@ class GitHubAppsProviderTest(PluginTestCase):
             }
         ]
 
-        self.provider.compare_commits(repo, 'b' * 40, 'a' * 40)
+        self.provider.compare_commits(repo, 'b' * 40, 'a' * 40, organization.id)
 
         assert mock_compare_commits.called
