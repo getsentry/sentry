@@ -18,7 +18,11 @@
         </a>
       </div>
       <section class="org-login">
-        {% block auth_main %}{% endblock %}
+        {% block auth_container %}
+          <div class="auth-container">
+            {% block auth_main %}{% endblock %}
+          </div>
+        {% endblock %}
       </section>
     </div>
 </div>
