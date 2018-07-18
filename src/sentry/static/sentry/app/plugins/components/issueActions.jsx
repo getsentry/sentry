@@ -132,9 +132,9 @@ class IssueActions extends PluginComponentBase {
     }
   }
 
-  onSuccess() {
+  onSuccess(data) {
     GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-    this.props.onSuccess && this.props.onSuccess();
+    this.props.onSuccess && this.props.onSuccess(data);
   }
 
   createIssue() {

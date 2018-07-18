@@ -10,7 +10,13 @@ class IssueSyncElement extends React.Component {
     externalIssueId: PropTypes.string,
     openModal: PropTypes.func,
     onClose: PropTypes.func,
-    integrationType: PropTypes.oneOf(['github', 'github_enterprise', 'jira', 'vsts']),
+    integrationType: PropTypes.oneOf([
+      'github',
+      'github_enterprise',
+      'jira',
+      'vsts',
+      'asana',
+    ]),
   };
 
   static defaultProps = {
@@ -39,6 +45,8 @@ class IssueSyncElement extends React.Component {
         return <IntegrationIcon src="icon-jira" />;
       case 'vsts':
         return <IntegrationIcon src="icon-vsts" />;
+      case 'asana':
+        return <IntegrationIcon src="icon-vsts" />;
       default:
         return null;
     }
@@ -54,6 +62,8 @@ class IssueSyncElement extends React.Component {
         return 'JIRA-';
       case 'vsts':
         return 'VSTS-';
+      case 'asana':
+        return 'ASANA-';
       default:
         return null;
     }

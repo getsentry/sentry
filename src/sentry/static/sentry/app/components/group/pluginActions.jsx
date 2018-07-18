@@ -9,12 +9,15 @@ import MenuItem from 'app/components/menuItem';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
 import {toTitleCase} from 'app/utils';
+import styled from 'react-emotion';
+import space from 'app/styles/space';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 const PluginActions = createReactClass({
   displayName: 'PluginActions',
 
   propTypes: {
+    group: PropTypes.object.isRequired,
     plugin: PropTypes.object.isRequired,
   },
 
@@ -24,6 +27,7 @@ const PluginActions = createReactClass({
     return {
       showModal: false,
       actionType: null,
+      issue: null,
       pluginLoading: false,
     };
   },
@@ -44,7 +48,20 @@ const PluginActions = createReactClass({
     unlink: t('Unlink Issue'),
   },
 
-  deleteIssue() {},
+  deleteIssue() {
+    const endpoint = `/issues/${this.props.group.id}/plugins/${
+      this.props.plugin.slug
+    }/unlink/`;
+    this.api.request(endpoint, {
+      success: data => {
+        this.setState({
+          issue: null,
+          error: null,
+        });
+      },
+      error: error => {},
+    });
+  },
 
   loadPlugin(data) {
     this.setState(
@@ -53,7 +70,8 @@ const PluginActions = createReactClass({
       },
       () => {
         plugins.load(data, () => {
-          this.setState({pluginLoading: false});
+          let issue = data.issue || null;
+          this.setState({pluginLoading: false, issue: issue});
         });
       }
     );
@@ -66,10 +84,16 @@ const PluginActions = createReactClass({
     });
   },
 
-  closeModal() {
+  closeModal(data) {
     this.setState({
       showModal: false,
       actionType: null,
+    });
+  },
+
+  handleClick(evt) {
+    this.setState({
+      actionType: evt.target.id,
     });
   },
 
@@ -130,12 +154,15 @@ const PluginActions = createReactClass({
     }
 
     // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
+    const {actionType, issue} = this.state;
     return (
       <React.Fragment>
         <IssueSyncListElement
           openModal={this.openModal}
+          externalIssueId={issue ? issue.issue_id : null}
+          externalIssueLink={issue ? issue.url : null}
           onClose={this.deleteIssue}
-          integrationType={plugin.name}
+          integrationType={plugin.id}
         />
         <Modal
           show={this.state.showModal}
@@ -146,29 +173,72 @@ const PluginActions = createReactClass({
         >
           <Modal.Header closeButton>
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
-            <button id="create" onClick={this.handleClick}>
-              Create
-            </button>
-            <button id="link" onClick={this.handleClick}>
-              Link
-            </button>
           </Modal.Header>
-          <Modal.Body>
-            {!this.state.pluginLoading &&
-              this.state.actionType &&
-              plugins.get(this.props.plugin).renderGroupActions({
-                plugin: this.props.plugin,
-                group: this.getGroup(),
-                project: this.getProject(),
-                organization: this.getOrganization(),
-                actionType: this.state.actionType,
-                onSuccess: this.closeModal,
-              })}
-          </Modal.Body>
+          {actionType == 'create' && (
+            <React.Fragment>
+              <ActiveActionButton id="create" onClick={this.handleClick}>
+                Create
+              </ActiveActionButton>
+              <ActionButton id="link" onClick={this.handleClick}>
+                Link
+              </ActionButton>
+            </React.Fragment>
+          )}
+          {actionType == 'link' && (
+            <React.Fragment>
+              <ActionButton id="create" onClick={this.handleClick}>
+                Create
+              </ActionButton>
+              <ActiveActionButton id="link" onClick={this.handleClick}>
+                Link
+              </ActiveActionButton>
+            </React.Fragment>
+          )}
+          {actionType == 'create' &&
+            !this.state.pluginLoading && (
+              <Modal.Body>
+                {plugins.get(this.props.plugin).renderGroupActions({
+                  plugin: this.props.plugin,
+                  group: this.getGroup(),
+                  project: this.getProject(),
+                  organization: this.getOrganization(),
+                  actionType: actionType,
+                  onSuccess: this.closeModal,
+                })}
+              </Modal.Body>
+            )}
+          {actionType == 'link' &&
+            !this.state.pluginLoading && (
+              <Modal.Body>
+                {plugins.get(this.props.plugin).renderGroupActions({
+                  plugin: this.props.plugin,
+                  group: this.getGroup(),
+                  project: this.getProject(),
+                  organization: this.getOrganization(),
+                  actionType: actionType,
+                  onSuccess: this.closeModal,
+                })}
+              </Modal.Body>
+            )}
         </Modal>
       </React.Fragment>
     );
   },
 });
+
+const ActionButton = styled('span')`
+  margin-right: ${space(1)};
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  top: ${space(-10)};
+`;
+
+const ActiveActionButton = styled('span')`
+  margin-right: ${space(1)};
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  top: ${space(-10)};
+  border-bottom: 4px solid ${p => p.theme.purple};
+`;
 
 export default PluginActions;

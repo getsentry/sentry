@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
+import PluginActions from 'app/components/group/pluginActions';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
@@ -29,11 +30,19 @@ class ExternalIssueList extends AsyncComponent {
     return externalIssues;
   }
 
+  renderPluginIssues() {
+    const {group} = this.props;
+    return group.pluginIssues.map(plugin => {
+      return <PluginActions group={group} plugin={plugin} />;
+    });
+  }
+
   render() {
     const {integrations} = this.state;
     return (
       <React.Fragment>
         {integrations && this.renderIntegrationIssues(integrations)}
+        {this.props.group && this.renderPluginIssues()}
       </React.Fragment>
     );
   }

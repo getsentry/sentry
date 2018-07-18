@@ -11,9 +11,8 @@ import Form from 'app/views/settings/components/forms/form';
 import MenuItem from 'app/components/menuItem';
 import {t, tct} from 'app/locale';
 import _ from 'lodash';
-
-import {Flex, Box} from 'grid-emotion';
-import PluginActions from 'app/components/group/pluginActions';
+import styled from 'react-emotion';
+import space from 'app/styles/space';
 
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
@@ -257,13 +256,27 @@ class ExternalIssueActions extends AsyncComponent {
           >
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
-              <button id="create" onClick={this.handleClick}>
-                Create
-              </button>
-              <button id="link" onClick={this.handleClick}>
-                Link
-              </button>
             </Modal.Header>
+            {action == 'create' && (
+              <React.Fragment>
+                <ActiveActionButton id="create" onClick={this.handleClick}>
+                  Create
+                </ActiveActionButton>
+                <ActionButton id="link" onClick={this.handleClick}>
+                  Link
+                </ActionButton>
+              </React.Fragment>
+            )}
+            {action == 'link' && (
+              <React.Fragment>
+                <ActionButton id="create" onClick={this.handleClick}>
+                  Create
+                </ActionButton>
+                <ActiveActionButton id="link" onClick={this.handleClick}>
+                  Link
+                </ActiveActionButton>
+              </React.Fragment>
+            )}
             <Modal.Body>
               {action == 'create' && (
                 <ExternalIssueForm
@@ -288,5 +301,20 @@ class ExternalIssueActions extends AsyncComponent {
     );
   }
 }
+
+const ActionButton = styled('span')`
+  margin-right: ${space(1)};
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  top: ${space(-10)};
+`;
+
+const ActiveActionButton = styled('span')`
+  margin-right: ${space(1)};
+  border: none;
+  padding: ${space(1)} ${space(1.5)};
+  top: ${space(-10)};
+  border-bottom: 4px solid ${p => p.theme.purple};
+`;
 
 export default ExternalIssueActions;

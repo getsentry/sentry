@@ -105,7 +105,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
-        return Response(status=201)
+        context = {
+            'id': external_issue.id,
+            'key': external_issue.key,
+            'integrationId': external_issue.integration_id,
+        }
+        return Response(context, status=201)
 
     def post(self, request, group, integration_id):
         organization_id = group.project.organization_id
