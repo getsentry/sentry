@@ -131,12 +131,15 @@ export default function createQueryBuilder(initial = {}, organization) {
     );
 
     const orderbyField = (query.orderby || '').replace(/^-/, '');
-    const hasOrderFieldInFields = query.fields.includes(orderbyField);
+    const hasOrderFieldInFields = getColumns().includes(orderbyField);
+    const hasOrderFieldInSelectedFields = query.fields.includes(orderbyField);
     const hasOrderFieldInAggregations = query.aggregations.some(
       agg => orderbyField === agg[2]
     );
 
-    const hasInvalidOrderbyField = !hasOrderFieldInFields && !hasOrderFieldInAggregations;
+    const hasInvalidOrderbyField = validAggregations.length
+      ? !hasOrderFieldInSelectedFields && !hasOrderFieldInAggregations
+      : hasOrderFieldInFields;
 
     // If orderby value becomes invalid, update it to the first valid aggregation
     if (validAggregations.length > 0 && hasInvalidOrderbyField) {
