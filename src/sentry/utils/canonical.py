@@ -114,3 +114,6 @@ class CanonicalKeyDict(collections.MutableMapping):
 
     def __delitem__(self, key):
         del self.data[self._norm_func(key)]
+
+
+CANONICAL_TYPES = (CanonicalKeyDict, CanonicalKeyView)

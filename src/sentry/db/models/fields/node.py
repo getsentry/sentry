@@ -21,6 +21,7 @@ from sentry import nodestore
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
+from sentry.utils.canonical import CANONICAL_TYPES
 
 from .gzippeddict import GzippedDictField
 
@@ -166,12 +167,18 @@ class NodeField(GzippedDictField):
             # save ourselves some storage
             return None
 
+        # We can't put our wrappers into the nodestore, so we need to
+        # ensure that the data is converted into a plain old dict
+        data = value.data
+        if isinstance(data, CANONICAL_TYPES):
+            data = dict(data.items())
+
         # TODO(dcramer): we should probably do this more intelligently
         # and manually
         if not value.id:
-            value.id = nodestore.create(value.data)
+            value.id = nodestore.create(data)
         else:
-            nodestore.set(value.id, value.data)
+            nodestore.set(value.id, data)
 
         return compress(pickle.dumps({'node_id': value.id}))
 
