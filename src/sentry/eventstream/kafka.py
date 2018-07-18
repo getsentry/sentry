@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 # Beware! Changing this, or the message format/fields themselves requires
 # consideration of all downstream consumers.
-# Version 0 format: (0, '(insert|delete)', {..event json...})
-EVENT_PROTOCOL_VERSION = 0
+# Version 1 format: (1, '(insert|delete)', {...event json...}, {...state for post-processing...})
+EVENT_PROTOCOL_VERSION = 1
 
 
 class KafkaPublisher(object):
@@ -58,6 +58,11 @@ class KafkaEventStream(EventStream):
                 'data': event.data.data,
                 'primary_hash': primary_hash,
                 'retention_days': retention_days,
+            }, {
+                'is_new': is_new,
+                'is_sample': is_sample,
+                'is_regression': is_regression,
+                'is_new_group_environment': is_new_group_environment,
             })
 
             self.pubsub.publish(self.publish_topic, key=key.encode('utf-8'), value=json.dumps(value))
