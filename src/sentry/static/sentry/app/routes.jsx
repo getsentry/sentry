@@ -11,6 +11,7 @@ import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
 import GroupTagValues from 'app/views/groupTagValues';
 import GroupTags from 'app/views/groupTags';
 import GroupUserFeedback from 'app/views/groupUserFeedback';
+import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
@@ -59,8 +60,6 @@ import SettingsProjectProvider from 'app/views/settings/components/settingsProje
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import Stream from 'app/views/stream';
 import errorHandler from 'app/utils/errorHandler';
-
-import HookOrDefault from 'app/components/hookOrDefault';
 
 function appendTrailingSlash(nextState, replace) {
   let lastChar = nextState.location.pathname.slice(-1);
@@ -472,7 +471,10 @@ function routes() {
       <Route
         path="auth/"
         name="Auth Providers"
-        component={HookOrDefault({hookName:'component:org-auth-view', defaultComponent: OrganizationAuth})}
+        component={HookOrDefault({
+          hookName: 'component:org-auth-view',
+          defaultComponent: OrganizationAuth,
+        })}
       />
 
       <Route path="members/" name="Members">

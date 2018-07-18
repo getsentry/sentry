@@ -35,7 +35,7 @@ class SettingsNavigation extends React.Component {
       experiment_name: 'SSOPaywallExperiment',
       unit_name: 'org_id',
       unit_id: parseInt(organization.id, 10),
-      params: `{exposed: ${treatment}}`,
+      params: `{exposed: ${treatment ? 1 : 0}}`,
     };
 
     HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
