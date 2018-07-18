@@ -14,6 +14,12 @@ from sentry.utils.pubsub import QueuedPublisher
 logger = logging.getLogger(__name__)
 
 
+# Beware! Changing this, or the message format/fields themselves requires
+# consideration of all downstream consumers.
+# Version 1 format: (1, '(insert|delete)', {...event json...}, {...state for post-processing...})
+EVENT_PROTOCOL_VERSION = 1
+
+
 class KafkaPublisher(object):
     def __init__(self, connection):
         self.connection = connection or {}
@@ -41,28 +47,23 @@ class KafkaEventStream(EventStream):
 
         try:
             key = '%s:%s' % (event.project_id, event.event_id)
-            value = (
-                1,  # protocol version marker
-                'insert',  # operation type
-                {  # event data
-                    'group_id': event.group_id,
-                    'event_id': event.event_id,
-                    'organization_id': project.organization_id,
-                    'project_id': event.project_id,
-                    'message': event.message,
-                    'platform': event.platform,
-                    'datetime': event.datetime,
-                    'data': event.data.data,
-                    'primary_hash': primary_hash,
-                    'retention_days': retention_days,
-                },
-                {  # state (for post-processing)
-                    'is_new': is_new,
-                    'is_sample': is_sample,
-                    'is_regression': is_regression,
-                    'is_new_group_environment': is_new_group_environment,
-                },
-            )
+            value = (EVENT_PROTOCOL_VERSION, 'insert', {
+                'group_id': event.group_id,
+                'event_id': event.event_id,
+                'organization_id': project.organization_id,
+                'project_id': event.project_id,
+                'message': event.message,
+                'platform': event.platform,
+                'datetime': event.datetime,
+                'data': event.data.data,
+                'primary_hash': primary_hash,
+                'retention_days': retention_days,
+            }, {
+                'is_new': is_new,
+                'is_sample': is_sample,
+                'is_regression': is_regression,
+                'is_new_group_environment': is_new_group_environment,
+            })
 
             self.pubsub.publish(self.publish_topic, key=key.encode('utf-8'), value=json.dumps(value))
         except Exception as error:
