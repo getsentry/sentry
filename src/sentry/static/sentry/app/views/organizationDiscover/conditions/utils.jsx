@@ -73,7 +73,8 @@ export function getExternal(internal, columns) {
 
   // Validate value and convert to correct type
   if (external[0] && external[1] && !specialConditions.has(external[1])) {
-    const valuesMatch = internal.match(/^[a-zA-Z0-9_\.:-]+ [^\s]+ (.*)$/);
+    const valuesMatch = internal.match(/^[a-zA-Z0-9_\.:-\[\]]+ [^\s]+ (.*)$/);
+
     external[2] = valuesMatch ? valuesMatch[1] : null;
     const type = columns.find(({name}) => name === colValue).type;
 
