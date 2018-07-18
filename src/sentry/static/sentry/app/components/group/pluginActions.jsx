@@ -9,8 +9,6 @@ import MenuItem from 'app/components/menuItem';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
 import {toTitleCase} from 'app/utils';
-import styled from 'react-emotion';
-import space from 'app/styles/space';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 const PluginActions = createReactClass({
@@ -182,26 +180,21 @@ const PluginActions = createReactClass({
           <Modal.Header closeButton>
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
-          {actionType == 'create' && (
-            <React.Fragment>
-              <ActiveActionButton id="create" onClick={this.handleClick}>
+          <ul
+            className="nav nav-tabs"
+            style={{'border-bottom': '1px solid rgb(221, 221, 221)'}}
+          >
+            <li className={actionType == 'create' ? 'active' : ''}>
+              <a id="create" onClick={this.handleClick}>
                 Create
-              </ActiveActionButton>
-              <ActionButton id="link" onClick={this.handleClick}>
+              </a>
+            </li>
+            <li className={actionType == 'link' ? 'active' : ''}>
+              <a id="link" onClick={this.handleClick}>
                 Link
-              </ActionButton>
-            </React.Fragment>
-          )}
-          {actionType == 'link' && (
-            <React.Fragment>
-              <ActionButton id="create" onClick={this.handleClick}>
-                Create
-              </ActionButton>
-              <ActiveActionButton id="link" onClick={this.handleClick}>
-                Link
-              </ActiveActionButton>
-            </React.Fragment>
-          )}
+              </a>
+            </li>
+          </ul>
           {actionType == 'create' &&
             !this.state.pluginLoading && (
               <Modal.Body>
@@ -233,20 +226,5 @@ const PluginActions = createReactClass({
     );
   },
 });
-
-const ActionButton = styled('span')`
-  margin-right: ${space(1)};
-  border: none;
-  padding: ${space(1)} ${space(1.5)};
-  top: ${space(-10)};
-`;
-
-const ActiveActionButton = styled('div')`
-  margin: 0 ${space(1)} ${space(2)} 0;
-  border: none;
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
-  display: inline-block;
-  border-bottom: 4px solid ${p => p.theme.purple};
-`;
 
 export default PluginActions;

@@ -60,14 +60,12 @@ class ExternalIssueForm extends AsyncComponent {
 
     let url = field.url;
     let separator = url.includes('?') ? '&' : '?';
-    return $
-      .ajax({
-        url: `${url}${separator}field=${field.name}&query=${input}${additionalParams}`,
-        method: 'GET',
-      })
-      .then(data => {
-        return {options: data};
-      });
+    return $.ajax({
+      url: `${url}${separator}field=${field.name}&query=${input}${additionalParams}`,
+      method: 'GET',
+    }).then(data => {
+      return {options: data};
+    });
   };
 
   onRequestSuccess({stateKey, data, jqXHR}) {
@@ -257,26 +255,21 @@ class ExternalIssueActions extends AsyncComponent {
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
             </Modal.Header>
-            {action == 'create' && (
-              <React.Fragment>
-                <ActiveActionButton id="create" onClick={this.handleClick}>
+            <ul
+              className="nav nav-tabs"
+              style={{'border-bottom': '1px solid rgb(221, 221, 221)'}}
+            >
+              <li className={action == 'create' ? 'active' : ''}>
+                <a id="create" onClick={this.handleClick}>
                   Create
-                </ActiveActionButton>
-                <ActionButton id="link" onClick={this.handleClick}>
+                </a>
+              </li>
+              <li className={action == 'link' ? 'active' : ''}>
+                <a id="link" onClick={this.handleClick}>
                   Link
-                </ActionButton>
-              </React.Fragment>
-            )}
-            {action == 'link' && (
-              <React.Fragment>
-                <ActionButton id="create" onClick={this.handleClick}>
-                  Create
-                </ActionButton>
-                <ActiveActionButton id="link" onClick={this.handleClick}>
-                  Link
-                </ActiveActionButton>
-              </React.Fragment>
-            )}
+                </a>
+              </li>
+            </ul>
             <Modal.Body>
               {action == 'create' && (
                 <ExternalIssueForm
@@ -301,20 +294,5 @@ class ExternalIssueActions extends AsyncComponent {
     );
   }
 }
-
-const ActionButton = styled('span')`
-  margin-right: ${space(1)};
-  border: none;
-  padding: ${space(1)} ${space(1.5)};
-  top: ${space(-10)};
-`;
-
-const ActiveActionButton = styled('span')`
-  margin-right: ${space(1)};
-  border: none;
-  padding: ${space(1)} ${space(1.5)};
-  top: ${space(-10)};
-  border-bottom: 4px solid ${p => p.theme.purple};
-`;
 
 export default ExternalIssueActions;
