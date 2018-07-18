@@ -283,10 +283,10 @@ class Symbolizer(object):
         app_err = None
         try:
             match = self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info)
+            if match:
+                return match
         except SymbolicationFailed as err:
             app_err = err
-        if match:
-            return match
 
         # Then we check the symbolserver for a match.
         match = self._convert_symbolserver_match(instruction_addr, symbolserver_match, obj)
