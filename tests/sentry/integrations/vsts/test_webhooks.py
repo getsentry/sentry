@@ -28,7 +28,10 @@ class VstsWebhookWorkItemTest(APITestCase):
             name='vsts_name',
             metadata={
                  'domain_name': 'instance.visualstudio.com',
-                 'subscription_secret': self.shared_secret,
+                 'subscription': {
+                     'id': 1234,
+                     'secret': self.shared_secret,
+                 }
             }
         )
         self.identity_provider = IdentityProvider.objects.create(type='vsts')
