@@ -120,7 +120,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         provider = provider_cls(id=repo.provider)
         try:
             if is_integration_provider(provider.id):
-                repo_commits = provider.compare_commits(repo, start_sha, end_sha, organization_id=repo.organization_id)
+                repo_commits = provider.compare_commits(repo, start_sha, end_sha)
             else:
                 repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:

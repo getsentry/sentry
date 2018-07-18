@@ -179,7 +179,7 @@ class BitbucketApiClient(ApiClient):
         ))
         return self.zip_commit_data(repo, data['values'])
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id):
+    def compare_commits(self, repo, start_sha, end_sha):
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D

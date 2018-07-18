@@ -143,8 +143,8 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             } for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id):
-        installation = self.get_installation(repo.integration_id, organization_id)
+    def compare_commits(self, repo, start_sha, end_sha):
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         # use config name because that is kept in sync via webhooks
         name = repo.config['name']
@@ -157,7 +157,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 return self._format_commits(repo, res[:10])
         else:
             try:
-                res = client.compare_commits(name, start_sha, end_sha, organization_id)
+                res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
                 installation.raise_error(e, identity=client.auth)
             else:

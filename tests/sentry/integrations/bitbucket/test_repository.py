@@ -60,7 +60,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         )
 
         res = self.provider.compare_commits(
-            self.repo, None, 'e18e4e72de0d824edfbe0d73efe34cbd0d01d301', self.organization.id)
+            self.repo, None, 'e18e4e72de0d824edfbe0d73efe34cbd0d01d301')
 
         assert res == [
             {

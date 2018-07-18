@@ -101,7 +101,7 @@ class IntegrationRepositoryProvider(object):
     def delete_repository(self, repo):
         pass
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id):
+    def compare_commits(self, repo, start_sha, end_sha):
         raise NotImplementedError
 
     @staticmethod

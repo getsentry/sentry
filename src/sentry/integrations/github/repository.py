@@ -99,7 +99,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             } for c in commit_list
         ]
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id):
+    def compare_commits(self, repo, start_sha, end_sha):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError('GitHub apps requires an integration id to fetch commits')
@@ -118,7 +118,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 return self._format_commits(repo, res[:10])
         else:
             try:
-                res = client.compare_commits(name, start_sha, end_sha, organization_id)
+                res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
                 installation.raise_error(e)
             else:

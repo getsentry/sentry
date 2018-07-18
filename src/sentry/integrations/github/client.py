@@ -22,7 +22,7 @@ class GitHubClientMixin(ApiClient):
             params={'sha': end_sha},
         )
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id):
+    def compare_commits(self, repo, start_sha, end_sha):
         # see https://developer.github.com/v3/repos/commits/#compare-two-commits
         # where start sha is oldest and end is most recent
         return self.get('/repos/{}/compare/{}...{}'.format(

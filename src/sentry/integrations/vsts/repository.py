@@ -130,8 +130,8 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return commit_list
 
-    def compare_commits(self, repo, start_sha, end_sha, organization_id):
-        installation = self.get_installation(repo.integration_id, organization_id)
+    def compare_commits(self, repo, start_sha, end_sha):
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         instance = repo.config['instance']
 
@@ -143,7 +143,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
 
-        commits = self.zip_commit_data(repo, res['value'], organization_id)
+        commits = self.zip_commit_data(repo, res['value'], repo.organization_id)
         return self._format_commits(repo, commits)
 
     def _format_commits(self, repo, commit_list):
