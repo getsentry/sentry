@@ -48,7 +48,7 @@ class NodeData(collections.MutableMapping):
         self.ref_version = None
         self._node_data = data
 
-    def __reduce__(self):
+    def __getstate__(self):
         data = dict(self.__dict__)
         # downgrade this into a normal dict in case it's a shim dict.
         # This is needed as older workers might not know about newer
@@ -57,11 +57,7 @@ class NodeData(collections.MutableMapping):
         data['_node_data'] = dict(data['_node_data'].items())
         if 'data' in data:
             data['data'] = dict(data['data'].items())
-        return (
-            object.__new__,
-            (self.__class__,),
-            data,
-        )
+        return data
 
     def __getitem__(self, key):
         return self.data[key]
