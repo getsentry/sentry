@@ -156,6 +156,7 @@ class SentryVisitor(ast.NodeVisitor):
 
 class SentryCheck(object):
     name = 'sentry-checker'
+    version = '0.0.1'
 
     def __init__(self, tree, filename=None, lines=None):
         self.tree = tree

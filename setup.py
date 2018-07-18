@@ -143,8 +143,6 @@ setup(
         'console_scripts': [
             'sentry = sentry.runner:main',
         ],
-        'flake8.extension': [
-        ],
     },
     classifiers=[
         'Framework :: Django',
