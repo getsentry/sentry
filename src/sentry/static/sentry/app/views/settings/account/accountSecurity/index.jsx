@@ -14,6 +14,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import Tooltip from 'app/components/tooltip';
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import PasswordForm from 'app/views/settings/account/passwordForm';
@@ -107,14 +108,23 @@ class AccountSecurity extends AsyncView {
 
                       {!isBackupInterface &&
                         isEnrolled && (
-                          <RemoveConfirm
-                            onConfirm={() => handleDisable(auth)}
-                            disabled={deleteDisabled}
+                          <Tooltip
+                            title={t(
+                              "Two-factor authentication is required for at least one organization you're a member of."
+                            )}
+                            disabled={!deleteDisabled}
                           >
-                            <Button css={{marginLeft: 6}} size="small">
-                              <span className="icon icon-trash" />
-                            </Button>
-                          </RemoveConfirm>
+                            <span>
+                              <RemoveConfirm
+                                onConfirm={() => handleDisable(auth)}
+                                disabled={deleteDisabled}
+                              >
+                                <Button css={{marginLeft: 6}} size="small">
+                                  <span className="icon icon-trash" />
+                                </Button>
+                              </RemoveConfirm>
+                            </span>
+                          </Tooltip>
                         )}
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
