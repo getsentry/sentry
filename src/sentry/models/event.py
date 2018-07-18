@@ -69,14 +69,18 @@ class Event(Model):
     def __getstate__(self):
         state = Model.__getstate__(self)
         # Downgrade the canonical dict since old workers did not have
-        # that.
-        if 'data' in state:
-            state['data'] = dict(state['data'].items())
+        # that.  We do not pickle the `data` attribute which is just a
+        # duplicate of `node_data` but we move `node_data` to where it was
+        # living in the past (`data`)
+        state.pop('data', None)
+        if 'node_data' in state:
+            state['data'] = state['node_data']
         return state
 
     def __setstate__(self, state):
+        # this is the inverse of what __getstate__ does.
         if 'data' in state:
-            state['data'] = CanonicalKeyView(state['data'])
+            state['node_data'] = state.pop('data')
         return Model.__setstate__(self, state)
 
     @memoize
