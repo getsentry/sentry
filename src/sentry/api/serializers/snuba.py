@@ -38,6 +38,8 @@ def serialize_eventusers(organization, item_list, user):
         for eu in EventUser.objects.filter(filters)
     }
 
+    projects = serialize_projects(organization, {i[1] for i in item_list}, user)
+
     rv = {}
     for tag, project in item_list:
         eu = eu_by_key.get((tag, project))
@@ -46,7 +48,7 @@ def serialize_eventusers(organization, item_list, user):
             eu = EventUser(project_id=project, **{EventUser.attr_from_keyword(attr): value})
         rv[(tag, project)] = {
             'id': six.text_type(eu.id) if eu.id else None,
-            'project_id': eu.project_id,
+            'project': projects.get(eu.project_id),
             'hash': eu.hash,
             'tagValue': eu.tag_value,
             'identifier': eu.ident,
