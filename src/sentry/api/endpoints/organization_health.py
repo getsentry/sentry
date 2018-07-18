@@ -134,6 +134,9 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 ('uniq', 'project_id', 'total_projects'),
             ]
 
+        # snuba groupby can't be a tuple
+        groupby = list(tagkey)
+
         now = timezone.now()
 
         data = query(
@@ -147,7 +150,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 [tagkey[0], 'IS NOT NULL', None],
                 environment,
             ],
-            groupby=list(tagkey),
+            groupby=groupby,
             orderby='-count',
             limit=limit,
         )
@@ -172,7 +175,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 [tagkey[0], 'IN', [v[0] for v in values]],
                 environment,
             ],
-            groupby=list(tagkey),
+            groupby=groupby,
         )
 
         serializer = SnubaResultSerializer(organization, tagkey, request.user)
