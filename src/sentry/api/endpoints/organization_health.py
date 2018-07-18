@@ -14,7 +14,7 @@ from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
 )
-from sentry.api.serializers.snuba import SnubaResultSerializer, TAG_USER, TAG_RELEASE
+from sentry.api.serializers.snuba import SnubaResultSerializer, TAG_USER, TAG_RELEASE, value_from_row
 from sentry.utils import snuba
 
 
@@ -128,8 +128,9 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
 
         aggregations = [('count()', '', 'count')]
         if 'topk' in request.GET:
+            topk = int(request.GET['topk'])
             aggregations += [
-                ('topK(3)', 'project_id', 'top_projects'),
+                ('topK(%d)' % topk, 'project_id', 'top_projects'),
                 ('uniq', 'project_id', 'total_projects'),
             ]
 
@@ -143,10 +144,10 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 'project_id': project_ids,
             },
             conditions=[
-                [tagkey, 'IS NOT NULL', None],
+                [tagkey[0], 'IS NOT NULL', None],
                 environment,
             ],
-            groupby=[tagkey],
+            groupby=list(tagkey),
             orderby='-count',
             limit=limit,
         )
@@ -154,7 +155,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         if not data:
             return self.empty()
 
-        values = [r[tagkey] for r in data]
+        values = [value_from_row(r, tagkey) for r in data]
 
         previous = query(
             end=now - stats_period,
@@ -166,10 +167,12 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 'project_id': project_ids,
             },
             conditions=[
-                [tagkey, 'IN', values],
+                # This isn't really right, and is relying on the fact
+                # that project_id is the other key in this composite key
+                [tagkey[0], 'IN', [v[0] for v in values]],
                 environment,
             ],
-            groupby=[tagkey],
+            groupby=list(tagkey),
         )
 
         serializer = SnubaResultSerializer(organization, tagkey, request.user)
