@@ -38,7 +38,7 @@ class WorkItemWebhook(Endpoint):
         return self.respond()
 
     def check_webhook_secret(self, request, integration):
-        assert integration.metadata['subscription_secret'] == request.META['HTTP_SHARED_SECRET']
+        assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
 
     def handle_updated_workitem(self, data, integration):
         external_issue_key = data['resource']['workItemId']

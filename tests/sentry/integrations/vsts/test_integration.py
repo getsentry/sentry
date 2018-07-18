@@ -56,6 +56,8 @@ class VstsIntegrationProviderTest(TestCase):
         assert integration_dict['name'] == 'sentry'
         assert integration_dict['external_id'] == '123435'
         assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
+        assert integration_dict['metadata']['subscription']['id'] == CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
+        assert integration_dict['metadata']['subscription']['secret'] is not None
 
         assert integration_dict['user_identity']['type'] == 'vsts'
         assert integration_dict['user_identity']['external_id'] == 'user1-subject-desc'
@@ -66,6 +68,30 @@ class VstsIntegrationProviderTest(TestCase):
         assert isinstance(integration_dict['user_identity']['data']['expires'], int)
         assert integration_dict['user_identity']['data']['refresh_token'] == 'rxxx-xxxx'
         assert integration_dict['user_identity']['data']['token_type'] == 'jwt-bearer'
+
+    @responses.activate
+    def test_subscription_created_once(self):
+        external_id = '123-VSTS'
+        Integration.objects.create(
+            provider='vsts',
+            external_id=external_id,
+            name='vsts_name',
+            metadata={},
+        )
+        state = {
+            'account': {'AccountName': 'sentry', 'AccountId': external_id},
+            'instance': 'sentry.visualstudio.com',
+            'identity': {
+                'data': {
+                    'access_token': 'xxx-xxxx',
+                    'expires_in': '3600',
+                    'refresh_token': 'rxxx-xxxx',
+                    'token_type': 'jwt-bearer',
+                },
+            },
+        }
+        integration_dict = self.integration.build_integration(state)
+        assert 'subscription' not in integration_dict['metadata']
 
 
 class VstsIntegrationTest(APITestCase):
