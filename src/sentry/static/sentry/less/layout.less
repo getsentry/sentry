@@ -167,6 +167,7 @@ body.auth {
   }
 
   .auth-sidebar {
+    padding-top: 20px;
     width: 60px;
     background: #564f64;
     background-image: linear-gradient(
@@ -607,6 +608,47 @@ footer {
       padding: 62px 10px 0 10px !important;
       .box-content.with-padding {
         padding: 20px 20px 10px;
+      }
+    }
+
+    .box {
+      flex-direction: column;
+    }
+
+    .auth-sidebar {
+      width: 100%;
+      text-align: left;
+      padding: 20px;
+      border-radius: 4px 4px 0 0;
+
+      a {
+        line-height: 1;
+        position: relative;
+        top: 3px;
+      }
+    }
+
+    .auth-container {
+      flex-wrap: wrap;
+      padding-left: 20px;
+      padding-right: 20px;
+
+      > div {
+        width: 100%;
+        padding: 0;
+        border: 0;
+
+        &:last-child:not(:first-child) {
+          border-top: 1px solid @trim;
+          padding-top: 20px;
+          margin-top: 20px;
+        }
+      }
+    }
+
+    .tab-pane {
+      .auth-container {
+        padding: 20px;
       }
     }
   }
