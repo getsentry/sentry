@@ -49,9 +49,8 @@ const PluginActions = createReactClass({
   },
 
   deleteIssue() {
-    const endpoint = `/issues/${this.props.group.id}/plugins/${
-      this.props.plugin.slug
-    }/unlink/`;
+    const endpoint = `/issues/${this.props.group.id}/plugins/${this.props.plugin
+      .slug}/unlink/`;
     this.api.request(endpoint, {
       success: data => {
         this.setState({
@@ -71,7 +70,7 @@ const PluginActions = createReactClass({
       () => {
         plugins.load(data, () => {
           let issue = data.issue || null;
-          this.setState({pluginLoading: false, issue: issue});
+          this.setState({pluginLoading: false, issue});
         });
       }
     );
@@ -202,7 +201,7 @@ const PluginActions = createReactClass({
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),
-                  actionType: actionType,
+                  actionType,
                   onSuccess: this.closeModal,
                 })}
               </Modal.Body>
@@ -215,7 +214,7 @@ const PluginActions = createReactClass({
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),
-                  actionType: actionType,
+                  actionType,
                   onSuccess: this.closeModal,
                 })}
               </Modal.Body>
@@ -233,11 +232,11 @@ const ActionButton = styled('span')`
   top: ${space(-10)};
 `;
 
-const ActiveActionButton = styled('span')`
-  margin-right: ${space(1)};
+const ActiveActionButton = styled('div')`
+  margin: 0 ${space(1)} ${space(2)} 0;
   border: none;
-  padding: ${space(1)} ${space(1.5)};
-  top: ${space(-10)};
+  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  display: inline-block;
   border-bottom: 4px solid ${p => p.theme.purple};
 `;
 
