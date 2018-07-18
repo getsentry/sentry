@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
-from sentry.exceptions import PluginError
 from sentry.models import Repository
-from sentry.plugins.config import ConfigValidator
 
 
 class IntegrationRepositoryProvider(object):
@@ -22,24 +19,7 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
-            fields = self.get_config(organization)
-        except Exception as e:
-            return self.handle_api_error(e)
-
-        if request.method == 'GET':
-            return Response(fields)
-
-        validator = ConfigValidator(fields, request.DATA)
-        if not validator.is_valid():
-            return Response(
-                {
-                    'error_type': 'validation',
-                    'errors': validator.errors,
-                }, status=400
-            )
-
-        try:
-            config = self.validate_config(organization, validator.result, actor=request.user)
+            config = self.validate_config(organization, request.DATA)
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -47,9 +27,8 @@ class IntegrationRepositoryProvider(object):
             result = self.create_repository(
                 organization=organization,
                 data=config,
-                actor=request.user,
             )
-        except PluginError as e:
+        except IntegrationError as e:
             return Response(
                 {
                     'errors': {
@@ -81,8 +60,8 @@ class IntegrationRepositoryProvider(object):
                     provider=self.id,
                     integration_id=result.get('integration_id'),
                 )
-                self.delete_repository(repo, actor=request.user)
-            except PluginError:
+                self.delete_repository(repo)
+            except IntegrationError:
                 pass
             return Response(
                 {'errors': {'__all__': 'A repository with that name already exists'}},
@@ -113,16 +92,16 @@ class IntegrationRepositoryProvider(object):
     def get_config(self, organization):
         raise NotImplementedError
 
-    def validate_config(self, organization, config, actor=None):
+    def validate_config(self, organization, config):
         return config
 
-    def create_repository(self, organization, data, actor=None):
+    def create_repository(self, organization, data):
         raise NotImplementedError
 
-    def delete_repository(self, repo, actor=None):
+    def delete_repository(self, repo):
         pass
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None, organization_id=None):
+    def compare_commits(self, repo, start_sha, end_sha):
         raise NotImplementedError
 
     @staticmethod

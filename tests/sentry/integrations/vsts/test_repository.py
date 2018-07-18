@@ -64,7 +64,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             integration_id=integration.id,
         )
 
-        res = self.provider.compare_commits(repo, "a", "b", organization_id=self.organization.id)
+        res = self.provider.compare_commits(repo, "a", "b")
 
         assert res == [{
             'patch_set': [{'path': u'/README.md',

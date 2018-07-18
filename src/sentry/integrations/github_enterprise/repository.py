@@ -14,7 +14,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
     logger = logging.getLogger('sentry.plugins.github_enterprise')
     repo_provider = 'github_enterprise'
 
-    def create_repository(self, organization, data, actor=None):
+    def create_repository(self, organization, data):
         integration = Integration.objects.get(
             id=data['integration_id'], provider=self.repo_provider)
 
