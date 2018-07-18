@@ -69,17 +69,11 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     def sync_status_outbound(self, external_issue, is_resolved, project_id):
         pass
 
-    def get_external_project_id(self, data):
-        """
-        Given webhook data, pull out external project id
-        """
-        return data['project_id']
+    def should_unresolve(self, data):
+        return data['status']['category'] != 'done'
 
-    def get_external_issue_status(self, data):
-        """
-        Given webhook data, pull out external issue status
-        """
-        return data['status']
+    def should_resolve(self, data):
+        return data['status']['category'] == 'done'
 
 
 class ExampleIntegrationProvider(IntegrationProvider):

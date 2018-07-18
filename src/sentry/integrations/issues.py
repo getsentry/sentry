@@ -3,10 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry.models import (
-    Activity, Event, Group, GroupStatus, IntegrationExternalProject,
-    OrganizationIntegration
-)
+from sentry.models import Activity, Event, Group, GroupStatus
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -150,15 +147,31 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def get_external_project_id(self, data):
+    def should_unresolve(self, data):
         """
-        Given webhook data, pull out external project id
+        Given webhook data, check whether the status
+        category changed FROM "done" to something else,
+        meaning the sentry issue should be marked as
+        unresolved
+
+        >>> def should_unresolve(self, data):
+        >>>     client = self.get_client()
+        >>>     statuses = client.get_statuses()
+        >>>     done_statuses = [s['id'] for s in statuses if s['category'] == 'done']
+        >>>     return data['from_status'] in done_statuses \
+        >>>         and data['to_status'] not in done_statuses
+
         """
         raise NotImplementedError
 
-    def get_external_issue_status(self, data):
+    def should_resolve(self, data):
         """
-        Given webhook data, pull out external issue status
+        Given webhook data, check whether the status
+        category changed TO "done" from something else,
+        meaning the sentry issue should be marked as
+        resolved
+
+        see example above
         """
         raise NotImplementedError
 
@@ -185,36 +198,16 @@ class IssueSyncMixin(IssueBasicMixin):
             ).select_related('project'),
         )
 
-        org_integration_to_org_map = dict(
-            OrganizationIntegration.objects.filter(
-                integration=self.model,
-            ).values_list('id', 'organization_id'),
-        )
-
-        external_projects = list(
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id__in=org_integration_to_org_map.keys(),
-                external_id=self.get_external_project_id(data),
-            ),
-        )
-
-        external_projects_by_org = {
-            org_integration_to_org_map[int_external_p.organization_integration_id]: int_external_p
-            for int_external_p in external_projects
-        }
-
         groups_to_resolve = []
         groups_to_unresolve = []
 
         for group in affected_groups:
-            external_project = external_projects_by_org.get(group.project.organization_id)
-            if external_project is None:
-                continue
-            issue_status = self.get_external_issue_status(data)
+            should_resolve = self.should_resolve(data)
+            should_unresolve = self.should_unresolve(data)
 
-            # TODO(jess): make sure config validation doesn't
-            # allow these to be the same
-            if external_project.resolved_status == external_project.unresolved_status:
+            # this probably shouldn't be possible unless there
+            # is a bug in one of those methods
+            if should_resolve is True and should_unresolve is True:
                 logger.warning(
                     'sync-config-conflict', extra={
                         'organization_id': group.project.organization_id,
@@ -224,9 +217,9 @@ class IssueSyncMixin(IssueBasicMixin):
                 )
                 continue
 
-            if issue_status == external_project.unresolved_status:
+            if should_unresolve:
                 groups_to_unresolve.append(group)
-            elif issue_status == external_project.resolved_status:
+            elif should_resolve:
                 groups_to_resolve.append(group)
 
         if groups_to_resolve:

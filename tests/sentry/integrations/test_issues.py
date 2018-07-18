@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    Group, GroupStatus, Integration, GroupLink, ExternalIssue,
-    IntegrationExternalProject, OrganizationIntegration
-)
+from sentry.models import Group, GroupStatus, Integration, GroupLink, ExternalIssue
 from sentry.testutils import TestCase
 
 
@@ -32,19 +29,14 @@ class IssueSyncIntegration(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=OrganizationIntegration.objects.filter(
-                integration=integration,
-            ).values_list('id', flat=True).get(),
-            external_id='APP',
-            resolved_status='12345',
-        )
-
         installation = integration.get_installation(group.organization.id)
 
         installation.sync_status_inbound(external_issue.key, {
             'project_id': 'APP',
-            'status': '12345',
+            'status': {
+                'id': '12345',
+                'category': 'done',
+            },
         })
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
@@ -75,19 +67,14 @@ class IssueSyncIntegration(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=OrganizationIntegration.objects.filter(
-                integration=integration,
-            ).values_list('id', flat=True).get(),
-            external_id='APP',
-            unresolved_status='12345',
-        )
-
         installation = integration.get_installation(group.organization.id)
 
         installation.sync_status_inbound(external_issue.key, {
             'project_id': 'APP',
-            'status': '12345',
+            'status': {
+                'id': '12345',
+                'category': 'in_progress',
+            },
         })
 
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
