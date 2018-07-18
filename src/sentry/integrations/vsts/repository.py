@@ -23,27 +23,24 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         return integration_model.get_installation(organization_id)
 
     def validate_config(self, organization, config):
-        if config.get('url'):
-            installation = self.get_installation(config['integration_id'], organization.id)
-            client = installation.get_client()
-            instance = installation.instance
+        installation = self.get_installation(config['installation'], organization.id)
+        client = installation.get_client()
+        instance = installation.instance
 
-            name = config['name']
-            project = config['project']
-            repo_id = config['identifier']
+        repo_id = config['identifier']
 
-            try:
-                repo = client.get_repo(instance, repo_id)
-            except Exception as e:
-                installation.raise_error(e)
-            config.update({
-                'instance': instance,
-                'project': project,
-                'name': repo['name'],
-                'external_id': six.text_type(repo['id']),
-                'url': repo['_links']['web']['href'],
-            })
-            return config
+        try:
+            repo = client.get_repo(instance, repo_id)
+        except Exception as e:
+            installation.raise_error(e)
+        config.update({
+            'instance': instance,
+            'project': repo['project']['name'],
+            'name': repo['name'],
+            'external_id': six.text_type(repo['id']),
+            'url': repo['_links']['web']['href'],
+        })
+        return config
 
     def create_repository(self, organization, data):
         return {
@@ -55,7 +52,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'project': data['project'],
                 'name': data['name'],
             },
-            'integration_id': data['integration_id'],
+            'integration_id': data['installation'],
         }
 
     def transform_changes(self, patch_set):
