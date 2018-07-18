@@ -18,6 +18,9 @@ class ExternalIssueList extends AsyncComponent {
   renderIntegrationIssues(integrations) {
     const {group} = this.props;
     const externalIssues = [];
+
+    if (!integrations || !integrations.length) return null;
+
     integrations.forEach(integration => {
       externalIssues.push(
         <ExternalIssueActions
@@ -27,22 +30,39 @@ class ExternalIssueList extends AsyncComponent {
         />
       );
     });
-    return externalIssues;
+
+    return (
+      <div className="m-b-2">
+        <h6>
+          <span>Linked Issues</span>
+        </h6>
+        {externalIssues}
+      </div>
+    );
   }
 
   renderPluginIssues() {
     const {group} = this.props;
-    return group.pluginIssues.map(plugin => {
-      return <PluginActions group={group} plugin={plugin} />;
-    });
+
+    return group.pluginIssues && group.pluginIssues.length ? (
+      <div className="m-b-2">
+        <h6>
+          <span>Linked Issues (Legacy)</span>
+        </h6>
+        {group.pluginIssues.map((plugin, i) => {
+          return <PluginActions group={group} plugin={plugin} key={i} />;
+        })}
+      </div>
+    ) : null;
   }
 
   render() {
     const {integrations} = this.state;
+
     return (
       <React.Fragment>
-        {integrations && this.renderIntegrationIssues(integrations)}
-        {this.props.group && this.renderPluginIssues()}
+        {this.renderIntegrationIssues(integrations)}
+        {this.renderPluginIssues()}
       </React.Fragment>
     );
   }

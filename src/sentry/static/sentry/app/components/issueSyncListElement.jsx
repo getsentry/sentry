@@ -103,7 +103,9 @@ const IssueSyncListElementContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)} ${space(1)};
+  &:not(:last-child) {
+    padding-bottom: ${space(2)};
+  }
 `;
 
 const IntegrationIcon = styled(InlineSvg)`
