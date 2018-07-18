@@ -107,7 +107,7 @@ def parse_uri_match(value):
 
     # we need to coerce our unicode inputs into proper
     # idna/punycode encoded representation for normalization.
-    if type(domain) == six.binary_type:
+    if isinstance(domain, six.binary_type):
         domain = domain.decode('utf8')
     domain = domain.encode('idna')
 
@@ -154,8 +154,14 @@ def is_valid_origin(origin, project=None, allowed=None):
     if origin == 'null':
         return False
 
-    if type(origin) == six.binary_type:
-        origin = origin.decode('utf-8')
+    if isinstance(origin, six.binary_type):
+        try:
+            origin = origin.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                origin = origin.decode('windows-1252')
+            except UnicodeDecodeError:
+                return False
 
     parsed = urlparse(origin)
 
