@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
@@ -8,7 +7,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Aggregation from './aggregation';
-import {PlaceholderText, SelectListItem} from '../styles';
+import {PlaceholderText, SelectListItem, AddText} from '../styles';
 
 export default class Aggregations extends React.Component {
   static propTypes = {
@@ -42,9 +41,9 @@ export default class Aggregations extends React.Component {
       <div>
         <div>
           <strong>{t('Aggregation')}</strong>
-          <Add>
+          <AddText>
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </Add>
+          </AddText>
         </div>
         {!value.length && <PlaceholderText>{t('None')}</PlaceholderText>}
         {value.map((aggregation, idx) => (
@@ -65,12 +64,3 @@ export default class Aggregations extends React.Component {
     );
   }
 }
-
-const Add = styled.span`
-  font-style: italic;
-  text-decoration: underline;
-  margin-left: 4px;
-  font-size: 13px;
-  line-height: 16px;
-  color: ${p => p.theme.gray1};
-`;
