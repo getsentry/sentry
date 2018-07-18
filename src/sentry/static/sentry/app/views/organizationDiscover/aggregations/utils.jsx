@@ -85,7 +85,10 @@ export function getExternal(internal) {
 
   if (internal.match(uniqRegex)) {
     const column = internal.match(uniqRegex)[1];
-    return ['uniq', column, `uniq_${column}`];
+    const tagMatch = column.match(/^tags\[(.+)]$/);
+    const alias = tagMatch ? `tags_${tagMatch[1]}` : column;
+
+    return ['uniq', column, `uniq_${alias}`];
   }
 
   if (internal.match(avgRegex)) {

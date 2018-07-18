@@ -8,7 +8,7 @@ describe('Aggregation', function() {
     it('renders empty, count, topK, uniq and avg', function() {
       const data = [
         {value: [null, null, null], expectedTextValue: 'Add aggregation function...'},
-        {value: ['count', null, 'count'], expectedTextValue: 'count'},
+        {value: ['count()', null, 'count'], expectedTextValue: 'count'},
         {
           value: ['uniq', 'environment', 'uniq_environment'],
           expectedTextValue: 'uniq(environment)',
@@ -20,6 +20,10 @@ describe('Aggregation', function() {
         {
           value: ['topK(5)', 'environment', 'topK_5_environment'],
           expectedTextValue: 'topK(5)(environment)',
+        },
+        {
+          value: ['uniq', 'tags[message]', 'uniq_tags_message'],
+          expectedTextValue: 'uniq(tags[message])',
         },
       ];
 
