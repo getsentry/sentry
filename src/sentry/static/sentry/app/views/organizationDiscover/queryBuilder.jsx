@@ -36,7 +36,7 @@ function applyDefaults(query) {
  * initialization.
  */
 export default function createQueryBuilder(initial = {}, organization) {
-  const query = applyDefaults(initial);
+  let query = applyDefaults(initial);
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
@@ -49,6 +49,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     fetch,
     getColumns,
     load,
+    reset,
   };
 
   /**
@@ -173,5 +174,14 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function getColumns() {
     return [...COLUMNS, ...tags];
+  }
+
+  /**
+   * Resets the query to defaults
+   *
+   * @returns {Void}
+   */
+  function reset() {
+    query = applyDefaults({});
   }
 }
