@@ -24,6 +24,7 @@ from sentry.models import (Group, Event)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
+from sentry.utils.canonical import CanonicalKeyView
 
 DEPENDENCY_TEST_DATA = {
     "postgresql": (
@@ -483,7 +484,11 @@ class CspReportTest(TestCase):
         assert output['message'] == e.data['sentry.interfaces.Message']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
-        self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)
+
+        def norm(x):
+            return dict(CanonicalKeyView(x).items())
+
+        self.assertDictContainsSubset(norm(output['data']), norm(e.data), norm(e.data))
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)
