@@ -38,11 +38,11 @@ class EventTest(TestCase):
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.
-        nd_reduce = NodeData.__reduce__
+        nodedata_getstate = NodeData.__getstate__
         event_getstate = Event.__getstate__
         event_setstate = Event.__setstate__
 
-        del NodeData.__reduce__
+        del NodeData.__getstate__
         del Event.__getstate__
         del Event.__setstate__
 
@@ -51,7 +51,7 @@ class EventTest(TestCase):
             event2 = pickle.loads(data)
             assert event2.data == event.data
         finally:
-            NodeData.__reduce__ = nd_reduce
+            NodeData.__getstate__ = nodedata_getstate
             Event.__getstate__ = event_getstate
             Event.__setstate__ = event_setstate
 
