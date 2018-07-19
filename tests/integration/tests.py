@@ -24,7 +24,6 @@ from sentry.models import (Group, Event)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
-from sentry.utils.canonical import CanonicalKeyView
 
 DEPENDENCY_TEST_DATA = {
     "postgresql": (
