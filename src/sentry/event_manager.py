@@ -759,6 +759,7 @@ class EventManager(object):
         else:
             event_saved.send_robust(
                 project=project,
+                event_size=event.size,
                 sender=EventManager,
             )
 
