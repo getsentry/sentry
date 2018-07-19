@@ -238,7 +238,7 @@ class ContextPickerModal extends React.Component {
       <div>
         <React.Fragment>
           <Header closeButton>{t('Select...')}</Header>
-          <Body ref={this.handleBodyMount}>
+          <Body>
             {loading && <StyledLoadingIndicator overlay />}
             <div>{t('Select an organization/project to continue')}</div>
             {needOrg && (

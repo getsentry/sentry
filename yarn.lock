@@ -8903,10 +8903,6 @@ select-hose@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/select-hose/-/select-hose-2.0.0.tgz#625d8658f865af43ec962bfc376a37359a4994ca"
 
-select2@3.5.1:
-  version "3.5.1"
-  resolved "https://registry.yarnpkg.com/select2/-/select2-3.5.1.tgz#f2819489bbc65fd6d328be72bbe2b95dd7e87cfe"
-
 select@^1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/select/-/select-1.1.2.tgz#0e7350acdec80b1108528786ec1d4418d11b396d"
