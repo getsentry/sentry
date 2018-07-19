@@ -5,7 +5,9 @@ import mock
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Integration
+from sentry.models import (
+    ExternalIssue, Integration, IntegrationExternalProject, OrganizationIntegration
+)
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
@@ -95,197 +97,241 @@ SAMPLE_PROJECT_LIST_RESPONSE = """
 
 SAMPLE_GET_ISSUE_RESPONSE = """
 {
-  "id": "10002",
-  "self": "http://www.example.com/jira/rest/api/2/issue/10002",
-  "key": "EX-1",
-  "fields": {
-    "watcher": {
-      "self": "http://www.example.com/jira/rest/api/2/issue/EX-1/watchers",
-      "isWatching": false,
-      "watchCount": 1,
-      "watchers": [
+    "expand": "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
+    "fields": {
+        "aggregateprogress": {
+            "progress": 0,
+            "total": 0
+        },
+        "aggregatetimeestimate": null,
+        "aggregatetimeoriginalestimate": null,
+        "aggregatetimespent": null,
+        "assignee": null,
+        "attachment": [],
+        "comment": {
+            "comments": [],
+            "maxResults": 0,
+            "startAt": 0,
+            "total": 0
+        },
+        "components": [],
+        "created": "2018-06-15T11:47:57.111-0700",
+        "creator": {
+            "accountId": "5ada5260ba41192e23d7c924",
+            "active": true,
+            "avatarUrls": {
+                "16x16": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=16&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D16%26noRedirect%3Dtrue",
+                "24x24": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=24&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D24%26noRedirect%3Dtrue",
+                "32x32": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=32&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D32%26noRedirect%3Dtrue",
+                "48x48": "https://avatar-cdn.atlassian.com/a2f1a9a289088349aecc98a4fc6eff2b?s=48&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fa2f1a9a289088349aecc98a4fc6eff2b%3Fd%3Dmm%26s%3D48%26noRedirect%3Dtrue"
+            },
+            "displayName": "Sentry",
+            "emailAddress": "example.io.jira@connect.atlassian.com",
+            "key": "addon_example.io.jira",
+            "name": "addon_example.io.jira",
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/user?username=addon_example.io.jira",
+            "timeZone": "America/Los_Angeles"
+        },
+        "customfield_10000": null,
+        "customfield_10001": null,
+        "customfield_10002": null,
+        "customfield_10006": [],
+        "customfield_10007": "0|i000b3:",
+        "customfield_10008": null,
+        "customfield_10009": [],
+        "customfield_10010": null,
+        "customfield_10011": null,
+        "customfield_10012": null,
+        "customfield_10026": null,
+        "customfield_10027": null,
+        "customfield_10028": null,
+        "customfield_10100": null,
+        "customfield_10200": "{}",
+        "customfield_10400": null,
+        "customfield_10500": null,
+        "customfield_10600": null,
+        "customfield_10601": null,
+        "customfield_10602": null,
+        "customfield_10603": null,
+        "customfield_10604": null,
+        "customfield_10605": null,
+        "customfield_10701": null,
+        "customfield_10702": null,
+        "description": "example bug report",
+        "duedate": null,
+        "environment": null,
+        "fixVersions": [],
+        "issuelinks": [],
+        "issuetype": {
+            "avatarId": 10318,
+            "description": "A task that needs to be done.",
+            "iconUrl": "https://getsentry-dev.atlassian.net/secure/viewavatar?size=xsmall&avatarId=10318&avatarType=issuetype",
+            "id": "10200",
+            "name": "Task",
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/issuetype/10200",
+            "subtask": false
+        },
+        "labels": [],
+        "lastViewed": null,
+        "priority": {
+            "iconUrl": "https://getsentry-dev.atlassian.net/images/icons/priorities/medium.svg",
+            "id": "3",
+            "name": "Medium",
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/priority/3"
+        },
+        "progress": {
+            "progress": 0,
+            "total": 0
+        },
+        "project": {
+            "avatarUrls": {
+                "16x16": "https://getsentry-dev.atlassian.net/secure/projectavatar?size=xsmall&avatarId=10324",
+                "24x24": "https://getsentry-dev.atlassian.net/secure/projectavatar?size=small&avatarId=10324",
+                "32x32": "https://getsentry-dev.atlassian.net/secure/projectavatar?size=medium&avatarId=10324",
+                "48x48": "https://getsentry-dev.atlassian.net/secure/projectavatar?avatarId=10324"
+            },
+            "id": "10100",
+            "key": "SEN",
+            "name": "sentry",
+            "projectTypeKey": "software",
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/project/10100"
+        },
+        "reporter": {
+            "accountId": "557058:2b9b2878-fb9d-48b2-a166-86c179604206",
+            "active": true,
+            "avatarUrls": {
+                "16x16": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=16&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D16%26noRedirect%3Dtrue",
+                "24x24": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=24&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D24%26noRedirect%3Dtrue",
+                "32x32": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=32&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D32%26noRedirect%3Dtrue",
+                "48x48": "https://avatar-cdn.atlassian.com/d8bd4a393e73ee8e17b54afba66af5e8?s=48&d=https%3A%2F%2Fsecure.gravatar.com%2Favatar%2Fd8bd4a393e73ee8e17b54afba66af5e8%3Fd%3Dmm%26s%3D48%26noRedirect%3Dtrue"
+            },
+            "displayName": "Jess MacQueen",
+            "emailAddress": "jess@sentry.io",
+            "key": "admin",
+            "name": "admin",
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/user?username=admin",
+            "timeZone": "America/Los_Angeles"
+        },
+        "resolution": null,
+        "resolutiondate": null,
+        "security": null,
+        "status": {
+            "description": "",
+            "iconUrl": "https://getsentry-dev.atlassian.net/",
+            "id": "10100",
+            "name": "To Do",
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10100",
+            "statusCategory": {
+                "colorName": "blue-gray",
+                "id": 2,
+                "key": "new",
+                "name": "To Do",
+                "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/2"
+            }
+        },
+        "subtasks": [],
+        "summary": "example summary",
+        "timeestimate": null,
+        "timeoriginalestimate": null,
+        "timespent": null,
+        "timetracking": {},
+        "updated": "2018-06-28T14:12:29.014-0700",
+        "versions": [],
+        "votes": {
+            "hasVoted": false,
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/issue/SEN-5/votes",
+            "votes": 0
+        },
+        "watches": {
+            "isWatching": true,
+            "self": "https://getsentry-dev.atlassian.net/rest/api/2/issue/SEN-5/watchers",
+            "watchCount": 1
+        },
+        "worklog": {
+            "maxResults": 20,
+            "startAt": 0,
+            "total": 0,
+            "worklogs": []
+        },
+        "workratio": -1
+    },
+    "id": "10305",
+    "key": "SEN-5",
+    "self": "https://getsentry-dev.atlassian.net/rest/api/2/issue/10305"
+}
+"""
+
+SAMPLE_TRANSITION_RESPONSE = """
+{
+    "expand": "transitions",
+    "transitions": [
         {
-          "self": "http://www.example.com/jira/rest/api/2/user?username=fred",
-          "name": "fred",
-          "displayName": "Fred F. User",
-          "active": false
-        }
-      ]
-    },
-    "attachment": [
-      {
-        "id": 10001,
-        "self": "http://www.example.com/jira/rest/api/2.0/attachments/10000",
-        "filename": "picture.jpg",
-        "author": {
-          "self": "http://www.example.com/jira/rest/api/2/user?username=fred",
-          "key": "fred",
-          "accountId": "99:27935d01-92a7-4687-8272-a9b8d3b2ae2e",
-          "name": "fred",
-          "avatarUrls": {
-            "48x48": "http://www.example.com/jira/secure/useravatar?size=large&ownerId=fred",
-            "24x24": "http://www.example.com/jira/secure/useravatar?size=small&ownerId=fred",
-            "16x16": "http://www.example.com/jira/secure/useravatar?size=xsmall&ownerId=fred",
-            "32x32": "http://www.example.com/jira/secure/useravatar?size=medium&ownerId=fred"
-          },
-          "displayName": "Fred F. User",
-          "active": false
-        },
-        "created": "2018-05-19T01:17:45.901+0000",
-        "size": 23123,
-        "mimeType": "image/jpeg",
-        "content": "http://www.example.com/jira/attachments/10000",
-        "thumbnail": "http://www.example.com/jira/secure/thumbnail/10000"
-      }
-    ],
-    "sub-tasks": [
-      {
-        "id": "10000",
-        "type": {
-          "id": "10000",
-          "name": "",
-          "inward": "Parent",
-          "outward": "Sub-task"
-        },
-        "outwardIssue": {
-          "id": "10003",
-          "key": "EX-2",
-          "self": "http://www.example.com/jira/rest/api/2/issue/EX-2",
-          "fields": {
-            "status": {
-              "iconUrl": "http://www.example.com/jira//images/icons/statuses/open.png",
-              "name": "Open"
+            "hasScreen": false,
+            "id": "11",
+            "isConditional": false,
+            "isGlobal": true,
+            "isInitial": false,
+            "name": "To Do",
+            "to": {
+                "description": "",
+                "iconUrl": "https://getsentry-dev.atlassian.net/",
+                "id": "10100",
+                "name": "To Do",
+                "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10100",
+                "statusCategory": {
+                    "colorName": "blue-gray",
+                    "id": 2,
+                    "key": "new",
+                    "name": "To Do",
+                    "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/2"
+                }
             }
-          }
-        }
-      }
-    ],
-    "description": "example bug report",
-    "summary": "example summary",
-    "project": {
-      "self": "http://www.example.com/jira/rest/api/2/project/EX",
-      "id": "10000",
-      "key": "EX",
-      "name": "Example",
-      "avatarUrls": {
-        "48x48": "http://www.example.com/jira/secure/projectavatar?size=large&pid=10000",
-        "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000",
-        "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000",
-        "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000"
-      },
-      "projectCategory": {
-        "self": "http://www.example.com/jira/rest/api/2/projectCategory/10000",
-        "id": "10000",
-        "name": "FIRST",
-        "description": "First Project Category"
-      },
-      "simplified": false
-    },
-    "comment": [
-      {
-        "self": "http://www.example.com/jira/rest/api/2/issue/10010/comment/10000",
-        "id": "10000",
-        "author": {
-          "self": "http://www.example.com/jira/rest/api/2/user?username=fred",
-          "name": "fred",
-          "displayName": "Fred F. User",
-          "active": false
         },
-        "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eget venenatis elit. Duis eu justo eget augue iaculis fermentum. Sed semper quam laoreet nisi egestas at posuere augue semper.",
-        "updateAuthor": {
-          "self": "http://www.example.com/jira/rest/api/2/user?username=fred",
-          "name": "fred",
-          "displayName": "Fred F. User",
-          "active": false
-        },
-        "created": "2018-05-19T01:17:45.902+0000",
-        "updated": "2018-05-19T01:17:45.902+0000",
-        "visibility": {
-          "type": "role",
-          "value": "Administrators"
-        }
-      }
-    ],
-    "issuelinks": [
-      {
-        "id": "10001",
-        "type": {
-          "id": "10000",
-          "name": "Dependent",
-          "inward": "depends on",
-          "outward": "is depended by"
-        },
-        "outwardIssue": {
-          "id": "10004L",
-          "key": "PRJ-2",
-          "self": "http://www.example.com/jira/rest/api/2/issue/PRJ-2",
-          "fields": {
-            "status": {
-              "iconUrl": "http://www.example.com/jira//images/icons/statuses/open.png",
-              "name": "Open"
+        {
+            "hasScreen": false,
+            "id": "21",
+            "isConditional": false,
+            "isGlobal": true,
+            "isInitial": false,
+            "name": "In Progress",
+            "to": {
+                "description": "This issue is being actively worked on at the moment by the assignee.",
+                "iconUrl": "https://getsentry-dev.atlassian.net/images/icons/statuses/inprogress.png",
+                "id": "3",
+                "name": "In Progress",
+                "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/3",
+                "statusCategory": {
+                    "colorName": "yellow",
+                    "id": 4,
+                    "key": "indeterminate",
+                    "name": "In Progress",
+                    "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/4"
+                }
             }
-          }
-        }
-      },
-      {
-        "id": "10002",
-        "type": {
-          "id": "10000",
-          "name": "Dependent",
-          "inward": "depends on",
-          "outward": "is depended by"
         },
-        "inwardIssue": {
-          "id": "10004",
-          "key": "PRJ-3",
-          "self": "http://www.example.com/jira/rest/api/2/issue/PRJ-3",
-          "fields": {
-            "status": {
-              "iconUrl": "http://www.example.com/jira//images/icons/statuses/open.png",
-              "name": "Open"
+        {
+            "hasScreen": false,
+            "id": "31",
+            "isConditional": false,
+            "isGlobal": true,
+            "isInitial": false,
+            "name": "Done",
+            "to": {
+                "description": "",
+                "iconUrl": "https://getsentry-dev.atlassian.net/",
+                "id": "10101",
+                "name": "Done",
+                "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10101",
+                "statusCategory": {
+                    "colorName": "green",
+                    "id": 3,
+                    "key": "done",
+                    "name": "Done",
+                    "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/3"
+                }
             }
-          }
         }
-      }
-    ],
-    "worklog": [
-      {
-        "self": "http://www.example.com/jira/rest/api/2/issue/10010/worklog/10000",
-        "author": {
-          "self": "http://www.example.com/jira/rest/api/2/user?username=fred",
-          "name": "fred",
-          "displayName": "Fred F. User",
-          "active": false
-        },
-        "updateAuthor": {
-          "self": "http://www.example.com/jira/rest/api/2/user?username=fred",
-          "name": "fred",
-          "displayName": "Fred F. User",
-          "active": false
-        },
-        "comment": "I did some work here.",
-        "updated": "2018-05-19T01:17:45.905+0000",
-        "visibility": {
-          "type": "group",
-          "value": "jira-developers"
-        },
-        "started": "2018-05-19T01:17:45.905+0000",
-        "timeSpent": "3h 20m",
-        "timeSpentSeconds": 12000,
-        "id": "100028",
-        "issueId": "10002"
-      }
-    ],
-    "updated": 1,
-    "timetracking": {
-      "originalEstimate": "10m",
-      "remainingEstimate": "3m",
-      "timeSpent": "6m",
-      "originalEstimateSeconds": 600,
-      "remainingEstimateSeconds": 200,
-      "timeSpentSeconds": 400
-    }
-  }
+    ]
 }
 """
 
@@ -301,10 +347,16 @@ class MockJiraApiClient(object):
         return json.loads(SAMPLE_PROJECT_LIST_RESPONSE)
 
     def get_issue(self, issue_key):
-        return json.loads(SAMPLE_GET_ISSUE_RESPONSE)
+        return json.loads(SAMPLE_GET_ISSUE_RESPONSE.strip())
 
     def create_issue(self, data):
         return {'key': 'APP-123'}
+
+    def get_transitions(self, issue_key):
+        return json.loads(SAMPLE_TRANSITION_RESPONSE)['transitions']
+
+    def transition_issue(self, issue_key, transition_id):
+        pass
 
 
 class JiraIntegrationTest(APITestCase):
@@ -407,3 +459,45 @@ class JiraIntegrationTest(APITestCase):
                 'description': 'example bug report',
                 'key': 'APP-123'
             }
+
+    def test_outbound_issue_sync(self):
+        org = self.organization
+        project = self.project
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org.id)
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            key='SEN-5',
+        )
+
+        IntegrationExternalProject.objects.create(
+            external_id="10100",
+            organization_integration_id=OrganizationIntegration.objects.get(
+                organization_id=org.id,
+                integration_id=integration.id,
+            ).id,
+            resolved_status="10101",
+            unresolved_status="3",
+        )
+
+        installation = integration.get_installation(org.id)
+
+        with mock.patch.object(MockJiraApiClient, 'transition_issue') as mock_transition_issue:
+            def get_client():
+                return MockJiraApiClient()
+
+            with mock.patch.object(installation, 'get_client', get_client):
+                # test unresolve -- 21 is "in progress" transition id
+                installation.sync_status_outbound(external_issue, False, project.id)
+                mock_transition_issue.assert_called_with('SEN-5', '21')
+
+                # test resolve -- 31 is "done" transition id
+                installation.sync_status_outbound(external_issue, True, project.id)
+                mock_transition_issue.assert_called_with('SEN-5', '31')

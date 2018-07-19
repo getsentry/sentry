@@ -11,6 +11,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
+from sentry.models import IntegrationExternalProject, OrganizationIntegration
 from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient
@@ -505,11 +506,58 @@ class JiraIntegration(Integration, IssueSyncMixin):
             logger.info(
                 'jira.failed-to-assign',
                 extra={
+                    'organization_id': external_issue.organization_id,
                     'integration_id': external_issue.integration_id,
                     'user_id': user.id,
                     'issue_key': external_issue.key,
                 }
             )
+
+    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+        """
+        Propagate a sentry issue's status to a linked issue's status.
+        """
+        client = self.get_client()
+        jira_issue = client.get_issue(external_issue.key)
+        jira_project = jira_issue['fields']['project']
+
+        try:
+            external_project = IntegrationExternalProject.objects.get(
+                external_id=jira_project['id'],
+                organization_integration_id__in=OrganizationIntegration.objects.filter(
+                    organization_id=external_issue.organization_id,
+                    integration_id=external_issue.integration_id,
+                )
+            )
+        except IntegrationExternalProject.DoesNotExist:
+            return
+
+        jira_status = external_project.resolved_status if \
+            is_resolved else external_project.unresolved_status
+
+        # don't bother updating if it's already the status we'd change it to
+        if jira_issue['fields']['status']['id'] == jira_status:
+            return
+
+        transitions = client.get_transitions(external_issue.key)
+
+        try:
+            transition = [
+                t for t in transitions if t['to']['id'] == jira_status
+            ][0]
+        except IndexError:
+            # TODO(jess): Email for failure
+            logger.warning(
+                'jira.status-sync-fail',
+                extra={
+                    'organization_id': external_issue.organization_id,
+                    'integration_id': external_issue.integration_id,
+                    'issue_key': external_issue.key,
+                }
+            )
+            return
+
+        client.transition_issue(external_issue.key, transition['id'])
 
 
 class JiraIntegrationProvider(IntegrationProvider):
