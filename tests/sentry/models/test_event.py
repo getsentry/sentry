@@ -34,18 +34,12 @@ class EventTest(TestCase):
         # When we pickle an event we need to make sure our canonical code
         # does not appear here or it breaks old workers.
         data = pickle.dumps(event, protocol=2)
-        open('/tmp/test.pickle', 'wb').write(data)
         assert 'canonical' not in data
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.
         nodedata_getstate = NodeData.__getstate__
-        event_getstate = Event.__getstate__
-        event_setstate = Event.__setstate__
-
         del NodeData.__getstate__
-        del Event.__getstate__
-        del Event.__setstate__
 
         # Old worker loading
         try:
@@ -53,8 +47,6 @@ class EventTest(TestCase):
             assert event2.data == event.data
         finally:
             NodeData.__getstate__ = nodedata_getstate
-            Event.__getstate__ = event_getstate
-            Event.__setstate__ = event_setstate
 
         # New worker loading
         event2 = pickle.loads(data)

@@ -22,15 +22,8 @@ from sentry.db.models import (
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
-from sentry.utils.canonical import CanonicalKeyView
+from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.strings import truncatechars
-
-
-class EventManager(BaseManager):
-
-    def bind_nodes(self, object_list, *node_names):
-        node_names = [x == 'data' and 'node_data' or x for x in node_names]
-        return BaseManager.bind_nodes(self, object_list, *node_names)
 
 
 class Event(Model):
@@ -46,15 +39,13 @@ class Event(Model):
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
-    node_data = NodeField(
+    data = NodeField(
         blank=True,
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
-        db_column='data',
+        wrapper=CanonicalKeyDict,
     )
-
-    objects = EventManager()
 
     class Meta:
         app_label = 'sentry'
@@ -65,27 +56,6 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
-
-    def __getstate__(self):
-        state = Model.__getstate__(self)
-        # Downgrade the canonical dict since old workers did not have
-        # that.  We do not pickle the `data` attribute which is just a
-        # duplicate of `node_data` but we move `node_data` to where it was
-        # living in the past (`data`)
-        state.pop('data', None)
-        if 'node_data' in state:
-            state['data'] = state['node_data']
-        return state
-
-    def __setstate__(self, state):
-        # this is the inverse of what __getstate__ does.
-        if 'data' in state:
-            state['node_data'] = state.pop('data')
-        return Model.__setstate__(self, state)
-
-    @memoize
-    def data(self):
-        return CanonicalKeyView(self.node_data)
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):

@@ -9,7 +9,7 @@ class TaggedEventConditionTest(RuleTestCase):
 
     def get_event(self):
         event = self.event
-        event.node_data['tags'] = (
+        event.data['tags'] = (
             ('logger', 'sentry.example'), ('logger', 'foo.bar'),
             ('notlogger', 'sentry.other.example'), ('notlogger', 'bar.foo.baz'),
         )

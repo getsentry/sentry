@@ -495,7 +495,7 @@ class Fixtures(object):
                 }
             )
 
-        kwargs['node_data'] = CanonicalKeyDict(kwargs.pop('data'))
+        kwargs['data'] = CanonicalKeyDict(kwargs.pop('data'))
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,
@@ -503,7 +503,7 @@ class Fixtures(object):
             group=event.group,
         )
         # emulate EventManager refs
-        event.node_data.bind_ref(event)
+        event.data.bind_ref(event)
         event.save()
         return event
 

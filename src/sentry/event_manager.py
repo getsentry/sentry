@@ -589,12 +589,13 @@ class EventManager(object):
         event = Event(
             project_id=project.id,
             event_id=event_id,
-            node_data=data,
+            data=data,
             time_spent=time_spent,
             datetime=date,
             **kwargs
         )
         event._project_cache = project
+        data = event.data.data
 
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
@@ -765,7 +766,7 @@ class EventManager(object):
 
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
-        event.node_data.bind_ref(event)
+        event.data.bind_ref(event)
 
         # When an event was sampled, the canonical source of truth
         # is the EventMapping table since we aren't going to be writing out an actual

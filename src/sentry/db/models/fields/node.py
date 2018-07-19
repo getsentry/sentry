@@ -111,7 +111,10 @@ class NodeData(collections.MutableMapping):
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
-        return {}
+        rv = {}
+        if self.field.wrapper is not None:
+            rv = self.field.wrapper(rv)
+        return rv
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop('_ref', ref)
@@ -120,6 +123,8 @@ class NodeData(collections.MutableMapping):
             raise NodeIntegrityFailure(
                 'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
             )
+        if self.field.wrapper is not None:
+            data = self.field.wrapper(data)
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -138,6 +143,7 @@ class NodeField(GzippedDictField):
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
+        self.wrapper = kwargs.pop('wrapper', None)
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -167,6 +173,9 @@ class NodeField(GzippedDictField):
         else:
             node_id = None
             data = value
+
+        if self.wrapper is not None and data is not None:
+            data = self.wrapper(data)
 
         return NodeData(self, node_id, data)
 
