@@ -75,7 +75,7 @@ class DiscoverSerializer(serializers.Serializer):
             (
                 re.search(pattern, field).group(1)
                 for field
-                in attrs[source] or []
+                in attrs.get(source, [])
                 if re.match(pattern, field)
             ),
             None
