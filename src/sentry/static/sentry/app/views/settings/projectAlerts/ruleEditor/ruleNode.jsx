@@ -34,7 +34,7 @@ class RuleNode extends React.Component {
         value={initialVal}
         choices={data.choices}
         key={name}
-        style={{marginBottom: 0}}
+        style={{marginLeft: 6, marginRight: 6}}
         onChange={val => this.props.handlePropertyChange(name, val)}
       />
     );
