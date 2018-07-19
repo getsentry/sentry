@@ -50,12 +50,11 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
         for repo in repos:
             data.append(
                 {
-                    'search_key': repo['name'],
-                    'value': repo['full_name'],
-                    'label': repo['name'],
+                    'idenitifer': repo['idenitifer'],
+                    'name': repo['name'],
                 }
             )
-        return [{'id': repo['uuid'], 'name': repo['name'], 'full_name': repo['full_name']}]
+        return data
 
     def reinstall(self):
         self.reinstall_repositories()
