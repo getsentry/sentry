@@ -134,6 +134,14 @@ export default class OrganizationDiscover extends React.Component {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
+  reset = () => {
+    const {queryBuilder, organization} = this.props;
+
+    queryBuilder.reset();
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/discover/`,
+    });
+  };
   render() {
     const {result} = this.state;
     const {queryBuilder} = this.props;
@@ -149,7 +157,7 @@ export default class OrganizationDiscover extends React.Component {
     }));
 
     return (
-      <div className="organization-home">
+      <Discover className="organization-home">
         <Header
           p={2}
           justify="space-between"
@@ -221,18 +229,29 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
 
-            <Button onClick={this.runQuery} style={{marginTop: 8}} priority="primary">
-              {t('Run Query')}
-            </Button>
+            <Flex pt={1}>
+              <Box mr={1}>
+                <Button onClick={this.runQuery} priority="primary">
+                  {t('Run Query')}
+                </Button>
+              </Box>
+              <Button onClick={this.reset}>{t('Reset')}</Button>
+            </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
             {result && <Result result={result} />}
           </Box>
         </Flex>
-      </div>
+      </Discover>
     );
   }
 }
+
+const Discover = styled('div')`
+  .control-group {
+    margin-bottom: 0; /* Do not want the global control-group margins  */
+  }
+`;
 
 const Header = styled(Flex)`
   font-size: 18px;
