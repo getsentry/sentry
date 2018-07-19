@@ -1,14 +1,11 @@
 """
 Our linter engine needs to run in 3 different scenarios:
  * Linting all files (python, js, less)
- * Linting only python files (--python)
+ * Linting only python files (--python) [NOTICE: moved to pre-commit]
  * Linting only js files (--js)
 
 For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
-
-This also means imports should be done lazily/inside of function calls for
-dependencies such as flake8/pep8.
 """
 from __future__ import absolute_import, print_function
 
@@ -98,17 +95,6 @@ def get_python_files(file_list=None):
         x for x in get_files_for_list(file_list)
         if x.endswith('.py')
     ]
-
-
-# parseable is a no-op
-def py_lint(file_list, parseable=False):
-    from flake8.api.legacy import get_style_guide
-
-    file_list = get_python_files(file_list)
-    flake8_style = get_style_guide(parse_argv=True)
-    report = flake8_style.check_files(file_list)
-
-    return report.total_errors != 0
 
 
 def js_lint(file_list=None, parseable=False, format=False):
@@ -388,7 +374,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
         if lint:
             if py:
-                results.append(py_lint(file_list, parseable=parseable))
+                raise NotImplementedError('flake8 linting was moved to pre-commit hooks.')
             if js:
                 # stylelint `--fix` doesn't work well
                 results.append(js_stylelint(file_list, parseable=parseable, format=format))
