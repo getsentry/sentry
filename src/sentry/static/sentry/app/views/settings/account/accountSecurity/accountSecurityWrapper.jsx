@@ -1,13 +1,13 @@
 import {withRouter} from 'react-router';
 import React from 'react';
-import AsyncView from 'app/views/asyncView';
+import AsyncComponent from 'app/components/asyncComponent';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
 const ENDPOINT = '/users/me/authenticators/';
 
-class AccountSecurityWrapper extends AsyncView {
+class AccountSecurityWrapper extends AsyncComponent {
   getEndpoints() {
     return [['authenticators', ENDPOINT], ['organizations', '/organizations/']];
   }
