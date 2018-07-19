@@ -45,7 +45,9 @@ export default class Aggregations extends React.Component {
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
           </AddText>
         </div>
-        {!value.length && <PlaceholderText>{t('None')}</PlaceholderText>}
+        {!value.length && (
+          <PlaceholderText>{t('None, showing raw event data')}</PlaceholderText>
+        )}
         {value.map((aggregation, idx) => (
           <SelectListItem key={idx}>
             <Aggregation
