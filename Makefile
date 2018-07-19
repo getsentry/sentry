@@ -141,7 +141,7 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting python"
-	bash -eo pipefail -c "bin/lint --python --parseable | tee .artifacts/flake8.pycodestyle.log"
+	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
 	@echo ""
 
 lint-js:
