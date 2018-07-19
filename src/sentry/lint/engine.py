@@ -306,7 +306,13 @@ def py_format(file_list=None):
 
     py_file_list = get_python_files(file_list)
 
-    return run_formatter(['autopep8', '--in-place', '-j0'], py_file_list)
+    return run_formatter([
+        'autopep8',
+        '--in-place',
+        '-j0',
+        '--ignore',
+        'E721,E722,W690',
+    ], py_file_list)
 
 
 def run_formatter(cmd, file_list, prompt_on_changes=True):
