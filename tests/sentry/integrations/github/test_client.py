@@ -23,7 +23,7 @@ class GitHubAppsClientTest(TestCase):
             }
         )
 
-        install = integration.get_installation()
+        install = integration.get_installation(organization_id='123')
         client = install.get_client()
 
         responses.add(

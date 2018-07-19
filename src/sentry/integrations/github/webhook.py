@@ -30,6 +30,8 @@ logger = logging.getLogger('sentry.webhooks')
 
 
 class Webhook(object):
+    provider = 'github'
+
     def _handle(self, integration, event, organization, repo):
         raise NotImplementedError
 
@@ -114,7 +116,7 @@ class PushEventWebhook(Webhook):
 
     def _handle(self, integration, event, organization, repo, host=None):
         authors = {}
-        client = integration.get_installation().get_client()
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
 
         for commit in event['commits']:
