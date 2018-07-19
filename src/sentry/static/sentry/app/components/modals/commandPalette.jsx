@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 import Search from 'app/components/search';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
+import analytics from 'app/utils/analytics';
 
 const dropdownStyle = css`
   width: 100%;
@@ -23,6 +24,10 @@ class CommandPaletteModal extends React.Component {
     Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
   };
 
+  componentDidMount() {
+    analytics('omnisearch.open');
+  }
+
   handleSuccess = data => {
     if (this.props.onClose) {
       this.props.onClose(data);
@@ -38,6 +43,7 @@ class CommandPaletteModal extends React.Component {
       <Body>
         <Search
           {...this.props}
+          source="command_palette"
           minSearch={1}
           maxResults={10}
           dropdownStyle={dropdownStyle}

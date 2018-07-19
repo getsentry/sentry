@@ -18,6 +18,9 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 // "Omni" search
 class Search extends React.Component {
   static propTypes = {
+    // For analytics
+    source: PropTypes.oneOf(['settings_search', 'command_palette']).isRequired,
+
     router: PropTypes.object,
     /**
      * Render prop for the main input for the search
@@ -59,13 +62,13 @@ class Search extends React.Component {
   };
 
   componentDidMount() {
-    analytics('omnisearch.open');
+    analytics(`${this.props.source}.open`);
   }
 
   handleSelect = (item, state) => {
     if (!item) return;
 
-    analytics('omnisearch.select', {query: state && state.inputValue});
+    analytics(`${this.props.source}.select`, {query: state && state.inputValue});
 
     let {to} = item;
     if (!to) return;
@@ -76,7 +79,10 @@ class Search extends React.Component {
     navigateTo(nextPath, router);
   };
 
-  saveQueryMetrics = debounce(query => analytics('omnisearch.query', {query}), 200);
+  saveQueryMetrics = debounce(
+    query => analytics(`${this.props.source}.query`, {query}),
+    200
+  );
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
     // resultObj is a fuse.js result object with {item, matches, score}
