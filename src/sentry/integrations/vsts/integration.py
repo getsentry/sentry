@@ -20,7 +20,13 @@ from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
 DESCRIPTION = """
-VSTS
+Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Stuidio accounts together.
+
+Create and link Sentry issue groups directly to a VSTS workitem in any of your projects, providing a quick way to jump from Sentry bug to tracked ticket!
+Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and tickets match up to your Sentry and VSTS assignees.
+Never forget to close a reloved workitem! Resolving an issue in Sentry will resolve your linked workitems and viceversa.
+Synchronize Comments on Sentry Issues directly to the linked VSTS workitems.
+
 """
 
 metadata = IntegrationMetadata(
