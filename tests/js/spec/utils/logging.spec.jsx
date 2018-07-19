@@ -4,7 +4,12 @@ import sdk from 'app/utils/sdk';
 describe('logging', function() {
   describe('logAjaxError()', function() {
     beforeEach(function() {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       sdk.captureMessage.mockReset();
+    });
+
+    afterEach(function() {
+      window.console.error.mockRestore();
     });
 
     it('should handle (Sentry) JSON responses', function() {
