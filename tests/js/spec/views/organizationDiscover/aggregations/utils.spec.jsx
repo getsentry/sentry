@@ -23,6 +23,10 @@ const aggregationList = [
     internal: 'avg(retention_days)',
     external: ['avg', 'retention_days', 'avg_retention_days'],
   },
+  {
+    internal: 'uniq(tags[server_name])',
+    external: ['uniq', 'tags[server_name]', 'uniq_tags_server_name'],
+  },
 ];
 
 describe('Aggregations', function() {
