@@ -78,6 +78,9 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Attribute):
+            if node.func.attr == B315.method and isinstance(
+                    node.func.value, ast.Str) and isinstance(node.func.value.s, bytes):
+                self.errors.append(B315(node.lineno, node.col_offset))
             for bug in (B301, B302, B305):
                 if node.func.attr in bug.methods:
                     call_path = '.'.join(self.compose_call_path(node.func.value))
@@ -106,7 +109,7 @@ class SentryVisitor(ast.NodeVisitor):
         if node.attr in B101.methods:
             self.errors.append(
                 B101(
-                    message="B101: Avoid using the {} mock call as it is "
+                    message=u"B101: Avoid using the {} mock call as it is "
                     "confusing and prone to causing invalid test "
                     "behavior.".format(node.attr),
                     lineno=node.lineno,
@@ -352,3 +355,10 @@ B314 = partial(
     message="B314: print functions or statements are not allowed.",
     type=SentryCheck,
 )
+
+B315 = partial(
+    error,
+    message="B315: use unicode.format instead of str.format.",
+    type=SentryCheck,
+)
+B315.method = 'format'
