@@ -22,7 +22,10 @@ from .repository import GitHubEnterpriseRepositoryProvider
 from .client import GitHubEnterpriseAppsClient
 
 DESCRIPTION = """
-    Fill me out (Enterprise)
+Define a relationship between Sentry and GitHub Enterprise.
+
+ * Authorize repositories to be added for syncing commit data.
+ * Create or link existing GitHub Enterprise issues.
 """
 
 
