@@ -59,6 +59,20 @@ class EventTest(TestCase):
         event2 = pickle.loads(data)
         assert event2.data == event.data
 
+    def test_event_as_dict(self):
+        event = self.create_event(
+            data={
+                'sentry.interfaces.Message': {
+                    'message': 'Hello World!',
+                },
+            }
+        )
+
+        d = event.as_dict()
+        assert d['logentry'] == {
+            'message': 'Hello World!',
+        }
+
     def test_email_subject(self):
         event1 = self.create_event(
             event_id='a' * 32, group=self.group, tags={'level': 'info'}, message='Foo bar'
