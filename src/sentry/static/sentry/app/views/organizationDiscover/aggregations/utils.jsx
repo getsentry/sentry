@@ -69,6 +69,18 @@ export function getInternal(external) {
 }
 
 /**
+* Returns an alias for a given column name, which is either just the column name
+* or a string with an underscore instead of square brackets for tags
+*
+* @param {String} columnName Name of column
+* @return {String} Alias
+*/
+function getAlias(columnName) {
+  const tagMatch = columnName.match(/^tags\[(.+)]$/);
+  return tagMatch ? `tags_${tagMatch[1]}` : columnName;
+}
+
+/**
 * Converts aggregation internal string format to external Snuba representation
 *
 * @param {String} internal Aggregation in internal format
@@ -85,15 +97,13 @@ export function getExternal(internal) {
 
   if (internal.match(uniqRegex)) {
     const column = internal.match(uniqRegex)[1];
-    const tagMatch = column.match(/^tags\[(.+)]$/);
-    const alias = tagMatch ? `tags_${tagMatch[1]}` : column;
 
-    return ['uniq', column, `uniq_${alias}`];
+    return ['uniq', column, `uniq_${getAlias(column)}`];
   }
 
   if (internal.match(avgRegex)) {
     const column = internal.match(avgRegex)[1];
-    return ['avg', column, `avg_${column}`];
+    return ['avg', column, `avg_${getAlias(column)}`];
   }
 
   const topKMatch = internal.match(topKRegex);
@@ -101,7 +111,7 @@ export function getExternal(internal) {
     return [
       `topK(${parseInt(topKMatch[1], 10)})`,
       topKMatch[2],
-      `topK_${topKMatch[1]}_${topKMatch[2]}`,
+      `topK_${topKMatch[1]}_${getAlias(topKMatch[2])}`,
     ];
   }
 
