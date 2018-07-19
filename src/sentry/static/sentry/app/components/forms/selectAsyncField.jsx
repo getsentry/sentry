@@ -65,9 +65,15 @@ class SelectAsyncField extends SelectField {
   // Otherwise, when you hit "enter" to create a new item, the "selected value" does
   // not update with new value (and also new value is not displayed in dropdown)
   coerceValue(value) {
-    if (value && value.hasOwnProperty(value)) return value.value;
-    else if (value) return value;
-    return '';
+    if (!value) return '';
+
+    if (this.isMultiple()) {
+      return value.map(v => v.value);
+    } else if (value.hasOwnProperty('value')) {
+      return value.value;
+    }
+
+    return value;
   }
 
   onResults = data => {
@@ -83,13 +89,9 @@ class SelectAsyncField extends SelectField {
   };
 
   onChange = opt => {
-    let value;
-    if (this.isMultiple()) {
-      value = opt.map(v => v.value);
-    } else {
-      value = opt ? opt.value : null;
-    }
-    this.setValue(value);
+    // Changing this will most likely break react-select (e.g. you won't be able to select
+    // a menu option that is from an async request).
+    this.setValue(opt);
   };
 
   getField() {
@@ -101,7 +103,6 @@ class SelectAsyncField extends SelectField {
         onResults={this.onResults}
         onQuery={this.onQuery}
         {...this.props}
-        multiple={this.isMultiple()}
         value={this.state.value}
         onChange={this.onChange}
       />
