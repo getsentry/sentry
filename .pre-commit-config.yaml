@@ -29,8 +29,8 @@ repos:
     - id: trailing-whitespace
       exclude_types: [svg]
     - id: debug-statements
-    # - id: flake8
-    #   log_file: '.artifacts/flake8.pycodestyle.log'
+    - id: flake8
+      log_file: '.artifacts/flake8.pycodestyle.log'
     - id: requirements-txt-fixer
 # -   repo: git://github.com/getsentry/pre-commit-hooks
 #     rev: f3237d2d65af81d435c49dee3593dc8f03d23c2d
