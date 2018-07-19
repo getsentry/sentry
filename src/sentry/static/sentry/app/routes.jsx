@@ -11,6 +11,7 @@ import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
 import GroupTagValues from 'app/views/groupTagValues';
 import GroupTags from 'app/views/groupTags';
 import GroupUserFeedback from 'app/views/groupUserFeedback';
+import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
@@ -20,6 +21,7 @@ import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure/index';
 import OnboardingWizard from 'app/views/onboarding/index';
 import OrganizationActivity from 'app/views/organizationActivity';
+import OrganizationAuth from 'app/views/settings/organizationAuth/index';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationDashboard';
@@ -469,9 +471,10 @@ function routes() {
       <Route
         path="auth/"
         name="Auth Providers"
-        componentPromise={() =>
-          import(/*webpackChunkName: OrganizationAuth*/ './views/settings/organizationAuth')}
-        component={errorHandler(LazyLoad)}
+        component={HookOrDefault({
+          hookName: 'component:org-auth-view',
+          defaultComponent: OrganizationAuth,
+        })}
       />
 
       <Route path="members/" name="Members">
