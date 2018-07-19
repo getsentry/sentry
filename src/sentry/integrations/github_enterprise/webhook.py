@@ -16,7 +16,6 @@ from sentry.models import Integration
 from sentry.utils import json
 from sentry.integrations.github.webhook import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook, PullRequestEventWebhook
 from .repository import GitHubEnterpriseRepositoryProvider
-from .client import GitHubEnterpriseAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
 
@@ -72,7 +71,7 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_idp_external_id(self, host):
+    def get_idp_external_id(self, integration, host):
         return '{}:{}'.format(host, integration.metadata['installation']['id'])
 
 

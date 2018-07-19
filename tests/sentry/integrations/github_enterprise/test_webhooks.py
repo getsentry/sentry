@@ -92,6 +92,14 @@ class PushEventWebhookTest(APITestCase):
         integration = Integration.objects.create(
             external_id="35.232.149.196:12345",
             provider='github_enterprise',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation_id': '12345',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(project.organization.id)
 
@@ -150,6 +158,13 @@ class PushEventWebhookTest(APITestCase):
             provider='github_enterprise',
             external_id='35.232.149.196:12345',
             name='octocat',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(project.organization.id)
 
@@ -229,6 +244,14 @@ class PushEventWebhookTest(APITestCase):
         integration = Integration.objects.create(
             external_id="35.232.149.196:12345",
             provider='github_enterprise',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation_id': '12345',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(project.organization.id)
 
@@ -244,6 +267,14 @@ class PushEventWebhookTest(APITestCase):
         integration = Integration.objects.create(
             external_id="35.232.149.196:99",
             provider='github_enterprise',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation': {
+                    'installation_id': '99',
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(org2.id)
 
@@ -293,6 +324,13 @@ class PullRequestEventWebhook(APITestCase):
             provider='github_enterprise',
             external_id='35.232.149.196:234',
             name='octocat',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(project.organization.id)
 
@@ -346,6 +384,13 @@ class PullRequestEventWebhook(APITestCase):
             provider='github_enterprise',
             external_id='35.232.149.196:234',
             name='octocat',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(project.organization.id)
 
@@ -398,6 +443,13 @@ class PullRequestEventWebhook(APITestCase):
             provider='github_enterprise',
             external_id='35.232.149.196:234',
             name='octocat',
+            metadata={
+                'domain_name': 'https://35.232.149.196',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                }
+            }
         )
         integration.add_organization(project.organization.id)
 
