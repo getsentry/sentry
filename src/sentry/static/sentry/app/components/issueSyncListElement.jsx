@@ -35,6 +35,19 @@ class IssueSyncElement extends React.Component {
     return this.props.onClose(this.props.externalIssueId);
   };
 
+  getHumanName() {
+    const type = this.props.integrationType;
+
+    switch (type) {
+      case 'github_enterprise':
+        return 'Github Enterprise';
+      case 'vsts':
+        return 'VSTS';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  }
+
   getIcon() {
     switch (this.props.integrationType) {
       case 'github':
@@ -45,10 +58,8 @@ class IssueSyncElement extends React.Component {
         return <IntegrationIcon src="icon-jira" />;
       case 'vsts':
         return <IntegrationIcon src="icon-vsts" />;
-      case 'asana':
-        return <IntegrationIcon src="icon-vsts" />;
       default:
-        return null;
+        return <IntegrationIcon src="icon-generic-box" />;
     }
   }
 
@@ -58,14 +69,8 @@ class IssueSyncElement extends React.Component {
         return 'GH-';
       case 'github_enterprise':
         return 'GHE-';
-      case 'jira':
-        return 'JIRA-';
-      case 'vsts':
-        return 'VSTS-';
-      case 'asana':
-        return 'ASANA-';
       default:
-        return null;
+        return this.getHumanName() + '-';
     }
   }
 
