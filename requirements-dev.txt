@@ -3,3 +3,4 @@ Babel
 flake8>=3.5.0<3.6.0
 isort>=4.2.2,<4.3.0
 pycodestyle>=2.3.1,<2.4.0
+sentry-flake8>=0.0.1
