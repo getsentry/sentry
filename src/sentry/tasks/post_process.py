@@ -9,7 +9,6 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 
 from raven.contrib.django.models import client as Raven
 
@@ -48,7 +47,7 @@ def _capture_stats(event, is_new):
 
     metrics.incr('events.processed')
     metrics.incr('events.processed.{platform}'.format(platform=platform))
-    metrics.timing('events.size.data', len(six.text_type(event.data)))
+    metrics.timing('events.size.data', event.size)
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
