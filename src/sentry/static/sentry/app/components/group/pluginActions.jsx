@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import {toTitleCase} from 'app/utils';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
+
 const PluginActions = createReactClass({
   displayName: 'PluginActions',
 
@@ -47,17 +48,18 @@ const PluginActions = createReactClass({
   },
 
   deleteIssue() {
+    const plugin = this.props.plugin;
+    // override plugin.issue so that 'create/link' Modal
+    // doesn't think the plugin still has an issue linked
+    Object.assign(plugin, {
+      issue: null
+    });
     const endpoint = `/issues/${this.props.group.id}/plugins/${
       this.props.plugin.slug
     }/unlink/`;
     this.api.request(endpoint, {
       success: data => {
-        this.setState({
-          issue: null,
-          actionType: 'create',
-          pluginLoading: false,
-          showModal: false,
-        });
+        this.loadPlugin(plugin);
       },
       error: error => {},
     });
@@ -85,11 +87,9 @@ const PluginActions = createReactClass({
   },
 
   closeModal(data) {
-    if (data.issue) {
-      const url = data.issue_url;
-      const issue_id = data.issue.id;
+    if (data.id && data.link) {
       this.setState({
-        issue: {issue_id: issue_id, url: url},
+        issue: {issue_id: data.id, url: data.link},
         showModal: false,
       });
     } else {

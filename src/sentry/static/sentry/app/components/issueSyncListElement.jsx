@@ -16,6 +16,7 @@ class IssueSyncElement extends React.Component {
       'jira',
       'vsts',
       'asana',
+      'pivotal',
     ]),
   };
 
@@ -63,6 +64,18 @@ class IssueSyncElement extends React.Component {
     }
   }
 
+  getPrettyName() {
+    const type = this.props.integrationType;
+    switch (type) {
+      case 'github':
+        return 'GitHub';
+      case 'github_enterprise':
+        return 'GitHub Enterprise';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  }
+
   getPrefix() {
     switch (this.props.integrationType) {
       case 'github':
@@ -81,7 +94,7 @@ class IssueSyncElement extends React.Component {
       </IntegrationLink>
     ) : (
       <IntegrationLink onClick={this.handleClick}>
-        Link <IntegrationName>{this.props.integrationType}</IntegrationName> Issue
+        Link {this.getPrettyName()} Issue
       </IntegrationLink>
     );
   }
