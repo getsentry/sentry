@@ -35,6 +35,7 @@ class JiraApiClient(ApiClient):
     USERS_URL = '/rest/api/2/user/assignable/search'
     SERVER_INFO_URL = '/rest/api/2/serverInfo'
     ASSIGN_URL = '/rest/api/2/issue/%s/assignee'
+    TRANSITION_URL = '/rest/api/2/issue/%s/transitions'
 
     def __init__(self, base_url, shared_secret):
         self.base_url = base_url
@@ -141,6 +142,14 @@ class JiraApiClient(ApiClient):
 
     def get_valid_statuses(self):
         return self.request('GET', self.STATUS_URL)
+
+    def get_transitions(self, issue_key):
+        return self.get(self.TRANSITION_URL % issue_key)['transitions']
+
+    def transition_issue(self, issue_key, transition_id):
+        return self.post(self.TRANSITION_URL % issue_key, {
+            'transition': {'id': transition_id},
+        })
 
     def assign_issue(self, key, username):
         return self.put(self.ASSIGN_URL % key, data={'name': username})
