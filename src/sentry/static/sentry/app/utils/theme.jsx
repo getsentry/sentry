@@ -46,7 +46,7 @@ const theme = {
 
   purple: '#6C5FC7',
   purple2: '#6f617c', // This is from event-details
-  purplelightest: '#9F92FA',
+  purpleLightest: '#9F92FA',
   purpleLight: '#8679E1',
   purpleDark: '#5346AE',
   purpleDarkest: '#392C94',
