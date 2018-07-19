@@ -1,18 +1,15 @@
 from __future__ import absolute_import
 
+import re
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
-
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
-
-from sentry import roles
-
-
 from sentry.utils import snuba
+from sentry import roles
 
 
 class OrganizationDiscoverPermission(OrganizationPermission):
@@ -67,6 +64,25 @@ class DiscoverSerializer(serializers.Serializer):
         if not set(projects).issubset(org_projects) or not self.has_projects_access(
                 member, organization, projects):
             raise PermissionDenied
+
+        return attrs
+
+    def validate_fields(self, attrs, source):
+        # If we're including exception_stacks.* or exception_frames.* fields
+        # then add arrayjoin value so this gets returned as strings
+        pattern = r"^(exception_stacks|exception_frames)\..+"
+        match = next(
+            (
+                re.search(pattern, field).group(1)
+                for field
+                in attrs[source] or []
+                if re.match(pattern, field)
+            ),
+            None
+        )
+
+        if match:
+            attrs['arrayjoin'] = match
 
         return attrs
 
@@ -127,6 +143,7 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
             aggregations=serialized.get('aggregations'),
             rollup=serialized.get('rollup'),
             filter_keys={'project_id': serialized.get('projects')},
+            arrayjoin=serialized.get('arrayjoin'),
         )
 
         return Response(results, status=200)
