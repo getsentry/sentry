@@ -484,11 +484,7 @@ class CspReportTest(TestCase):
         assert output['message'] == e.data['sentry.interfaces.Message']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
-
-        def norm(x):
-            return dict(CanonicalKeyView(x).items())
-
-        self.assertDictContainsSubset(norm(output['data']), norm(e.data), norm(e.data))
+        self.assertDictContainsSubset(output['data'], e.data, e.data)
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)

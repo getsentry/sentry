@@ -21,7 +21,7 @@ from sentry import nodestore
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
-from sentry.utils.canonical import CANONICAL_TYPES
+from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 
 from .gzippeddict import GzippedDictField
 
@@ -55,10 +55,18 @@ class NodeData(collections.MutableMapping):
         # This is needed as older workers might not know about newer
         # collection types.  For isntance we have events where this is a
         # CanonicalKeyDict
+        data.pop('data', None)
+        data['_node_data_was_canonical'] = isinstance(data['_node_data'], CANONICAL_TYPES)
         data['_node_data'] = dict(data['_node_data'].items())
-        if 'data' in data:
-            data['data'] = dict(data['data'].items())
         return data
+
+    def __setstate__(self, state):
+        # If there is a legacy pickled version that used to have data as a
+        # duplicate, reject it.
+        state.pop('data', None)
+        if data.pop('_node_data_was_canonical', False):
+            data['_node_data'] = CanonicalKeyDict(data['_node_data'])
+        self.__dict__ = state
 
     def __getitem__(self, key):
         return self.data[key]

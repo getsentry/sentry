@@ -90,6 +90,14 @@ class CanonicalKeyDict(collections.MutableMapping):
             if key == canonical_key or canonical_key not in self.data:
                 self.data[canonical_key] = value
 
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        state.pop('_norm_func', None)
+        return state
+
+    def __setstate__(self, state):
+        self.__init__(state['data'])
+
     def copy(self):
         rv = object.__new__(self.__class__)
         rv.data = copy.copy(self.data)
