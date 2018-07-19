@@ -13,9 +13,14 @@ class BaseChart extends React.Component {
 
     // Chart height
     height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
     // Chart width
     width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+    // Use `canvas` when dealing with large datasets
+    // See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
     renderer: PropTypes.oneOf(['canvas', 'svg']),
+
     devicePixelRatio: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     // callback when chart is ready
