@@ -47,14 +47,16 @@ const PluginActions = createReactClass({
   },
 
   deleteIssue() {
-    const endpoint = `/issues/${this.props.group.id}/plugins/${this.props.plugin
-      .slug}/unlink/`;
+    const endpoint = `/issues/${this.props.group.id}/plugins/${
+      this.props.plugin.slug
+    }/unlink/`;
     this.api.request(endpoint, {
       success: data => {
         this.setState({
           issue: null,
-          error: null,
           actionType: 'create',
+          pluginLoading: false,
+          showModal: false,
         });
       },
       error: error => {},
@@ -83,9 +85,9 @@ const PluginActions = createReactClass({
   },
 
   closeModal(data) {
-    if (data.issue_url) {
-      const url = data.issue_url.replace(/{'id': /, '').replace('}', '');
-      const issue_id = url.split('/').pop();
+    if (data.issue) {
+      const url = data.issue_url;
+      const issue_id = data.issue.id;
       this.setState({
         issue: {issue_id: issue_id, url: url},
         showModal: false,
@@ -203,7 +205,7 @@ const PluginActions = createReactClass({
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),
-                  actionType,
+                  actionType: 'create',
                   onSuccess: this.closeModal,
                 })}
               </Modal.Body>
@@ -216,7 +218,7 @@ const PluginActions = createReactClass({
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),
-                  actionType,
+                  actionType: 'link',
                   onSuccess: this.closeModal,
                 })}
               </Modal.Body>

@@ -303,8 +303,9 @@ const GroupDetailsActions = createReactClass({
         {!hasIssueTracking && (
           <GuideAnchor type="text" target="issue_tracking">
             <Link
-              to={`/${this.getOrganization().slug}/${this.getProject()
-                .slug}/settings/issue-tracking/`}
+              to={`/${this.getOrganization().slug}/${
+                this.getProject().slug
+              }/settings/issue-tracking/`}
               className={'btn btn-default btn-sm btn-config-issue-tracking'}
               style={{marginRight: '5px'}}
             >
