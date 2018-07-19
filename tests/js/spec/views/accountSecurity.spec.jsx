@@ -108,6 +108,93 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
+  it('can remove one of multiple 2fa methods when org requires 2fa', function() {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Totp({
+          authId: '15',
+          configureButton: 'Info',
+        }),
+        TestStubs.Authenticators().U2f(),
+      ],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations({require2FA: true}),
+    });
+    let deleteMock = Client.addMockResponse({
+      url: `${ENDPOINT}15/`,
+      method: 'DELETE',
+    });
+
+    expect(deleteMock).not.toHaveBeenCalled();
+
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+    // console.log(wrapper.debug());
+
+    expect(
+      wrapper
+        .find('CircleIndicator')
+        .first()
+        .prop('enabled')
+    ).toBe(true);
+
+    // This will open confirm modal
+    wrapper
+      .find('Button .icon-trash')
+      .first()
+      .simulate('click');
+
+    // Confirm
+    wrapper
+      .find('Modal Button')
+      .last()
+      .simulate('click');
+    expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('can not remove last 2fa method when org requires 2fa', function() {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Totp({
+          authId: '15',
+          configureButton: 'Info',
+        }),
+      ],
+    });
+    Client.addMockResponse({
+      url: ORG_ENDPOINT,
+      body: TestStubs.Organizations({require2FA: true}),
+    });
+    let deleteMock = Client.addMockResponse({
+      url: `${ENDPOINT}15/`,
+      method: 'DELETE',
+    });
+
+    expect(deleteMock).not.toHaveBeenCalled();
+
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
+
+    // This will open confirm modal
+    wrapper.find('Button .icon-trash').simulate('click');
+    // Confirm
+    expect(wrapper.find('Modal Button')).toHaveLength(0);
+    expect(deleteMock).not.toHaveBeenCalled();
+  });
+
   it('renders a primary interface that is not enrolled', function() {
     Client.addMockResponse({
       url: ENDPOINT,

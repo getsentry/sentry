@@ -65,6 +65,76 @@ describe('AccountSecurityDetails', function() {
 
       expect(deleteMock).toHaveBeenCalled();
     });
+
+    it('can remove one of multiple 2fa methods when org requires 2fa', function() {
+      Client.addMockResponse({
+        url: ORG_ENDPOINT,
+        body: TestStubs.Organizations({require2FA: true}),
+      });
+      let deleteMock = Client.addMockResponse({
+        url: `${ENDPOINT}15/`,
+        method: 'DELETE',
+      });
+
+      wrapper = mount(
+        <AccountSecurityWrapper>
+          <AccountSecurityDetails />
+        </AccountSecurityWrapper>,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: 15,
+              },
+            },
+          },
+        ])
+      );
+
+      wrapper.find('RemoveConfirm Button').simulate('click');
+      wrapper
+        .find('Modal Button')
+        .last()
+        .simulate('click');
+
+      expect(deleteMock).toHaveBeenCalled();
+    });
+
+    it('can not remove last 2fa method when org requires 2fa', function() {
+      Client.addMockResponse({
+        url: ORG_ENDPOINT,
+        body: TestStubs.Organizations({require2FA: true}),
+      });
+      Client.addMockResponse({
+        url: ENDPOINT,
+        body: [TestStubs.Authenticators().Totp()],
+      });
+      let deleteMock = Client.addMockResponse({
+        url: `${ENDPOINT}15/`,
+        method: 'DELETE',
+      });
+
+      wrapper = mount(
+        <AccountSecurityWrapper>
+          <AccountSecurityDetails />
+        </AccountSecurityWrapper>,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: 15,
+              },
+            },
+          },
+        ])
+      );
+
+      wrapper.find('RemoveConfirm Button').simulate('click');
+      expect(wrapper.find('Modal Button')).toHaveLength(0);
+      expect(deleteMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('Recovery', function() {
