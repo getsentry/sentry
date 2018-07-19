@@ -555,6 +555,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                     'issue_key': external_issue.key,
                 }
             )
+            return
 
         client.transition_issue(external_issue.key, transition['id'])
 
