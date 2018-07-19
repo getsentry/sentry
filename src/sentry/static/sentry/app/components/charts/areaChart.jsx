@@ -13,10 +13,9 @@ import YAxis from './components/yAxis';
 
 class AreaChart extends React.Component {
   static propTypes = {
-    /**
-       * Height of chart
-       */
-    height: PropTypes.number,
+    // We passthrough all props exception `options`
+    ...BaseChart.propTypes,
+
     startDate: PropTypes.string,
     series: PropTypes.arrayOf(
       PropTypes.shape({
@@ -36,7 +35,7 @@ class AreaChart extends React.Component {
   };
 
   render() {
-    const {height, series, lines, startDate} = this.props;
+    const {series, lines, startDate, ...props} = this.props;
     if (!series.length) return null;
 
     const numDates = series[0].data.length;
@@ -48,8 +47,7 @@ class AreaChart extends React.Component {
 
     return (
       <BaseChart
-        height={height}
-        colors={theme.charts.colors}
+        {...props}
         options={{
           tooltip: Tooltip(),
           title: {},

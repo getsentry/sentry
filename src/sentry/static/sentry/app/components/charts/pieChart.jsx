@@ -1,18 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import theme from 'app/utils/theme';
-
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
 import Tooltip from './components/tooltip';
 
 class PieChart extends React.Component {
   static propTypes = {
-    /**
-       * Height of chart
-       */
-    height: PropTypes.number,
+    // We passthrough all props exception `options`
+    ...BaseChart.propTypes,
+
     name: PropTypes.string,
     data: PropTypes.arrayOf(
       PropTypes.shape({
@@ -23,13 +20,12 @@ class PieChart extends React.Component {
   };
 
   render() {
-    const {height, name, data} = this.props;
+    const {name, data, ...props} = this.props;
     if (!data.length) return null;
 
     return (
       <BaseChart
-        height={height}
-        colors={theme.charts.colors}
+        {...props}
         options={{
           tooltip: Tooltip(),
           title: {},
