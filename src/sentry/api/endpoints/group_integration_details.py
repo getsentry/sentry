@@ -169,7 +169,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def delete(self, request, group, integration_id):
         # note here externalIssue refers to `ExternalIssue.id` wheras above
         # it refers to the id from the provider
-        external_issue_id = request.DATA.get('externalIssue')
+        external_issue_id = request.GET.get('externalIssue')
         if not external_issue_id:
             return Response({'detail': 'External ID required'}, status=400)
 

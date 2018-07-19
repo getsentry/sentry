@@ -187,12 +187,9 @@ class ExternalIssueActions extends AsyncComponent {
 
   deleteIssue(issueId) {
     let {group, integration} = this.props;
-    let endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
+    let endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
     this.api.request(endpoint, {
       method: 'DELETE',
-      data: {
-        externalIssue: issueId,
-      },
       success: (data, _, jqXHR) => {
         this.setState({
           issue: null,
