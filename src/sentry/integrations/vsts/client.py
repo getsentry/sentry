@@ -27,7 +27,7 @@ class VstsApiPath(object):
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
-    work_items_types_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
+    work_item_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
     users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
 
@@ -142,13 +142,9 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             ),
         )
 
-    def get_work_item_states(self, instance, project=None):
-        if project is None:
-            # TODO(lb): I'm pulling from the first project.
-            # Not sure what else to do here unless I can prompt the user
-            project = self.get_projects(instance)['value'][0]['id']
+    def get_work_item_states(self, instance, project):
         return self.get(
-            VstsApiPath.work_items_types_states.format(
+            VstsApiPath.work_item_states.format(
                 account_name=instance,
                 project=project,
                 # TODO(lb): might want to make this custom like jira at some point
