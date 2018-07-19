@@ -199,7 +199,7 @@ class Event(Model):
 
     @property
     def size(self):
-        data_len = len(self.get_legacy_message())
+        data_len = 0
         for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len
