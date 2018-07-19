@@ -20,6 +20,7 @@ let validHookNames = new Set([
   'issue:secondary-column',
   'analytics:onboarding-complete',
   'analytics:event',
+  'analytics:log-experiment',
   'sidebar:organization-dropdown-menu',
 ]);
 
