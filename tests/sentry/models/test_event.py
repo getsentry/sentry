@@ -34,6 +34,7 @@ class EventTest(TestCase):
         # When we pickle an event we need to make sure our canonical code
         # does not appear here or it breaks old workers.
         data = pickle.dumps(event, protocol=2)
+        open('/tmp/test.pickle', 'wb').write(data)
         assert 'canonical' not in data
 
         # For testing we remove the backwards compat support in the

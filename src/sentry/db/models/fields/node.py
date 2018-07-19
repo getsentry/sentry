@@ -56,7 +56,7 @@ class NodeData(collections.MutableMapping):
         # collection types.  For isntance we have events where this is a
         # CanonicalKeyDict
         data.pop('data', None)
-        data['_node_data_was_canonical'] = isinstance(data['_node_data'], CANONICAL_TYPES)
+        data['_node_data_CANONICAL'] = isinstance(data['_node_data'], CANONICAL_TYPES)
         data['_node_data'] = dict(data['_node_data'].items())
         return data
 
@@ -64,8 +64,8 @@ class NodeData(collections.MutableMapping):
         # If there is a legacy pickled version that used to have data as a
         # duplicate, reject it.
         state.pop('data', None)
-        if data.pop('_node_data_was_canonical', False):
-            data['_node_data'] = CanonicalKeyDict(data['_node_data'])
+        if state.pop('_node_data_CANONICAL', False):
+            state['_node_data'] = CanonicalKeyDict(state['_node_data'])
         self.__dict__ = state
 
     def __getitem__(self, key):
