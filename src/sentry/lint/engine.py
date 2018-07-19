@@ -306,7 +306,12 @@ def py_format(file_list=None):
 
     py_file_list = get_python_files(file_list)
 
-    return run_formatter(['autopep8', '--in-place', '-j0'], py_file_list)
+    # Don't format migration files
+    py_excluding_migrations = [
+        x for x in py_file_list if 'src/sentry/south_migrations' not in x
+    ]
+
+    return run_formatter(['autopep8', '--in-place', '-j0'], py_excluding_migrations)
 
 
 def run_formatter(cmd, file_list, prompt_on_changes=True):
