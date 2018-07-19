@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {NumberField} from 'app/components/forms';
-import {Form} from 'app/components/forms/form';
+import Form from 'app/components/forms/form';
 import {shallow, mount} from 'enzyme';
 
 jest.mock('jquery');

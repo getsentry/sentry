@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import Form from './form';
+import {StyledForm} from './form';
 import FormField from './formField';
 import SelectControl from './selectControl';
 
@@ -59,7 +59,7 @@ export default class SelectField extends FormField {
 
 // This is to match other fields that are wrapped by a `div.control-group`
 const StyledSelectControl = styled(SelectControl)`
-  ${Form} &, .form-stacked & {
+  ${StyledForm} &, .form-stacked & {
     .control-group & {
       margin-bottom: 0;
     }

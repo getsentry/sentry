@@ -23,9 +23,14 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
             Edit Api Key
           </h3>
         </div>
-        <StyledForm
+        <ApiForm
           apiEndpoint="/organizations/org-slug/api-keys/1/"
           apiMethod="PUT"
+          cancelLabel="Cancel"
+          className="form-stacked"
+          errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+          footerClass="form-actions align-right"
+          hideErrors={false}
           initialData={
             Object {
               "allowed_origins": "",
@@ -44,44 +49,19 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
           onCancel={[Function]}
           onSubmitError={[Function]}
           onSubmitSuccess={[Function]}
+          requireChanges={false}
+          resetOnError={false}
+          submitDisabled={false}
           submitErrorMessage="There was an error saving your changes."
+          submitLabel="Save Changes"
           submitLoadingMessage="Saving changes.."
         >
-          <Form
-            apiEndpoint="/organizations/org-slug/api-keys/1/"
-            apiMethod="PUT"
-            cancelLabel="Cancel"
-            className="css-10f3krf-StyledForm ejqwck10"
-            errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
-            footerClass="form-actions align-right"
-            hideErrors={false}
-            initialData={
-              Object {
-                "allowed_origins": "",
-                "id": 1,
-                "key": "aa624bcc12024702a202cd90be5feda0",
-                "label": "Default",
-                "scope_list": Array [
-                  "project:read",
-                  "event:read",
-                  "team:read",
-                  "member:read",
-                ],
-                "status": 0,
-              }
-            }
-            onCancel={[Function]}
-            onSubmitError={[Function]}
-            onSubmitSuccess={[Function]}
-            requireChanges={false}
-            resetOnError={false}
-            submitDisabled={false}
-            submitErrorMessage="There was an error saving your changes."
-            submitLabel="Save Changes"
-            submitLoadingMessage="Saving changes.."
+          <StyledForm
+            className="form-stacked"
+            onSubmit={[Function]}
           >
             <form
-              className="css-10f3krf-StyledForm ejqwck10"
+              className="form-stacked css-10f3krf-StyledForm ejqwck10"
               onSubmit={[Function]}
             >
               <SplitLayout
@@ -533,8 +513,8 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                 </button>
               </div>
             </form>
-          </Form>
-        </StyledForm>
+          </StyledForm>
+        </ApiForm>
       </div>
     </DocumentTitle>
   </SideEffect(DocumentTitle)>

@@ -11,9 +11,14 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
     <p>
       Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.
     </p>
-    <StyledForm
+    <ApiForm
       apiEndpoint="/organizations/"
       apiMethod="POST"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+      footerClass="form-actions align-right"
+      hideErrors={false}
       initialData={
         Object {
           "defaultTeam": true,
@@ -21,6 +26,8 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
       }
       onSubmitSuccess={[Function]}
       requireChanges={true}
+      resetOnError={false}
+      submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
       submitLabel="Create Organization"
       submitLoadingMessage="Saving changes.."
@@ -64,7 +71,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
         placeholder="e.g. My Company"
         required={true}
       />
-    </StyledForm>
+    </ApiForm>
   </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;
@@ -80,9 +87,14 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
     <p>
       Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.
     </p>
-    <StyledForm
+    <ApiForm
       apiEndpoint="/organizations/"
       apiMethod="POST"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+      footerClass="form-actions align-right"
+      hideErrors={false}
       initialData={
         Object {
           "defaultTeam": true,
@@ -90,6 +102,8 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
       }
       onSubmitSuccess={[Function]}
       requireChanges={true}
+      resetOnError={false}
+      submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
       submitLabel="Create Organization"
       submitLoadingMessage="Saving changes.."
@@ -102,7 +116,7 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
         placeholder="e.g. My Company"
         required={true}
       />
-    </StyledForm>
+    </ApiForm>
   </NarrowLayout>
 </SideEffect(DocumentTitle)>
 `;

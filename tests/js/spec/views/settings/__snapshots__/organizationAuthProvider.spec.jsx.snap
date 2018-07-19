@@ -56,9 +56,14 @@ exports[`OrganizationAuthProvider renders 1`] = `
       <legend>
         General Settings
       </legend>
-      <StyledForm
+      <ApiForm
         apiEndpoint="/organizations/org-slug/auth-provider/"
         apiMethod="PUT"
+        cancelLabel="Cancel"
+        className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+        footerClass="form-actions align-right"
+        hideErrors={false}
         initialData={
           Object {
             "auth_provider": Object {
@@ -74,6 +79,9 @@ exports[`OrganizationAuthProvider renders 1`] = `
           }
         }
         onSubmit={[Function]}
+        requireChanges={false}
+        resetOnError={false}
+        submitDisabled={false}
         submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Settings"
         submitLoadingMessage="Saving changes.."
@@ -119,7 +127,7 @@ exports[`OrganizationAuthProvider renders 1`] = `
           name="default_role"
           required={true}
         />
-      </StyledForm>
+      </ApiForm>
     </div>
   </div>
   <div
@@ -300,9 +308,14 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
       <legend>
         General Settings
       </legend>
-      <StyledForm
+      <ApiForm
         apiEndpoint="/organizations/org-slug/auth-provider/"
         apiMethod="PUT"
+        cancelLabel="Cancel"
+        className="form-stacked"
+        errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+        footerClass="form-actions align-right"
+        hideErrors={false}
         initialData={
           Object {
             "auth_provider": Object {
@@ -318,6 +331,9 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
           }
         }
         onSubmit={[Function]}
+        requireChanges={false}
+        resetOnError={false}
+        submitDisabled={false}
         submitErrorMessage="There was an error saving your changes."
         submitLabel="Save Settings"
         submitLoadingMessage="Saving changes.."
@@ -363,7 +379,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
           name="default_role"
           required={true}
         />
-      </StyledForm>
+      </ApiForm>
     </div>
   </div>
   <div
@@ -475,9 +491,14 @@ Array [
     <legend>
       General Settings
     </legend>
-    <StyledForm
+    <ApiForm
       apiEndpoint="/organizations/org-slug/auth-provider/"
       apiMethod="PUT"
+      cancelLabel="Cancel"
+      className="form-stacked"
+      errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+      footerClass="form-actions align-right"
+      hideErrors={false}
       initialData={
         Object {
           "auth_provider": Object {
@@ -493,6 +514,9 @@ Array [
         }
       }
       onSubmit={[Function]}
+      requireChanges={false}
+      resetOnError={false}
+      submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
       submitLabel="Save Settings"
       submitLoadingMessage="Saving changes.."
@@ -538,7 +562,7 @@ Array [
         name="default_role"
         required={true}
       />
-    </StyledForm>
+    </ApiForm>
   </div>,
   <div
     className="box-content with-padding"
