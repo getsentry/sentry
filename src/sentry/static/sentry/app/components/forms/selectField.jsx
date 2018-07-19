@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from 'react-emotion';
 
-import FormField from 'app/components/forms/formField';
-import SelectControl from 'app/components/forms/selectControl';
+import {StyledForm} from './form';
+import FormField from './formField';
+import SelectControl from './selectControl';
 
 export default class SelectField extends FormField {
   static propTypes = {
@@ -26,7 +28,7 @@ export default class SelectField extends FormField {
   }
 
   getClassName() {
-    return 'control-group';
+    return '';
   }
 
   onChange = opt => {
@@ -35,11 +37,13 @@ export default class SelectField extends FormField {
   };
 
   getField() {
-    const {options, placeholder, disabled, required} = this.props;
+    const {options, creatable, choices, placeholder, disabled, required} = this.props;
 
     return (
-      <SelectControl
+      <StyledSelectControl
+        creatable={creatable}
         id={this.getId()}
+        choices={choices}
         options={options}
         placeholder={placeholder}
         disabled={disabled}
@@ -52,3 +56,14 @@ export default class SelectField extends FormField {
     );
   }
 }
+
+// This is to match other fields that are wrapped by a `div.control-group`
+const StyledSelectControl = styled(SelectControl)`
+  ${StyledForm} &, .form-stacked & {
+    .control-group & {
+      margin-bottom: 0;
+    }
+
+    margin-bottom: 15px;
+  }
+`;

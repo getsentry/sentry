@@ -1,8 +1,10 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
+import {shallow, mount} from 'enzyme';
 import OrganizationAuthProvider from 'app/views/settings/organizationAuth/organizationAuthProvider';
+
+import {findOption, openMenu} from '../../../helpers/select';
 
 jest.mock('jquery');
 
@@ -101,12 +103,11 @@ describe('OrganizationAuthProvider', function() {
         .find('input')
         .prop('checked')
     ).toBe(true);
+
+    openMenu(wrapper, {selector: 'default_role'});
     expect(
-      wrapper
-        .find('Select2Field')
-        .find('select')
-        .prop('value')
-    ).toBe('admin');
+      findOption(wrapper, {label: 'Admin'}, {selector: 'default_role'})
+    ).toHaveLength(1);
   });
 
   it('can disable provider', function() {
