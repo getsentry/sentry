@@ -22,7 +22,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
-from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.models import ProjectOption, Activity, Project
 
@@ -164,6 +164,10 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
                                event_id=event_id)
             return
 
+        # We cannot persist canonical types in the cache, so we need to
+        # downgrade this.
+        if isinstance(data, CANONICAL_TYPES):
+            data = dict(data.items())
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(

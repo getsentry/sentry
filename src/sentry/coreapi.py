@@ -37,6 +37,7 @@ from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
+from sentry.utils.canonical import CANONICAL_TYPES
 
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
@@ -350,8 +351,8 @@ class ClientApiHelper(object):
     def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
         if start_time is None:
             start_time = time()
-        # we might be passed LazyData
-        if isinstance(data, LazyData):
+        # we might be passed some sublcasses of dict that fail dumping
+        if isinstance(data, DOWNGRADE_DATA_TYPES):
             data = dict(data.items())
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
@@ -538,3 +539,6 @@ class LazyData(MutableMapping):
         if not self._decoded:
             self._decode()
         return iter(self._data)
+
+
+DOWNGRADE_DATA_TYPES = CANONICAL_TYPES + (LazyData,)
