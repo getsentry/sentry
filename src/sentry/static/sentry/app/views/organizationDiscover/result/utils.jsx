@@ -12,7 +12,7 @@ function getDisplayValue(val, idx) {
   }
 
   if (val === null) {
-    return <LightGray>null</LightGray>;
+    return <LightGray key={idx}>null</LightGray>;
   }
 
   if (Array.isArray(val)) {
