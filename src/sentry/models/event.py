@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
+    BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize

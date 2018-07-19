@@ -11,7 +11,6 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (Model, NodeField, FlexibleForeignKey, sane_repr)
-from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 
 

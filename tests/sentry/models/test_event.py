@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pickle
 
-from sentry.models import Environment, Event
+from sentry.models import Environment
 from sentry.testutils import TestCase
 from sentry.db.models.fields.node import NodeData
 
