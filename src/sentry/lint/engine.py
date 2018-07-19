@@ -374,7 +374,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
         if lint:
             if py:
-                raise NotImplementedError('flake8 linting was moved to pre-commit hooks.')
+                pass  # flake8 linting was moved to pre-commit
             if js:
                 # stylelint `--fix` doesn't work well
                 results.append(js_stylelint(file_list, parseable=parseable, format=format))
