@@ -98,8 +98,7 @@ export default function createQueryBuilder(initial = {}, organization) {
 
     // Default to all fields if there are none selected, and no aggregation is
     // specified
-    const useDefaultFields =
-      !query.fields.length && !query.aggregations.length && !query.groupby;
+    const useDefaultFields = !query.fields.length && !query.aggregations.length;
 
     const fields = useDefaultFields ? getColumns().map(({name}) => name) : query.fields;
 
