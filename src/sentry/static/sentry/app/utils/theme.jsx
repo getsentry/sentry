@@ -202,4 +202,9 @@ theme.button = {
   },
 };
 
+theme.charts = {
+  colors: ['#4C416B', '#7A5195', '#BC5090', '#EF5675', '#FF764A', '#FFA600'],
+  previousPeriod: theme.gray1,
+};
+
 export default theme;
