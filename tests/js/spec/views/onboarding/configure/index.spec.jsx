@@ -1,7 +1,6 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import {Client} from 'app/api';
 import Configure from 'app/views/onboarding/configure';
 import ProjectsStore from 'app/stores/projectsStore';
 
@@ -10,23 +9,23 @@ describe('Configure should render correctly', function() {
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/',
       body: TestStubs.Project(),
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/events/',
       body: {},
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/members/',
       body: [],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/environments/',
-      body: {},
+      body: [],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/docs/',
       body: {
         dsn: 'https://9ed7cdc60:20e868d7b@sentry.io/300733',
@@ -47,7 +46,7 @@ describe('Configure should render correctly', function() {
         dsnPublic: 'https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733',
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/docs/node/',
       body: {},
     });
@@ -73,6 +72,10 @@ describe('Configure should render correctly', function() {
   afterEach(function() {
     sandbox.restore();
     ProjectsStore.loadInitialData([]);
+  });
+
+  afterAll(function() {
+    MockApiClient.clearMockResponses();
   });
 
   describe('render()', function() {
@@ -134,7 +137,7 @@ describe('Configure should render correctly', function() {
       expect(handleSubmitStub.callCount).toEqual(1);
     });
 
-    it('should render platform docs', function(done) {
+    it('should render platform docs', async function() {
       let props = {
         ...baseProps,
       };
@@ -182,11 +185,11 @@ describe('Configure should render correctly', function() {
         ])
       );
 
-      setTimeout(() => {
-        wrapper.update();
-        expect(wrapper).toMatchSnapshot();
-        done();
-      });
+      await tick();
+      // Not sure exactly why but without a second tick, test is flakey and can cause false positives
+      await tick();
+      wrapper.update();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
