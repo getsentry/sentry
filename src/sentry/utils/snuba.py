@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
 from itertools import chain
 from operator import or_
@@ -12,8 +13,12 @@ import urllib3
 from django.conf import settings
 from django.db.models import Q
 
+from sentry import quotas
 from sentry.event_manager import HASH_RE
-from sentry.models import Environment, Group, GroupHash, GroupHashTombstone, GroupRelease, Release, ReleaseProject
+from sentry.models import (
+    Environment, Group, GroupHash, GroupHashTombstone, GroupRelease,
+    Organization, Project, Release, ReleaseProject
+)
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from functools import reduce
@@ -24,6 +29,10 @@ MAX_HASHES = 5000
 
 
 class SnubaError(Exception):
+    pass
+
+
+class EntireQueryOutsideRetentionError(Exception):
     pass
 
 
@@ -96,6 +105,16 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     if not project_ids:
         raise SnubaError("No project_id filter, or none could be inferred from other filters.")
 
+    # any project will do, as they should all be from the same organization
+    project = Project.objects.get(pk=project_ids[0])
+    retention = quotas.get_event_retention(
+        organization=Organization(project.organization_id)
+    )
+    if retention:
+        start = max(start, datetime.utcnow() - timedelta(days=retention))
+        if start > end:
+            raise EntireQueryOutsideRetentionError
+
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
     aggregate_cols = [a[1] for a in aggregations]
@@ -157,9 +176,16 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
 
-    body = raw_query(start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
-                     selected_columns=selected_columns, aggregations=aggregations, rollup=rollup, arrayjoin=arrayjoin,
-                     limit=limit, orderby=orderby, having=having, referrer=referrer, is_grouprelease=is_grouprelease)
+    try:
+        body = raw_query(
+            start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
+            selected_columns=selected_columns, aggregations=aggregations, rollup=rollup,
+            arrayjoin=arrayjoin, limit=limit, orderby=orderby, having=having,
+            referrer=referrer, is_grouprelease=is_grouprelease
+        )
+    except EntireQueryOutsideRetentionError:
+        # this exception could also bubble up to the caller instead
+        return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
