@@ -6,7 +6,7 @@ from exam import fixture
 from sentry.models import Integration, Repository
 from sentry.testutils import TestCase
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
-from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH
+from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH, REPO
 
 
 class BitbucketRepositoryProviderTest(TestCase):
@@ -72,3 +72,55 @@ class BitbucketRepositoryProviderTest(TestCase):
                 'patch_set': [{'path': u'README.md', 'type': 'M'}]
             }
         ]
+
+    @responses.activate
+    def test_create_repository(self):
+        full_repo_name = 'laurynsentry/helloworld'
+        webhook_id = 'web-hook-id'
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/%s' % full_repo_name,
+            json=REPO,
+        )
+        responses.add(
+            responses.POST,
+            'https://api.bitbucket.org/2.0/repositories/%s/hooks' % full_repo_name,
+            json={'uuid': webhook_id},
+            status=201,
+        )
+
+        organization = self.create_organization()
+        integration = Integration.objects.create(
+            provider='bitbucket',
+            external_id='bitbucket_external_id',
+            name='Hello world',
+            metadata={
+                'base_url': 'https://api.bitbucket.org',
+                'shared_secret': '23456789',
+            }
+        )
+        data = {
+            'provider': 'integrations:bitbucket',
+            'identifier': full_repo_name,
+            'installation': integration.id,
+        }
+        data = self.provider.validate_config(organization, data)
+        assert data == {
+            'provider': 'integrations:bitbucket',
+            'identifier': full_repo_name,
+            'installation': integration.id,
+            'external_id': full_repo_name,
+            'name': full_repo_name,
+        }
+        data = self.provider.create_repository(organization, data)
+
+        assert data == {
+            'name': full_repo_name,
+            'external_id': full_repo_name,
+            'url': 'https://bitbucket.org/laurynsentry/helloworld',
+            'integration_id': integration.id,
+            'config': {
+                'name': full_repo_name,
+                'webhook_id': webhook_id,
+            }
+        }
