@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from .client import VstsApiClient
 
-from sentry.models import Group, Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
+from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from sentry.app import raven
 from uuid import uuid4
@@ -50,17 +50,15 @@ class WorkItemWebhook(Endpoint):
             provider='vsts',
             external_id=data['resourceContainers']['collection']['id'],
         )
-        affected_groups = self.get_affected_groups(external_issue_key)
         project = data['resourceContainers']['project']['id']
-        self.handle_assign_to(integration, external_issue_key, assigned_to, affected_groups)
+        self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(
             integration,
             external_issue_key,
             status_change,
-            affected_groups,
             project)
 
-    def handle_assign_to(self, integration, external_issue_key, assigned_to, affected_groups):
+    def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
             return
         new_value = assigned_to.get('newValue')
@@ -78,25 +76,23 @@ class WorkItemWebhook(Endpoint):
         )
 
     def handle_status_change(self, integration, external_issue_key,
-                             status_change, affected_groups, project):
-        new_status = status_change.get('newValue')
-        old_status = status_change.get('oldValue')
+                             status_change, project):
+        new_state = status_change.get('newValue')
+        old_state = status_change.get('oldValue')
         organization_ids = OrganizationIntegration.objects.filter(
             integration_id=integration.id,
         ).values_list('id', flat=True)
-        states = None
+
+        old_category = None
+        new_category = None
         for organization_id in organization_ids:
             installation = integration.get_installation(organization_id)
-            if states is None:
-                # states should be the same throughout
-                states = installation.get_client().get_work_item_states(
-                    installation.instance, project)['value']
-            groups = [g for g in affected_groups if g.project.organization_id == organization_id]
+            if not (old_category and new_category):  # states should be the same throughout
+                old_category, new_category = installation.get_state_categories(
+                    old_state, new_state, project)
             data = {
-                'new_status': new_status,
-                'old_status': old_status,
-                'groups': groups,
-                'states': states,
+                'new_category': new_category,
+                'old_category': old_category,
             }
             installation.sync_status_inbound(external_issue_key, data)
 
@@ -112,11 +108,3 @@ class WorkItemWebhook(Endpoint):
         # following this example
         # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
         return uuid4().hex + uuid4().hex
-
-    def get_affected_groups(self, external_issue_key):
-        affected_groups = list(
-            Group.objects.get_groups_by_external_issue(
-                self.model, external_issue_key,
-            ).select_related('project'),
-        )
-        return affected_groups

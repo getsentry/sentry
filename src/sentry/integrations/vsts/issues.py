@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from mistune import markdown
 
-from sentry.models import Activity, GroupStatus, ProjectIntegration
+from sentry.models import ProjectIntegration
 from sentry.integrations.issues import IssueSyncMixin
 
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError
@@ -164,60 +164,21 @@ class VstsIssueSync(IssueSyncMixin):
     def should_resolve(self, data):
         return not self.is_done(data['old_category']) and self.is_done(data['new_category'])
 
-    def get_state_categories(self, old_state, new_state, states):
+    def get_state_categories(self, old_state, new_state, project):
+        client = self.get_client()
+        all_states = client.get_work_item_states(
+            self.instance, project)['value']
         new_category = None
         old_category = None
-        for state in states:
+        for state in all_states:
             if state['name'] == new_state:
                 new_category = state['category']
             if state['name'] == old_state:
                 old_category = state['category']
 
+        # what should I do if this doesn't work?
+        assert old_category is not None and new_category is not None
         return old_category, new_category
 
     def is_done(self, category):
         return category in self.done_categories
-
-    def sync_status_inbound(self, issue_key, data):
-        groups_to_resolve = []
-        groups_to_unresolve = []
-
-        new_state = data.get('new_state')
-        old_state = data.get('old_state')
-        old_category, new_category = self.get_state_categories(
-            old_state, new_state, data.get('states'))
-
-        for group in data.get('groups'):
-            should_resolve = self.should_resolve(data)
-            should_unresolve = self.should_unresolve(data)
-
-            # this probably shouldn't be possible unless there
-            # is a bug in one of those methods
-            if should_resolve is True and should_unresolve is True:
-                self.logger.warning(
-                    'sync-config-conflict', extra={
-                        'organization_id': group.project.organization_id,
-                        'integration_id': self.model.id,
-                        'provider': self.model.get_provider(),
-                    }
-                )
-                continue
-
-            if should_unresolve:
-                groups_to_unresolve.append(group)
-            elif should_resolve:
-                groups_to_resolve.append(group)
-
-        if groups_to_resolve:
-            self.update_group_status(
-                groups_to_resolve,
-                GroupStatus.RESOLVED,
-                Activity.SET_RESOLVED,
-            )
-
-        if groups_to_unresolve:
-            self.update_group_status(
-                groups_to_unresolve,
-                GroupStatus.UNRESOLVED,
-                Activity.SET_UNRESOLVED
-            )
