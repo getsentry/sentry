@@ -22,4 +22,20 @@ storiesOf('Tags', module)
     withInfo('A happy tag-like thing. Use this to signal something good')(() => (
       <Tag priority="success">Development</Tag>
     ))
+  )
+  .add(
+    'small',
+    withInfo('A small tag-like thing. Use this when space is at a premium')(() => (
+      <Tag size="small" border="true">
+        new
+      </Tag>
+    ))
+  )
+  .add(
+    'with border',
+    withInfo('A bordered tag-like thing. Use this when you want a border')(() => (
+      <Tag border="true" priority="attention">
+        Development
+      </Tag>
+    ))
   );

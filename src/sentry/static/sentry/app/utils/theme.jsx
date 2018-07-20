@@ -74,6 +74,11 @@ const theme = {
       backgroundLight: '#F5FAFE',
       border: '#B5D6ED',
     },
+    attention: {
+      backgroundLight: '#ECBFA6',
+      background: '#F09E71',
+      border: '#D0816D',
+    },
     warning: {
       backgroundLight: '#FFFDF7',
       background: '#f9a66d',

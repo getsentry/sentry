@@ -30,6 +30,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
@@ -385,7 +386,11 @@ class EnvironmentRow extends React.Component {
       <PanelItem align="center" justify="space-between">
         <Flex align="center">
           {isSystemRow ? environment.displayName : environment.name}
-          {isDefault && <Tag priority="success">{t('Default')}</Tag>}
+          {isDefault && (
+            <Tag priority="success" ml={1}>
+              {t('Default')}
+            </Tag>
+          )}
         </Flex>
         <div>
           {shouldShowSetDefault && (
@@ -411,7 +416,7 @@ class EnvironmentRow extends React.Component {
   }
 }
 const EnvironmentButton = styled(Button)`
-  margin-left: 4px;
+  margin-left: ${space(0.5)};
 `;
 
 const InvalidDefaultEnvironmentIcon = styled(props => (
