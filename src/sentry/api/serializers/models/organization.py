@@ -146,9 +146,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         # this is slightly gross but necessary until we have the get on the endpoint
         # to give the frontend a way to know when to log exposures
         sso_experiment = features.has('organizations:sso-paywall-experiment', obj, actor=user)
-        if sso_experiment:
+        if sso_experiment == 1:
             feature_list.append('sso-paywall-experiment-treatment')
-        elif sso_experiment is False:
+        elif sso_experiment == 0:
             feature_list.append('sso-paywall-experiment-control')
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
