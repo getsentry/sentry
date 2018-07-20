@@ -99,7 +99,7 @@ class IntegrationDetailsModal extends React.Component {
 
 const ProviderName = styled(p => <Box {...p} />)`
   font-weight: bold;
-  font-size: 1.2em;
+  font-size: 1.1em;
 `;
 
 const Description = styled.div`

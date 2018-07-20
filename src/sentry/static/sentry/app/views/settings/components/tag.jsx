@@ -1,13 +1,14 @@
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
+import {Box} from 'grid-emotion';
 
 const getMarginLeft = p => {
   if (!p.inline) return '';
   return `margin-left: ${p.size == 'small' ? '0.25em' : '0.5em'};`;
 };
 
-const TagTextStyled = styled('span')`
+const TagTextStyled = styled(Box)`
   display: inline;
   padding: ${p => (p.size == 'small' ? '0.1em 0.4em' : '0.4em 0.6em')};
   ${p =>

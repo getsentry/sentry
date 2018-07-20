@@ -1,7 +1,6 @@
 import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -49,8 +48,16 @@ class EmailRow extends React.Component {
       <PanelItem justify="space-between">
         <Flex align="center">
           {email}
-          {!isVerified && <StyledTag priority="warning">{t('Unverified')}</StyledTag>}
-          {isPrimary && <StyledTag priority="success">{t('Primary')}</StyledTag>}
+          {!isVerified && (
+            <Tag ml={1} priority="warning">
+              {t('Unverified')}
+            </Tag>
+          )}
+          {isPrimary && (
+            <Tag ml={1} priority="success">
+              {t('Primary')}
+            </Tag>
+          )}
         </Flex>
         <Flex>
           {!isPrimary &&
@@ -192,9 +199,5 @@ class AccountEmails extends AsyncView {
     );
   }
 }
-
-const StyledTag = styled(Tag)`
-  margin-left: 0.5em;
-`;
 
 export default AccountEmails;

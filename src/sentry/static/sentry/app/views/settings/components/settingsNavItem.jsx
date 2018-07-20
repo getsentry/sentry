@@ -40,10 +40,6 @@ const StyledNavItem = styled(Link)`
   }
 `;
 
-const StyledTag = styled(Tag)`
-  margin-left: 0.5em;
-`;
-
 class SettingsNavItem extends React.Component {
   static propTypes = {
     label: PropTypes.node.isRequired,
@@ -58,9 +54,9 @@ class SettingsNavItem extends React.Component {
 
     if (badge === 'new') {
       renderedBadge = (
-        <StyledTag priority="attention" size="small" border={true}>
+        <Tag priority="attention" size="small" border={true}>
           {badge}
-        </StyledTag>
+        </Tag>
       );
     } else {
       renderedBadge = <Badge text={badge} />;

@@ -386,7 +386,11 @@ class EnvironmentRow extends React.Component {
       <PanelItem align="center" justify="space-between">
         <Flex align="center">
           {isSystemRow ? environment.displayName : environment.name}
-          {isDefault && <StyledTag priority="success">{t('Default')}</StyledTag>}
+          {isDefault && (
+            <Tag priority="success" ml={1}>
+              {t('Default')}
+            </Tag>
+          )}
         </Flex>
         <div>
           {shouldShowSetDefault && (
@@ -413,10 +417,6 @@ class EnvironmentRow extends React.Component {
 }
 const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
-`;
-
-const StyledTag = styled(Tag)`
-  margin-left: 0.5em;
 `;
 
 const InvalidDefaultEnvironmentIcon = styled(props => (
