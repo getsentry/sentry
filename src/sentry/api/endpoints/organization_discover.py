@@ -45,6 +45,11 @@ class DiscoverSerializer(serializers.Serializer):
         allow_null=True,
         default=[]
     )
+    groupby = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+    )
 
     def __init__(self, *args, **kwargs):
         super(DiscoverSerializer, self).__init__(*args, **kwargs)
@@ -130,12 +135,19 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
 
         selected_columns = [] if has_aggregations else serialized.get('fields')
 
-        groupby = serialized.get('fields') if has_aggregations else []
+        # Make sure that all selected fields are in the group by clause if there
+        # are aggregations
+        groupby = serialized.get('groupby') or []
+        fields = serialized.get('fields') or []
+        if has_aggregations:
+            for field in fields:
+                if field not in groupby:
+                    groupby.append(field)
 
         results = self.do_query(
             serialized.get('start'),
             serialized.get('end'),
-            groupby,
+            groupby=groupby,
             selected_columns=selected_columns,
             conditions=serialized.get('conditions'),
             orderby=serialized.get('orderby'),
