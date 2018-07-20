@@ -71,7 +71,7 @@ export default class IntegrationRepos extends AsyncComponent {
     this.api.request(`/organizations/${orgId}/repos/`, {
       data: {
         installation: integration.id,
-        name: selection.value,
+        identifier: selection.value,
         provider: `integrations:${integration.provider.key}`,
       },
       method: 'POST',
@@ -148,8 +148,8 @@ export default class IntegrationRepos extends AsyncComponent {
     let repositories = this.state.integrationRepos.repos;
     let items = (repositories || []).map(repo => {
       return {
-        searchKey: `${repo.name}`,
-        value: `${repo.full_name}`,
+        searchKey: repo.name,
+        value: repo.identifier,
         label: (
           <StyledListElement>
             <StyledName>{repo.name}</StyledName>
