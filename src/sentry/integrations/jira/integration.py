@@ -568,13 +568,17 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
     def should_unresolve(self, data):
         done_statuses = self._get_done_statuses()
-        return data['changelog']['from'] in done_statuses and \
-            data['changelog']['to'] not in done_statuses
+        c_from = data['changelog']['from']
+        c_to = data['changelog']['to']
+        return c_from in done_statuses and \
+            c_to not in done_statuses
 
     def should_resolve(self, data):
         done_statuses = self._get_done_statuses()
-        return data['changelog']['to'] in done_statuses and \
-            data['changelog']['from'] not in done_statuses
+        c_from = data['changelog']['from']
+        c_to = data['changelog']['to']
+        return c_to in done_statuses and \
+            c_from not in done_statuses
 
 
 class JiraIntegrationProvider(IntegrationProvider):
