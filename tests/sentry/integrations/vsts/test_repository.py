@@ -90,7 +90,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
             'instance': 'https://visualstudio.com',
             'project': 'MyFirstProject',
-            'integration_id': integration.id,
+            'installation': integration.id,
         }
         data = self.provider.create_repository(organization, data)
 
