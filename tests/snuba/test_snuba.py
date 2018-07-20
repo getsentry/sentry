@@ -158,3 +158,16 @@ class SnubaTest(SnubaTestCase):
         assert _get_event_count() == {self.project.id: 2}
         with self.options({'system.event-retention-days': 1}):
             assert _get_event_count() == {self.project.id: 1}
+
+    def test_organization_retention_larger_than_end_date(self):
+        base_time = datetime.utcnow()
+
+        with self.options({'system.event-retention-days': 1}):
+            assert snuba.query(
+                start=base_time - timedelta(days=90),
+                end=base_time - timedelta(days=60),
+                groupby=['project_id'],
+                filter_keys={
+                    'project_id': [self.project.id],
+                },
+            ) == {}
