@@ -490,6 +490,7 @@ function routes() {
               : OrganizationMembers
           }
         />
+
         <Route
           path="new/"
           name="Invite"
@@ -497,6 +498,7 @@ function routes() {
             import(/*webpackChunkName: InviteMember*/ './views/settings/organizationMembers/inviteMember')}
           component={errorHandler(LazyLoad)}
         />
+
         <Route
           path=":memberId/"
           name="Details"
@@ -739,6 +741,19 @@ function routes() {
             path="/organizations/:orgId/activity/"
             component={errorHandler(OrganizationActivity)}
           />
+
+          <Route
+            path="/organizations/:orgId/health/"
+            componentPromise={() =>
+              import(/*webpackChunkName: OrganizationHealth*/ './views/organizationHealth')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/*webpackChunkName: HealthOverview*/ './views/organizationHealth/overview')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
 
           <Route
             path="/organizations/:orgId/teams/new/"
