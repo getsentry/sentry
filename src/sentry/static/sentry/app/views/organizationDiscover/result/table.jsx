@@ -4,6 +4,9 @@ import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
 import AutoSelectText from 'app/components/autoSelectText';
+import LineChart from '../lineChart';
+const {data} = require('./transactionData.js');
+const chartData = data;
 
 import {getDisplayValue} from './utils';
 /**
@@ -55,6 +58,7 @@ export default class Result extends React.Component {
           snuba query time: {timing.duration_ms}ms, {data.length} rows
         </Summary>
         {this.renderTable()}
+        <LineChart data={chartData} groupBy="tags[transaction]"/>
       </div>
     );
   }
