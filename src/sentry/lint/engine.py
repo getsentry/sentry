@@ -287,7 +287,7 @@ def py_format(file_list=None):
     try:
         __import__('autopep8')
     except ImportError:
-        print('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', err=True)  # noqa: B314
+        print('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', file=sys.stderr)  # noqa: B314
         return False
 
     py_file_list = get_python_files(file_list)
