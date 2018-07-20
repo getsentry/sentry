@@ -25,7 +25,6 @@ from sentry.utils import json
 
 from sentry.integrations.exceptions import ApiError
 from .repository import GitHubRepositoryProvider
-from .client import GitHubAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
 
@@ -33,7 +32,7 @@ logger = logging.getLogger('sentry.webhooks')
 class Webhook(object):
     provider = 'github'
 
-    def _handle(self, event, organization, repo):
+    def _handle(self, integration, event, organization, repo):
         raise NotImplementedError
 
     def __call__(self, event, host=None):
@@ -65,7 +64,7 @@ class Webhook(object):
                     repo.config['name'] = event['repository']['full_name']
                     repo.save()
 
-                self._handle(event, orgs[repo.organization_id], repo, host)
+                self._handle(integration, event, orgs[repo.organization_id], repo)
 
 
 class InstallationEventWebhook(Webhook):
@@ -96,7 +95,7 @@ class InstallationEventWebhook(Webhook):
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def _handle(self, event, organization, repo, host=None):
+    def _handle(self, integration, event, organization, repo):
         pass
 
 
@@ -109,20 +108,15 @@ class PushEventWebhook(Webhook):
     def get_external_id(self, username):
         return 'github:%s' % username
 
-    def get_idp_external_id(self, host=None):
+    def get_idp_external_id(self, integration, host=None):
         return options.get('github-app.id')
-
-    def get_client(self, event, host=None):
-        return GitHubAppsClient(event['installation']['id'])
 
     def should_ignore_commit(self, commit):
         return GitHubRepositoryProvider.should_ignore_commit(commit['message'])
 
-    def _handle(self, event, organization, repo, host=None):
+    def _handle(self, integration, event, organization, repo, host=None):
         authors = {}
-        client = self.get_client(event, host)
-        if client is None:
-            return HttpResponse(status=400)
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
 
         for commit in event['commits']:
@@ -170,7 +164,7 @@ class PushEventWebhook(Webhook):
                                 gh_username_cache[gh_username] = None
                                 try:
                                     identity = Identity.objects.get(
-                                        external_id=gh_user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(host))
+                                        external_id=gh_user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(integration, host))
                                 except Identity.DoesNotExist:
                                     pass
                                 else:
@@ -268,10 +262,10 @@ class PullRequestEventWebhook(Webhook):
     def get_external_id(self, username):
         return 'github:%s' % username
 
-    def get_idp_external_id(self, host=None):
+    def get_idp_external_id(self, integration, host=None):
         return options.get('github-app.id')
 
-    def _handle(self, event, organization, repo, host=None):
+    def _handle(self, integration, event, organization, repo, host=None):
         pull_request = event['pull_request']
         number = pull_request['number']
         title = pull_request['title']
@@ -295,7 +289,7 @@ class PullRequestEventWebhook(Webhook):
         except CommitAuthor.DoesNotExist:
             try:
                 identity = Identity.objects.get(
-                    external_id=user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(host))
+                    external_id=user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(integration, host))
             except Identity.DoesNotExist:
                 pass
             else:

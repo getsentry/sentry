@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 from sentry.models import (
     Commit,
@@ -92,9 +92,12 @@ class PushEventWebhookTest(APITestCase):
             provider='integrations:github',
             name='baxterthehacker/public-repo',
         )
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             external_id="12345",
             provider='github',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(project.organization.id)
 
@@ -144,10 +147,12 @@ class PushEventWebhookTest(APITestCase):
 
         options.set('github-app.webhook-secret', secret)
 
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             provider='github',
             external_id='12345',
             name='octocat',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(project.organization.id)
 
@@ -218,9 +223,12 @@ class PushEventWebhookTest(APITestCase):
             provider='integrations:github',
             name='baxterthehacker/public-repo',
         )
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             external_id="12345",
             provider='github',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(project.organization.id)
 
@@ -233,9 +241,12 @@ class PushEventWebhookTest(APITestCase):
             provider='integrations:github',
             name='another/repo',
         )
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             external_id="99",
             provider='github',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(org2.id)
 
@@ -275,10 +286,12 @@ class PullRequestEventWebhook(APITestCase):
         secret = 'b3002c3e321d4b7880360d397db2ccfd'
         options.set('github-app.webhook-secret', secret)
 
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             provider='github',
             external_id='12345',
             name='octocat',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(project.organization.id)
 
@@ -323,10 +336,12 @@ class PullRequestEventWebhook(APITestCase):
 
         options.set('github-app.webhook-secret', secret)
 
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             provider='github',
             external_id='12345',
             name='octocat',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(project.organization.id)
 
@@ -370,10 +385,12 @@ class PullRequestEventWebhook(APITestCase):
 
         options.set('github-app.webhook-secret', secret)
 
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         integration = Integration.objects.create(
             provider='github',
             external_id='12345',
             name='octocat',
+            metadata={'access_token': '1234', 'expires_at': future_expires.isoformat()}
         )
         integration.add_organization(project.organization.id)
 

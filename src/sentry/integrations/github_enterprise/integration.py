@@ -50,7 +50,7 @@ class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin
         base_url = urlparse(self.model.metadata['domain_name']).netloc
         return GitHubEnterpriseAppsClient(
             base_url=base_url,
-            installation_id=self.model.metadata['installation_id'],
+            integration=self.model,
             private_key=self.model.metadata['installation']['private_key'],
             app_id=self.model.metadata['installation']['id'],
         )
