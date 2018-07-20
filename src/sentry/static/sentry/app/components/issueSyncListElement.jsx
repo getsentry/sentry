@@ -145,10 +145,6 @@ const IntegrationLink = styled('a')`
   }
 `;
 
-const IntegrationName = styled('span')`
-  text-transform: capitalize;
-`;
-
 const IconClose = styled(InlineSvg)`
   height: 1.25rem;
   color: ${p => p.theme.gray4};

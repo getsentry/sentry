@@ -5,16 +5,10 @@ import Modal from 'react-bootstrap/lib/Modal';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import DropdownLink from 'app/components/dropdownLink';
+import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
-import MenuItem from 'app/components/menuItem';
-import {t, tct} from 'app/locale';
-import _ from 'lodash';
-import styled from 'react-emotion';
-import space from 'app/styles/space';
-
-import IssueSyncListElement from 'app/components/issueSyncListElement';
+import {t} from 'app/locale';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),

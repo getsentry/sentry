@@ -9,7 +9,6 @@ import ApiMixin from 'app/mixins/apiMixin';
 import DropdownLink from 'app/components/dropdownLink';
 import GroupActions from 'app/actions/groupActions';
 import GroupState from 'app/mixins/groupState';
-import ErrorBoundary from 'app/components/errorBoundary';
 import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import IssuePluginActions from 'app/components/group/issuePluginActions';
@@ -295,16 +294,16 @@ const GroupDetailsActions = createReactClass({
             );
           })
         )}
-        {group.pluginIssues && !orgFeatures.has('internal-catchall') &&
+        {group.pluginIssues &&
+          !orgFeatures.has('internal-catchall') &&
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
         {!hasIssueTracking && (
           <GuideAnchor type="text" target="issue_tracking">
             <Link
-              to={`/${this.getOrganization().slug}/${
-                this.getProject().slug
-              }/settings/issue-tracking/`}
+              to={`/${this.getOrganization().slug}/${this.getProject()
+                .slug}/settings/issue-tracking/`}
               className={'btn btn-default btn-sm btn-config-issue-tracking'}
               style={{marginRight: '5px'}}
             >
