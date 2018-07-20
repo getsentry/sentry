@@ -31,6 +31,9 @@ class EventTest(TestCase):
             ]}
         )
 
+        # Ensure we load and memoize the interfaces as well.
+        assert len(event.interfaces) > 0
+
         # When we pickle an event we need to make sure our canonical code
         # does not appear here or it breaks old workers.
         data = pickle.dumps(event, protocol=2)

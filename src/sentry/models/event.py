@@ -57,6 +57,19 @@ class Event(Model):
 
     __repr__ = sane_repr('project_id', 'group_id')
 
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+
+        # do not pickle cached info.  We want to fetch this on demand
+        # again.  In particular if we were to pickle interfaces we would
+        # pickle a CanonicalKeyView which old sentry workers do not know
+        # about
+        state.pop('_project_cache', None)
+        state.pop('_group_cache', None)
+        state.pop('interfaces', None)
+
+        return state
+
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
         self.group_id = group.id
