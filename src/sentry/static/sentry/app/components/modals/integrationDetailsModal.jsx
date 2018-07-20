@@ -10,6 +10,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/buttons/button';
 import ExternalLink from 'app/components/externalLink';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import Tag from 'app/views/settings/components/tag.jsx';
 import space from 'app/styles/space';
 
 class IntegrationDetailsModal extends React.Component {
@@ -33,7 +34,12 @@ class IntegrationDetailsModal extends React.Component {
       <React.Fragment>
         <Flex align="center" mb={2}>
           <PluginIcon pluginId={provider.key} size={32} />
-          <ProviderName>{t('%s Integration', provider.name)}</ProviderName>
+          <Flex pl={1} align="flex-start" direction="column" justify="center">
+            <ProviderName>{t('%s Integration', provider.name)}</ProviderName>
+            <Tag size="small" priority="attention">
+              Beta
+            </Tag>
+          </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
         <Metadata>
@@ -91,7 +97,7 @@ class IntegrationDetailsModal extends React.Component {
   }
 }
 
-const ProviderName = styled(p => <Box pl={1} {...p} />)`
+const ProviderName = styled(p => <Box {...p} />)`
   font-weight: bold;
   font-size: 1.2em;
 `;

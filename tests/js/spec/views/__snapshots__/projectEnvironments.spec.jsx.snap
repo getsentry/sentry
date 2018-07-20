@@ -780,19 +780,25 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             is={null}
                           >
                             staging
-                            <Tag
+                            <StyledTag
                               priority="success"
                             >
-                              <TagTextStyled
+                              <Tag
+                                className="css-1ljkpp1-StyledTag ezuela51"
                                 priority="success"
                               >
-                                <span
-                                  className="css-giy4xh-TagTextStyled e6q9yfr0"
+                                <TagTextStyled
+                                  className="css-1ljkpp1-StyledTag ezuela51"
+                                  priority="success"
                                 >
-                                  Default
-                                </span>
-                              </TagTextStyled>
-                            </Tag>
+                                  <span
+                                    className="ezuela51 css-iltsel-TagTextStyled-StyledTag e6q9yfr0"
+                                  >
+                                    Default
+                                  </span>
+                                </TagTextStyled>
+                              </Tag>
+                            </StyledTag>
                           </div>
                         </Base>
                       </Flex>
