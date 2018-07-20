@@ -136,7 +136,6 @@ describe('AccountSecurity', function() {
       </AccountSecurityWrapper>,
       TestStubs.routerContext()
     );
-    // console.log(wrapper.debug());
 
     expect(
       wrapper

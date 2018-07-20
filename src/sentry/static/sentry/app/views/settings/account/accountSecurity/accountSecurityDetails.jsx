@@ -60,7 +60,7 @@ class AuthenticatorDate extends React.Component {
 class AccountSecurityDetails extends AsyncView {
   static PropTypes = {
     deleteDisabled: PropTypes.bool.isRequired,
-    handleRegenerateBackupCodes: PropTypes.func.isRequired,
+    onRegenerateBackupCodes: PropTypes.func.isRequired,
   };
   constructor(...args) {
     super(...args);
@@ -117,7 +117,7 @@ class AccountSecurityDetails extends AsyncView {
 
   renderBody() {
     let {authenticator} = this.state;
-    let {deleteDisabled, handleRegenerateBackupCodes} = this.props;
+    let {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
       <div>
@@ -167,7 +167,7 @@ class AccountSecurityDetails extends AsyncView {
           )}
 
         <RecoveryCodes
-          onRegenerateBackupCodes={handleRegenerateBackupCodes}
+          onRegenerateBackupCodes={onRegenerateBackupCodes}
           isEnrolled={authenticator.isEnrolled}
           codes={authenticator.codes}
         />

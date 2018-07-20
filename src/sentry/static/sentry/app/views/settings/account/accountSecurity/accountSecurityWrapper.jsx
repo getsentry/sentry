@@ -53,8 +53,8 @@ class AccountSecurityWrapper extends AsyncComponent {
     let deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
     return React.cloneElement(this.props.children, {
-      handleDisable: this.handleDisable.bind(this),
-      handleRegenerateBackupCodes: this.handleRegenerateBackupCodes.bind(this),
+      onDisable: this.handleDisable,
+      onRegenerateBackupCodes: this.handleRegenerateBackupCodes,
       authenticators,
       deleteDisabled,
       orgsRequire2fa,

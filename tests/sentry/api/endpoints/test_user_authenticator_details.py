@@ -257,29 +257,37 @@ class UserAuthenticatorDetailsTest(APITestCase):
 
     @mock.patch('sentry.utils.email.logger')
     def test_delete(self, email_log):
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['sms.twilio-account'] = 'twilio-account'
         user = self.create_user(email='a@example.com', is_superuser=True)
-        auth = Authenticator.objects.create(
-            type=3,  # u2f
-            user=user,
-        )
 
-        self.login_as(user=user, superuser=True)
+        with self.settings(SENTRY_OPTIONS=new_options):
+            auth = Authenticator.objects.create(
+                type=2,  # sms
+                user=user,
+            )
+            available_auths = Authenticator.objects.all_interfaces_for_user(
+                user, ignore_backup=True
+            )
 
-        url = reverse(
-            'sentry-api-0-user-authenticator-details',
-            kwargs={
-                'user_id': user.id,
-                'auth_id': auth.id,
-            }
-        )
-        resp = self.client.delete(url, format='json')
-        assert resp.status_code == 204, (resp.status_code, resp.content)
+            self.assertEqual(len(available_auths), 1)
+            self.login_as(user=user, superuser=True)
 
-        assert not Authenticator.objects.filter(
-            id=auth.id,
-        ).exists()
+            url = reverse(
+                'sentry-api-0-user-authenticator-details',
+                kwargs={
+                    'user_id': user.id,
+                    'auth_id': auth.id,
+                }
+            )
+            resp = self.client.delete(url, format='json')
+            assert resp.status_code == 204, (resp.status_code, resp.content)
 
-        self._assert_security_email_sent('mfa-removed', email_log)
+            assert not Authenticator.objects.filter(
+                id=auth.id,
+            ).exists()
+
+            self._assert_security_email_sent('mfa-removed', email_log)
 
     @mock.patch('sentry.utils.email.logger')
     def test_cannot_delete_without_superuser(self, email_log):

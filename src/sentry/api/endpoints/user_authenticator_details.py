@@ -137,10 +137,10 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             # if the user's organization requires 2fa,
             # don't delete the last auth method
             enrolled_methods = Authenticator.objects.all_interfaces_for_user(user, ignore_backup=True)
-            last_authenticator = len(enrolled_methods) == 1
-            require_2fa = user.get_orgs_require_2fa()
+            last_2fa_method = len(enrolled_methods) == 1
+            require_2fa = user.get_orgs_require_2fa().exists()
 
-            if require_2fa and last_authenticator:
+            if require_2fa and last_2fa_method:
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             authenticator.delete()
 

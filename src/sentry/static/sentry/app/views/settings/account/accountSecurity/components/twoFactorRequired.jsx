@@ -17,6 +17,10 @@ class TwoFactorRequired extends AsyncComponent {
     orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
   };
 
+  getEndpoints() {
+    return [];
+  }
+
   renderBody() {
     let {orgsRequire2fa} = this.props;
     if (!orgsRequire2fa.length) {
