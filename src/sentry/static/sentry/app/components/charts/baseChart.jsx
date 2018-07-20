@@ -6,6 +6,15 @@ import echarts from 'echarts/lib/echarts';
 
 import theme from 'app/utils/theme';
 
+// If dimension is a number conver it to pixels, otherwise use dimension without transform
+const getDimensionValue = dimension => {
+  if (typeof dimension === 'number') {
+    return `${dimension}px`;
+  }
+
+  return dimension;
+};
+
 class BaseChart extends React.Component {
   static propTypes = {
     // see: https://ecomfe.github.io/echarts-doc/public/en/option.html
@@ -95,7 +104,11 @@ class BaseChart extends React.Component {
           renderer,
           devicePixelRatio,
         }}
-        style={style}
+        style={{
+          height: getDimensionValue(height),
+          width: getDimensionValue(width),
+          ...style,
+        }}
       />
     );
   }
