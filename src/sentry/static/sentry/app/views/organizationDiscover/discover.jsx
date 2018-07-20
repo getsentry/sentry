@@ -130,7 +130,7 @@ export default class OrganizationDiscover extends React.Component {
     const text =
       query.aggregations.length > 0
         ? t('Select fields')
-        : t('None selected, using all fields');
+        : t('No fields selected, showing all');
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
