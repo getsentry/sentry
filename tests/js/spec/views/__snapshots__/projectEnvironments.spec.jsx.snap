@@ -789,12 +789,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 priority="success"
                               >
                                 <Base
-                                  className="css-10g7zjd-TagTextStyled e6q9yfr0"
+                                  className="css-zqrhh-TagTextStyled e6q9yfr0"
                                   ml={1}
                                   priority="success"
                                 >
                                   <div
-                                    className="css-10g7zjd-TagTextStyled e6q9yfr0"
+                                    className="css-zqrhh-TagTextStyled e6q9yfr0"
                                     is={null}
                                     priority="success"
                                   >

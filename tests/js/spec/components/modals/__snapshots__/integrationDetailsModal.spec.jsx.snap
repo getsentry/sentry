@@ -8,7 +8,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
   >
     <PluginIcon
       pluginId="github"
-      size={32}
+      size={50}
     />
     <Flex
       align="flex-start"
@@ -19,12 +19,14 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       <ProviderName>
         GitHub Integration
       </ProviderName>
-      <Tag
-        priority="attention"
-        size="small"
-      >
-        Beta
-      </Tag>
+      <Flex>
+        <StyledTag
+          priority="attention"
+        >
+          Early Adopter
+        </StyledTag>
+        0
+      </Flex>
     </Flex>
   </Flex>
   <Description

@@ -13,6 +13,8 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import Tag from 'app/views/settings/components/tag.jsx';
 import space from 'app/styles/space';
 
+const EARLY_ADOPTER_INTEGRATIONS = ['github', 'jira', 'github_enterprise'];
+
 class IntegrationDetailsModal extends React.Component {
   static propTypes = {
     closeModal: PropTypes.func.isRequired,
@@ -25,6 +27,18 @@ class IntegrationDetailsModal extends React.Component {
     this.props.onAddIntegration(integration);
   };
 
+  features(features) {
+    return features.map(feature => (
+      <StyledTag key={feature}>{feature.replace(/_/g, ' ')}</StyledTag>
+    ));
+  }
+
+  earlyAdopterLabel(provider) {
+    return EARLY_ADOPTER_INTEGRATIONS.some(key => key == provider.key) ? (
+      <StyledTag priority="attention">Early Adopter</StyledTag>
+    ) : null;
+  }
+
   render() {
     const {provider, closeModal} = this.props;
     const {metadata} = provider;
@@ -33,12 +47,13 @@ class IntegrationDetailsModal extends React.Component {
     return (
       <React.Fragment>
         <Flex align="center" mb={2}>
-          <PluginIcon pluginId={provider.key} size={32} />
+          <PluginIcon pluginId={provider.key} size={50} />
           <Flex pl={1} align="flex-start" direction="column" justify="center">
             <ProviderName>{t('%s Integration', provider.name)}</ProviderName>
-            <Tag size="small" priority="attention">
-              Beta
-            </Tag>
+            <Flex>
+              {this.earlyAdopterLabel(provider)}
+              {provider.features.length && this.features(provider.features)}
+            </Flex>
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
@@ -99,7 +114,8 @@ class IntegrationDetailsModal extends React.Component {
 
 const ProviderName = styled(p => <Box {...p} />)`
   font-weight: bold;
-  font-size: 1.1em;
+  font-size: 1.4em;
+  margin-bottom: ${space(1)};
 `;
 
 const Description = styled.div`
@@ -123,6 +139,12 @@ const Metadata = styled(Flex)`
 
 const AuthorName = styled(Box)`
   color: ${p => p.theme.gray2};
+`;
+
+const StyledTag = styled(Tag)`
+  &:not(:first-child) {
+    margin-left: ${space(0.5)};
+  }
 `;
 
 export default IntegrationDetailsModal;

@@ -10,21 +10,20 @@ const getMarginLeft = p => {
 
 const TagTextStyled = styled(Box)`
   display: inline;
-  padding: ${p => (p.size == 'small' ? '0.1em 0.4em' : '0.4em 0.6em')};
+  padding: ${p => (p.size == 'small' ? '0.1em 0.4em' : '0.4em 0.8em 0.4em')};
   ${p =>
     p.border
       ? `border: 1px solid ${p.theme.alert[p.priority].border};`
       : ''} font-size: 75%;
-  font-weight: bold;
   line-height: 1;
-  color: #fff;
+  color: ${p => (p.priority ? '#fff' : p.gray5)};
   text-align: center;
   white-space: nowrap;
   vertical-align: baseline;
-  border-radius: 0.25em;
+  border-radius: ${p => (p.size == 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   background-color: ${p =>
-    p.priority ? p.theme.alert[p.priority].background : p.theme.gray1};
+    p.priority ? p.theme.alert[p.priority].background : p.theme.offWhite2};
   ${p => getMarginLeft(p)};
 `;
 
