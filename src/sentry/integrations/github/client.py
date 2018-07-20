@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import datetime
+from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
@@ -10,6 +10,9 @@ class GitHubClientMixin(ApiClient):
     allow_redirects = True
 
     base_url = 'https://api.github.com'
+
+    def get_jwt(self):
+        return get_jwt()
 
     def get_last_commits(self, repo, end_sha):
         # return api request that fetches last ~30 commits
@@ -82,20 +85,37 @@ class GitHubClientMixin(ApiClient):
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_token(self):
-        if not self.token or self.expires_at < datetime.datetime.utcnow():
+        """
+        Get token retrieves the active access token from the integration model.
+        Should the token have expried, a new token will be generated and
+        automatically presisted into the integration.
+        """
+        token = self.integration.metadata.get('access_token')
+        expires_at = self.integration.metadata.get('expires_at')
+
+        if expires_at is not None:
+            expires_at = datetime.strptime(expires_at, '%Y-%m-%dT%H:%M:%S')
+
+        if not token or expires_at < datetime.utcnow():
             res = self.create_token()
-            self.token = res['token']
-            self.expires_at = datetime.datetime.strptime(
+            token = res['token']
+            expires_at = datetime.strptime(
                 res['expires_at'],
                 '%Y-%m-%dT%H:%M:%SZ',
             )
 
-        return self.token
+            self.integration.metadata.update({
+                'access_token': token,
+                'expires_at': expires_at.isoformat(),
+            })
+            self.integration.save()
+
+        return token
 
     def create_token(self):
         return self.post(
             '/installations/{}/access_tokens'.format(
-                self.installation_id,
+                self.integration.external_id,
             ),
             headers={
                 'Authorization': 'Bearer %s' % self.get_jwt(),
@@ -104,14 +124,9 @@ class GitHubClientMixin(ApiClient):
             },
         )
 
-    def get_jwt(self):
-        return get_jwt()
-
 
 class GitHubAppsClient(GitHubClientMixin):
 
-    def __init__(self, installation_id):
-        self.installation_id = installation_id
-        self.token = None
-        self.expires_at = None
+    def __init__(self, integration):
+        self.integration = integration
         super(GitHubAppsClient, self).__init__()

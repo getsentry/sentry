@@ -16,7 +16,6 @@ from sentry.models import Integration
 from sentry.utils import json
 from sentry.integrations.github.webhook import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook, PullRequestEventWebhook
 from .repository import GitHubEnterpriseRepositoryProvider
-from .client import GitHubEnterpriseAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
 
@@ -55,21 +54,8 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_idp_external_id(self, host):
-        # Todo(meredith): when we have integration will return
-        # host + integration.metadata['installation']['id']
-        return
-
-    def get_client(self, event, host):
-        metadata = get_installation_metadata(event, host)
-        if metadata is None:
-            return None
-
-        return GitHubEnterpriseAppsClient(
-            metadata['url'],
-            metadata['id'],
-            event['installation']['id'],
-            metadata['private_key'])
+    def get_idp_external_id(self, integration, host):
+        return '{}:{}'.format(host, integration.metadata['installation']['id'])
 
     def should_ignore_commit(self, commit):
         return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit['message'])
@@ -85,10 +71,8 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_idp_external_id(self, host):
-        # Todo(meredith): when we have integration will return
-        # host + integration.metadata['installation']['id']
-        return
+    def get_idp_external_id(self, integration, host):
+        return '{}:{}'.format(host, integration.metadata['installation']['id'])
 
 
 class GitHubEnterpriseWebhookBase(View):
