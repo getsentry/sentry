@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
+import SentryTypes from 'app/sentryTypes';
 
 import theme from 'app/utils/theme';
 
@@ -21,6 +22,8 @@ const getDimensionValue = dimension => {
 
 class BaseChart extends React.Component {
   static propTypes = {
+    series: SentryTypes.Series,
+
     // see: https://ecomfe.github.io/echarts-doc/public/en/option.html
     options: PropTypes.object,
 
