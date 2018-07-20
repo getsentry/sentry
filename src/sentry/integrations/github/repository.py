@@ -14,35 +14,6 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
     logger = logging.getLogger('sentry.plugins.github')
     repo_provider = 'github'
 
-    def get_config(self, organization):
-        choices = []
-        for i in Integration.objects.filter(
-                organizations=organization, provider=self.repo_provider):
-            choices.append((i.id, i.name))
-
-        if not choices:
-            choices = [('', '')]
-
-        return [
-            {
-                'name': 'installation',
-                'label': 'GitHub Installation',
-                'type': 'choice',
-                'choices': choices,
-                'initial': choices[0][0],
-                'help': 'Select which GitHub installation to authenticate with.',
-                'required': True,
-            },
-            {
-                'name': 'name',
-                'label': 'Repository Name',
-                'type': 'text',
-                'placeholder': 'e.g. getsentry/sentry',
-                'help': 'Enter your repository name, including the owner.',
-                'required': True,
-            }
-        ]
-
     def _validate_repo(self, client, installation, repo):
         try:
             repo_data = client.get_repo(repo)
@@ -65,13 +36,13 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return config
         ```
         """
-        if config.get('name') and config.get('installation'):
+        if config.get('identifier') and config.get('installation'):
             integration = Integration.objects.get(
                 id=config['installation'], organizations=organization)
             installation = integration.get_installation(organization.id)
             client = installation.get_client()
 
-            repo = self._validate_repo(client, installation, config['name'])
+            repo = self._validate_repo(client, installation, config['identifier'])
             config['external_id'] = six.text_type(repo['id'])
             config['integration_id'] = integration.id
 
@@ -79,11 +50,11 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def create_repository(self, organization, data):
         return {
-            'name': data['name'],
+            'name': data['identifier'],
             'external_id': data['external_id'],
-            'url': 'https://github.com/{}'.format(data['name']),
+            'url': 'https://github.com/{}'.format(data['identifier']),
             'config': {
-                'name': data['name'],
+                'name': data['identifier'],
             },
             'integration_id': data['integration_id']
         }
