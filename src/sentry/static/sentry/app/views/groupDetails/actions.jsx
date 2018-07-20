@@ -10,7 +10,6 @@ import DropdownLink from 'app/components/dropdownLink';
 import GroupActions from 'app/actions/groupActions';
 import GroupState from 'app/mixins/groupState';
 import ErrorBoundary from 'app/components/errorBoundary';
-import ExternalIssueActions from 'app/components/group/externalIssues';
 import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import IssuePluginActions from 'app/components/group/issuePluginActions';
@@ -296,7 +295,7 @@ const GroupDetailsActions = createReactClass({
             );
           })
         )}
-        {group.pluginIssues &&
+        {group.pluginIssues && !orgFeatures.has('internal-catchall') &&
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
@@ -312,11 +311,6 @@ const GroupDetailsActions = createReactClass({
               {t('Link Issue Tracker')}
             </Link>
           </GuideAnchor>
-        )}
-        {orgFeatures.has('internal-catchall') && (
-          <ErrorBoundary mini>
-            <ExternalIssueActions group={group} />
-          </ErrorBoundary>
         )}
       </div>
     );
