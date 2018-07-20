@@ -50,8 +50,8 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
         for repo in repos:
             data.append(
                 {
-                    'idenitifer': repo['idenitifer'],
-                    'name': repo['name'],
+                    'identifier': repo['full_name'],
+                    'name': repo['full_name'],
                 }
             )
         return data
