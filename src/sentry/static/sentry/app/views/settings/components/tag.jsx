@@ -10,10 +10,12 @@ const getMarginLeft = p => {
 
 const TagTextStyled = styled(Box)`
   display: inline;
-  padding: ${p => (p.size == 'small' ? '0.1em 0.4em' : '0.4em 0.8em 0.4em')};
+  padding: ${p => (p.size == 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   ${p =>
     p.border
-      ? `border: 1px solid ${p.theme.alert[p.priority].border};`
+      ? `border: 1px solid ${p.priority
+          ? p.theme.alert[p.priority].border
+          : p.theme.gray1};`
       : ''} font-size: 75%;
   line-height: 1;
   color: ${p => (p.priority ? '#fff' : p.gray5)};
