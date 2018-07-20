@@ -203,11 +203,12 @@ class IssueSyncMixin(IssueBasicMixin):
         )
         if updated:
             for group in groups:
-                Activity.objects.create(
+                activity = Activity.objects.create(
                     project=group.project,
                     group=group,
                     type=activity_type,
                 )
+                activity.send_notification()
 
     def sync_status_inbound(self, issue_key, data):
         if not self.should_sync('inbound_status'):
