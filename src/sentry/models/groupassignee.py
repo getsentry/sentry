@@ -63,7 +63,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
     affected_groups = list(
         Group.objects.get_groups_by_external_issue(
             integration, external_issue_key,
-        ).filter(project__organization_id__=orgs_with_sync_enabled),
+        ).filter(project__organization_id__in=orgs_with_sync_enabled),
     )
 
     if not affected_groups:
