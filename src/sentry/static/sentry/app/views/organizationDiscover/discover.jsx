@@ -17,7 +17,8 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';
 import Conditions from './conditions';
-import Result from './result';
+import ResultTable from './result/table';
+import ResultChart from './result/chart';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
@@ -35,6 +36,7 @@ export default class OrganizationDiscover extends React.Component {
     super(props);
     this.state = {
       result: null,
+      chartData: null,
     };
   }
 
@@ -79,6 +81,24 @@ export default class OrganizationDiscover extends React.Component {
         this.setState({result: null});
       }
     );
+
+    // If there are aggregations, get data for chart
+    if (queryBuilder.getInternal().aggregations.length > 0) {
+      const chartQuery = {
+        ...queryBuilder.getExternal(),
+        groupby: ['time'],
+        rollup: 60 * 60 * 24,
+      };
+
+      queryBuilder.fetch(chartQuery).then(
+        chartData => {
+          this.setState({chartData});
+        },
+        () => {
+          this.setState({chartData: null});
+        }
+      );
+    }
   };
 
   getOrderbyOptions = () => {
@@ -143,7 +163,7 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
   render() {
-    const {result} = this.state;
+    const {result, chartData} = this.state;
     const {queryBuilder} = this.props;
 
     const query = queryBuilder.getInternal();
@@ -239,7 +259,8 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {result && <Result result={result} />}
+            {chartData && <ResultChart data={chartData} />}
+            {result && <ResultTable result={result} />}
           </Box>
         </Flex>
       </Discover>
