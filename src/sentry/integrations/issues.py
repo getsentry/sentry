@@ -203,9 +203,10 @@ class IssueSyncMixin(IssueBasicMixin):
         groups_to_resolve = []
         groups_to_unresolve = []
 
+        should_resolve = self.should_resolve(data)
+        should_unresolve = self.should_unresolve(data)
+
         for group in affected_groups:
-            should_resolve = self.should_resolve(data)
-            should_unresolve = self.should_unresolve(data)
 
             # this probably shouldn't be possible unless there
             # is a bug in one of those methods
