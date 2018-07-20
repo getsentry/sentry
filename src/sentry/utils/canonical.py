@@ -78,12 +78,15 @@ class CanonicalKeyView(collections.Mapping):
 
 class CanonicalKeyDict(collections.MutableMapping):
     def __init__(self, data, legacy=None):
+        self.legacy = legacy
+        self.__init(data)
+
+    def __init(self, data):
+        legacy = self.legacy
         if legacy is None:
             legacy = settings.PREFER_CANONICAL_LEGACY_KEYS
-
         norm_func = legacy and get_legacy_name or get_canonical_name
         self._norm_func = norm_func
-
         self.data = {}
         for key, value in six.iteritems(data):
             canonical_key = norm_func(key)
@@ -96,7 +99,8 @@ class CanonicalKeyDict(collections.MutableMapping):
         return state
 
     def __setstate__(self, state):
-        self.__init__(state['data'])
+        self.__dict__.update(state)
+        self.__init(state['data'])
 
     def copy(self):
         rv = object.__new__(self.__class__)
