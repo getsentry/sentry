@@ -519,7 +519,7 @@ class S3Boto3Storage(Storage):
         if self.default_acl:
             put_parameters['ACL'] = self.default_acl
         content.seek(0, os.SEEK_SET)
-        obj.upload_fileobj(content, ExtraArgs=put_parameters)
+        obj.upload_fileobj(content, ExtraArgs=put_parameters, Config=self.config)
 
     def delete(self, name):
         name = self._normalize_name(self._clean_name(name))
