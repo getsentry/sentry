@@ -362,6 +362,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                   clearable={false}
                                   disabled={false}
+                                  height={36}
                                   id="id-actionMatch"
                                   multiple={false}
                                   onChange={[Function]}
@@ -375,6 +376,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     clearable={false}
                                     deleteRemoves={false}
                                     disabled={false}
+                                    height={36}
                                     id="id-actionMatch"
                                     multiple={false}
                                     onChange={[Function]}
@@ -400,10 +402,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     <SelectPicker
                                       arrowRenderer={[Function]}
                                       backspaceRemoves={false}
-                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                      className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       deleteRemoves={false}
                                       disabled={false}
+                                      height={36}
                                       id="id-actionMatch"
                                       multiple={false}
                                       onChange={[Function]}
@@ -431,7 +434,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         autosize={true}
                                         backspaceRemoves={false}
                                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                         clearAllText="Clear all"
                                         clearRenderer={[Function]}
                                         clearValueText="Clear value"
@@ -442,6 +445,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         disabled={false}
                                         escapeClearsValue={true}
                                         filterOptions={[Function]}
+                                        height={36}
                                         id="id-actionMatch"
                                         ignoreAccents={true}
                                         ignoreCase={true}
@@ -493,7 +497,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         valueKey="value"
                                       >
                                         <div
-                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                                          className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
                                         >
                                           <div
                                             className="Select-control"
@@ -790,6 +794,9 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
+                            clearable={false}
+                            height={36}
+                            multiple={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -807,6 +814,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              clearable={false}
+                              deleteRemoves={false}
+                              height={36}
+                              multiple={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -824,7 +836,12 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                className="css-16280ey-StyledSelect eho28m20"
+                                backspaceRemoves={false}
+                                className="css-7ogu3n-StyledSelect eho28m20"
+                                clearable={false}
+                                deleteRemoves={false}
+                                height={36}
+                                multiple={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -843,19 +860,20 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={true}
+                                  backspaceRemoves={false}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                                  className="css-16280ey-StyledSelect eho28m20"
+                                  className="css-7ogu3n-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={true}
+                                  clearable={false}
                                   closeOnSelect={true}
-                                  deleteRemoves={true}
+                                  deleteRemoves={false}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
                                   filterOptions={[Function]}
+                                  height={36}
                                   ignoreAccents={true}
                                   ignoreCase={true}
                                   inputProps={Object {}}
@@ -867,6 +885,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   menuBuffer={0}
                                   menuRenderer={[Function]}
                                   multi={false}
+                                  multiple={false}
                                   noResultsText="No results found"
                                   onBlurResetsInput={true}
                                   onChange={[Function]}
@@ -901,7 +920,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
+                                    className="Select css-7ogu3n-StyledSelect eho28m20 is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -1096,6 +1115,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               className="css-j6zs66-StyledSelectControl e1qrhqd00"
                               clearable={false}
                               disabled={false}
+                              height={36}
                               id="id-environment"
                               multiple={false}
                               onChange={[Function]}
@@ -1109,6 +1129,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 clearable={false}
                                 deleteRemoves={false}
                                 disabled={false}
+                                height={36}
                                 id="id-environment"
                                 multiple={false}
                                 onChange={[Function]}
@@ -1134,10 +1155,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 <SelectPicker
                                   arrowRenderer={[Function]}
                                   backspaceRemoves={false}
-                                  className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                  className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                   clearable={false}
                                   deleteRemoves={false}
                                   disabled={false}
+                                  height={36}
                                   id="id-environment"
                                   multiple={false}
                                   onChange={[Function]}
@@ -1165,7 +1187,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     autosize={true}
                                     backspaceRemoves={false}
                                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                                    className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                    className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                     clearAllText="Clear all"
                                     clearRenderer={[Function]}
                                     clearValueText="Clear value"
@@ -1176,6 +1198,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     disabled={false}
                                     escapeClearsValue={true}
                                     filterOptions={[Function]}
+                                    height={36}
                                     id="id-environment"
                                     ignoreAccents={true}
                                     ignoreCase={true}
@@ -1227,7 +1250,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     valueKey="value"
                                   >
                                     <div
-                                      className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                      className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                     >
                                       <div
                                         className="Select-control"
@@ -1543,6 +1566,9 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
+                            clearable={false}
+                            height={36}
+                            multiple={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -1560,6 +1586,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              clearable={false}
+                              deleteRemoves={false}
+                              height={36}
+                              multiple={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -1577,7 +1608,12 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                className="css-16280ey-StyledSelect eho28m20"
+                                backspaceRemoves={false}
+                                className="css-7ogu3n-StyledSelect eho28m20"
+                                clearable={false}
+                                deleteRemoves={false}
+                                height={36}
+                                multiple={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -1596,19 +1632,20 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={true}
+                                  backspaceRemoves={false}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                                  className="css-16280ey-StyledSelect eho28m20"
+                                  className="css-7ogu3n-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={true}
+                                  clearable={false}
                                   closeOnSelect={true}
-                                  deleteRemoves={true}
+                                  deleteRemoves={false}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
                                   filterOptions={[Function]}
+                                  height={36}
                                   ignoreAccents={true}
                                   ignoreCase={true}
                                   inputProps={Object {}}
@@ -1620,6 +1657,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   menuBuffer={0}
                                   menuRenderer={[Function]}
                                   multi={false}
+                                  multiple={false}
                                   noResultsText="No results found"
                                   onBlurResetsInput={true}
                                   onChange={[Function]}
@@ -1654,7 +1692,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
+                                    className="Select css-7ogu3n-StyledSelect eho28m20 is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -1924,6 +1962,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                   clearable={false}
                                   disabled={false}
+                                  height={36}
                                   id="id-frequency"
                                   multiple={false}
                                   onChange={[Function]}
@@ -1937,6 +1976,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     clearable={false}
                                     deleteRemoves={false}
                                     disabled={false}
+                                    height={36}
                                     id="id-frequency"
                                     multiple={false}
                                     onChange={[Function]}
@@ -1986,10 +2026,11 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     <SelectPicker
                                       arrowRenderer={[Function]}
                                       backspaceRemoves={false}
-                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                      className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       deleteRemoves={false}
                                       disabled={false}
+                                      height={36}
                                       id="id-frequency"
                                       multiple={false}
                                       onChange={[Function]}
@@ -2041,7 +2082,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         autosize={true}
                                         backspaceRemoves={false}
                                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                         clearAllText="Clear all"
                                         clearRenderer={[Function]}
                                         clearValueText="Clear value"
@@ -2052,6 +2093,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         disabled={false}
                                         escapeClearsValue={true}
                                         filterOptions={[Function]}
+                                        height={36}
                                         id="id-frequency"
                                         ignoreAccents={true}
                                         ignoreCase={true}
@@ -2127,7 +2169,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         valueKey="value"
                                       >
                                         <div
-                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                                          className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
                                         >
                                           <div
                                             className="Select-control"
@@ -2728,6 +2770,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                   clearable={false}
                                   disabled={false}
+                                  height={36}
                                   id="id-actionMatch"
                                   multiple={false}
                                   onChange={[Function]}
@@ -2741,6 +2784,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     clearable={false}
                                     deleteRemoves={false}
                                     disabled={false}
+                                    height={36}
                                     id="id-actionMatch"
                                     multiple={false}
                                     onChange={[Function]}
@@ -2766,10 +2810,11 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     <SelectPicker
                                       arrowRenderer={[Function]}
                                       backspaceRemoves={false}
-                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                      className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       deleteRemoves={false}
                                       disabled={false}
+                                      height={36}
                                       id="id-actionMatch"
                                       multiple={false}
                                       onChange={[Function]}
@@ -2797,7 +2842,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         autosize={true}
                                         backspaceRemoves={false}
                                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                         clearAllText="Clear all"
                                         clearRenderer={[Function]}
                                         clearValueText="Clear value"
@@ -2808,6 +2853,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         disabled={false}
                                         escapeClearsValue={true}
                                         filterOptions={[Function]}
+                                        height={36}
                                         id="id-actionMatch"
                                         ignoreAccents={true}
                                         ignoreCase={true}
@@ -2859,7 +2905,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         valueKey="value"
                                       >
                                         <div
-                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                          className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                         >
                                           <div
                                             className="Select-control"
@@ -3005,6 +3051,9 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
+                            clearable={false}
+                            height={36}
+                            multiple={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -3022,6 +3071,11 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              clearable={false}
+                              deleteRemoves={false}
+                              height={36}
+                              multiple={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -3039,7 +3093,12 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                className="css-16280ey-StyledSelect eho28m20"
+                                backspaceRemoves={false}
+                                className="css-7ogu3n-StyledSelect eho28m20"
+                                clearable={false}
+                                deleteRemoves={false}
+                                height={36}
+                                multiple={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -3058,19 +3117,20 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={true}
+                                  backspaceRemoves={false}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                                  className="css-16280ey-StyledSelect eho28m20"
+                                  className="css-7ogu3n-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={true}
+                                  clearable={false}
                                   closeOnSelect={true}
-                                  deleteRemoves={true}
+                                  deleteRemoves={false}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
                                   filterOptions={[Function]}
+                                  height={36}
                                   ignoreAccents={true}
                                   ignoreCase={true}
                                   inputProps={Object {}}
@@ -3082,6 +3142,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   menuBuffer={0}
                                   menuRenderer={[Function]}
                                   multi={false}
+                                  multiple={false}
                                   noResultsText="No results found"
                                   onBlurResetsInput={true}
                                   onChange={[Function]}
@@ -3116,7 +3177,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
+                                    className="Select css-7ogu3n-StyledSelect eho28m20 is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -3311,6 +3372,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               className="css-j6zs66-StyledSelectControl e1qrhqd00"
                               clearable={false}
                               disabled={false}
+                              height={36}
                               id="id-environment"
                               multiple={false}
                               onChange={[Function]}
@@ -3324,6 +3386,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 clearable={false}
                                 deleteRemoves={false}
                                 disabled={false}
+                                height={36}
                                 id="id-environment"
                                 multiple={false}
                                 onChange={[Function]}
@@ -3349,10 +3412,11 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 <SelectPicker
                                   arrowRenderer={[Function]}
                                   backspaceRemoves={false}
-                                  className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                  className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                   clearable={false}
                                   deleteRemoves={false}
                                   disabled={false}
+                                  height={36}
                                   id="id-environment"
                                   multiple={false}
                                   onChange={[Function]}
@@ -3380,7 +3444,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     autosize={true}
                                     backspaceRemoves={false}
                                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                                    className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                    className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                     clearAllText="Clear all"
                                     clearRenderer={[Function]}
                                     clearValueText="Clear value"
@@ -3391,6 +3455,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     disabled={false}
                                     escapeClearsValue={true}
                                     filterOptions={[Function]}
+                                    height={36}
                                     id="id-environment"
                                     ignoreAccents={true}
                                     ignoreCase={true}
@@ -3442,7 +3507,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     valueKey="value"
                                   >
                                     <div
-                                      className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                      className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                     >
                                       <div
                                         className="Select-control"
@@ -3586,6 +3651,9 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                         </RuleNodes>
                         <fieldset>
                           <SelectControl
+                            clearable={false}
+                            height={36}
+                            multiple={false}
                             onChange={[Function]}
                             options={
                               Array [
@@ -3603,6 +3671,11 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <StyledSelect
                               arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              clearable={false}
+                              deleteRemoves={false}
+                              height={36}
+                              multiple={false}
                               onChange={[Function]}
                               options={
                                 Array [
@@ -3620,7 +3693,12 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <SelectPicker
                                 arrowRenderer={[Function]}
-                                className="css-16280ey-StyledSelect eho28m20"
+                                backspaceRemoves={false}
+                                className="css-7ogu3n-StyledSelect eho28m20"
+                                clearable={false}
+                                deleteRemoves={false}
+                                height={36}
+                                multiple={false}
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -3639,19 +3717,20 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 <Select
                                   arrowRenderer={[Function]}
                                   autosize={true}
-                                  backspaceRemoves={true}
+                                  backspaceRemoves={false}
                                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                                  className="css-16280ey-StyledSelect eho28m20"
+                                  className="css-7ogu3n-StyledSelect eho28m20"
                                   clearAllText="Clear all"
                                   clearRenderer={[Function]}
                                   clearValueText="Clear value"
-                                  clearable={true}
+                                  clearable={false}
                                   closeOnSelect={true}
-                                  deleteRemoves={true}
+                                  deleteRemoves={false}
                                   delimiter=","
                                   disabled={false}
                                   escapeClearsValue={true}
                                   filterOptions={[Function]}
+                                  height={36}
                                   ignoreAccents={true}
                                   ignoreCase={true}
                                   inputProps={Object {}}
@@ -3663,6 +3742,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   menuBuffer={0}
                                   menuRenderer={[Function]}
                                   multi={false}
+                                  multiple={false}
                                   noResultsText="No results found"
                                   onBlurResetsInput={true}
                                   onChange={[Function]}
@@ -3697,7 +3777,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   valueKey="value"
                                 >
                                   <div
-                                    className="Select css-16280ey-StyledSelect eho28m20 is-clearable is-searchable Select--single"
+                                    className="Select css-7ogu3n-StyledSelect eho28m20 is-searchable Select--single"
                                   >
                                     <div
                                       className="Select-control"
@@ -3968,6 +4048,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   className="css-j6zs66-StyledSelectControl e1qrhqd00"
                                   clearable={false}
                                   disabled={false}
+                                  height={36}
                                   id="id-frequency"
                                   multiple={false}
                                   onChange={[Function]}
@@ -3981,6 +4062,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     clearable={false}
                                     deleteRemoves={false}
                                     disabled={false}
+                                    height={36}
                                     id="id-frequency"
                                     multiple={false}
                                     onChange={[Function]}
@@ -4030,10 +4112,11 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     <SelectPicker
                                       arrowRenderer={[Function]}
                                       backspaceRemoves={false}
-                                      className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                      className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                       clearable={false}
                                       deleteRemoves={false}
                                       disabled={false}
+                                      height={36}
                                       id="id-frequency"
                                       multiple={false}
                                       onChange={[Function]}
@@ -4085,7 +4168,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         autosize={true}
                                         backspaceRemoves={false}
                                         backspaceToRemoveMessage="Press backspace to remove {label}"
-                                        className="e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20"
+                                        className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
                                         clearAllText="Clear all"
                                         clearRenderer={[Function]}
                                         clearValueText="Clear value"
@@ -4096,6 +4179,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         disabled={false}
                                         escapeClearsValue={true}
                                         filterOptions={[Function]}
+                                        height={36}
                                         id="id-frequency"
                                         ignoreAccents={true}
                                         ignoreCase={true}
@@ -4171,7 +4255,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         valueKey="value"
                                       >
                                         <div
-                                          className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                          className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                         >
                                           <div
                                             className="Select-control"
