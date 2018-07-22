@@ -31,7 +31,7 @@ def gettext_noop(s):
 socket.setdefaulttimeout(5)
 
 
-def env(key, default='', type=None):
+def env(key, default='', cast_type=None):
     "Extract an environment variable for use in configuration"
 
     # First check an internal cache, so we can `pop` multiple times
@@ -53,10 +53,10 @@ def env(key, default='', type=None):
         except KeyError:
             rv = default
 
-    if type is None:
-        type = type_from_value(default)
+    if cast_type is None:
+        cast_type = type_from_value(default)
 
-    return type(rv)
+    return cast_type(rv)
 
 
 env._cache = {}
