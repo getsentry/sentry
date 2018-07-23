@@ -32,7 +32,8 @@ class KafkaEventStream(EventStream):
         return Producer(self.producer_configuration)
 
     def delivery_callback(self, error, message):
-        logger.warning('Could not publish event (error: %s): %r', error, message)
+        if error is not None:
+            logger.warning('Could not publish event (error: %s): %r', error, message)
 
     def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
         project = event.project
