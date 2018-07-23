@@ -133,6 +133,12 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     with timer('get_project_issues'):
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
+    if len(issues) == 1:
+        group_id = issues[0][0]
+        group = Group.objects.get(pk=group_id)
+        start = max(start, group.first_seen - timedelta(minutes=5))
+        end = min(end, group.last_seen + timedelta(minutes=5))
+
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
         'to_date': end.isoformat(),
@@ -373,7 +379,7 @@ def get_project_issues(project_ids, issue_ids=None):
     Get a list of issues and associated fingerprint hashes for a list of
     project ids. If issue_ids is set, then return only those issues.
 
-    Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
+    Returns a list: [(group_id, project_id, [(hash1, tomestone_date), ...]), ...]
     """
     if issue_ids:
         issue_ids = issue_ids[:MAX_ISSUES]
