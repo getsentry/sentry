@@ -334,7 +334,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         )
 
         resp = self.client.delete(url, format='json')
-        assert resp.status_code == 500, (resp.status_code, resp.content)
+        assert resp.status_code == 403, (resp.status_code, resp.content)
 
         assert Authenticator.objects.filter(
             id=auth.id,

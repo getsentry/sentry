@@ -303,13 +303,11 @@ class User(BaseModel, AbstractBaseUser):
         )
 
     def get_orgs_require_2fa(self):
-        from sentry.models import (Organization, OrganizationMember, OrganizationStatus)
+        from sentry.models import (Organization, OrganizationStatus)
         return Organization.objects.filter(
             flags=models.F('flags').bitor(Organization.flags.require_2fa),
             status=OrganizationStatus.VISIBLE,
-            id__in=OrganizationMember.objects.filter(
-                user=self,
-            ).values('organization'),
+            member_set__user=self,
         )
 
     def clear_lost_passwords(self):

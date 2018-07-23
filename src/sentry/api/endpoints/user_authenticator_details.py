@@ -133,15 +133,16 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        with transaction.atomic():
-            # if the user's organization requires 2fa,
-            # don't delete the last auth method
-            enrolled_methods = Authenticator.objects.all_interfaces_for_user(user, ignore_backup=True)
-            last_2fa_method = len(enrolled_methods) == 1
-            require_2fa = user.get_orgs_require_2fa().exists()
+        # if the user's organization requires 2fa,
+        # don't delete the last auth method
+        enrolled_methods = Authenticator.objects.all_interfaces_for_user(user, ignore_backup=True)
+        last_2fa_method = len(enrolled_methods) == 1
+        require_2fa = user.get_orgs_require_2fa().exists()
 
-            if require_2fa and last_2fa_method:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if require_2fa and last_2fa_method:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        with transaction.atomic():
             authenticator.delete()
 
             # if we delete an actual authenticator and all that
