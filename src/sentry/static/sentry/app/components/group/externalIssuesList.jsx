@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import PluginActions from 'app/components/group/pluginActions';
+import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
@@ -31,29 +32,31 @@ class ExternalIssueList extends AsyncComponent {
       );
     });
 
-    return (
-      <div className="m-b-2">
-        <h6>
-          <span>Linked Issues</span>
-        </h6>
-        {externalIssues}
-      </div>
-    );
+    return externalIssues;
   }
 
   renderPluginIssues() {
     const {group} = this.props;
 
-    return group.pluginIssues && group.pluginIssues.length ? (
-      <div className="m-b-2">
-        <h6>
-          <span>Linked Issues (Legacy)</span>
-        </h6>
-        {group.pluginIssues.map((plugin, i) => {
-          return <PluginActions group={group} plugin={plugin} key={i} />;
-        })}
-      </div>
-    ) : null;
+    return group.pluginIssues && group.pluginIssues.length
+      ? group.pluginIssues.map((plugin, i) => {
+        return <PluginActions group={group} plugin={plugin} key={i} />;
+      })
+      : null;
+  }
+
+  renderPluginActions(){
+    const {group} = this.props;
+
+    return group.pluginActions && group.pluginActions.length
+     ? group.pluginActions.map((plugin, i) => {
+       return (
+           <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
+             {plugin[0]}
+           </IssueSyncListElement>
+         );
+       })
+     : null;
   }
 
   render() {
@@ -61,8 +64,14 @@ class ExternalIssueList extends AsyncComponent {
 
     return (
       <React.Fragment>
-        {this.renderIntegrationIssues(integrations)}
-        {this.renderPluginIssues()}
+        <div className="m-b-2">
+          <h6>
+            <span>Linked Issues</span>
+          </h6>
+          {this.renderIntegrationIssues(integrations)}
+          {this.renderPluginIssues()}
+          {this.renderPluginActions()}
+        </div>
       </React.Fragment>
     );
   }
