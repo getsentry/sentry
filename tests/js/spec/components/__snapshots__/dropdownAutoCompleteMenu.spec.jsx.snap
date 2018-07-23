@@ -2,6 +2,7 @@
 
 exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
 <AutoComplete
+  disabled={false}
   inputIsActor={false}
   isOpen={true}
   itemToString={[Function]}
@@ -12,6 +13,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
 
 exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
 <AutoComplete
+  disabled={false}
   inputIsActor={false}
   isOpen={true}
   itemToString={[Function]}
