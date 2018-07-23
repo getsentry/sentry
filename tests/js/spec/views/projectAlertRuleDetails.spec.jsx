@@ -156,9 +156,9 @@ describe('ProjectAlertRuleDetails', function() {
 
     it('sends correct environment value', function() {
       selectByValue(wrapper, 'production', {name: 'environment'});
-      expect(wrapper.find('SelectField[name="environment"] Select').prop('value')).toBe(
-        'production'
-      );
+      expect(
+        wrapper.find('SelectField[name="environment"] Select').prop('value')
+      ).toEqual(expect.objectContaining({value: 'production'}));
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledWith(

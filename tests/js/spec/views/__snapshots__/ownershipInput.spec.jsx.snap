@@ -162,6 +162,7 @@ exports[`Project Ownership Input renders 1`] = `
                   disabled={false}
                   id="id-select-type"
                   multiple={false}
+                  name="select-type"
                   onChange={[Function]}
                   options={
                     Array [
@@ -185,6 +186,7 @@ exports[`Project Ownership Input renders 1`] = `
                     height={36}
                     id="id-select-type"
                     multiple={false}
+                    name="select-type"
                     onChange={[Function]}
                     options={
                       Array [
@@ -211,6 +213,7 @@ exports[`Project Ownership Input renders 1`] = `
                       height={36}
                       id="id-select-type"
                       multiple={false}
+                      name="select-type"
                       onChange={[Function]}
                       options={
                         Array [
@@ -237,6 +240,7 @@ exports[`Project Ownership Input renders 1`] = `
                         height={36}
                         id="id-select-type"
                         multiple={false}
+                        name="select-type"
                         onChange={[Function]}
                         options={
                           Array [
@@ -283,6 +287,7 @@ exports[`Project Ownership Input renders 1`] = `
                           menuRenderer={[Function]}
                           multi={false}
                           multiple={false}
+                          name="select-type"
                           noResultsText="No results found"
                           onBlurResetsInput={true}
                           onChange={[Function]}
@@ -319,6 +324,13 @@ exports[`Project Ownership Input renders 1`] = `
                           <div
                             className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                           >
+                            <input
+                              disabled={false}
+                              key="hidden.0"
+                              name="select-type"
+                              type="hidden"
+                              value="path"
+                            />
                             <div
                               className="Select-control"
                               onKeyDown={[Function]}

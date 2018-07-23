@@ -19,6 +19,7 @@ exports[`SelectField renders with flat choices 1`] = `
       disabled={false}
       id="id-fieldName"
       multiple={false}
+      name="fieldName"
       onChange={[Function]}
       required={false}
       value="fieldValue"
@@ -55,6 +56,7 @@ exports[`SelectField renders with paired choices 1`] = `
       disabled={false}
       id="id-fieldName"
       multiple={false}
+      name="fieldName"
       onChange={[Function]}
       required={false}
       value="fieldValue"
@@ -96,6 +98,7 @@ exports[`SelectField renders without form context 1`] = `
         disabled={false}
         id="id-fieldName"
         multiple={false}
+        name="fieldName"
         onChange={[Function]}
         options={
           Array [
@@ -119,6 +122,7 @@ exports[`SelectField renders without form context 1`] = `
           height={36}
           id="id-fieldName"
           multiple={false}
+          name="fieldName"
           onChange={[Function]}
           options={
             Array [
@@ -145,6 +149,7 @@ exports[`SelectField renders without form context 1`] = `
             height={36}
             id="id-fieldName"
             multiple={false}
+            name="fieldName"
             onChange={[Function]}
             options={
               Array [
@@ -171,6 +176,7 @@ exports[`SelectField renders without form context 1`] = `
               height={36}
               id="id-fieldName"
               multiple={false}
+              name="fieldName"
               onChange={[Function]}
               options={
                 Array [
@@ -217,6 +223,7 @@ exports[`SelectField renders without form context 1`] = `
                 menuRenderer={[Function]}
                 multi={false}
                 multiple={false}
+                name="fieldName"
                 noResultsText="No results found"
                 onBlurResetsInput={true}
                 onChange={[Function]}
@@ -253,6 +260,13 @@ exports[`SelectField renders without form context 1`] = `
                 <div
                   className="Select e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
                 >
+                  <input
+                    disabled={false}
+                    key="hidden.0"
+                    name="fieldName"
+                    type="hidden"
+                    value="a"
+                  />
                   <div
                     className="Select-control"
                     onKeyDown={[Function]}
