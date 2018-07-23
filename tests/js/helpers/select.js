@@ -11,7 +11,7 @@ export function getSelector(options = {}) {
 
 export function openMenu(wrapper, options = {}) {
   let selector = getSelector(options);
-  wrapper.find(`${selector} input`).simulate('focus');
+  wrapper.find(`${selector} input[role="combobox"]`).simulate('focus');
   wrapper.find(`${selector} .Select-control`).simulate('mouseDown', {button: 0});
 
   return wrapper;

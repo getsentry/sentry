@@ -338,6 +338,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 disabled={false}
                                 id="id-actionMatch"
                                 multiple={false}
+                                name="actionMatch"
                                 onChange={[Function]}
                                 required={true}
                                 value=""
@@ -365,6 +366,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   height={36}
                                   id="id-actionMatch"
                                   multiple={false}
+                                  name="actionMatch"
                                   onChange={[Function]}
                                   required={true}
                                   value=""
@@ -379,6 +381,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     height={36}
                                     id="id-actionMatch"
                                     multiple={false}
+                                    name="actionMatch"
                                     onChange={[Function]}
                                     options={
                                       Array [
@@ -409,6 +412,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       height={36}
                                       id="id-actionMatch"
                                       multiple={false}
+                                      name="actionMatch"
                                       onChange={[Function]}
                                       options={
                                         Array [
@@ -459,6 +463,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         menuRenderer={[Function]}
                                         multi={false}
                                         multiple={false}
+                                        name="actionMatch"
                                         noResultsText="No results found"
                                         onBlurResetsInput={true}
                                         onChange={[Function]}
@@ -1091,6 +1096,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             disabled={false}
                             id="id-environment"
                             multiple={false}
+                            name="environment"
                             onChange={[Function]}
                             required={true}
                             value="staging"
@@ -1118,6 +1124,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               height={36}
                               id="id-environment"
                               multiple={false}
+                              name="environment"
                               onChange={[Function]}
                               required={true}
                               value="staging"
@@ -1132,6 +1139,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 height={36}
                                 id="id-environment"
                                 multiple={false}
+                                name="environment"
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -1162,6 +1170,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   height={36}
                                   id="id-environment"
                                   multiple={false}
+                                  name="environment"
                                   onChange={[Function]}
                                   options={
                                     Array [
@@ -1212,6 +1221,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     menuRenderer={[Function]}
                                     multi={false}
                                     multiple={false}
+                                    name="environment"
                                     noResultsText="No results found"
                                     onBlurResetsInput={true}
                                     onChange={[Function]}
@@ -1252,6 +1262,13 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     <div
                                       className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                     >
+                                      <input
+                                        disabled={false}
+                                        key="hidden.0"
+                                        name="environment"
+                                        type="hidden"
+                                        value="staging"
+                                      />
                                       <div
                                         className="Select-control"
                                         onKeyDown={[Function]}
@@ -1914,6 +1931,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 disabled={false}
                                 id="id-frequency"
                                 multiple={false}
+                                name="frequency"
                                 onChange={[Function]}
                                 required={true}
                                 value=""
@@ -1965,6 +1983,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   height={36}
                                   id="id-frequency"
                                   multiple={false}
+                                  name="frequency"
                                   onChange={[Function]}
                                   required={true}
                                   value=""
@@ -1979,6 +1998,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     height={36}
                                     id="id-frequency"
                                     multiple={false}
+                                    name="frequency"
                                     onChange={[Function]}
                                     options={
                                       Array [
@@ -2033,6 +2053,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       height={36}
                                       id="id-frequency"
                                       multiple={false}
+                                      name="frequency"
                                       onChange={[Function]}
                                       options={
                                         Array [
@@ -2107,6 +2128,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                         menuRenderer={[Function]}
                                         multi={false}
                                         multiple={false}
+                                        name="frequency"
                                         noResultsText="No results found"
                                         onBlurResetsInput={true}
                                         onChange={[Function]}
@@ -2746,6 +2768,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 disabled={false}
                                 id="id-actionMatch"
                                 multiple={false}
+                                name="actionMatch"
                                 onChange={[Function]}
                                 required={true}
                                 value="all"
@@ -2773,6 +2796,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   height={36}
                                   id="id-actionMatch"
                                   multiple={false}
+                                  name="actionMatch"
                                   onChange={[Function]}
                                   required={true}
                                   value="all"
@@ -2787,6 +2811,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     height={36}
                                     id="id-actionMatch"
                                     multiple={false}
+                                    name="actionMatch"
                                     onChange={[Function]}
                                     options={
                                       Array [
@@ -2817,6 +2842,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                       height={36}
                                       id="id-actionMatch"
                                       multiple={false}
+                                      name="actionMatch"
                                       onChange={[Function]}
                                       options={
                                         Array [
@@ -2867,6 +2893,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         menuRenderer={[Function]}
                                         multi={false}
                                         multiple={false}
+                                        name="actionMatch"
                                         noResultsText="No results found"
                                         onBlurResetsInput={true}
                                         onChange={[Function]}
@@ -2907,6 +2934,13 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         <div
                                           className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                         >
+                                          <input
+                                            disabled={false}
+                                            key="hidden.0"
+                                            name="actionMatch"
+                                            type="hidden"
+                                            value="all"
+                                          />
                                           <div
                                             className="Select-control"
                                             onKeyDown={[Function]}
@@ -3348,6 +3382,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             disabled={false}
                             id="id-environment"
                             multiple={false}
+                            name="environment"
                             onChange={[Function]}
                             required={true}
                             value="__all_environments__"
@@ -3375,6 +3410,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               height={36}
                               id="id-environment"
                               multiple={false}
+                              name="environment"
                               onChange={[Function]}
                               required={true}
                               value="__all_environments__"
@@ -3389,6 +3425,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 height={36}
                                 id="id-environment"
                                 multiple={false}
+                                name="environment"
                                 onChange={[Function]}
                                 options={
                                   Array [
@@ -3419,6 +3456,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   height={36}
                                   id="id-environment"
                                   multiple={false}
+                                  name="environment"
                                   onChange={[Function]}
                                   options={
                                     Array [
@@ -3469,6 +3507,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     menuRenderer={[Function]}
                                     multi={false}
                                     multiple={false}
+                                    name="environment"
                                     noResultsText="No results found"
                                     onBlurResetsInput={true}
                                     onChange={[Function]}
@@ -3509,6 +3548,13 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     <div
                                       className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                     >
+                                      <input
+                                        disabled={false}
+                                        key="hidden.0"
+                                        name="environment"
+                                        type="hidden"
+                                        value="__all_environments__"
+                                      />
                                       <div
                                         className="Select-control"
                                         onKeyDown={[Function]}
@@ -4000,6 +4046,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 disabled={false}
                                 id="id-frequency"
                                 multiple={false}
+                                name="frequency"
                                 onChange={[Function]}
                                 required={true}
                                 value={30}
@@ -4051,6 +4098,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   height={36}
                                   id="id-frequency"
                                   multiple={false}
+                                  name="frequency"
                                   onChange={[Function]}
                                   required={true}
                                   value={30}
@@ -4065,6 +4113,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     height={36}
                                     id="id-frequency"
                                     multiple={false}
+                                    name="frequency"
                                     onChange={[Function]}
                                     options={
                                       Array [
@@ -4119,6 +4168,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                       height={36}
                                       id="id-frequency"
                                       multiple={false}
+                                      name="frequency"
                                       onChange={[Function]}
                                       options={
                                         Array [
@@ -4193,6 +4243,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         menuRenderer={[Function]}
                                         multi={false}
                                         multiple={false}
+                                        name="frequency"
                                         noResultsText="No results found"
                                         onBlurResetsInput={true}
                                         onChange={[Function]}
@@ -4257,6 +4308,13 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                         <div
                                           className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                         >
+                                          <input
+                                            disabled={false}
+                                            key="hidden.0"
+                                            name="frequency"
+                                            type="hidden"
+                                            value="30"
+                                          />
                                           <div
                                             className="Select-control"
                                             onKeyDown={[Function]}

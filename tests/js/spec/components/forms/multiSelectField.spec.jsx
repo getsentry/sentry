@@ -23,7 +23,7 @@ describe('MultiSelectField', function() {
           value={['a']}
         />
       );
-      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a']);
+      expect(wrapper.find('StyledSelectControl').prop('value')).toEqual(['a']);
     });
 
     it('renders with form context', function() {
@@ -44,7 +44,7 @@ describe('MultiSelectField', function() {
         }
       );
 
-      expect(wrapper.find('MultiSelectControl').prop('value')).toEqual(['a', 'b']);
+      expect(wrapper.find('StyledSelectControl').prop('value')).toEqual(['a', 'b']);
     });
   });
 });

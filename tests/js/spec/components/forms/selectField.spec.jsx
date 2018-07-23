@@ -69,4 +69,26 @@ describe('SelectField', function() {
       expect.anything()
     );
   });
+
+  describe('Multiple', function() {
+    it('selects multiple values and submits', function() {
+      let mock = jest.fn();
+      let wrapper = mount(
+        <Form onSubmit={mock}>
+          <SelectField
+            multiple
+            options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+            name="fieldName"
+          />
+        </Form>
+      );
+      selectByValue(wrapper, 'a', {name: 'fieldName'});
+      wrapper.find('Form').simulate('submit');
+      expect(mock).toHaveBeenCalledWith(
+        {fieldName: ['a']},
+        expect.anything(),
+        expect.anything()
+      );
+    });
+  });
 });

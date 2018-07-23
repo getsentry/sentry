@@ -2,9 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {StyledForm} from 'app/components/forms/form';
 import {defined} from 'app/utils';
-import FormField from 'app/components/forms/formField';
 import SelectControl from 'app/components/forms/selectControl';
+import SelectField from 'app/components/forms/selectField';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 /**
@@ -12,9 +13,9 @@ import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
  *
  * This is used in some integrations
  */
-export default class SelectCreatableField extends FormField {
+export default class SelectCreatableField extends SelectField {
   static propTypes = {
-    ...FormField.propTypes,
+    ...SelectField.propTypes,
     options: SelectControl.propTypes.options,
     clearable: SelectControl.propTypes.clearable,
     choices: SelectControl.propTypes.choices,
@@ -33,7 +34,6 @@ export default class SelectCreatableField extends FormField {
   }
 
   componentWillReceiveProps(nextProps, nextContext) {
-    // super.componentWillReceiveProps(nextProps, nextContext);
     let newError = this.getError(nextProps, nextContext);
     if (newError != this.state.error) {
       this.setState({error: newError});
@@ -65,41 +65,34 @@ export default class SelectCreatableField extends FormField {
     return convertFromSelect2Choices(props.choices) || props.options;
   }
 
-  getClassName = () => '';
-
-  // Not sure why, but we need this to get react-select's `Creatable` to work properly
-  // Otherwise, when you hit "enter" to create a new item, the "selected value" does
-  // not update with new value (and also new value is not displayed in dropdown)
-  coerceValue(value) {
-    return value ? value.value : null;
-  }
-
-  onChange = opt => {
-    this.setValue(opt);
-  };
-
   getField() {
-    let {placeholder, disabled, required, clearable} = this.props;
+    let {placeholder, disabled, required, clearable, name} = this.props;
 
     return (
-      <FieldSeparator>
-        <SelectControl
-          creatable
-          id={this.getId()}
-          options={this.options}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          value={this.state.value}
-          onChange={this.onChange}
-          clearable={clearable}
-        />
-      </FieldSeparator>
+      <StyledSelectControl
+        creatable
+        id={this.getId()}
+        options={this.options}
+        placeholder={placeholder}
+        disabled={disabled}
+        required={required}
+        value={this.state.value}
+        onChange={this.onChange}
+        clearable={clearable}
+        multiple={this.isMultiple()}
+        name={name}
+      />
     );
   }
 }
 
 // This is because we are removing `control-group` class name which provides margin-bottom
-const FieldSeparator = styled('div')`
-  margin-bottom: 15px;
+const StyledSelectControl = styled(SelectControl)`
+  ${StyledForm} &, .form-stacked & {
+    .control-group & {
+      margin-bottom: 0;
+    }
+
+    margin-bottom: 15px;
+  }
 `;

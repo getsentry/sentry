@@ -5,7 +5,7 @@ import {action} from '@storybook/addon-actions';
 
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 
-storiesOf('Forms/Fields', module).add(
+storiesOf('Forms/Controls', module).add(
   'MultipleCheckbox',
   withInfo('Multiple Checkbox Control (controlled only atm)')(() => (
     <MultipleCheckbox
