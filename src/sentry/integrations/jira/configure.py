@@ -12,7 +12,7 @@ from sentry.models import OrganizationIntegration, OrganizationMember, ProjectIn
 class JiraConfigForm(forms.Form):
     organizations = forms.TypedMultipleChoiceField(
         label='Enabled Sentry Organizations',
-        help_text="Select which Sentry organizations the Jira Integration is enabled for. Note, removing the integration from an organization will clear it's settings.",
+        help_text="Select which Sentry organizations the Jira Integration is enabled for. Note, removing the integration from an organization will clear its settings.",
         coerce=int,
         choices=tuple(),
         required=False,
