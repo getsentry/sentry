@@ -42,6 +42,7 @@ metadata = IntegrationMetadata(
 
 class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     logger = logging.getLogger('sentry.integrations')
+    # TODO(lb): improvised until form changes are finalized.
     comment_key = 'sync_comments'
     outbound_status_key = 'resolve_status'
     inbound_status_key = 'resolve_when'
