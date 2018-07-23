@@ -270,7 +270,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {group.pluginActions.length > 1 ? (
+        {group.pluginActions.length > 1 && !orgFeatures.has('internal-catchall') ? (
           <div className="btn-group more">
             <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
               {group.pluginActions.map((action, actionIdx) => {
@@ -284,6 +284,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         ) : (
           group.pluginActions.length !== 0 &&
+          !orgFeatures.has('internal-catchall') &&
           group.pluginActions.map((action, actionIdx) => {
             return (
               <div className="btn-group" key={actionIdx}>
