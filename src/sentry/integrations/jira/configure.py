@@ -47,6 +47,7 @@ class JiraConfigureView(BaseView):
         if request.method == 'GET' or not form.is_valid():
             active_orgs = OrganizationIntegration.objects.filter(
                 integration__provider='jira',
+                integration=integration,
                 organization__in=organizations
             ).values_list('organization_id', flat=True)
 
@@ -60,10 +61,12 @@ class JiraConfigureView(BaseView):
         # enabled organizations
         OrganizationIntegration.objects.filter(
             integration__provider='jira',
+            integration=integration,
             organization__in=disabled_orgs,
         ).delete()
         ProjectIntegration.objects.filter(
             integration__provider='jira',
+            integration=integration,
             integration__organizations__in=disabled_orgs,
         ).delete()
 
