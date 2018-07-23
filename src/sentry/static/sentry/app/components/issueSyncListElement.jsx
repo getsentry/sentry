@@ -98,7 +98,7 @@ class IssueSyncElement extends React.Component {
         </div>
         <IconClose
           src="icon-close"
-          onClick={this.handleDelete}
+          onClick={this.isLinked() ? this.handleDelete : this.handleClick}
           isLinked={this.isLinked()}
         />
       </IssueSyncListElementContainer>
