@@ -21,11 +21,13 @@ class OrganizationIntegrationReposTest(APITestCase):
 
     @patch('sentry.integrations.github.GitHubAppsClient.get_repositories', return_value=[])
     def test_simple(self, get_repositories):
-        get_repositories.return_value = [{'id': '1'}, {'id': '2'}]
+        get_repositories.return_value = [{'name': 'rad-repo', 'full_name': 'Example/rad-repo'},
+                                         {'name': 'cool-repo', 'full_name': 'Example/cool-repo'}]
         response = self.client.get(self.path, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data == {"repos": [{"id": "1"}, {"id": "2"}]}
+        assert response.data == {"repos": [{'name': 'rad-repo', 'identifier': 'Example/rad-repo'},
+                                           {'name': 'cool-repo', 'identifier': 'Example/cool-repo'}]}
 
     def test_no_repository_method(self):
         integration = Integration.objects.create(

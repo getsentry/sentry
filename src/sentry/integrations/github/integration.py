@@ -60,7 +60,10 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
         return GitHubAppsClient(integration=self.model)
 
     def get_repositories(self):
-        return self.get_client().get_repositories()
+        data = []
+        for repo in self.get_client().get_repositories():
+            data.append({'name': repo['name'], 'identifier': repo['full_name']})
+        return data
 
     def reinstall(self):
         self.reinstall_repositories()
