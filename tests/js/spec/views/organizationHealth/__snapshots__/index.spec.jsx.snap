@@ -1,9 +1,116 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`OrganizationHealth renders 1`] = `
-<OrganizationHealthOverview>
-  <div>
-    Overview
-  </div>
-</OrganizationHealthOverview>
+exports[`OrganizationHealth updates projects 1`] = `
+<withOrganizations
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+>
+  <withLatestContext
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    organizations={Array []}
+  >
+    <OrganizationHealth
+      lastRoute={null}
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+      organizations={Array []}
+      project={null}
+    >
+      <FeatureContainer
+        feature={
+          Array [
+            "health",
+          ]
+        }
+        showNoFeatureMessage={true}
+      >
+        <Feature
+          config={Array []}
+          feature={
+            Array [
+              "health",
+            ]
+          }
+          showNoFeatureMessage={true}
+        />
+      </FeatureContainer>
+    </OrganizationHealth>
+  </withLatestContext>
+</withOrganizations>
 `;

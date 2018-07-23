@@ -5,7 +5,8 @@ import OrganizationHealth from 'app/views/organizationHealth';
 
 describe('OrganizationHealth', function() {
   it('updates projects', function() {
-    let wrapper = mount(<OrganizationHealth />);
+    let org = TestStubs.Organization();
+    let wrapper = mount(<OrganizationHealth organization={org} />);
 
     expect(wrapper).toMatchSnapshot();
   });
