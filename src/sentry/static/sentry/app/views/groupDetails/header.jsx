@@ -116,15 +116,16 @@ const GroupHeader = createReactClass({
                   </Link>
                 </span>
               )}
-              {group.annotations.map((annotation, i) => {
-                return (
-                  <span
-                    className="event-annotation"
-                    key={i}
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                  />
-                );
-              })}
+              {!orgFeatures.has('internal-catchall') &&
+                group.annotations.map((annotation, i) => {
+                  return (
+                    <span
+                      className="event-annotation"
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  );
+                })}
             </div>
           </div>
           <div className="col-sm-5 stats">
