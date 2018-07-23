@@ -120,6 +120,7 @@ const IntegrationIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray4};
   width: ${space(3)};
   height: ${space(3)};
+  cursor: pointer;
 `;
 
 const IntegrationLink = styled('a')`
@@ -128,6 +129,7 @@ const IntegrationLink = styled('a')`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray4};
   border-bottom: 1px solid ${p => p.theme.gray4};
+  cursor: pointer;
 
   &,
   &:hover {
