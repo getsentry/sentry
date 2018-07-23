@@ -184,7 +184,7 @@ const PluginActions = createReactClass({
           </Modal.Header>
           <ul
             className="nav nav-tabs"
-            style={{'border-bottom': '1px solid rgb(221, 221, 221)'}}
+            style={{'borderBottom': '1px solid rgb(221, 221, 221)'}}
           >
             <li className={actionType == 'create' ? 'active' : ''}>
               <a id="create" onClick={this.handleClick}>
