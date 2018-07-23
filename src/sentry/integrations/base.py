@@ -212,7 +212,6 @@ class Integration(object):
         """
         For Integrations that rely solely on user auth for authentication
         """
-
         identity = Identity.objects.get(id=self.org_integration.default_auth_id)
         return identity
 

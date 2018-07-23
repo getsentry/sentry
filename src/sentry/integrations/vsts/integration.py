@@ -42,6 +42,11 @@ metadata = IntegrationMetadata(
 
 class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     logger = logging.getLogger('sentry.integrations')
+    comment_key = 'sync_comments'
+    outbound_status_key = 'resolve_status'
+    inbound_status_key = 'resolve_when'
+    outbound_assignee_key = 'sync_forward_assignment'
+    inbound_assignee_key = 'sync_reverse_assignment'
 
     def __init__(self, *args, **kwargs):
         super(VstsIntegration, self).__init__(*args, **kwargs)

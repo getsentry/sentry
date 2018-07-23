@@ -42,14 +42,10 @@ class WorkItemWebhook(Endpoint):
     def check_webhook_secret(self, request, integration):
         assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
 
-    def handle_updated_workitem(self, data):
+    def handle_updated_workitem(self, data, integration):
         external_issue_key = data['resource']['workItemId']
         assigned_to = data['resource']['fields'].get('System.AssignedTo')
         status_change = data['resource']['fields'].get('System.State')
-        integration = Integration.objects.get(
-            provider='vsts',
-            external_id=data['resourceContainers']['collection']['id'],
-        )
         project = data['resourceContainers']['project']['id']
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(
@@ -77,11 +73,13 @@ class WorkItemWebhook(Endpoint):
 
     def handle_status_change(self, integration, external_issue_key,
                              status_change, project):
+        if status_change is None:
+            return
         new_state = status_change.get('newValue')
         old_state = status_change.get('oldValue')
         organization_ids = OrganizationIntegration.objects.filter(
             integration_id=integration.id,
-        ).values_list('id', flat=True)
+        ).values_list('organization_id', flat=True)
 
         old_category = None
         new_category = None
