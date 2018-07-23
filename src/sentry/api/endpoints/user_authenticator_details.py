@@ -140,7 +140,12 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         require_2fa = user.get_orgs_require_2fa().exists()
 
         if require_2fa and last_2fa_method:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {
+                    'detail': 'Cannot delete authenticator because organization requires 2FA',
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         with transaction.atomic():
             authenticator.delete()
