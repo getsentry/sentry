@@ -136,6 +136,7 @@ exports[`RuleBuilder renders 1`] = `
                 disabled={false}
                 id="id-select-type"
                 multiple={false}
+                name="select-type"
                 onChange={[Function]}
                 options={
                   Array [
@@ -158,6 +159,7 @@ exports[`RuleBuilder renders 1`] = `
                   disabled={false}
                   id="id-select-type"
                   multiple={false}
+                  name="select-type"
                   onChange={[Function]}
                   options={
                     Array [
@@ -183,6 +185,7 @@ exports[`RuleBuilder renders 1`] = `
                     disabled={false}
                     id="id-select-type"
                     multiple={false}
+                    name="select-type"
                     onChange={[Function]}
                     options={
                       Array [
@@ -208,6 +211,7 @@ exports[`RuleBuilder renders 1`] = `
                       disabled={false}
                       id="id-select-type"
                       multiple={false}
+                      name="select-type"
                       onChange={[Function]}
                       options={
                         Array [
@@ -253,6 +257,7 @@ exports[`RuleBuilder renders 1`] = `
                         menuRenderer={[Function]}
                         multi={false}
                         multiple={false}
+                        name="select-type"
                         noResultsText="No results found"
                         onBlurResetsInput={true}
                         onChange={[Function]}
@@ -289,6 +294,13 @@ exports[`RuleBuilder renders 1`] = `
                         <div
                           className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                         >
+                          <input
+                            disabled={false}
+                            key="hidden.0"
+                            name="select-type"
+                            type="hidden"
+                            value="path"
+                          />
                           <div
                             className="Select-control"
                             onKeyDown={[Function]}
@@ -1377,6 +1389,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 disabled={false}
                 id="id-select-type"
                 multiple={false}
+                name="select-type"
                 onChange={[Function]}
                 options={
                   Array [
@@ -1399,6 +1412,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   disabled={false}
                   id="id-select-type"
                   multiple={false}
+                  name="select-type"
                   onChange={[Function]}
                   options={
                     Array [
@@ -1424,6 +1438,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     disabled={false}
                     id="id-select-type"
                     multiple={false}
+                    name="select-type"
                     onChange={[Function]}
                     options={
                       Array [
@@ -1449,6 +1464,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       disabled={false}
                       id="id-select-type"
                       multiple={false}
+                      name="select-type"
                       onChange={[Function]}
                       options={
                         Array [
@@ -1494,6 +1510,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         menuRenderer={[Function]}
                         multi={false}
                         multiple={false}
+                        name="select-type"
                         noResultsText="No results found"
                         onBlurResetsInput={true}
                         onChange={[Function]}
@@ -1530,6 +1547,13 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         <div
                           className="Select e1qrhqd00 css-b6mfcr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                         >
+                          <input
+                            disabled={false}
+                            key="hidden.0"
+                            name="select-type"
+                            type="hidden"
+                            value="path"
+                          />
                           <div
                             className="Select-control"
                             onKeyDown={[Function]}

@@ -7,10 +7,11 @@ exports[`MultiSelectField render() renders without form context 1`] = `
   <div
     className="controls"
   >
-    <MultiSelectControl
+    <StyledSelectControl
+      clearable={true}
       disabled={false}
-      hideErrorMessage={false}
       id="id-fieldName"
+      multiple={true}
       name="fieldName"
       onChange={[Function]}
       options={
