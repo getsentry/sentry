@@ -116,8 +116,7 @@ const GroupHeader = createReactClass({
                   </Link>
                 </span>
               )}
-              {!orgFeatures.has('internal-catchall') &&
-                group.annotations.map((annotation, i) => {
+              {group.annotations.map((annotation, i) => {
                   return (
                     <span
                       className="event-annotation"
