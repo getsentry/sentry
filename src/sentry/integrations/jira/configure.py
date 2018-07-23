@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from django import forms
 
+from sentry import roles
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.models import OrganizationIntegration, ProjectIntegration
+from sentry.models import OrganizationIntegration, OrganizationMember, ProjectIntegration
 
 
 class JiraConfigForm(forms.Form):
@@ -40,8 +41,11 @@ class JiraConfigureView(BaseView):
         except AtlassianConnectValidationError:
             return self.get_response({'error_message': 'Unable to verify installation.'})
 
-        # TODO(jess): restrict to org owners?
-        organizations = request.user.get_orgs()
+        organizations = request.user.get_orgs().filter(
+            id__in=OrganizationMember.objects.filter(
+                role__in=[r.id for r in roles.get_all() if r.is_global],
+            ),
+        )
         form = JiraConfigForm(organizations, request.POST)
 
         if request.method == 'GET' or not form.is_valid():
