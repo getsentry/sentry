@@ -297,7 +297,9 @@ class IssueTrackingPlugin2(Plugin):
             plugin=self, project=group.project, user=request.user,
             sender=type(self)
         )
-        return Response({'issue_url': self.get_issue_url(group, issue), 'link': self._get_issue_url_compat(group, issue), 'id': issue['id']})
+        return Response({'issue_url': self.get_issue_url(group, issue),
+                         'link': self._get_issue_url_compat(group, issue),
+                         'id': issue['id']})
 
     def view_link(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
@@ -356,7 +358,9 @@ class IssueTrackingPlugin2(Plugin):
             user=request.user,
             data=issue_information,
         )
-        return Response({'message': 'Successfully linked issue.', 'link': self._get_issue_url_compat(group, issue), 'id': issue['id']})
+        return Response({'message': 'Successfully linked issue.',
+                         'link': self._get_issue_url_compat(group, issue),
+                         'id': issue['id']})
 
     def view_unlink(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
