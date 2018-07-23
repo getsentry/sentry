@@ -278,13 +278,29 @@ class Symbolizer(object):
         if obj is None:
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
 
-        # If we are dealing with a frame that is not bundled with the app
-        # we look at system symbols.  If that fails, we go to looking for
-        # app symbols explicitly.
-        if not self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
-            return self._convert_symbolserver_match(instruction_addr, symbolserver_match, obj)
+        # Try to always prefer the images from the application storage.
+        # If the symbolication fails we keep the error for later
+        app_err = None
+        try:
+            match = self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info)
+            if match:
+                return match
+        except SymbolicationFailed as err:
+            app_err = err
 
-        return self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info)
+        # Then we check the symbolserver for a match.
+        match = self._convert_symbolserver_match(instruction_addr, symbolserver_match, obj)
+
+        # If we do not get a match and the image was from an app bundle
+        # and we got an error first, we now fail with the original error
+        # as we did indeed encounter a symbolication error.  If however
+        # the match was empty we just accept it as a valid symbolication
+        # that just did not return any results but without error.
+        if not match and self.is_image_from_app_bundle(obj, sdk_info=sdk_info) \
+           and app_err is not None:
+            raise app_err
+
+        return match
 
     def is_in_app(self, instruction_addr, sdk_info=None):
         obj = self.object_lookup.find_object(instruction_addr)
