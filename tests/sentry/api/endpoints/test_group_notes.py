@@ -7,7 +7,7 @@ import mock
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (
     Activity, GroupLink, GroupSubscription, GroupSubscriptionReason,
-    ExternalIssue, Integration
+    ExternalIssue, Integration, OrganizationIntegration
 )
 from sentry.testutils import APITestCase
 
@@ -183,6 +183,19 @@ class GroupNoteCreateTest(APITestCase):
             external_id='123456',
         )
         integration.add_organization(group.organization.id)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,

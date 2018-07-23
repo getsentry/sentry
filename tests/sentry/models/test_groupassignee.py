@@ -7,7 +7,7 @@ import six
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (
     GroupAssignee, Activity, Integration, GroupLink, ExternalIssue,
-    sync_group_assignee_inbound
+    OrganizationIntegration, sync_group_assignee_inbound
 )
 from sentry.testutils import TestCase
 
@@ -114,6 +114,19 @@ class GroupAssigneeTestCase(TestCase):
         )
         integration.add_organization(group.organization.id)
 
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
+
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
             integration_id=integration.id,
@@ -161,6 +174,19 @@ class GroupAssigneeTestCase(TestCase):
         )
         integration.add_organization(group.organization.id)
 
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
+
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
             integration_id=integration.id,
@@ -205,6 +231,19 @@ class GroupAssigneeTestCase(TestCase):
         )
         integration.add_organization(group.organization.id)
 
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
+
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
             integration_id=integration.id,
@@ -246,6 +285,19 @@ class GroupAssigneeTestCase(TestCase):
             external_id='123456',
         )
         integration.add_organization(group.organization.id)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,

@@ -54,10 +54,16 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
 
     logger = logging.getLogger('sentry.integrations.%s' % integration.provider)
 
+    orgs_with_sync_enabled = []
+    for org_id in integration.organizations.values_list('id', flat=True):
+        installation = integration.get_installation(org_id)
+        if installation.should_sync('inbound_assignee'):
+            orgs_with_sync_enabled.append(org_id)
+
     affected_groups = list(
         Group.objects.get_groups_by_external_issue(
             integration, external_issue_key,
-        ),
+        ).filter(project__organization_id__in=orgs_with_sync_enabled),
     )
 
     if not affected_groups:
