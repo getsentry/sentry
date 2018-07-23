@@ -113,6 +113,13 @@ storiesOf('Forms/Fields/New', module)
           required
           flexibleControlStateSize
         />
+        <TextField
+          name="textfielddisabled"
+          label="Text field with disabled reason"
+          placeholder="I am disabled"
+          disabled
+          disabledReason="This is the reason this field is disabled"
+        />
       </Form>
     ))
   )
