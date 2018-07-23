@@ -116,6 +116,7 @@ exports[`SelectField renders without form context 1`] = `
           className="css-j6zs66-StyledSelectControl e1qrhqd00"
           clearable={true}
           disabled={false}
+          height={36}
           id="id-fieldName"
           multiple={false}
           onChange={[Function]}
@@ -141,6 +142,7 @@ exports[`SelectField renders without form context 1`] = `
             clearable={true}
             deleteRemoves={true}
             disabled={false}
+            height={36}
             id="id-fieldName"
             multiple={false}
             onChange={[Function]}
@@ -162,10 +164,11 @@ exports[`SelectField renders without form context 1`] = `
             <SelectPicker
               arrowRenderer={[Function]}
               backspaceRemoves={true}
-              className="e1qrhqd00 css-dxi9rm-StyledSelect-StyledSelectControl eho28m20"
+              className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
               clearable={true}
               deleteRemoves={true}
               disabled={false}
+              height={36}
               id="id-fieldName"
               multiple={false}
               onChange={[Function]}
@@ -189,7 +192,7 @@ exports[`SelectField renders without form context 1`] = `
                 autosize={true}
                 backspaceRemoves={true}
                 backspaceToRemoveMessage="Press backspace to remove {label}"
-                className="e1qrhqd00 css-dxi9rm-StyledSelect-StyledSelectControl eho28m20"
+                className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
                 clearAllText="Clear all"
                 clearRenderer={[Function]}
                 clearValueText="Clear value"
@@ -200,6 +203,7 @@ exports[`SelectField renders without form context 1`] = `
                 disabled={false}
                 escapeClearsValue={true}
                 filterOptions={[Function]}
+                height={36}
                 id="id-fieldName"
                 ignoreAccents={true}
                 ignoreCase={true}
@@ -247,7 +251,7 @@ exports[`SelectField renders without form context 1`] = `
                 valueKey="value"
               >
                 <div
-                  className="Select e1qrhqd00 css-dxi9rm-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
+                  className="Select e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
                 >
                   <div
                     className="Select-control"
