@@ -295,6 +295,7 @@ const StyledInput = styled(Input)`
 `;
 
 const AutoCompleteItem = styled('div')`
+  font-size: 0.9em;
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${space(1)};
