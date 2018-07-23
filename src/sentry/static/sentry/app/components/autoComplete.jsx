@@ -25,6 +25,7 @@ class AutoComplete extends React.Component {
     itemToString: PropTypes.func.isRequired,
     defaultHighlightedIndex: PropTypes.number,
     defaultInputValue: PropTypes.string,
+    disabled: PropTypes.bool,
     /**
      * Resets autocomplete input when menu closes
      */
@@ -46,6 +47,7 @@ class AutoComplete extends React.Component {
   static defaultProps = {
     itemToString: i => i,
     inputIsActor: true,
+    disabled: false,
   };
 
   constructor(props) {
@@ -207,11 +209,11 @@ class AutoComplete extends React.Component {
    * This is exposed to render function
    */
   openMenu = (...args) => {
-    let {onOpen} = this.props;
+    let {onOpen, disabled} = this.props;
 
     callIfFunction(onOpen, ...args);
 
-    if (this.isControlled()) return;
+    if (disabled || this.isControlled()) return;
 
     this.resetHighlightState();
     this.setState({

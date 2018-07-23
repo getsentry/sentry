@@ -81,6 +81,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         onSelect={[Function]}
                       >
                         <AutoComplete
+                          disabled={false}
                           inputIsActor={false}
                           itemToString={[Function]}
                           onSelect={[Function]}
