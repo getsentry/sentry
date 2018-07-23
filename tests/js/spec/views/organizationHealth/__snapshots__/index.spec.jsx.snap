@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationHealth renders 1`] = `
+<OrganizationHealthOverview>
+  <div>
+    Overview
+  </div>
+</OrganizationHealthOverview>
+`;
