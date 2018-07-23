@@ -27,6 +27,8 @@ SDK_INFO = {"sdk_name": "iOS", "version_major": 9,
 
 
 def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
+    if instruction_addr != 4295123756:
+        return []
     return [
         {
             'filename': 'Foo.swift',
