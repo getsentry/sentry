@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
+from sentry.utils.http import absolute_uri
 
 
 class GitHubIssueBasic(IssueBasicMixin):
@@ -123,7 +124,10 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 'name': 'comment',
                 'label': 'Comment',
-                'default': '',
+                'default': u'Sentry issue: [{issue_id}]({url})'.format(
+                    url=absolute_uri(group.get_absolute_url()),
+                    issue_id=group.qualified_short_id
+                ),
                 'type': 'textarea',
                 'required': False,
                 'help': ('Leave blank if you don\'t want to '
