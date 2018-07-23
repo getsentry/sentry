@@ -25,9 +25,10 @@ export default class SelectControl extends React.Component {
     ]),
   };
 
-  static defaultPropTypes = {
+  static defaultProps = {
     clearable: false,
     multiple: false,
+    height: 36,
   };
 
   renderArrow = () => {
@@ -95,20 +96,23 @@ const StyledSelect = styled(SelectPicker)`
 
   .Select-control,
   &.Select.is-focused:not(.is-open) > .Select-control {
+    height: ${p => p.height}px;
     overflow: visible;
     border: 1px solid ${p => p.theme.borderDark};
     box-shadow: inset ${p => p.theme.dropShadowLight};
   }
   .Select-input {
-    height: 36px;
+    height: ${p => p.height}px;
     input {
-      padding: 10px 0;
+      line-height: ${p => p.height}px;
+      padding: 0 0;
     }
   }
 
   .Select-placeholder,
-  .Select--single > .Select-control .Select-value {
-    height: 36px;
+  &.Select--single > .Select-control .Select-value {
+    height: ${p => p.height}px;
+    line-height: ${p => p.height}px;
     &:focus {
       border: 1px solid ${p => p.theme.gray};
     }
