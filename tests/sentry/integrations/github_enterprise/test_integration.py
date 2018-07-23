@@ -25,7 +25,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     }
 
     @patch('sentry.integrations.github_enterprise.integration.get_jwt', return_value='jwt_token_1')
-    def assert_setup_flow(self, get_jwt, installation_id='install_id_1',
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def assert_setup_flow(self, get_jwt, _, installation_id='install_id_1',
                           app_id='app_1', user_id='user_id_1'):
         responses.reset()
         resp = self.client.get(self.init_path)
@@ -63,6 +64,16 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.POST, 'https://35.232.149.196/login/oauth/access_token',
             json={'access_token': access_token}
+        )
+
+        responses.add(
+            responses.POST, 'https://35.232.149.196/api/v3/installations/{}/access_tokens'.format(
+                installation_id,
+            ),
+            json={
+                'token': access_token,
+                'expires_at': '3000-01-01 00:00:00Z',
+            },
         )
 
         responses.add(
