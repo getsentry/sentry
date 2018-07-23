@@ -36,15 +36,14 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return config
         ```
         """
-        if config.get('identifier') and config.get('installation'):
-            integration = Integration.objects.get(
-                id=config['installation'], organizations=organization)
-            installation = integration.get_installation(organization.id)
-            client = installation.get_client()
+        integration = Integration.objects.get(
+            id=config['installation'], organizations=organization)
+        installation = integration.get_installation(organization.id)
+        client = installation.get_client()
 
-            repo = self._validate_repo(client, installation, config['identifier'])
-            config['external_id'] = six.text_type(repo['id'])
-            config['integration_id'] = integration.id
+        repo = self._validate_repo(client, installation, config['identifier'])
+        config['external_id'] = six.text_type(repo['id'])
+        config['integration_id'] = integration.id
 
         return config
 
