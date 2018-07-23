@@ -73,11 +73,11 @@ class FieldControl extends React.Component {
 
           {disabled &&
             disabledReason && (
-              <Tooltip title={disabledReason}>
-                <span className="disabled-indicator m-a-0">
+              <Flex align="center" ml={1} className="disabled-indicator">
+                <Tooltip title={disabledReason}>
                   <StyledInlineSvg src="icon-circle-question" size="18px" />
-                </span>
-              </Tooltip>
+                </Tooltip>
+              </Flex>
             )}
 
           <FieldControlState flexibleControlStateSize={flexibleControlStateSize}>
