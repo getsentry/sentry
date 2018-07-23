@@ -32,7 +32,14 @@ socket.setdefaulttimeout(5)
 
 
 def env(key, default='', type=None):
-    "Extract an environment variable for use in configuration"
+    """
+    Extract an environment variable for use in configuration
+
+    :param key: The environment variable to be extracted.
+    :param default: The value to be returned if `key` is not found.
+    :param type: The type of the returned object (defaults to the type of `default`).
+    :return: The environment variable if it exists, else `default`.
+    """
 
     # First check an internal cache, so we can `pop` multiple times
     # without actually losing the value.
