@@ -12,7 +12,7 @@ import LineSeries from "../../components/charts/series/lineSeries";
 
 import _ from 'lodash';
 
-const {data} = require('./result/transactionData');
+// const {data} = require('./result/transactionData');
 
 export default class lineChart extends React.Component {
   static propTypes = {
@@ -23,7 +23,8 @@ export default class lineChart extends React.Component {
     return LineSeries({
       name: key,
       type: 'line',
-      data: value.map(entry => entry.count),
+      data: value.count,
+      // data: value.map(entry => entry.count),
       color: theme.charts.colors[idx],
     });
   };
@@ -35,13 +36,18 @@ export default class lineChart extends React.Component {
   };
 
   render() {
-    const {groupBy, ...props} = this.props;
+    const {chartData, data, fields, ...props} = this.props;
 
-    const series = Object.entries(this.getLineSeries(data, groupBy)).map(this.defineSeries);
-    const dates = data.map(entry => moment(entry.timestamp).format('MM-DD'));
+    // const series = Object.entries(this.getLineSeries(data.data, groupBy)).map(this.defineSeries);
+    const series = Object.entries(chartData).map(this.defineSeries);
+    //
+    const dates = data.data.map(entry => moment(entry.time * 1000).format('MM-DD'));
 
-    if (!series.length) return null;
-
+    // if (!chartData.length) return null;
+    console.log("dates", dates);
+    console.log("received chartdata", chartData);
+    console.log("series", series);
+    console.log("data: ", data);
     return (
       <BaseChart
         {...props}

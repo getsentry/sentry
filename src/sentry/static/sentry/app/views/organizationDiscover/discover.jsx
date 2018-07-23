@@ -88,6 +88,7 @@ export default class OrganizationDiscover extends React.Component {
         ...queryBuilder.getExternal(),
         groupby: ['time'],
         rollup: 60 * 60 * 24,
+        orderby: 'time'
       };
 
       queryBuilder.fetch(chartQuery).then(
@@ -178,6 +179,9 @@ export default class OrganizationDiscover extends React.Component {
 
     const renderChart = !!query.aggregations.length;
 
+    console.log("query is...", query);
+    console.log("summarize is...", query.fields, typeof query.fields);
+
     return (
       <Discover className="organization-home">
         <Header
@@ -261,7 +265,7 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {chartData && <ResultChart data={chartData} />}
+            {chartData && <ResultChart data={chartData} fields={query.fields}/>}
             {result && <ResultTable result={result} />}
           </Box>
         </Flex>

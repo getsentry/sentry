@@ -58,7 +58,6 @@ export default class Result extends React.Component {
           snuba query time: {timing.duration_ms}ms, {data.length} rows
         </Summary>
         {this.renderTable()}
-        <LineChart data={chartData} groupBy="tags[transaction]"/>
       </div>
     );
   }
