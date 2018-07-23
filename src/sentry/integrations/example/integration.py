@@ -44,6 +44,12 @@ metadata = IntegrationMetadata(
 
 
 class ExampleIntegration(Integration, IssueSyncMixin):
+    comment_key = 'sync_comments'
+    outbound_status_key = 'sync_status_outbound'
+    inbound_status_key = 'sync_status_inbound'
+    outbound_assignee_key = 'sync_assignee_outbound'
+    inbound_assignee_key = 'sync_assignee_inbound'
+
     def create_comment(self):
         pass
 

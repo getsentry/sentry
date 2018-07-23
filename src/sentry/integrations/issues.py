@@ -133,6 +133,24 @@ class IssueBasicMixin(object):
 
 
 class IssueSyncMixin(IssueBasicMixin):
+    comment_key = None
+    outbound_status_key = None
+    inbound_status_key = None
+    outbound_assignee_key = None
+    inbound_assignee_key = None
+
+    def should_sync(self, attribute):
+        try:
+            key = getattr(self, '%s_key' % attribute)
+        except AttributeError:
+            return False
+
+        if key is None:
+            return False
+
+        config = self.org_integration.config
+
+        return config.get(key, False)
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
@@ -192,6 +210,8 @@ class IssueSyncMixin(IssueBasicMixin):
                 )
 
     def sync_status_inbound(self, issue_key, data):
+        if not self.should_sync('inbound_status'):
+            return
         affected_groups = list(
             Group.objects.get_groups_by_external_issue(
                 self.model, issue_key,

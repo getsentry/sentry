@@ -13,7 +13,7 @@ from sentry import tagstore
 from sentry.models import (
     Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupHashTombstone,
     GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, ExternalIssue, Integration, Release, UserOption
+    GroupTombstone, ExternalIssue, Integration, Release, UserOption, OrganizationIntegration
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -211,10 +211,17 @@ class GroupListTest(APITestCase):
         group = self.create_group(checksum='a' * 32)
         self.create_group(checksum='b' * 32)
         event_id = 'c' * 32
-        event = self.create_event(project_id=self.project.id, group=group, event_id=event_id, tags={'environment': 'test'})
+        event = self.create_event(
+            project_id=self.project.id,
+            group=group,
+            event_id=event_id,
+            tags={
+                'environment': 'test'})
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query={}&environment=test'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(
+            '{}?query={}&environment=test'.format(
+                self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
@@ -462,6 +469,19 @@ class GroupUpdateTest(APITestCase):
             self.project.id, {
                 'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id,
             integration_id=integration.id,
@@ -521,6 +541,18 @@ class GroupUpdateTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org.id)
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
         integration.add_project(
             group.project_id, {
                 'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})

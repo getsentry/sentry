@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.models import Group, GroupStatus, Integration, GroupLink, ExternalIssue
+from sentry.models import (
+    ExternalIssue, Group, GroupStatus, GroupLink, Integration, OrganizationIntegration
+)
 from sentry.testutils import TestCase
 
 
@@ -14,6 +16,19 @@ class IssueSyncIntegration(TestCase):
             external_id='123456',
         )
         integration.add_organization(group.organization.id)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,
@@ -52,6 +67,19 @@ class IssueSyncIntegration(TestCase):
             external_id='123456',
         )
         integration.add_organization(group.organization.id)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,

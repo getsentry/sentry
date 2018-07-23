@@ -17,9 +17,12 @@ def post_comment(external_issue_id, data, **kwargs):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     integration = Integration.objects.get(id=external_issue.integration_id)
-    integration.get_installation(
-        organization_id=external_issue.organization_id).create_comment(
-        external_issue.key, data['text'])
+    installation = integration.get_installation(
+        organization_id=external_issue.organization_id,
+    )
+    if installation.should_sync('comment'):
+        installation.create_comment(
+            external_issue.key, data['text'])
 
 
 @instrumented_task(
@@ -49,9 +52,12 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
         user = None
     else:
         user = User.objects.get(id=user_id)
-    integration.get_installation(
-        organization_id=external_issue.organization_id).sync_assignee_outbound(
-        external_issue, user, assign=assign)
+
+    installation = integration.get_installation(
+        organization_id=external_issue.organization_id,
+    )
+    if installation.should_sync('outbound_assignee'):
+        installation.sync_assignee_outbound(external_issue, user, assign=assign)
 
 
 @instrumented_task(
@@ -76,9 +82,10 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
         organization_id=external_issue.organization_id,
         project_id=group.project_id,
     )
-    installation.sync_status_outbound(
-        external_issue, group.status == GroupStatus.RESOLVED, group.project_id
-    )
+    if installation.should_sync('outbound_status'):
+        installation.sync_status_outbound(
+            external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+        )
 
 
 @instrumented_task(

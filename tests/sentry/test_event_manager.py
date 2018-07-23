@@ -22,7 +22,7 @@ from sentry.event_manager import (
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment, GroupHash, GroupLink,
     GroupRelease, GroupResolution, GroupStatus, GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, UserReport
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
@@ -529,6 +529,19 @@ class EventManagerTest(TransactionTestCase):
             name='Example',
         )
         integration.add_organization(org.id)
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
+
         integration.add_project(
             group.project_id, {
                 'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
@@ -1389,6 +1402,7 @@ class GetHashesFromFingerprintTest(TestCase):
             message='Foo bar',
         )
         fp_checksums = get_hashes_from_fingerprint(event, ["{{default}}"])
+
         def_checksums = get_hashes_for_event(event)
         assert def_checksums == fp_checksums
 
@@ -1415,6 +1429,7 @@ class GetHashesFromFingerprintTest(TestCase):
             message='Foo bar',
         )
         fp_checksums = get_hashes_from_fingerprint(event, ["{{default}}", "custom"])
+
         def_checksums = get_hashes_for_event(event)
         assert len(fp_checksums) == len(def_checksums)
         assert def_checksums != fp_checksums
