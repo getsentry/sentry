@@ -56,7 +56,10 @@ class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin
         )
 
     def get_repositories(self):
-        return self.get_client().get_repositories()
+        data = []
+        for repo in self.get_client().get_repositories():
+            data.append({'name': repo['name'], 'identifier': repo['full_name']})
+        return data
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):

@@ -20,11 +20,11 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
 
         base_url = integration.metadata.get('domain_name')
         return {
-            'name': data['name'],
+            'name': data['identifier'],
             'external_id': data['external_id'],
-            'url': 'https://{}/{}'.format(base_url, data['name']),
+            'url': 'https://{}/{}'.format(base_url, data['identifier']),
             'config': {
-                'name': data['name'],
+                'name': data['identifier'],
             },
             'integration_id': data['integration_id']
         }
