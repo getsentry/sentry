@@ -6,13 +6,14 @@ import ApiMixin from 'app/mixins/apiMixin';
 import GroupState from 'app/mixins/groupState';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 const PluginActions = createReactClass({
   displayName: 'PluginActions',
 
   propTypes: {
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
     plugin: PropTypes.object.isRequired,
   },
 
@@ -27,7 +28,7 @@ const PluginActions = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.loadPlugin(this.props.plugin);
   },
 

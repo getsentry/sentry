@@ -8,6 +8,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 
 const MESSAGES_BY_ACTION = {
@@ -17,7 +18,7 @@ const MESSAGES_BY_ACTION = {
 
 class ExternalIssueForm extends AsyncComponent {
   static propTypes = {
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
     integration: PropTypes.object.isRequired,
     action: PropTypes.oneOf(['link', 'create']),
     onSubmitSuccess: PropTypes.func.isRequired,
@@ -206,18 +207,11 @@ class ExternalIssueActions extends AsyncComponent {
   };
 
   closeModal = data => {
-    if (data.id) {
-      this.setState({
-        showModal: false,
-        action: null,
-        issue: data,
-      });
-    } else {
-      this.setState({
-        showModal: false,
-        action: null,
-      });
-    }
+    this.setState({
+      showModal: false,
+      action: null,
+      issue: data.id ? data : null,
+    });
   };
 
   handleClick = evt => {
@@ -253,19 +247,19 @@ class ExternalIssueActions extends AsyncComponent {
               className="nav nav-tabs"
               style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
             >
-              <li className={action == 'create' ? 'active' : ''}>
+              <li className={action === 'create' ? 'active' : ''}>
                 <a id="create" onClick={this.handleClick}>
                   Create
                 </a>
               </li>
-              <li className={action == 'link' ? 'active' : ''}>
+              <li className={action === 'link' ? 'active' : ''}>
                 <a id="link" onClick={this.handleClick}>
                   Link
                 </a>
               </li>
             </ul>
             <Modal.Body>
-              {action == 'create' && (
+              {action === 'create' && (
                 <ExternalIssueForm
                   group={this.props.group}
                   integration={selectedIntegration}
@@ -273,7 +267,7 @@ class ExternalIssueActions extends AsyncComponent {
                   onSubmitSuccess={this.closeModal}
                 />
               )}
-              {action == 'link' && (
+              {action === 'link' && (
                 <ExternalIssueForm
                   group={this.props.group}
                   integration={selectedIntegration}
