@@ -64,7 +64,7 @@ def test_parse_event_message_version_1():
 
 
 def test_parse_event_message_version_1_unsupported_operation():
-    assert parse_event_message(json.dumps([1, 'delete', {}, {}])) is None
+    assert parse_event_message(json.dumps([1, 'delete', {}])) is None
 
 
 def test_parse_event_message_version_1_unexpected_operation():
