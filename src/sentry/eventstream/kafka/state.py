@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 from collections import defaultdict, namedtuple
 
@@ -75,7 +77,7 @@ class SynchronizedPartitionStateManager(object):
         else:
             if offsets.local < offsets.remote:
                 return PartitionState.LOCAL_BEHIND
-            elif offsets.remote > offsets.local:
+            elif offsets.remote < offsets.local:
                 return PartitionState.REMOTE_BEHIND
             else:  # local == remote
                 return PartitionState.SYNCHRONIZED
