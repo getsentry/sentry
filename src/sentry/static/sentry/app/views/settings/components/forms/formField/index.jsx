@@ -159,6 +159,13 @@ class MockModel {
   }
 }
 
+/**
+ * This is a list of field properties that can accept a function taking the
+ * form model, that will be called to determine the value of the prop upon an
+ * observed change in the model.
+ */
+const propsToObserver = ['inline', 'highlighted'];
+
 class FormField extends React.Component {
   static propTypes = {
     name: PropTypes.string.isRequired,
@@ -336,9 +343,9 @@ class FormField extends React.Component {
     let model = this.getModel();
     let saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
-    return (
+    const makeField = extraProps => (
       <React.Fragment>
-        <Field id={id} name={name} className={className} {...props}>
+        <Field id={id} name={name} className={className} {...props} {...extraProps}>
           {({alignRight, inline, disabled, disabledReason}) => (
             <FieldControl
               disabled={disabled}
@@ -422,6 +429,19 @@ class FormField extends React.Component {
         )}
       </React.Fragment>
     );
+
+    const observedProps = propsToObserver
+      .filter(p => typeof this.props[p] === 'function')
+      .map(p => [p, () => this.props[p](model)]);
+
+    // This field has no properties that require observation to compute their
+    // value, this field is static and will not be re-rendered.
+    if (observedProps.length === 0) return makeField();
+
+    const reducer = (a, [prop, fn]) => ({...a, [prop]: fn()});
+    const observedPropsFn = () => makeField(observedProps.reduce(reducer, {}));
+
+    return <Observer>{observedPropsFn}</Observer>;
   }
 }
 
