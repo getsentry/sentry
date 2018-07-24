@@ -248,6 +248,10 @@ var pwConfig = {
 var legacyCssConfig = {
   entry: {
     sentry: 'less/sentry.less',
+
+    // Below is for old plugins that use select2 when creating a new issue for a plugin
+    // e.g. Trello, Teamwork
+    select2: 'less/select2.less',
   },
   context: path.join(__dirname, staticPrefix),
   output: {
