@@ -57,7 +57,7 @@ export default class Result extends React.Component {
     }
 
     return (
-      <div ref={ref => (this.element = ref)} style={{overflowX: 'scroll'}}>
+      <div>
         <Summary mb={1}>
           snuba query time: {timing.duration_ms}ms, {data.length} rows
         </Summary>
