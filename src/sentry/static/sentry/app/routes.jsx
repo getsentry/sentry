@@ -135,25 +135,30 @@ function routes() {
       />
 
       <Route name="Security" path="security/">
-        <IndexRoute
+        <Route
           componentPromise={() =>
-            import(/*webpackChunkName: "AccountSecurity"*/ './views/settings/account/accountSecurity/index')}
+            import(/*webpackChunkName: "AccountSecurityWrapper"*/ './views/settings/account/accountSecurity/accountSecurityWrapper')}
           component={errorHandler(LazyLoad)}
-        />
+        >
+          <IndexRoute
+            componentPromise={() =>
+              import(/*webpackChunkName: "AccountSecurity"*/ './views/settings/account/accountSecurity/index')}
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path=":authId/"
+            name="Details"
+            componentPromise={() =>
+              import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
 
         <Route
           path=":authId/enroll/"
           name="Enroll"
           componentPromise={() =>
             import(/*webpackChunkName: "AccountSecurityEnroll"*/ './views/settings/account/accountSecurity/accountSecurityEnroll')}
-          component={errorHandler(LazyLoad)}
-        />
-
-        <Route
-          path=":authId/"
-          name="Details"
-          componentPromise={() =>
-            import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
           component={errorHandler(LazyLoad)}
         />
       </Route>
