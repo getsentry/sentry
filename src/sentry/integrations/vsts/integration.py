@@ -76,53 +76,65 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
     def get_organization_config(self):
-        client = self.get_client()
-        instance = self.model.metadata['domain_name']
+        def get_projects():
+            client = self.get_client()
+            try:
+                projects = client.get_projects(self.instance)
+            except ApiError:
+                return []
+            return [(project['id'], project['name']) for project in projects['value']]
 
-        try:
-            # TODO(lb): this is clearly wrong. I'm just getting the first project.
-            # should be completely changed pending evan's changes?
-            project = client.get_projects(instance)['value'][0]['id']
-            work_item_states = client.get_work_item_states(instance, project)['value']
-            statuses = [(c['name'], c['name']) for c in work_item_states]
-            disabled = False
-        except ApiError:
-            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
-            # statuses is a little heavy handed. Is there something better we
-            # can fall back to?
-            statuses = []
-            disabled = True
+        def get_project_statuses(project_id):
+            client = self.get_client()
+            try:
+                statuses = client.get_work_item_states(self.instance, project_id)
+            except ApiError:
+                return [], []
+            resolve_statuses = []
+            unresolve_statuses = []
+            for status in statuses['value']:
+                if self.is_done(statuses['category']):
+                    resolve_statuses.append((status['name'], status['name']))
+                else:
+                    unresolve_statuses.append((status['name'], status['name']))
+            return resolve_statuses, unresolve_statuses
+
+        projects = get_projects()
+
+        resolve_statuses = []
+        unresolve_statuses = []
+        for project in projects:
+            r_statuses, un_statuses = get_project_statuses(project[0])
+            resolve_statuses.append(r_statuses)
+            unresolve_statuses.append(un_statuses)
 
         return [
             {
-                'name': 'resolve_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Resolved Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+                'name': 'sync_status_reverse',
+                'type': 'boolean',
+                'label': _('Sync Status from Visual Studio Team Services to Sentry'),
+                'help': _('When a Visual Studio Team Services ticket is moved to a done category, it\'s linked Sentry issue will be resolved. When a Visual Studio Team Services ticket is moved out of a Done category, it\'s linked sentry issue will be unresolved.'),
             },
             {
-                'name': 'resolve_when',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Resolve in Sentry When'),
-                'placeholder': _('Select a Status'),
-                'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
-            },
-            {
-                'name': 'regression_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Regression Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
+                'name': 'sync_status_forward',
+                'type': 'choice_mapper',
+                'label': _('Sync Status from Sentry to Visual Studio Team Services'),
+                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
+                'addButtonText': _('Map Project'),
+                'addDropdown': {
+                    'emptyMessage': _('All projects configured'),
+                    'noResultsMessage': _('Could not find Visual Studio Team Services project'),
+                    'items': projects,
+                },
+                'mappedSelectors': {
+                    'on_resolve': {'choices': resolve_statuses, 'placeholder': _('Select a status')},
+                    'on_unresolve': {'choices': unresolve_statuses, 'placeholder': _('Select a status')},
+                },
+                'columnLabels': {
+                    'on_resolve': _('When resolved'),
+                    'on_unresolve': _('When unresolved'),
+                },
+                'mappedColumnLabel': _('Visual Studio Team Services Project'),
             },
             {
                 'name': 'sync_comments',
