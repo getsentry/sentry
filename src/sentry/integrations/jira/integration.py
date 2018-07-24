@@ -139,6 +139,28 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         return configuration
 
+    def update_organization_config(self, data):
+        """
+        Update the configuration field for an organization integration.
+        """
+        config = self.org_integration.config
+
+        if 'sync_status_forward' in data:
+            project_mappings = data.pop('sync_status_forward')
+
+            data['sync_status_forward'] = bool(project_mappings)
+
+            for project_id, statuses in project_mappings.items():
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=project_id,
+                    resolved_status=statuses['on_resolve'],
+                    unresolved_status=statuses['on_unresolve'],
+                )
+
+        config.update(data)
+        self.org_integration.update(config=config)
+
     def sync_metadata(self):
         client = self.get_client()
 
