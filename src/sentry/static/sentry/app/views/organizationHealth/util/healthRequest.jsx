@@ -71,14 +71,8 @@ class HealthRequestWithParams extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (
-      isEqual(prevProps.projects, this.props.projects) &&
-      isEqual(prevProps.environments, this.props.environments) &&
-      isEqual(prevProps.period, this.props.period) &&
-      isEqual(prevProps.organization, this.props.organization)
-    ) {
-      return;
-    }
+    if (isEqual(prevProps, this.props)) return;
+
     this.fetchData();
   }
 
@@ -124,3 +118,4 @@ const HealthRequest = withLatestContext(
 );
 
 export default HealthRequest;
+export {HealthRequestWithParams};
