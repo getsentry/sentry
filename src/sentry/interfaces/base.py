@@ -6,6 +6,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
@@ -13,6 +14,7 @@ from sentry.utils.safe import safe_execute
 
 def get_interface(name):
     try:
+        name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
         raise ValueError('Invalid interface name: %s' % (name, ))

@@ -13,7 +13,7 @@ class SnubaEventStream(EventStream):
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': event.data.data,
+            'data': dict(event.data.items()),
             'primary_hash': primary_hash,
         }])
         super(SnubaEventStream, self).publish(group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume)

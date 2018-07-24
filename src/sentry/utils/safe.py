@@ -7,6 +7,7 @@ sentry.utils.safe
 """
 from __future__ import absolute_import, print_function
 
+import collections
 import logging
 import six
 
@@ -130,7 +131,7 @@ def get_path(data, path, default=None):
     if not isinstance(path, (list, tuple)) or len(path) == 0:
         raise ValueError
     for p in path:
-        if not isinstance(data, dict) or p not in data:
+        if not isinstance(data, collections.Mapping) or p not in data:
             return default
         data = data[p]
     return data

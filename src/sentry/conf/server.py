@@ -863,20 +863,8 @@ SENTRY_INTERFACES = {
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
-    'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
-    'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
-    'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
-    'sentry.interfaces.Template': 'sentry.interfaces.template.Template',
-    'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
-    'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
-    'sentry.interfaces.User': 'sentry.interfaces.user.User',
-    'sentry.interfaces.Csp': 'sentry.interfaces.security.Csp',
-    'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
-    'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
-    'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
-    'sentry.interfaces.Threads': 'sentry.interfaces.threads.Threads',
-    'sentry.interfaces.DebugMeta': 'sentry.interfaces.debug_meta.DebugMeta',
 }
+PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     'smtp': 'django.core.mail.backends.smtp.EmailBackend',

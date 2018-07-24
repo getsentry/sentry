@@ -29,6 +29,7 @@ from sentry.models import (
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
 )
+from sentry.utils.canonical import CanonicalKeyDict
 
 loremipsum = Generator()
 
@@ -494,6 +495,7 @@ class Fixtures(object):
                 }
             )
 
+        kwargs['data'] = CanonicalKeyDict(kwargs.pop('data'))
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,
