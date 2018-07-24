@@ -105,7 +105,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
-        url = data.get('url') or ''
+        url = data.get('url') or installation.get_issue_url(external_issue.key)
         context = {
             'id': external_issue.id,
             'key': external_issue.key,
@@ -160,7 +160,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({'detail': 'That issue is already linked'}, status=400)
 
         # TODO(jess): return serialized issue
-        url = data.get('url') or ''
+        url = data.get('url') or installation.get_issue_url(external_issue.key)
         context = {
             'id': external_issue.id,
             'key': external_issue.key,

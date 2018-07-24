@@ -15,10 +15,9 @@ class IssueBasicMixin(object):
     def get_group_title(self, group, event, **kwargs):
         return event.error()
 
-    def get_issue_url(self, issue, **kwargs):
+    def get_issue_url(self, key, **kwargs):
         """
-        Given an issue context return an absolute URL to the issue's details
-        page.
+        Given the key of the external_issue return the external issue link.
         """
         raise NotImplementedError
 
