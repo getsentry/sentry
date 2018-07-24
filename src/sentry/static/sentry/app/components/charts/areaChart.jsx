@@ -7,7 +7,6 @@ import theme from 'app/utils/theme';
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 import LineSeries from './series/lineSeries';
-import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 
@@ -49,15 +48,6 @@ class AreaChart extends React.Component {
       <BaseChart
         {...props}
         options={{
-          tooltip: Tooltip(),
-          title: {},
-          legend: {},
-          grid: {
-            top: 24,
-            bottom: 40,
-            left: '10%',
-            right: '10%',
-          },
           xAxis: XAxis({
             type: 'category',
             data: DATES,

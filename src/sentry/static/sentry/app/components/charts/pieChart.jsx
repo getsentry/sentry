@@ -3,7 +3,6 @@ import React from 'react';
 
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
-import Tooltip from './components/tooltip';
 
 class PieChart extends React.Component {
   static propTypes = {
@@ -11,6 +10,7 @@ class PieChart extends React.Component {
     ...BaseChart.propTypes,
 
     name: PropTypes.string,
+
     data: PropTypes.arrayOf(
       PropTypes.shape({
         name: PropTypes.string,
@@ -27,15 +27,6 @@ class PieChart extends React.Component {
       <BaseChart
         {...props}
         options={{
-          tooltip: Tooltip(),
-          title: {},
-          legend: {},
-          grid: {
-            top: 24,
-            bottom: 40,
-            left: '10%',
-            right: '10%',
-          },
           series: [
             PieSeries({
               name,
