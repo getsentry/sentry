@@ -6,7 +6,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationIntegrationsPermission
 )
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationIntegration, ProjectIntegration
+from sentry.models import Integration, OrganizationIntegration, ProjectIntegration
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
@@ -39,15 +39,14 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
 
     def post(self, request, organization, integration_id):
         try:
-            integration = OrganizationIntegration.objects.get(
-                integration_id=integration_id,
-                organization=organization,
+            integration = Integration.objects.get(
+                id=integration_id,
+                organizations=organization,
             )
-        except OrganizationIntegration.DoesNotExist:
+        except Integration.DoesNotExist:
             raise Http404
 
-        config = integration.config
-        config.update(request.DATA)
-        integration.update(config=config)
+        installation = integration.get_installation(organization.id)
+        installation.update_organization_config(request.DATA)
 
         return self.respond(status=200)
