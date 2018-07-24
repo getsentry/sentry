@@ -47,7 +47,7 @@ API_ERRORS = {
 
 class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
-        base_url = urlparse(self.model.metadata['domain_name']).netloc
+        base_url = self.model.metadata['domain_name'].split('/')[0]
         return GitHubEnterpriseAppsClient(
             base_url=base_url,
             integration=self.model,
@@ -246,7 +246,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 'access_token': None,
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
-                'domain_name': installation['account']['html_url'],
+                'domain_name': installation['account']['html_url'].replace('https://', ''),
                 'installation_id': installation['id'],
                 'installation': installation_data
             },
