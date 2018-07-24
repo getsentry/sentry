@@ -177,7 +177,9 @@ class ExternalIssueActions extends AsyncComponent {
   }
 
   getIssue() {
-    return this.props.integration && this.props.integration.externalIssues ? this.props.integration.externalIssues[0] : null;
+    return this.props.integration && this.props.integration.externalIssues
+      ? this.props.integration.externalIssues[0]
+      : null;
   }
 
   deleteIssue(issueId) {
@@ -214,10 +216,8 @@ class ExternalIssueActions extends AsyncComponent {
     });
   };
 
-  handleClick = evt => {
-    this.setState({
-      action: evt.target.id,
-    });
+  handleClick = action => {
+    this.setState({action});
   };
 
   renderBody() {
@@ -248,14 +248,10 @@ class ExternalIssueActions extends AsyncComponent {
               style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
             >
               <li className={action === 'create' ? 'active' : ''}>
-                <a id="create" onClick={this.handleClick}>
-                  Create
-                </a>
+                <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
               </li>
               <li className={action === 'link' ? 'active' : ''}>
-                <a id="link" onClick={this.handleClick}>
-                  Link
-                </a>
+                <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
               </li>
             </ul>
             <Modal.Body>
