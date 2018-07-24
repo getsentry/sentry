@@ -18,6 +18,7 @@ from sentry.coreapi import ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
+from sentry.utils.canonical import CanonicalKeyDict
 
 epoch = datetime.utcfromtimestamp(0)
 
@@ -129,6 +130,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     if data is None:
         return
 
+    data = CanonicalKeyDict(data)
     if platform in ('csp', 'hkpk', 'expectct', 'expectstaple'):
         return data
 
@@ -184,7 +186,9 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
     if breadcrumbs is not None:
         duration = 1000
-        values = breadcrumbs['values']
+        # At this point, breadcrumbs are not normalized. They can either be a
+        # direct list or a values object containing a list.
+        values = isinstance(breadcrumbs, list) and breadcrumbs or breadcrumbs['values']
         for value in reversed(values):
             value['timestamp'] = milliseconds_ago(start, duration)
 

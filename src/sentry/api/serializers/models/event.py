@@ -12,7 +12,7 @@ from sentry.models import Event, EventError
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(
-        ['sentry.interfaces.User', 'sdk', 'device', 'contexts'])
+        ['user', 'sdk', 'device', 'contexts'])
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
