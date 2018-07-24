@@ -69,8 +69,8 @@ export default class ChoiceMapper extends React.Component {
     };
 
     const removeRow = itemKey => {
-      const updatedValue = {...value};
-      delete updatedValue[itemKey];
+      //eslint-disable-next-line no-unused-vars
+      const {[itemKey]: _, ...updatedValue} = value;
       onChange(updatedValue, {});
       onBlur();
     };
