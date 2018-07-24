@@ -8,16 +8,18 @@ export default class Result extends React.Component {
   };
 
   getDataForChart(queryData, groupbyFields) {
+    const {aggregations} = this.props;
+    const aggregate = aggregations[0][2];
+
     const output = {};
     queryData.forEach(data => {
       const key = groupbyFields.map(field => data[field]).join(',');
       if (key in output) {
         output[key].count.push(data.count);
       } else {
-        output[key] = {count: [data.count]};
+        output[key] = {[aggregate]: [data[aggregate]]};
       }
     });
-
     return output;
   }
 
@@ -34,7 +36,7 @@ export default class Result extends React.Component {
 
     return (
       <div>
-        {`data for charts: ${JSON.stringify(this.props.data)}`}
+        {/*{`data for charts: ${JSON.stringify(this.props.data)}`}*/}
         <LineChart data={this.props.data} chartData={chartData} style={{height: 200}} />
       </div>
     );

@@ -29,25 +29,24 @@ export default class lineChart extends React.Component {
     });
   };
 
-  getLineSeries = (data, groupBy) => {
-    return _.groupBy(data, dataPoint => {
-      return dataPoint[groupBy];
-    });
-  };
-
   render() {
-    const {chartData, data, fields, ...props} = this.props;
+    const {chartData, data, ...props} = this.props;
 
     // const series = Object.entries(this.getLineSeries(data.data, groupBy)).map(this.defineSeries);
     const series = Object.entries(chartData).map(this.defineSeries);
-    //
+
     const dates = data.data.map(entry => moment(entry.time * 1000).format('MM-DD'));
 
-    // if (!chartData.length) return null;
     console.log("dates", dates);
     console.log("received chartdata", chartData);
     console.log("series", series);
     console.log("data: ", data);
+
+    if( !series.length ||
+      series.length === 1 && (!series[0].data || series[0].data.length <= 1)) {
+      return null; // if no data or only one data point.
+    }
+
     return (
       <BaseChart
         {...props}

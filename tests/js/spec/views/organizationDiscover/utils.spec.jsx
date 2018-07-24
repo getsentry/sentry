@@ -91,10 +91,6 @@ const queryData = [
     count: 30,
     time: 1532070000,
   },
-
-
-
-
 ];
 
 const fields = ['platform', 'exception_stacks.type']

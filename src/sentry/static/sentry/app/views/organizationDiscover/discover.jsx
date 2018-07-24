@@ -180,8 +180,7 @@ export default class OrganizationDiscover extends React.Component {
     const renderChart = !!query.aggregations.length;
 
     console.log("query is...", query);
-    console.log("summarize is...", query.fields, typeof query.fields);
-
+    console.log("Chart Data", chartData);
     return (
       <Discover className="organization-home">
         <Header
@@ -265,7 +264,7 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {chartData && <ResultChart data={chartData} fields={query.fields}/>}
+            {chartData && <ResultChart data={chartData} fields={query.fields} aggregations={query.aggregations}/>}
             {result && <ResultTable result={result} />}
           </Box>
         </Flex>
