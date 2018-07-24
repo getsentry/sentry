@@ -15,7 +15,7 @@ class UnexpectedOperation(Exception):
     pass
 
 
-def handle_version_1_message(operation, event_data, task_state):
+def handle_version_1_message(operation, event_data, task_state=None):
     if operation == 'insert':
         event_data['datetime'] = datetime.strptime(
             event_data['datetime'],
