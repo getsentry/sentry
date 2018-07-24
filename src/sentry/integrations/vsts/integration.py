@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 from time import time
 import logging
+import six
 
 from django import forms
 from django.utils.translation import ugettext as _
 
 from sentry import http
-from sentry.models import Integration as IntegrationModel
+from sentry.models import Integration as IntegrationModel, IntegrationExternalProject
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
@@ -135,6 +136,44 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
+
+    def update_organization_config(self, data):
+        if 'sync_status_forward' in data:
+            project_ids_and_statuses = data.pop('sync_status_forward')
+            data['sync_status_forward'] = bool(project_ids_and_statuses)
+
+            project_ids = project_ids_and_statuses.keys()
+            all_external_projects = IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id,
+            )
+            all_external_projects.exclude(
+                external_id__in=project_ids,
+            ).delete()
+
+            existing_external_projects = all_external_projects.filter(
+                external_id__in=project_ids,
+            ).values_list('external_id', flat=True)
+
+            for project_id, statuses in project_ids_and_statuses.items():
+                if six.text_type(project_id) in existing_external_projects:
+                    IntegrationExternalProject.objects.get(
+                        external_id=project_id,
+                        organization_integration_id=self.org_integration.id,
+                    ).update(
+                        resolved_status=statuses['on_resolve'],
+                        unresolved_status=statuses['on_unresolve'],
+                    )
+                else:
+                    IntegrationExternalProject.objects.create(
+                        organization_integration_id=self.org_integration.id,
+                        external_id=project_id,
+                        resolved_status=statuses['on_resolve'],
+                        unresolved_status=statuses['on_unresolve'],
+                    )
+
+        config = self.org_integration.config
+        config.update(data)
+        self.org_integration.update(config=config)
 
     @property
     def instance(self):

@@ -6,7 +6,7 @@ from time import time
 
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.models import Integration, Identity, IdentityProvider
+from sentry.models import Integration, IntegrationExternalProject, Identity, IdentityProvider, OrganizationIntegration
 from sentry.testutils import APITestCase, TestCase
 from .testutils import CREATE_SUBSCRIPTION
 
@@ -97,8 +97,8 @@ class VstsIntegrationProviderTest(TestCase):
 class VstsIntegrationTest(APITestCase):
     def setUp(self):
 
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+        self.organization = self.create_organization()
+        project = self.create_project(organization=self.organization)
         self.access_token = '1234567890'
         self.instance = 'instance.visualstudio.com'
         self.model = Integration.objects.create(
@@ -120,9 +120,9 @@ class VstsIntegrationTest(APITestCase):
                 'expires': int(time()) - int(1234567890),
             }
         )
-        self.org_integration = self.model.add_organization(organization.id, self.identity.id)
+        self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
         self.project_integration = self.model.add_project(project.id)
-        self.integration = VstsIntegration(self.model, organization.id, project.id)
+        self.integration = VstsIntegration(self.model, self.organization.id, project.id)
         self.projects = [
             ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
             ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
@@ -195,3 +195,102 @@ class VstsIntegrationTest(APITestCase):
             'sync_forward_assignment',
             'sync_reverse_assignment']
         assert [field['name'] for field in fields] == names
+
+    def test_update_organization_config_remove_all(self):
+        data = {
+            'sync_status_forward': {},
+            'other_option': 'hello',
+        }
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=self.org_integration.id,
+            external_id=1,
+            resolved_status='ResolvedStatus1',
+            unresolved_status='UnresolvedStatus1',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=self.org_integration.id,
+            external_id=2,
+            resolved_status='ResolvedStatus2',
+            unresolved_status='UnresolvedStatus2',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=self.org_integration.id,
+            external_id=3,
+            resolved_status='ResolvedStatus3',
+            unresolved_status='UnresolvedStatus3',
+        )
+
+        self.integration.update_organization_config(data)
+
+        external_projects = IntegrationExternalProject.objects.all().values_list('external_id', flat=True)
+        assert list(external_projects) == []
+        config = OrganizationIntegration.objects.get(
+            organization_id=self.org_integration.organization_id,
+            integration_id=self.org_integration.integration_id
+        ).config
+        assert config == {
+            'sync_status_forward': False,
+            'other_option': 'hello',
+        }
+
+    def test_update_organization_config(self):
+        data = {
+            'sync_status_forward': {
+                1: {
+                    'on_resolve': 'ResolvedStatus1',
+                    'on_unresolve': 'UnresolvedStatus1',
+                },
+                2: {
+                    'on_resolve': 'ResolvedStatus2',
+                    'on_unresolve': 'UnresolvedStatus2',
+                },
+                4: {
+                    'on_resolve': 'ResolvedStatus4',
+                    'on_unresolve': 'UnresolvedStatus4',
+                },
+            },
+            'other_option': 'hello',
+        }
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=self.org_integration.id,
+            external_id=1,
+            resolved_status='UpdateMe',
+            unresolved_status='UpdateMe',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=self.org_integration.id,
+            external_id=2,
+            resolved_status='ResolvedStatus2',
+            unresolved_status='UnresolvedStatus2',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=self.org_integration.id,
+            external_id=3,
+            resolved_status='ResolvedStatus3',
+            unresolved_status='UnresolvedStatus3',
+        )
+
+        self.integration.update_organization_config(data)
+
+        external_projects = IntegrationExternalProject.objects.all().order_by('external_id')
+
+        assert external_projects[0].external_id == '1'
+        assert external_projects[0].resolved_status == 'ResolvedStatus1'
+        assert external_projects[0].unresolved_status == 'UnresolvedStatus1'
+
+        assert external_projects[1].external_id == '2'
+        assert external_projects[1].resolved_status == 'ResolvedStatus2'
+        assert external_projects[1].unresolved_status == 'UnresolvedStatus2'
+
+        assert external_projects[2].external_id == '4'
+        assert external_projects[2].resolved_status == 'ResolvedStatus4'
+        assert external_projects[2].unresolved_status == 'UnresolvedStatus4'
+
+        config = OrganizationIntegration.objects.get(
+            organization_id=self.org_integration.organization_id,
+            integration_id=self.org_integration.integration_id
+        ).config
+        assert config == {
+            'sync_status_forward': True,
+            'other_option': 'hello',
+        }
