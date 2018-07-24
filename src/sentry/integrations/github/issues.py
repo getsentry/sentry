@@ -126,7 +126,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'Comment',
                 'default': u'Sentry issue: [{issue_id}]({url})'.format(
                     url=absolute_uri(group.get_absolute_url()),
-                    issue_id=group.qualified_short_id
+                    issue_id=group.qualified_short_id,
                 ),
                 'type': 'textarea',
                 'required': False,
