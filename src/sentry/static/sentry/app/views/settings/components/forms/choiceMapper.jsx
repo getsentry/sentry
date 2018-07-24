@@ -39,6 +39,10 @@ export default class ChoiceMapper extends React.Component {
       .isRequired,
   };
 
+  static defaultProps = {
+    addButtonText: t('Add Item'),
+  };
+
   hasValue = value => defined(value) && !objectIsEmpty(value);
 
   renderField = props => {
@@ -101,7 +105,7 @@ export default class ChoiceMapper extends React.Component {
             size="xsmall"
             disabled={disabled}
           >
-            {addButtonText ? addButtonText : t('Add Item')}
+            {addButtonText}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
