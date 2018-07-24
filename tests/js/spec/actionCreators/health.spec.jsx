@@ -14,15 +14,29 @@ describe('Health ActionCreator', function() {
     doHealthRequest(api, {
       timeseries: true,
       organization,
-      projects: [project],
+      projects: [project.id],
       environments: [],
       tag: 'release',
       topk: 5,
+      includePrevious: true,
+      period: '7d',
     });
 
     expect(mock).toHaveBeenCalled();
 
-    expect(mock.mock.calls[0][1].query).toMatchSnapshot();
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/health/graph/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [project.id],
+          environment: [],
+          tag: 'release',
+          topk: 5,
+          includePrevious: true,
+          statsPeriod: '7d',
+        }),
+      })
+    );
   });
 
   it('requests top', function() {
@@ -32,14 +46,25 @@ describe('Health ActionCreator', function() {
     doHealthRequest(api, {
       timeseries: false,
       organization,
-      projects: [project],
+      projects: [project.id],
       environments: [],
       tag: 'release',
-      topk: 5,
+      includePrevious: false,
+      period: '7d',
     });
 
     expect(mock).toHaveBeenCalled();
-
-    expect(mock.mock.calls[0][1].query).toMatchSnapshot();
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/health/top/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [project.id],
+          environment: [],
+          tag: 'release',
+          includePrevious: false,
+          statsPeriod: '7d',
+        }),
+      })
+    );
   });
 });
