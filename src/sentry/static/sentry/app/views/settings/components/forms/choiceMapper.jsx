@@ -121,24 +121,18 @@ export default class ChoiceMapper extends React.Component {
           <LabelColumn>
             <StyledHeader>{mappedColumnLabel}</StyledHeader>
           </LabelColumn>
-          {mappedKeys.map((k, i) => {
-            const header = <StyledHeader>{columnLabels[k]}</StyledHeader>;
-            const item =
-              i < mappedKeys.length - 1 ? (
-                header
-              ) : (
-                <Flex align="center" justify={'space-between'}>
-                  {header}
-                  {dropdown}
-                </Flex>
-              );
-
-            return (
-              <Box key={k} ml={1} flex="1 0 0">
-                {item}
-              </Box>
-            );
-          })}
+          {mappedKeys.map((fieldKey, i) => (
+            <Flex
+              key={fieldKey}
+              ml={1}
+              flex="1 0 0"
+              align="center"
+              justify="space-between"
+            >
+              <StyledHeader>{columnLabels[fieldKey]}</StyledHeader>
+              {i === mappedKeys.length - 1 && dropdown}
+            </Flex>
+          ))}
         </Flex>
         {Object.keys(value).map(itemKey => (
           <Flex key={itemKey} align="center" mt={1}>
