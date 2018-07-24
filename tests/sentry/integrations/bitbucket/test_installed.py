@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import responses
+
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
-from sentry.integrations.bitbucket.integration import scopes
-from sentry.models import Integration
+from sentry.integrations.bitbucket.integration import scopes, BitbucketIntegrationProvider
+from sentry.models import Integration, Repository
 
 
 class BitbucketInstalledEndpointTest(APITestCase):
@@ -80,6 +82,57 @@ class BitbucketInstalledEndpointTest(APITestCase):
         )
         assert integration.name == self.username
         assert integration.metadata == self.metadata
+
+    @responses.activate
+    def test_plugin_migration(self):
+        accessible_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name='sentryuser/repo',
+            url='https://bitbucket.org/sentryuser/repo',
+            provider='bitbucket',
+            external_id='123456',
+        )
+
+        inaccessible_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name='otheruser/otherrepo',
+            url='https://bitbucket.org/otheruser/otherrepo',
+            provider='bitbucket',
+            external_id='654321',
+        )
+
+        self.client.post(
+            self.path,
+            data=self.data_from_bitbucket
+        )
+
+        integration = Integration.objects.get(
+            provider=self.provider,
+            external_id=self.client_key,
+        )
+
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
+            json={
+                'values': [{
+                    'full_name': 'sentryuser/repo',
+                }],
+            },
+        )
+
+        BitbucketIntegrationProvider().post_install(
+            integration,
+            self.organization,
+        )
+
+        assert Repository.objects.get(
+            id=accessible_repo.id
+        ).integration_id == integration.id
+
+        assert Repository.objects.get(
+            id=inaccessible_repo.id
+        ).integration_id is None
 
     def test_installed_without_public_key(self):
         integration = Integration.objects.get_or_create(

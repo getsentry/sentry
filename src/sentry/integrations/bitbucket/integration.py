@@ -5,6 +5,8 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
+
+from sentry.models import Repository
 from sentry.utils.http import absolute_uri
 
 from .repository import BitbucketRepositoryProvider
@@ -56,6 +58,21 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
             )
         return data
 
+    def get_unmigratable_repositories(self):
+        repos = Repository.objects.filter(
+            organization_id=self.organization_id,
+            provider='bitbucket',
+        )
+
+        accessible_repos = [
+            r['identifier'] for r in self.get_repositories()
+        ]
+
+        return filter(
+            lambda repo: repo.name not in accessible_repos,
+            repos,
+        )
+
     def reinstall(self):
         self.reinstall_repositories()
 
@@ -79,6 +96,19 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             config=identity_pipeline_config,
         )
         return [identity_pipeline_view]
+
+    def post_install(self, integration, organization):
+        repos = Repository.objects.filter(
+            organization_id=organization.id,
+            provider='bitbucket',
+        )
+
+        unmigrateable_repos = self \
+            .get_installation(integration, organization.id) \
+            .get_unmigratable_repositories()
+
+        for repo in filter(lambda r: r not in unmigrateable_repos, repos):
+            repo.update(integration_id=integration.id)
 
     def build_integration(self, state):
         # TODO(LB): Add verification for clientKey
