@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import pytest
 import mock
 from sentry.eventstream.kafka.state import (
@@ -85,4 +87,11 @@ def test_transitions():
         'topic', 1,
         (PartitionState.LOCAL_BEHIND, Offsets(4, 5)),
         (PartitionState.SYNCHRONIZED, Offsets(5, 5)),
+    )
+
+    state.set_local_offset('topic', 1, 6)
+    assert callback.mock_calls[-1] == mock.call(
+        'topic', 1,
+        (PartitionState.SYNCHRONIZED, Offsets(5, 5)),
+        (PartitionState.REMOTE_BEHIND, Offsets(6, 5)),
     )
