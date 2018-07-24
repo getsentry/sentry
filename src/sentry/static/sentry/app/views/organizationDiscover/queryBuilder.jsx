@@ -131,9 +131,8 @@ export default function createQueryBuilder(initial = {}, organization) {
     );
 
     const orderbyField = (query.orderby || '').replace(/^-/, '');
-    const hasOrderFieldInFields = getColumns()
-      .map(({name}) => name)
-      .includes(orderbyField);
+    const hasOrderFieldInFields =
+      getColumns().find(f => f.name === orderbyField) !== undefined;
     const hasOrderFieldInSelectedFields = query.fields.includes(orderbyField);
     const hasOrderFieldInAggregations = query.aggregations.some(
       agg => orderbyField === agg[2]
