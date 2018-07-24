@@ -1,14 +1,14 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
-import PluginActions from 'app/components/group/pluginActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import SentryTypes from 'app/sentryTypes';
+import PluginActions from 'app/components/group/pluginActions';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
   };
 
   getEndpoints() {

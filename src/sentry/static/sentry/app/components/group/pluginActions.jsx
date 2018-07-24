@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from 'app/mixins/apiMixin';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import GroupState from 'app/mixins/groupState';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
@@ -55,8 +56,11 @@ const PluginActions = createReactClass({
     this.api.request(endpoint, {
       success: data => {
         this.loadPlugin(plugin);
+        addSuccessMessage(t('Successfully unlinked issue.'));
       },
-      error: error => {},
+      error: error => {
+        addErrorMessage(t('Unable to unlink issue'));
+      },
     });
   },
 

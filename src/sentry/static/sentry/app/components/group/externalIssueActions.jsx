@@ -192,7 +192,7 @@ class ExternalIssueActions extends AsyncComponent {
         });
       },
       error: error => {
-        addErrorMessage(t('Unable to delete issue.'));
+        addErrorMessage(t('Unable to unlink issue.'));
       },
     });
   }
