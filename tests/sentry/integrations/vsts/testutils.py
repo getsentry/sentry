@@ -1,5 +1,183 @@
 from __future__ import absolute_import
 
+import responses
+
+from six.moves.urllib.parse import urlparse, urlencode, parse_qs
+
+from sentry.integrations.vsts import VstsIntegrationProvider
+from sentry.testutils import IntegrationTestCase
+
+
+class VstsIntegrationTestCase(IntegrationTestCase):
+    provider = VstsIntegrationProvider
+
+    def setUp(self):
+        super(VstsIntegrationTestCase, self).setUp()
+
+        self.access_token = '9d646e20-7a62-4bcc-abc0-cb2d4d075e36'
+        self.refresh_token = '32004633-a3c0-4616-9aa0-a40632adac77'
+
+        self.vsts_account_id = 'c8a585ae-b61f-4ba6-833c-9e8d5d1674d8'
+        self.vsts_account_name = 'MyVSTSAccount'
+        self.vsts_account_uri = 'https://MyVSTSAccount.vssps.visualstudio.com:443/'
+
+        self.vsts_user_id = 'd6245f20-2af8-44f4-9451-8107cb2767db'
+        self.vsts_user_name = 'Foo Bar'
+        self.vsts_user_email = 'foobar@example.com'
+
+        self.repo_id = '47166099-3e16-4868-9137-22ac6b05b06e'
+        self.repo_name = 'cool-service'
+
+        self.project_a = {
+            'id': 'eb6e4656-77fc-42a1-9181-4c6d8e9da5d1',
+            'name': 'ProjectA',
+        }
+
+        self.project_b = {
+            'id': '6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c',
+            'name': 'ProjectB',
+        }
+
+        responses.start()
+        self._stub_vsts()
+
+    def tearDown(self):
+        responses.stop()
+
+    def _stub_vsts(self):
+        responses.reset()
+
+        responses.add(
+            responses.POST,
+            'https://app.vssps.visualstudio.com/oauth2/token',
+            json={
+                'access_token': self.access_token,
+                'token_type': 'grant',
+                'expires_in': 300,  # seconds (5 min)
+                'refresh_token': self.refresh_token,
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/accounts',
+            json=[{
+                'AccountId': self.vsts_account_id,
+                'AccountUri': self.vsts_account_uri,
+                'AccountName': self.vsts_account_name,
+                'Properties': {},
+            }],
+        )
+
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',
+            json={
+                'id': self.vsts_user_id,
+                'displayName': self.vsts_user_name,
+                'emailAddress': self.vsts_user_email,
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/connectionData/',
+            json={
+                'authenticatedUser': {
+                    'subjectDescriptor': self.vsts_account_id,
+                },
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            'https://{}.visualstudio.com/DefaultCollection/_apis/projects'.format(
+                self.vsts_account_name.lower(),
+            ),
+            json={
+                'value': [
+                    self.project_a,
+                    self.project_b,
+                ],
+            },
+        )
+
+        responses.add(
+            responses.POST,
+            'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
+                self.vsts_account_name.lower(),
+            ),
+            json=CREATE_SUBSCRIPTION,
+        )
+
+        responses.add(
+            responses.GET,
+            'https://{}.visualstudio.com/_apis/git/repositories'.format(
+                self.vsts_account_name.lower(),
+            ),
+            json={
+                'value': [{
+                    'id': self.repo_id,
+                    'name': self.repo_name,
+                    'project': {
+                        'name': self.project_a['name'],
+                    },
+                }],
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
+                self.vsts_account_name.lower(),
+                self.project_a['name'],
+                'Bug',
+            ),
+            json={
+                'value': [{'name': 'resolve_status'},
+                          {'name': 'resolve_when'},
+                          {'name': 'regression_status'},
+                          {'name': 'sync_comments'},
+                          {'name': 'sync_forward_assignment'},
+                          {'name': 'sync_reverse_assignment'}],
+            }
+        )
+
+    def assert_installation(self):
+        # Initial request to the installation URL for VSTS
+        resp = self.client.get(self.init_path)
+
+        redirect = urlparse(resp['Location'])
+        query = parse_qs(redirect.query)
+
+        assert resp.status_code == 302
+        assert redirect.scheme == 'https'
+        assert redirect.netloc == 'app.vssps.visualstudio.com'
+        assert redirect.path == '/oauth2/authorize'
+
+        # OAuth redirect back to Sentry (identity_pipeline_view)
+        resp = self.client.get('{}?{}'.format(
+            self.setup_path,
+            urlencode({
+                'code': 'oauth-code',
+                'state': query['state'][0],
+            }),
+        ))
+
+        assert resp.status_code == 200
+        assert '<option value="{}"'.format(self.vsts_account_id) in resp.content
+
+        # User choosing which VSTS Account to use (AccountConfigView)
+        # Final step.
+        return self.client.post(
+            self.setup_path,
+            {
+                'account': self.vsts_account_id,
+                'provider': 'vsts',
+            },
+        )
+
+
 COMPARE_COMMITS_EXAMPLE = b"""
 {
   "count": 1,
