@@ -50,6 +50,9 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     outbound_assignee_key = 'sync_assignee_outbound'
     inbound_assignee_key = 'sync_assignee_inbound'
 
+    def get_issue_url(self, key, **kwargs):
+        return 'https://example/issues/{}'.format(key)
+
     def create_comment(self):
         pass
 
