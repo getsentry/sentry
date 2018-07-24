@@ -9,6 +9,11 @@ import Legend from './legend';
 const PanelChart = styled(
   class extends React.Component {
     static propTypes = {
+      /**
+       * Can be either a react element or a render prop that receives
+       * the same props passed to `PanelChart`
+       */
+      children: PropTypes.oneOf([PropTypes.func, PropTypes.node]),
       showLegend: PropTypes.bool,
       title: PropTypes.node,
       ...Legend.propTypes,
@@ -18,12 +23,7 @@ const PanelChart = styled(
       showLegend: true,
     };
 
-    constructor(props) {
-      super(props);
-    }
-
     render() {
-      // Don't destructure `height` so that we can pass to children
       const {title, children, className, showLegend, ...props} = this.props;
 
       return (
@@ -34,18 +34,22 @@ const PanelChart = styled(
               {showLegend && <Legend {...props} />}
             </PanelHeader>
           )}
-          {children && <ChartWrapper>{children}</ChartWrapper>}
+          {children && (
+            <ChartWrapper>
+              {typeof children === 'function' ? children({title, ...props}) : children}
+            </ChartWrapper>
+          )}
         </Panel>
       );
     }
   }
 )`
   flex: 1;
-  overflow: hidden;
+  overflow: hidden; /* This is required to have flex containers resize */
 `;
 
 export default PanelChart;
 
 const ChartWrapper = styled('div')`
-  overflow: hidden;
+  overflow: hidden; /* This is required to have flex containers resize */
 `;
