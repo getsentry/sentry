@@ -189,6 +189,14 @@ class Integration(object):
         """
         return []
 
+    def update_organization_config(self, data):
+        """
+        Update the configuration field for an organization integration.
+        """
+        config = self.org_integration.config
+        config.update(data)
+        self.org_integration.update(config=config)
+
     def get_project_config(self):
         """
         Provides configuration for the integration on a per-project
