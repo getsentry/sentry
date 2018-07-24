@@ -1,4 +1,5 @@
 import React from 'react';
+import {MultiGrid} from 'react-virtualized';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
@@ -15,30 +16,36 @@ export default class Result extends React.Component {
     result: PropTypes.object.isRequired,
   };
 
+  cellRenderer = ({key, rowIndex, columnIndex, style}) => {
+    const {meta, data} = this.props.result;
+
+    const colName = meta[columnIndex].name;
+
+    return (
+      <Cell key={key} style={style}>
+        {rowIndex === 0 ? (
+          <strong>{colName}</strong>
+        ) : (
+          <AutoSelectText>{getDisplayValue(data[rowIndex - 1][colName])}</AutoSelectText>
+        )}
+      </Cell>
+    );
+  };
+
   renderTable() {
     const {meta, data} = this.props.result;
 
     return (
-      <StyledTable className="table table-bordered table-hover">
-        <thead>
-          <tr>{meta.map(({name}, idx) => <th key={idx}>{name}</th>)}</tr>
-        </thead>
-        <tbody>
-          {data.map((row, rowIdx) => {
-            return (
-              <tr key={rowIdx}>
-                {meta.map((val, colIdx) => (
-                  <td key={colIdx}>
-                    <AutoSelectText>
-                      {getDisplayValue(row[meta[colIdx].name])}
-                    </AutoSelectText>
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </StyledTable>
+      <MultiGrid
+        width={800}
+        height={300}
+        rowCount={data.length + 1} // Add 1 for header row
+        columnCount={meta.length}
+        fixedRowCount={1}
+        rowHeight={30}
+        columnWidth={100}
+        cellRenderer={this.cellRenderer}
+      />
     );
   }
 
@@ -50,7 +57,7 @@ export default class Result extends React.Component {
     }
 
     return (
-      <div style={{overflowX: 'scroll'}}>
+      <div>
         <Summary mb={1}>
           snuba query time: {timing.duration_ms}ms, {data.length} rows
         </Summary>
@@ -60,16 +67,12 @@ export default class Result extends React.Component {
   }
 }
 
-const Summary = styled(Box)`
-  font-size: 12px;
+const Cell = styled('div')`
+  overflow: scroll;
+  font-size: 14px;
+  padding: 1px;
 `;
 
-const StyledTable = styled.table`
-  font-size: 14px;
-  tbody > tr > td,
-  thead > tr > th {
-    padding: 8px;
-    max-width: 100px;
-    overflow: scroll;
-  }
+const Summary = styled(Box)`
+  font-size: 12px;
 `;
