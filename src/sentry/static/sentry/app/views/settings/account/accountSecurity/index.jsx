@@ -4,8 +4,8 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import PropTypes from 'prop-types';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/buttons/button';
@@ -14,56 +14,47 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import Tooltip from 'app/components/tooltip';
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import PasswordForm from 'app/views/settings/account/passwordForm';
-
-const ENDPOINT = '/users/me/authenticators/';
 
 const AuthenticatorName = styled.span`
   font-size: 1.2em;
 `;
 
 class AccountSecurity extends AsyncView {
-  getEndpoints() {
-    return [['authenticators', '/users/me/authenticators/']];
-  }
-
+  static PropTypes = {
+    authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
+    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
+    countEnrolled: PropTypes.number.isRequired,
+    deleteDisabled: PropTypes.bool.isRequired,
+    onDisable: PropTypes.func.isRequired,
+  };
   getTitle() {
     return t('Security');
   }
 
-  handleDisable = auth => {
-    if (!auth || !auth.authId) return;
-
-    this.setState(
-      {
-        loading: true,
-      },
-      () =>
-        this.api
-          .requestPromise(`${ENDPOINT}${auth.authId}/`, {
-            method: 'DELETE',
-          })
-          .then(this.remountComponent, () => {
-            this.setState({loading: false});
-            addErrorMessage(t('Error disabling', auth.name));
-          })
-    );
-  };
+  getEndpoints() {
+    return [];
+  }
 
   renderBody() {
-    let {authenticators} = this.state;
+    let {
+      authenticators,
+      orgsRequire2fa,
+      countEnrolled,
+      deleteDisabled,
+      onDisable,
+    } = this.props;
     let isEmpty = !authenticators.length;
-    let twoFactorEnrolled = authenticators.some(({isEnrolled}) => {
-      return isEnrolled;
-    });
 
     return (
       <div>
         <SettingsPageHeader title="Security" />
 
-        {!isEmpty && !twoFactorEnrolled && <TwoFactorRequired />}
+        {!isEmpty &&
+          countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
 
         <PasswordForm />
 
@@ -102,6 +93,7 @@ class AccountSecurity extends AsyncView {
                             to={`/settings/account/security/${id}/enroll/`}
                             size="small"
                             priority="primary"
+                            className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
@@ -112,6 +104,7 @@ class AccountSecurity extends AsyncView {
                           <Button
                             to={`/settings/account/security/${authId}/`}
                             size="small"
+                            className="details-button"
                           >
                             {configureButton}
                           </Button>
@@ -119,11 +112,23 @@ class AccountSecurity extends AsyncView {
 
                       {!isBackupInterface &&
                         isEnrolled && (
-                          <RemoveConfirm onConfirm={() => this.handleDisable(auth)}>
-                            <Button css={{marginLeft: 6}} size="small">
-                              <span className="icon icon-trash" />
-                            </Button>
-                          </RemoveConfirm>
+                          <Tooltip
+                            title={t(
+                              "Two-factor authentication is required for at least one organization you're a member of."
+                            )}
+                            disabled={!deleteDisabled}
+                          >
+                            <span>
+                              <RemoveConfirm
+                                onConfirm={() => onDisable(auth)}
+                                disabled={deleteDisabled}
+                              >
+                                <Button css={{marginLeft: 6}} size="small">
+                                  <span className="icon icon-trash" />
+                                </Button>
+                              </RemoveConfirm>
+                            </span>
+                          </Tooltip>
                         )}
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}

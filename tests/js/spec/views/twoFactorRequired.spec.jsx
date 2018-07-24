@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/';
+import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
@@ -26,13 +27,23 @@ describe('TwoFactorRequired', function() {
       body: [],
     });
 
-    let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <TwoFactorRequired />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
   });
 
   it('does not render when 2FA is not required, not 2FA enrolled', function() {
-    let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <TwoFactorRequired />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
   });
 
@@ -42,7 +53,12 @@ describe('TwoFactorRequired', function() {
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
     });
 
-    let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <TwoFactorRequired />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
   });
 
@@ -56,7 +72,12 @@ describe('TwoFactorRequired', function() {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <TwoFactorRequired />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(0);
   });
 
@@ -66,7 +87,12 @@ describe('TwoFactorRequired', function() {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <TwoFactorRequired />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(1);
     expect(wrapper.find('StyledAlert[className="require-2fa"]').text()).toEqual(
       expect.stringContaining('Test 1 and Test 2 organizations')
@@ -85,7 +111,12 @@ describe('TwoFactorRequired', function() {
       ],
     });
 
-    let wrapper = mount(<TwoFactorRequired />, TestStubs.routerContext());
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <TwoFactorRequired />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('StyledAlert[className="require-2fa"]')).toHaveLength(1);
     expect(wrapper.find('StyledAlert[className="require-2fa"]').text()).toEqual(
       expect.stringContaining('Test 1 organization')

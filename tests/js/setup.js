@@ -364,6 +364,10 @@ window.TestStubs = {
     };
   },
 
+  AllAuthenticators: () => {
+    return Object.values(TestStubs.Authenticators()).map(x => x());
+  },
+
   AccountEmails: () => {
     return [
       {
