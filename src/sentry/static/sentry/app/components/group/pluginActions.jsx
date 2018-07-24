@@ -11,7 +11,6 @@ import {t} from 'app/locale';
 import {toTitleCase} from 'app/utils';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
-
 const PluginActions = createReactClass({
   displayName: 'PluginActions',
 
@@ -52,11 +51,10 @@ const PluginActions = createReactClass({
     // override plugin.issue so that 'create/link' Modal
     // doesn't think the plugin still has an issue linked
     Object.assign(plugin, {
-      issue: null
+      issue: null,
     });
-    const endpoint = `/issues/${this.props.group.id}/plugins/${
-      this.props.plugin.slug
-    }/unlink/`;
+    const endpoint = `/issues/${this.props.group.id}/plugins/${this.props.plugin
+      .slug}/unlink/`;
     this.api.request(endpoint, {
       success: data => {
         this.loadPlugin(plugin);
@@ -166,7 +164,7 @@ const PluginActions = createReactClass({
     return (
       <React.Fragment>
         <IssueSyncListElement
-          openModal={this.openModal}
+          onOpen={this.openModal}
           externalIssueId={issue ? issue.issue_id : null}
           externalIssueLink={issue ? issue.url : null}
           onClose={this.deleteIssue}
@@ -184,7 +182,7 @@ const PluginActions = createReactClass({
           </Modal.Header>
           <ul
             className="nav nav-tabs"
-            style={{'borderBottom': '1px solid rgb(221, 221, 221)'}}
+            style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
           >
             <li className={actionType == 'create' ? 'active' : ''}>
               <a id="create" onClick={this.handleClick}>

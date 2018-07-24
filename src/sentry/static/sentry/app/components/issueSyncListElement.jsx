@@ -9,7 +9,7 @@ class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.string,
-    openModal: PropTypes.func,
+    onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
   };
@@ -66,7 +66,7 @@ class IssueSyncElement extends React.Component {
     return (
       <IntegrationLink
         href={this.props.externalIssueLink}
-        onClick={!this.isLinked() ? this.props.openModal : undefined}
+        onClick={!this.isLinked() ? this.props.onOpen : undefined}
       >
         {this.getText()}
       </IntegrationLink>
@@ -91,13 +91,14 @@ class IssueSyncElement extends React.Component {
           {this.getIcon()}
           {this.getLink()}
         </div>
-        {this.props.openModal && (
-          <IconClose
-            src="icon-close"
-            onClick={this.isLinked() ? this.handleDelete : this.props.openModal}
-            isLinked={this.isLinked()}
-          />
-        )}
+        {this.props.onOpen &&
+          this.props.onClose && (
+            <OpenCloseIcon
+              src="icon-close"
+              onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}
+              isLinked={this.isLinked()}
+            />
+          )}
       </IssueSyncListElementContainer>
     );
   }
@@ -134,7 +135,7 @@ const IntegrationLink = styled('a')`
   }
 `;
 
-const IconClose = styled(InlineSvg)`
+const OpenCloseIcon = styled(InlineSvg)`
   height: 1.25rem;
   color: ${p => p.theme.gray4};
   transition: 0.2s transform;

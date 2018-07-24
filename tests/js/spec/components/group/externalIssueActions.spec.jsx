@@ -36,7 +36,7 @@ describe('ExternalIssueActions', function() {
       });
 
       it('opens when clicking +', function() {
-        wrapper.find('IconClose').simulate('click');
+        wrapper.find('OpenCloseIcon').simulate('click');
         expect(
           wrapper
             .find('Modal')
@@ -71,7 +71,7 @@ describe('ExternalIssueActions', function() {
       });
 
       it('deletes when clicking x', function() {
-        wrapper.find('IconClose').simulate('click');
+        wrapper.find('OpenCloseIcon').simulate('click');
         expect(wrapper.find('IntegrationLink a').text()).toEqual('Link GitHub Issue');
       });
     });

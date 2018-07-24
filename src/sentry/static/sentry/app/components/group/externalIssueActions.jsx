@@ -229,7 +229,7 @@ class ExternalIssueActions extends AsyncComponent {
     return (
       <React.Fragment key={selectedIntegration.id}>
         <IssueSyncListElement
-          openModal={this.openModal}
+          onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
           externalIssueId={issue ? issue.id : null}
           onClose={this.deleteIssue.bind(this)}
@@ -248,7 +248,7 @@ class ExternalIssueActions extends AsyncComponent {
             </Modal.Header>
             <ul
               className="nav nav-tabs"
-              style={{'borderBottom': '1px solid rgb(221, 221, 221)'}}
+              style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
             >
               <li className={action == 'create' ? 'active' : ''}>
                 <a id="create" onClick={this.handleClick}>

@@ -6,7 +6,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
   externalIssueLink="https://github.com/MeredithAnya/testing/issues/2"
   integrationType="github"
   onClose={[Function]}
-  openModal={[Function]}
+  onOpen={[Function]}
 >
   <IssueSyncListElementContainer>
     <div
@@ -51,19 +51,19 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
           </a>
         </IntegrationLink>
       </div>
-      <IconClose
+      <OpenCloseIcon
         isLinked="100"
         onClick={[Function]}
         src="icon-close"
       >
         <InlineSvg
-          className="css-285zkc-IconClose e1vaar1z3"
+          className="css-wpxxiu-OpenCloseIcon e1vaar1z3"
           isLinked="100"
           onClick={[Function]}
           src="icon-close"
         >
           <StyledSvg
-            className="css-285zkc-IconClose e1vaar1z3"
+            className="css-wpxxiu-OpenCloseIcon e1vaar1z3"
             height="1em"
             isLinked="100"
             onClick={[Function]}
@@ -71,7 +71,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
             width="1em"
           >
             <svg
-              className="e1vaar1z3 css-d19sxf-StyledSvg-IconClose e2idor0"
+              className="e1vaar1z3 css-ic08m8-StyledSvg-OpenCloseIcon e2idor0"
               height="1em"
               onClick={[Function]}
               viewBox={Object {}}
@@ -84,7 +84,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
             </svg>
           </StyledSvg>
         </InlineSvg>
-      </IconClose>
+      </OpenCloseIcon>
     </div>
   </IssueSyncListElementContainer>
 </IssueSyncElement>
@@ -151,7 +151,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     externalIssueLink={null}
     integrationType="github"
     onClose={[Function]}
-    openModal={[Function]}
+    onOpen={[Function]}
   >
     <IssueSyncListElementContainer>
       <div
@@ -198,19 +198,19 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
             </a>
           </IntegrationLink>
         </div>
-        <IconClose
+        <OpenCloseIcon
           isLinked={null}
           onClick={[Function]}
           src="icon-close"
         >
           <InlineSvg
-            className="css-11dfq3s-IconClose e1vaar1z3"
+            className="css-1b9vh5k-OpenCloseIcon e1vaar1z3"
             isLinked={null}
             onClick={[Function]}
             src="icon-close"
           >
             <StyledSvg
-              className="css-11dfq3s-IconClose e1vaar1z3"
+              className="css-1b9vh5k-OpenCloseIcon e1vaar1z3"
               height="1em"
               isLinked={null}
               onClick={[Function]}
@@ -218,7 +218,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               width="1em"
             >
               <svg
-                className="e1vaar1z3 css-f3igtj-StyledSvg-IconClose e2idor0"
+                className="e1vaar1z3 css-u4m7dx-StyledSvg-OpenCloseIcon e2idor0"
                 height="1em"
                 onClick={[Function]}
                 viewBox={Object {}}
@@ -231,7 +231,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               </svg>
             </StyledSvg>
           </InlineSvg>
-        </IconClose>
+        </OpenCloseIcon>
       </div>
     </IssueSyncListElementContainer>
   </IssueSyncElement>

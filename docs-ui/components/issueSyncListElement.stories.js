@@ -24,17 +24,23 @@ storiesOf('IssueSyncListElement', module)
         <IssueSyncListElement
           integrationType="github"
           externalIssueLink="github.com/issues/gh-101"
-          externalIssueId="GH-101"
+          externalIssueId="101"
+          onOpen={() => {}}
+          onClose={() => {}}
         />
         <IssueSyncListElement
           integrationType="jira"
           externalIssueLink="getsentry.atlassian.net/browse/APP-367"
-          externalIssueId="APP-367"
+          externalIssueId="367"
+          onOpen={() => {}}
+          onClose={() => {}}
         />
         <IssueSyncListElement
           integrationType="vsts"
           externalIssueLink="visualstudio.microsoft.com/issues/vsts-35"
-          externalIssueId="VSTS-35"
+          externalIssueId="35"
+          onOpen={() => {}}
+          onClose={() => {}}
         />
       </StyledIssueSyncList>
     ))
