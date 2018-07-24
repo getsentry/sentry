@@ -2,8 +2,6 @@
 
 from __future__ import absolute_import
 
-import pytest
-
 from django.conf import settings
 
 from sentry.models import Event, Group
@@ -31,10 +29,6 @@ class SentryCleanupTest(CliTestCase):
 
     command = cleanup
 
-    @pytest.mark.skipif(
-        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
-        reason='Cleanup is temporarily disabled for tagstore v2'
-    )
     def test_simple(self):
         rv = self.invoke('--days=1')
         assert rv.exit_code == 0, rv.output
@@ -42,10 +36,6 @@ class SentryCleanupTest(CliTestCase):
         for model in ALL_MODELS:
             assert model.objects.count() == 0
 
-    @pytest.mark.skipif(
-        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
-        reason='Cleanup is temporarily disabled for tagstore v2'
-    )
     def test_project(self):
         orig_counts = {}
         for model in ALL_MODELS:
