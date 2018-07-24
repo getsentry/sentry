@@ -1,0 +1,34 @@
+import {mount} from 'enzyme';
+import React from 'react';
+
+import withApi from 'app/utils/withApi';
+
+describe('withApi', function() {
+  let apiInstance;
+  const MyComponent = jest.fn(props => {
+    apiInstance = props.api;
+    return <div />;
+  });
+
+  it('renders MyComponent with an api prop', function() {
+    const MyComponentWithApi = withApi(MyComponent);
+    mount(<MyComponentWithApi />);
+    expect(MyComponent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        api: expect.anything(),
+      }),
+      expect.anything()
+    );
+  });
+
+  it('cancels pending API requests when component is unmounted', function() {
+    const MyComponentWithApi = withApi(MyComponent);
+    const wrapper = mount(<MyComponentWithApi />);
+    jest.spyOn(apiInstance, 'clear');
+    expect(apiInstance.clear).not.toHaveBeenCalled();
+    wrapper.unmount();
+    expect(apiInstance.clear).toHaveBeenCalled();
+
+    apiInstance.clear.mockRestore();
+  });
+});
