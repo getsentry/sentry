@@ -112,18 +112,18 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
             {
                 'name': 'sync_status_reverse',
                 'type': 'boolean',
-                'label': _('Sync Status from Visual Studio Team Services to Sentry'),
-                'help': _('When a Visual Studio Team Services ticket is moved to a done category, it\'s linked Sentry issue will be resolved. When a Visual Studio Team Services ticket is moved out of a Done category, it\'s linked sentry issue will be unresolved.'),
+                'label': _('Sync Status from VSTS to Sentry'),
+                'help': _('When a VSTS ticket is moved to a done category, it\'s linked Sentry issue will be resolved. When a VSTS ticket is moved out of a Done category, it\'s linked sentry issue will be unresolved.'),
             },
             {
                 'name': 'sync_status_forward',
                 'type': 'choice_mapper',
-                'label': _('Sync Status from Sentry to Visual Studio Team Services'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
+                'label': _('Sync Status from Sentry to VSTS'),
+                'help': _('Declares what the linked VSTS ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
                 'addButtonText': _('Map Project'),
                 'addDropdown': {
                     'emptyMessage': _('All projects configured'),
-                    'noResultsMessage': _('Could not find Visual Studio Team Services project'),
+                    'noResultsMessage': _('Could not find VSTS project'),
                     'items': projects,
                 },
                 'mappedSelectors': {
@@ -134,12 +134,12 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                     'on_resolve': _('When resolved'),
                     'on_unresolve': _('When unresolved'),
                 },
-                'mappedColumnLabel': _('Visual Studio Team Services Project'),
+                'mappedColumnLabel': _('VSTS Project'),
             },
             {
                 'name': 'sync_comments',
                 'type': 'boolean',
-                'label': _('Post Comments to Visual Studio Team Services'),
+                'label': _('Post Comments to VSTS'),
                 'help': _('Synchronize comments from Sentry issues to linked Visual Studio Team Services tickets.'),
             },
             {
