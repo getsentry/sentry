@@ -35,7 +35,7 @@ export default class ChoiceMapper extends React.Component {
      * A list of select field properties that should be used to render the
      * select field for each column in the row.
      */
-    mappedSelectors: PropTypes.objectOf(PropTypes.objectOf(SelectControl.propTypes))
+    mappedSelectors: PropTypes.objectOf(PropTypes.shape(SelectControl.propTypes))
       .isRequired,
   };
 
