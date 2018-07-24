@@ -1,10 +1,14 @@
+import 'zrender/lib/svg/svg';
+
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import 'zrender/lib/svg/svg';
 import echarts from 'echarts/lib/echarts';
 
 import theme from 'app/utils/theme';
+
+import Grid from './components/grid';
+import Tooltip from './components/tooltip';
 
 // If dimension is a number conver it to pixels, otherwise use dimension without transform
 const getDimensionValue = dimension => {
@@ -88,6 +92,8 @@ class BaseChart extends React.Component {
         echarts={echarts}
         option={{
           color: colors,
+          grid: Grid(),
+          tooltip: Tooltip(),
           ...options,
         }}
         notMerge={notMerge}
