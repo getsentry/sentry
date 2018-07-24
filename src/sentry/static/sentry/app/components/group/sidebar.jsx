@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
+import Feature from 'app/components/feature';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import ProjectState from 'app/mixins/projectState';
@@ -217,7 +218,6 @@ const GroupSidebar = createReactClass({
     let project = this.getProject();
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
-    let orgFeatures = new Set(this.getOrganization().features);
 
     let subscribeBtnClass = classNames('btn btn-default btn-subscribe', {
       subscribed: group.isSubscribed,
@@ -226,7 +226,9 @@ const GroupSidebar = createReactClass({
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
-        {orgFeatures.has('internal-catchall') && <ExternalIssueList group={this.props.group} />}
+        <Feature feature={['internal-catchall']}>
+          <ExternalIssueList group={this.props.group} />
+        </Feature>
         <GroupReleaseStats
           group={this.props.group}
           allEnvironments={this.state.allEnvironmentsGroupData}

@@ -3,12 +3,9 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from 'app/mixins/apiMixin';
-import DropdownLink from 'app/components/dropdownLink';
 import GroupState from 'app/mixins/groupState';
-import MenuItem from 'app/components/menuItem';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
-import {toTitleCase} from 'app/utils';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 const PluginActions = createReactClass({
@@ -85,16 +82,10 @@ const PluginActions = createReactClass({
   },
 
   closeModal(data) {
-    if (data.id && data.link) {
-      this.setState({
-        issue: {issue_id: data.id, url: data.link},
-        showModal: false,
-      });
-    } else {
-      this.setState({
-        showModal: false,
-      });
-    }
+    this.setState({
+      issue: data.id && data.link ? {issue_id: data.id, url: data.link} : null,
+      showModal: false,
+    });
   },
 
   handleClick(evt) {
@@ -105,61 +96,6 @@ const PluginActions = createReactClass({
 
   render() {
     let plugin = this.props.plugin;
-
-    if (!plugin.allowed_actions || !plugin.allowed_actions.length) {
-      return null;
-    }
-
-    let allowedActions = plugin.allowed_actions.filter(
-      plugin.issue ? action => action === 'unlink' : action => action !== 'unlink'
-    );
-
-    let button;
-    if (allowedActions.length === 1) {
-      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
-      button = (
-        <button
-          className={'btn btn-default btn-sm btn-plugin-' + plugin.slug}
-          onClick={this.openModal.bind(this, allowedActions[0])}
-        >
-          {toTitleCase(allowedActions[0]) +
-            ' ' +
-            (plugin.shortName || plugin.name || plugin.title) +
-            ' Issue'}
-        </button>
-      );
-    } else {
-      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
-      button = (
-        <div className={'btn-plugin-' + plugin.slug}>
-          <DropdownLink
-            caret={false}
-            className="btn btn-default btn-sm"
-            title={
-              <span style={{display: 'flex'}}>
-                {plugin.shortName || plugin.name || plugin.title}
-                <span
-                  className="icon-arrow-down"
-                  style={{marginLeft: 3, marginRight: -3}}
-                />
-              </span>
-            }
-          >
-            {allowedActions.map(action => {
-              return (
-                <MenuItem key={action} noAnchor={true}>
-                  <a onClick={this.openModal.bind(this, action)}>
-                    {this.ACTION_LABELS[action]}
-                  </a>
-                </MenuItem>
-              );
-            })}
-          </DropdownLink>
-        </div>
-      );
-    }
-
-    // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
     const {actionType, issue} = this.state;
     return (
       <React.Fragment>

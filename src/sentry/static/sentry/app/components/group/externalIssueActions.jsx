@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
@@ -185,11 +185,14 @@ class ExternalIssueActions extends AsyncComponent {
     this.api.request(endpoint, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
+        addSuccessMessage(t('Successfully unlinked issue.'));
         this.setState({
           issue: null,
         });
       },
-      error: error => {},
+      error: error => {
+        addErrorMessage(t('Unable to delete issue.'));
+      },
     });
   }
 
@@ -227,7 +230,7 @@ class ExternalIssueActions extends AsyncComponent {
     let {action, selectedIntegration, issue} = this.state;
 
     return (
-      <React.Fragment key={selectedIntegration.id}>
+      <React.Fragment>
         <IssueSyncListElement
           onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
