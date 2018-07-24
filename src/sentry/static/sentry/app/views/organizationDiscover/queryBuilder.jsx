@@ -131,7 +131,8 @@ export default function createQueryBuilder(initial = {}, organization) {
     );
 
     const orderbyField = (query.orderby || '').replace(/^-/, '');
-    const hasOrderFieldInFields = getColumns().includes(orderbyField);
+    const hasOrderFieldInFields =
+      getColumns().find(f => f.name === orderbyField) !== undefined;
     const hasOrderFieldInSelectedFields = query.fields.includes(orderbyField);
     const hasOrderFieldInAggregations = query.aggregations.some(
       agg => orderbyField === agg[2]
@@ -139,11 +140,15 @@ export default function createQueryBuilder(initial = {}, organization) {
 
     const hasInvalidOrderbyField = validAggregations.length
       ? !hasOrderFieldInSelectedFields && !hasOrderFieldInAggregations
-      : hasOrderFieldInFields;
+      : !hasOrderFieldInFields;
 
     // If orderby value becomes invalid, update it to the first valid aggregation
-    if (validAggregations.length > 0 && hasInvalidOrderbyField) {
-      query.orderby = validAggregations[0][2];
+    if (hasInvalidOrderbyField) {
+      if (validAggregations.length > 0) {
+        query.orderby = validAggregations[0][2];
+      } else {
+        query.orderby = '-timestamp';
+      }
     }
 
     // Snuba doesn't allow limit without orderby
