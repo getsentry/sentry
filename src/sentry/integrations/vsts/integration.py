@@ -221,8 +221,16 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def create_subscription(self, instance, account_id, oauth_data):
         webhook = WorkItemWebhook()
-        subscription, shared_secret = webhook.create_subscription(
-            instance, oauth_data, self.oauth_redirect_url, account_id)
+        try:
+            subscription, shared_secret = webhook.create_subscription(
+                instance, oauth_data, self.oauth_redirect_url, account_id)
+        except ApiError:
+            # TODO(lb): how do I show an error to the user?
+            # TODO(lb): how do I make sure this error is the right one? Should find a
+            # way to ensure that.
+            raise ApiError(
+                'Your permissions are not sufficient to create an integration. Please check with the owner of this account.')
+
         subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
         return subscription_id, shared_secret
 
