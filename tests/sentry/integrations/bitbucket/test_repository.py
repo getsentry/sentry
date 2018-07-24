@@ -109,14 +109,14 @@ class BitbucketRepositoryProviderTest(TestCase):
             'provider': 'integrations:bitbucket',
             'identifier': full_repo_name,
             'installation': integration.id,
-            'external_id': full_repo_name,
+            'external_id': REPO['uuid'],
             'name': full_repo_name,
         }
         data = self.provider.create_repository(organization, data)
 
         assert data == {
             'name': full_repo_name,
-            'external_id': full_repo_name,
+            'external_id': REPO['uuid'],
             'url': 'https://bitbucket.org/laurynsentry/helloworld',
             'integration_id': integration.id,
             'config': {

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from uuid import uuid4
-
+import six
 from sentry.app import locks
 from sentry.models import OrganizationOption
 from sentry.plugins import providers
@@ -35,7 +35,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config['external_id'] = repo['full_name']
+            config['external_id'] = six.text_type(repo['uuid'])
             config['name'] = repo['full_name']
         return config
 
