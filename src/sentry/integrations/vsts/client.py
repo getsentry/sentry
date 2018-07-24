@@ -20,10 +20,10 @@ class VstsApiPath(object):
     commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
-    delete = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repository = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     repositories = u'https://{account_name}/{project}/_apis/git/repositories'
+    subscription = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
@@ -260,7 +260,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
     def delete_subscription(self, instance, subscription_id):
         self.delete(
-            VstsApiPath.delete_url.format(
+            VstsApiPath.subscription.format(
                 account_name=instance,
                 subscription_id=subscription_id,
             )

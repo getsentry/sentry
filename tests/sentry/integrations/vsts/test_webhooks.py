@@ -54,7 +54,6 @@ class VstsWebhookWorkItemTest(APITestCase):
             'resolve_when': True,
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
-
         }
         self.org_integration.save()
         self.project_integration = self.model.add_project(self.project.id)

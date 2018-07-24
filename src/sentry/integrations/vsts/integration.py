@@ -80,8 +80,10 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         instance = self.model.metadata['domain_name']
 
         try:
-            # NOTE(lb): vsts get workitem states does not give an id.
-            work_item_states = client.get_work_item_states(instance)['value']
+            # TODO(lb): this is clearly wrong. I'm just getting the first project.
+            # should be completely changed pending evan's changes?
+            project = client.get_projects(instance)['value'][0]['id']
+            work_item_states = client.get_work_item_states(instance, project)['value']
             statuses = [(c['name'], c['name']) for c in work_item_states]
             disabled = False
         except ApiError:
