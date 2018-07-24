@@ -177,7 +177,7 @@ class ExternalIssueActions extends AsyncComponent {
   }
 
   getIssue() {
-    return this.props.integration.externalIssues[0];
+    return this.props.integration && this.props.integration.externalIssues ? this.props.integration.externalIssues[0] : null;
   }
 
   deleteIssue(issueId) {

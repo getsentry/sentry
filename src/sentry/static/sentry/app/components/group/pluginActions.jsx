@@ -45,14 +45,13 @@ const PluginActions = createReactClass({
   },
 
   deleteIssue() {
-    const plugin = this.props.plugin;
+    const plugin = {
+      ...this.props.plugin,
+      issue: null,
+    };
     // override plugin.issue so that 'create/link' Modal
     // doesn't think the plugin still has an issue linked
-    Object.assign(plugin, {
-      issue: null,
-    });
-    const endpoint = `/issues/${this.props.group.id}/plugins/${this.props.plugin
-      .slug}/unlink/`;
+    const endpoint = `/issues/${this.props.group.id}/plugins/${plugin.slug}/unlink/`;
     this.api.request(endpoint, {
       success: data => {
         this.loadPlugin(plugin);
@@ -96,8 +95,9 @@ const PluginActions = createReactClass({
   },
 
   render() {
-    let plugin = this.props.plugin;
     const {actionType, issue} = this.state;
+    const plugin = {...this.props.plugin, issue};
+
     return (
       <React.Fragment>
         <IssueSyncListElement
@@ -132,11 +132,11 @@ const PluginActions = createReactClass({
               </a>
             </li>
           </ul>
-          {actionType == 'create' &&
+          {this.state.showModal && actionType == 'create' &&
             !this.state.pluginLoading && (
               <Modal.Body>
-                {plugins.get(this.props.plugin).renderGroupActions({
-                  plugin: this.props.plugin,
+                {plugins.get(plugin).renderGroupActions({
+                  plugin,
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),
@@ -145,11 +145,11 @@ const PluginActions = createReactClass({
                 })}
               </Modal.Body>
             )}
-          {actionType == 'link' &&
+          {this.state.showModal && actionType == 'link' &&
             !this.state.pluginLoading && (
               <Modal.Body>
-                {plugins.get(this.props.plugin).renderGroupActions({
-                  plugin: this.props.plugin,
+                {plugins.get(plugin).renderGroupActions({
+                  plugin,
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),

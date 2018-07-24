@@ -59,7 +59,7 @@ class ExternalIssueList extends AsyncComponent {
       : null;
   }
 
-  render() {
+  renderBody() {
     return (
       <React.Fragment>
         <div className="m-b-2">
