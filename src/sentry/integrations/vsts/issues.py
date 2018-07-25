@@ -159,26 +159,17 @@ class VstsIssueSync(IssueSyncMixin):
             )
 
     def should_unresolve(self, data):
-        return self.is_done(data['old_category']) and not self.is_done(data['new_category'])
+        done_states = self.get_done_states(data['project'])
+        return data['old_state'] in done_states and not data['new_state'] in done_states
 
     def should_resolve(self, data):
-        return not self.is_done(data['old_category']) and self.is_done(data['new_category'])
+        done_states = self.get_done_states(data['project'])
+        return not data['old_state'] in done_states and data['new_state'] in done_states
 
-    def get_state_categories(self, old_state, new_state, project):
+    def get_done_states(self, project):
         client = self.get_client()
-        all_states = client.get_work_item_states(
-            self.instance, project)['value']
-        new_category = None
-        old_category = None
-        for state in all_states:
-            if state['name'] == new_state:
-                new_category = state['category']
-            if state['name'] == old_state:
-                old_category = state['category']
-
-        # what should I do if this doesn't work?
-        assert old_category is not None and new_category is not None
-        return old_category, new_category
-
-    def is_done(self, category):
-        return category in self.done_categories
+        all_states = client.get_work_item_states(self.instance, project)['value']
+        done_states = [
+            state['name'] for state in all_states if state['category'] in self.done_categories
+        ]
+        return done_states

@@ -75,22 +75,17 @@ class WorkItemWebhook(Endpoint):
                              status_change, project):
         if status_change is None:
             return
-        new_state = status_change.get('newValue')
-        old_state = status_change.get('oldValue')
+
         organization_ids = OrganizationIntegration.objects.filter(
             integration_id=integration.id,
         ).values_list('organization_id', flat=True)
 
-        old_category = None
-        new_category = None
         for organization_id in organization_ids:
             installation = integration.get_installation(organization_id)
-            if not (old_category and new_category):  # states should be the same throughout
-                old_category, new_category = installation.get_state_categories(
-                    old_state, new_state, project)
             data = {
-                'new_category': new_category,
-                'old_category': old_category,
+                'new_state': status_change['newValue'],
+                'old_state': status_change['oldValue'],
+                'project': project,
             }
             installation.sync_status_inbound(external_issue_key, data)
 
