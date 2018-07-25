@@ -37,7 +37,7 @@ class JiraConfigureView(BaseView):
 
     def handle(self, request):
         try:
-            integration = get_integration_from_request(request)
+            integration = get_integration_from_request(request, 'jira')
         except AtlassianConnectValidationError:
             return self.get_response({'error_message': 'Unable to verify installation.'})
 

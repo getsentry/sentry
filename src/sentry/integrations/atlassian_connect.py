@@ -39,7 +39,7 @@ def get_query_hash(uri, method, query_params=None):
     return hashlib.sha256(query_string.encode('utf8')).hexdigest()
 
 
-def get_integration_from_jwt(token, path, query_params, method='GET'):
+def get_integration_from_jwt(token, path, provider, query_params, method='GET'):
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
@@ -56,7 +56,7 @@ def get_integration_from_jwt(token, path, query_params, method='GET'):
     # by the add-on during the installation handshake
     try:
         integration = Integration.objects.get(
-            provider='jira',
+            provider=provider,
             external_id=issuer,
         )
     except Integration.DoesNotExist:
@@ -74,5 +74,5 @@ def get_integration_from_jwt(token, path, query_params, method='GET'):
     return integration
 
 
-def get_integration_from_request(request):
-    return get_integration_from_jwt(request.GET.get('jwt'), request.path, request.GET)
+def get_integration_from_request(request, provider):
+    return get_integration_from_jwt(request.GET.get('jwt'), request.path, provider, request.GET)

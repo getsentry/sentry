@@ -30,6 +30,16 @@ class BitbucketDescriptorEndpoint(Endpoint):
                     'uninstalled': '/extensions/bitbucket/uninstalled/'
                 },
                 'scopes': scopes,
-                'contexts': ['account']
+                'contexts': ['account'],
+                # When the user is redirected the URL will become:
+                # https://sentry.io/extensions/bitbucket/installed/done?account=%7B23232323%7D&jwt=1212121212
+                # Where the account parameter is a UUID and the jwt parameter is what
+                # you'll use to verify the URL
+                'modules': {
+                    'postInstallRedirect': {
+                        'url': '/extensions/bitbucket/installed/done?account={target_user.username}',
+                        'key': 'redirect'
+                    }
+                }
             }
         )

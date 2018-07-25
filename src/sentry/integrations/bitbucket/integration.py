@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import NestedPipelineView
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 
@@ -115,7 +116,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         if state.get('publicKey'):
             principal_data = state['principal']
             return {
-                'provider': 'bitbucket',
+                'provider': self.key,
                 'external_id': state['clientKey'],
                 'name': principal_data['username'],
                 'metadata': {
@@ -129,16 +130,27 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'type': principal_data['type'],  # team or user account
                 },
             }
-        return {
-            'provider': 'bitbucket',
-            'external_id': state['identity']['bitbucket_client_key'],
-            'expect_exists': True,
-        }
+        else:
+            return {
+                'provider': self.key,
+                'external_id': state['identity']['bitbucket_client_key'],
+                'expect_exists': True,
+            }
 
     def setup(self):
         from sentry.plugins import bindings
         bindings.add(
             'integration-repository.provider',
             BitbucketRepositoryProvider,
-            id='integrations:bitbucket',
+            id='integrations:%s' % self.key,
         )
+
+
+class VerifyInstallation(PipelineView):
+    def dispatch(self, request, pipeline):
+        try:
+            integration = get_integration_from_request(request, BitbucketIntegrationProvider.key)
+        except AtlassianConnectValidationError:
+            raise AtlassianConnectValidationError('Unable to verify installation.')
+        # TODO(lb): this is wrong please fix
+        return integration
