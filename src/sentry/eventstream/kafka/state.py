@@ -43,6 +43,13 @@ class PartitionState:
 
 
 class SynchronizedPartitionStateManager(object):
+    """
+    This class implements a state machine that can be used to track the
+    consumption progress of a Kafka partition (the "local" consumer) relative
+    to a the progress of another consumer (the "remote" consumer.)
+
+    This is intended to be paired with the ``SynchronizedConsumer``.
+    """
 
     transitions = {  # from state -> set(to states)
         None: frozenset([
@@ -72,6 +79,9 @@ class SynchronizedPartitionStateManager(object):
         self.callback = callback
 
     def get_state_from_offsets(self, offsets):
+        """
+        Derive the partition state by comparing local and remote offsets.
+        """
         if offsets.local is None or offsets.remote is None:
             return PartitionState.UNKNOWN
         else:
@@ -83,6 +93,12 @@ class SynchronizedPartitionStateManager(object):
                 return PartitionState.SYNCHRONIZED
 
     def set_local_offset(self, topic, partition, local_offset):
+        """
+        Update the local offset for a topic and partition.
+
+        If this update operation results in a state change, the callback
+        function will be invoked.
+        """
         previous_state, previous_offsets = self.partitions[(topic, partition)]
         if local_offset < previous_offsets.local:
             logger.info(
@@ -110,6 +126,12 @@ class SynchronizedPartitionStateManager(object):
             )
 
     def set_remote_offset(self, topic, partition, remote_offset):
+        """
+        Update the remote offset for a topic and partition.
+
+        If this update operation results in a state change, the callback
+        function will be invoked.
+        """
         previous_state, previous_offsets = self.partitions[(topic, partition)]
         if remote_offset < previous_offsets.remote:
             logger.info(
@@ -132,6 +154,12 @@ class SynchronizedPartitionStateManager(object):
             )
 
     def validate_local_message(self, topic, partition, offset):
+        """
+        Check if a message should be consumed by the local consumer.
+
+        The local consumer should be prevented from consuming messages that
+        have yet to have been committed by the remote consumer.
+        """
         state, offsets = self.partitions[(topic, partition)]
         if state is not PartitionState.LOCAL_BEHIND:
             raise InvalidState('Received a message while consumer is not in LOCAL_BEHIND state!')
