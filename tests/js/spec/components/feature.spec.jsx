@@ -232,6 +232,22 @@ describe('Feature', function() {
         })
       );
     });
+
+    it('checks ConfigStore.config.features (e.g. `organizations:create`)', function() {
+      ConfigStore.config = {
+        features: new Set(['organizations:create']),
+      };
+      mount(
+        <Feature feature={['organizations:create']}>{childrenMock}</Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+        })
+      );
+    });
   });
 
   describe('as React node', function() {

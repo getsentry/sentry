@@ -1,10 +1,18 @@
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
 import SentryTypes from 'app/sentryTypes';
+
+const DEFAULT_NO_FEATURE_MESSAGE = (
+  <Alert type="info" icon="icon-circle-info">
+    {t('This feature is coming soon!')}
+  </Alert>
+);
 
 /**
  * Interface to handle feature tags as well as user's organization access levels
@@ -43,6 +51,16 @@ class Feature extends React.Component {
     isSuperuser: PropTypes.bool,
 
     /**
+     * Show a default message when user does not have feature flag enabled
+     */
+    showNoFeatureMessage: PropTypes.bool,
+
+    /**
+     * Custom renderer for "no feature" message
+     */
+    renderNoFeatureMessage: PropTypes.func,
+
+    /**
      * If children is a function then will be treated as a render prop and passed this object:
      * {
      *   hasFeature: bool,
@@ -53,6 +71,11 @@ class Feature extends React.Component {
      * all the required feature AND access tags
      */
     children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
+  };
+
+  static defaultProps = {
+    showNoFeatureMessage: false,
+    renderNoFeatureMessage: null,
   };
 
   getAllFeatures = () => {
@@ -88,7 +111,16 @@ class Feature extends React.Component {
   };
 
   render() {
-    let {children, organization, feature, access, configUser, isSuperuser} = this.props;
+    let {
+      children,
+      organization,
+      feature,
+      access,
+      configUser,
+      isSuperuser,
+      showNoFeatureMessage,
+      renderNoFeatureMessage,
+    } = this.props;
     let {access: orgAccess} = organization || {access: []};
     let allFeatures = this.getAllFeatures();
     let hasFeature =
@@ -102,6 +134,12 @@ class Feature extends React.Component {
         hasAccess,
         hasSuperuser,
       });
+    }
+
+    if (!hasFeature && showNoFeatureMessage && !renderNoFeatureMessage) {
+      return DEFAULT_NO_FEATURE_MESSAGE;
+    } else if (!hasFeature && typeof renderNoFeatureMessage === 'function') {
+      return renderNoFeatureMessage();
     }
 
     // if children is NOT a function,

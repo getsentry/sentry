@@ -80,6 +80,8 @@ exports[`ProjectPluginRow renders 1`] = `
           "teams": Array [],
         }
       }
+      renderNoFeatureMessage={null}
+      showNoFeatureMessage={false}
     >
       <Flex
         align="center"
