@@ -37,6 +37,7 @@ export default class OrganizationDiscover extends React.Component {
     this.state = {
       result: null,
       chartData: null,
+      chartQuery: null,
     };
   }
 
@@ -92,10 +93,10 @@ export default class OrganizationDiscover extends React.Component {
 
       queryBuilder.fetch(chartQuery).then(
         chartData => {
-          this.setState({chartData});
+          this.setState({chartData, chartQuery});
         },
         () => {
-          this.setState({chartData: null});
+          this.setState({chartData: null, chartQuery: null});
         }
       );
     }
@@ -163,7 +164,7 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
   render() {
-    const {result, chartData} = this.state;
+    const {result, chartData, chartQuery} = this.state;
     const {queryBuilder} = this.props;
 
     const query = queryBuilder.getInternal();
@@ -259,7 +260,7 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {chartData && <ResultChart data={chartData} />}
+            {chartData && <ResultChart data={chartData} query={chartQuery} />}
             {result && <ResultTable result={result} />}
           </Box>
         </Flex>
