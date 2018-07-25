@@ -21,7 +21,8 @@ class SudoModal extends React.Component {
     /**
      * expects a function that returns a Promise
      */
-    retryRequest: PropTypes.func.isRequired,
+    retryRequest: PropTypes.func,
+
     // User is a superuser without an active su session
     superuser: PropTypes.bool,
     router: PropTypes.object,
@@ -41,7 +42,11 @@ class SudoModal extends React.Component {
 
   handleSuccess = () => {
     let {closeModal, superuser, router, retryRequest} = this.props;
-    if (!retryRequest) return;
+
+    if (!retryRequest) {
+      closeModal();
+      return;
+    }
 
     if (superuser) {
       router.replace({...router.getCurrentLocation(), state: {forceUpdate: new Date()}});
@@ -143,6 +148,7 @@ class SudoModal extends React.Component {
                 hideFooter={!user.hasPasswordAuth}
               >
                 <InputField
+                  autoFocus
                   type="password"
                   inline={false}
                   label={t('Password')}

@@ -19,6 +19,7 @@ class SearchResult extends React.Component {
       sourceType: PropTypes.oneOf([
         'organization',
         'project',
+        'command',
         'team',
         'member',
         'field',
@@ -32,9 +33,16 @@ class SearchResult extends React.Component {
      * - an application route (e.g. org dashboard)
      * - form field
      */
-      resultType: PropTypes.oneOf(['settings', 'route', 'field', 'issue', 'event']),
+      resultType: PropTypes.oneOf([
+        'settings',
+        'command',
+        'route',
+        'field',
+        'issue',
+        'event',
+      ]),
       title: PropTypes.string,
-      description: PropTypes.string,
+      description: PropTypes.node,
       model: PropTypes.oneOfType([
         SentryTypes.Organization,
         SentryTypes.Project,

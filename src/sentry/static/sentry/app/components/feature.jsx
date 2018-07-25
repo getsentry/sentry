@@ -16,7 +16,12 @@ class Feature extends React.Component {
     /**
      * Configuration features from ConfigStore
      */
-    config: PropTypes.arrayOf(PropTypes.string),
+    configFeatures: PropTypes.arrayOf(PropTypes.string),
+
+    /**
+     * User Configuration from ConfigStore
+     */
+    configUser: PropTypes.object,
 
     /**
      * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -33,6 +38,11 @@ class Feature extends React.Component {
     access: PropTypes.arrayOf(PropTypes.string),
 
     /**
+     * Requires superuser
+     */
+    isSuperuser: PropTypes.bool,
+
+    /**
      * If children is a function then will be treated as a render prop and passed this object:
      * {
      *   hasFeature: bool,
@@ -46,9 +56,9 @@ class Feature extends React.Component {
   };
 
   getAllFeatures = () => {
-    let {organization, project, config} = this.props;
+    let {organization, project, configFeatures} = this.props;
     return {
-      config: config || [],
+      configFeatures: configFeatures || [],
       organization: (organization && organization.features) || [],
       project: (project && project.features) || [],
     };
@@ -59,7 +69,7 @@ class Feature extends React.Component {
     let shouldMatchOnlyOrg = feature.match(/^organization:(\w+)/);
 
     // Array of feature strings
-    let {config, organization, project} = features;
+    let {configFeatures, organization, project} = features;
 
     if (shouldMatchOnlyProject) {
       return project.includes(shouldMatchOnlyProject[1]);
@@ -71,30 +81,32 @@ class Feature extends React.Component {
 
     // default, check all feature arrays
     return (
-      config.includes(feature) ||
+      configFeatures.includes(feature) ||
       organization.includes(feature) ||
       project.includes(feature)
     );
   };
 
   render() {
-    let {children, organization, feature, access} = this.props;
+    let {children, organization, feature, access, configUser, isSuperuser} = this.props;
     let {access: orgAccess} = organization || {access: []};
     let allFeatures = this.getAllFeatures();
     let hasFeature =
       !feature || feature.every(feat => this.hasFeature(feat, allFeatures));
     let hasAccess = !access || access.every(acc => orgAccess.includes(acc));
+    let hasSuperuser = !isSuperuser || configUser.isSuperuser;
 
     if (typeof children === 'function') {
       return children({
         hasFeature,
         hasAccess,
+        hasSuperuser,
       });
     }
 
     // if children is NOT a function,
     // then only render `children` iff `features` and `access` passes
-    if (hasFeature && hasAccess) {
+    if (hasFeature && hasAccess && hasSuperuser) {
       return children;
     }
 
@@ -127,9 +139,12 @@ const FeatureContainer = createReactClass({
     let features = this.state.config.features
       ? Array.from(this.state.config.features)
       : [];
+    let user = this.state.config.user || {};
+
     return (
       <Feature
-        config={features}
+        configFeatures={features}
+        configUser={user}
         organization={this.context.organization}
         project={this.context.project}
         {...this.props}
