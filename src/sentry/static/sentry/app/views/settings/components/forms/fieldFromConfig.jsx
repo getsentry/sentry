@@ -8,6 +8,7 @@ import TextField from 'app/views/settings/components/forms/textField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import RadioField from 'app/views/settings/components/forms/radioField';
 import InputField from 'app/views/settings/components/forms/inputField';
+import ChoiceMapper from 'app/views/settings/components/forms/choiceMapper';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
@@ -22,6 +23,7 @@ export default class FieldFromConfig extends React.Component {
         'choice',
         'select',
         'multichoice',
+        'choice_mapper',
         'range',
       ]),
       required: PropTypes.bool,
@@ -91,6 +93,8 @@ export default class FieldFromConfig extends React.Component {
         // }
 
         return <SelectField {...props} />;
+      case 'choice_mapper':
+        return <ChoiceMapper {...props} />;
       case 'radio':
         return <RadioField {...props} />;
       default:
