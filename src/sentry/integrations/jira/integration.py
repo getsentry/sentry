@@ -195,6 +195,9 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 field['type'] = 'select'
         return fields
 
+    def get_issue_url(self, key, **kwargs):
+        return '%s/browse/%s' % (self.model.metadata['base_url'], key)
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             absolute_uri(group.get_absolute_url()),
