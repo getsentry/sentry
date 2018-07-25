@@ -17,7 +17,7 @@ export default class Result extends React.Component {
     queryData.forEach(data => {
       const key = groupbyFields.map(field => data[field]).join(',');
       if (key in output) {
-        output[key].count.push(data.count);
+        output[key][aggregate].push(data[aggregate]);
       } else {
         output[key] = {[aggregate]: [data[aggregate]]};
       }
