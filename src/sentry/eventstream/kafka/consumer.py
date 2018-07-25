@@ -7,7 +7,7 @@ import uuid
 
 from confluent_kafka import Consumer, OFFSET_BEGINNING, TopicPartition
 
-from sentry.eventstream.kafka.state import PartitionState, SynchronizedPartitionStateManager
+from sentry.eventstream.kafka.state import SynchronizedPartitionState, SynchronizedPartitionStateManager
 from sentry.utils.concurrent import execute
 
 
@@ -128,10 +128,10 @@ class SynchronizedConsumer(object):
             # consumer has received its assignment.)
             return
 
-        if current_state in (PartitionState.UNKNOWN, PartitionState.SYNCHRONIZED,
-                             PartitionState.REMOTE_BEHIND):
+        if current_state in (SynchronizedPartitionState.UNKNOWN, SynchronizedPartitionState.SYNCHRONIZED,
+                             SynchronizedPartitionState.REMOTE_BEHIND):
             self._consumer.pause([TopicPartition(topic, partition, current_offsets.local)])
-        elif current_state is PartitionState.LOCAL_BEHIND:
+        elif current_state is SynchronizedPartitionState.LOCAL_BEHIND:
             self._consumer.resume([TopicPartition(topic, partition, current_offsets.local)])
         else:
             raise NotImplementedError('Unexpected partition state: %s' % (current_state,))

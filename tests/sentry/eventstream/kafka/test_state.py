@@ -7,7 +7,7 @@ from sentry.eventstream.kafka.state import (
     InvalidStateTransition,
     MessageNotReady,
     Offsets,
-    PartitionState,
+    SynchronizedPartitionState,
     SynchronizedPartitionStateManager,
 )
 
@@ -23,7 +23,7 @@ def test_transitions():
     assert callback.mock_calls[-1] == mock.call(
         'topic', 0,
         (None, Offsets(None, None)),
-        (PartitionState.UNKNOWN, Offsets(1, None)),
+        (SynchronizedPartitionState.UNKNOWN, Offsets(1, None)),
     )
 
     with pytest.raises(InvalidState):
@@ -32,8 +32,8 @@ def test_transitions():
     state.set_remote_offset('topic', 0, 1)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 0,
-        (PartitionState.UNKNOWN, Offsets(1, None)),
-        (PartitionState.SYNCHRONIZED, Offsets(1, 1)),
+        (SynchronizedPartitionState.UNKNOWN, Offsets(1, None)),
+        (SynchronizedPartitionState.SYNCHRONIZED, Offsets(1, 1)),
     )
 
     with pytest.raises(InvalidStateTransition):
@@ -45,8 +45,8 @@ def test_transitions():
     state.set_remote_offset('topic', 0, 2)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 0,
-        (PartitionState.SYNCHRONIZED, Offsets(1, 1)),
-        (PartitionState.LOCAL_BEHIND, Offsets(1, 2)),
+        (SynchronizedPartitionState.SYNCHRONIZED, Offsets(1, 1)),
+        (SynchronizedPartitionState.LOCAL_BEHIND, Offsets(1, 2)),
     )
 
     state.validate_local_message('topic', 0, 1)
@@ -57,22 +57,22 @@ def test_transitions():
     state.set_local_offset('topic', 0, 2)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 0,
-        (PartitionState.LOCAL_BEHIND, Offsets(1, 2)),
-        (PartitionState.SYNCHRONIZED, Offsets(2, 2)),
+        (SynchronizedPartitionState.LOCAL_BEHIND, Offsets(1, 2)),
+        (SynchronizedPartitionState.SYNCHRONIZED, Offsets(2, 2)),
     )
 
     state.set_remote_offset('topic', 1, 5)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 1,
         (None, Offsets(None, None)),
-        (PartitionState.UNKNOWN, Offsets(None, 5)),
+        (SynchronizedPartitionState.UNKNOWN, Offsets(None, 5)),
     )
 
     state.set_local_offset('topic', 1, 0)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 1,
-        (PartitionState.UNKNOWN, Offsets(None, 5)),
-        (PartitionState.LOCAL_BEHIND, Offsets(0, 5)),
+        (SynchronizedPartitionState.UNKNOWN, Offsets(None, 5)),
+        (SynchronizedPartitionState.LOCAL_BEHIND, Offsets(0, 5)),
     )
 
     before_calls = len(callback.mock_calls)
@@ -85,13 +85,13 @@ def test_transitions():
     state.set_local_offset('topic', 1, 5)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 1,
-        (PartitionState.LOCAL_BEHIND, Offsets(4, 5)),
-        (PartitionState.SYNCHRONIZED, Offsets(5, 5)),
+        (SynchronizedPartitionState.LOCAL_BEHIND, Offsets(4, 5)),
+        (SynchronizedPartitionState.SYNCHRONIZED, Offsets(5, 5)),
     )
 
     state.set_local_offset('topic', 1, 6)
     assert callback.mock_calls[-1] == mock.call(
         'topic', 1,
-        (PartitionState.SYNCHRONIZED, Offsets(5, 5)),
-        (PartitionState.REMOTE_BEHIND, Offsets(6, 5)),
+        (SynchronizedPartitionState.SYNCHRONIZED, Offsets(5, 5)),
+        (SynchronizedPartitionState.REMOTE_BEHIND, Offsets(6, 5)),
     )
