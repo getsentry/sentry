@@ -6,7 +6,7 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 from sentry import http
-from sentry.models import Integration as IntegrationModel
+from sentry.models import Integration as IntegrationModel, IntegrationExternalProject
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
@@ -135,6 +135,27 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
+
+    def update_organization_config(self, data):
+        if 'sync_status_forward' in data:
+            project_ids_and_statuses = data.pop('sync_status_forward')
+            data['sync_status_forward'] = bool(project_ids_and_statuses)
+
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id,
+            ).delete()
+
+            for project_id, statuses in project_ids_and_statuses.items():
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=project_id,
+                    resolved_status=statuses['on_resolve'],
+                    unresolved_status=statuses['on_unresolve'],
+                )
+
+        config = self.org_integration.config
+        config.update(data)
+        self.org_integration.update(config=config)
 
     @property
     def instance(self):
