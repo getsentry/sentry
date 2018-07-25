@@ -23,7 +23,7 @@ class MessageNotReady(Exception):
     pass
 
 
-class PartitionState:
+class SynchronizedPartitionState:
     # The ``SYNCHRONIZED`` state represents that the local offset is equal to
     # the remote offset. The local consumer should be paused to avoid advancing
     # further beyond the remote consumer.
@@ -55,24 +55,24 @@ class SynchronizedPartitionStateManager(object):
 
     transitions = {  # from state -> set(to states)
         None: frozenset([
-            PartitionState.UNKNOWN,
+            SynchronizedPartitionState.UNKNOWN,
         ]),
-        PartitionState.UNKNOWN: frozenset([
-            PartitionState.LOCAL_BEHIND,
-            PartitionState.REMOTE_BEHIND,
-            PartitionState.SYNCHRONIZED,
+        SynchronizedPartitionState.UNKNOWN: frozenset([
+            SynchronizedPartitionState.LOCAL_BEHIND,
+            SynchronizedPartitionState.REMOTE_BEHIND,
+            SynchronizedPartitionState.SYNCHRONIZED,
         ]),
-        PartitionState.REMOTE_BEHIND: frozenset([
-            PartitionState.LOCAL_BEHIND,
-            PartitionState.SYNCHRONIZED,
+        SynchronizedPartitionState.REMOTE_BEHIND: frozenset([
+            SynchronizedPartitionState.LOCAL_BEHIND,
+            SynchronizedPartitionState.SYNCHRONIZED,
         ]),
-        PartitionState.LOCAL_BEHIND: frozenset([
-            PartitionState.SYNCHRONIZED,
-            PartitionState.REMOTE_BEHIND,
+        SynchronizedPartitionState.LOCAL_BEHIND: frozenset([
+            SynchronizedPartitionState.SYNCHRONIZED,
+            SynchronizedPartitionState.REMOTE_BEHIND,
         ]),
-        PartitionState.SYNCHRONIZED: frozenset([
-            PartitionState.LOCAL_BEHIND,
-            PartitionState.REMOTE_BEHIND,
+        SynchronizedPartitionState.SYNCHRONIZED: frozenset([
+            SynchronizedPartitionState.LOCAL_BEHIND,
+            SynchronizedPartitionState.REMOTE_BEHIND,
         ]),
     }
 
@@ -86,14 +86,14 @@ class SynchronizedPartitionStateManager(object):
         Derive the partition state by comparing local and remote offsets.
         """
         if offsets.local is None or offsets.remote is None:
-            return PartitionState.UNKNOWN
+            return SynchronizedPartitionState.UNKNOWN
         else:
             if offsets.local < offsets.remote:
-                return PartitionState.LOCAL_BEHIND
+                return SynchronizedPartitionState.LOCAL_BEHIND
             elif offsets.remote < offsets.local:
-                return PartitionState.REMOTE_BEHIND
+                return SynchronizedPartitionState.REMOTE_BEHIND
             else:  # local == remote
-                return PartitionState.SYNCHRONIZED
+                return SynchronizedPartitionState.SYNCHRONIZED
 
     def set_local_offset(self, topic, partition, local_offset):
         """
@@ -117,7 +117,7 @@ class SynchronizedPartitionStateManager(object):
                         previous_state, updated_state))
             self.partitions[(topic, partition)] = (updated_state, updated_offsets)
             if previous_state is not updated_state:
-                if updated_state == PartitionState.REMOTE_BEHIND:
+                if updated_state == SynchronizedPartitionState.REMOTE_BEHIND:
                     logger.warning(
                         'Current local offset (%s) exceeds remote offset (%s)!',
                         updated_offsets.local,
@@ -167,8 +167,9 @@ class SynchronizedPartitionStateManager(object):
         """
         with self.__lock:
             state, offsets = self.partitions[(topic, partition)]
-            if state is not PartitionState.LOCAL_BEHIND:
-                raise InvalidState('Received a message while consumer is not in LOCAL_BEHIND state!')
+            if state is not SynchronizedPartitionState.LOCAL_BEHIND:
+                raise InvalidState(
+                    'Received a message while consumer is not in LOCAL_BEHIND state!')
             if offset >= offsets.remote:
                 raise MessageNotReady(
                     'Received a message that has not been committed by remote consumer')
