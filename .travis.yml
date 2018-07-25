@@ -52,13 +52,13 @@ after_failure:
   - dmesg | tail -n 100
 
 after_script:
-  - zeus upload -t "text/xml+xunit" .artifacts/*.junit.xml
-    -t "text/xml+coverage" .artifacts/*.coverage.xml
-    -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-    -t "text/html+pytest" .artifacts/*.pytest.html
-    -t "text/plain+pycodestyle" .artifacts/*.pycodestyle.log
-    -t "text/xml+checkstyle" .artifacts/*.checkstyle.xml
-    -t "application/webpack-stats+json" .artifacts/webpack-stats.json
+  - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
+  - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
+  - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
+  - zeus upload -t "text/html+pytest" .artifacts/*pytest.html
+  - zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
+  - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
 # each job in the matrix inherits `env/global` and uses everything above,
 # but custom `services`, `before_install`, `install`, and `before_script` directives
