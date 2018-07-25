@@ -13,7 +13,7 @@ const PanelChart = styled(
        * Can be either a react element or a render prop that receives
        * the same props passed to `PanelChart`
        */
-      children: PropTypes.oneOf([PropTypes.func, PropTypes.node]),
+      children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
       showLegend: PropTypes.bool,
       title: PropTypes.node,
       ...Legend.propTypes,
