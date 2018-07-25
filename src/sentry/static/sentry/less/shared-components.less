@@ -2652,10 +2652,12 @@ ul.radio-inputs {
     background: none;
     border: 0;
     padding: 0;
+    margin: 0;
     font-size: 24px;
     position: absolute;
-    top: 14px;
-    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 24px;
     z-index: 100;
     color: lighten(@gray, 20);
     .transition(color 0.1s linear);
@@ -2678,6 +2680,7 @@ ul.radio-inputs {
     border-radius: 7px 7px 0 0;
     padding: 20px 30px;
     margin: -30px -30px 20px;
+    position: relative;
 
     h1,
     h2,
@@ -2689,10 +2692,6 @@ ul.radio-inputs {
       font-weight: 600;
       margin-bottom: 0;
       line-height: 1.1;
-    }
-
-    .close {
-      margin-top: 1px;
     }
   }
 
@@ -2754,11 +2753,6 @@ ul.radio-inputs {
 .sudo-modal.modal {
   .modal-header {
     padding: 12px 30px;
-
-    .close {
-      margin-top: 0;
-      top: 12px;
-    }
   }
 
   .form-actions {
