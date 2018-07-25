@@ -7,6 +7,8 @@ from contextlib import contextmanager
 
 from confluent_kafka import Producer
 
+from sentry.eventstream.kafka.consumer import SynchronizedConsumer
+
 
 @contextmanager
 def create_topic(partitions=1, replication_factor=1):
@@ -42,10 +44,17 @@ def test_consumer_start_from_partition_start():
     })
 
     with create_topic() as topic, create_topic() as commit_log_topic:
-        """
         # Create the synchronized consumer.
-        consumer = SynchronizedConsumer()
-        """
+        consumer = SynchronizedConsumer(
+            bootstrap_servers='localhost:9092',
+            topics=[topic],
+            consumer_group='consumer-{}'.format(uuid.uuid1().hex),
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+        )
+        consumer.start()
+
+        # TODO: Make sure that all partitions are paused on assignment.
 
         # Produce some messages into the topic.
         for i in range(3):
@@ -53,11 +62,10 @@ def test_consumer_start_from_partition_start():
 
         assert producer.flush(5) == 0, 'producer did not successfully flush queue'
 
-        """
-        # Ensure that the synchronized consumer does not have any messages ready to consume.
-        # TODO: Can we also assert that the partition is paused?
+        # TODO: Make sure that all partitions remain paused.
+
+        # Make sure that there are no messages ready to consume.
         assert consumer.poll(1) is None
-        """
 
         # Move the committed offset forward for our synchronizing group.
         message = messages_delivered[topic][0]
@@ -75,18 +83,23 @@ def test_consumer_start_from_partition_start():
 
         assert producer.flush(5) == 0, 'producer did not successfully flush queue'
 
-        """
         # We should have received a single message.
         # TODO: Can we also assert that the position is unpaused?)
-        message = consumer.poll(1)
-        assert message.topic() == messages_delivered[0].topic()
-        assert message.partition() == messages_delivered[0].partition()
-        assert message.offset() == messages_delivered[0].offset()
+        for i in xrange(5):
+            message = consumer.poll(1)
+            if message is not None:
+                break
+
+        assert message is not None, 'no message received'
+
+        expected_message = messages_delivered[topic][0]
+        assert message.topic() == expected_message.topic()
+        assert message.partition() == expected_message.partition()
+        assert message.offset() == expected_message.offset()
 
         # We should not be able to continue reading into the topic.
         # TODO: Can we assert that the position is paused?
         assert consumer.poll(1) is None
-        """
 
 
 def test_consumer_start_from_committed_offset():
