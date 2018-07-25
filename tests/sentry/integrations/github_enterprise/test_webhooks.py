@@ -93,7 +93,7 @@ class PushEventWebhookTest(APITestCase):
             external_id="35.232.149.196:12345",
             provider='github_enterprise',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/baxterthehacker',
                 'installation_id': '12345',
                 'installation': {
                     'id': '2',
@@ -159,7 +159,7 @@ class PushEventWebhookTest(APITestCase):
             external_id='35.232.149.196:12345',
             name='octocat',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/baxterthehacker',
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
@@ -245,7 +245,7 @@ class PushEventWebhookTest(APITestCase):
             external_id="35.232.149.196:12345",
             provider='github_enterprise',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/baxterthehacker',
                 'installation_id': '12345',
                 'installation': {
                     'id': '2',
@@ -268,7 +268,7 @@ class PushEventWebhookTest(APITestCase):
             external_id="35.232.149.196:99",
             provider='github_enterprise',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/another',
                 'installation': {
                     'installation_id': '99',
                     'id': '2',
@@ -325,7 +325,7 @@ class PullRequestEventWebhook(APITestCase):
             external_id='35.232.149.196:234',
             name='octocat',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/baxterthehacker',
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
@@ -385,7 +385,7 @@ class PullRequestEventWebhook(APITestCase):
             external_id='35.232.149.196:234',
             name='octocat',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/baxterthehacker',
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
@@ -444,7 +444,7 @@ class PullRequestEventWebhook(APITestCase):
             external_id='35.232.149.196:234',
             name='octocat',
             metadata={
-                'domain_name': 'https://35.232.149.196',
+                'domain_name': '35.232.149.196/baxterthehacker',
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',

@@ -127,7 +127,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             u'access_token': None,
             u'expires_at': None,
             u'icon': u'https://35.232.149.196/avatar.png',
-            u'domain_name': u'https://35.232.149.196/Test-Organization',
+            u'domain_name': u'35.232.149.196/Test-Organization',
             u'installation_id': u'install_id_1',
             u'installation': {
                 u'client_id': u'client_id',
