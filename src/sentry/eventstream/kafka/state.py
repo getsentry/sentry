@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import logging
+import threading
 from collections import defaultdict, namedtuple
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,7 @@ class SynchronizedPartitionStateManager(object):
     def __init__(self, callback):
         self.partitions = defaultdict(lambda: (None, Offsets(None, None)))
         self.callback = callback
+        self.__lock = threading.RLock()
 
     def get_state_from_offsets(self, offsets):
         """
@@ -99,31 +102,32 @@ class SynchronizedPartitionStateManager(object):
         If this update operation results in a state change, the callback
         function will be invoked.
         """
-        previous_state, previous_offsets = self.partitions[(topic, partition)]
-        if local_offset < previous_offsets.local:
-            logger.info(
-                'Local offset has moved backwards (current: %s, previous: %s)',
-                local_offset,
-                previous_offsets.local)
-        updated_offsets = Offsets(local_offset, previous_offsets.remote)
-        updated_state = self.get_state_from_offsets(updated_offsets)
-        if previous_state is not updated_state and updated_state not in self.transitions[previous_state]:
-            raise InvalidStateTransition(
-                'Unexpected state transition from {} to {}'.format(
-                    previous_state, updated_state))
-        self.partitions[(topic, partition)] = (updated_state, updated_offsets)
-        if previous_state is not updated_state:
-            if updated_state == PartitionState.REMOTE_BEHIND:
-                logger.warning(
-                    'Current local offset (%s) exceeds remote offset (%s)!',
-                    updated_offsets.local,
-                    updated_offsets.remote)
-            self.callback(
-                topic,
-                partition,
-                (previous_state, previous_offsets),
-                (updated_state, updated_offsets),
-            )
+        with self.__lock:
+            previous_state, previous_offsets = self.partitions[(topic, partition)]
+            if local_offset < previous_offsets.local:
+                logger.info(
+                    'Local offset has moved backwards (current: %s, previous: %s)',
+                    local_offset,
+                    previous_offsets.local)
+            updated_offsets = Offsets(local_offset, previous_offsets.remote)
+            updated_state = self.get_state_from_offsets(updated_offsets)
+            if previous_state is not updated_state and updated_state not in self.transitions[previous_state]:
+                raise InvalidStateTransition(
+                    'Unexpected state transition from {} to {}'.format(
+                        previous_state, updated_state))
+            self.partitions[(topic, partition)] = (updated_state, updated_offsets)
+            if previous_state is not updated_state:
+                if updated_state == PartitionState.REMOTE_BEHIND:
+                    logger.warning(
+                        'Current local offset (%s) exceeds remote offset (%s)!',
+                        updated_offsets.local,
+                        updated_offsets.remote)
+                self.callback(
+                    topic,
+                    partition,
+                    (previous_state, previous_offsets),
+                    (updated_state, updated_offsets),
+                )
 
     def set_remote_offset(self, topic, partition, remote_offset):
         """
@@ -132,26 +136,27 @@ class SynchronizedPartitionStateManager(object):
         If this update operation results in a state change, the callback
         function will be invoked.
         """
-        previous_state, previous_offsets = self.partitions[(topic, partition)]
-        if remote_offset < previous_offsets.remote:
-            logger.info(
-                'Remote offset has moved backwards (current: %s, previous: %s)',
-                remote_offset,
-                previous_offsets.remote)
-        updated_offsets = Offsets(previous_offsets.local, remote_offset)
-        updated_state = self.get_state_from_offsets(updated_offsets)
-        if previous_state is not updated_state and updated_state not in self.transitions[previous_state]:
-            raise InvalidStateTransition(
-                'Unexpected state transition from {} to {}'.format(
-                    previous_state, updated_state))
-        self.partitions[(topic, partition)] = (updated_state, updated_offsets)
-        if previous_state is not updated_state:
-            self.callback(
-                topic,
-                partition,
-                (previous_state, previous_offsets),
-                (updated_state, updated_offsets),
-            )
+        with self.__lock:
+            previous_state, previous_offsets = self.partitions[(topic, partition)]
+            if remote_offset < previous_offsets.remote:
+                logger.info(
+                    'Remote offset has moved backwards (current: %s, previous: %s)',
+                    remote_offset,
+                    previous_offsets.remote)
+            updated_offsets = Offsets(previous_offsets.local, remote_offset)
+            updated_state = self.get_state_from_offsets(updated_offsets)
+            if previous_state is not updated_state and updated_state not in self.transitions[previous_state]:
+                raise InvalidStateTransition(
+                    'Unexpected state transition from {} to {}'.format(
+                        previous_state, updated_state))
+            self.partitions[(topic, partition)] = (updated_state, updated_offsets)
+            if previous_state is not updated_state:
+                self.callback(
+                    topic,
+                    partition,
+                    (previous_state, previous_offsets),
+                    (updated_state, updated_offsets),
+                )
 
     def validate_local_message(self, topic, partition, offset):
         """
@@ -160,12 +165,13 @@ class SynchronizedPartitionStateManager(object):
         The local consumer should be prevented from consuming messages that
         have yet to have been committed by the remote consumer.
         """
-        state, offsets = self.partitions[(topic, partition)]
-        if state is not PartitionState.LOCAL_BEHIND:
-            raise InvalidState('Received a message while consumer is not in LOCAL_BEHIND state!')
-        if offset >= offsets.remote:
-            raise MessageNotReady(
-                'Received a message that has not been committed by remote consumer')
-        if offset < offsets.local:
-            logger.warning(
-                'Received a message prior to local offset (local consumer offset rewound without update?)')
+        with self.__lock:
+            state, offsets = self.partitions[(topic, partition)]
+            if state is not PartitionState.LOCAL_BEHIND:
+                raise InvalidState('Received a message while consumer is not in LOCAL_BEHIND state!')
+            if offset >= offsets.remote:
+                raise MessageNotReady(
+                    'Received a message that has not been committed by remote consumer')
+            if offset < offsets.local:
+                logger.warning(
+                    'Received a message prior to local offset (local consumer offset rewound without update?)')
