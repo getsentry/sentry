@@ -12,6 +12,27 @@ from time import time
 logger = logging.getLogger(__name__)
 
 
+def execute(function, daemon=True):
+    future = Future()
+
+    def run():
+        if not future.set_running_or_notify_cancel():
+            return
+
+        try:
+            result = function()
+        except Exception as error:
+            future.set_exception_info(*sys.exc_info()[1:])
+        else:
+            future.set_result(result)
+
+    t = threading.Thread(target=run)
+    t.daemon = daemon
+    t.start()
+
+    return future
+
+
 class TimedFuture(Future):
     def __init__(self, *args, **kwargs):
         self.__timing = [None, None]  # [started, finished/cancelled]

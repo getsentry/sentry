@@ -2,12 +2,20 @@ from __future__ import absolute_import
 
 import mock
 import pytest
+import thread
 from Queue import Full
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
 
-from sentry.utils.concurrent import FutureSet, SynchronousExecutor, ThreadedExecutor, TimedFuture
+from sentry.utils.concurrent import FutureSet, SynchronousExecutor, ThreadedExecutor, TimedFuture, execute
+
+
+def test_execute():
+    assert execute(thread.get_ident).result() != thread.get_ident()
+
+    with pytest.raises(Exception):
+        assert execute(mock.Mock(side_effect=Exception('Boom!'))).result()
 
 
 def test_future_set_callback_success():
