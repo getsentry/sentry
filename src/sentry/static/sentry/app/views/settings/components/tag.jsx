@@ -15,7 +15,7 @@ const getBorder = p =>
         : p.theme.gray1};`
     : '';
 
-const TagTextStyled = styled(Box)`
+const TagTextStyled = styled(({priority, size, border, ...props}) => <Box {...props} />)`
   display: inline;
   padding: ${p => (p.size == 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: 75%;

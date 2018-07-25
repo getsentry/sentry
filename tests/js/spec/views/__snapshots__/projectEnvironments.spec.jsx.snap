@@ -788,19 +788,28 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 ml={1}
                                 priority="success"
                               >
-                                <Base
-                                  className="css-1c87zyv-TagTextStyled e6q9yfr0"
+                                <Component
+                                  className="css-558xfn-TagTextStyled e6q9yfr0"
                                   ml={1}
                                   priority="success"
                                 >
-                                  <div
-                                    className="css-1c87zyv-TagTextStyled e6q9yfr0"
-                                    is={null}
-                                    priority="success"
+                                  <Box
+                                    className="css-558xfn-TagTextStyled e6q9yfr0"
+                                    ml={1}
                                   >
-                                    Default
-                                  </div>
-                                </Base>
+                                    <Base
+                                      className="e6q9yfr0 css-1c87zyv-TagTextStyled"
+                                      ml={1}
+                                    >
+                                      <div
+                                        className="e6q9yfr0 css-1c87zyv-TagTextStyled"
+                                        is={null}
+                                      >
+                                        Default
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </Component>
                               </TagTextStyled>
                             </Tag>
                           </div>
