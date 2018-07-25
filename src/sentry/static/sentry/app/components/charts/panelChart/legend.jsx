@@ -18,28 +18,25 @@ const Legend = styled(
       ),
 
       /**
-       * Other line series to display
+       * Previous Period
        */
-      lines: PropTypes.arrayOf(
-        PropTypes.shape({
-          name: PropTypes.string,
-          data: PropTypes.arrayOf(PropTypes.number),
-        })
-      ),
+      previousPeriod: PropTypes.shape({
+        name: PropTypes.string,
+        data: PropTypes.arrayOf(PropTypes.number),
+      }),
     };
 
     render() {
-      let {className, series, lines} = this.props;
+      let {className, series, previousPeriod} = this.props;
 
       return (
         <Flex className={className}>
-          {lines &&
-            lines.length && (
-              <SeriesGroup>
-                <DottedLineIndicator />
-                <SeriesName>{lines[0].name}</SeriesName>
-              </SeriesGroup>
-            )}
+          {previousPeriod && (
+            <SeriesGroup>
+              <DottedLineIndicator />
+              <SeriesName>{previousPeriod.name}</SeriesName>
+            </SeriesGroup>
+          )}
 
           {series &&
             series.map((serie, i) => {

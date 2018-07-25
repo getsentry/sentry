@@ -20,12 +20,10 @@ describe('PanelChart', function() {
               data: [2, 3, 4, 5],
             },
           ]}
-          lines={[
-            {
-              name: 'Previous',
-              data: [1, 2, 3, 4],
-            },
-          ]}
+          previousPeriod={{
+            name: 'Previous',
+            data: [1, 2, 3, 4],
+          }}
         >
           <div />
         </PanelChart>,
@@ -80,17 +78,17 @@ describe('PanelChart', function() {
             data: [2, 3, 4, 5],
           },
         ]}
-        lines={[
-          {
-            name: 'Previous',
-            data: [1, 2, 3, 4],
-          },
-        ]}
+        previousPeriod={{
+          name: 'Previous',
+          data: [1, 2, 3, 4],
+        }}
       >
         <div />
       </PanelChart>,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('Legend')).toHaveLength(1);
+
+    // This has 2 results because of the Legend class and styled-component wrapper
+    expect(wrapper.find('Legend')).toHaveLength(2);
   });
 });

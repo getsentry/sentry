@@ -35,12 +35,10 @@ storiesOf('Charts/PanelChart', module).add(
         data: [50, 200, 150, 300, 102, 283, 341],
       },
     ];
-    const errorLines = [
-      {
-        name: 'Previous',
-        data: [650, 300, 350, 300, 400, 250, 200],
-      },
-    ];
+    const previousPeriodData = {
+      name: 'Previous',
+      data: [650, 300, 350, 300, 400, 250, 200],
+    };
 
     return (
       <React.Fragment>
@@ -57,13 +55,19 @@ storiesOf('Charts/PanelChart', module).add(
         </PanelChart>
 
         <PanelChart
-          title="Pie Chart"
+          title="Area Chart"
           startDate={new Date()}
           name="Browsers"
           series={errorSeries}
-          lines={errorLines}
+          previousPeriod={previousPeriodData}
         >
-          {({title, ...props}) => <AreaChart {...props} name={title} />}
+          {({title, previousPeriod, ...props}) => (
+            <AreaChart
+              {...props}
+              lines={(previousPeriod && [previousPeriod]) || []}
+              name={title}
+            />
+          )}
         </PanelChart>
       </React.Fragment>
     );
