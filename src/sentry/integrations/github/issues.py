@@ -45,7 +45,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         except ApiError:
             repo_choices = [(' ', ' ')]
         else:
-            repo_choices = [(repo['full_name'], repo['full_name']) for repo in repos]
+            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
@@ -104,7 +104,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         except ApiError:
             repo_choices = [(' ', ' ')]
         else:
-            repo_choices = [(repo['full_name'], repo['full_name']) for repo in repos]
+            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
