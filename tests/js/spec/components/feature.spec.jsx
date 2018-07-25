@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import Feature from 'app/components/feature';
+import ConfigStore from 'app/stores/configStore';
 
 describe('Feature', function() {
   const organization = TestStubs.Organization({
@@ -33,6 +34,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: true,
+        hasSuperuser: true,
       });
     });
 
@@ -45,6 +47,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: true,
+        hasSuperuser: true,
       });
     });
 
@@ -62,6 +65,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: true,
+        hasSuperuser: true,
       });
     });
 
@@ -76,6 +80,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: false,
+        hasSuperuser: true,
       });
     });
 
@@ -90,6 +95,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         hasAccess: true,
+        hasSuperuser: true,
       });
     });
 
@@ -104,6 +110,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         hasAccess: false,
+        hasSuperuser: true,
       });
     });
 
@@ -121,6 +128,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: true,
+        hasSuperuser: true,
       });
     });
 
@@ -138,6 +146,8 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: true,
+
+        hasSuperuser: true,
       });
     });
 
@@ -157,6 +167,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         hasAccess: false,
+        hasSuperuser: true,
       });
     });
 
@@ -175,6 +186,7 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
         hasAccess: true,
+        hasSuperuser: true,
       });
 
       mount(
@@ -187,7 +199,38 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         hasAccess: true,
+        hasSuperuser: true,
       });
+    });
+
+    it('is superuser', function() {
+      ConfigStore.config = {
+        user: {
+          isSuperuser: true,
+        },
+      };
+      mount(<Feature isSuperuser>{childrenMock}</Feature>, routerContext);
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasSuperuser: true,
+        })
+      );
+    });
+
+    it('is not superuser', function() {
+      ConfigStore.config = {
+        user: {
+          isSuperuser: false,
+        },
+      };
+      mount(<Feature isSuperuser>{childrenMock}</Feature>, routerContext);
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasSuperuser: false,
+        })
+      );
     });
   });
 
