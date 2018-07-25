@@ -114,6 +114,19 @@ describe('Feature', function() {
       });
     });
 
+    it('calls render function when no feature', function() {
+      const noFeatureRenderer = jest.fn(() => null);
+      mount(
+        <Feature feature={['org-baz']} renderNoFeatureMessage={noFeatureRenderer}>
+          {childrenMock}
+        </Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).not.toHaveBeenCalled();
+      expect(noFeatureRenderer).toHaveBeenCalled();
+    });
+
     it('can specify org from props', function() {
       mount(
         <Feature

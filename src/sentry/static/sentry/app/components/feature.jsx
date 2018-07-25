@@ -51,14 +51,9 @@ class Feature extends React.Component {
     isSuperuser: PropTypes.bool,
 
     /**
-     * Show a default message when user does not have feature flag enabled
+     * Custom renderer function for "no feature" message OR false to disable
      */
-    showNoFeatureMessage: PropTypes.bool,
-
-    /**
-     * Custom renderer for "no feature" message
-     */
-    renderNoFeatureMessage: PropTypes.func,
+    renderNoFeatureMessage: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
     /**
      * If children is a function then will be treated as a render prop and passed this object:
@@ -74,8 +69,7 @@ class Feature extends React.Component {
   };
 
   static defaultProps = {
-    showNoFeatureMessage: false,
-    renderNoFeatureMessage: null,
+    renderNoFeatureMessage: false,
   };
 
   getAllFeatures = () => {
@@ -118,7 +112,6 @@ class Feature extends React.Component {
       access,
       configUser,
       isSuperuser,
-      showNoFeatureMessage,
       renderNoFeatureMessage,
     } = this.props;
     let {access: orgAccess} = organization || {access: []};
@@ -127,19 +120,20 @@ class Feature extends React.Component {
       !feature || feature.every(feat => this.hasFeature(feat, allFeatures));
     let hasAccess = !access || access.every(acc => orgAccess.includes(acc));
     let hasSuperuser = !isSuperuser || configUser.isSuperuser;
+    let renderProps = {
+      hasFeature,
+      hasAccess,
+      hasSuperuser,
+    };
 
-    if (typeof children === 'function') {
-      return children({
-        hasFeature,
-        hasAccess,
-        hasSuperuser,
-      });
+    if (!hasFeature && typeof renderNoFeatureMessage === 'function') {
+      return renderNoFeatureMessage(renderProps);
+    } else if (!hasFeature && renderNoFeatureMessage) {
+      return DEFAULT_NO_FEATURE_MESSAGE;
     }
 
-    if (!hasFeature && showNoFeatureMessage && !renderNoFeatureMessage) {
-      return DEFAULT_NO_FEATURE_MESSAGE;
-    } else if (!hasFeature && typeof renderNoFeatureMessage === 'function') {
-      return renderNoFeatureMessage();
+    if (typeof children === 'function') {
+      return children(renderProps);
     }
 
     // if children is NOT a function,
