@@ -13,7 +13,7 @@
 
 {% block scripts %}
   {{ block.super }}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/3.5.1/select2.min.js"></script>
+  <script src="{% asset_url "sentry" "vendor/select2.min.js" %}"></script>
 
   <script>
     if (window.$) {
