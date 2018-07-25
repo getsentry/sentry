@@ -789,20 +789,20 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 priority="success"
                               >
                                 <Component
-                                  className="css-558xfn-TagTextStyled e6q9yfr0"
+                                  className="css-ftrjq0-TagTextStyled e6q9yfr0"
                                   ml={1}
                                   priority="success"
                                 >
                                   <Box
-                                    className="css-558xfn-TagTextStyled e6q9yfr0"
+                                    className="css-ftrjq0-TagTextStyled e6q9yfr0"
                                     ml={1}
                                   >
                                     <Base
-                                      className="e6q9yfr0 css-1c87zyv-TagTextStyled"
+                                      className="e6q9yfr0 css-hqgxmh-TagTextStyled"
                                       ml={1}
                                     >
                                       <div
-                                        className="e6q9yfr0 css-1c87zyv-TagTextStyled"
+                                        className="e6q9yfr0 css-hqgxmh-TagTextStyled"
                                         is={null}
                                       >
                                         Default

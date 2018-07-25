@@ -6,6 +6,40 @@ import styled from 'react-emotion';
 import Badge from 'app/components/badge';
 import Tag from 'app/views/settings/components/tag';
 
+class SettingsNavItem extends React.Component {
+  static propTypes = {
+    label: PropTypes.node.isRequired,
+    badge: PropTypes.node,
+    index: PropTypes.bool,
+  };
+
+  render() {
+    let {badge, label, index, ...props} = this.props;
+
+    let renderedBadge = '';
+
+    if (badge === 'new') {
+      renderedBadge = (
+        <StyledTag priority="attention" size="small" border={true}>
+          {badge}
+        </StyledTag>
+      );
+    } else {
+      renderedBadge = <Badge text={badge} />;
+    }
+
+    return (
+      <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
+        {label} {badge ? renderedBadge : null}
+      </StyledNavItem>
+    );
+  }
+}
+
+const StyledTag = styled(Tag)`
+  margin-left: 0.25em;
+`;
+
 const StyledNavItem = styled(Link)`
   display: block;
   color: ${p => p.theme.gray2};
@@ -39,35 +73,5 @@ const StyledNavItem = styled(Link)`
     border-radius: 1px;
   }
 `;
-
-class SettingsNavItem extends React.Component {
-  static propTypes = {
-    label: PropTypes.node.isRequired,
-    badge: PropTypes.node,
-    index: PropTypes.bool,
-  };
-
-  render() {
-    let {badge, label, index, ...props} = this.props;
-
-    let renderedBadge = '';
-
-    if (badge === 'new') {
-      renderedBadge = (
-        <Tag priority="attention" size="small" border={true}>
-          {badge}
-        </Tag>
-      );
-    } else {
-      renderedBadge = <Badge text={badge} />;
-    }
-
-    return (
-      <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
-        {label} {badge ? renderedBadge : null}
-      </StyledNavItem>
-    );
-  }
-}
 
 export default SettingsNavItem;

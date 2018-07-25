@@ -23,9 +23,10 @@ const TagTextStyled = styled(({priority, size, border, ...props}) => <Box {...pr
   color: ${p => (p.priority ? '#fff' : p.gray5)};
   text-align: center;
   white-space: nowrap;
-  vertical-align: baseline;
+  vertical-align: middle;
   border-radius: ${p => (p.size == 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
+  font-weight: ${p => (p.size == 'small' ? 'bold' : 'normal')};
   background-color: ${p =>
     p.priority ? p.theme.alert[p.priority].background : p.theme.offWhite2};
   ${p => getBorder(p)};
