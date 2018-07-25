@@ -31,6 +31,11 @@ describe('Phabricator', function() {
         ...TestStubs.PhabricatorAutocomplete('assignee'),
       },
     });
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+  });
+
+  afterAll(function() {
+    window.console.info.mockRestore();
   });
 
   it('can create a new issue', async function() {

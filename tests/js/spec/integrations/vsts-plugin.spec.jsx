@@ -21,6 +21,12 @@ describe('Vsts', function() {
       url: `/issues/${group.id}/plugins/vsts/create/`,
       body: VstsCreateResponse,
     });
+
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+  });
+
+  afterAll(function() {
+    window.console.info.mockRestore();
   });
 
   it('can create a new issue', async function() {
