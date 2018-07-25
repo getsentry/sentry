@@ -66,16 +66,22 @@ JIRA_CUSTOM_FIELD_TYPES = {
 
 
 class JiraIntegration(Integration, IssueSyncMixin):
+    comment_key = 'sync_comments'
+    outbound_status_key = 'sync_status_forward'
+    inbound_status_key = 'sync_status_reverse'
+    outbound_assignee_key = 'sync_forward_assignment'
+    inbound_assignee_key = 'sync_reverse_assignment'
+
     def get_organization_config(self):
         configuration = [
             {
-                'name': 'sync_status_reverse',
+                'name': self.inbound_status_key,
                 'type': 'boolean',
                 'label': _('Sync Status from Jira to Sentry'),
                 'help': _("When a Jira ticket is moved to a done category, it's linked Sentry issue will be resolved. When a Jira ticket is moved out of a Done category, it's linked sentry issue will be unresolved."),
             },
             {
-                'name': 'sync_status_forward',
+                'name': self.outbound_status_key,
                 'type': 'choice_mapper',
                 'label': _('Sync Status from Sentry to Jira'),
                 'help': _('Declares what the linked Jira ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
@@ -96,19 +102,19 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'mappedColumnLabel': _('Jira Project'),
             },
             {
-                'name': 'sync_comments',
+                'name': self.comment_key,
                 'type': 'boolean',
                 'label': _('Post Comments to Jira'),
                 'help': _('Synchronize comments from Sentry issues to linked Jira tickets.'),
             },
             {
-                'name': 'sync_forward_assignment',
+                'name': self.outbound_assignee_key,
                 'type': 'boolean',
                 'label': _('Synchronize Assignment to Jira'),
                 'help': _('When assigning something in Sentry, the linked Jira ticket will have the associated Jira user assigned.'),
             },
             {
-                'name': 'sync_reverse_assignment',
+                'name': self.inbound_assignee_key,
                 'type': 'boolean',
                 'label': _('Synchronize Assignment to Sentry'),
                 'help': _('When assigning a user to a Linked Jira ticket, the associated Sentry user will be assigned to the Sentry issue.'),
