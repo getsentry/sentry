@@ -8,15 +8,17 @@ const getMarginLeft = p => {
   return `margin-left: ${p.size == 'small' ? '0.25em' : '0.5em'};`;
 };
 
+const getBorder = p =>
+  p.border
+    ? `border: 1px solid ${p.priority
+        ? p.theme.alert[p.priority].border
+        : p.theme.gray1};`
+    : '';
+
 const TagTextStyled = styled(Box)`
   display: inline;
   padding: ${p => (p.size == 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
-  ${p =>
-    p.border
-      ? `border: 1px solid ${p.priority
-          ? p.theme.alert[p.priority].border
-          : p.theme.gray1};`
-      : ''} font-size: 75%;
+  font-size: 75%;
   line-height: 1;
   color: ${p => (p.priority ? '#fff' : p.gray5)};
   text-align: center;
@@ -26,6 +28,7 @@ const TagTextStyled = styled(Box)`
   text-transform: lowercase;
   background-color: ${p =>
     p.priority ? p.theme.alert[p.priority].background : p.theme.offWhite2};
+  ${p => getBorder(p)};
   ${p => getMarginLeft(p)};
 `;
 
