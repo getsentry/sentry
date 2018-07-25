@@ -1,15 +1,78 @@
 from __future__ import absolute_import
 
+import functools
 import logging
+import threading
 import uuid
 
 from confluent_kafka import Consumer, OFFSET_BEGINNING, TopicPartition
 
 from sentry.eventstream.kafka.state import PartitionState, SynchronizedPartitionStateManager
-from sentry.eventstream.kafka.utils import join
+from sentry.utils.concurrent import execute
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_commit_data(message):
+    topic, partition, group = message.key().decode('utf-8').split(':', 3)
+    partition = int(partition)
+    offset = int(message.value().decode('utf-8'))
+    return group, topic, partition, offset
+
+
+def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
+                            partition_state_manager, synchronize_commit_group, stop_request_event):
+    logging.debug('Starting commit log consumer...')
+
+    # NOTE: The commit log consumer group should not be persisted into the
+    # ``__consumer_offsets`` topic since no offsets are committed by this
+    # consumer. The group membership metadata messages will be published
+    # initially but as long as this group remains a single consumer it will
+    # be deleted after the consumer is closed.
+    # It is very important to note that the ``group.id`` **MUST** be unique to
+    # this consumer process!!! This ensures that it is able to consume from all
+    # partitions of the commit log topic and get a comprehensive view of the
+    # state of the consumer groups it is tracking.
+    consumer = Consumer({
+        'bootstrap.servers': bootstrap_servers,
+        'group.id': consumer_group,
+        'enable.auto.commit': 'false',
+        'enable.auto.offset.store': 'true',
+        'enable.partition.eof': 'false',
+        'default.topic.config': {
+            'auto.offset.reset': 'error',
+        },
+    })
+
+    def rewind_partitions_on_assignment(consumer, assignment):
+        # The commit log consumer must start consuming from the beginning of
+        # the commit log topic to ensure that it has a comprehensive view of
+        # all active partitions.
+        # TODO: This needs to be updated to only rewind new partitions!
+        consumer.assign([TopicPartition(i.topic, i.partition, OFFSET_BEGINNING)
+                         for i in assignment])
+
+    consumer.subscribe(
+        [commit_log_topic],
+        on_assign=rewind_partitions_on_assignment,
+    )
+
+    while not stop_request_event.is_set():
+        message = consumer.poll(1)
+        if message is None:
+            continue
+
+        error = message.error()
+        if error is not None:
+            raise Exception(error)
+
+        group, topic, partition, offset = get_commit_data(message)
+        if group != synchronize_commit_group:
+            logger.debug('Received consumer offsets update from %r, ignoring...', group)
+            continue
+
+        partition_state_manager.set_remote_offset(topic, partition, offset)
 
 
 class SynchronizedConsumer(object):
@@ -44,19 +107,13 @@ class SynchronizedConsumer(object):
     """
 
     def __init__(self, bootstrap_servers, topics, consumer_group,
-                 commit_log_topic, synchronize_commit_group):
+                 commit_log_topic, synchronize_commit_group, on_commit=None):
         self.bootstrap_servers = bootstrap_servers
         self.topics = topics
         self.consumer_group = consumer_group
         self.commit_log_topic = commit_log_topic
         self.synchronize_commit_group = synchronize_commit_group
-
-    def _commit_callback(self, error, partitions):
-        if error is not None:
-            logger.warning(
-                'Failed to commit offsets (error: %s, partitions: %r)',
-                error,
-                partitions)
+        self.on_commit = on_commit
 
     def _on_partition_state_change(
             self, topic, partition, previous_state_and_offsets, current_state_and_offsets):
@@ -104,21 +161,8 @@ class SynchronizedConsumer(object):
             # not trailing the remote offset) or resumed.
             self._partition_state_manager.set_local_offset(i.topic, i.partition, i.offset)
 
-    def _rewind_partitions_on_assignment(self, consumer, assignment):
-        # The commit log consumer must start consuming from the beginning of
-        # the commit log topic to ensure that it has a comprehensive view of
-        # all active partitions.
-        consumer.assign([TopicPartition(i.topic, i.partition, OFFSET_BEGINNING)
-                         for i in assignment])
-
-    def get_commit_data(self, message):
-        group, topic, partition = message.key().decode('utf-8').split(':', 3)
-        partition = int(partition)
-        offset = int(message.value().decode('utf-8'))
-        return group, topic, partition, offset
-
     def start(self):
-        self._consumer = Consumer({
+        consumer_configuration = {
             'bootstrap.servers': self.bootstrap_servers,
             'group.id': self.consumer_group,
             'enable.auto.commit': 'false',
@@ -127,57 +171,59 @@ class SynchronizedConsumer(object):
             'default.topic.config': {
                 'auto.offset.reset': 'error',
             },
-            'on_commit': self._commit_callback,
-        })
+        }
+
+        if self.on_commit is not None:
+            consumer_configuration['on_commit'] = self.on_commit
+
+        self._consumer = Consumer(consumer_configuration)
 
         self._partition_state_manager = SynchronizedPartitionStateManager(
             self._on_partition_state_change)
 
         self._consumer.subscribe(self.topics, self._pause_partitions_on_assignment)
 
-        # NOTE: The commit log consumer group should not be persisted into the
-        # ``__consumer_offsets`` topic since no offsets are committed by this
-        # consumer. The group membership metadata messages will be published
-        # initially but as long as this group remains a single consumer it will
-        # be deleted after the consumer is closed. It is very important to note
-        # that the ``group.id`` **MUST** be unique to this consumer process!!!
-        # (This ensures that it is able to consume from all partitions of the
-        # commit log topic and get a comprehensive view of the state of the
-        # consumer groups it is tracking.)
-        self._commit_log_consumer = Consumer({
-            'bootstrap_servers': self.bootstrap_servers,
-            'group.id': '{}:sync:{}'.format(self.consumer_group, uuid.uuid1.hex()),
-            'enable.auto.commit': 'false',
-            'enable.auto.offset.store': 'true',
-            'enable.partition.eof': 'false',
-            'default.topic.config': {
-                'auto.offset.reset': 'error',
-            },
-        })
-
-        self._commit_log_consumer.subscribe(
-            [self.commit_log_topic],
-            on_assign=self._rewind_partitions_on_assignment,
+        self._commit_log_consumer_stop_request = threading.Event()
+        self._commit_log_consumer = execute(
+            functools.partial(
+                run_commit_log_consumer,
+                bootstrap_servers=self.bootstrap_servers,
+                consumer_group='{}:sync:{}'.format(
+                    self.consumer_group,
+                    uuid.uuid1().hex,
+                ),
+                commit_log_topic=self.commit_log_topic,
+                partition_state_manager=self._partition_state_manager,
+                synchronize_commit_group=self.synchronize_commit_group,
+                stop_request_event=self._commit_log_consumer_stop_request,
+            ),
         )
 
-        for consumer, message in join([self._commit_log_consumer, self._consumer]):
-            if consumer is self._consumer:
-                self._partition_state_manager.validate_local_message(
-                    message.topic(), message.partition(), message.offset())
-                self.handle(message)
-                self._partition_state_manager.set_local_offset(
-                    message.topic(), message.partition(), message.offset() + 1)
-            elif consumer is self._commit_log_consumer:
-                group, topic, partition, offset = self.get_commit_data(message)
-                if group != self.synchronize_commit_group:
-                    logger.debug('Received consumer offsets update from %r, ignoring...', group)
-                else:
-                    self._partition_state_manager.set_remote_offset(topic, partition, offset)
-            else:
-                raise Exception('Received message from an unexpected consumer!')
+    def poll(self, timeout):
+        if not self._commit_log_consumer.running():
+            result = self._commit_log_consumer.result(timeout=0)  # noqa
+            raise Exception('Commit log consumer unexpectedly exit!')
 
-    def handle(self, message):
-        raise NotImplementedError
+        message = self._consumer.poll(timeout)
+        if message is None:
+            return
+
+        if message.error() is not None:
+            return message
+
+        self._partition_state_manager.validate_local_message(
+            message.topic(), message.partition(), message.offset())
+        self._partition_state_manager.set_local_offset(
+            message.topic(), message.partition(), message.offset() + 1)
+
+        return message
 
     def commit(self, *args, **kwargs):
         return self._consumer.commit(*args, **kwargs)
+
+    def close(self):
+        self._commit_log_consumer_stop_request.set()
+        try:
+            self._consumer.close()
+        finally:
+            self._commit_log_consumer.result()
