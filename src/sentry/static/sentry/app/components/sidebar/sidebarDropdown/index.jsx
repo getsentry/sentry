@@ -11,6 +11,7 @@ import Link from 'app/components/link';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import IdBadge from 'app/components/idBadge';
+import ConfigStore from 'app/stores/configStore';
 
 import SwitchOrganization from './switchOrganization';
 import SidebarOrgSummary from './sidebarOrgSummary';
@@ -41,9 +42,9 @@ class SidebarDropdown extends React.Component {
     // (which uses an org from organizations index endpoint versus details endpoint)
     // and does not have `access`
     let hasOrgRead = org && org.access && org.access.indexOf('org:read') > -1;
-    let hasOrgWrite = org && org.access && org.access.indexOf('org:write') > -1;
     let hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
     let hasTeamRead = org && org.access && org.access.indexOf('team:read') > -1;
+    let canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
     // Avatar to use: Organization --> user --> Sentry
     const avatar =
@@ -121,7 +122,7 @@ class SidebarDropdown extends React.Component {
 
                       {!config.singleOrganization && (
                         <SidebarMenuItem>
-                          <SwitchOrganization canCreateOrganization={hasOrgWrite} />
+                          <SwitchOrganization canCreateOrganization={canCreateOrg} />
                         </SidebarMenuItem>
                       )}
 

@@ -492,10 +492,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 className="css-rkoh57-MenuItemLabel-MenuItemLabel ebifsjx0"
               >
                 <withOrganizations
-                  canCreateOrganization={true}
+                  canCreateOrganization={false}
                 >
                   <SwitchOrganization
-                    canCreateOrganization={true}
+                    canCreateOrganization={false}
                     organizations={Array []}
                   >
                     <DropdownMenu

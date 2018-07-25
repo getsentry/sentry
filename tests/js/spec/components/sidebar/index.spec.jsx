@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mount, shallow} from 'enzyme';
 import IncidentStore from 'app/stores/incidentStore';
+import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
 
 describe('Sidebar', function() {
@@ -116,6 +117,7 @@ describe('Sidebar', function() {
     });
 
     it('can open "Switch Organization" sub-menu', function() {
+      ConfigStore.set('features', new Set(['organizations:create']));
       jest.useFakeTimers();
       wrapper = createWrapper();
       wrapper.find('SidebarDropdownActor').simulate('click');
