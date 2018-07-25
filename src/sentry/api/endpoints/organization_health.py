@@ -14,11 +14,12 @@ from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
 )
-from sentry.api.serializers.snuba import SnubaResultSerializer, TAG_USER, TAG_RELEASE, value_from_row
+from sentry.api.serializers.snuba import SnubaResultSerializer, SnubaTSResultSerializer, TAG_USER, TAG_RELEASE, value_from_row
 from sentry.utils import snuba
 
 
 SnubaResultSet = namedtuple('SnubaResultSet', ('current', 'previous'))
+SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
 
 
 def parse_stats_period(period):
@@ -26,13 +27,13 @@ def parse_stats_period(period):
     Convert a value such as 1h into a
     proper timedelta.
     """
-    m = re.match('^(\d+)([hd])$', period)
+    m = re.match('^(\d+)([hdms])$', period)
     if not m:
         return None
     value, unit = m.groups()
     value = int(value)
     return timedelta(**{
-        {'h': 'hours', 'd': 'days'}[unit]: value,
+        {'h': 'hours', 'd': 'days', 'm': 'minutes', 's': 'seconds'}[unit]: value,
     })
 
 
@@ -42,6 +43,11 @@ def query(**kwargs):
 
 
 class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
+    TAGKEYS = {
+        'user': TAG_USER,
+        'release': TAG_RELEASE,
+    }
+
     def empty(self):
         return Response({'data': []})
 
@@ -99,10 +105,6 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
     MIN_STATS_PERIOD = timedelta(hours=1)
     MAX_STATS_PERIOD = timedelta(days=45)
     MAX_LIMIT = 50
-    TAGKEYS = {
-        'user': TAG_USER,
-        'release': TAG_RELEASE,
-    }
 
     def get(self, request, organization):
         try:
@@ -190,10 +192,6 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
 class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
     MIN_STATS_PERIOD = timedelta(hours=1)
     MAX_STATS_PERIOD = timedelta(days=90)
-    TAGKEYS = {
-        'user': TAG_USER,
-        'release': TAG_RELEASE,
-    }
 
     def get(self, request, organization):
         try:
@@ -234,4 +232,61 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             groupby=['time'],
             orderby='time',
         )
+        # TODO: Use proper serializer
         return Response({'data': data})
+
+
+class OrganizationHealthGraph2Endpoint(OrganizationHealthEndpointBase):
+    MIN_STATS_PERIOD = timedelta(hours=1)
+    MAX_STATS_PERIOD = timedelta(days=90)
+
+    def get(self, request, organization):
+        try:
+            tagkey = self.TAGKEYS[request.GET['tag']]
+        except KeyError:
+            raise ResourceDoesNotExist
+
+        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
+        if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
+            return Response({'detail': 'Invalid statsPeriod'}, status=400)
+
+        interval = parse_stats_period(request.GET.get('interval', '1h'))
+        if interval is None:
+            interval = timedelta(hours=1)
+
+        project_ids = self.get_project_ids(request, organization)
+        if not project_ids:
+            return self.empty()
+
+        environment = self.get_environment(request, organization)
+
+        end = timezone.now()
+        start = end - stats_period
+        rollup = int(interval.total_seconds())
+
+        data = query(
+            end=end,
+            start=start,
+            rollup=rollup,
+            aggregations=[
+                ('count()', '', 'count'),
+                # ('uniq', tagkey[0], 'uniq'),
+            ],
+            filter_keys={
+                'project_id': project_ids,
+            },
+            conditions=[
+                [tagkey[0], 'IS NOT NULL', None],
+                environment,
+            ],
+            groupby=['time'] + list(tagkey),
+            orderby='time',
+        )
+
+        serializer = SnubaTSResultSerializer(organization, tagkey, request.user)
+        return Response(
+            serializer.serialize(
+                SnubaTSResult(data, start, end, rollup),
+            ),
+            status=200,
+        )

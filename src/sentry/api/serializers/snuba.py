@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import six
+import itertools
 from functools import reduce
 from operator import or_
 
 from django.db.models import Q
 
 from sentry.models import Release, Project, ProjectStatus, EventUser
+from sentry.utils.dates import to_timestamp
 
 
 def serialize_releases(organization, item_list, user):
@@ -18,7 +20,7 @@ def serialize_releases(organization, item_list, user):
         }
         for r in Release.objects.filter(
             organization=organization,
-            version__in=[i[0] for i in item_list],
+            version__in={i[0] for i in item_list},
         )
     }
 
@@ -80,6 +82,24 @@ def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
 
 
+def zerofill(data, start, end, rollup):
+    rv = []
+    start = ((int(to_timestamp(start)) / rollup) * rollup) + rollup
+    end = ((int(to_timestamp(end)) / rollup) * rollup) + rollup
+    i = 0
+    for key in xrange(start, end, rollup):
+        try:
+            if data[i][0] == key:
+                rv.append(data[i])
+                i += 1
+                continue
+        except IndexError:
+            pass
+
+        rv.append((key, []))
+    return rv
+
+
 TAG_USER = ('tags[sentry:user]', 'project_id')
 TAG_RELEASE = ('tags[sentry:release]',)
 
@@ -94,7 +114,7 @@ tagkey_to_name = {
 }
 
 
-class SnubaResultSerializer(object):
+class SnubaSerializer(object):
     def __init__(self, organization, tagkey, user):
         self.organization = organization
         self.tagkey = tagkey
@@ -104,6 +124,8 @@ class SnubaResultSerializer(object):
     def get_attrs(self, item_list):
         return serializer_by_tagkey[self.tagkey](self.organization, item_list, self.user)
 
+
+class SnubaResultSerializer(SnubaSerializer):
     def serialize(self, result):
         counts_by_value = {
             value_from_row(r, self.tagkey): r['count']
@@ -134,3 +156,28 @@ class SnubaResultSerializer(object):
             data.append(row)
 
         return {'data': data}
+
+
+class SnubaTSResultSerializer(SnubaSerializer):
+
+    def serialize(self, result):
+        data = [
+            (key, list(group))
+            for key, group in itertools.groupby(result.data, key=lambda r: r['time'])
+        ]
+        attrs = self.get_attrs([
+            value_from_row(r, self.tagkey)
+            for _, v in data
+            for r in v
+        ])
+        rv = []
+        for k, v in data:
+            row = []
+            for r in v:
+                value = value_from_row(r, self.tagkey)
+                row.append({
+                    'count': r['count'],
+                    self.name: attrs.get(value),
+                })
+            rv.append((k, row))
+        return {'data': zerofill(rv, result.start, result.end, result.rollup)}
