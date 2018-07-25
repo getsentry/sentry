@@ -132,9 +132,9 @@ class FileBlob(Model):
     def delete(self, *args, **kwargs):
         lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
         with TimedRetryPolicy(60)(lock.acquire):
-            if self.path:
-                self.deletefile(commit=False)
             super(FileBlob, self).delete(*args, **kwargs)
+        if self.path:
+            self.deletefile(commit=False)
 
     def deletefile(self, commit=False):
         assert self.path
