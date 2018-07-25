@@ -139,7 +139,17 @@ class FileBlob(Model):
     def deletefile(self, commit=False):
         assert self.path
 
-        delete_file_task.delay(self.path, self.checksum)
+        # Defer this by 1 minute just to make sure
+        # we avoid any transaction isolation where the
+        # FileBlob row might still be visible by the
+        # task before transaction is committed.
+        delete_file_task.apply_async(
+            kwargs={
+                'path': self.path,
+                'checksum': self.checksum,
+            },
+            countdown=60,
+        )
 
         self.path = None
 
