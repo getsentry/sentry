@@ -32,7 +32,9 @@ export default class lineChart extends React.Component {
     // const series = Object.entries(this.getLineSeries(data.data, groupBy)).map(this.defineSeries);
     const series = Object.entries(chartData).map(this.defineSeries);
 
-    const dates = data.data.map(entry => moment(entry.time * 1000).format('MM-DD'));
+    const dates = [
+      ...new Set(data.data.map(entry => moment(entry.time * 1000).format('MM-DD'))),
+    ];
 
     console.log('dates', dates);
     console.log('received chartdata', chartData);
