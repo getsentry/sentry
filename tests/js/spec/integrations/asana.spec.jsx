@@ -32,6 +32,11 @@ describe('Asana', function() {
         ...TestStubs.AsanaAutocomplete('assignee', [{id: 123123123, text: 'Billy'}]),
       },
     });
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+  });
+
+  afterAll(function() {
+    window.console.info.mockRestore();
   });
 
   it('can create a new issue', async function() {
