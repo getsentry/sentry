@@ -15,6 +15,12 @@ class IssueBasicMixin(object):
     def get_group_title(self, group, event, **kwargs):
         return event.error()
 
+    def get_issue_url(self, key, **kwargs):
+        """
+        Given the key of the external_issue return the external issue link.
+        """
+        raise NotImplementedError
+
     def get_group_body(self, group, event, **kwargs):
         result = []
         for interface in six.itervalues(event.interfaces):

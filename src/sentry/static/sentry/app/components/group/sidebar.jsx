@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
+import Feature from 'app/components/feature';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import ProjectState from 'app/mixins/projectState';
@@ -16,6 +17,8 @@ import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import LoadingError from 'app/components/loadingError';
 import {t, tct} from 'app/locale';
 import withEnvironment from 'app/utils/withEnvironment';
+
+import ExternalIssueList from 'app/components/group/externalIssuesList';
 
 const GroupSidebar = createReactClass({
   displayName: 'GroupSidebar',
@@ -223,6 +226,9 @@ const GroupSidebar = createReactClass({
     return (
       <div className="group-stats">
         <SuggestedOwners event={this.props.event} />
+        <Feature feature={['internal-catchall']}>
+          <ExternalIssueList group={this.props.group} />
+        </Feature>
         <GroupReleaseStats
           group={this.props.group}
           allEnvironments={this.state.allEnvironmentsGroupData}

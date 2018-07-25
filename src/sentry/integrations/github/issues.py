@@ -9,6 +9,11 @@ class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
         return '{}#{}'.format(data['repo'], data['key'])
 
+    def get_issue_url(self, key, **kwargs):
+        domain_name, user = self.model.metadata['domain_name'].split('/')
+        repo, issue_id = key.split('#')
+        return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
+
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs['data']
         client = self.get_client()
@@ -89,6 +94,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             'key': issue['number'],
             'title': issue['title'],
             'description': issue['body'],
+            'url': issue['html_url'],
             'repo': repo,
         }
 
@@ -156,6 +162,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             'key': issue['number'],
             'title': issue['title'],
             'description': issue['body'],
+            'url': issue['html_url'],
             'repo': repo,
         }
 

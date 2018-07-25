@@ -3,13 +3,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import DropdownLink from 'app/components/dropdownLink';
+import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
-import MenuItem from 'app/components/menuItem';
-import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -18,7 +18,7 @@ const MESSAGES_BY_ACTION = {
 
 class ExternalIssueForm extends AsyncComponent {
   static propTypes = {
-    group: PropTypes.object.isRequired,
+    group: SentryTypes.Group.isRequired,
     integration: PropTypes.object.isRequired,
     action: PropTypes.oneOf(['link', 'create']),
     onSubmitSuccess: PropTypes.func.isRequired,
@@ -34,9 +34,9 @@ class ExternalIssueForm extends AsyncComponent {
     ];
   }
 
-  onSubmitSuccess = () => {
+  onSubmitSuccess = data => {
     addSuccessMessage(MESSAGES_BY_ACTION[this.props.action]);
-    this.props.onSubmitSuccess();
+    this.props.onSubmitSuccess(data);
   };
 
   getOptions = (field, input) => {
@@ -162,67 +162,76 @@ class ExternalIssueForm extends AsyncComponent {
   }
 }
 
-class ExternalIssueActionList extends AsyncComponent {
+class ExternalIssueActions extends AsyncComponent {
   static propTypes = {
     group: PropTypes.object.isRequired,
+    integration: PropTypes.object.isRequired,
   };
 
   constructor(props, context) {
     super(props, context);
     this.state.showModal = false;
-    this.state.selectedIntegration = null;
-    this.state.action = null;
+    this.state.selectedIntegration = this.props.integration;
+    this.state.action = 'create';
+    this.state.issue = this.getIssue();
   }
 
-  getEndpoints() {
-    let {group} = this.props;
-    return [['integrations', `/groups/${group.id}/integrations/`]];
+  getIssue() {
+    return this.props.integration && this.props.integration.externalIssues
+      ? this.props.integration.externalIssues[0]
+      : null;
   }
 
-  openModal = (integration, action) => {
+  deleteIssue(issueId) {
+    let {group, integration} = this.props;
+    let endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
+    this.api.request(endpoint, {
+      method: 'DELETE',
+      success: (data, _, jqXHR) => {
+        addSuccessMessage(t('Successfully unlinked issue.'));
+        this.setState({
+          issue: null,
+        });
+      },
+      error: error => {
+        addErrorMessage(t('Unable to unlink issue.'));
+      },
+    });
+  }
+
+  openModal = () => {
+    const {integration} = this.props;
     this.setState({
       showModal: true,
       selectedIntegration: integration,
-      action,
+      action: 'create',
     });
   };
 
-  closeModal = () => {
+  closeModal = data => {
     this.setState({
       showModal: false,
-      selectedIntegration: null,
       action: null,
+      issue: data.id ? data : null,
     });
   };
 
-  renderEmpty() {
-    // TODO(jess): This should link to org integrations page
-    return <MenuItem>{t('No integrations configured')}</MenuItem>;
-  }
+  handleClick = action => {
+    this.setState({action});
+  };
 
   renderBody() {
-    let {action, selectedIntegration, integrations} = this.state;
-    if (!integrations || !integrations.length) {
-      return this.renderEmpty();
-    }
+    let {action, selectedIntegration, issue} = this.state;
+
     return (
       <React.Fragment>
-        {integrations.map(integration => {
-          return (
-            <React.Fragment key={integration.id}>
-              <MenuItem noAnchor={true}>
-                <a onClick={this.openModal.bind(this, integration, 'link')}>
-                  {tct('Link [provider] issue', {provider: integration.provider.name})}
-                </a>
-              </MenuItem>
-              <MenuItem noAnchor={true}>
-                <a onClick={this.openModal.bind(this, integration, 'create')}>
-                  {tct('Create [provider] issue', {provider: integration.provider.name})}
-                </a>
-              </MenuItem>
-            </React.Fragment>
-          );
-        })}
+        <IssueSyncListElement
+          onOpen={this.openModal}
+          externalIssueLink={issue ? issue.url : null}
+          externalIssueId={issue ? issue.id : null}
+          onClose={this.deleteIssue.bind(this)}
+          integrationType={selectedIntegration.provider.key}
+        />
         {selectedIntegration && (
           <Modal
             show={this.state.showModal}
@@ -234,35 +243,38 @@ class ExternalIssueActionList extends AsyncComponent {
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
             </Modal.Header>
+            <ul
+              className="nav nav-tabs"
+              style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
+            >
+              <li className={action === 'create' ? 'active' : ''}>
+                <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
+              </li>
+              <li className={action === 'link' ? 'active' : ''}>
+                <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
+              </li>
+            </ul>
             <Modal.Body>
-              <ExternalIssueForm
-                group={this.props.group}
-                integration={selectedIntegration}
-                action={action}
-                onSubmitSuccess={this.closeModal}
-              />
+              {action === 'create' && (
+                <ExternalIssueForm
+                  group={this.props.group}
+                  integration={selectedIntegration}
+                  action={'create'}
+                  onSubmitSuccess={this.closeModal}
+                />
+              )}
+              {action === 'link' && (
+                <ExternalIssueForm
+                  group={this.props.group}
+                  integration={selectedIntegration}
+                  action={'link'}
+                  onSubmitSuccess={this.closeModal}
+                />
+              )}
             </Modal.Body>
           </Modal>
         )}
       </React.Fragment>
-    );
-  }
-}
-
-class ExternalIssueActions extends React.Component {
-  static propTypes = {
-    group: PropTypes.object.isRequired,
-  };
-
-  render() {
-    return (
-      <DropdownLink
-        title={t('External Issues')}
-        caret={true}
-        className="btn btn-default btn-sm"
-      >
-        <ExternalIssueActionList group={this.props.group} />
-      </DropdownLink>
     );
   }
 }

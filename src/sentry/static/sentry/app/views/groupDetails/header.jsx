@@ -117,14 +117,14 @@ const GroupHeader = createReactClass({
                 </span>
               )}
               {group.annotations.map((annotation, i) => {
-                return (
-                  <span
-                    className="event-annotation"
-                    key={i}
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                  />
-                );
-              })}
+                  return (
+                    <span
+                      className="event-annotation"
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  );
+                })}
             </div>
           </div>
           <div className="col-sm-5 stats">
