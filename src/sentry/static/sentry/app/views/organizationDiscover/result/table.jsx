@@ -4,9 +4,6 @@ import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
 import AutoSelectText from 'app/components/autoSelectText';
-import LineChart from '../lineChart';
-const {data} = require('./transactionData.js');
-const chartData = data;
 
 import {getDisplayValue} from './utils';
 /**

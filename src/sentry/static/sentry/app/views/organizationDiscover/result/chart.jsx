@@ -5,6 +5,8 @@ import LineChart from '../lineChart';
 export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
+    fields: PropTypes.array,
+    aggregations: PropTypes.array,
   };
 
   getDataForChart(queryData, groupbyFields) {
@@ -27,10 +29,9 @@ export default class Result extends React.Component {
     const {data} = this.props.data;
     const {fields} = this.props;
 
-
-    console.log("data is: ", data);
-    console.log("parsed data is: ", this.getDataForChart(data, fields));
-    console.log("Fields:", fields);
+    console.log('data is: ', data);
+    console.log('parsed data is: ', this.getDataForChart(data, fields));
+    console.log('Fields:', fields);
 
     const chartData = this.getDataForChart(data, fields);
 

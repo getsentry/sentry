@@ -62,8 +62,8 @@ const COLUMNS = [
   {name: 'exception_frames.package', type: 'string'},
   {name: 'exception_frames.module', type: 'string'},
   {name: 'exception_frames.function', type: 'string'},
-  {name: 'exception_frames.in_app', type: 'string'},
   {name: 'exception_frames.colno', type: 'string'},
+  {name: 'exception_frames.in_app', type: 'string'},
   {name: 'exception_frames.lineno', type: 'string'},
   {name: 'exception_frames.stack_level', type: 'string'},
 ];

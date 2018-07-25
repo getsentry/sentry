@@ -8,15 +8,12 @@ import BaseChart from 'app/components/charts/baseChart';
 import Tooltip from 'app/components/charts/components/tooltip';
 import XAxis from 'app/components/charts/components/xAxis';
 import YAxis from 'app/components/charts/components/yAxis';
-import LineSeries from "../../components/charts/series/lineSeries";
-
-import _ from 'lodash';
-
-// const {data} = require('./result/transactionData');
+import LineSeries from '../../components/charts/series/lineSeries';
 
 export default class lineChart extends React.Component {
   static propTypes = {
-    ...BaseChart.propTypes,
+    chartData: PropTypes.object,
+    data: PropTypes.object,
   };
 
   defineSeries = ([key, value], idx) => {
@@ -37,13 +34,15 @@ export default class lineChart extends React.Component {
 
     const dates = data.data.map(entry => moment(entry.time * 1000).format('MM-DD'));
 
-    console.log("dates", dates);
-    console.log("received chartdata", chartData);
-    console.log("series", series);
-    console.log("data: ", data);
+    console.log('dates', dates);
+    console.log('received chartdata', chartData);
+    console.log('series', series);
+    console.log('data: ', data);
 
-    if( !series.length ||
-      series.length === 1 && (!series[0].data || series[0].data.length <= 1)) {
+    if (
+      !series.length ||
+      (series.length === 1 && (!series[0].data || series[0].data.length <= 1))
+    ) {
       return null; // if no data or only one data point.
     }
 

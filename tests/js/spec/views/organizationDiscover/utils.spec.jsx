@@ -2,7 +2,6 @@ import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
 } from 'app/views/organizationDiscover/utils';
-import _ from "lodash";
 
 const queryString =
   '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22topK(5)%22%2C%22os_build%22%2C%22topK_5_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22event_id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22';
@@ -34,15 +33,7 @@ describe('get query URL string from query', function() {
   });
 });
 
-
-
-  // getLineSeries = (data, groupBy) => {
-  //   return _.groupBy(data, dataPoint => {
-  //     return dataPoint[groupBy];
-  //   });
-  // };
-
-const queryData = [
+const sampleQueryData = [
   {
     'exception_stacks.type': 'ZeroDivisionError',
     platform: 'python',
@@ -59,7 +50,7 @@ const queryData = [
     'exception_stacks.type': 'Exception',
     platform: 'php',
     count: 6,
-    time: 1531094400
+    time: 1531094400,
   },
   {
     'exception_stacks.type': 'SnubaError',
@@ -83,7 +74,7 @@ const queryData = [
     'exception_stacks.type': 'Exception',
     platform: 'php',
     count: 8,
-    time: 1532070000
+    time: 1532070000,
   },
   {
     'exception_stacks.type': 'SnubaError',
@@ -93,19 +84,19 @@ const queryData = [
   },
 ];
 
-const fields = ['platform', 'exception_stacks.type']
-
+const fields = ['platform', 'exception_stacks.type'];
 
 function getDataForChart(queryData, groupbyFields) {
+  //TODO: import function from chart.jsx once finalized for agg.
   const output = {};
   queryData.forEach(data => {
-    const key = groupbyFields.map(field => data[field]).join(',')
+    const key = groupbyFields.map(field => data[field]).join(',');
     if (key in output) {
-      output[key].count.push(data.count)
+      output[key].count.push(data.count);
     } else {
-      output[key] = {count: [data.count]}
+      output[key] = {count: [data.count]};
     }
-  })
+  });
 
   return output;
 }
@@ -115,10 +106,8 @@ describe('getDataForChart()', function() {
     'python,ZeroDivisionError': {count: [6, 20]},
     'python,SnubaError': {count: [14, 30]},
     'javascript,Type Error': {count: [6, 5]},
-    'php,Exception': {count: [6,8]},
+    'php,Exception': {count: [6, 8]},
   };
 
-  expect(getDataForChart(queryData, fields)).toEqual(expectedData)
-
-
-})
+  expect(getDataForChart(sampleQueryData, fields)).toEqual(expectedData);
+});
