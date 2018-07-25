@@ -546,4 +546,71 @@ class JiraIntegrationTest(APITestCase):
             organization_integration_id=org_integration.id,
             resolved_status='4',
             unresolved_status='3',
+        ).exists()
+
+        # test update existing
+        data = {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': {
+                10100: {
+                    'on_resolve': '4',
+                    'on_unresolve': '5',
+                },
+            },
+        }
+
+        installation.update_organization_config(data)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id,
+            integration_id=integration.id,
         )
+
+        org_integration.config == {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': True,
+        }
+
+        assert IntegrationExternalProject.objects.filter(
+            organization_integration_id=org_integration.id,
+            resolved_status='4',
+            unresolved_status='5',
+        ).exists()
+
+        assert IntegrationExternalProject.objects.filter(
+            organization_integration_id=org_integration.id,
+        ).count() == 1
+
+        # test disable forward
+        data = {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': {},
+        }
+
+        installation.update_organization_config(data)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+
+        org_integration.config == {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': False,
+        }
+
+        assert IntegrationExternalProject.objects.filter(
+            organization_integration_id=org_integration.id,
+        ).count() == 0

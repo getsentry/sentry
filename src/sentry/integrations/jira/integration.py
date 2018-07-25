@@ -150,6 +150,10 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
             data['sync_status_forward'] = bool(project_mappings)
 
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id,
+            ).delete()
+
             for project_id, statuses in project_mappings.items():
                 IntegrationExternalProject.objects.create(
                     organization_integration_id=self.org_integration.id,
