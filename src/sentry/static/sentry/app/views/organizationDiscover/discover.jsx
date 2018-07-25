@@ -111,7 +111,7 @@ export default class OrganizationDiscover extends React.Component {
       isValidAggregation(agg, columns)
     );
 
-    const hasAggregations = validAggregations > 0;
+    const hasAggregations = validAggregations.length > 0;
 
     const hasFields = query.fields.length > 0;
 
