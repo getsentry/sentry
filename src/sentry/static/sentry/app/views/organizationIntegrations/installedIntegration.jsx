@@ -12,6 +12,7 @@ import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrat
 import Tooltip from 'app/components/tooltip';
 
 const CONFIGURABLE_FEATURES = ['commits'];
+const DISBALE_INTEGRATIONS = new Set(['github', 'github_enterprise']);
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
@@ -148,7 +149,8 @@ export default class InstalledIntegration extends React.Component {
             )}
           </Box>
           <Box>
-            {integration.status === 'active' && integration.provider.key === 'github'
+            {integration.status === 'active' &&
+            DISBALE_INTEGRATIONS.has(integration.provider.key)
               ? this.renderDisableIntegration(integration)
               : this.renderRemoveIntegration(integration)}
           </Box>

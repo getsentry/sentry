@@ -89,6 +89,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 'app_id': app_id,
                 'account': {
                     'login': 'Test Organization',
+                    'type': 'Organization',
                     'avatar_url': 'https://35.232.149.196/avatar.png',
                     'html_url': 'https://35.232.149.196/Test-Organization',
                 },
@@ -139,6 +140,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             u'expires_at': None,
             u'icon': u'https://35.232.149.196/avatar.png',
             u'domain_name': u'35.232.149.196/Test-Organization',
+            u'account_type': u'Organization',
             u'installation_id': u'install_id_1',
             u'installation': {
                 u'client_id': u'client_id',
