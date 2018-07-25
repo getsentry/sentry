@@ -54,6 +54,7 @@ class GroupIntegrationsTest(APITestCase):
             'externalIssues': [{
                 'description': 'this is an example description',
                 'id': six.text_type(external_issue.id),
+                'url': 'https://example/issues/APP-123',
                 'key': 'APP-123',
                 'title': 'this is an example title'
             }],

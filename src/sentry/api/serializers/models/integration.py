@@ -189,6 +189,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             issues_by_integration[ei.integration_id].append({
                 'id': six.text_type(ei.id),
                 'key': ei.key,
+                'url': [i.get_installation(self.group.organization.id).get_issue_url(ei.key) for i in item_list if i.id == ei.integration_id][0],
                 'title': ei.title,
                 'description': ei.description,
             })

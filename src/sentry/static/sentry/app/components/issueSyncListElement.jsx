@@ -3,46 +3,85 @@ import React from 'react';
 import styled from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {capitalize} from 'lodash';
 
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.string,
+    onOpen: PropTypes.func,
     onClose: PropTypes.func,
-    integrationType: PropTypes.oneOf(['github', 'jira', 'vsts']),
-  };
-
-  static defaultProps = {
-    extenalIssueLink: '#',
+    integrationType: PropTypes.string,
   };
 
   isLinked() {
     return this.props.externalIssueLink && this.props.externalIssueId;
   }
 
+  handleDelete = evt => {
+    return this.props.onClose(this.props.externalIssueId);
+  };
+
+  getPrefix() {
+    switch (this.props.integrationType) {
+      case 'github':
+        return 'GH-';
+      case 'github_enterprise':
+        return 'GHE-';
+      default:
+        return this.getPrettyName() + '-';
+    }
+  }
+
   getIcon() {
     switch (this.props.integrationType) {
       case 'github':
+        return <IntegrationIcon src="icon-github" />;
+      case 'github_enterprise':
         return <IntegrationIcon src="icon-github" />;
       case 'jira':
         return <IntegrationIcon src="icon-jira" />;
       case 'vsts':
         return <IntegrationIcon src="icon-vsts" />;
       default:
-        return null;
+        return <IntegrationIcon src="icon-generic-box" />;
     }
   }
 
-  getText() {
-    return this.isLinked() ? (
-      <IntegrationLink href={this.props.externalIssueLink}>
-        {this.props.externalIssueId}
-      </IntegrationLink>
-    ) : (
-      <IntegrationLink href={'#'}>
-        Link <IntegrationName>{this.props.integrationType}</IntegrationName> Issue
+  getPrettyName() {
+    const type = this.props.integrationType;
+    switch (type) {
+      case 'github':
+        return 'GitHub';
+      case 'github_enterprise':
+        return 'GitHub Enterprise';
+      case 'vsts':
+        return 'VSTS';
+      default:
+        return capitalize(type);
+    }
+  }
+
+  getLink() {
+    return (
+      <IntegrationLink
+        href={this.props.externalIssueLink}
+        onClick={!this.isLinked() ? this.props.onOpen : undefined}
+      >
+        {this.getText()}
       </IntegrationLink>
     );
+  }
+
+  getText() {
+    if (this.props.children) {
+      return this.props.children;
+    }
+    if (this.props.externalIssueId) {
+      return `${this.getPrefix()}${this.props.externalIssueId}`;
+    } else {
+      return `Link ${this.getPrettyName()} Issue`;
+    }
   }
 
   render() {
@@ -50,13 +89,16 @@ class IssueSyncElement extends React.Component {
       <IssueSyncListElementContainer>
         <div>
           {this.getIcon()}
-          {this.getText()}
+          {this.getLink()}
         </div>
-        <IconClose
-          src="icon-close"
-          onClick={this.props.onClose}
-          isLinked={this.isLinked()}
-        />
+        {this.props.onOpen &&
+          this.props.onClose && (
+            <OpenCloseIcon
+              src="icon-close"
+              onClick={this.isLinked() ? this.handleDelete : this.props.onOpen}
+              isLinked={this.isLinked()}
+            />
+          )}
       </IssueSyncListElementContainer>
     );
   }
@@ -67,13 +109,16 @@ const IssueSyncListElementContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)} ${space(1)};
+  &:not(:last-child) {
+    padding-bottom: ${space(2)};
+  }
 `;
 
 const IntegrationIcon = styled(InlineSvg)`
   color: ${p => p.theme.gray4};
   width: ${space(3)};
   height: ${space(3)};
+  cursor: pointer;
 `;
 
 const IntegrationLink = styled('a')`
@@ -82,6 +127,7 @@ const IntegrationLink = styled('a')`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray4};
   border-bottom: 1px solid ${p => p.theme.gray4};
+  cursor: pointer;
 
   &,
   &:hover {
@@ -89,14 +135,11 @@ const IntegrationLink = styled('a')`
   }
 `;
 
-const IntegrationName = styled('span')`
-  text-transform: capitalize;
-`;
-
-const IconClose = styled(InlineSvg)`
+const OpenCloseIcon = styled(InlineSvg)`
   height: 1.25rem;
   color: ${p => p.theme.gray4};
   transition: 0.2s transform;
+  cursor: pointer;
   ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.75);')};
 `;
 

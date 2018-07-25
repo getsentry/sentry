@@ -14,6 +14,70 @@ exports[`GroupSidebar renders with tags renders 1`] = `
       }
     }
   />
+  <FeatureContainer
+    feature={
+      Array [
+        "internal-catchall",
+      ]
+    }
+  >
+    <ExternalIssueList
+      group={
+        Object {
+          "assignedTo": null,
+          "id": "1",
+          "project": Object {
+            "id": "2",
+            "slug": "project-slug",
+          },
+          "stats": Object {
+            "24h": Array [
+              Array [
+                1517281200,
+                2,
+              ],
+              Array [
+                1517310000,
+                1,
+              ],
+            ],
+            "30d": Array [
+              Array [
+                1514764800,
+                1,
+              ],
+              Array [
+                1515024000,
+                122,
+              ],
+            ],
+          },
+          "tags": Array [
+            Object {
+              "canDelete": true,
+              "key": "browser",
+              "name": "Browser",
+            },
+            Object {
+              "canDelete": true,
+              "key": "device",
+              "name": "Device",
+            },
+            Object {
+              "canDelete": true,
+              "key": "url",
+              "name": "URL",
+            },
+            Object {
+              "canDelete": false,
+              "key": "environment",
+              "name": "Environment",
+            },
+          ],
+        }
+      }
+    />
+  </FeatureContainer>
   <GroupReleaseStats
     allEnvironments={
       Object {

@@ -92,6 +92,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                 "canAdd": true,
                 "canAddProject": false,
                 "config": Array [],
+                "externalIssues": Array [],
                 "features": Array [],
                 "key": "github",
                 "metadata": Object {

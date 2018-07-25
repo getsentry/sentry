@@ -105,7 +105,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
-        return Response(status=201)
+        url = data.get('url') or installation.get_issue_url(external_issue.key)
+        context = {
+            'id': external_issue.id,
+            'key': external_issue.key,
+            'url': url,
+            'integrationId': external_issue.integration_id,
+        }
+        return Response(context, status=201)
 
     def post(self, request, group, integration_id):
         organization_id = group.project.organization_id
@@ -153,7 +160,15 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({'detail': 'That issue is already linked'}, status=400)
 
         # TODO(jess): return serialized issue
-        return Response(status=201)
+        url = data.get('url') or installation.get_issue_url(external_issue.key)
+        context = {
+            'id': external_issue.id,
+            'key': external_issue.key,
+            'url': url,
+            'integrationId': external_issue.integration_id,
+
+        }
+        return Response(context, status=201)
 
     def delete(self, request, group, integration_id):
         # note here externalIssue refers to `ExternalIssue.id` wheras above

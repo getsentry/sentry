@@ -9,6 +9,7 @@ import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 import {t} from 'app/locale';
 
 class IssueActions extends PluginComponentBase {
+
   constructor(props) {
     super(props);
 
@@ -49,6 +50,8 @@ class IssueActions extends PluginComponentBase {
       this.fetchData();
     }
   }
+
+
 
   getPluginCreateEndpoint() {
     return (
@@ -132,9 +135,9 @@ class IssueActions extends PluginComponentBase {
     }
   }
 
-  onSuccess() {
+  onSuccess(data) {
     GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-    this.props.onSuccess && this.props.onSuccess();
+    this.props.onSuccess && this.props.onSuccess(data);
   }
 
   createIssue() {
