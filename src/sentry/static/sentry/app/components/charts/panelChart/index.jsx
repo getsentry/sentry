@@ -7,7 +7,7 @@ import {Panel, PanelHeader} from 'app/components/panels';
 import Legend from './legend';
 
 const PanelChart = styled(
-  class extends React.Component {
+  class PanelChart extends React.Component {
     static propTypes = {
       /**
        * Can be either a react element or a render prop that receives

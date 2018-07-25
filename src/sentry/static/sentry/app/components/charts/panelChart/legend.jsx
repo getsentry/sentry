@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 const Legend = styled(
-  class extends React.Component {
+  class Legend extends React.Component {
     static propTypes = {
       series: PropTypes.arrayOf(
         PropTypes.shape({
