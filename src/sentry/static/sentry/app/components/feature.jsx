@@ -51,7 +51,8 @@ class Feature extends React.Component {
     isSuperuser: PropTypes.bool,
 
     /**
-     * Custom renderer function for "no feature" message OR false to disable
+     * Custom renderer function for "no feature" message OR `true` to use default message.
+     * `false` will suppress message.
      */
     renderNoFeatureMessage: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
