@@ -75,6 +75,9 @@ class IntegrationProvider(PipelineProvider):
     # can the integration be enabled specifically for projects?
     can_add_project = False
 
+    # can the integration be disabled ?
+    can_disable = False
+
     # if the integration has no application-style access token, associate
     # the installer's identity to the organization integration
     needs_default_identity = False
