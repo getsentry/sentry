@@ -11,6 +11,8 @@ import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
 
+const selectControlShape = PropTypes.shape(SelectControl.propTypes);
+
 export default class ChoiceMapper extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
@@ -28,19 +30,44 @@ export default class ChoiceMapper extends React.Component {
     mappedColumnLabel: PropTypes.node,
     /**
      * A list of column labels (headers) for the multichoice table. This should
-     * have the same number of items as the mappedSelectors prop.
+     * have the same mapping keys as the mappedSelectors prop.
      */
     columnLabels: PropTypes.objectOf(PropTypes.node).isRequired,
     /**
-     * A list of select field properties that should be used to render the
-     * select field for each column in the row.
+     * mappedSelectors controls how the Select control should render for each
+     * column. This can be generalised so that each column renders the same set
+     * of choices for each mapped item by providing an object with column
+     * label keys mapping to the select descriptor, OR you may specify the set
+     * of select descriptors *specific* to a mapped item, where the item value
+     * maps to the object of column label keys to select descriptor.
+     *
+     * Example - All selects are the same per column:
+     *
+     * {
+     *   'column_key1: {...select1},
+     *   'column_key2: {...select2},
+     * }
+     *
+     * Example - Selects differ for each of the items available:
+     *
+     * {
+     *   'my_object_value':  {'colum_key1': {...select1}, 'column_key2': {...select2}},
+     *   'other_object_val': {'colum_key1': {...select3}, 'column_key2': {...select4}},
+     * }
      */
-    mappedSelectors: PropTypes.objectOf(PropTypes.shape(SelectControl.propTypes))
-      .isRequired,
+    mappedSelectors: PropTypes.objectOf(
+      PropTypes.oneOf([selectControlShape, PropTypes.objectOf(selectControlShape)])
+    ).isRequired,
+    /**
+     * If using mappedSelectors to specifically map different choice selectors
+     * per item specify this as true.
+     */
+    perItemMapping: PropTypes.bool,
   };
 
   static defaultProps = {
     addButtonText: t('Add Item'),
+    perItemMapping: false,
   };
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
@@ -54,10 +81,11 @@ export default class ChoiceMapper extends React.Component {
       mappedColumnLabel,
       columnLabels,
       mappedSelectors,
+      perItemMapping,
       disabled,
     } = props;
 
-    const mappedKeys = Object.keys(mappedSelectors);
+    const mappedKeys = Object.keys(columnLabels);
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {});
 
     const valueIsEmpty = this.hasValue(props.value);
@@ -141,7 +169,9 @@ export default class ChoiceMapper extends React.Component {
               <Flex key={fieldKey} align="center" ml={1} flex="1 0 0">
                 <Box flex={1}>
                   <SelectControl
-                    {...mappedSelectors[fieldKey]}
+                    {...(perItemMapping
+                      ? mappedSelectors[itemKey][fieldKey]
+                      : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}
                     onChange={v => setValue(itemKey, fieldKey, v ? v.value : null)}
