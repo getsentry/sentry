@@ -5,7 +5,7 @@ exports[`SettingsLayout renders 1`] = `
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
-        <withOrganizations />
+        <withOrganizations(withLatestContext(BackButton)) />
       </Container>
     </SettingsSubheader>
     <Container>

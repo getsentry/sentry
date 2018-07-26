@@ -1,10 +1,11 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import PropTypes from 'prop-types';
+import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import SentryTypes from 'app/sentryTypes';
+import {getDisplayName} from 'app/utils/getDisplayName';
 import LatestContextStore from 'app/stores/latestContextStore';
+import SentryTypes from 'app/sentryTypes';
 import withOrganizations from 'app/utils/withOrganizations';
 
 // HoC that returns most usable organization + project
@@ -13,7 +14,7 @@ import withOrganizations from 'app/utils/withOrganizations';
 const withLatestContext = WrappedComponent =>
   withOrganizations(
     createReactClass({
-      displayName: 'withLatestContext',
+      displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
       propTypes: {
         organizations: PropTypes.arrayOf(SentryTypes.Organization),
       },

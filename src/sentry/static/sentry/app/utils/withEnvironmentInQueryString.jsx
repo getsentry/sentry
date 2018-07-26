@@ -1,17 +1,18 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
+import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import qs from 'query-string';
 
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
+import {getDisplayName} from 'app/utils/getDisplayName';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LatestContextStore from 'app/stores/latestContextStore';
-import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 const withEnvironmentInQueryString = WrappedComponent =>
   createReactClass({
-    displayName: 'withEnvironmentInQueryString',
+    displayName: `withEnvironmentInQueryString(${getDisplayName(WrappedComponent)})`,
 
     propTypes: {
       location: PropTypes.object,
