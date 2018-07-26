@@ -117,9 +117,9 @@ class SynchronizedConsumer(object):
             self.__on_partition_state_change)
         self.__commit_log_consumer, self__commit_log_consumer_stop_request = self.__start_commit_log_consumer()
 
-        def commit_callback(consumer, error, partitions):
+        def commit_callback(error, partitions):
             if on_commit is not None:
-                return on_commit(self, error, partitions)
+                return on_commit(error, partitions)
 
         consumer_configuration = {
             'bootstrap.servers': self.bootstrap_servers,
@@ -179,8 +179,8 @@ class SynchronizedConsumer(object):
         else:
             raise NotImplementedError('Unexpected partition state: %s' % (current_state,))
 
-    def __get_initial_offset(self, consumer, i):
-        low, high = self.__consumer.get_watermark_offsets(i)
+    def __get_initial_offset(self, topic, partition):
+        low, high = self.__consumer.get_watermark_offsets(TopicPartition(topic, partition))
         return low
 
     def subscribe(self, topics, on_assign=None, on_revoke=None):
@@ -194,10 +194,12 @@ class SynchronizedConsumer(object):
             # the ``__consumer_offsets`` topic retention period.
             assignment = [
                 TopicPartition(
-                    i.topic,
-                    i.partition,
-                    i.offset if i.offset > -1 else self.__get_initial_offset(consumer, i),
-                ) for i in assignment
+                    topic,
+                    partition,
+                    offset if offset > -1 else self.__get_initial_offset(topic, partition),
+                ) for (topic, partition), offset in {
+                    (i.topic, i.partition): i.offset for i in self.__consumer.committed(assignment)
+                }.items()
             ]
 
             self.__consumer.assign(assignment)
