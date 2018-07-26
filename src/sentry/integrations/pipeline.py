@@ -50,7 +50,11 @@ class IntegrationPipeline(Pipeline):
     provider_manager = default_manager
 
     def finish_pipeline(self):
-        data = self.provider.build_integration(self.state.data)
+        try:
+            data = self.provider.build_integration(self.state.data)
+        except Exception as e:
+            return self.error(e.message)
+
         response = self._finish_pipeline(data)
         self.clear_session()
         return response
