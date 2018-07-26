@@ -100,3 +100,11 @@ export function openIntegrationDetails(options = {}) {
       });
     });
 }
+
+export function redirectToProject(newProjectSlug) {
+  import(/* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
+    });
+}

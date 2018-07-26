@@ -9,10 +9,6 @@ class ResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
 
 
-class ResourceMoved(APIException):
-    status_code = status.HTTP_302_FOUND
-
-
 class SentryAPIException(APIException):
     code = ''
     message = ''
@@ -26,6 +22,19 @@ class SentryAPIException(APIException):
             }
 
         super(SentryAPIException, self).__init__(detail=detail)
+
+
+class ProjectMoved(SentryAPIException):
+    status_code = status.HTTP_302_FOUND
+    # code/message currently don't get used
+    code = 'resource-moved'
+    message = 'Resource has been moved'
+
+    def __init__(self, new_url, slug):
+        super(ProjectMoved, self).__init__(
+            url=new_url,
+            slug=slug,
+        )
 
 
 class SsoRequired(SentryAPIException):
