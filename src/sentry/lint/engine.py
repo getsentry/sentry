@@ -313,16 +313,10 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
         return True
 
     # this is not quite correct, but it at least represents what would be staged
-    output = subprocess.check_output(['git', 'diff'] + file_list)
+    output = subprocess.check_output(['git', 'diff', '--color'] + file_list)
     if output:
         print('[sentry.lint] applied changes from autoformatting')  # noqa: B314
-        for line in output.splitlines():
-            if line.startswith('-'):
-                print('\033[41m' + line + '\033[0m')  # noqa: B314
-            elif line.startswith('+'):
-                print('\033[42m' + line + '\033[0m')  # noqa: B314
-            else:
-                print(line)  # noqa: B314
+        print(output)  # noqa: B314
         if prompt_on_changes:
             with open('/dev/tty') as fp:
                 print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
