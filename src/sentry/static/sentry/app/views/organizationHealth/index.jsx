@@ -59,7 +59,7 @@ class OrganizationHealth extends React.Component {
     let projects = organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature feature={['health']} showNoFeatureMessage>
+      <Feature feature={['health']} renderNoFeatureMessage>
         <HealthContext.Provider value={this.state.params}>
           <HealthWrapper>
             <HealthNavigationMenu />
