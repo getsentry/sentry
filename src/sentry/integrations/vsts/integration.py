@@ -225,7 +225,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             subscription, shared_secret = webhook.create_subscription(
                 instance, oauth_data, self.oauth_redirect_url, account_id)
         except ApiError as e:
-            if 'does not have permission to edit a subscription' in e.message:
+            if e.code == 400 and 'permission' in e.message:
                 raise ApiError(
                     'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
                 )
