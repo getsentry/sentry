@@ -37,10 +37,6 @@ class PipelineProvider(object):
         """
         self.pipeline = pipeline
 
-    def error(self, message):
-        context = {'error': message}
-        return render_to_response('sentry/pipeline-error.html', context, self.request)
-
 
 class PipelineView(BaseView):
     """
