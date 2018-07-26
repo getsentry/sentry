@@ -23,7 +23,7 @@ class OrganizationHealth extends React.Component {
     super(props);
     this.state = {
       params: {
-        projects: [1],
+        projects: [],
         environments: [],
         period: '7d',
       },
@@ -72,7 +72,7 @@ class OrganizationHealth extends React.Component {
                 />
                 <HeaderSeparator />
                 <MultipleEnvironmentSelector
-                  projects={projects}
+                  organization={organization}
                   value={this.state.params.environments}
                   onChange={this.handleChangeEnvironments}
                 />
@@ -94,6 +94,7 @@ class OrganizationHealth extends React.Component {
 }
 
 export default withLatestContext(OrganizationHealth);
+export {OrganizationHealth};
 
 const HealthWrapper = styled(Flex)`
   flex: 1;
