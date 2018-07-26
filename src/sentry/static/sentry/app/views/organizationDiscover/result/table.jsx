@@ -6,8 +6,8 @@ import {Box} from 'grid-emotion';
 
 import theme from 'app/utils/theme';
 import AutoSelectText from 'app/components/autoSelectText';
-
 import {getDisplayValue} from './utils';
+
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
@@ -16,6 +16,11 @@ export default class Result extends React.Component {
   static propTypes = {
     result: PropTypes.object.isRequired,
   };
+
+  componentDidMount() {
+    // Create canvas once in order to measure column widths
+    this.canvas = document.createElement('canvas');
+  }
 
   cellRenderer = ({key, rowIndex, columnIndex, style}) => {
     const {meta, data} = this.props.result;
@@ -30,6 +35,40 @@ export default class Result extends React.Component {
         )}
       </Cell>
     );
+  };
+
+  // Estimates the column width based on the header row and the first two rows
+  // of data. Since this might be expensive, we'll only do this if there are
+  // less than 20 columns of data to check
+  getColumnWidth = ({index}) => {
+    const MIN_COL_WIDTH = 100;
+    const MAX_COL_WIDTH = 200;
+
+    const {meta, data} = this.props.result;
+
+    if (meta.length < 20) {
+      const colName = meta[index].name;
+      const sizes = [this.measureText(colName, true)];
+
+      if (data.length > 0) {
+        sizes.push(this.measureText(data[0].colName, false));
+      }
+
+      if (data.length > 1) {
+        sizes.push(this.measureText(data[1].colName, false));
+      }
+
+      // Ensure size is within max and min bounds, add 8px for cell padding
+      return Math.max(Math.min(Math.max(...sizes) + 8, MAX_COL_WIDTH), MIN_COL_WIDTH);
+    }
+
+    return MIN_COL_WIDTH;
+  };
+
+  measureText = (text, isHeader) => {
+    const context = this.canvas.getContext('2d');
+    context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
+    return Math.ceil(context.measureText(text).width);
   };
 
   renderTable() {
@@ -48,7 +87,7 @@ export default class Result extends React.Component {
               columnCount={meta.length}
               fixedRowCount={1}
               rowHeight={30}
-              columnWidth={120}
+              columnWidth={this.getColumnWidth}
               cellRenderer={this.cellRenderer}
               style={{border: `1px solid ${theme.borderLight}`}}
               styleTopRightGrid={{borderBottom: `2px solid ${theme.borderDark}`}}
