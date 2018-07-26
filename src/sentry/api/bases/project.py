@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, ResourceMoved
+from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
 from sentry.app import raven
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
@@ -125,11 +125,14 @@ class ProjectEndpoint(Endpoint):
 
                 # get full path so that we keep query strings
                 requested_url = request.get_full_path()
-                new_url = requested_url.replace('projects/%s/%s/' % (organization_slug, project_slug), 'projects/%s/%s/' % (organization_slug, redirect.project.slug))
+                new_url = requested_url.replace(
+                    'projects/%s/%s/' %
+                    (organization_slug, project_slug), 'projects/%s/%s/' %
+                    (organization_slug, redirect.project.slug))
 
                 # Resource was moved/renamed if the requested url is different than the new url
                 if requested_url != new_url:
-                    raise ResourceMoved(new_url, redirect.project.slug)
+                    raise ProjectMoved(new_url, redirect.project.slug)
 
                 # otherwise project doesn't exist
                 raise ResourceDoesNotExist
@@ -152,7 +155,7 @@ class ProjectEndpoint(Endpoint):
         return (args, kwargs)
 
     def handle_exception(self, request, exc):
-        if isinstance(exc, ResourceMoved):
+        if isinstance(exc, ProjectMoved):
             response = Response({
                 'slug': exc.detail['extra']['slug'],
                 'detail': exc.detail
