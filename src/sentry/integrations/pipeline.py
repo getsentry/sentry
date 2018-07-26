@@ -12,7 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
 from sentry.utils import json
-
+from sentry.integrations.exceptions import IntegrationError
 from . import default_manager
 
 DIALOG_RESPONSE = """
@@ -52,7 +52,7 @@ class IntegrationPipeline(Pipeline):
     def finish_pipeline(self):
         try:
             data = self.provider.build_integration(self.state.data)
-        except Exception as e:
+        except IntegrationError as e:
             return self.error(e.message)
 
         response = self._finish_pipeline(data)

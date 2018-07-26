@@ -8,7 +8,7 @@ from django.utils.translation import ugettext as _
 from sentry import http
 from sentry.models import Integration as IntegrationModel
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.pipeline import NestedPipelineView
@@ -207,9 +207,8 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
-        try:
-            IntegrationModel.objects.get(provider='vsts', external_id=account['AccountId'])
-        except IntegrationModel.DoesNotExist:
+        if not IntegrationModel.objects.filter(
+                provider='vsts', external_id=account['AccountId']).exists():
             subscription_id, subscription_secret = self.create_subscription(
                 instance, account['AccountId'], oauth_data)
             integration['metadata']['subscription'] = {
@@ -227,7 +226,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         except ApiError as e:
             if e.code != 400 or 'permission' not in e.message:
                 raise e
-            raise ApiError(
+            raise IntegrationError(
                 'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
             )
 
