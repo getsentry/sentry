@@ -78,6 +78,10 @@ def serialize_projects(organization, item_list, user):
     }
 
 
+def serialize_noop(organization, item_list, user):
+    return {i: i for i in item_list}
+
+
 def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
 
@@ -102,6 +106,8 @@ def zerofill(data, start, end, rollup):
 
 TAG_USER = ('tags[sentry:user]', 'project_id')
 TAG_RELEASE = ('tags[sentry:release]',)
+TAG_BROWSER_NAME = ('tags[browser.name]',)
+TAG_OS_NAME = ('tags[os.name]',)
 
 serializer_by_tagkey = {
     TAG_RELEASE: serialize_releases,
@@ -111,6 +117,8 @@ serializer_by_tagkey = {
 tagkey_to_name = {
     TAG_USER: 'user',
     TAG_RELEASE: 'release',
+    TAG_BROWSER_NAME: 'browser.name',
+    TAG_OS_NAME: 'os.name',
 }
 
 
@@ -122,7 +130,8 @@ class SnubaSerializer(object):
         self.name = tagkey_to_name[tagkey]
 
     def get_attrs(self, item_list):
-        return serializer_by_tagkey[self.tagkey](self.organization, item_list, self.user)
+        return serializer_by_tagkey.get(self.tagkey, serialize_noop)(
+            self.organization, item_list, self.user)
 
 
 class SnubaResultSerializer(SnubaSerializer):

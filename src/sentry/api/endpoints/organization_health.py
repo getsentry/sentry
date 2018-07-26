@@ -14,7 +14,7 @@ from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
 )
-from sentry.api.serializers.snuba import SnubaResultSerializer, SnubaTSResultSerializer, TAG_USER, TAG_RELEASE, value_from_row
+from sentry.api.serializers.snuba import SnubaResultSerializer, SnubaTSResultSerializer, TAG_USER, TAG_RELEASE, TAG_OS_NAME, TAG_BROWSER_NAME, value_from_row
 from sentry.utils import snuba
 
 
@@ -46,6 +46,8 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
     TAGKEYS = {
         'user': TAG_USER,
         'release': TAG_RELEASE,
+        'os.name': TAG_OS_NAME,
+        'browser.name': TAG_BROWSER_NAME,
     }
 
     def empty(self):
