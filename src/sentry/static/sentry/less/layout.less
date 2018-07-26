@@ -146,16 +146,8 @@ body.narrow {
 
 body.auth {
   .app > .container {
-    padding-top: 30px;
+    padding-top: 5vh;
     max-width: 740px;
-  }
-
-  .auth-center-vertically {
-    display: flex;
-    min-height: 100vh;
-    align-content: center;
-    flex-direction: column;
-    justify-content: space-around;
   }
 
   .box {
@@ -208,13 +200,13 @@ body.auth {
   }
 
   .auth-form-column {
-    width: 58%;
-    padding-right: 30px;
+    flex: 1;
   }
 
   .auth-provider-column {
     width: 42%;
     padding-left: 30px;
+    margin-left: 30px;
     border-left: 1px solid @trim;
 
     p {
@@ -624,7 +616,6 @@ footer {
     }
 
     .app > .container {
-      padding: 62px 10px 0 10px !important;
       .box-content.with-padding {
         padding: 20px 20px 10px;
       }
@@ -655,12 +646,16 @@ footer {
       > div {
         width: 100%;
         padding: 0;
+        margin: 0;
         border: 0;
 
-        &:last-child:not(:first-child) {
+        &.auth-provider-column {
           border-top: 1px solid @trim;
           padding-top: 20px;
           margin-top: 20px;
+          p {
+            margin-top: 0;
+          }
         }
       }
     }
