@@ -2,7 +2,12 @@ import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
 import idx from 'idx';
 
-import {openSudo} from 'app/actionCreators/modal';
+import {
+  PROJECT_MOVED,
+  SUDO_REQUIRED,
+  SUPERUSER_REQUIRED,
+} from 'app/constants/apiErrorCodes';
+import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 
 export class Request {
@@ -53,6 +58,23 @@ export class Client {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
+  /**
+   * Check if the API response says project has been renamed.
+   * If so, redirect user to new project slug
+   */
+  hasProjectBeenRenamed(response) {
+    let code = response && idx(response, _ => _.responseJSON.detail.code);
+
+    // XXX(billy): This actually will never happen because we can't intercept the 302
+    // jQuery ajax will follow the redirect by default...
+    if (code !== PROJECT_MOVED) return false;
+
+    let slug = response && idx(response, _ => _.responseJSON.detail.extra.slug);
+
+    redirectToProject(slug);
+    return true;
+  }
+
   wrapCallback(id, func, cleanup) {
     /*eslint consistent-return:0*/
     if (isUndefined(func)) {
@@ -65,6 +87,11 @@ export class Client {
         delete this.activeRequests[id];
       }
       if (req && req.alive) {
+        // Check if API response is a 302 -- means project slug was renamed and user
+        // needs to be redirected
+        if (this.hasProjectBeenRenamed(...args)) return;
+
+        // Call success callback
         return func.apply(req, args);
       }
     };
@@ -81,12 +108,12 @@ export class Client {
 
   handleRequestError({id, path, requestOptions}, response, ...responseArgs) {
     let code = response && idx(response, _ => _.responseJSON.detail.code);
-    let isSudoRequired = code === 'sudo-required' || code === 'superuser-required';
+    let isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
     if (isSudoRequired) {
       openSudo({
-        superuser: code === 'superuser-required',
-        sudo: code === 'sudo-required',
+        superuser: code === SUPERUSER_REQUIRED,
+        sudo: code === SUDO_REQUIRED,
         retryRequest: () => {
           return this.requestPromise(path, requestOptions)
             .then((...args) => {

@@ -62,7 +62,10 @@ class Client {
   }
 
   wrapCallback(id, error) {
-    return (...args) => respond(Client.mockAsync, error, ...args);
+    return (...args) => {
+      if (this.hasProjectBeenRenamed(...args)) return;
+      respond(Client.mockAsync, error, ...args);
+    };
   }
 
   requestPromise(url, options) {
@@ -125,5 +128,7 @@ Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
 Client.prototype.bulkUpdate = RealClient.Client.prototype.bulkUpdate;
 Client.prototype._chain = RealClient.Client.prototype._chain;
 Client.prototype._wrapRequest = RealClient.Client.prototype._wrapRequest;
+Client.prototype.hasProjectBeenRenamed =
+  RealClient.Client.prototype.hasProjectBeenRenamed;
 
 export {Client};

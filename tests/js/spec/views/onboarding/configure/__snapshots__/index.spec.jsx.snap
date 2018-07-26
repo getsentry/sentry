@@ -91,6 +91,7 @@ exports[`Configure should render correctly render() should render platform docs 
                 "hasAccess": true,
                 "id": "testProject",
                 "isBookmarked": false,
+                "isMember": true,
                 "name": "Test Project",
                 "slug": "project-slug",
                 "teams": Array [
@@ -123,6 +124,7 @@ exports[`Configure should render correctly render() should render platform docs 
                   "hasAccess": true,
                   "id": "testProject",
                   "isBookmarked": false,
+                  "isMember": true,
                   "name": "Test Project",
                   "slug": "project-slug",
                   "teams": Array [
