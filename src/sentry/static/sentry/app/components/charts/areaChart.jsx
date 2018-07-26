@@ -51,6 +51,7 @@ class AreaChart extends React.Component {
           xAxis: XAxis({
             type: 'category',
             data: DATES,
+            boundaryGap: false,
           }),
           yAxis: YAxis({}),
           series: [
