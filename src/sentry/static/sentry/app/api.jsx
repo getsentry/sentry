@@ -64,6 +64,9 @@ export class Client {
    */
   hasProjectBeenRenamed(response) {
     let code = response && idx(response, _ => _.responseJSON.detail.code);
+
+    // XXX(billy): This actually will never happen because we can't intercept the 302
+    // jQuery ajax will follow the redirect by default...
     if (code !== PROJECT_MOVED) return false;
 
     let slug = response && idx(response, _ => _.responseJSON.detail.extra.slug);
