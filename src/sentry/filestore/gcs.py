@@ -215,7 +215,10 @@ class GoogleCloudStorage(Storage):
 
     def delete(self, name):
         name = self._normalize_name(clean_name(name))
-        self.bucket.delete_blob(self._encode_name(name))
+        try:
+            self.bucket.delete_blob(self._encode_name(name))
+        except NotFound:
+            pass
 
     def exists(self, name):
         if not name:  # root element aka the bucket
