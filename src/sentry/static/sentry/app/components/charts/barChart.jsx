@@ -47,7 +47,6 @@ export default class BarChart extends React.Component {
           xAxis: XAxis({
             type: 'category',
             data: xAxisLabels,
-            boundaryGap: true,
           }),
           yAxis: YAxis({}),
           series: series.map((s, i) => {
