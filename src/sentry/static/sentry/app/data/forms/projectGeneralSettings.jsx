@@ -150,6 +150,8 @@ export const fields = {
     name: 'sensitiveFields',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('email'),
     label: t('Additional Sensitive Fields'),
     help: t(
@@ -162,6 +164,8 @@ export const fields = {
     name: 'safeFields',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('business-email'),
     label: t('Safe Fields'),
     help: t(
@@ -175,6 +179,8 @@ export const fields = {
     name: 'allowedDomains',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
