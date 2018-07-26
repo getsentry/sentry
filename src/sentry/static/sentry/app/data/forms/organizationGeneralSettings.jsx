@@ -144,6 +144,8 @@ const formGroups = [
         name: 'sensitiveFields',
         type: 'string',
         multiline: true,
+        autosize: true,
+        maxRows: 10,
         placeholder: 'e.g. email',
         label: t('Global sensitive fields'),
         help: t(
@@ -159,6 +161,8 @@ const formGroups = [
         name: 'safeFields',
         type: 'string',
         multiline: true,
+        autosize: true,
+        maxRows: 10,
         placeholder: t('e.g. business-email'),
         label: t('Global safe fields'),
         help: t(
