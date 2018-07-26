@@ -48,7 +48,7 @@ class ExternalIssueList extends AsyncComponent {
   renderPluginActions() {
     const {group} = this.props;
 
-    return group.pluginActions && group.pluginActions.length
+    return group.pluginActions
       ? group.pluginActions.map((plugin, i) => {
           return (
             <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
@@ -61,16 +61,14 @@ class ExternalIssueList extends AsyncComponent {
 
   renderBody() {
     return (
-      <React.Fragment>
-        <div className="m-b-2">
-          <h6>
-            <span>Linked Issues</span>
-          </h6>
-          {this.renderIntegrationIssues(this.state.integrations)}
-          {this.renderPluginIssues()}
-          {this.renderPluginActions()}
-        </div>
-      </React.Fragment>
+      <div className="m-b-2">
+        <h6>
+          <span>Linked Issues</span>
+        </h6>
+        {this.renderIntegrationIssues(this.state.integrations)}
+        {this.renderPluginIssues()}
+        {this.renderPluginActions()}
+      </div>
     );
   }
 }

@@ -255,19 +255,12 @@ class ExternalIssueActions extends AsyncComponent {
               </li>
             </ul>
             <Modal.Body>
-              {action === 'create' && (
+              {action && (
                 <ExternalIssueForm
+                  key={action}
                   group={this.props.group}
                   integration={selectedIntegration}
-                  action={'create'}
-                  onSubmitSuccess={this.closeModal}
-                />
-              )}
-              {action === 'link' && (
-                <ExternalIssueForm
-                  group={this.props.group}
-                  integration={selectedIntegration}
-                  action={'link'}
+                  action={action}
                   onSubmitSuccess={this.closeModal}
                 />
               )}

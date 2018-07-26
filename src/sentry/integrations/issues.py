@@ -15,7 +15,7 @@ class IssueBasicMixin(object):
     def get_group_title(self, group, event, **kwargs):
         return event.error()
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key):
         """
         Given the key of the external_issue return the external issue link.
         """
