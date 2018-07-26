@@ -8,7 +8,7 @@ from django.utils.translation import ugettext as _
 from sentry import http
 from sentry.models import Integration as IntegrationModel, IntegrationExternalProject
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.pipeline import NestedPipelineView
@@ -228,9 +228,8 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
-        try:
-            IntegrationModel.objects.get(provider='vsts', external_id=account['AccountId'])
-        except IntegrationModel.DoesNotExist:
+        if not IntegrationModel.objects.filter(
+                provider='vsts', external_id=account['AccountId']).exists():
             subscription_id, subscription_secret = self.create_subscription(
                 instance, account['AccountId'], oauth_data)
             integration['metadata']['subscription'] = {
@@ -242,8 +241,16 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def create_subscription(self, instance, account_id, oauth_data):
         webhook = WorkItemWebhook()
-        subscription, shared_secret = webhook.create_subscription(
-            instance, oauth_data, self.oauth_redirect_url, account_id)
+        try:
+            subscription, shared_secret = webhook.create_subscription(
+                instance, oauth_data, self.oauth_redirect_url, account_id)
+        except ApiError as e:
+            if e.code != 400 or 'permission' not in e.message:
+                raise e
+            raise IntegrationError(
+                'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
+            )
+
         subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
         return subscription_id, shared_secret
 
