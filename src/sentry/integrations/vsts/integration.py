@@ -225,10 +225,11 @@ class VstsIntegrationProvider(IntegrationProvider):
             subscription, shared_secret = webhook.create_subscription(
                 instance, oauth_data, self.oauth_redirect_url, account_id)
         except ApiError as e:
-            if e.code == 400 and 'permission' in e.message:
-                raise ApiError(
-                    'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
-                )
+            if e.code != 400 or 'permission' not in e.message:
+                raise e
+            raise ApiError(
+                'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
+            )
 
         subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
         return subscription_id, shared_secret
