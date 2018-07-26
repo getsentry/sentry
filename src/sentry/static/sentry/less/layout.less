@@ -204,17 +204,36 @@ body.auth {
   .tab-content .auth-container {
     padding-top: 30px;
     padding-bottom: 40px;
+    display: flex;
   }
 
   .auth-form-column {
-    width: 60%;
+    width: 58%;
     padding-right: 30px;
   }
 
   .auth-provider-column {
-    width: 40%;
+    width: 42%;
     padding-left: 30px;
     border-left: 1px solid @trim;
+
+    p {
+      margin-bottom: 15px;
+
+      &:first-child {
+        margin-top: 28px;
+      }
+    }
+
+    .btn-default {
+      display: block;
+      text-align: left;
+      padding: 8px 12px;
+
+      .provider-logo {
+        top: 0;
+      }
+    }
   }
 
   .auth-footer {

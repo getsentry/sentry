@@ -42,22 +42,23 @@
               {{ field|as_crispy_field }}
             {% endfor %}
 
-
             <div class="auth-footer m-t-1">
               <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
               <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
             </div>
           </form>
         </div>
-        <div class="auth-provider-column">
-          {% if github_login_template %}
-            {% include github_login_template %}
-          {% endif %}
+        {% if github_login_template or vsts_login_template %}
+          <div class="auth-provider-column">
+            {% if github_login_template %}
+              {% include github_login_template %}
+            {% endif %}
 
-          {% if vsts_login_template %}
-            {% include vsts_login_template %}
-          {% endif %}
-        </div>
+            {% if vsts_login_template %}
+              {% include vsts_login_template %}
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
     </div>
     <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
@@ -115,7 +116,7 @@
               <div class="controls">
                 <label class="control-label">{% trans "Organization ID" %}</label>
                 <input type="text" class="form-control" name="organization" placeholder="acme" required>
-                <p class="help-block">Your ID is the reference used when Sentry generates URLs, e.g. <code>{{ server_hostname }}./<strong>acme</strong>/</code></p>
+                <p class="help-block">Your ID is the reference used when Sentry generates URLs, e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code></p>
               </div>
             </div>
             <div class="auth-footer m-t-1">
