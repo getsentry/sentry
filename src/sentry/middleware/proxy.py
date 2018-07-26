@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 import io
+import logging
 import six
+import zlib
+
 try:
     import uwsgi
     has_uwsgi = True
@@ -9,6 +12,8 @@ except ImportError:
     has_uwsgi = False
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 if has_uwsgi:
@@ -70,6 +75,30 @@ class ChunkedMiddleware(object):
         if request.META['HTTP_TRANSFER_ENCODING'].lower() == 'chunked':
             request._stream = io.BufferedReader(UWsgiChunkedInput())
             request.META['CONTENT_LENGTH'] = '4294967295'  # 0xffffffff
+
+
+COMPRESSED_ENCODINGS = ('gzip', 'deflate')
+
+
+def decompress(data, encoding):
+    if encoding == 'gzip':
+        return zlib.decompress(data, zlib.MAX_WBITS | 16)
+    if encoding == 'deflate':
+        return zlib.decompress(data, -zlib.MAX_WBITS)
+
+
+class DecompressBodyMiddleware(object):
+    def process_request(self, request):
+        encoding = request.META.get('HTTP_CONTENT_ENCODING', '').lower()
+        if encoding in COMPRESSED_ENCODINGS:
+            data = request._stream.read()
+            try:
+                uncompressed = decompress(data, encoding)
+                request._stream = six.StringIO(uncompressed)
+                request.META['CONTENT_LENGTH'] = len(uncompressed)
+            except zlib.error:
+                logger.debug('Failed to decompress body payload', exc_info=True)
+                request._stream = six.StringIO(data)
 
 
 class ContentLengthHeaderMiddleware(object):
