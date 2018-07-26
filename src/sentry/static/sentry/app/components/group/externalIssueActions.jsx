@@ -257,6 +257,8 @@ class ExternalIssueActions extends AsyncComponent {
             <Modal.Body>
               {action && (
                 <ExternalIssueForm
+                  // need the key here so React will re-render
+                  // with a new action prop
                   key={action}
                   group={this.props.group}
                   integration={selectedIntegration}

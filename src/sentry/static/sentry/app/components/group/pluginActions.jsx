@@ -104,7 +104,6 @@ const PluginActions = createReactClass({
           integrationType={plugin.id}
         />
         <Modal
-          key={actionType}
           show={this.state.showModal}
           onHide={this.closeModal}
           animation={false}
@@ -128,7 +127,9 @@ const PluginActions = createReactClass({
           {this.state.showModal &&
             actionType &&
             !this.state.pluginLoading && (
-              <Modal.Body>
+              // need the key here so React will re-render
+              // with new action prop
+              <Modal.Body key={actionType}>
                 {plugins.get(plugin).renderGroupActions({
                   plugin,
                   group: this.getGroup(),
