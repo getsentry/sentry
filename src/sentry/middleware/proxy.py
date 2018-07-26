@@ -96,6 +96,7 @@ class DecompressBodyMiddleware(object):
                 uncompressed = decompress(data, encoding)
                 request._stream = six.StringIO(uncompressed)
                 request.META['CONTENT_LENGTH'] = len(uncompressed)
+                request.META['HTTP_CONTENT_ENCODING'] = 'identity'
             except zlib.error:
                 logger.debug('Failed to decompress body payload', exc_info=True)
                 request._stream = six.StringIO(data)
