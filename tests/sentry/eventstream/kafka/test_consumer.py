@@ -47,12 +47,27 @@ def test_consumer_start_from_partition_start():
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
             bootstrap_servers='localhost:9092',
-            topics=[topic],
             consumer_group='consumer-{}'.format(uuid.uuid1().hex),
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
         )
-        consumer.start()
+
+        assignments_received = []
+
+        def on_assign(c, assignment):
+            assert c is consumer
+            assignments_received.append(assignment)
+
+        consumer.subscribe([topic], on_assign=on_assign)
+
+        # Wait until we have received our assignments.
+        for i in xrange(10):  # this takes a while
+            assert consumer.poll(1) is None
+            if assignments_received:
+                break
+
+        assert len(assignments_received) == 1, 'expected to receive partition assignment'
+        assert set((i.topic, i.partition) for i in assignments_received[0]) == set([(topic, 0)])
 
         # TODO: Make sure that all partitions are paused on assignment.
 

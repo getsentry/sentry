@@ -106,17 +106,57 @@ class SynchronizedConsumer(object):
     Implementations are also responsible for managing their own offset commits.
     """
 
-    def __init__(self, bootstrap_servers, topics, consumer_group,
-                 commit_log_topic, synchronize_commit_group, on_commit=None):
+    def __init__(self, bootstrap_servers, consumer_group, commit_log_topic,
+                 synchronize_commit_group, on_commit=None):
         self.bootstrap_servers = bootstrap_servers
-        self.topics = topics
         self.consumer_group = consumer_group
         self.commit_log_topic = commit_log_topic
         self.synchronize_commit_group = synchronize_commit_group
-        self.on_commit = on_commit
 
-    def _on_partition_state_change(
+        self.__partition_state_manager = SynchronizedPartitionStateManager(
+            self.__on_partition_state_change)
+        self.__commit_log_consumer, self__commit_log_consumer_stop_request = self.__start_commit_log_consumer()
+
+        def commit_callback(consumer, error, partitions):
+            if on_commit is not None:
+                return on_commit(self, error, partitions)
+
+        consumer_configuration = {
+            'bootstrap.servers': self.bootstrap_servers,
+            'group.id': self.consumer_group,
+            'enable.auto.commit': 'false',
+            'enable.auto.offset.store': 'true',
+            'enable.partition.eof': 'false',
+            'default.topic.config': {
+                'auto.offset.reset': 'error',
+            },
+            'on_commit': commit_callback,
+        }
+
+        self.__consumer = Consumer(consumer_configuration)
+
+    def __start_commit_log_consumer(self):
+        """
+        Starts running the commit log consumer.
+        """
+        stop_request_event = threading.Event()
+        return execute(
+            functools.partial(
+                run_commit_log_consumer,
+                bootstrap_servers=self.bootstrap_servers,
+                consumer_group='{}:sync:{}'.format(self.consumer_group, uuid.uuid1().hex),
+                commit_log_topic=self.commit_log_topic,
+                synchronize_commit_group=self.synchronize_commit_group,
+                partition_state_manager=self.__partition_state_manager,
+                stop_request_event=stop_request_event,
+            ),
+        ), stop_request_event
+
+    def __on_partition_state_change(
             self, topic, partition, previous_state_and_offsets, current_state_and_offsets):
+        """
+        Callback that is invoked when a partition state changes.
+        """
         logger.debug('State change for %r: %r to %r', (topic, partition),
                      previous_state_and_offsets, current_state_and_offsets)
 
@@ -128,102 +168,83 @@ class SynchronizedConsumer(object):
             # consumer has received its assignment.)
             return
 
+        # TODO: This wil be called from the commit log consumer thread, so need
+        # to verify that calling the ``consumer.{pause,resume}`` methods is
+        # thread safe!
         if current_state in (SynchronizedPartitionState.UNKNOWN, SynchronizedPartitionState.SYNCHRONIZED,
                              SynchronizedPartitionState.REMOTE_BEHIND):
-            self._consumer.pause([TopicPartition(topic, partition, current_offsets.local)])
+            self.__consumer.pause([TopicPartition(topic, partition, current_offsets.local)])
         elif current_state is SynchronizedPartitionState.LOCAL_BEHIND:
-            self._consumer.resume([TopicPartition(topic, partition, current_offsets.local)])
+            self.__consumer.resume([TopicPartition(topic, partition, current_offsets.local)])
         else:
             raise NotImplementedError('Unexpected partition state: %s' % (current_state,))
 
-    def _get_initial_offset(self, consumer, i):
-        low, high = self._consumer.get_watermark_offsets(i)
+    def __get_initial_offset(self, consumer, i):
+        low, high = self.__consumer.get_watermark_offsets(i)
         return low
 
-    def _pause_partitions_on_assignment(self, consumer, assignment):
-        # Since ``auto.offset.reset`` is set to ``error`` to force human
-        # interaction on an offset reset, we have to explicitly specify the
-        # starting offset if no offset has been committed for this topic during
-        # the ``__consumer_offsets`` topic retention period.
-        assignment = [
-            TopicPartition(
-                i.topic,
-                i.partition,
-                i.offset if i.offset > -1 else self._get_initial_offset(consumer, i),
-            ) for i in assignment
-        ]
+    def subscribe(self, topics, on_assign=None, on_revoke=None):
+        """
+        Subscribe to a topic.
+        """
+        def assignment_callback(consumer, assignment):
+            # Since ``auto.offset.reset`` is set to ``error`` to force human
+            # interaction on an offset reset, we have to explicitly specify the
+            # starting offset if no offset has been committed for this topic during
+            # the ``__consumer_offsets`` topic retention period.
+            assignment = [
+                TopicPartition(
+                    i.topic,
+                    i.partition,
+                    i.offset if i.offset > -1 else self.__get_initial_offset(consumer, i),
+                ) for i in assignment
+            ]
 
-        self._consumer.assign(assignment)
+            self.__consumer.assign(assignment)
 
-        for i in assignment:
-            # Setting the local offsets will either cause the partition to be
-            # paused (if the remote offset is unknown or the local offset is
-            # not trailing the remote offset) or resumed.
-            self._partition_state_manager.set_local_offset(i.topic, i.partition, i.offset)
+            for i in assignment:
+                # Setting the local offsets will either cause the partition to be
+                # paused (if the remote offset is unknown or the local offset is
+                # not trailing the remote offset) or resumed.
+                self.__partition_state_manager.set_local_offset(i.topic, i.partition, i.offset)
 
-    def start(self):
-        consumer_configuration = {
-            'bootstrap.servers': self.bootstrap_servers,
-            'group.id': self.consumer_group,
-            'enable.auto.commit': 'false',
-            'enable.auto.offset.store': 'true',
-            'enable.partition.eof': 'false',
-            'default.topic.config': {
-                'auto.offset.reset': 'error',
-            },
-        }
+            if on_assign is not None:
+                on_assign(self, assignment)
 
-        if self.on_commit is not None:
-            consumer_configuration['on_commit'] = self.on_commit
+        def revocation_callback(consumer, assignment):
+            if on_revoke is not None:
+                on_revoke(self, assignment)
 
-        self._consumer = Consumer(consumer_configuration)
-
-        self._partition_state_manager = SynchronizedPartitionStateManager(
-            self._on_partition_state_change)
-
-        self._consumer.subscribe(self.topics, self._pause_partitions_on_assignment)
-
-        self._commit_log_consumer_stop_request = threading.Event()
-        self._commit_log_consumer = execute(
-            functools.partial(
-                run_commit_log_consumer,
-                bootstrap_servers=self.bootstrap_servers,
-                consumer_group='{}:sync:{}'.format(
-                    self.consumer_group,
-                    uuid.uuid1().hex,
-                ),
-                commit_log_topic=self.commit_log_topic,
-                partition_state_manager=self._partition_state_manager,
-                synchronize_commit_group=self.synchronize_commit_group,
-                stop_request_event=self._commit_log_consumer_stop_request,
-            ),
-        )
+        self.__consumer.subscribe(
+            topics,
+            on_assign=assignment_callback,
+            on_revoke=revocation_callback)
 
     def poll(self, timeout):
-        if not self._commit_log_consumer.running():
-            result = self._commit_log_consumer.result(timeout=0)  # noqa
+        if not self.__commit_log_consumer.running():
+            result = self.__commit_log_consumer.result(timeout=0)  # noqa
             raise Exception('Commit log consumer unexpectedly exit!')
 
-        message = self._consumer.poll(timeout)
+        message = self.__consumer.poll(timeout)
         if message is None:
             return
 
         if message.error() is not None:
             return message
 
-        self._partition_state_manager.validate_local_message(
+        self.__partition_state_manager.validate_local_message(
             message.topic(), message.partition(), message.offset())
-        self._partition_state_manager.set_local_offset(
+        self.__partition_state_manager.set_local_offset(
             message.topic(), message.partition(), message.offset() + 1)
 
         return message
 
     def commit(self, *args, **kwargs):
-        return self._consumer.commit(*args, **kwargs)
+        return self.__consumer.commit(*args, **kwargs)
 
     def close(self):
-        self._commit_log_consumer_stop_request.set()
+        self.__commit_log_consumer_stop_request.set()
         try:
-            self._consumer.close()
+            self.__consumer.close()
         finally:
-            self._commit_log_consumer.result()
+            self.__commit_log_consumer.result()
