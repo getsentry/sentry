@@ -69,7 +69,7 @@ class OnboardingTasksSerializer(Serializer):
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
-        from sentry import features
+        from sentry import features, experiments
         from sentry.app import env
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
@@ -143,16 +143,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has('organizations:event-attachments', obj, actor=user):
             feature_list.append('event-attachments')
 
-        # this is slightly gross but necessary until we have the get on the endpoint
-        # to give the frontend a way to know when to log exposures
-        sso_experiment = features.has('organizations:sso-paywall-experiment', obj, actor=user)
-        if sso_experiment:
-            feature_list.append('sso-paywall-experiment-treatment')
-        elif sso_experiment is False:
-            feature_list.append('sso-paywall-experiment-control')
+        experiment_assignments = experiments.all(org=obj)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
+        context['experiments'] = experiment_assignments
         context['quota'] = {
             'maxRate': max_rate[0],
             'maxRateInterval': max_rate[1],
