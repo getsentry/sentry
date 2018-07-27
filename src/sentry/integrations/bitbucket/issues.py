@@ -21,6 +21,10 @@ ERR_404 = (
 
 class BitbucketIssueBasicMixin(IssueBasicMixin):
 
+    def get_issue_url(self, key):
+        repo, issue_id = key.split('#')
+        return 'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
+
     def get_repo_choices(self, **kwargs):
         client = self.get_client()
 
@@ -29,7 +33,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         except ApiError:
             repo_choices = []
         else:
-            repo_choices = [(repo['uuid'], repo['full_name']) for repo in repos['values']]
+            repo_choices = [(repo['full_name'], repo['full_name']) for repo in repos['values']]
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
@@ -99,6 +103,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             'key': issue['id'],
             'title': issue['title'],
             'description': issue['content']['html'],  # users content rendered as html
+            'repo': data.get('repo'),
         }
 
     def get_issue(self, issue_id, **kwargs):
