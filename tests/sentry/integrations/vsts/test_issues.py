@@ -181,3 +181,8 @@ class VstsIssueSycnTest(TestCase):
         assert req.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id
         assert req.body == '[{"path": "/fields/System.State", "value": "Resolved", "op": "replace"}]'
         assert responses.calls[0].response.status_code == 200
+
+    def test_get_issue_url(self):
+        work_id = 345
+        url = self.integration.get_issue_url(work_id)
+        assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workItems/345'
