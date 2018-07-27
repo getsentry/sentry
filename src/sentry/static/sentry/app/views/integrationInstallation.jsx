@@ -23,7 +23,7 @@ class IntegrationInstallation extends AsyncView {
   }
 
   getEndpoints() {
-    return [['organizations', '/integration-installation/']];
+    return [['organizations', '/organizations/?owner=1']];
   }
 
   getTitle() {
@@ -60,18 +60,20 @@ class IntegrationInstallation extends AsyncView {
       IndicatorStore.addError(data.error);
       return;
     }
-
-    this.props.router.push(`/settings/sentry/integrations/${data.provider.key}/`);
+    this.props.router.push(
+      `/settings/sentry/integrations/${data.provider.key}/${data.id}`
+    );
     IndicatorStore.addSuccess(t('Integration Added'));
   };
 
   renderBody() {
     let {organizations} = this.state;
     let choices = [];
-
-    organizations.organizations.forEach(org => {
-      choices.push([org.slug, org.slug]);
-    });
+    if (organizations) {
+      organizations.forEach(org => {
+        choices.push([org.organization.slug, org.organization.slug]);
+      });
+    }
     return (
       <NarrowLayout>
         <SettingsPageHeader title={t('Choose Organization for your Integration')} />

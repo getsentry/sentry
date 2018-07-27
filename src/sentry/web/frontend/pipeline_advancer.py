@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from django.core.urlresolvers import reverse
 from django.contrib import messages
 from django.utils.translation import ugettext_lazy as _
 
@@ -22,6 +23,11 @@ class PipelineAdvancerView(BaseView):
 
     def handle(self, request, provider_id):
         pipeline = None
+        if request.path == u'/extensions/github/setup/' and request.GET.get(
+                'setup_action') == 'install':
+            installation_id = request.GET.get('installation_id')
+            return self.redirect(reverse('integration-installation', args=[installation_id]))
+
         for pipeline_cls in PIPELINE_CLASSES:
             pipeline = pipeline_cls.get_for_request(request=request)
             if pipeline:
