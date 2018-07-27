@@ -99,6 +99,8 @@ export default class OrganizationDiscover extends React.Component {
           this.setState({chartData: null, chartQuery: null});
         }
       );
+    } else {
+      this.setState({chartData: null, chartQuery: null});
     }
   };
 
