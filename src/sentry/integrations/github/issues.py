@@ -9,7 +9,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
         return '{}#{}'.format(data['repo'], data['key'])
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key):
         domain_name, user = self.model.metadata['domain_name'].split('/')
         repo, issue_id = key.split('#')
         return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
