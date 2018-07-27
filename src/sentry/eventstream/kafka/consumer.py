@@ -25,6 +25,8 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
                             partition_state_manager, synchronize_commit_group, stop_request_event):
     logging.debug('Starting commit log consumer...')
 
+    positions = {}
+
     # NOTE: The commit log consumer group should not be persisted into the
     # ``__consumer_offsets`` topic since no offsets are committed by this
     # consumer. The group membership metadata messages will be published
@@ -49,9 +51,13 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
         # The commit log consumer must start consuming from the beginning of
         # the commit log topic to ensure that it has a comprehensive view of
         # all active partitions.
-        # TODO: This needs to be updated to only rewind new partitions!
-        consumer.assign([TopicPartition(i.topic, i.partition, OFFSET_BEGINNING)
-                         for i in assignment])
+        consumer.assign([
+            TopicPartition(
+                i.topic,
+                i.partition,
+                positions.get((i.topic, i.partition), OFFSET_BEGINNING),
+            ) for i in assignment
+        ])
 
     consumer.subscribe(
         [commit_log_topic],
@@ -66,6 +72,8 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
         error = message.error()
         if error is not None:
             raise Exception(error)
+
+        positions[(message.topic(), message.partition())] = message.offset() + 1
 
         group, topic, partition, offset = get_commit_data(message)
         if group != synchronize_commit_group:
