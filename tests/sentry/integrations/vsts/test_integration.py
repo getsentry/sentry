@@ -196,7 +196,6 @@ class VstsIntegrationTest(APITestCase):
             'sync_reverse_assignment']
         assert [field['name'] for field in fields] == names
 
-<<<<<<< HEAD
     def test_update_organization_config_remove_all(self):
         data = {
             'sync_status_forward': {},
@@ -295,7 +294,6 @@ class VstsIntegrationTest(APITestCase):
             'sync_status_forward': True,
             'other_option': 'hello',
         }
-=======
+
     def test_build_project_status_mapping(self):
         pass
->>>>>>> Added project status mapping building.
