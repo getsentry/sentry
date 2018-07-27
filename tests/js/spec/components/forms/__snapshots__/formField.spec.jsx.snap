@@ -84,18 +84,18 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <Component
-                  className="css-mq954e-FieldWrapper-inlineStyle etqqcs20"
+                  className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                   hasControlState={true}
                   inline={true}
                 >
                   <Flex
-                    className="css-mq954e-FieldWrapper-inlineStyle etqqcs20"
+                    className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                   >
                     <Base
-                      className="etqqcs20 css-14yamts-FieldWrapper-inlineStyle"
+                      className="etqqcs20 css-11jhx2k-FieldWrapper-getPadding-borderStyle-inlineStyle"
                     >
                       <div
-                        className="etqqcs20 css-14yamts-FieldWrapper-inlineStyle"
+                        className="etqqcs20 css-11jhx2k-FieldWrapper-getPadding-borderStyle-inlineStyle"
                         is={null}
                       >
                         <FieldControl

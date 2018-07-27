@@ -1,6 +1,8 @@
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import space from 'app/styles/space';
+
 const inlineStyle = p =>
   p.inline
     ? css`
@@ -9,7 +11,7 @@ const inlineStyle = p =>
         flex-shrink: 0;
       `
     : css`
-        margin-bottom: 10px;
+        margin-bottom: ${space(1)};
       `;
 
 const FieldDescription = styled(({inline, ...props}) => <label {...props} />)`

@@ -28,11 +28,6 @@ class Field extends React.Component {
     highlighted: PropTypes.bool,
 
     /**
-     * Padding
-     */
-    p: PropTypes.number,
-
-    /**
      * Show "required" indicator
      */
     required: PropTypes.bool,
@@ -71,6 +66,11 @@ class Field extends React.Component {
      * Should Control be inline with Label
      */
     inline: PropTypes.bool,
+
+    /**
+     * Should the field display in a stacked manner (no borders + reduced padding
+     */
+    stacked: PropTypes.bool,
 
     /**
      * The control's `id` property
@@ -114,7 +114,7 @@ class Field extends React.Component {
       label,
       help,
       id,
-      p,
+      stacked,
       children,
       style,
     } = otherProps;
@@ -147,9 +147,9 @@ class Field extends React.Component {
 
     return (
       <FieldWrapper
-        p={p}
         className={className}
         inline={inline}
+        stacked={stacked}
         highlighted={highlighted}
         hasControlState={!flexibleControlStateSize}
         style={style}

@@ -46,7 +46,7 @@ export default class CreateTeamForm extends React.Component {
             required
             flexibleControlStateSize
             inline={false}
-            p={0}
+            stacked={true}
           />
         </Form>
       </React.Fragment>

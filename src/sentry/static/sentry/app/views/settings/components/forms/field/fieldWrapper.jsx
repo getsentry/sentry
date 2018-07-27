@@ -20,14 +20,21 @@ const highlightedStyle = p =>
       `
     : '';
 
-const getPadding = props => {
-  if (typeof props.p !== 'undefined') {
-    return `padding: ${props.p};`;
-  }
-  return `padding: ${space(2)} ${props.hasControlState ? 0 : space(2)} ${space(
-    2
-  )} ${space(2)}`;
-};
+const borderStyle = p =>
+  p.stacked
+    ? ''
+    : css`
+        border-bottom: 1px solid ${p.theme.borderLight};
+      `;
+
+const getPadding = p =>
+  p.stacked && !p.inline
+    ? css`
+        padding: 0 ${p.hasControlState ? 0 : space(2)} ${space(1)} 0;
+      `
+    : css`
+        padding: ${space(2)} ${p.hasControlState ? 0 : space(2)} ${space(2)} ${space(2)};
+      `;
 
 /**
  * `hasControlState` - adds padding to right if this is false
@@ -36,11 +43,15 @@ const FieldWrapper = styled(({highlighted, inline, hasControlState, p, ...props}
   <Flex {...props} />
 ))`
   ${getPadding};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
-  ${inlineStyle} ${highlightedStyle} &:last-child {
+  ${borderStyle};
+  ${inlineStyle};
+  ${highlightedStyle};
+
+  &:last-child {
     border-bottom: none;
+    ${p => (p.stacked ? 'padding-bottom: 0' : '')};
   }
 `;
 
