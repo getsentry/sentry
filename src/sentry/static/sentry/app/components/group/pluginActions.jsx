@@ -39,12 +39,6 @@ const PluginActions = createReactClass({
     }
   },
 
-  ACTION_LABELS: {
-    create: t('Create New Issue'),
-    link: t('Link with Existing Issue'),
-    unlink: t('Unlink Issue'),
-  },
-
   deleteIssue() {
     const plugin = {
       ...this.props.plugin,
@@ -92,10 +86,8 @@ const PluginActions = createReactClass({
     });
   },
 
-  handleClick(evt) {
-    this.setState({
-      actionType: evt.target.id,
-    });
+  handleClick(actionType) {
+    this.setState({actionType});
   },
 
   render() {
@@ -126,38 +118,24 @@ const PluginActions = createReactClass({
             style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
           >
             <li className={actionType == 'create' ? 'active' : ''}>
-              <a id="create" onClick={this.handleClick}>
-                Create
-              </a>
+              <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
             </li>
             <li className={actionType == 'link' ? 'active' : ''}>
-              <a id="link" onClick={this.handleClick}>
-                Link
-              </a>
+              <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
             </li>
           </ul>
-          {this.state.showModal && actionType == 'create' &&
+          {this.state.showModal &&
+            actionType &&
             !this.state.pluginLoading && (
-              <Modal.Body>
+              // need the key here so React will re-render
+              // with new action prop
+              <Modal.Body key={actionType}>
                 {plugins.get(plugin).renderGroupActions({
                   plugin,
                   group: this.getGroup(),
                   project: this.getProject(),
                   organization: this.getOrganization(),
-                  actionType: 'create',
-                  onSuccess: this.closeModal,
-                })}
-              </Modal.Body>
-            )}
-          {this.state.showModal && actionType == 'link' &&
-            !this.state.pluginLoading && (
-              <Modal.Body>
-                {plugins.get(plugin).renderGroupActions({
-                  plugin,
-                  group: this.getGroup(),
-                  project: this.getProject(),
-                  organization: this.getOrganization(),
-                  actionType: 'link',
+                  actionType,
                   onSuccess: this.closeModal,
                 })}
               </Modal.Body>
