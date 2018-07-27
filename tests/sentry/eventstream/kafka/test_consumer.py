@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import subprocess
 import uuid
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 
-from confluent_kafka import Consumer, Producer, TopicPartition
+from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
 
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 
@@ -479,4 +479,139 @@ def test_consumer_rebalance_from_committed_offset():
 
 
 def test_consumer_rebalance_from_uncommitted_offset():
-    raise NotImplementedError
+    consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
+    synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
+
+    messages_delivered = defaultdict(list)
+
+    def record_message_delivered(error, message):
+        assert error is None
+        messages_delivered[message.topic()].append(message)
+
+    producer = Producer({
+        'bootstrap.servers': 'localhost:9092',
+        'on_delivery': record_message_delivered,
+    })
+
+    with create_topic(partitions=2) as topic, create_topic() as commit_log_topic:
+
+        # Produce some messages into the topic.
+        for i in range(4):
+            producer.produce(topic, '{}'.format(i).encode('utf8'), partition=i % 2)
+
+        assert producer.flush(5) == 0, 'producer did not successfully flush queue'
+
+        for (topic, partition), offset in {(message.topic(), message.partition(
+        )): message.offset() for message in messages_delivered[topic]}.items():
+            producer.produce(
+                commit_log_topic,
+                key='{}:{}:{}'.format(
+                    topic,
+                    partition,
+                    synchronize_commit_group,
+                ).encode('utf8'),
+                value='{}'.format(
+                    offset + 1,
+                ).encode('utf8'),
+            )
+
+        assert producer.flush(5) == 0, 'producer did not successfully flush queue'
+
+        consumer_a = SynchronizedConsumer(
+            bootstrap_servers='localhost:9092',
+            consumer_group=consumer_group,
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+        )
+
+        assignments_received = defaultdict(list)
+
+        def on_assign(consumer, assignment):
+            assignments_received[consumer].append(assignment)
+
+        consumer_a.subscribe([topic], on_assign=on_assign)
+
+        # Wait until the first consumer has received its assignments.
+        for i in xrange(10):  # this takes a while
+            assert consumer_a.poll(1) is None
+            if assignments_received[consumer_a]:
+                break
+
+        assert len(assignments_received[consumer_a]
+                   ) == 1, 'expected to receive partition assignment'
+        assert set((i.topic, i.partition)
+                   for i in assignments_received[consumer_a][0]) == set([(topic, 0), (topic, 1)])
+
+        assignments_received[consumer_a].pop()
+
+        messages_received = defaultdict(OrderedDict)
+
+        # Consume all of the available messages.
+        for i in xrange(10):
+            if len(messages_received[consumer_a]) == 4:
+                break
+
+            message = consumer_a.poll(1)
+            if message is None or message.error() is not None:
+                continue
+
+            messages_received[consumer_a][(
+                message.topic(), message.partition(), message.offset())] = message
+
+        assert len(messages_received[consumer_a]) == 4
+
+        consumer_b = SynchronizedConsumer(
+            bootstrap_servers='localhost:9092',
+            consumer_group=consumer_group,
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+        )
+
+        consumer_b.subscribe([topic], on_assign=on_assign)
+
+        assignments = {}
+
+        # Wait until *both* consumers have received updated assignments.
+        for consumer in [consumer_a, consumer_b]:
+            for i in xrange(10):  # this takes a while
+                assert consumer.poll(1) is None or consumer.error() is KafkaError._PARTITION_EOF
+                if assignments_received[consumer]:
+                    break
+
+            assert len(assignments_received[consumer]
+                       ) == 1, 'expected to receive partition assignment'
+            assert len(assignments_received[consumer][0]
+                       ) == 1, 'expected to have a single partition assignment'
+
+            i = assignments_received[consumer][0][0]
+            assignments[(i.topic, i.partition)] = consumer
+
+        assert set(assignments.keys()) == set([(topic, 0), (topic, 1)])
+
+        # Consumer B should receive two messages.
+        for i in xrange(10):
+            if len(messages_received[consumer_b]) > 2:
+                break
+
+            message = consumer_b.poll(1)
+            if message is None or message.error() is not None:
+                continue
+
+            messages_received[consumer_b][(
+                message.topic(), message.partition(), message.offset())] = message
+
+        # Consumer A should not receive any new messages.
+        for i in xrange(10):
+            message = consumer_a.poll(1)
+            if message is None:
+                continue
+
+            if message.error() is KafkaError._PARTITION_EOF:
+                assert assignments[(message.topic(), message.partition())] is consumer_a
+                break
+            else:
+                k = (message.topic(), message.partition(), message.offset())
+                assert k not in messages_received[consumer_a], 'received unexpected message: {!r}'.format(
+                    k)
+
+        assert len(messages_received[consumer_a]) == 4
