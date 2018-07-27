@@ -75,6 +75,12 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     `aggregations` a list of (aggregation_function, column, alias) tuples to be
     passed to the query.
     """
+
+    # convert to naive UTC datetimes, as Snuba only deals in UTC
+    # and this avoids offset-naive and offset-aware issues
+    start = start if not start.tzinfo else start.astimezone(pytz.utc).replace(tzinfo=None)
+    end = end if not end.tzinfo else end.astimezone(pytz.utc).replace(tzinfo=None)
+
     groupby = groupby or []
     conditions = conditions or []
     having = having or []
@@ -172,11 +178,6 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
           having=None, referrer=None, is_grouprelease=False, selected_columns=None):
-
-    # convert to naive UTC datetimes, as Snuba only deals in UTC
-    # and this avoids offset-naive and offset-aware issues
-    start = start if not start.tzinfo else start.astimezone(pytz.utc).replace(tzinfo=None)
-    end = end if not end.tzinfo else end.astimezone(pytz.utc).replace(tzinfo=None)
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
