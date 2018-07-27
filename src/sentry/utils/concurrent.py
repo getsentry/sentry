@@ -21,7 +21,7 @@ def execute(function, daemon=True):
 
         try:
             result = function()
-        except Exception as error:
+        except Exception:
             future.set_exception_info(*sys.exc_info()[1:])
         else:
             future.set_result(result)
