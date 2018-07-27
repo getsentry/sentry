@@ -137,6 +137,7 @@ exports[`ProjectIntegrations Renders emptystate with access 1`] = `
                                 "teams": Array [],
                               }
                             }
+                            renderNoFeatureMessage={false}
                           >
                             <Tooltip
                               disabled={true}
@@ -350,6 +351,7 @@ exports[`ProjectIntegrations Renders emptystate with access 1`] = `
                                   "teams": Array [],
                                 }
                               }
+                              renderNoFeatureMessage={false}
                             >
                               <span
                                 key="6"
@@ -540,6 +542,7 @@ exports[`ProjectIntegrations Renders emptystate with no permissions 1`] = `
                                 "teams": Array [],
                               }
                             }
+                            renderNoFeatureMessage={false}
                           >
                             <Tooltip
                               disabled={false}
@@ -746,6 +749,7 @@ exports[`ProjectIntegrations Renders emptystate with no permissions 1`] = `
                                   "teams": Array [],
                                 }
                               }
+                              renderNoFeatureMessage={false}
                             >
                               Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities.
                             </Feature>
