@@ -211,6 +211,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.proxy.ChunkedMiddleware',
+    'sentry.middleware.proxy.DecompressBodyMiddleware',
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
     'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
