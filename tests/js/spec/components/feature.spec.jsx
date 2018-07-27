@@ -114,6 +114,19 @@ describe('Feature', function() {
       });
     });
 
+    it('calls render function when no feature', function() {
+      const noFeatureRenderer = jest.fn(() => null);
+      mount(
+        <Feature feature={['org-baz']} renderNoFeatureMessage={noFeatureRenderer}>
+          {childrenMock}
+        </Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).not.toHaveBeenCalled();
+      expect(noFeatureRenderer).toHaveBeenCalled();
+    });
+
     it('can specify org from props', function() {
       mount(
         <Feature
@@ -229,6 +242,22 @@ describe('Feature', function() {
       expect(childrenMock).toHaveBeenCalledWith(
         expect.objectContaining({
           hasSuperuser: false,
+        })
+      );
+    });
+
+    it('checks ConfigStore.config.features (e.g. `organizations:create`)', function() {
+      ConfigStore.config = {
+        features: new Set(['organizations:create']),
+      };
+      mount(
+        <Feature feature={['organizations:create']}>{childrenMock}</Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
         })
       );
     });

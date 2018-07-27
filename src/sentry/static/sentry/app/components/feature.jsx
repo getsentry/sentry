@@ -1,10 +1,18 @@
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
 import SentryTypes from 'app/sentryTypes';
+
+const DEFAULT_NO_FEATURE_MESSAGE = (
+  <Alert type="info" icon="icon-circle-info">
+    {t('This feature is coming soon!')}
+  </Alert>
+);
 
 /**
  * Interface to handle feature tags as well as user's organization access levels
@@ -43,6 +51,12 @@ class Feature extends React.Component {
     isSuperuser: PropTypes.bool,
 
     /**
+     * Custom renderer function for "no feature" message OR `true` to use default message.
+     * `false` will suppress message.
+     */
+    renderNoFeatureMessage: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
+
+    /**
      * If children is a function then will be treated as a render prop and passed this object:
      * {
      *   hasFeature: bool,
@@ -53,6 +67,10 @@ class Feature extends React.Component {
      * all the required feature AND access tags
      */
     children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
+  };
+
+  static defaultProps = {
+    renderNoFeatureMessage: false,
   };
 
   getAllFeatures = () => {
@@ -88,20 +106,35 @@ class Feature extends React.Component {
   };
 
   render() {
-    let {children, organization, feature, access, configUser, isSuperuser} = this.props;
+    let {
+      children,
+      organization,
+      feature,
+      access,
+      configUser,
+      isSuperuser,
+      renderNoFeatureMessage,
+    } = this.props;
     let {access: orgAccess} = organization || {access: []};
     let allFeatures = this.getAllFeatures();
     let hasFeature =
       !feature || feature.every(feat => this.hasFeature(feat, allFeatures));
     let hasAccess = !access || access.every(acc => orgAccess.includes(acc));
     let hasSuperuser = !isSuperuser || configUser.isSuperuser;
+    let renderProps = {
+      hasFeature,
+      hasAccess,
+      hasSuperuser,
+    };
+
+    if (!hasFeature && typeof renderNoFeatureMessage === 'function') {
+      return renderNoFeatureMessage(renderProps);
+    } else if (!hasFeature && renderNoFeatureMessage) {
+      return DEFAULT_NO_FEATURE_MESSAGE;
+    }
 
     if (typeof children === 'function') {
-      return children({
-        hasFeature,
-        hasAccess,
-        hasSuperuser,
-      });
+      return children(renderProps);
     }
 
     // if children is NOT a function,
