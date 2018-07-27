@@ -43,6 +43,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
     </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
+      onCreateSampleEvent={[Function]}
       skip={[Function]}
     />
   </div>
@@ -494,6 +495,7 @@ exports[`Configure should render correctly render() should render platform docs 
       </withProjects(withRouter(ProjectContext))>
       <Waiting
         hasEvent={false}
+        onCreateSampleEvent={[Function]}
         skip={[Function]}
       >
         <div
@@ -502,12 +504,117 @@ exports[`Configure should render correctly render() should render platform docs 
           <div
             className="pull-right"
           >
-            <div
-              className="btn btn-primary"
+            <Button
+              disabled={false}
               onClick={[Function]}
+              priority="primary"
             >
-              All done!
-            </div>
+              <StyledButton
+                aria-label="See Sample Event"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+              >
+                <Component
+                  aria-label="See Sample Event"
+                  className="css-1msljz8-StyledButton-getColors e17811v30"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                >
+                  <button
+                    aria-label="See Sample Event"
+                    className="css-1msljz8-StyledButton-getColors e17811v30"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                  >
+                    <ButtonLabel>
+                      <Component
+                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      >
+                        <Flex
+                          align="center"
+                          className="css-1dxlw1i-ButtonLabel e17811v31"
+                        >
+                          <Base
+                            align="center"
+                            className="e17811v31 css-mvnt76-ButtonLabel"
+                          >
+                            <div
+                              className="e17811v31 css-mvnt76-ButtonLabel"
+                              is={null}
+                            >
+                              See Sample Event
+                            </div>
+                          </Base>
+                        </Flex>
+                      </Component>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+            <span>
+               or 
+            </span>
+            <Button
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+            >
+              <StyledButton
+                aria-label="All done"
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+              >
+                <Component
+                  aria-label="All done"
+                  className="css-1msljz8-StyledButton-getColors e17811v30"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                >
+                  <button
+                    aria-label="All done"
+                    className="css-1msljz8-StyledButton-getColors e17811v30"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                  >
+                    <ButtonLabel>
+                      <Component
+                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      >
+                        <Flex
+                          align="center"
+                          className="css-1dxlw1i-ButtonLabel e17811v31"
+                        >
+                          <Base
+                            align="center"
+                            className="e17811v31 css-mvnt76-ButtonLabel"
+                          >
+                            <div
+                              className="e17811v31 css-mvnt76-ButtonLabel"
+                              is={null}
+                            >
+                              All done
+                            </div>
+                          </Base>
+                        </Flex>
+                      </Component>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
           </div>
           <div
             className="wrap waiting-text"
@@ -575,6 +682,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
+      onCreateSampleEvent={[Function]}
       skip={[Function]}
     />
   </div>

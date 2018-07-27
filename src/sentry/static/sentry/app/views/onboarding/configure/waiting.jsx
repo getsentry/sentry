@@ -2,9 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
 
+import Button from 'app/components/buttons/button';
+
 class Waiting extends React.Component {
   static propTypes = {
     skip: PropTypes.func,
+    onCreateSampleEvent: PropTypes.func,
     hasEvent: PropTypes.bool.isRequired,
   };
 
@@ -12,9 +15,13 @@ class Waiting extends React.Component {
     return (
       <div className="awaiting-event">
         <div className="pull-right">
-          <div className="btn btn-primary" onClick={this.props.skip}>
-            {t('All done!')}
-          </div>
+          <Button priority="primary" onClick={this.props.onCreateSampleEvent}>
+            {t('See Sample Event')}
+          </Button>
+          <span>{t(' or ')}</span>
+          <Button priority="primary" onClick={this.props.skip}>
+            {t('All done')}
+          </Button>
         </div>
         <div className="wrap waiting-text">
           {!this.props.hasEvent ? (
