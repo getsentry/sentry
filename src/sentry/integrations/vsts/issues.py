@@ -15,6 +15,7 @@ class VstsIssueSync(IssueSyncMixin):
     conf_key = slug
 
     issue_fields = frozenset(['id', 'title', 'url'])
+    done_categories = frozenset(['Resolved', 'Completed'])
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
@@ -156,3 +157,19 @@ class VstsIssueSync(IssueSyncMixin):
                     'exception': error,
                 }
             )
+
+    def should_unresolve(self, data):
+        done_states = self.get_done_states(data['project'])
+        return data['old_state'] in done_states and not data['new_state'] in done_states
+
+    def should_resolve(self, data):
+        done_states = self.get_done_states(data['project'])
+        return not data['old_state'] in done_states and data['new_state'] in done_states
+
+    def get_done_states(self, project):
+        client = self.get_client()
+        all_states = client.get_work_item_states(self.instance, project)['value']
+        done_states = [
+            state['name'] for state in all_states if state['category'] in self.done_categories
+        ]
+        return done_states

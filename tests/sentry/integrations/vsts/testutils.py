@@ -397,3 +397,154 @@ WORK_ITEM_UNASSIGNED = {
     u'publisherId': u'tfs',
     u'message': None
 }
+WORK_ITEM_UPDATED_STATUS = {
+    u'resourceContainers': {
+        u'project': {
+            u'id': u'c0bf429a-c03c-4a99-9336-d45be74db5a6',
+            u'baseUrl': u'https://laurynsentry.visualstudio.com/'
+        },
+        u'account': {
+            u'id': u'90e9a854-eb98-4c56-ae1a-035a0f331dd6',
+            u'baseUrl': u'https://laurynsentry.visualstudio.com/'
+        },
+        u'collection': {
+            u'id': u'80ded3e8-3cd3-43b1-9f96-52032624aa3a',
+            u'baseUrl': u'https://laurynsentry.visualstudio.com/'
+        }
+    },
+    u'resource': {
+        u'revisedBy': {
+            u'displayName': u'lauryn',
+            u'name': u'lauryn <lauryn@sentry.io>',
+            u'url': u'https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e',
+            u'imageUrl': u'https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e',
+            u'descriptor': u'msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl',
+            u'_links': {
+                u'avatar': {
+                    u'href': u'https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl'
+                }
+            },
+            u'uniqueName': u'lauryn@sentry.io',
+            u'id': u'21354f98-ab06-67d9-b974-5a54d992082e'
+        },
+        u'revisedDate': u'9999-01-01T00:00:00      Z',
+        u'url': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3',
+        u'fields': {
+            u'System.AuthorizedDate': {
+                u'newValue': u'2018-07-05T23:23:09.493            Z',
+                u'oldValue': u'2018-07-05T23:21:38.243            Z'
+            },
+            u'System.State': {
+                u'oldValue': u'New',
+                u'newValue': u'Resolved'
+            },
+            u'System.Watermark': {
+                u'newValue': 83,
+                u'oldValue': 82
+            },
+            u'System.Rev': {
+                u'newValue': 3,
+                u'oldValue': 2
+            },
+            u'System.RevisedDate': {
+                u'newValue': u'9999-01-01T00:00:00            Z',
+                u'oldValue': u'2018-07-05T23:23:09.493            Z'
+            },
+            u'System.ChangedDate': {
+                u'newValue': u'2018-07-05T23:23:09.493            Z',
+                u'oldValue': u'2018-07-05T23:21:38.243            Z'
+            }
+        },
+        u'workItemId': 33,
+        u'rev': 3,
+        u'_links': {
+            u'self': {
+                u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3'
+            },
+            u'workItemUpdates': {
+                u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates'
+            },
+            u'html': {
+                u'href': u'https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=33'
+            },
+            u'parent': {
+                u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33'
+            }
+        },
+        u'id': 3,
+        u'revision': {
+            u'url': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3',
+            u'fields': {
+                u'System.AreaPath': u'MyFirstProject',
+                u'System.WorkItemType': u'Bug',
+                u'System.Reason': u'New',
+                u'System.Title': u'NotImplementedError:Visual Studio Team Services requires an organization_id',
+                u'Microsoft.VSTS.Common.Priority': 2,
+                u'System.CreatedBy': u'lauryn <lauryn@sentry.io>',
+                u'Microsoft.VSTS.Common.StateChangeDate': u'2018-07-05T23:21:25.847            Z',
+                u'System.CreatedDate': u'2018-07-05T23:21:25.847            Z',
+                u'System.TeamProject': u'MyFirstProject',
+                u'Microsoft.VSTS.Common.ValueArea': u'Business',
+                u'System.State': u'New',
+                u'System.Description': u'<p><a href="https:            //lauryn.ngrok.io/sentry/internal/issues/196/">https:            //lauryn.ngrok.io/sentry/internal/issues/196/</a></p>\n<pre><code>NotImplementedError:Visual Studio Team Services requires an organization_id\n(57 additional frame(s) were not displayed)\n...\n  File &quot;sentry/tasks/base.py&quot;',
+                u'System.ChangedBy': u'lauryn <lauryn@sentry.io>',
+                u'System.ChangedDate': u'2018-07-05T23:23:09.493            Z',
+                u'Microsoft.VSTS.Common.Severity': u'3 - Medium',
+                u'System.IterationPath': u'MyFirstProject'
+            },
+            u'rev': 3,
+            u'id': 33,
+            u'_links': {
+                u'self': {
+                    u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3'
+                },
+                u'workItemRevisions': {
+                    u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions'
+                },
+                u'parent': {
+                    u'href': u'https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33'
+                }
+            }
+        }
+    },
+    u'eventType': u'workitem.updated',
+    u'detailedMessage': None,
+    u'createdDate': u'2018-07-05T23:23:11.1935112   Z',
+    u'id': u'cc349c85-6595-4939-9b69-f89480be6a26',
+    u'resourceVersion': u'1.0',
+    u'notificationId': 2,
+    u'subscriptionId': u'7405a600-6a25-48e6-81b6-1dde044783ad',
+    u'publisherId': u'tfs',
+    u'message': None
+}
+
+WORK_ITEM_STATES = {
+    'count': 5,
+    'value': [
+        {
+            'name': 'New',
+            'color': 'b2b2b2',
+            'category': 'Proposed'
+        },
+        {
+            'name': 'Active',
+            'color': '007acc',
+            'category': 'InProgress'
+        },
+        {
+            'name': 'CustomState',
+            'color': '5688E0',
+            'category': 'InProgress'
+        },
+        {
+            'name': 'Resolved',
+            'color': 'ff9d00',
+            'category': 'Resolved'
+        },
+        {
+            'name': 'Closed',
+            'color': '339933',
+            'category': 'Completed'
+        }
+    ]
+}

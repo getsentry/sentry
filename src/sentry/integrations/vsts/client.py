@@ -20,14 +20,14 @@ class VstsApiPath(object):
     commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
-    delete = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repository = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     repositories = u'https://{account_name}/{project}/_apis/git/repositories'
+    subscription = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
-    work_items_types_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
+    work_item_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
     users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
 
@@ -142,13 +142,9 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             ),
         )
 
-    def get_work_item_states(self, instance, project=None):
-        if project is None:
-            # TODO(lb): I'm pulling from the first project.
-            # Not sure what else to do here unless I can prompt the user
-            project = self.get_projects(instance)['value'][0]['id']
+    def get_work_item_states(self, instance, project):
         return self.get(
-            VstsApiPath.work_items_types_states.format(
+            VstsApiPath.work_item_states.format(
                 account_name=instance,
                 project=project,
                 # TODO(lb): might want to make this custom like jira at some point
@@ -264,7 +260,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
     def delete_subscription(self, instance, subscription_id):
         self.delete(
-            VstsApiPath.delete_url.format(
+            VstsApiPath.subscription.format(
                 account_name=instance,
                 subscription_id=subscription_id,
             )
