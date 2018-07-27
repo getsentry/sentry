@@ -50,7 +50,7 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return 'https://%s/_apis/wit/workItems/%s' % (self.instance, six.text_type(key))
+        return 'https://%s/_workitems/edit/%s' % (self.instance, six.text_type(key))
 
     def create_issue(self, data, **kwargs):
         """
