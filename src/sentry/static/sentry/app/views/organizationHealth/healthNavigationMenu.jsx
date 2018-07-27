@@ -10,7 +10,7 @@ import withLatestContext from 'app/utils/withLatestContext';
 
 const HealthNavigationMenu = styled(
   withLatestContext(
-    class extends React.Component {
+    class HealthNavigationMenu extends React.Component {
       static propTypes = {
         organization: SentryTypes.Organization,
       };
@@ -38,7 +38,7 @@ const HealthNavigationMenu = styled(
 export default HealthNavigationMenu;
 
 const NavigationGroup = styled(
-  class extends React.Component {
+  class NavigationGroup extends React.Component {
     static propTypes = {
       title: PropTypes.node,
     };
