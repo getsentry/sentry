@@ -143,7 +143,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has('organizations:event-attachments', obj, actor=user):
             feature_list.append('event-attachments')
 
-        experiment_assignments = experiments.all(org=obj, actor=user)
+        experiment_assignments = experiments.all(org=obj)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
