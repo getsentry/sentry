@@ -9,6 +9,7 @@ from sentry.integrations import Integration, IntegrationFeatures, IntegrationPro
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
+from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -65,6 +66,20 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
             data.append({'name': repo['name'], 'identifier': repo['full_name']})
         return data
 
+    def get_unmigratable_repositories(self):
+        accessible_repos = self.get_repositories()
+        accessible_repo_names = [r['identifier'] for r in accessible_repos]
+
+        existing_repos = Repository.objects.filter(
+            organization_id=self.organization_id,
+            provider='github',
+        )
+
+        return filter(
+            lambda repo: repo.name not in accessible_repo_names,
+            existing_repos,
+        )
+
     def reinstall(self):
         self.reinstall_repositories()
 
@@ -97,6 +112,19 @@ class GitHubIntegrationProvider(IntegrationProvider):
         'width': 1030,
         'height': 1000,
     }
+
+    def post_install(self, integration, organization):
+        repos = Repository.objects.filter(
+            organization_id=organization.id,
+            provider='github',
+        )
+
+        unmigratable_repos = self \
+            .get_installation(integration, organization.id) \
+            .get_unmigratable_repositories()
+
+        for repo in filter(lambda r: r not in unmigratable_repos, repos):
+            repo.update(integration_id=integration.id)
 
     def get_pipeline_views(self):
         identity_pipeline_config = {

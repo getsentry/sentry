@@ -56,25 +56,26 @@ class IntegrationPipeline(Pipeline):
             return self.error(e.message)
 
         response = self._finish_pipeline(data)
+        self.provider.post_install(self.integration, self.organization)
         self.clear_session()
         return response
 
     def _finish_pipeline(self, data):
         if 'reinstall_id' in data:
-            integration = Integration.objects.get(
+            self.integration = Integration.objects.get(
                 provider=self.provider.key,
                 id=data['reinstall_id'],
             )
-            integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
-            integration.get_installation(self.organization.id).reinstall()
+            self.integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
+            self.integration.get_installation(self.organization.id).reinstall()
 
         elif 'expect_exists' in data:
-            integration = Integration.objects.get(
+            self.integration = Integration.objects.get(
                 provider=self.provider.key,
                 external_id=data['external_id'],
             )
         else:
-            integration = ensure_integration(self.provider.key, data)
+            self.integration = ensure_integration(self.provider.key, data)
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
@@ -150,7 +151,8 @@ class IntegrationPipeline(Pipeline):
                 raise NotImplementedError('Integration requires an identity')
             org_integration_args = {'default_auth_id': identity_model.id}
 
-        org_integration = integration.add_organization(self.organization.id, **org_integration_args)
+        org_integration = self.integration.add_organization(
+            self.organization.id, **org_integration_args)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 

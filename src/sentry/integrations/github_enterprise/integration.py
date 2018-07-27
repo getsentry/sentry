@@ -193,6 +193,9 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 # available from the installation config view.
                 lambda: self._make_identity_pipeline_view()]
 
+    def post_install(self, integration, organization):
+        pass
+
     def get_installation_info(self, installation_data, access_token, installation_id):
         session = http.build_session()
         resp = session.get(
