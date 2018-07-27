@@ -185,4 +185,4 @@ class VstsIssueSycnTest(TestCase):
     def test_get_issue_url(self):
         work_id = 345
         url = self.integration.get_issue_url(work_id)
-        assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workItems/345'
+        assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'
