@@ -51,11 +51,11 @@ export default class Result extends React.Component {
       const sizes = [this.measureText(colName, true)];
 
       if (data.length > 0) {
-        sizes.push(this.measureText(data[0].colName, false));
+        sizes.push(this.measureText(data[0][colName], false));
       }
 
       if (data.length > 1) {
-        sizes.push(this.measureText(data[1].colName, false));
+        sizes.push(this.measureText(data[1][colName], false));
       }
 
       // Ensure size is within max and min bounds, add 8px for cell padding
