@@ -781,16 +781,35 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           >
                             staging
                             <Tag
+                              ml={1}
                               priority="success"
                             >
                               <TagTextStyled
+                                ml={1}
                                 priority="success"
                               >
-                                <span
-                                  className="css-giy4xh-TagTextStyled e6q9yfr0"
+                                <Component
+                                  className="css-ftrjq0-TagTextStyled e6q9yfr0"
+                                  ml={1}
+                                  priority="success"
                                 >
-                                  Default
-                                </span>
+                                  <Box
+                                    className="css-ftrjq0-TagTextStyled e6q9yfr0"
+                                    ml={1}
+                                  >
+                                    <Base
+                                      className="e6q9yfr0 css-hqgxmh-TagTextStyled"
+                                      ml={1}
+                                    >
+                                      <div
+                                        className="e6q9yfr0 css-hqgxmh-TagTextStyled"
+                                        is={null}
+                                      >
+                                        Default
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </Component>
                               </TagTextStyled>
                             </Tag>
                           </div>
