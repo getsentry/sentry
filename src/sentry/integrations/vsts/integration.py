@@ -75,15 +75,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
 
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
-    def get_organization_config(self):
-        def get_projects():
-            client = self.get_client()
-            try:
-                projects = client.get_projects(self.instance)
-            except ApiError:
-                return []
-            return [(project['id'], project['name']) for project in projects['value']]
-
+    def build_project_status_mapping(self, projects):
         def get_project_statuses(project_id):
             client = self.get_client()
             try:
@@ -99,15 +91,18 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                     unresolve_statuses.append((status['name'], status['name']))
             return resolve_statuses, unresolve_statuses
 
-        projects = get_projects()
-
-        resolve_statuses = []
-        unresolve_statuses = []
+        project_statuses = {}
         for project in projects:
-            r_statuses, un_statuses = get_project_statuses(project[0])
-            resolve_statuses.append(r_statuses)
-            unresolve_statuses.append(un_statuses)
+            resolve_statuses, unresolve_statuses = get_project_statuses(project[0])
+            project_statuses[project[0]] = {
+                'on_resolve': {'choices': resolve_statuses, 'placeholder': _('Select a status')},
+                'on_unresolve': {'choices': unresolve_statuses, 'placeholder': _('Select a status')},
+            }
+        return project_statuses
 
+    def get_organization_config(self):
+        projects = self.get_projects()
+        project_statuses = self.build_project_status_mapping(projects)
         return [
             {
                 'name': 'sync_status_reverse',
@@ -126,10 +121,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                     'noResultsMessage': _('Could not find VSTS project'),
                     'items': projects,
                 },
-                'mappedSelectors': {
-                    'on_resolve': {'choices': resolve_statuses, 'placeholder': _('Select a status')},
-                    'on_unresolve': {'choices': unresolve_statuses, 'placeholder': _('Select a status')},
-                },
+                'mappedSelectors': project_statuses,
                 'columnLabels': {
                     'on_resolve': _('When resolved'),
                     'on_unresolve': _('When unresolved'),
@@ -176,6 +168,14 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         config = self.org_integration.config
         config.update(data)
         self.org_integration.update(config=config)
+
+    def get_projects(self):
+        client = self.get_client()
+        try:
+            projects = client.get_projects(self.instance)
+        except ApiError:
+            return []
+        return [(project['id'], project['name']) for project in projects['value']]
 
     @property
     def instance(self):
