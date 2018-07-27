@@ -117,6 +117,8 @@ class SynchronizedConsumer(object):
             self.__on_partition_state_change)
         self.__commit_log_consumer, self__commit_log_consumer_stop_request = self.__start_commit_log_consumer()
 
+        self.__positions = {}
+
         def commit_callback(error, partitions):
             if on_commit is not None:
                 return on_commit(error, partitions)
@@ -192,26 +194,31 @@ class SynchronizedConsumer(object):
             # interaction on an offset reset, we have to explicitly specify the
             # starting offset if no offset has been committed for this topic during
             # the ``__consumer_offsets`` topic retention period.
-            assignment = [
-                TopicPartition(
-                    topic,
-                    partition,
-                    offset if offset > -1 else self.__get_initial_offset(topic, partition),
-                ) for (topic, partition), offset in {
-                    (i.topic, i.partition): i.offset for i in self.__consumer.committed(assignment)
-                }.items()
-            ]
+            assignment = {
+                (i.topic, i.partition): self.__positions.get((i.topic, i.partition)) for i in assignment
+            }
 
-            self.__consumer.assign(assignment)
+            for i in self.__consumer.committed([TopicPartition(topic, partition) for (
+                    topic, partition), offset in assignment.items() if offset is None]):
+                k = (i.topic, i.partition)
+                if i.offset > -1:
+                    assignment[k] = i.offset
+                else:
+                    assignment[k] = self.__get_initial_offset(i.topic, i.partition)
 
-            for i in assignment:
+            self.__consumer.assign([TopicPartition(topic, partition, offset)
+                                    for (topic, partition), offset in assignment.items()])
+
+            for (topic, partition), offset in assignment.items():
                 # Setting the local offsets will either cause the partition to be
                 # paused (if the remote offset is unknown or the local offset is
                 # not trailing the remote offset) or resumed.
-                self.__partition_state_manager.set_local_offset(i.topic, i.partition, i.offset)
+                self.__partition_state_manager.set_local_offset(topic, partition, offset)
+                self.__positions[(topic, partition)] = offset
 
             if on_assign is not None:
-                on_assign(self, assignment)
+                on_assign(self, [TopicPartition(topic, partition)
+                                 for topic, partition in assignment.keys()])
 
         def revocation_callback(consumer, assignment):
             if on_revoke is not None:
@@ -238,6 +245,7 @@ class SynchronizedConsumer(object):
             message.topic(), message.partition(), message.offset())
         self.__partition_state_manager.set_local_offset(
             message.topic(), message.partition(), message.offset() + 1)
+        self.__positions[(message.topic(), message.partition())] = message.offset() + 1
 
         return message
 
