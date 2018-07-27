@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from .client import VstsApiClient
 
-from sentry.models import Identity, Integration, sync_group_assignee_inbound
+from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from sentry.app import raven
 from uuid import uuid4
@@ -45,7 +45,14 @@ class WorkItemWebhook(Endpoint):
     def handle_updated_workitem(self, data, integration):
         external_issue_key = data['resource']['workItemId']
         assigned_to = data['resource']['fields'].get('System.AssignedTo')
+        status_change = data['resource']['fields'].get('System.State')
+        project = data['resourceContainers']['project']['id']
         self.handle_assign_to(integration, external_issue_key, assigned_to)
+        self.handle_status_change(
+            integration,
+            external_issue_key,
+            status_change,
+            project)
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:
@@ -63,6 +70,24 @@ class WorkItemWebhook(Endpoint):
             external_issue_key=external_issue_key,
             assign=assign,
         )
+
+    def handle_status_change(self, integration, external_issue_key,
+                             status_change, project):
+        if status_change is None:
+            return
+
+        organization_ids = OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+        ).values_list('organization_id', flat=True)
+
+        for organization_id in organization_ids:
+            installation = integration.get_installation(organization_id)
+            data = {
+                'new_state': status_change['newValue'],
+                'old_state': status_change['oldValue'],
+                'project': project,
+            }
+            installation.sync_status_inbound(external_issue_key, data)
 
     def parse_email(self, email):
         return EMAIL_PARSER.search(email).group(1)

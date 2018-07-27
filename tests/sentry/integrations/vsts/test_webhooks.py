@@ -5,12 +5,14 @@ from mock import patch
 from time import time
 
 from sentry.testutils import APITestCase
-from sentry.models import ExternalIssue, Identity, IdentityProvider, Integration
+from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Identity, IdentityProvider, Integration
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.utils.http import absolute_uri
 from .testutils import (
     WORK_ITEM_UPDATED,
     WORK_ITEM_UNASSIGNED,
+    WORK_ITEM_UPDATED_STATUS,
+    WORK_ITEM_STATES,
 )
 
 
@@ -42,14 +44,33 @@ class VstsWebhookWorkItemTest(APITestCase):
             data={
                 'access_token': self.access_token,
                 'refresh_token': 'qwertyuiop',
-                'expires': int(time()) - int(1234567890),
+                'expires': int(time()) + int(1234567890),
             }
         )
         self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
+        self.org_integration.config = {
+            'sync_comments': True,
+            'resolve_status': 'Resolved',
+            'resolve_when': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+        }
+        self.org_integration.save()
         self.project_integration = self.model.add_project(self.project.id)
         self.integration = VstsIntegration(self.model, self.organization.id, self.project.id)
 
         self.user_to_assign = self.create_user('sentryuseremail@email.com')
+
+    def create_linked_group(self, external_issue, project, status):
+        group = self.create_group(project=project, status=status)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            data={}
+        )
+        return group
 
     @responses.activate
     def test_workitem_change_assignee(self):
@@ -101,3 +122,73 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert args['email'] is None
             assert args['external_issue_key'] == work_item_id
             assert args['assign'] is False
+
+    @responses.activate
+    def test_inbound_status_sync_resolve(self):
+        responses.add(
+            responses.GET,
+            'https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
+            json=WORK_ITEM_STATES,
+        )
+        work_item_id = 33
+        num_groups = 5
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.model.id,
+            key=work_item_id,
+        )
+        groups = [
+            self.create_linked_group(
+                external_issue,
+                self.project,
+                GroupStatus.UNRESOLVED) for _ in range(num_groups)]
+        resp = self.client.post(
+            absolute_uri('/extensions/vsts/issue-updated/'),
+            data=WORK_ITEM_UPDATED_STATUS,
+            HTTP_SHARED_SECRET=self.shared_secret,
+        )
+        assert resp.status_code == 200
+        group_ids = [g.id for g in groups]
+        assert len(
+            Group.objects.filter(
+                id__in=group_ids,
+                status=GroupStatus.RESOLVED)) == num_groups
+        assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+
+    @responses.activate
+    def test_inbound_status_sync_unresolve(self):
+        responses.add(
+            responses.GET,
+            'https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
+            json=WORK_ITEM_STATES,
+        )
+        work_item_id = 33
+        num_groups = 5
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.model.id,
+            key=work_item_id,
+        )
+        groups = [
+            self.create_linked_group(
+                external_issue,
+                self.project,
+                GroupStatus.RESOLVED) for _ in range(num_groups)]
+
+        # Change so that state is changing from resolved to unresolved
+        state = WORK_ITEM_UPDATED_STATUS['resource']['fields']['System.State']
+        state['oldValue'] = 'Resolved'
+        state['newValue'] = 'Active'
+
+        resp = self.client.post(
+            absolute_uri('/extensions/vsts/issue-updated/'),
+            data=WORK_ITEM_UPDATED_STATUS,
+            HTTP_SHARED_SECRET=self.shared_secret,
+        )
+        assert resp.status_code == 200
+        group_ids = [g.id for g in groups]
+        assert len(
+            Group.objects.filter(
+                id__in=group_ids,
+                status=GroupStatus.UNRESOLVED)) == num_groups
+        assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
