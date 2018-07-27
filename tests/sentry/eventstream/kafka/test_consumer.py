@@ -29,6 +29,10 @@ def create_topic(partitions=1, replication_factor=1):
         ])
 
 
+def test_commit_log_consumer_rebalance():
+    raise NotImplementedError
+
+
 def test_consumer_start_from_partition_start():
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
 
