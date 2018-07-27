@@ -136,8 +136,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrationError as exc:
             return Response({'non_field_errors': exc.message}, status=400)
 
-        print('DATA')
-        print(data)
         external_issue_key = installation.make_external_key(data)
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,
