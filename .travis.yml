@@ -166,18 +166,20 @@ matrix:
 
     # snuba in testing - allowed to fail
     - python: 2.7
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=zookeeper:2181 SENTRY_KAFKA_HOSTS=localhost:9092
       services:
         - docker
         - memcached
         - redis-server
         - postgresql
       before_install:
+        - docker run -d --network host --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:4.1.0
+        - docker run -d --network host --name kafka -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:4.1.0
         - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
-        - pip install -e ".[dev,tests,optional]"
+        - pip install -e ".[dev,tests,optional]" confluent-kafka
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -206,7 +208,7 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
     - python: 2.7
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=zookeeper:2181 SENTRY_KAFKA_HOSTS=localhost:9092
     - language: node_js
       env: STORYBOOK_BUILD=1
 
