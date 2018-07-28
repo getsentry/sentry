@@ -5,7 +5,7 @@ import functools
 
 from sentry.utils.strings import (
     is_valid_dot_atom, soft_break, soft_hyphenate,
-    tokens_from_name, codec_lookup, truncatechars
+    tokens_from_name, codec_lookup, truncatechars, oxfordize_list
 )
 
 ZWSP = u'\u200b'  # zero width space
@@ -88,3 +88,10 @@ def test_truncatechars():
     assert truncatechars("12345", 0, ellipsis=u"\u2026") == u"\u2026"
 
     assert truncatechars(None, 1) is None
+
+
+def test_oxfordize_list():
+    assert oxfordize_list(['A']) == 'A'
+    assert oxfordize_list(['A', 'B']) == 'A and B'
+    assert oxfordize_list(['A', 'B', 'C']) == 'A, B, and C'
+    assert oxfordize_list(['A', 'B', 'C', 'D']) == 'A, B, C, and D'
