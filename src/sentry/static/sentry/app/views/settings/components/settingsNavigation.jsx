@@ -22,8 +22,8 @@ class SettingsNavigation extends React.Component {
   componentDidMount() {
     let {organization} = this.props;
     if (!organization) return;
-    let experiments = organization.experiments;
-    let exposed = experiments.SSOPaywallExperiment;
+
+    let exposed = organization.experiments.SSOPaywallExperiment;
 
     //Experiment exposure is already assigned - this logs the exposure i.e. when the user gets to the settings page
     if (exposed === 0 || exposed === 1) {
