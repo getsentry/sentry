@@ -121,6 +121,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('repos')
         if features.has('organizations:internal-catchall', obj, actor=user):
             feature_list.append('internal-catchall')
+        if features.has('organizations:new-issue-ui', obj, actor=user):
+            feature_list.append('new-issue-ui')
+        if features.has('organizations:github-enterprise', obj, actor=user):
+            feature_list.append('github-enterprise')
         if features.has('organizations:suggested-commits', obj, actor=user):
             feature_list.append('suggested-commits')
         if features.has('organizations:new-teams', obj, actor=user):
