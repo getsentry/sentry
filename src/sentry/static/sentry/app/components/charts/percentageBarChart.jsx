@@ -67,7 +67,9 @@ export default class PercentageBarChart extends React.Component {
           normal: {
             color: '#eee',
           },
-          hover: {
+        },
+        emphasis: {
+          itemStyle: {
             color: '#eee',
           },
         },
