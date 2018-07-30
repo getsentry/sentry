@@ -122,7 +122,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
             </Box>
             <Box>
               <Button icon="icon-circle-add" size="small" onClick={openModal}>
-                {t('Install')}
+                {installed.length > 0 ? t('Add Another') : t('Install')}
               </Button>
             </Box>
           </PanelItem>
