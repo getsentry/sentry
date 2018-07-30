@@ -148,7 +148,7 @@ export default class InstalledIntegration extends React.Component {
             )}
           </Box>
           <Box>
-            {integration.status === 'active' && integration.provider.key === 'github'
+            {integration.status === 'active' && integration.provider.canDisable
               ? this.renderDisableIntegration(integration)
               : this.renderRemoveIntegration(integration)}
           </Box>

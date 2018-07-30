@@ -27,6 +27,7 @@ class IntegrationSerializer(Serializer):
                 'name': provider.name,
                 'canAdd': provider.can_add,
                 'canAddProject': provider.can_add_project,
+                'canDisable': provider.can_disable,
                 'features': [f.value for f in provider.features],
                 'aspects': provider.metadata.aspects,
             },
@@ -132,6 +133,7 @@ class IntegrationProviderSerializer(Serializer):
             'metadata': metadata,
             'canAdd': obj.can_add,
             'canAddProject': obj.can_add_project,
+            'canDisable': obj.can_disable,
             'features': [f.value for f in obj.features],
             'setupDialog': dict(
                 url='/organizations/{}/integrations/{}/setup/'.format(

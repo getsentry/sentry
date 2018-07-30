@@ -27,7 +27,15 @@ Define a relationship between Sentry and GitHub Enterprise.
  * Authorize repositories to be added for syncing commit data.
  * Create or link existing GitHub Enterprise issues.
 """
+disable_dialog = {
+    'actionText': 'Visit GitHub Enterprise',
+    'body': 'Before deleting this integration, you must uninstall it from your GitHub Enterprise instance. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.'
+}
 
+removal_dialog = {
+    'actionText': 'Delete',
+    'body': 'Deleting this integration will delete all associated repositories and commit data. This action cannot be undone. Are you sure you want to delete your integration?'
+}
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -35,7 +43,10 @@ metadata = IntegrationMetadata(
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github_enterprise',
-    aspects={}
+    aspects={
+        'disable_dialog': disable_dialog,
+        'removal_dialog': removal_dialog,
+    },
 )
 
 
@@ -60,6 +71,13 @@ class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin
         for repo in self.get_client().get_repositories():
             data.append({'name': repo['name'], 'identifier': repo['full_name']})
         return data
+
+    def reinstall(self):
+        installation_id = self.model.external_id.split(':')[1]
+        metadata = self.model.metadata
+        metadata['installation_id'] = installation_id
+        self.model.update(metadata=metadata)
+        self.reinstall_repositories()
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
@@ -236,7 +254,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             state['installation_id'])
 
         domain = urlparse(installation['account']['html_url']).netloc
-        return {
+        integration = {
             'name': installation['account']['login'],
             # installation id is not enough to be unique for self-hosted GH
             'external_id': '{}:{}'.format(domain, installation['id']),
@@ -250,6 +268,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 'expires_at': None,
                 'icon': installation['account']['avatar_url'],
                 'domain_name': installation['account']['html_url'].replace('https://', ''),
+                'account_type': installation['account']['type'],
                 'installation_id': installation['id'],
                 'installation': installation_data
             },
@@ -261,6 +280,11 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             },
             'idp_config': state['oauth_config_information']
         }
+
+        if state.get('reinstall_id'):
+            integration['reinstall_id'] = state['reinstall_id']
+
+        return integration
 
     def setup(self):
         from sentry.plugins import bindings
@@ -279,6 +303,9 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
 
     def dispatch(self, request, pipeline):
         installation_data = pipeline.fetch_state(key='installation_data')
+        if 'reinstall_id' in request.GET:
+            pipeline.bind_state('reinstall_id', request.GET['reinstall_id'])
+
         if 'installation_id' in request.GET:
             pipeline.bind_state('installation_id', request.GET['installation_id'])
             return pipeline.next_step()
