@@ -21,7 +21,7 @@ class SettingsNavigation extends React.Component {
 
   componentDidMount() {
     let {organization} = this.props;
-    if (!organization) return;
+    if (!organization || !organization.experiments) return;
 
     let exposed = organization.experiments.SSOPaywallExperiment;
 
