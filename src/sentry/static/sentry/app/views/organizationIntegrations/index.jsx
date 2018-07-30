@@ -75,11 +75,12 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
   handleDisableIntegration = integration => {
     let url;
+    let [domainName, orgName] = integration.domainName.split('/');
+
     if (integration.accountType === 'User') {
-      url = 'https://github.com/settings/installations';
+      url = `https://${domainName}/settings/installations`;
     } else {
-      let orgName = integration.domainName.split('/')[1];
-      url = `https://github.com/organizations/${orgName}/settings/installations`;
+      url = `https://${domainName}/organizations/${orgName}/settings/installations`;
     }
     window.open(url, '_blank');
   };

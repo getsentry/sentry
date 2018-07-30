@@ -108,6 +108,8 @@ class GitHubIntegrationProvider(IntegrationProvider):
         IntegrationFeatures.ISSUE_BASIC,
     ])
 
+    can_disable = True
+
     setup_dialog_config = {
         'width': 1030,
         'height': 1000,
