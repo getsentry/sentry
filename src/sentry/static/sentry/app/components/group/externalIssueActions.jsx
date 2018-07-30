@@ -155,7 +155,16 @@ class ExternalIssueForm extends AsyncComponent {
               autoload: false,
             };
           }
-          return <FieldFromConfig key={field.name} field={field} {...props} />;
+          return (
+            <FieldFromConfig
+              key={field.name}
+              inline={false}
+              stacked={true}
+              flexibleControlStateSize={true}
+              field={field}
+              {...props}
+            />
+          );
         })}
       </Form>
     );
