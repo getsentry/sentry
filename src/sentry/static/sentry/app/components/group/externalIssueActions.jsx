@@ -116,6 +116,8 @@ class ExternalIssueForm extends AsyncComponent {
       method: 'GET',
     };
 
+    // We can't use the API client here since the URL is not scapped under the
+    // API endpoints (which the client prefixes)
     return $.ajax(request).then(data => ({options: data}));
   };
 
