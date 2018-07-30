@@ -160,8 +160,24 @@ class DecompressBodyMiddleware(object):
             decode = True
 
         if decode:
+            # Since we don't know the original content length ahead of time, we
+            # need to set the content length reasonably high so read generally
+            # succeeds. This seems to be the only easy way for Django 1.6.
             request.META['CONTENT_LENGTH'] = '4294967295'  # 0xffffffff
+
+            # The original content encoding is no longer valid, so we have to
+            # remove the header. Otherwise, LazyData will attemt to re-decode
+            # the body.
             del request.META['HTTP_CONTENT_ENCODING']
+
+            # Raven's DjangoRestFrameworkCompatMiddleware reads the entire
+            # request body into memory before our middleware runs. We need to
+            # reset the request and read body again to make sure we read from
+            # our stream.
+            if hasattr(request, '_body'):
+                request._read_started = False
+                del request._body
+                request.body
 
 
 class ContentLengthHeaderMiddleware(object):
