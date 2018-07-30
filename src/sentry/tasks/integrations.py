@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import analytics
 from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Integration, User
 from sentry.integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task, retry
@@ -23,6 +24,12 @@ def post_comment(external_issue_id, data, **kwargs):
     if installation.should_sync('comment'):
         installation.create_comment(
             external_issue.key, data['text'])
+        analytics.record(
+            'integration.issue.comments.synced',
+            provider=integration.provider,
+            id=integration.id,
+            organization_id=external_issue.organization_id,
+        )
 
 
 @instrumented_task(
@@ -58,6 +65,12 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     )
     if installation.should_sync('outbound_assignee'):
         installation.sync_assignee_outbound(external_issue, user, assign=assign)
+        analytics.record(
+            'integration.issue.assignee.synced',
+            provider=integration.provider,
+            id=integration.id,
+            organization_id=external_issue.organization_id,
+        )
 
 
 @instrumented_task(
@@ -85,6 +98,12 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
     if installation.should_sync('outbound_status'):
         installation.sync_status_outbound(
             external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+        )
+        analytics.record(
+            'integration.issue.status.synced',
+            provider=integration.provider,
+            id=integration.id,
+            organization_id=external_issue.organization_id,
         )
 
 
