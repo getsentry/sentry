@@ -27,3 +27,12 @@ export function loadActiveEnvironments(data) {
 export function loadHiddenEnvironments(data) {
   EnvironmentActions.loadHiddenData(data);
 }
+
+/**
+ * Fetches all environments for an organization
+ *
+ * @param {String} organizationSlug The organization slug
+ */
+export function fetchOrganizationEnvironments(api, organizationSlug) {
+  return api.requestPromise(`/organizations/${organizationSlug}/environments/`);
+}
