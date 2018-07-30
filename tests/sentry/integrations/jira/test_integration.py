@@ -378,8 +378,6 @@ class JiraIntegrationTest(APITestCase):
             return MockJiraApiClient()
 
         with mock.patch.object(installation, 'get_client', get_client):
-            print(installation.get_create_issue_config(group))
-
             assert installation.get_create_issue_config(group) == [{
                 'default': '10000',
                 'choices': [('10000', 'EX'), ('10001', 'ABC')],
