@@ -71,7 +71,6 @@ class IssueBasicMixin(object):
                 'type': 'textarea',
                 'autosize': True,
                 'maxRows': 10,
-                'required': True,
             }
         ]
 
