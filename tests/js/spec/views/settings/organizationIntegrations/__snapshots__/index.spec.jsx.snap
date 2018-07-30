@@ -57,7 +57,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               onClick={[Function]}
               size="small"
             >
-              Install
+              Add Another
             </Button>
           </Box>
         </PanelItem>
@@ -157,7 +157,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               onClick={[Function]}
               size="small"
             >
-              Install
+              Add Another
             </Button>
           </Box>
         </PanelItem>
