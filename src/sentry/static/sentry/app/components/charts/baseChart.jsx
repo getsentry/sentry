@@ -60,7 +60,7 @@ class BaseChart extends React.Component {
     height: null,
     width: null,
     renderer: 'svg',
-    notMerge: false,
+    notMerge: true,
     lazyUpdate: false,
     colors: theme.charts.colors,
     options: {},
