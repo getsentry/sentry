@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
@@ -31,6 +32,7 @@ class OrganizationIntegration(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     integration = FlexibleForeignKey('sentry.Integration')
     config = EncryptedJsonField(default=lambda: {})
+
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -107,6 +109,13 @@ class Integration(Model):
                 )
         except IntegrityError:
             return False
+        else:
+            analytics.record(
+                'integration.added',
+                provider=self.provider,
+                id=self.id,
+                organization_id=organization_id,
+            )
 
     def add_project(self, project_id, config=None):
         """

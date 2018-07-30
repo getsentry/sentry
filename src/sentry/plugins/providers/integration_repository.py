@@ -4,6 +4,7 @@ import six
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Repository
@@ -68,6 +69,12 @@ class IntegrationRepositoryProvider(object):
                 status=400,
             )
 
+        analytics.record(
+            'integration.repo.added',
+            provider=self.id,
+            id=result.get('integration_id'),
+            organization_id=organization.id,
+        )
         return Response(serialize(repo, request.user), status=201)
 
     def handle_api_error(self, error):
