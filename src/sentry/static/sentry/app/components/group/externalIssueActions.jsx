@@ -185,6 +185,7 @@ class ExternalIssueActions extends AsyncComponent {
       action: 'create',
       selectedIntegration: this.props.integration,
       issue: this.getIssue(),
+      ...this.getDefaultState(),
     };
   }
 
