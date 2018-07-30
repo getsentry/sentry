@@ -85,6 +85,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                     'type': 'string',
                     'name': 'title',
                     'label': 'Title',
+                    'required': True,
                 }, {
                     'default': ('%s\n\n```\n'
                                 'Stacktrace (most recent call last):\n\n  '
@@ -94,6 +95,8 @@ class GroupIntegrationDetailsTest(APITestCase):
                     'type': 'textarea',
                     'name': 'description',
                     'label': 'Description',
+                    'autosize': True,
+                    'maxRows': 10,
                 }
             ]
         }
