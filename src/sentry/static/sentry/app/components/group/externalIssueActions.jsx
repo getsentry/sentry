@@ -250,7 +250,6 @@ class ExternalIssueActions extends AsyncComponent {
             show={this.state.showModal}
             onHide={this.closeModal}
             animation={false}
-            backdrop="static"
             enforceFocus={false}
           >
             <Modal.Header closeButton>
