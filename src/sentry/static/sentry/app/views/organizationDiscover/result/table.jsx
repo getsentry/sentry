@@ -22,6 +22,12 @@ export default class Result extends React.Component {
     this.canvas = document.createElement('canvas');
   }
 
+  componentWillReceiveProps(nextProps) {
+    if (this.props.result.meta !== nextProps.result.meta) {
+      this.grid.recomputeGridSize();
+    }
+  }
+
   cellRenderer = ({key, rowIndex, columnIndex, style}) => {
     const {meta, data} = this.props.result;
     const colName = meta[columnIndex].name;
@@ -40,11 +46,15 @@ export default class Result extends React.Component {
   // Estimates the column width based on the header row and the first two rows
   // of data. Since this might be expensive, we'll only do this if there are
   // less than 20 columns of data to check
-  getColumnWidth = ({index}) => {
+  getColumnWidth = ({index}, tableWidth) => {
     const MIN_COL_WIDTH = 100;
     const MAX_COL_WIDTH = 200;
 
     const {meta, data} = this.props.result;
+
+    if (meta.length === 1) {
+      return tableWidth;
+    }
 
     if (meta.length < 20) {
       const colName = meta[index].name;
@@ -81,13 +91,14 @@ export default class Result extends React.Component {
         <AutoSizer>
           {({width, height}) => (
             <MultiGrid
+              ref={ref => (this.grid = ref)}
               width={width}
               height={height}
               rowCount={data.length + 1} // Add 1 for header row
               columnCount={meta.length}
               fixedRowCount={1}
               rowHeight={30}
-              columnWidth={this.getColumnWidth}
+              columnWidth={opts => this.getColumnWidth(opts, width)}
               cellRenderer={this.cellRenderer}
               style={{border: `1px solid ${theme.borderLight}`}}
               styleTopRightGrid={{borderBottom: `2px solid ${theme.borderDark}`}}
