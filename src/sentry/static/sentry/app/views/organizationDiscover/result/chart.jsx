@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-export default class Result extends React.Component {
+export default class ResultChart extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,

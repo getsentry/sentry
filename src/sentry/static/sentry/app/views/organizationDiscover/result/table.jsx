@@ -12,7 +12,7 @@ import {getDisplayValue} from './utils';
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
  */
-export default class Result extends React.Component {
+export default class ResultTable extends React.Component {
   static propTypes = {
     result: PropTypes.object.isRequired,
   };
