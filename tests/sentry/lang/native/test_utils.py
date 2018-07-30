@@ -285,7 +285,26 @@ def test_minidump_linux():
                         'instruction_addr': '0x401d72',
                         'package': u'/work/linux/build/crash'
                     }
-                ]
+                ],
+                'registers': {
+                    u'r10': u'0x0000000000000131',
+                    u'r11': u'0x00007f5140aca4c0',
+                    u'r12': u'0x0000000000401dc0',
+                    u'r13': u'0x00007fff5ae4ac90',
+                    u'r14': u'0x00007fff5ae4aab0',
+                    u'r15': u'0x0000000000000000',
+                    u'r8': u'0x0000000000000000',
+                    u'r9': u'0x0000000000000000',
+                    u'rax': u'0xffffffffffffffff',
+                    u'rbp': u'0x00007fff5ae4abb0',
+                    u'rbx': u'0x00007fff5ae4aa20',
+                    u'rcx': u'0x00007f5140521b20',
+                    u'rdi': u'0x00007fff5ae4aab0',
+                    u'rdx': u'0x00007f5140efc000',
+                    u'rip': u'0x0000000000401d72',
+                    u'rsi': u'0x0000000000000000',
+                    u'rsp': u'0x00007fff5ae4aa20'
+                }
             },
             'thread_id': 1304,
             'type': u'SIGSEGV',
@@ -367,7 +386,26 @@ def test_minidump_macos():
                         'instruction_addr': '0x109ba8c15',
                         'package': u'/Users/travis/build/getsentry/breakpad-tools/macos/build/./crash'
                     }
-                ]
+                ],
+                'registers': {
+                    u'r10': u'0x000000000000002e',
+                    u'r11': u'0x00007fffe8105171',
+                    u'r12': u'0x0000000000000000',
+                    u'r13': u'0x0000000000000000',
+                    u'r14': u'0x0000000000000000',
+                    u'r15': u'0x0000000000000000',
+                    u'r8': u'0x000000000c0008ff',
+                    u'r9': u'0x0000000000000000',
+                    u'rax': u'0x0000000000000001',
+                    u'rbp': u'0x00007fff56064258',
+                    u'rbx': u'0x00007fff56064120',
+                    u'rcx': u'0x0000000000000000',
+                    u'rdi': u'0x00007fff56064120',
+                    u'rdx': u'0x0000000000000000',
+                    u'rip': u'0x0000000109ba8c15',
+                    u'rsi': u'0x00007fff56064140',
+                    u'rsp': u'0x00007fff56064110'
+                }
             },
             'thread_id': 775,
             'type': u'EXC_BAD_ACCESS / KERN_INVALID_ADDRESS',
@@ -510,7 +548,19 @@ def test_minidump_windows():
                         'instruction_addr': '0x2a2a3d',
                         'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe'
                     }
-                ]
+                ],
+                'registers': {
+                    u'eax': u'0x00000000',
+                    u'ebp': u'0x010ff670',
+                    u'ebx': u'0x00fe5000',
+                    u'ecx': u'0x010ff670',
+                    u'edi': u'0x013bfd78',
+                    u'edx': u'0x00000007',
+                    u'eflags': u'0x00010246',
+                    u'eip': u'0x002a2a3d',
+                    u'esi': u'0x759c6314',
+                    u'esp': u'0x010ff644'
+                }
             },
             'thread_id': 1636,
             'type': u'EXCEPTION_ACCESS_VIOLATION_WRITE',
@@ -548,7 +598,19 @@ def test_minidump_windows():
                         'function': '<unknown>',
                         'instruction_addr': '0x771e016c',
                         'package': u'C:\\Windows\\System32\\ntdll.dll'
-                    }]
+                    }],
+                    'registers': {
+                        u'eax': u'0x00000000',
+                        u'ebp': u'0x0159faa4',
+                        u'ebx': u'0x013b0990',
+                        u'ecx': u'0x00000000',
+                        u'edi': u'0x013b4af0',
+                        u'edx': u'0x00000000',
+                        u'eflags': u'0x00000216',
+                        u'eip': u'0x771e016c',
+                        u'esi': u'0x013b4930',
+                        u'esp': u'0x0159f900'
+                    }
                 }
             },
             {
@@ -574,7 +636,19 @@ def test_minidump_windows():
                         'function': '<unknown>',
                         'instruction_addr': '0x771e016c',
                         'package': u'C:\\Windows\\System32\\ntdll.dll'
-                    }]
+                    }],
+                    'registers': {
+                        u'eax': u'0x00000000',
+                        u'ebp': u'0x0169fb98',
+                        u'ebx': u'0x013b0990',
+                        u'ecx': u'0x00000000',
+                        u'edi': u'0x013b7c28',
+                        u'edx': u'0x00000000',
+                        u'eflags': u'0x00000202',
+                        u'eip': u'0x771e016c',
+                        u'esi': u'0x013b7a68',
+                        u'esp': u'0x0169f9f4'
+                    }
                 }
             },
             {
@@ -585,7 +659,19 @@ def test_minidump_windows():
                         'function': '<unknown>',
                         'instruction_addr': '0x771df3dc',
                         'package': u'C:\\Windows\\System32\\ntdll.dll'
-                    }]
+                    }],
+                    'registers': {
+                        u'eax': u'0x00000000',
+                        u'ebp': u'0x0179f2b8',
+                        u'ebx': u'0x017b1aa0',
+                        u'ecx': u'0x00000000',
+                        u'edi': u'0x017b1a90',
+                        u'edx': u'0x00000000',
+                        u'eflags': u'0x00000206',
+                        u'eip': u'0x771df3dc',
+                        u'esi': u'0x000002cc',
+                        u'esp': u'0x0179f2ac'
+                    }
                 }
             }
         ],
