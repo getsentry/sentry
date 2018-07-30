@@ -29,7 +29,7 @@ Define a relationship between Sentry and GitHub Enterprise.
 """
 disable_dialog = {
     'actionText': 'Visit GitHub Enterprise',
-    'body': 'Before deleting this integration, you must uninstall this integration from GitHub. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.'
+    'body': 'Before deleting this integration, you must uninstall it from your GitHub Enterprise instance. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.'
 }
 
 removal_dialog = {
