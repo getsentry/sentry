@@ -196,16 +196,13 @@ def codec_lookup(encoding, default='utf-8'):
 
 def oxfordize_list(strings):
     """Given a list of strings, formats them correctly given the length of the
-    list.
+    list. For example:
 
-    >>> oxfordize_list(['A'])
-    'A'
+        oxfordize_list(['A'])  =>  'A'
 
-    >>> oxfordize_list(['A', 'B'])
-    'A and B'
+        oxfordize_list(['A', 'B'])  =>  'A and B'
 
-    >>> oxfordize_list(['A', 'B', 'C'])
-    'A, B, and C'
+        oxfordize_list(['A', 'B', 'C'])  =>  'A, B, and C'
     """
 
     if len(strings) == 1:
