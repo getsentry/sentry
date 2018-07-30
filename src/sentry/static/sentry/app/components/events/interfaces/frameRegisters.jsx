@@ -6,19 +6,12 @@ import styled from 'react-emotion';
 import Tooltip from 'app/components/tooltip';
 import {objectToArray} from 'app/utils';
 
-const REGISTER_VIEWS = [
-  'Hexadecimal',
-  'Big Endian',
-  'Little Endian'
-]
+const REGISTER_VIEWS = ['Hexadecimal', 'Big Endian', 'Little Endian'];
 
 class RegisterValue extends React.Component {
   static propTypes = {
-    value: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.number,
-    ]).isRequired,
-  }
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  };
 
   constructor(props) {
     super(props);
@@ -33,22 +26,30 @@ class RegisterValue extends React.Component {
     });
   };
 
-  formatValue = (value) => {
+  formatValue = value => {
     try {
       switch (this.state.view) {
         case 0:
           return value;
         case 1:
-          return parseInt(value);
+          return parseInt(value, 16);
         case 2:
-          return parseInt('0x' + value.slice(2).match(/../g).reverse().join(''));
+          return parseInt(
+            '0x' +
+              value
+                .slice(2)
+                .match(/../g)
+                .reverse()
+                .join(''),
+            16
+          );
         default:
           return value;
       }
     } catch (e) {
       return value;
     }
-  }
+  };
 
   render() {
     return (
@@ -58,7 +59,7 @@ class RegisterValue extends React.Component {
           <Toggle className="icon-filter" />
         </Tooltip>
       </InlinePre>
-    )
+    );
   }
 }
 
@@ -82,8 +83,7 @@ class FrameRegisters extends React.Component {
         <Registers>
           {registers.map(register => (
             <Register key={register[0]} onClick={this.preventToggling}>
-              <RegisterName>{register[0]}</RegisterName>
-              {' '}
+              <RegisterName>{register[0]}</RegisterName>{' '}
               <RegisterValue value={register[1]} />
             </Register>
           ))}
