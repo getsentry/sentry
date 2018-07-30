@@ -152,7 +152,6 @@ class ExternalIssueForm extends AsyncComponent {
         initialData={initialData}
         onFieldChange={this.onFieldChange}
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
-        submitDisabled={this.state.loadingForms}
         footerClass="modal-footer"
       >
         {config.map(field => (
@@ -160,7 +159,6 @@ class ExternalIssueForm extends AsyncComponent {
             key={field.name}
             field={field}
             inline={false}
-            disabled={this.state.loadingForms}
             stacked
             flexibleControlStateSize
             {...this.getFieldProps(field)}
