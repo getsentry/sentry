@@ -160,6 +160,7 @@ class ExternalIssueForm extends AsyncComponent {
               key={field.name}
               inline={false}
               stacked={true}
+              flexibleControlStateSize={true}
               field={field}
               {...props}
             />
