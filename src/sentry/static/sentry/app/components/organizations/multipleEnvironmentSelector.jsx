@@ -57,7 +57,7 @@ class MultipleEnvironmentSelector extends React.Component {
                       <MultiSelectField
                         name="environments"
                         value={value}
-                        choices={environments.map(env => [env.id, env.name])}
+                        choices={environments.map(env => [env.name, env.name])}
                         onChange={onChange}
                       />
                     </React.Fragment>

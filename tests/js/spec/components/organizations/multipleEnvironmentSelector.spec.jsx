@@ -60,14 +60,14 @@ describe('MultipleEnvironmentSelector', function() {
       selectByLabel(wrapper, name, {control: true});
     });
     expect(onChange).toHaveBeenCalledTimes(2);
-    expect(onChange).toHaveBeenLastCalledWith(envs.map(({id}) => id));
+    expect(onChange).toHaveBeenLastCalledWith(envs.map(({name}) => name));
 
-    wrapper.setProps({value: envs.map(({id}) => id)});
+    wrapper.setProps({value: envs.map(({name}) => name)});
     wrapper.update();
     wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
     await tick();
     wrapper.update();
 
-    expect(onUpdate).toHaveBeenCalledWith(['1', '2']);
+    expect(onUpdate).toHaveBeenCalledWith(['production', 'staging']);
   });
 });
