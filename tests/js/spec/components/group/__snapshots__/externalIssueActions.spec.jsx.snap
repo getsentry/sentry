@@ -238,7 +238,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   <Modal
     animation={false}
     autoFocus={true}
-    backdrop="static"
+    backdrop={true}
     bsClass="modal"
     dialogComponentClass={[Function]}
     enforceFocus={false}
@@ -262,7 +262,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   >
     <Modal
       autoFocus={true}
-      backdrop="static"
+      backdrop={true}
       backdropClassName="modal-backdrop"
       containerClassName="modal-open"
       enforceFocus={false}
