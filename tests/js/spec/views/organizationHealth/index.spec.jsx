@@ -45,8 +45,8 @@ describe('OrganizationHealth', function() {
     wrapper.update();
 
     selectByLabel(wrapper, 'production', {control: true, name: 'environments'});
-    expect(wrapper.state('params').environments).toEqual(['1']);
+    expect(wrapper.state('params').environments).toEqual(['production']);
     selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
-    expect(wrapper.state('params').environments).toEqual(['1', '2']);
+    expect(wrapper.state('params').environments).toEqual(['production', 'staging']);
   });
 });
