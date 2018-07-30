@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
@@ -86,7 +87,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             defaults=defaults,
         )
 
-        if not created:
+        if created:
+            analytics.record(
+                'integration.issue.linked',
+                provider=integration.provider,
+                id=integration.id,
+                organization_id=organization_id,
+            )
+        else:
             external_issue.update(**defaults)
 
         installation.after_link_issue(external_issue, data=request.DATA)
@@ -137,7 +145,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({'non_field_errors': exc.message}, status=400)
 
         external_issue_key = installation.make_external_key(data)
-        external_issue = ExternalIssue.objects.get_or_create(
+        external_issue, created = ExternalIssue.objects.get_or_create(
             organization_id=organization_id,
             integration_id=integration.id,
             key=external_issue_key,
@@ -145,7 +153,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 'title': data.get('title'),
                 'description': data.get('description'),
             }
-        )[0]
+        )
 
         try:
             with transaction.atomic():
@@ -158,6 +166,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 )
         except IntegrityError:
             return Response({'detail': 'That issue is already linked'}, status=400)
+
+        if created:
+            analytics.record(
+                'integration.issue.created',
+                provider=integration.provider,
+                id=integration.id,
+                organization_id=organization_id,
+            )
 
         # TODO(jess): return serialized issue
         url = data.get('url') or installation.get_issue_url(external_issue.key)
