@@ -12,6 +12,9 @@ from django.conf import settings
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
+        has_ghe = features.has('organizations:github-enterprise',
+                               organization,
+                               actor=request.user)
         has_catchall = features.has('organizations:internal-catchall',
                                     organization,
                                     actor=request.user)
@@ -21,8 +24,11 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
 
         providers = []
         for provider in integrations.all():
-            internal_integrations = {
-                i for i in settings.SENTRY_INTERNAL_INTEGRATIONS if i != 'github' or not has_github_apps}
+            internal_integrations = {i for i in settings.SENTRY_INTERNAL_INTEGRATIONS}
+            if has_ghe:
+                internal_integrations.remove('github_enterprise')
+            if has_github_apps:
+                internal_integrations.remove('github')
             if not has_catchall and provider.key in internal_integrations:
                 continue
 

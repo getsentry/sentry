@@ -127,7 +127,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
   <FeatureContainer
     feature={
       Array [
-        "internal-catchall",
+        "new-issue-ui",
       ]
     }
   >

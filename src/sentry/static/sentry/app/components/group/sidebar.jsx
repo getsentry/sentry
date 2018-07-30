@@ -230,7 +230,7 @@ const GroupSidebar = createReactClass({
           group={this.props.group}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
-        <Feature feature={['internal-catchall']}>
+        <Feature feature={['new-issue-ui']}>
           <ExternalIssueList group={this.props.group} />
         </Feature>
 

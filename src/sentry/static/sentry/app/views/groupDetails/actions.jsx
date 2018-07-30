@@ -270,7 +270,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {group.pluginActions.length > 1 && !orgFeatures.has('internal-catchall') ? (
+        {group.pluginActions.length > 1 && !orgFeatures.has('new-issue-ui') ? (
           <div className="btn-group more">
             <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
               {group.pluginActions.map((action, actionIdx) => {
@@ -284,7 +284,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         ) : (
           group.pluginActions.length !== 0 &&
-          !orgFeatures.has('internal-catchall') &&
+          !orgFeatures.has('new-issue-ui') &&
           group.pluginActions.map((action, actionIdx) => {
             return (
               <div className="btn-group" key={actionIdx}>
@@ -296,7 +296,7 @@ const GroupDetailsActions = createReactClass({
           })
         )}
         {group.pluginIssues &&
-          !orgFeatures.has('internal-catchall') &&
+          !orgFeatures.has('new-issue-ui') &&
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}

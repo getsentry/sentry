@@ -771,6 +771,8 @@ SENTRY_FEATURES = {
     'organizations:require-2fa': False,
     'organizations:environments': False,
     'organizations:internal-catchall': False,
+    'organizations:new-issue-ui': False,
+    'organizations:github-enterprise': False,
     'organizations:new-teams': True,
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
