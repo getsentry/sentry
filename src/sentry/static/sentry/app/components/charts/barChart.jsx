@@ -22,23 +22,8 @@ export default class BarChart extends React.Component {
     ),
   };
 
-  generateBarData(series) {
-    let xAxisLabels = new Set();
-
-    const barData = series.map(s => {
-      let tempSeries = {};
-      s.data.forEach(({category, value}) => {
-        xAxisLabels.add(category);
-        tempSeries[category] = value;
-      });
-      return tempSeries;
-    });
-    return [barData, Array.from(xAxisLabels)];
-  }
-
   render() {
     const {series, stacked} = this.props;
-    const [barData, xAxisLabels] = this.generateBarData(series);
 
     return (
       <BaseChart
@@ -46,17 +31,13 @@ export default class BarChart extends React.Component {
         options={{
           xAxis: XAxis({
             type: 'category',
-            data: xAxisLabels,
           }),
           yAxis: YAxis({}),
           series: series.map((s, i) => {
-            let data = xAxisLabels.map(label => {
-              return barData[i].hasOwnProperty(label) ? barData[i][label] : 0;
-            });
             return BarSeries({
               name: s.seriesName,
               stack: stacked ? 'stack1' : null,
-              data,
+              data: s.data.map(({value, category}) => [category, value]),
             });
           }),
         }}
