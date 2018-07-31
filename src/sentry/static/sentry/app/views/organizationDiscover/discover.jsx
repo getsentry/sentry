@@ -19,6 +19,7 @@ import Aggregations from './aggregations';
 import Conditions from './conditions';
 import ResultTable from './result/table';
 import ResultChart from './result/chart';
+import Intro from './intro';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
@@ -161,6 +162,11 @@ export default class OrganizationDiscover extends React.Component {
     const {queryBuilder, organization} = this.props;
 
     queryBuilder.reset();
+    this.setState({
+      result: null,
+      chartData: null,
+      chartQuery: null,
+    });
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/discover/`,
     });
@@ -264,6 +270,7 @@ export default class OrganizationDiscover extends React.Component {
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
             {chartData && <ResultChart data={chartData} query={chartQuery} />}
             {result && <ResultTable result={result} />}
+            {!result && <Intro />}
           </Box>
         </Flex>
       </Discover>
