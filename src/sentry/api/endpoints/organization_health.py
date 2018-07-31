@@ -146,8 +146,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             filter_keys={
                 'project_id': project_ids,
             },
-            conditions=[
-                lookup.conditions,
+            conditions=lookup.conditions + [
                 environment,
             ],
             groupby=lookup.columns,
@@ -170,11 +169,10 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             filter_keys={
                 'project_id': project_ids,
             },
-            conditions=[
+            conditions=lookup.conditions + [
                 # This isn't really right, and is relying on the fact
                 # that project_id is the other key in this composite key
                 [lookup.tagkey, 'IN', [v[0] for v in values]],
-                lookup.conditions,
                 environment,
             ],
             groupby=lookup.columns,
@@ -228,8 +226,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             filter_keys={
                 'project_id': project_ids,
             },
-            conditions=[
-                lookup.conditions,
+            conditions=lookup.conditions + [
                 environment,
             ],
             groupby=['time'] + lookup.columns,

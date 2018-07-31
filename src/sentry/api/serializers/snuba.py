@@ -116,7 +116,7 @@ class SnubaLookup(object):
         self.extra = list(extra or [])
         self.columns = [self.tagkey] + self.extra
         self.serializer = serializer
-        self.conditions = conditions or [self.tagkey, 'IS NOT NULL', None]
+        self.conditions = conditions or [[self.tagkey, 'IS NOT NULL', None]]
         self.selected_columns = selected_columns or []
         cls.__registry[name] = self
 
@@ -132,6 +132,11 @@ SnubaLookup('error.type', 'error_type', selected_columns=[
     ('arrayElement', ('exception_stacks.type', 1), 'error_type'),
 ], conditions=[
     [('notEmpty', ('exception_stacks.type',)), '=', 1],
+])
+SnubaLookup('error.handled', 'error_handled', selected_columns=[
+    ('arrayElement', ('exception_stacks.mechanism_handled', 1), 'error_handled'),
+], conditions=[
+    [('notEmpty', ('exception_stacks.mechanism_handled',)), '=', 1],
 ])
 
 
