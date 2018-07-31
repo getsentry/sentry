@@ -59,7 +59,7 @@ from .endpoints.organization_auth_provider_send_reminders import OrganizationAut
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover import OrganizationDiscoverEndpoint
-from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint, OrganizationHealthGraph2Endpoint
+from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -388,11 +388,6 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/health/graph/$',
         OrganizationHealthGraphEndpoint.as_view(),
         name='sentry-api-0-organization-health-graph',
-    ),
-    url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/health/graph2/$',
-        OrganizationHealthGraph2Endpoint.as_view(),
-        name='sentry-api-0-organization-health-graph2',
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',
