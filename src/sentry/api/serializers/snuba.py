@@ -167,7 +167,6 @@ class SnubaSerializer(object):
         self.organization = organization
         self.lookup = lookup
         self.user = user
-        self.name = lookup.name
 
     def get_attrs(self, item_list):
         return self.lookup.serializer(
@@ -195,7 +194,7 @@ class SnubaResultSerializer(SnubaSerializer):
             row = {
                 'count': r['count'],
                 'lastCount': counts_by_value.get(value, 0),
-                self.name: attrs.get(value),
+                self.lookup.name: attrs.get(value),
             }
             if 'top_projects' in r:
                 row['topProjects'] = [projects[p] for p in r['top_projects']]
@@ -226,7 +225,7 @@ class SnubaTSResultSerializer(SnubaSerializer):
                 value = value_from_row(r, self.lookup.columns)
                 row.append({
                     'count': r['count'],
-                    self.name: attrs.get(value),
+                    self.lookup.name: attrs.get(value),
                 })
             rv.append((k, row))
         return {'data': zerofill(rv, result.start, result.end, result.rollup)}
