@@ -9,6 +9,7 @@ from django.db.models import Q
 
 from sentry.models import Release, Project, ProjectStatus, EventUser
 from sentry.utils.dates import to_timestamp
+from sentry.utils.geo import geo_by_addr as _geo_by_addr
 
 
 def serialize_releases(organization, item_list, user):
@@ -23,6 +24,25 @@ def serialize_releases(organization, item_list, user):
             version__in={i[0] for i in item_list},
         )
     }
+
+
+def geo_by_addr(ip):
+    try:
+        geo = _geo_by_addr(ip)
+    except Exception:
+        geo = None
+
+    if not geo:
+        return
+
+    rv = {}
+    for k in 'country_code', 'city', 'region':
+        d = geo.get(k)
+        if isinstance(d, six.binary_type):
+            d = d.decode('ISO-8859-1')
+        rv[k] = d
+
+    return rv
 
 
 def serialize_eventusers(organization, item_list, user):
@@ -60,6 +80,7 @@ def serialize_eventusers(organization, item_list, user):
             'dateCreated': eu.date_added,
             'label': eu.get_label(),
             'name': eu.get_display_name(),
+            'geo': geo_by_addr(eu.ip_address),
         }
     return rv
 
