@@ -15,6 +15,10 @@ import space from 'app/styles/space';
 
 const EARLY_ADOPTER_INTEGRATIONS = ['github', 'jira', 'github_enterprise'];
 
+const alertMarkedRenderer = new marked.Renderer();
+alertMarkedRenderer.paragraph = s => s;
+const alertMarked = text => marked(text, {renderer: alertMarkedRenderer});
+
 class IntegrationDetailsModal extends React.Component {
   static propTypes = {
     closeModal: PropTypes.func.isRequired,
@@ -44,6 +48,16 @@ class IntegrationDetailsModal extends React.Component {
     const {metadata} = provider;
     const description = marked(metadata.description);
 
+    const alerts = metadata.aspects.alerts || [];
+
+    if (!provider.canAdd && metadata.aspects.externalInstall) {
+      alerts.push({
+        type: 'warning',
+        icon: 'icon-exit',
+        text: metadata.aspects.externalInstall.noticeText,
+      });
+    }
+
     return (
       <React.Fragment>
         <Flex align="center" mb={2}>
@@ -65,19 +79,11 @@ class IntegrationDetailsModal extends React.Component {
           </Box>
         </Metadata>
 
-        {!provider.canAdd &&
-          metadata.aspects.externalInstall && (
-            <Alert type="warning" icon="icon-exit">
-              {metadata.aspects.externalInstall.noticeText}
-            </Alert>
-          )}
-
-        {metadata.aspects.alerts &&
-          metadata.aspects.alerts.map((alert, i) => (
-            <Alert key={i} type={alert.type}>
-              {alert.text}
-            </Alert>
-          ))}
+        {alerts.map((alert, i) => (
+          <Alert key={i} type={alert.type} icon={alert.icon}>
+            <span dangerouslySetInnerHTML={{__html: alertMarked(alert.text)}} />
+          </Alert>
+        ))}
 
         <div className="modal-footer">
           <Button size="small" onClick={closeModal}>
