@@ -204,6 +204,7 @@ def merge_minidump_event(data, minidump):
                 'function': '<unknown>',  # Required by interface
                 'package': frame.module.name if frame.module else None,
             } for frame in reversed(list(thread.frames()))],
+            'registers': thread.get_frame(0).registers if thread.frame_count else None,
         },
     } for thread in state.threads()]
 
