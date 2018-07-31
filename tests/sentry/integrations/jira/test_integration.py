@@ -390,6 +390,7 @@ class JiraIntegrationTest(APITestCase):
                 'type': 'string',
                 'name': 'title',
                 'label': 'Title',
+                'required': True,
             }, {
                 'default': ('%s\n\n{code}\n'
                             'Stacktrace (most recent call last):\n\n  '
@@ -399,6 +400,8 @@ class JiraIntegrationTest(APITestCase):
                 'type': 'textarea',
                 'name': 'description',
                 'label': 'Description',
+                'autosize': True,
+                'maxRows': 10,
             }, {
                 'default': '1',
                 'choices': [('1', 'Bug')],

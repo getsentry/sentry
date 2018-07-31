@@ -2,6 +2,7 @@ import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
+import queryString from 'query-string';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -14,6 +15,11 @@ import {t} from 'app/locale';
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
   create: t('Successfully created issue.'),
+};
+
+const SUBMIT_LABEL_BY_ACTION = {
+  link: t('Link Issue'),
+  create: t('Create Issue'),
 };
 
 class ExternalIssueForm extends AsyncComponent {
@@ -39,30 +45,6 @@ class ExternalIssueForm extends AsyncComponent {
     this.props.onSubmitSuccess(data);
   };
 
-  getOptions = (field, input) => {
-    if (!input) {
-      return Promise.resolve([]);
-    }
-    let {dynamicFieldValues} = this.state;
-    let additionalParams = Object.entries(dynamicFieldValues)
-      .map(([key, val]) => {
-        return `${key}=${encodeURIComponent(val)}`;
-      })
-      .join('&');
-    if (additionalParams) {
-      additionalParams = `&${additionalParams}`;
-    }
-
-    let url = field.url;
-    let separator = url.includes('?') ? '&' : '?';
-    return $.ajax({
-      url: `${url}${separator}field=${field.name}&query=${input}${additionalParams}`,
-      method: 'GET',
-    }).then(data => {
-      return {options: data};
-    });
-  };
-
   onRequestSuccess({stateKey, data, jqXHR}) {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
       this.setState({
@@ -75,12 +57,8 @@ class ExternalIssueForm extends AsyncComponent {
     let {dynamicFieldValues} = this.state;
     let {action, group, integration} = this.props;
     let endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
-    let query = {
-      action,
-    };
-    Object.entries(dynamicFieldValues).map(([key, val]) => {
-      query[key] = val;
-    });
+    let query = {action, ...dynamicFieldValues};
+
     this.api.request(endpoint, {
       method: 'GET',
       query,
@@ -97,11 +75,10 @@ class ExternalIssueForm extends AsyncComponent {
     integrationDetails = integrationDetails || this.state.integrationDetails;
     let {action} = this.props;
     let config = integrationDetails[`${action}IssueConfig`];
-    let dynamicFields = {};
-    config.filter(field => field.updatesForm).forEach(field => {
-      dynamicFields[field.name] = field.default;
-    });
-    return dynamicFields;
+
+    return config
+      .filter(field => field.updatesForm)
+      .reduce((a, field) => ({...a, [field.name]: field.default}), {});
   }
 
   onFieldChange = (label, value) => {
@@ -122,16 +99,53 @@ class ExternalIssueForm extends AsyncComponent {
     }
   };
 
+  getOptions = (field, input) => {
+    if (!input) return Promise.resolve([]);
+
+    let query = queryString.stringify({
+      ...this.state.dynamicFieldValues,
+      field: field.name,
+      query: input,
+    });
+
+    let url = field.url;
+    let separator = url.includes('?') ? '&' : '?';
+
+    let request = {
+      url: [url, separator, query].join(''),
+      method: 'GET',
+    };
+
+    // We can't use the API client here since the URL is not scapped under the
+    // API endpoints (which the client prefixes)
+    return $.ajax(request).then(data => ({options: data}));
+  };
+
+  getFieldProps = field =>
+    field.url
+      ? {
+          loadOptions: input => this.getOptions(field, input),
+          async: true,
+          cache: false,
+          onSelectResetsInput: false,
+          onCloseResetsInput: false,
+          onBlurResetsInput: false,
+          autoload: false,
+        }
+      : {};
+
   renderBody() {
     let {integrationDetails} = this.state;
     let {action, group, integration} = this.props;
     let config = integrationDetails[`${action}IssueConfig`];
+
     let initialData = {};
     config.forEach(field => {
       // passing an empty array breaks multi select
       // TODO(jess): figure out why this is breaking and fix
       initialData[field.name] = field.multiple ? '' : field.default;
     });
+
     return (
       <Form
         apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
@@ -139,24 +153,19 @@ class ExternalIssueForm extends AsyncComponent {
         onSubmitSuccess={this.onSubmitSuccess}
         initialData={initialData}
         onFieldChange={this.onFieldChange}
+        submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+        footerClass="modal-footer"
       >
-        {config.map(field => {
-          let props = {};
-          if (field.url) {
-            props = {
-              loadOptions: input => {
-                return this.getOptions(field, input);
-              },
-              async: true,
-              cache: false,
-              onSelectResetsInput: false,
-              onCloseResetsInput: false,
-              onBlurResetsInput: false,
-              autoload: false,
-            };
-          }
-          return <FieldFromConfig key={field.name} field={field} {...props} />;
-        })}
+        {config.map(field => (
+          <FieldFromConfig
+            key={field.name}
+            field={field}
+            inline={false}
+            stacked
+            flexibleControlStateSize
+            {...this.getFieldProps(field)}
+          />
+        ))}
       </Form>
     );
   }
@@ -170,10 +179,14 @@ class ExternalIssueActions extends AsyncComponent {
 
   constructor(props, context) {
     super(props, context);
-    this.state.showModal = false;
-    this.state.selectedIntegration = this.props.integration;
-    this.state.action = 'create';
-    this.state.issue = this.getIssue();
+
+    this.state = {
+      showModal: false,
+      action: 'create',
+      selectedIntegration: this.props.integration,
+      issue: this.getIssue(),
+      ...this.getDefaultState(),
+    };
   }
 
   getIssue() {
@@ -212,7 +225,7 @@ class ExternalIssueActions extends AsyncComponent {
     this.setState({
       showModal: false,
       action: null,
-      issue: data.id ? data : null,
+      issue: data && data.id ? data : null,
     });
   };
 
@@ -237,7 +250,6 @@ class ExternalIssueActions extends AsyncComponent {
             show={this.state.showModal}
             onHide={this.closeModal}
             animation={false}
-            backdrop="static"
             enforceFocus={false}
           >
             <Modal.Header closeButton>
