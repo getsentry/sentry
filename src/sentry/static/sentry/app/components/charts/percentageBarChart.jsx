@@ -8,6 +8,8 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 
+const FILLER_NAME = '__filler';
+
 /**
  * A stacked 100% column chart over time
  *
@@ -51,6 +53,7 @@ export default class PercentageBarChart extends React.Component {
     return [
       ...series.map(({seriesName, data}) =>
         BarSeries({
+          barCategoryGap: 0,
           name: seriesName,
           stack: 'percentageBarChartStack',
           data: data.map(dataObj => [
@@ -61,6 +64,7 @@ export default class PercentageBarChart extends React.Component {
       ),
       // Bar outline/filler if entire column is 0
       BarSeries({
+        name: FILLER_NAME,
         stack: 'percentageBarChartStack',
         silent: true,
         itemStyle: {
@@ -79,6 +83,7 @@ export default class PercentageBarChart extends React.Component {
   }
 
   render() {
+    const series = this.getSeries();
     return (
       <BaseChart
         {...this.props}
@@ -86,14 +91,27 @@ export default class PercentageBarChart extends React.Component {
           tooltip: Tooltip({
             // Make sure tooltip is inside of chart (because of overflow: hidden)
             confine: true,
+            formatter: seriesParams => {
+              const date =
+                `${seriesParams.length &&
+                  moment(seriesParams[0].axisValue).format('MMM D, YYYY')}<br />` || '';
+              return `${date} ${seriesParams
+                .filter(
+                  ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
+                )
+                .map(
+                  ({marker, seriesName, data}) =>
+                    `${marker} ${seriesName}:  <strong>${data[1]}</strong>%`
+                )
+                .join('<br />')}`;
+            },
           }),
           xAxis: XAxis({
             type: 'time',
             boundaryGap: true,
-            axisTick: {
-              alignWithLabel: true,
-            },
+            axisTick: {alignWithLabel: true},
             axisLabel: {
+              align: 'center',
               formatter: (value, index) => moment(value).format('MMM D'),
             },
           }),
@@ -108,7 +126,7 @@ export default class PercentageBarChart extends React.Component {
               formatter: '{value}%',
             },
           }),
-          series: this.getSeries(),
+          series,
         }}
       />
     );
