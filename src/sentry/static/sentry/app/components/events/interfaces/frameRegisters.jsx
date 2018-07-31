@@ -4,9 +4,10 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 import {defined, objectToArray} from 'app/utils';
 
-const REGISTER_VIEWS = ['Hexadecimal', 'Numeric'];
+const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 
 export class RegisterValue extends React.Component {
   static propTypes = {
@@ -73,7 +74,7 @@ class FrameRegisters extends React.Component {
 
     return (
       <div>
-        <RegistersHeading>Register Values</RegistersHeading>
+        <RegistersHeading>{t('Register Values')}</RegistersHeading>
         <Registers>
           {registers.map(register => (
             <Register key={register[0]} onClick={this.preventToggling}>
