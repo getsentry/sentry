@@ -553,13 +553,11 @@ window.TestStubs = {
         issue_url: 'http://example.com/jira_integration_issue_url',
         source_url: 'http://example.com/jira_integration_source_url',
         aspects: {
-          externalInstall: [
-            {
-              url: 'http://jira.com',
-              buttonText: 'Visit Jira',
-              noticeText: 'You must visit jira to install the integration',
-            },
-          ],
+          externalInstall: {
+            url: 'http://jira.com',
+            buttonText: 'Visit Jira',
+            noticeText: 'You must visit jira to install the integration',
+          },
         },
       },
       ...params,

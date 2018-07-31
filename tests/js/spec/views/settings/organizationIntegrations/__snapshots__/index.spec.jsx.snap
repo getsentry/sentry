@@ -196,13 +196,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                 "key": "jira",
                 "metadata": Object {
                   "aspects": Object {
-                    "externalInstall": Array [
-                      Object {
-                        "buttonText": "Visit Jira",
-                        "noticeText": "You must visit jira to install the integration",
-                        "url": "http://jira.com",
-                      },
-                    ],
+                    "externalInstall": Object {
+                      "buttonText": "Visit Jira",
+                      "noticeText": "You must visit jira to install the integration",
+                      "url": "http://jira.com",
+                    },
                   },
                   "author": "Rick",
                   "description": "*markdown* formatted Jira _description_",

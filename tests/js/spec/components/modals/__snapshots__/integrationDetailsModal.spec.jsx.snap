@@ -64,7 +64,13 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     key="0"
     type="warning"
   >
-    This is a an alert example
+    <span
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "This is a an alert example",
+        }
+      }
+    />
   </Alert>
   <div
     className="modal-footer"
