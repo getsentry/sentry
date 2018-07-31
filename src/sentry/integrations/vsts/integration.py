@@ -59,8 +59,8 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     def get_repositories(self):
         try:
             repos = self.get_client().get_repos(self.instance)
-        except ApiError:
-            repos = []
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
         data = []
         for repo in repos['value']:
             data.append({
