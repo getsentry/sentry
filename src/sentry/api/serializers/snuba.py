@@ -126,6 +126,7 @@ def zerofill(data, start, end, rollup):
 
 
 class SnubaLookup(object):
+    __slots__ = 'name', 'tagkey', 'columns', 'selected_columns', 'conditions', 'serializer'
     __registry = {}
 
     def __init__(self, name, tagkey=None, extra=None, selected_columns=None,
@@ -134,8 +135,7 @@ class SnubaLookup(object):
         assert name not in cls.__registry
         self.name = name
         self.tagkey = tagkey or name
-        self.extra = list(extra or [])
-        self.columns = [self.tagkey] + self.extra
+        self.columns = [self.tagkey] + list(extra or [])
         self.serializer = serializer
         self.conditions = conditions or [[self.tagkey, 'IS NOT NULL', None]]
         self.selected_columns = selected_columns or []
