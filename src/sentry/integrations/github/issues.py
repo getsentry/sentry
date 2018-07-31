@@ -59,6 +59,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'default': default_repo,
                 'choices': repo_choices,
                 'updatesForm': True,
+                'required': True,
             }
         ] + fields + [
             {
@@ -117,6 +118,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'type': 'select',
                 'default': default_repo,
                 'choices': repo_choices,
+                'required': True,
                 'updatesForm': True,
             },
             {
@@ -125,7 +127,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'default': '',
                 'type': 'select',
                 'choices': issues,
-
+                'required': True,
             },
             {
                 'name': 'comment',

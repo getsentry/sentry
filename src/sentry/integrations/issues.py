@@ -63,11 +63,14 @@ class IssueBasicMixin(object):
                 'label': 'Title',
                 'default': self.get_group_title(group, event, **kwargs),
                 'type': 'string',
+                'required': True,
             }, {
                 'name': 'description',
                 'label': 'Description',
                 'default': self.get_group_description(group, event, **kwargs),
                 'type': 'textarea',
+                'autosize': True,
+                'maxRows': 10,
             }
         ]
 
