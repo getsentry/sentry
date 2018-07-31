@@ -18,7 +18,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         integration = Integration.objects.get(
             id=data['integration_id'], provider=self.repo_provider)
 
-        base_url = integration.metadata.get('domain_name')
+        base_url = integration.metadata['domain_name'].split('/')[0]
         return {
             'name': data['identifier'],
             'external_id': data['external_id'],
