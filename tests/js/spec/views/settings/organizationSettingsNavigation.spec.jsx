@@ -1,11 +1,11 @@
-import {mount} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 import React from 'react';
 
 import OrganizationSettingsNavigation from 'app/views/settings/organization/organizationSettingsNavigation.jsx';
 
 describe('OrganizationSettingsNavigation', function() {
   it('renders', function() {
-    let wrapper = mount(<OrganizationSettingsNavigation />, TestStubs.routerContext());
+    let wrapper = shallow(<OrganizationSettingsNavigation />, TestStubs.routerContext());
 
     expect(wrapper).toMatchSnapshot();
   });
