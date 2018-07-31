@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {getDisplayName} from 'app/utils/getDisplayName';
+import getDisplayName from 'app/utils/getDisplayName';
 
 /**
  * HoC that provides "api" client when mounted, and clears API requests when component is unmounted

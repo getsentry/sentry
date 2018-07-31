@@ -3,7 +3,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {getDisplayName} from 'app/utils/getDisplayName';
+import getDisplayName from 'app/utils/getDisplayName';
 import LatestContextStore from 'app/stores/latestContextStore';
 import SentryTypes from 'app/sentryTypes';
 import withOrganizations from 'app/utils/withOrganizations';

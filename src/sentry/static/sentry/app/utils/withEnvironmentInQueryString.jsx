@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import qs from 'query-string';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {getDisplayName} from 'app/utils/getDisplayName';
+import getDisplayName from 'app/utils/getDisplayName';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 
