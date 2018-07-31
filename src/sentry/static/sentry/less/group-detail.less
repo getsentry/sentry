@@ -1509,6 +1509,19 @@ div.traceback > ul {
       &:first-of-type {
         margin-top: 0;
       }
+      &:first-child {
+        margin-top: -20px;
+      }
+    }
+
+    .registers {
+      border-top: 1px solid @trim;
+      padding-top: 10px;
+    }
+
+    .box-clippable:first-child > .registers {
+      border-top: none;
+      padding-top: 0;
     }
 
     .tag-app {

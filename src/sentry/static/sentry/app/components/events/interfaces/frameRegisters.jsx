@@ -73,8 +73,8 @@ class FrameRegisters extends React.Component {
     );
 
     return (
-      <div>
-        <RegistersHeading>{t('Register Values')}</RegistersHeading>
+      <div className="registers">
+        <RegistersHeading>{t('registers')}</RegistersHeading>
         <Registers>
           {registers.map(register => (
             <Register key={register[0]} onClick={this.preventToggling}>
@@ -90,24 +90,31 @@ class FrameRegisters extends React.Component {
 
 const Registers = styled(Flex)`
   flex-wrap: wrap;
-  padding: 8px 10px;
+  margin-left: 125px;
+  padding: 2px 0px;
 `;
 
 const Register = styled(Box)`
-  padding: 6px 10px;
+  padding: 4px 5px;
 `;
 
 const RegistersHeading = styled.strong`
-  font-size: 90%;
+  font-weight: 600;
+  font-size: 13px;
+  width: 125px;
+  max-width: 125px;
+  word-wrap: break-word;
+  padding: 10px 15px 10px 0 !important;
+  line-height: 1.4 !important;
+  float: left;
 `;
 
 const RegisterName = styled.span`
   display: inline-block;
   font-size: 13px;
   font-weight: 600;
-  padding-right: 1em;
   text-align: right;
-  width: 5em;
+  width: 4em;
 `;
 
 const InlinePre = styled.pre`

@@ -266,15 +266,12 @@ const Frame = createReactClass({
               );
             })}
 
-          {hasContextRegisters && (
+          {(hasContextRegisters || hasContextVars) && (
             <ClippedBox clipHeight={100}>
-              <FrameRegisters data={this.props.registers} key="registers" />
-            </ClippedBox>
-          )}
-
-          {hasContextVars && (
-            <ClippedBox clipHeight={100}>
-              <FrameVariables data={data.vars} key="vars" />
+              {hasContextRegisters && (
+                <FrameRegisters data={this.props.registers} key="registers" />
+              )}
+              {hasContextVars && <FrameVariables data={data.vars} key="vars" />}
             </ClippedBox>
           )}
         </ol>
