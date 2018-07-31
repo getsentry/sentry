@@ -201,7 +201,7 @@ const NewInstallation = styled('div')`
     }
 
     25% {
-      background: ${p => p.theme.yellowLight};
+      background: ${p => p.theme.yellowLightest};
     }
   }
 
