@@ -8,12 +8,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     <SettingsPageHeading
       title="Issue Owners"
     />
-    <div
-      className="alert alert-block alert-info"
-    >
-      Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!
-    </div>
     <Panel>
       <PanelHeader>
         Ownership Rules
