@@ -108,10 +108,7 @@ export default class PercentageBarChart extends React.Component {
           }),
           xAxis: XAxis({
             type: 'time',
-            boundaryGap: true,
-            axisTick: {alignWithLabel: true},
             axisLabel: {
-              align: 'center',
               formatter: (value, index) => moment(value).format('MMM D'),
             },
           }),
