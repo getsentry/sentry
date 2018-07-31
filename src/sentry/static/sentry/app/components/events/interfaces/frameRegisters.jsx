@@ -22,9 +22,7 @@ export class RegisterValue extends React.Component {
   }
 
   toggleView = () => {
-    this.setState({
-      view: (this.state.view + 1) % REGISTER_VIEWS.length,
-    });
+    this.setState(state => ({view: (state.view + 1) % REGISTER_VIEWS.length}));
   };
 
   formatValue = value => {
@@ -34,10 +32,10 @@ export class RegisterValue extends React.Component {
 
       switch (this.state.view) {
         case 1:
-          return String(parsed);
+          return `${parsed}`;
         case 0:
         default:
-          return '0x' + ('0000000000000000' + parsed.toString(16)).substr(-16);
+          return `0x${('0000000000000000' + parsed.toString(16)).substr(-16)}`;
       }
     } catch (e) {
       return value;
@@ -73,7 +71,7 @@ class FrameRegisters extends React.Component {
     );
 
     return (
-      <div className="registers">
+      <RegistersWrapper>
         <RegistersHeading>{t('registers')}</RegistersHeading>
         <Registers>
           {registers.map(register => (
@@ -83,10 +81,20 @@ class FrameRegisters extends React.Component {
             </Register>
           ))}
         </Registers>
-      </div>
+      </RegistersWrapper>
     );
   }
 }
+
+const RegistersWrapper = styled.div`
+  border-top: 1px solid @trim;
+  padding-top: 10px;
+
+  .traceback .frame .box-clippable:first-child > & {
+    border-top: none;
+    padding-top: 0;
+  }
+`;
 
 const Registers = styled(Flex)`
   flex-wrap: wrap;
@@ -104,8 +112,8 @@ const RegistersHeading = styled.strong`
   width: 125px;
   max-width: 125px;
   word-wrap: break-word;
-  padding: 10px 15px 10px 0 !important;
-  line-height: 1.4 !important;
+  padding: 10px 15px 10px 0;
+  line-height: 1.4;
   float: left;
 `;
 
