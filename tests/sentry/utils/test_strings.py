@@ -91,6 +91,7 @@ def test_truncatechars():
 
 
 def test_oxfordize_list():
+    assert oxfordize_list(['']) == ''
     assert oxfordize_list(['A']) == 'A'
     assert oxfordize_list(['A', 'B']) == 'A and B'
     assert oxfordize_list(['A', 'B', 'C']) == 'A, B, and C'
