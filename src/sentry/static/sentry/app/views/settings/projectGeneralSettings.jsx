@@ -274,6 +274,7 @@ class ProjectGeneralSettings extends AsyncView {
               fields.scrubIPAddresses,
               fields.sensitiveFields,
               fields.safeFields,
+              fields.storeCrashReports,
             ]}
           />
 

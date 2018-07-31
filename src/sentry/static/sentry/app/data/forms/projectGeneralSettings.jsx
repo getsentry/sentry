@@ -174,6 +174,14 @@ export const fields = {
     getValue: val => extractMultilineFields(val),
     setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
   },
+  storeCrashReports: {
+    name: 'storeCrashReports',
+    type: 'boolean',
+    label: t('Store Native Crash Reports'),
+    help: t(
+      'Store native crash reports such as Minidumps for improved processing and download in issue details'
+    ),
+  },
 
   allowedDomains: {
     name: 'allowedDomains',
