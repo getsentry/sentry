@@ -4,11 +4,11 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
-import {objectToArray} from 'app/utils';
+import {defined, objectToArray} from 'app/utils';
 
-const REGISTER_VIEWS = ['Hexadecimal', 'Big Endian', 'Little Endian'];
+const REGISTER_VIEWS = ['Hexadecimal', 'Numeric'];
 
-class RegisterValue extends React.Component {
+export class RegisterValue extends React.Component {
   static propTypes = {
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   };
@@ -28,23 +28,15 @@ class RegisterValue extends React.Component {
 
   formatValue = value => {
     try {
+      let parsed = typeof value === 'string' ? parseInt(value, 16) : value;
+      if (isNaN(parsed)) return value;
+
       switch (this.state.view) {
-        case 0:
-          return value;
         case 1:
-          return parseInt(value, 16);
-        case 2:
-          return parseInt(
-            '0x' +
-              value
-                .slice(2)
-                .match(/../g)
-                .reverse()
-                .join(''),
-            16
-          );
+          return String(parsed);
+        case 0:
         default:
-          return value;
+          return '0x' + ('0000000000000000' + parsed.toString(16)).substr(-16);
       }
     } catch (e) {
       return value;
@@ -75,7 +67,9 @@ class FrameRegisters extends React.Component {
   };
 
   render() {
-    let registers = objectToArray(this.props.data);
+    let registers = objectToArray(this.props.data).filter(register =>
+      defined(register[1])
+    );
 
     return (
       <div>
