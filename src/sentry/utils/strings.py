@@ -205,7 +205,9 @@ def oxfordize_list(strings):
         oxfordize_list(['A', 'B', 'C'])  =>  'A, B, and C'
     """
 
-    if len(strings) == 1:
+    if len(strings) == 0:
+        return ''
+    elif len(strings) == 1:
         return strings[0]
     elif len(strings) == 2:
         return '%s and %s' % (strings[0], strings[1])
