@@ -14,7 +14,10 @@ from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
 )
-from sentry.api.serializers.snuba import SnubaResultSerializer, SnubaTSResultSerializer, TAG_USER, TAG_RELEASE, TAG_OS_NAME, TAG_BROWSER_NAME, value_from_row
+from sentry.api.serializers.snuba import (
+    SnubaResultSerializer, SnubaTSResultSerializer, value_from_row,
+    SnubaLookup,
+)
 from sentry.utils import snuba
 
 
@@ -45,13 +48,6 @@ def query(**kwargs):
 
 
 class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
-    TAGKEYS = {
-        'user': TAG_USER,
-        'release': TAG_RELEASE,
-        'os.name': TAG_OS_NAME,
-        'browser.name': TAG_BROWSER_NAME,
-    }
-
     def empty(self):
         return Response({'data': []})
 
@@ -112,7 +108,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
 
     def get(self, request, organization):
         try:
-            tagkey = self.TAGKEYS[request.GET['tag']]
+            lookup = SnubaLookup.get(request.GET['tag'])
         except KeyError:
             raise ResourceDoesNotExist
 
@@ -140,23 +136,21 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 ('uniq', 'project_id', 'total_projects'),
             ]
 
-        # snuba groupby can't be a tuple
-        groupby = list(tagkey)
-
         now = timezone.now()
 
         data = query(
             end=now,
             start=now - stats_period,
+            selected_columns=lookup.selected_columns,
             aggregations=aggregations,
             filter_keys={
                 'project_id': project_ids,
             },
             conditions=[
-                [tagkey[0], 'IS NOT NULL', None],
+                lookup.conditions,
                 environment,
             ],
-            groupby=groupby,
+            groupby=lookup.columns,
             orderby='-count',
             limit=limit,
         )
@@ -164,11 +158,12 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         if not data:
             return self.empty()
 
-        values = [value_from_row(r, tagkey) for r in data]
+        values = [value_from_row(r, lookup.columns) for r in data]
 
         previous = query(
             end=now - stats_period,
             start=now - (stats_period * 2),
+            selected_columns=lookup.selected_columns,
             aggregations=[
                 ('count()', '', 'count'),
             ],
@@ -178,13 +173,14 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             conditions=[
                 # This isn't really right, and is relying on the fact
                 # that project_id is the other key in this composite key
-                [tagkey[0], 'IN', [v[0] for v in values]],
+                [lookup.tagkey, 'IN', [v[0] for v in values]],
+                lookup.conditions,
                 environment,
             ],
-            groupby=groupby,
+            groupby=lookup.columns,
         )
 
-        serializer = SnubaResultSerializer(organization, tagkey, request.user)
+        serializer = SnubaResultSerializer(organization, lookup, request.user)
         return Response(
             serializer.serialize(
                 SnubaResultSet(data, previous),
@@ -230,7 +226,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
                 'project_id': project_ids,
             },
             conditions=[
-                [tagkey, 'IS NOT NULL', None],
+                [tagkey[0], 'IS NOT NULL', None],
                 environment,
             ],
             groupby=['time'],
@@ -246,7 +242,7 @@ class OrganizationHealthGraph2Endpoint(OrganizationHealthEndpointBase):
 
     def get(self, request, organization):
         try:
-            tagkey = self.TAGKEYS[request.GET['tag']]
+            lookup = SnubaLookup.get(request.GET['tag'])
         except KeyError:
             raise ResourceDoesNotExist
 
@@ -272,22 +268,22 @@ class OrganizationHealthGraph2Endpoint(OrganizationHealthEndpointBase):
             end=end,
             start=start,
             rollup=rollup,
+            selected_columns=lookup.selected_columns,
             aggregations=[
                 ('count()', '', 'count'),
-                # ('uniq', tagkey[0], 'uniq'),
             ],
             filter_keys={
                 'project_id': project_ids,
             },
             conditions=[
-                [tagkey[0], 'IS NOT NULL', None],
+                lookup.conditions,
                 environment,
             ],
-            groupby=['time'] + list(tagkey),
+            groupby=['time'] + lookup.columns,
             orderby='time',
         )
 
-        serializer = SnubaTSResultSerializer(organization, tagkey, request.user)
+        serializer = SnubaTSResultSerializer(organization, lookup, request.user)
         return Response(
             serializer.serialize(
                 SnubaTSResult(data, start, end, rollup),

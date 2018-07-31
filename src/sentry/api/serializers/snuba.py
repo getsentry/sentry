@@ -79,7 +79,7 @@ def serialize_projects(organization, item_list, user):
 
 
 def serialize_noop(organization, item_list, user):
-    return {i: i for i in item_list}
+    return {i: i[0] for i in item_list}
 
 
 def value_from_row(row, tagkey):
@@ -104,40 +104,53 @@ def zerofill(data, start, end, rollup):
     return rv
 
 
-TAG_USER = ('tags[sentry:user]', 'project_id')
-TAG_RELEASE = ('tags[sentry:release]',)
-TAG_BROWSER_NAME = ('tags[browser.name]',)
-TAG_OS_NAME = ('tags[os.name]',)
+class SnubaLookup(object):
+    __registry = {}
 
-serializer_by_tagkey = {
-    TAG_RELEASE: serialize_releases,
-    TAG_USER: serialize_eventusers,
-}
+    def __init__(self, name, tagkey=None, extra=None, selected_columns=None,
+                 conditions=None, serializer=serialize_noop):
+        cls = type(self)
+        assert name not in cls.__registry
+        self.name = name
+        self.tagkey = tagkey or name
+        self.extra = list(extra or [])
+        self.columns = [self.tagkey] + self.extra
+        self.serializer = serializer
+        self.conditions = conditions or [self.tagkey, 'IS NOT NULL', None]
+        self.selected_columns = selected_columns or []
+        cls.__registry[name] = self
 
-tagkey_to_name = {
-    TAG_USER: 'user',
-    TAG_RELEASE: 'release',
-    TAG_BROWSER_NAME: 'browser.name',
-    TAG_OS_NAME: 'os.name',
-}
+    @classmethod
+    def get(cls, name):
+        return cls.__registry[name]
+
+
+SnubaLookup('user', 'tags[sentry:user]', ['project_id'], serializer=serialize_eventusers)
+SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
+SnubaLookup('os.name', 'tags[os.name]')
+SnubaLookup('error.type', 'error_type', selected_columns=[
+    ('arrayElement', ('exception_stacks.type', 1), 'error_type'),
+], conditions=[
+    [('notEmpty', ('exception_stacks.type',)), '=', 1],
+])
 
 
 class SnubaSerializer(object):
-    def __init__(self, organization, tagkey, user):
+    def __init__(self, organization, lookup, user):
         self.organization = organization
-        self.tagkey = tagkey
+        self.lookup = lookup
         self.user = user
-        self.name = tagkey_to_name[tagkey]
+        self.name = lookup.name
 
     def get_attrs(self, item_list):
-        return serializer_by_tagkey.get(self.tagkey, serialize_noop)(
+        return self.lookup.serializer(
             self.organization, item_list, self.user)
 
 
 class SnubaResultSerializer(SnubaSerializer):
     def serialize(self, result):
         counts_by_value = {
-            value_from_row(r, self.tagkey): r['count']
+            value_from_row(r, self.lookup.columns): r['count']
             for r in result.previous
         }
         projects = serialize_projects(
@@ -146,12 +159,12 @@ class SnubaResultSerializer(SnubaSerializer):
             self.user,
         )
         attrs = self.get_attrs(
-            [value_from_row(r, self.tagkey) for r in result.current],
+            [value_from_row(r, self.lookup.columns) for r in result.current],
         )
 
         data = []
         for r in result.current:
-            value = value_from_row(r, self.tagkey)
+            value = value_from_row(r, self.lookup.columns)
             row = {
                 'count': r['count'],
                 'lastCount': counts_by_value.get(value, 0),
@@ -175,7 +188,7 @@ class SnubaTSResultSerializer(SnubaSerializer):
             for key, group in itertools.groupby(result.data, key=lambda r: r['time'])
         ]
         attrs = self.get_attrs([
-            value_from_row(r, self.tagkey)
+            value_from_row(r, self.lookup.columns)
             for _, v in data
             for r in v
         ])
@@ -183,7 +196,7 @@ class SnubaTSResultSerializer(SnubaSerializer):
         for k, v in data:
             row = []
             for r in v:
-                value = value_from_row(r, self.tagkey)
+                value = value_from_row(r, self.lookup.columns)
                 row.append({
                     'count': r['count'],
                     self.name: attrs.get(value),
