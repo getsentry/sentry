@@ -449,12 +449,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                 >
                   <Base
                     align="center"
-                    className="css-uat2nm-PanelItem eo8n7lk0"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="css-uat2nm-PanelItem eo8n7lk0"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex
@@ -571,12 +571,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                 >
                   <Base
                     align="center"
-                    className="css-uat2nm-PanelItem eo8n7lk0"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="css-uat2nm-PanelItem eo8n7lk0"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex
@@ -760,12 +760,12 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                 >
                   <Base
                     align="center"
-                    className="css-uat2nm-PanelItem eo8n7lk0"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="css-uat2nm-PanelItem eo8n7lk0"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex
@@ -1351,12 +1351,12 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 >
                   <Base
                     align="center"
-                    className="css-uat2nm-PanelItem eo8n7lk0"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="css-uat2nm-PanelItem eo8n7lk0"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex

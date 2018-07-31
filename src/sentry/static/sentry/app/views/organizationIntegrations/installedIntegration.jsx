@@ -1,20 +1,19 @@
-import {Box} from 'grid-emotion';
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Tooltip from 'app/components/tooltip';
 
 const CONFIGURABLE_FEATURES = ['commits'];
 
 const removeButton = (
-  <Button size="xsmall" icon="icon-trash">
+  <Button borderless size="xsmall" icon="icon-trash">
     Remove
   </Button>
 );
@@ -117,10 +116,10 @@ export default class InstalledIntegration extends React.Component {
   }
 
   render() {
-    const {integration, provider, orgId} = this.props;
+    const {className, integration, provider, orgId} = this.props;
 
     return (
-      <PanelItem py={1} px={2} key={integration.id} align="center">
+      <Flex align="center" key={integration.id} className={className}>
         <Box flex={1}>
           <IntegrationItem compact integration={integration} />
         </Box>
@@ -143,6 +142,7 @@ export default class InstalledIntegration extends React.Component {
             >
               <span>
                 <Button
+                  borderless
                   size="xsmall"
                   icon="icon-settings"
                   disabled={!this.hasConfiguration()}
@@ -159,7 +159,7 @@ export default class InstalledIntegration extends React.Component {
             ? this.renderDisableIntegration(integration)
             : this.renderRemoveIntegration(integration)}
         </Box>
-      </PanelItem>
+      </Flex>
     );
   }
 }

@@ -25,44 +25,47 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
         key="github"
       >
         <PanelItem
-          align="center"
-          p={2}
+          direction="column"
+          p={0}
         >
-          <PluginIcon
-            pluginId="github"
-            size={36}
-          />
-          <Box
-            flex={1}
-            px={2}
+          <Flex
+            align="center"
+            p={2}
           >
-            <ProviderName>
-              GitHub
-            </ProviderName>
-            <ProviderDetails>
-              <Status
-                enabled={true}
-              />
-              <Link
-                onClick={[Function]}
-              >
-                Learn More
-              </Link>
-            </ProviderDetails>
-          </Box>
-          <Box>
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              onClick={[Function]}
-              size="small"
+            <PluginIcon
+              pluginId="github"
+              size={36}
+            />
+            <Box
+              flex={1}
+              px={2}
             >
-              Add Another
-            </Button>
-          </Box>
-        </PanelItem>
-        <PanelItemGroup>
-          <InstalledIntegration
+              <ProviderName>
+                GitHub
+              </ProviderName>
+              <ProviderDetails>
+                <Status
+                  enabled={true}
+                />
+                <Link
+                  onClick={[Function]}
+                >
+                  Learn More
+                </Link>
+              </ProviderDetails>
+            </Box>
+            <Box>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                onClick={[Function]}
+                size="small"
+              >
+                Add Another
+              </Button>
+            </Box>
+          </Flex>
+          <StyledInstalledIntegration
             integration={
               Object {
                 "configData": Object {},
@@ -119,50 +122,53 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               }
             }
           />
-        </PanelItemGroup>
+        </PanelItem>
       </React.Fragment>
       <React.Fragment
         key="jira"
       >
         <PanelItem
-          align="center"
-          p={2}
+          direction="column"
+          p={0}
         >
-          <PluginIcon
-            pluginId="jira"
-            size={36}
-          />
-          <Box
-            flex={1}
-            px={2}
+          <Flex
+            align="center"
+            p={2}
           >
-            <ProviderName>
-              Jira
-            </ProviderName>
-            <ProviderDetails>
-              <Status
-                enabled={true}
-              />
-              <Link
-                onClick={[Function]}
-              >
-                Learn More
-              </Link>
-            </ProviderDetails>
-          </Box>
-          <Box>
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              onClick={[Function]}
-              size="small"
+            <PluginIcon
+              pluginId="jira"
+              size={36}
+            />
+            <Box
+              flex={1}
+              px={2}
             >
-              Add Another
-            </Button>
-          </Box>
-        </PanelItem>
-        <PanelItemGroup>
-          <InstalledIntegration
+              <ProviderName>
+                Jira
+              </ProviderName>
+              <ProviderDetails>
+                <Status
+                  enabled={true}
+                />
+                <Link
+                  onClick={[Function]}
+                >
+                  Learn More
+                </Link>
+              </ProviderDetails>
+            </Box>
+            <Box>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                onClick={[Function]}
+                size="small"
+              >
+                Add Another
+              </Button>
+            </Box>
+          </Flex>
+          <StyledInstalledIntegration
             integration={
               Object {
                 "configData": Object {},
@@ -212,7 +218,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               }
             }
           />
-        </PanelItemGroup>
+        </PanelItem>
       </React.Fragment>
     </PanelBody>
   </Panel>
@@ -244,82 +250,92 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
         key="github"
       >
         <PanelItem
-          align="center"
-          p={2}
+          direction="column"
+          p={0}
         >
-          <PluginIcon
-            pluginId="github"
-            size={36}
-          />
-          <Box
-            flex={1}
-            px={2}
+          <Flex
+            align="center"
+            p={2}
           >
-            <ProviderName>
-              GitHub
-            </ProviderName>
-            <ProviderDetails>
-              <Status
-                enabled={false}
-              />
-              <Link
-                onClick={[Function]}
-              >
-                Learn More
-              </Link>
-            </ProviderDetails>
-          </Box>
-          <Box>
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              onClick={[Function]}
-              size="small"
+            <PluginIcon
+              pluginId="github"
+              size={36}
+            />
+            <Box
+              flex={1}
+              px={2}
             >
-              Install
-            </Button>
-          </Box>
+              <ProviderName>
+                GitHub
+              </ProviderName>
+              <ProviderDetails>
+                <Status
+                  enabled={false}
+                />
+                <Link
+                  onClick={[Function]}
+                >
+                  Learn More
+                </Link>
+              </ProviderDetails>
+            </Box>
+            <Box>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                onClick={[Function]}
+                size="small"
+              >
+                Install
+              </Button>
+            </Box>
+          </Flex>
         </PanelItem>
       </React.Fragment>
       <React.Fragment
         key="jira"
       >
         <PanelItem
-          align="center"
-          p={2}
+          direction="column"
+          p={0}
         >
-          <PluginIcon
-            pluginId="jira"
-            size={36}
-          />
-          <Box
-            flex={1}
-            px={2}
+          <Flex
+            align="center"
+            p={2}
           >
-            <ProviderName>
-              Jira
-            </ProviderName>
-            <ProviderDetails>
-              <Status
-                enabled={false}
-              />
-              <Link
-                onClick={[Function]}
-              >
-                Learn More
-              </Link>
-            </ProviderDetails>
-          </Box>
-          <Box>
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              onClick={[Function]}
-              size="small"
+            <PluginIcon
+              pluginId="jira"
+              size={36}
+            />
+            <Box
+              flex={1}
+              px={2}
             >
-              Install
-            </Button>
-          </Box>
+              <ProviderName>
+                Jira
+              </ProviderName>
+              <ProviderDetails>
+                <Status
+                  enabled={false}
+                />
+                <Link
+                  onClick={[Function]}
+                >
+                  Learn More
+                </Link>
+              </ProviderDetails>
+            </Box>
+            <Box>
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                onClick={[Function]}
+                size="small"
+              >
+                Install
+              </Button>
+            </Box>
+          </Flex>
         </PanelItem>
       </React.Fragment>
     </PanelBody>

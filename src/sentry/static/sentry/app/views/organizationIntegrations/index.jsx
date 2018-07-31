@@ -4,13 +4,7 @@ import {withTheme} from 'emotion-theming';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {
-  Panel,
-  PanelBody,
-  PanelHeader,
-  PanelItem,
-  PanelItemGroup,
-} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
 import {sortArray} from 'app/utils';
@@ -24,6 +18,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
 
 export default class OrganizationIntegrations extends AsyncComponent {
   static contextTypes = {
@@ -47,6 +42,13 @@ export default class OrganizationIntegrations extends AsyncComponent {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.integrations, i => i.id);
+
+    // Mark this integration as newlyAdded if it didn't already exist, allowing
+    // us to animate the element in.
+    if (!keyedItems.hasOwnProperty(integration.id)) {
+      integration.newlyAdded = true;
+    }
+
     const integrations = sortArray(
       Object.values({...keyedItems, [integration.id]: integration}),
       i => i.name
@@ -92,7 +94,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
       const installed = this.state.integrations
         .filter(i => i.provider.key === provider.key)
         .map(integration => (
-          <InstalledIntegration
+          <StyledInstalledIntegration
             key={integration.id}
             orgId={orgId}
             provider={provider}
@@ -111,22 +113,24 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
       return (
         <React.Fragment key={provider.key}>
-          <PanelItem align="center">
-            <PluginIcon size={36} pluginId={provider.key} />
-            <Box px={2} flex={1}>
-              <ProviderName>{provider.name}</ProviderName>
-              <ProviderDetails>
-                <Status enabled={installed.length > 0} />
-                <Link onClick={openModal}>Learn More</Link>
-              </ProviderDetails>
-            </Box>
-            <Box>
-              <Button icon="icon-circle-add" size="small" onClick={openModal}>
-                {installed.length > 0 ? t('Add Another') : t('Install')}
-              </Button>
-            </Box>
+          <PanelItem p={0} direction="column">
+            <Flex align="center" p={2}>
+              <PluginIcon size={36} pluginId={provider.key} />
+              <Box px={2} flex={1}>
+                <ProviderName>{provider.name}</ProviderName>
+                <ProviderDetails>
+                  <Status enabled={installed.length > 0} />
+                  <Link onClick={openModal}>Learn More</Link>
+                </ProviderDetails>
+              </Box>
+              <Box>
+                <Button icon="icon-circle-add" size="small" onClick={openModal}>
+                  {installed.length > 0 ? t('Add Another') : t('Install')}
+                </Button>
+              </Box>
+            </Flex>
+            {installed.length > 0 && installed}
           </PanelItem>
-          {installed.length > 0 && <PanelItemGroup>{installed}</PanelItemGroup>}
         </React.Fragment>
       );
     });
@@ -179,4 +183,46 @@ const Status = styled(
   color: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: 5px;
   margin-right: 10px;
+`;
+
+const NewInstallation = styled('div')`
+  @keyframes slidein {
+    from {
+      height: 0;
+    }
+    to {
+      height: 59px;
+    }
+  }
+  @keyframes highlight {
+    0%,
+    100% {
+      height: rgba(255, 255, 255, 0);
+    }
+
+    25% {
+      background: ${p => p.theme.yellowLight};
+    }
+  }
+
+  height: 0;
+  overflow: hidden;
+  animation: slidein 160ms 500ms ease-in-out forwards,
+    highlight 1000ms 500ms ease-in-out forwards;
+`;
+
+const StyledInstalledIntegration = styled(
+  p =>
+    p.integration.newlyAdded ? (
+      <NewInstallation>
+        <InstalledIntegration {...p} />
+      </NewInstallation>
+    ) : (
+      <InstalledIntegration {...p} />
+    )
+)`
+  padding: ${space(2)};
+  padding-left: 0;
+  margin-left: 68px;
+  border-top: 1px dotted ${p => p.theme.borderLight};
 `;
