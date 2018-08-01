@@ -489,7 +489,6 @@ class StoreView(APIView):
                     name=attachment.name,
                     type=kind,
                     headers={'Content-Type': attachment.content_type},
-                    size=attachment.size,
                 )
 
                 attachment.seek(0)
