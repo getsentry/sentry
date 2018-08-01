@@ -11,6 +11,7 @@ from sentry.integrations import Integration, IntegrationFeatures, IntegrationPro
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
+from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider, get_user_info
@@ -69,11 +70,22 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
             })
         return data
 
+    def get_unmigratable_repositories(self):
+        return Repository.objects.filter(
+            organization_id=self.organization_id,
+            provider='visualstudio',
+        ).exclude(
+            external_id__in=[r['identifier'] for r in self.get_repositories()],
+        )
+
     def get_client(self):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
+        return VstsApiClient(
+            self.default_identity,
+            VstsIntegrationProvider.oauth_redirect_url,
+        )
 
     def get_organization_config(self):
         client = self.get_client()
@@ -195,6 +207,21 @@ class VstsIntegrationProvider(IntegrationProvider):
         'width': 600,
         'height': 800,
     }
+
+    def post_install(self, integration, organization):
+        unmigratable_repos = self \
+            .get_installation(integration, organization.id) \
+            .get_unmigratable_repositories()
+
+        repos = Repository.objects.filter(
+            organization_id=organization.id,
+            provider='visualstudio',
+        ).exclude(
+            id__in=unmigratable_repos,
+        )
+
+        for repo in repos:
+            repo.update(integration_id=integration.id)
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
