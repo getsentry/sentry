@@ -60,7 +60,7 @@ export default class Condition extends React.Component {
     const column = this.props.columns.find(({name}) => name === colName);
     const colType = column ? column.type : 'string';
     const numberOnlyOperators = new Set(['>', '<', '>=', '<=']);
-    const stringOnlyOperators = new Set(['LIKE']);
+    const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
 
     return CONDITION_OPERATORS.filter(operator => {
       if (colType === 'number') {

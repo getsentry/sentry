@@ -27,6 +27,10 @@ const conditionList = [
     internal: 'retention_days >= 0',
     external: ['retention_days', '>=', 0],
   },
+  {
+    internal: 'message NOT LIKE something%',
+    external: ['message', 'NOT LIKE', 'something%'],
+  },
 ];
 
 describe('Conditions', function() {

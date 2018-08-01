@@ -41,7 +41,7 @@ describe('Condition', function() {
 
     it('renders operator options for string column', function() {
       const options = wrapper.instance().filterOptions([], 'col1');
-      expect(options).toHaveLength(5);
+      expect(options).toHaveLength(6);
       expect(options[0]).toEqual({value: 'col1 =', label: 'col1 ='});
     });
 
