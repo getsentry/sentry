@@ -26,14 +26,13 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return 'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
 
     def get_repo_choices(self, **kwargs):
-        client = self.get_client()
 
         try:
-            repos = client.get_repos(self.username)
+            repos = self.get_repositories()
         except ApiError:
             repo_choices = []
         else:
-            repo_choices = [(repo['full_name'], repo['full_name']) for repo in repos['values']]
+            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
