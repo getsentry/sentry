@@ -537,7 +537,7 @@ class JiraIntegrationTest(APITestCase):
             integration_id=integration.id,
         )
 
-        org_integration.config == {
+        assert org_integration.config == {
             'sync_comments': True,
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
@@ -572,7 +572,7 @@ class JiraIntegrationTest(APITestCase):
             integration_id=integration.id,
         )
 
-        org_integration.config == {
+        assert org_integration.config == {
             'sync_comments': True,
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
@@ -606,7 +606,7 @@ class JiraIntegrationTest(APITestCase):
             integration_id=integration.id,
         )
 
-        org_integration.config == {
+        assert org_integration.config == {
             'sync_comments': True,
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
