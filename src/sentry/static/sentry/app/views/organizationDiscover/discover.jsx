@@ -23,7 +23,7 @@ import Intro from './intro';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
-import {Fieldset, PlaceholderText} from './styles';
+import {Fieldset, PlaceholderText, ButtonSpinner} from './styles';
 
 import {getQueryStringFromQuery} from './utils';
 
@@ -39,6 +39,7 @@ export default class OrganizationDiscover extends React.Component {
       result: null,
       chartData: null,
       chartQuery: null,
+      isFetchingQuery: false,
     };
   }
 
@@ -67,10 +68,12 @@ export default class OrganizationDiscover extends React.Component {
       this.updateField('aggregations', filteredAggregations);
     }
 
+    this.setState({isFetchingQuery: true});
+
     queryBuilder.fetch().then(
       result => {
         const query = queryBuilder.getInternal();
-        this.setState({result});
+        this.setState({result, isFetchingQuery: false});
 
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
@@ -80,7 +83,7 @@ export default class OrganizationDiscover extends React.Component {
       },
       () => {
         addErrorMessage(t('An error occurred'));
-        this.setState({result: null});
+        this.setState({result: null, isFetchingQuery: false});
       }
     );
 
@@ -172,7 +175,7 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
   render() {
-    const {result, chartData, chartQuery} = this.state;
+    const {result, chartData, chartQuery, isFetchingQuery} = this.state;
     const {queryBuilder} = this.props;
 
     const query = queryBuilder.getInternal();
@@ -260,8 +263,9 @@ export default class OrganizationDiscover extends React.Component {
 
             <Flex pt={1}>
               <Box mr={1}>
-                <Button onClick={this.runQuery} priority="primary">
+                <Button onClick={this.runQuery} priority="primary" busy={isFetchingQuery}>
                   {t('Run Query')}
+                  {isFetchingQuery && <ButtonSpinner />}
                 </Button>
               </Box>
               <Button onClick={this.reset}>{t('Reset')}</Button>
