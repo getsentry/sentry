@@ -17,6 +17,8 @@ from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
 
+from sentry.utils import metrics
+
 
 def clean_name(name):
     """
@@ -110,15 +112,16 @@ class GoogleCloudFile(File):
 
     def _get_file(self):
         if self._file is None:
-            self._file = SpooledTemporaryFile(
-                max_size=self._storage.max_memory_size,
-                suffix=".GSStorageFile",
-                dir=None,
-            )
-            if 'r' in self._mode:
-                self._is_dirty = False
-                self.blob.download_to_file(self._file)
-                self._file.seek(0)
+            with metrics.timer('filestore.read', instance='gcs'):
+                self._file = SpooledTemporaryFile(
+                    max_size=self._storage.max_memory_size,
+                    suffix=".GSStorageFile",
+                    dir=None,
+                )
+                if 'r' in self._mode:
+                    self._is_dirty = False
+                    self.blob.download_to_file(self._file)
+                    self._file.seek(0)
         return self._file
 
     def _set_file(self, value):
@@ -202,15 +205,16 @@ class GoogleCloudStorage(Storage):
         return GoogleCloudFile(name, mode, self)
 
     def _save(self, name, content):
-        cleaned_name = clean_name(name)
-        name = self._normalize_name(cleaned_name)
+        with metrics.timer('filestore.save', instance='gcs'):
+            cleaned_name = clean_name(name)
+            name = self._normalize_name(cleaned_name)
 
-        content.name = cleaned_name
-        encoded_name = self._encode_name(name)
-        file = GoogleCloudFile(encoded_name, 'w', self)
-        content.seek(0, os.SEEK_SET)
-        file.blob.upload_from_file(content, size=content.size,
-                                   content_type=file.mime_type)
+            content.name = cleaned_name
+            encoded_name = self._encode_name(name)
+            file = GoogleCloudFile(encoded_name, 'w', self)
+            content.seek(0, os.SEEK_SET)
+            file.blob.upload_from_file(content, size=content.size,
+                                       content_type=file.mime_type)
         return cleaned_name
 
     def delete(self, name):
