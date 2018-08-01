@@ -136,12 +136,12 @@ exports[`ProjectDebugSymbols renders 1`] = `
                 p={2}
               >
                 <Base
-                  className="css-rpw1uh-PanelItem eo8n7lk0"
+                  className="css-1cf8lr1-PanelItem eo8n7lk0"
                   direction="column"
                   p={2}
                 >
                   <div
-                    className="css-rpw1uh-PanelItem eo8n7lk0"
+                    className="css-1cf8lr1-PanelItem eo8n7lk0"
                     is={null}
                   >
                     <HoverablePanelItem
@@ -149,11 +149,11 @@ exports[`ProjectDebugSymbols renders 1`] = `
                       onClick={[Function]}
                     >
                       <Base
-                        className="hoverable css-1uv0v93-PanelItem-HoverablePanelItem emphg7t2"
+                        className="hoverable css-oncsnl-PanelItem-HoverablePanelItem emphg7t2"
                         onClick={[Function]}
                       >
                         <div
-                          className="hoverable css-1uv0v93-PanelItem-HoverablePanelItem emphg7t2"
+                          className="hoverable css-oncsnl-PanelItem-HoverablePanelItem emphg7t2"
                           is={null}
                           onClick={[Function]}
                         >

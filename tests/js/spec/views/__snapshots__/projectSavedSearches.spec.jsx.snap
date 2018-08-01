@@ -235,12 +235,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                     >
                       <Base
                         align="center"
-                        className="css-187dgu1-PanelItem eo8n7lk0"
+                        className="css-16d6l3f-PanelItem eo8n7lk0"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="css-187dgu1-PanelItem eo8n7lk0"
+                          className="css-16d6l3f-PanelItem eo8n7lk0"
                           is={null}
                         >
                           <Flex
@@ -569,12 +569,12 @@ exports[`ProjectSavedSearches renders 1`] = `
                     >
                       <Base
                         align="center"
-                        className="css-187dgu1-PanelItem eo8n7lk0"
+                        className="css-16d6l3f-PanelItem eo8n7lk0"
                         p={0}
                         py={2}
                       >
                         <div
-                          className="css-187dgu1-PanelItem eo8n7lk0"
+                          className="css-16d6l3f-PanelItem eo8n7lk0"
                           is={null}
                         >
                           <Flex
