@@ -39,26 +39,26 @@ Sentry.
 
 disable_dialog = {
     'actionText': 'Visit GitHub Enterprise',
-    'body': 'Before deleting this integration, you must uninstall it from your '
-            'GitHub Enterprise instance. After uninstalling, your integration '
-            'will be disabled at which point you can choose to delete this '
-            'integration.'
+    'body': 'Before deleting this integration, you must uninstall it from your'
+            ' GitHub Enterprise instance. After uninstalling, your integration'
+            ' will be disabled at which point you can choose to delete this'
+            ' integration.'
 }
 
 removal_dialog = {
     'actionText': 'Delete',
-    'body': 'Deleting this integration will delete all associated repositories '
-            'and commit data. This action cannot be undone. Are you sure you '
-            'want to delete your integration?'
+    'body': 'Deleting this integration will delete all associated repositories'
+            ' and commit data. This action cannot be undone. Are you sure you'
+            ' want to delete your integration?'
 }
 
 setup_alert = {
     'type': 'warning',
     'icon': 'icon-warning-sm',
-    'text': 'Your GitHub enterprise instance must be able to communicate with '
-            'Sentry. Sentry makes outbound requests from a [static set of IP '
-            'addresses](https://docs.sentry.io/ip-ranges/) that you may wish '
-            'to whitelist to support this integration.',
+    'text': 'Your GitHub enterprise instance must be able to communicate with'
+            ' Sentry. Sentry makes outbound requests from a [static set of IP'
+            ' addresses](https://docs.sentry.io/ip-ranges/) that you may wish'
+            ' to whitelist to support this integration.',
 }
 
 metadata = IntegrationMetadata(
