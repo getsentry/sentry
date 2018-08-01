@@ -20,19 +20,32 @@ from .utils import get_jwt
 
 
 DESCRIPTION = """
-Define a relationship between Sentry and GitHub.
+Connect your Sentry organization into your GitHub organization or user account.
+Take a step towards augmenting your sentry issues with commits from your
+repositories ([using releases](https://docs.sentry.io/learn/releases/)) and
+linking up your GitHub issues and pull requests directly to issues in Sentry.
 
- * Authorize repositories to be added for syncing commit data.
- * Create or link existing GitHub issues. (coming soon)
+ * Create and link Sentry issue groups directly to a GitHub issue or pull
+   request in any of your repositories, providing a quick way to jump from
+   Sentry bug to tracked issue or PR!
+
+ * Authorize repositories to be added to your Sentry organization to augmenting
+   sentry issues with commit data with [deployment
+   tracking](https://docs.sentry.io/learn/releases/).
 """
 disable_dialog = {
     'actionText': 'Visit GitHub',
-    'body': 'Before deleting this integration, you must uninstall this integration from GitHub. After uninstalling, your integration will be disabled at which point you can choose to delete this integration.'
+    'body': 'Before deleting this integration, you must uninstall this'
+            ' integration from GitHub. After uninstalling, your integration will'
+            ' be disabled at which point you can choose to delete this'
+            ' integration.',
 }
 
 removal_dialog = {
     'actionText': 'Delete',
-    'body': 'Deleting this integration will delete all associated repositories and commit data. This action cannot be undone. Are you sure you want to delete your integration?'
+    'body': 'Deleting this integration will delete all associated repositories'
+            ' and commit data. This action cannot be undone. Are you sure you'
+            ' want to delete your integration?',
 }
 
 metadata = IntegrationMetadata(
