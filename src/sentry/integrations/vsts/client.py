@@ -22,7 +22,7 @@ class VstsApiPath(object):
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repository = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
-    repositories = u'https://{account_name}/{project}/_apis/git/repositories'
+    repositories = u'https://{account_name}/{project}_apis/git/repositories'
     subscription = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
