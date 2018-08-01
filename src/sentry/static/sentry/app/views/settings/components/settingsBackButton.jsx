@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import React from 'react';
 import PropTypes from 'prop-types';
+import Cookies from 'js-cookie';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
@@ -38,6 +39,17 @@ class BackButton extends React.Component {
   };
 
   render() {
+    let pendingInvite = Cookies.get('pending-invite');
+
+    if (pendingInvite) {
+      return (
+        <BackButtonWrapper href={pendingInvite}>
+          <Icon src="icon-chevron-left" size="10px" />
+          {t('Back to Invite')}
+        </BackButtonWrapper>
+      );
+    }
+
     let {params, organization, lastRoute} = this.props;
     let {lastAppContext} = this.context;
     // lastAppContext is set when Settings is initial loaded,
