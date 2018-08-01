@@ -1,16 +1,17 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import TeamStore from 'app/stores/teamStore';
+import getDisplayName from 'app/utils/getDisplayName';
 import SentryTypes from 'app/sentryTypes';
+import TeamStore from 'app/stores/teamStore';
 
 /**
  * Higher order component that uses TeamStore and provides a list of teams
  */
 const withTeams = WrappedComponent =>
   createReactClass({
-    displayName: 'withTeams',
+    displayName: `withTeams(${getDisplayName(WrappedComponent)})`,
     propTypes: {
       organization: SentryTypes.Organization,
     },

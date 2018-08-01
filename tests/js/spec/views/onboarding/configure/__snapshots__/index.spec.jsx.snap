@@ -14,7 +14,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
     >
       Configure your application
     </h2>
-    <withProjects
+    <withProjects(withRouter(ProjectContext))
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -40,7 +40,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
           }
         />
       </ProjectDocsContext>
-    </withProjects>
+    </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
       skip={[Function]}
@@ -73,7 +73,7 @@ exports[`Configure should render correctly render() should render platform docs 
       >
         Configure your application
       </h2>
-      <withProjects
+      <withProjects(withRouter(ProjectContext))
         orgId="testOrg"
         projectId="project-slug"
         style={
@@ -489,7 +489,7 @@ exports[`Configure should render correctly render() should render platform docs 
             </SideEffect(DocumentTitle)>
           </ProjectContext>
         </withRouter(ProjectContext)>
-      </withProjects>
+      </withProjects(withRouter(ProjectContext))>
       <Waiting
         hasEvent={false}
         skip={[Function]}
@@ -544,7 +544,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     >
       Configure your application
     </h2>
-    <withProjects
+    <withProjects(withRouter(ProjectContext))
       orgId="testOrg"
       projectId="project-slug"
       style={
@@ -570,7 +570,7 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
           }
         />
       </ProjectDocsContext>
-    </withProjects>
+    </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
       skip={[Function]}
