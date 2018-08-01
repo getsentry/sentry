@@ -28,8 +28,7 @@ exports[`OrganizationAuthList renders 1`] = `
             key="0"
           >
             Get started with Single Sign-on for your organization by
-                selecting a provider to configure. Read more in our
-                
+                selecting a provider. Read more in our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
@@ -104,8 +103,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
             key="0"
           >
             Get started with Single Sign-on for your organization by
-                selecting a provider to configure. Read more in our
-                
+                selecting a provider. Read more in our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
