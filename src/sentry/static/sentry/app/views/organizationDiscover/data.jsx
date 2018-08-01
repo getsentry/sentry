@@ -79,6 +79,7 @@ const CONDITION_OPERATORS = [
   'IS NULL',
   'IS NOT NULL',
   'LIKE',
+  'NOT LIKE',
 ];
 
 const TOPK_COUNTS = [5, 10, 20, 50, 100];

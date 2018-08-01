@@ -63,19 +63,17 @@ export function getExternal(internal, columns) {
   if (specialConditions.has(remaining)) {
     external[1] = remaining;
   } else {
-    const operatorMatch = remaining.match(/^([^\s]+).*$/);
-    const operatorValue = operatorMatch ? operatorMatch[1] : null;
-
-    if (new Set(CONDITION_OPERATORS).has(operatorValue)) {
-      external[1] = operatorValue;
-    }
+    CONDITION_OPERATORS.forEach(operator => {
+      if (remaining.startsWith(operator)) {
+        external[1] = operator;
+      }
+    });
   }
 
   // Validate value and convert to correct type
   if (external[0] && external[1] && !specialConditions.has(external[1])) {
-    const valuesMatch = internal.match(/^[a-zA-Z0-9_\.:-\[\]]+ [^\s]+ (.*)$/);
+    external[2] = internal.replace(`${external[0]} ${external[1]} `, '');
 
-    external[2] = valuesMatch ? valuesMatch[1] : null;
     const type = columns.find(({name}) => name === colValue).type;
 
     if (type === 'number') {
