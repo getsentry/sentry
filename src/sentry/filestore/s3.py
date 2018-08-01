@@ -55,6 +55,8 @@ from boto3.session import Session
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
+from sentry.utils import metrics
+
 _thread_local_connection = threading.local()
 
 
@@ -155,13 +157,14 @@ class S3Boto3StorageFile(File):
 
     def _get_file(self):
         if self._file is None:
-            self._file = BytesIO()
-            if 'r' in self._mode:
-                self._is_dirty = False
-                self._file.write(self.obj.get()['Body'].read())
-                self._file.seek(0)
-            if self._storage.gzip and self.obj.content_encoding == 'gzip':
-                self._file = GzipFile(mode=self._mode, fileobj=self._file, mtime=0.0)
+            with metrics.timer('filestore.read', instance='s3'):
+                self._file = BytesIO()
+                if 'r' in self._mode:
+                    self._is_dirty = False
+                    self._file.write(self.obj.get()['Body'].read())
+                    self._file.seek(0)
+                if self._storage.gzip and self.obj.content_encoding == 'gzip':
+                    self._file = GzipFile(mode=self._mode, fileobj=self._file, mtime=0.0)
         return self._file
 
     def _set_file(self, value):
@@ -485,28 +488,29 @@ class S3Boto3Storage(Storage):
         return f
 
     def _save(self, name, content):
-        cleaned_name = self._clean_name(name)
-        name = self._normalize_name(cleaned_name)
-        parameters = self.object_parameters.copy()
-        content_type = getattr(
-            content, 'content_type', mimetypes.guess_type(name)[0] or self.default_content_type
-        )
+        with metrics.timer('filestore.save', instance='s3'):
+            cleaned_name = self._clean_name(name)
+            name = self._normalize_name(cleaned_name)
+            parameters = self.object_parameters.copy()
+            content_type = getattr(
+                content, 'content_type', mimetypes.guess_type(name)[0] or self.default_content_type
+            )
 
-        # setting the content_type in the key object is not enough.
-        parameters.update({'ContentType': content_type})
+            # setting the content_type in the key object is not enough.
+            parameters.update({'ContentType': content_type})
 
-        if self.gzip and content_type in self.gzip_content_types:
-            content = self._compress_content(content)
-            parameters.update({'ContentEncoding': 'gzip'})
+            if self.gzip and content_type in self.gzip_content_types:
+                content = self._compress_content(content)
+                parameters.update({'ContentEncoding': 'gzip'})
 
-        encoded_name = self._encode_name(name)
-        obj = self.bucket.Object(encoded_name)
-        if self.preload_metadata:
-            self._entries[encoded_name] = obj
+            encoded_name = self._encode_name(name)
+            obj = self.bucket.Object(encoded_name)
+            if self.preload_metadata:
+                self._entries[encoded_name] = obj
 
-        self._save_content(obj, content, parameters=parameters)
-        # Note: In boto3, after a put, last_modified is automatically reloaded
-        # the next time it is accessed; no need to specifically reload it.
+            self._save_content(obj, content, parameters=parameters)
+            # Note: In boto3, after a put, last_modified is automatically reloaded
+            # the next time it is accessed; no need to specifically reload it.
         return cleaned_name
 
     def _save_content(self, obj, content, parameters):
