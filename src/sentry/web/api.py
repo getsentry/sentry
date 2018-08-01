@@ -28,7 +28,7 @@ from querystring_parser import parser
 from raven.contrib.django.models import client as Raven
 from symbolic import ProcessMinidumpError
 
-from sentry import quotas, tsdb
+from sentry import features, quotas, tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
     MinidumpApiHelper,
@@ -36,7 +36,7 @@ from sentry.coreapi import (
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import merge_minidump_event
-from sentry.models import Project, OrganizationOption, Organization
+from sentry.models import File, EventAttachment, Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
@@ -328,7 +328,7 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
-    def process(self, request, project, key, auth, helper, data, **kwargs):
+    def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
         metrics.incr('events.total')
 
         if not data:
@@ -483,6 +483,25 @@ class StoreView(APIView):
             # We filter data immediately before it ever gets into the queue
             helper.ensure_does_not_have_ip(data)
 
+        if attachments is not None:
+            for kind, attachment in attachments:
+                file = File.objects.create(
+                    name=attachment.name,
+                    type=kind,
+                    headers={'Content-Type': attachment.content_type},
+                    size=attachment.size,
+                )
+
+                attachment.seek(0)
+                file.putfile(attachment)
+
+                EventAttachment.objects.create(
+                    event_id=event_id,
+                    project_id=project.id,
+                    name=attachment.name,
+                    file=file,
+                )
+
         # mutates data (strips a lot of context if not queued)
         helper.insert_data_to_database(data, start_time=start_time)
 
@@ -543,7 +562,7 @@ class MinidumpView(StoreView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, **kwargs):
+    def post(self, request, project, **kwargs):
         # Minidump request payloads do not have the same structure as
         # usual events from other SDKs. Most notably, the event needs
         # to be transfered in the `sentry` form field. All other form
@@ -583,6 +602,11 @@ class MinidumpView(StoreView):
             minidump = request.FILES['upload_file_minidump']
         except KeyError:
             raise APIError('Missing minidump upload')
+
+        attachments = []
+        for name, file in six.iteritems(request.FILES):
+            if name != 'upload_file_minidump':
+                attachments.append(('event.attachment', file))
 
         # Breakpad on linux sometimes stores the entire HTTP request body as
         # dump file instead of just the minidump. The Electron SDK then for
@@ -624,13 +648,28 @@ class MinidumpView(StoreView):
                 for chunk in minidump.chunks():
                     out.write(chunk)
 
+<<<<<<< HEAD
+=======
+        if features.has('organizations:event-attachments',
+                        project.organization, actor=request.user):
+            if project.get_option('sentry:store_crash_reports') or project.organization.get_option(
+                    'sentry:store_crash_reports'):
+                attachments.append(('event.minidump', minidump))
+
+>>>>>>> feat(minidump): Save minidumps as event attachments
         try:
             merge_minidump_event(data, minidump)
         except ProcessMinidumpError as e:
             logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
 
-        response_or_event_id = self.process(request, data=data, **kwargs)
+        response_or_event_id = self.process(
+            request,
+            attachments=attachments,
+            data=data,
+            project=project,
+            **kwargs)
+
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
 
