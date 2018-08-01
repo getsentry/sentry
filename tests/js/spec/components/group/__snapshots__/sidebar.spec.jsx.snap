@@ -193,7 +193,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
       Tags
     </span>
   </h6>
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -255,7 +255,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     projectId="project-slug"
     tag="browser"
   />
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -317,7 +317,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     projectId="project-slug"
     tag="device"
   />
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -379,7 +379,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     projectId="project-slug"
     tag="url"
   />
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {

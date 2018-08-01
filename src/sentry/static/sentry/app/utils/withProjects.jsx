@@ -1,7 +1,8 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
+import getDisplayName from 'app/utils/getDisplayName';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 
@@ -10,7 +11,7 @@ import SentryTypes from 'app/sentryTypes';
  */
 const withProjects = WrappedComponent =>
   createReactClass({
-    displayName: 'withProjects',
+    displayName: `withProjects(${getDisplayName(WrappedComponent)})`,
     propTypes: {
       organization: SentryTypes.Organization,
       project: SentryTypes.Project,

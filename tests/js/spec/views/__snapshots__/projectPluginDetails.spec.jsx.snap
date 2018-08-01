@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPluginDetails renders 1`] = `
-<withPlugins
+<withPlugins(ProjectPluginDetails)
   location={
     Object {
       "pathame": "/mock-pathname/",
@@ -633,5 +633,5 @@ exports[`ProjectPluginDetails renders 1`] = `
       </DocumentTitle>
     </SideEffect(DocumentTitle)>
   </ProjectPluginDetails>
-</withPlugins>
+</withPlugins(ProjectPluginDetails)>
 `;

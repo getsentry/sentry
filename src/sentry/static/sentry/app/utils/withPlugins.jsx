@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 
 import {defined} from 'app/utils';
 import {fetchPlugins} from 'app/actionCreators/plugins';
+import getDisplayName from 'app/utils/getDisplayName';
 import PluginsStore from 'app/stores/pluginsStore';
 import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
@@ -14,7 +15,7 @@ import SentryTypes from 'app/sentryTypes';
  */
 const withPlugins = WrappedComponent =>
   createReactClass({
-    displayName: 'withPlugins',
+    displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
     propTypes: {
       organization: SentryTypes.Organization,
       project: SentryTypes.Project,

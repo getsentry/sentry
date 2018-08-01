@@ -491,7 +491,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
               <span
                 className="css-rkoh57-MenuItemLabel-MenuItemLabel ebifsjx0"
               >
-                <withOrganizations
+                <withOrganizations(SwitchOrganization)
                   canCreateOrganization={false}
                 >
                   <SwitchOrganization
@@ -530,7 +530,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       </SwitchOrganizationMenuActor>
                     </DropdownMenu>
                   </SwitchOrganization>
-                </withOrganizations>
+                </withOrganizations(SwitchOrganization)>
               </span>
             </MenuItemLabel>
           </div>
