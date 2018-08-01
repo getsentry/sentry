@@ -184,12 +184,12 @@ exports[`CreateProject should render roles when available and allowed, and handl
                     p={2}
                   >
                     <Base
-                      className="css-118olnd-PanelItem eo8n7lk0"
+                      className="css-125s2dx-PanelItem eo8n7lk0"
                       onClick={[Function]}
                       p={2}
                     >
                       <div
-                        className="css-118olnd-PanelItem eo8n7lk0"
+                        className="css-125s2dx-PanelItem eo8n7lk0"
                         is={null}
                         onClick={[Function]}
                       >
@@ -261,12 +261,12 @@ exports[`CreateProject should render roles when available and allowed, and handl
                     p={2}
                   >
                     <Base
-                      className="css-118olnd-PanelItem eo8n7lk0"
+                      className="css-125s2dx-PanelItem eo8n7lk0"
                       onClick={[Function]}
                       p={2}
                     >
                       <div
-                        className="css-118olnd-PanelItem eo8n7lk0"
+                        className="css-125s2dx-PanelItem eo8n7lk0"
                         is={null}
                         onClick={[Function]}
                       >
@@ -408,11 +408,11 @@ exports[`CreateProject should render roles when available and allowed, and handl
                     p={2}
                   >
                     <Base
-                      className="css-13h4tox-PanelItem eo8n7lk0"
+                      className="css-15ezwr8-PanelItem eo8n7lk0"
                       p={2}
                     >
                       <div
-                        className="css-13h4tox-PanelItem eo8n7lk0"
+                        className="css-15ezwr8-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <TeamItem

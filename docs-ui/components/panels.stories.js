@@ -3,13 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/buttons/button';
-import {
-  Panel,
-  PanelHeader,
-  PanelBody,
-  PanelItem,
-  PanelItemGroup,
-} from 'app/components/panels';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 
 storiesOf('New Settings/Panel', module)
@@ -25,30 +19,6 @@ storiesOf('New Settings/Panel', module)
         <PanelBody>
           <PanelItem>Panel Item</PanelItem>
           <PanelItem>Panel Item</PanelItem>
-          <PanelItem>Panel Item</PanelItem>
-        </PanelBody>
-      </Panel>
-    ))
-  )
-  .add(
-    'Panel with groups',
-    withInfo({
-      text: 'Basic Panel component with a PanelItemGroup',
-      propTablesExclude: [Button],
-    })(() => (
-      <Panel>
-        <PanelHeader>Panel Header</PanelHeader>
-
-        <PanelBody>
-          <PanelItem>Panel Item</PanelItem>
-          <PanelItemGroup>
-            <PanelItem>Group item</PanelItem>
-            <PanelItem>Group item</PanelItem>
-          </PanelItemGroup>
-          <PanelItem>Panel Item</PanelItem>
-          <PanelItemGroup>
-            <PanelItem>Group item</PanelItem>
-          </PanelItemGroup>
           <PanelItem>Panel Item</PanelItem>
         </PanelBody>
       </Panel>

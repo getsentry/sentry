@@ -412,12 +412,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
               >
                 <Base
                   align="center"
-                  className="css-jb3ta9-PanelItem eo8n7lk0"
+                  className="css-lmab4b-PanelItem eo8n7lk0"
                   p={0}
                   py={1}
                 >
                   <div
-                    className="css-jb3ta9-PanelItem eo8n7lk0"
+                    className="css-lmab4b-PanelItem eo8n7lk0"
                     is={null}
                   >
                     <Flex
