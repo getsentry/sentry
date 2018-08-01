@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
+import SentryTypes from 'app/sentryTypes';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import withLatestContext from 'app/utils/withLatestContext';
 
@@ -29,7 +30,7 @@ const Icon = styled(InlineSvg)`
 
 class BackButton extends React.Component {
   static propTypes = {
-    organization: PropTypes.object,
+    organization: SentryTypes.Organization,
     lastRoute: PropTypes.string,
   };
 
