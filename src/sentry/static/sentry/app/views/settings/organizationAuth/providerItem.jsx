@@ -1,9 +1,9 @@
-import {Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import {PanelItem} from 'app/components/panels';
 
@@ -28,39 +28,42 @@ export default class ProviderItem extends React.PureComponent {
     let {providerKey, providerName} = this.props;
     return (
       <PanelItem align="center">
-        <Flex flex="1">
-          <ProviderLogo className={`provider-logo ${providerName.toLowerCase()}`} />
-          <Flex direction="column" justify="space-around" flex="1">
-            <ProviderName>{providerName}</ProviderName>
-            <div>
-              {tct('Enable your organization to sign in with [providerName]', {
-                providerName,
-              })}
-              .
-            </div>
-          </Flex>
-        </Flex>
-
-        <Button
-          type="submit"
-          name="provider"
-          value={providerKey}
-          onClick={this.handleConfigure}
-        >
-          {t('Configure')}
-        </Button>
+        <ProviderLogo className={`provider-logo ${providerName.toLowerCase()}`} />
+        <Box px={2} flex={1}>
+          <ProviderName>{providerName}</ProviderName>
+          <ProviderDetails>
+            {t('Enable your organization to sign in with %s.', providerName)}
+          </ProviderDetails>
+        </Box>
+        <Box>
+          <Button
+            type="submit"
+            name="provider"
+            size="small"
+            value={providerKey}
+            onClick={this.handleConfigure}
+          >
+            {t('Configure')}
+          </Button>
+        </Box>
       </PanelItem>
     );
   }
 }
 
-const ProviderName = styled.div`
-  font-size: 22px;
+const ProviderLogo = styled('div')`
+  height: 36px;
+  width: 36px;
+  border-radius: 3px;
+  margin-right: 0;
+  top: auto;
 `;
 
-const ProviderLogo = styled.div`
-  height: 48px;
-  width: 48px;
-  border-radius: 3px;
-  top: auto;
+const ProviderName = styled('div')`
+  font-weight: bold;
+`;
+
+const ProviderDetails = styled('div')`
+  margin-top: 6px;
+  font-size: 0.8em;
 `;
