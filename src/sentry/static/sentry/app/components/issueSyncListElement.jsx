@@ -136,11 +136,14 @@ const IntegrationLink = styled('a')`
 `;
 
 const OpenCloseIcon = styled(InlineSvg)`
-  height: 1.25rem;
+  height: ${space(1.5)};
   color: ${p => p.theme.gray4};
   transition: 0.2s transform;
   cursor: pointer;
-  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.75);')};
+  box-sizing: content-box;
+  padding: ${space(1)};
+  margin: -${space(1)};
+  ${p => (p.isLinked ? '' : 'transform: rotate(45deg) scale(0.9);')};
 `;
 
 export default IssueSyncElement;
