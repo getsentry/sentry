@@ -120,52 +120,68 @@ class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin
 
 
 class InstallationForm(forms.Form):
-    url = forms.CharField(widget=forms.TextInput(
-        attrs={
-            'label': "Installation Url",
-            'placeholder': _('https://github.example.com'),
-        }
-    ))
-    id = forms.CharField(widget=forms.TextInput(
-        attrs={
-            'label': "Github App ID",
-            'placeholder': _('1'),
-        }
-    ))
-    name = forms.CharField(widget=forms.TextInput(
-        attrs={
-            'label': "Github App Name",
-            'placeholder': _('sentry-app'),
-        }
-    ))
-    client_id = forms.CharField(widget=forms.TextInput(
-        attrs={
-            'label': "Github App Client ID",
-            'placeholder': _('1'),
-        }
-    ))
-    client_secret = forms.CharField(widget=forms.TextInput(
-        attrs={
-            'label': "Github App Client Secret",
-            'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
-        }
-    ))
-    webhook_secret = forms.CharField(required=False, widget=forms.TextInput(
-        attrs={
-            'label': "Github App Webhook Secret",
-            'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX'),
-        }
-    ))
+    url = forms.CharField(
+        label="Installation Url",
+        help_text=_('The "base URL" for your github enterprise instance, '
+                    'includes the host and protocol.'),
+        widget=forms.TextInput(
+            attrs={'placeholder': _('https://github.example.com')}
+        ),
+    )
+    id = forms.CharField(
+        label="GitHub App ID",
+        help_text=_('The App ID of your Sentry app. This can be '
+                    'found on your apps configuration page.'),
+        widget=forms.TextInput(
+            attrs={'placeholder': _('1')}
+        )
+    )
+    name = forms.CharField(
+        label="GitHub App Name",
+        help_text=_('The GitHub App name of your Sentry app. '
+                    'This can be found on the apps configuration '
+                    'page.'),
+        widget=forms.TextInput(
+            attrs={'placeholder': _('our-sentry-app')}
+        )
+    )
+    webhook_secret = forms.CharField(
+        label="GitHub App Webhook Secret",
+        help_text=_('We require a webhook secret to be '
+                    'configured. This can be generated as any '
+                    'random string value of your choice and '
+                    'should match your GitHub app '
+                    'configuration.'),
+        widget=forms.TextInput(
+            attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
+        )
+    )
     private_key = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': '60',
-                                     'label': "Github App Private Key",
-                                     'placeholder': _("-----BEGIN RSA PRIVATE KEY-----\n"
-                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                      "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                                                      "-----END RSA PRIVATE KEY-----"), }
-                              ))
+        label="GitHub App Private Key",
+        help_text=_('The Private Key generated for your Sentry '
+                    'GitHub App.'),
+        widget=forms.Textarea(
+            attrs={'rows': '60',
+                   'placeholder': _("-----BEGIN RSA PRIVATE KEY-----\n"
+                                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+                                    "-----END RSA PRIVATE KEY-----"), }
+        )
+    )
+    client_id = forms.CharField(
+        label="GitHub App OAuth Client ID",
+        widget=forms.TextInput(
+            attrs={'placeholder': _('1')}
+        )
+    )
+    client_secret = forms.CharField(
+        label="GitHub App OAuth Client Secret",
+        widget=forms.TextInput(
+            attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
+        )
+    )
 
     def __init__(self, *args, **kwargs):
         super(InstallationForm, self).__init__(*args, **kwargs)
