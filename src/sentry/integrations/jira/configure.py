@@ -44,7 +44,8 @@ class JiraConfigureView(BaseView):
         organizations = request.user.get_orgs().filter(
             id__in=OrganizationMember.objects.filter(
                 role__in=[r.id for r in roles.get_all() if r.is_global],
-            ),
+                user=request.user,
+            ).values('organization'),
         )
         form = JiraConfigForm(organizations, request.POST)
 
