@@ -34,12 +34,13 @@ class OrganizationAuthList extends React.Component {
           <PanelBody>
             <PanelAlert m={0} mb={0} type="info">
               {tct(
-                `Get started with Single Sign-on for your organization by selecting a
-              provider. For more information on SSO please see our [link:documentation]`,
+                `Get started with Single Sign-on for your organization by
+                selecting a provider to configure. Read more in our
+                [link:SSO documentation].`,
                 {
                   link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />,
                 }
-              )}.
+              )}
             </PanelAlert>
 
             <form

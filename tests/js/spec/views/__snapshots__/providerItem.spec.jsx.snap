@@ -5,47 +5,31 @@ exports[`ProviderItem renders 1`] = `
   align="center"
   p={2}
 >
-  <Flex
-    flex="1"
+  <ProviderLogo
+    className="provider-logo dummy"
+  />
+  <Box
+    flex={1}
+    px={2}
   >
-    <ProviderLogo
-      className="provider-logo dummy"
-    />
-    <Flex
-      direction="column"
-      flex="1"
-      justify="space-around"
+    <ProviderName>
+      Dummy
+    </ProviderName>
+    <ProviderDetails>
+      Enable your organization to sign in with Dummy.
+    </ProviderDetails>
+  </Box>
+  <Box>
+    <Button
+      disabled={false}
+      name="provider"
+      onClick={[Function]}
+      size="small"
+      type="submit"
+      value="dummy"
     >
-      <ProviderName>
-        Dummy
-      </ProviderName>
-      <div>
-        <span
-          key="4"
-        >
-          <span
-            key="0"
-          >
-            Enable your organization to sign in with 
-          </span>
-          <span
-            key="2"
-          >
-            Dummy
-          </span>
-        </span>
-        .
-      </div>
-    </Flex>
-  </Flex>
-  <Button
-    disabled={false}
-    name="provider"
-    onClick={[Function]}
-    type="submit"
-    value="dummy"
-  >
-    Configure
-  </Button>
+      Configure
+    </Button>
+  </Box>
 </PanelItem>
 `;

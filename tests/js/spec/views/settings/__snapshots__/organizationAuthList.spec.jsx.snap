@@ -22,13 +22,14 @@ exports[`OrganizationAuthList renders 1`] = `
         type="info"
       >
         <span
-          key="4"
+          key="5"
         >
           <span
             key="0"
           >
-            Get started with Single Sign-on for your organization by selecting a
-              provider. For more information on SSO please see our 
+            Get started with Single Sign-on for your organization by
+                selecting a provider to configure. Read more in our
+                
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
@@ -39,11 +40,15 @@ exports[`OrganizationAuthList renders 1`] = `
             <span
               key="1"
             >
-              documentation
+              SSO documentation
             </span>
           </ExternalLink>
+          <span
+            key="3"
+          >
+            .
+          </span>
         </span>
-        .
       </PanelAlert>
       <form
         action="/organizations/org-slug/auth/configure/"
@@ -93,13 +98,14 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
         type="info"
       >
         <span
-          key="4"
+          key="5"
         >
           <span
             key="0"
           >
-            Get started with Single Sign-on for your organization by selecting a
-              provider. For more information on SSO please see our 
+            Get started with Single Sign-on for your organization by
+                selecting a provider to configure. Read more in our
+                
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
@@ -110,11 +116,15 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
             <span
               key="1"
             >
-              documentation
+              SSO documentation
             </span>
           </ExternalLink>
+          <span
+            key="3"
+          >
+            .
+          </span>
         </span>
-        .
       </PanelAlert>
       <form
         action="/organizations/org-slug/auth/configure/"
