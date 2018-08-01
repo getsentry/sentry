@@ -1,0 +1,117 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationSettingsNavigation renders 1`] = `
+<SettingsNavigation
+  access={
+    Set {
+      "org:read",
+      "org:write",
+      "org:admin",
+      "project:read",
+      "project:write",
+      "project:admin",
+      "team:read",
+      "team:write",
+      "team:admin",
+    }
+  }
+  features={Set {}}
+  hookConfigs={Array []}
+  hooks={Array []}
+  navigationObjects={
+    Array [
+      Object {
+        "items": Array [
+          Object {
+            "description": "Configure general settings for an organization",
+            "index": true,
+            "path": "/settings/:orgId/",
+            "show": [Function],
+            "title": "General Settings",
+          },
+          Object {
+            "description": "View and manage an organization's projects",
+            "path": "/settings/:orgId/projects/",
+            "title": "Projects",
+          },
+          Object {
+            "description": "Manage an organization's teams",
+            "path": "/settings/:orgId/teams/",
+            "title": "Teams",
+          },
+          Object {
+            "badge": [Function],
+            "description": "Manage user membership for an organization",
+            "path": "/settings/:orgId/members/",
+            "show": [Function],
+            "title": "Members",
+          },
+          Object {
+            "description": "Configure single sign-on",
+            "path": "/settings/:orgId/auth/",
+            "show": [Function],
+            "title": "Auth",
+          },
+          Object {
+            "path": "/settings/:orgId/api-keys/",
+            "show": [Function],
+            "title": "API Keys",
+          },
+          Object {
+            "description": "View the audit log for an organization",
+            "path": "/settings/:orgId/audit-log/",
+            "show": [Function],
+            "title": "Audit Log",
+          },
+          Object {
+            "description": "Configure rate limits for all projects in the organization",
+            "path": "/settings/:orgId/rate-limits/",
+            "show": [Function],
+            "title": "Rate Limits",
+          },
+          Object {
+            "description": "Manage repositories connected to the organization",
+            "path": "/settings/:orgId/repos/",
+            "show": [Function],
+            "title": "Repositories",
+          },
+          Object {
+            "description": "Manage integrations for an organization",
+            "path": "/settings/:orgId/integrations/",
+            "show": [Function],
+            "title": "Integrations",
+          },
+        ],
+        "name": "Organization",
+      },
+    ]
+  }
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+/>
+`;

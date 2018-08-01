@@ -21,24 +21,21 @@ class SettingsNavigation extends React.Component {
 
   componentDidMount() {
     let {organization} = this.props;
-    if (!organization) return;
-    let features = organization.features;
+    if (!organization || !organization.experiments) return;
 
-    //Experiment variant is already assigned - this logs the exposure i.e. when the user gets to the settings page
-    let treatment = features.includes('sso-paywall-experiment-treatment');
-    let control = features.includes('sso-paywall-experiment-control');
+    let exposed = organization.experiments.SSOPaywallExperiment;
 
-    // Only want to log the people in the experiment
-    if (!treatment && !control) return;
+    //Experiment exposure is already assigned - this logs the exposure i.e. when the user gets to the settings page
+    if (exposed === 0 || exposed === 1) {
+      let data = {
+        experiment_name: 'SSOPaywallExperiment',
+        unit_name: 'org_id',
+        unit_id: parseInt(organization.id, 10),
+        params: `{exposed: ${exposed}}`,
+      };
 
-    let data = {
-      experiment_name: 'SSOPaywallExperiment',
-      unit_name: 'org_id',
-      unit_id: parseInt(organization.id, 10),
-      params: `{exposed: ${treatment ? 1 : 0}}`,
-    };
-
-    HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
+      HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
+    }
   }
 
   render() {
