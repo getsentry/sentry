@@ -96,8 +96,18 @@ class OrganizationIntegrationSerializer(Serializer):
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization.id),
         )
+        try:
+            installation = obj.integration.get_installation(obj.organization_id)
+        except NotImplementedError:
+            # slack doesn't have an installation implementation
+            config_data = obj.config
+        else:
+            # just doing this to avoid querying for an object we already have
+            installation._org_integration = obj
+            config_data = installation.get_config_data()
+
         integration.update({
-            'configData': obj.config,
+            'configData': config_data,
             'projects': attrs['projects'],
         })
 

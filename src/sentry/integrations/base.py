@@ -195,6 +195,9 @@ class Integration(object):
         """
         return []
 
+    def get_config_data(self):
+        return self.org_integration.config
+
     def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
