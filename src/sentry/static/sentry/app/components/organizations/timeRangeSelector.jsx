@@ -7,6 +7,7 @@ import {Flex, Box} from 'grid-emotion';
 import DateTimeField from 'app/components/forms/dateTimeField';
 import DropdownLink from 'app/components/dropdownLink';
 import Button from 'app/components/buttons/button';
+import DynamicWrapper from 'app/components/dynamicWrapper';
 import {t} from 'app/locale';
 
 class TimeRangeSelector extends React.Component {
@@ -28,7 +29,11 @@ class TimeRangeSelector extends React.Component {
     return (
       <Flex direction="column" justify="center" className={className}>
         <label>{t('Time range')}</label>
-        <DropdownLink title={summary} keepMenuOpen={true} anchorRight={true}>
+        <DropdownLink
+          title={<DynamicWrapper value={summary} fixed="start to end" />}
+          keepMenuOpen={true}
+          anchorRight={true}
+        >
           <Box p={2}>
             update time range (UTC)
             <DateTimeField
