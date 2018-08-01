@@ -205,6 +205,7 @@ const formGroups = [
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
+        visible: ({features}) => features.has('event-attachments'),
       },
     ],
   },
