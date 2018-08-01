@@ -57,7 +57,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         }
         self.org_integration.save()
         self.project_integration = self.model.add_project(self.project.id)
-        self.integration = VstsIntegration(self.model, self.organization.id, self.project.id)
+        self.integration = VstsIntegration(self.model, self.organization.id)
 
         self.user_to_assign = self.create_user('sentryuseremail@email.com')
 

@@ -86,11 +86,11 @@ class IntegrationProvider(PipelineProvider):
     features = frozenset()
 
     @classmethod
-    def get_installation(cls, model, organization_id, project_id=None, **kwargs):
+    def get_installation(cls, model, organization_id, **kwargs):
         if cls.integration_cls is None:
             raise NotImplementedError
 
-        return cls.integration_cls(model, organization_id, project_id, **kwargs)
+        return cls.integration_cls(model, organization_id, **kwargs)
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))
@@ -163,18 +163,10 @@ class Integration(object):
 
     logger = logging.getLogger('sentry.integrations')
 
-    def __init__(self, model, organization_id, project_id=None):
+    def __init__(self, model, organization_id):
         self.model = model
         self.organization_id = organization_id
         self._org_integration = None
-
-        if project_id is not None:
-            self.project_integration = ProjectIntegration.objects.get(
-                project_id=project_id,
-                integration_id=model.id,
-            )
-        else:
-            self.project_integration = None
 
     @property
     def org_integration(self):

@@ -87,8 +87,8 @@ class Integration(Model):
         from sentry import integrations
         return integrations.get(self.provider)
 
-    def get_installation(self, organization_id, project_id=None, **kwargs):
-        return self.get_provider().get_installation(self, organization_id, project_id, **kwargs)
+    def get_installation(self, organization_id, **kwargs):
+        return self.get_provider().get_installation(self, organization_id, **kwargs)
 
     def has_feature(self, feature):
         return feature in self.get_provider().features
