@@ -137,16 +137,28 @@ class BaseTestCase(Fixtures, Exam):
         request.is_superuser = lambda: request.superuser.is_active
         return request
 
-    # TODO(dcramer): we want to make the default behavior be ``superuser=False``
-    # but for compatibility reasons we need to update other projects first
-    def login_as(self, user, organization_id=None, superuser=False):
+    # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
+    # a lot of tests changing
+    def login_as(self, user, organization_id=None, organization_ids=None,
+                 superuser=False, superuser_sso=True):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
         login(request, user)
         request.user = user
+
+        if organization_ids is None:
+            organization_ids = []
+        if superuser and superuser_sso is None:
+            if superuser.ORG_ID:
+                organization_ids.append(superuser.ORG_ID)
         if organization_id:
-            request.session[SSO_SESSION_KEY] = six.text_type(organization_id)
+            organization_ids.append(organization_id)
+
+        if organization_ids:
+            request.session[SSO_SESSION_KEY] = ','.join(
+                six.text_type(o) for o in set(organization_ids))
+
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
         # superuser-only code
