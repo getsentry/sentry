@@ -67,7 +67,7 @@ class AcceptOrganizationInviteView(BaseView):
         project_list = list(qs[:25])
         project_count = qs.count()
 
-        org_requires_2fa = organization.flags.require_2fa
+        org_requires_2fa = organization.flags.require_2fa.is_set
         user_has_2fa = Authenticator.objects.user_has_2fa(request.user.id)
         needs_2fa = org_requires_2fa and not user_has_2fa
 
@@ -98,6 +98,12 @@ class AcceptOrganizationInviteView(BaseView):
             request.session['invite_email'] = om.email
 
             return self.respond('sentry/accept-organization-invite.html', context)
+
+        if needs_2fa:
+            # redirect to setup 2fa
+            response = self.respond('sentry/accept-organization-invite.html', context)
+            response.set_cookie(PENDING_INVITE, request.path, max_age=MAX_AGE)
+            return response
 
         # if they're already a member of the organization its likely they're
         # using a shared account and either previewing this invite or
@@ -142,13 +148,12 @@ class AcceptOrganizationInviteView(BaseView):
                 member_joined.send(member=om, sender=self)
 
             request.session.pop('can_register', None)
-
             response = self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
-            response.delete_cookie(PENDING_INVITE)
+
+            if PENDING_INVITE in request.COOKIES:
+                response.delete_cookie(PENDING_INVITE)
             return response
 
         context['form'] = form
-        response = self.respond('sentry/accept-organization-invite.html', context)
-        if needs_2fa:
-            response.set_cookie(PENDING_INVITE, request.path, max_age=MAX_AGE)
-        return response
+
+        return self.respond('sentry/accept-organization-invite.html', context)
