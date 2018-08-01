@@ -925,232 +925,163 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
 `;
 
 exports[`ProjectSelector render() lists projects and has filter 1`] = `
-<div
-  className="project-select"
->
-  <h3>
-    <span
-      onClick={[Function]}
-      role="button"
-      style={
+<ProjectSelector
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
+  organization={
+    Object {
+      "access": Array [],
+      "features": Array [
+        "new-teams",
+      ],
+      "id": "org",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [
         Object {
-          "cursor": "pointer",
-        }
-      }
-    >
-      Select a project
-    </span>
-    <DropdownLink
-      alwaysRenderMenu={false}
-      anchorRight={false}
-      caret={true}
-      disabled={false}
-      isOpen={false}
-      onClose={[Function]}
-      onOpen={[Function]}
-      title=""
-      topLevelClasses="project-dropdown"
-    >
-      <li
-        className="project-filter"
-        key="_filter"
-      >
-        <input
-          onBlur={[Function]}
-          onChange={[Function]}
-          onClick={[Function]}
-          onKeyDown={[Function]}
-          onKeyUp={[Function]}
-          placeholder="Filter projects"
-          type="text"
-          value=""
-        />
-      </li>
-      <MenuItem
-        className=""
-        href="/org/test-project/"
-        key="test-project"
-        linkClassName=""
-      >
-        <ProjectRow>
-          <IdBadge
-            avatarProps={
-              Object {
-                "consistentWidth": true,
-              }
-            }
-            avatarSize={16}
-            displayName={
-              <span>
-                test-project
-              </span>
-            }
-            project={
-              Object {
-                "hasAccess": true,
-                "id": "test-project",
-                "isBookmarked": false,
-                "isMember": true,
-                "name": "Project Name",
-                "slug": "test-project",
-                "teams": Array [
-                  Object {
-                    "id": "test-team",
-                    "isMember": true,
-                    "name": "Team Name",
-                    "slug": "test-team",
-                  },
-                ],
-              }
-            }
-          />
-        </ProjectRow>
-      </MenuItem>
-      <MenuItem
-        className=""
-        href="/org/another-project/"
-        key="another-project"
-        linkClassName=""
-      >
-        <ProjectRow>
-          <IdBadge
-            avatarProps={
-              Object {
-                "consistentWidth": true,
-              }
-            }
-            avatarSize={16}
-            displayName={
-              <span>
-                another-project
-              </span>
-            }
-            project={
-              Object {
-                "hasAccess": true,
-                "id": "another-project",
-                "isBookmarked": false,
-                "isMember": true,
-                "name": "Project Name",
-                "slug": "another-project",
-                "teams": Array [
-                  Object {
-                    "id": "test-team",
-                    "isMember": true,
-                    "name": "Team Name",
-                    "slug": "test-team",
-                  },
-                ],
-              }
-            }
-          />
-        </ProjectRow>
-      </MenuItem>
-    </DropdownLink>
-  </h3>
-</div>
+          "hasAccess": true,
+          "id": "test-project",
+          "isBookmarked": false,
+          "isMember": true,
+          "name": "Project Name",
+          "slug": "test-project",
+          "teams": Array [
+            Object {
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
+            },
+          ],
+        },
+        Object {
+          "hasAccess": true,
+          "id": "another-project",
+          "isBookmarked": false,
+          "isMember": true,
+          "name": "Project Name",
+          "slug": "another-project",
+          "teams": Array [
+            Object {
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
+            },
+          ],
+        },
+      ],
+      "scrapeJavaScript": true,
+      "slug": "org",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [
+        Object {
+          "id": "test-team",
+          "isMember": true,
+          "name": "Team Name",
+          "slug": "test-team",
+        },
+      ],
+    }
+  }
+  projectId=""
+  router={
+    Object {
+      "createHref": [MockFunction],
+      "go": [MockFunction],
+      "goBack": [MockFunction],
+      "goForward": [MockFunction],
+      "isActive": [MockFunction],
+      "listen": [MockFunction],
+      "location": Object {
+        "query": Object {},
+      },
+      "push": [MockFunction],
+      "replace": [MockFunction],
+      "setRouteLeaveHook": [MockFunction],
+    }
+  }
+/>
 `;
 
 exports[`ProjectSelector render() should show empty message and create project button, when no projects and has "project:write" access 1`] = `
-<div
-  className="project-select"
->
-  <h3>
-    <span
-      onClick={[Function]}
-      role="button"
-      style={
-        Object {
-          "cursor": "pointer",
-        }
-      }
-    >
-      Select a project
-    </span>
-    <DropdownLink
-      alwaysRenderMenu={false}
-      anchorRight={false}
-      caret={true}
-      disabled={false}
-      isOpen={false}
-      onClose={[Function]}
-      onOpen={[Function]}
-      title=""
-      topLevelClasses="project-dropdown is-empty"
-    >
-      <MenuItem
-        className="empty-projects-item"
-        key="empty-message"
-        noAnchor={true}
-      >
-        <div
-          className="empty-message"
-        >
-          You have no projects.
-        </div>
-      </MenuItem>
-      <MenuItem
-        divider={true}
-        key="divider"
-      />
-      <MenuItem
-        className="empty-projects-item"
-        key="create-project"
-        noAnchor={true}
-      >
-        <a
-          className="btn btn-primary btn-block"
-          href="/organizations/org-slug/projects/new/"
-        >
-          Create project
-        </a>
-      </MenuItem>
-    </DropdownLink>
-  </h3>
-</div>
+<ProjectSelector
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
+  organization={
+    Object {
+      "access": Array [
+        "project:write",
+      ],
+      "id": "org",
+      "projects": Array [],
+      "slug": "org-slug",
+      "teams": Array [],
+    }
+  }
+  projectId=""
+  router={
+    Object {
+      "createHref": [MockFunction],
+      "go": [MockFunction],
+      "goBack": [MockFunction],
+      "goForward": [MockFunction],
+      "isActive": [MockFunction],
+      "listen": [MockFunction],
+      "location": Object {
+        "query": Object {},
+      },
+      "push": [MockFunction],
+      "replace": [MockFunction],
+      "setRouteLeaveHook": [MockFunction],
+    }
+  }
+/>
 `;
 
 exports[`ProjectSelector render() should show empty message with no projects button, when no projects, and has no "project:write" access 1`] = `
-<div
-  className="project-select"
->
-  <h3>
-    <span
-      onClick={[Function]}
-      role="button"
-      style={
-        Object {
-          "cursor": "pointer",
-        }
-      }
-    >
-      Select a project
-    </span>
-    <DropdownLink
-      alwaysRenderMenu={false}
-      anchorRight={false}
-      caret={true}
-      disabled={false}
-      isOpen={false}
-      onClose={[Function]}
-      onOpen={[Function]}
-      title=""
-      topLevelClasses="project-dropdown is-empty"
-    >
-      <MenuItem
-        className="empty-projects-item"
-        key="empty-message"
-        noAnchor={true}
-      >
-        <div
-          className="empty-message"
-        >
-          You have no projects.
-        </div>
-      </MenuItem>
-    </DropdownLink>
-  </h3>
-</div>
+<ProjectSelector
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
+  organization={
+    Object {
+      "access": Array [],
+      "id": "org",
+      "projects": Array [],
+      "slug": "org-slug",
+      "teams": Array [],
+    }
+  }
+  projectId=""
+  router={
+    Object {
+      "createHref": [MockFunction],
+      "go": [MockFunction],
+      "goBack": [MockFunction],
+      "goForward": [MockFunction],
+      "isActive": [MockFunction],
+      "listen": [MockFunction],
+      "location": Object {
+        "query": Object {},
+      },
+      "push": [MockFunction],
+      "replace": [MockFunction],
+      "setRouteLeaveHook": [MockFunction],
+    }
+  }
+/>
 `;
 
 exports[`ProjectSelector render() shows empty filter message when filtering has no results 1`] = `

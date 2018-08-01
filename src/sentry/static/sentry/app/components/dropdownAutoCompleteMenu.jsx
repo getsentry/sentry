@@ -107,6 +107,15 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     menuProps: PropTypes.object,
 
+    /**
+     * Props to pass to input/filter component
+     */
+    inputProps: PropTypes.object,
+    /**
+     * Filter/input placeholder terxt
+     */
+    filterPlaceholder: PropTypes.string,
+
     css: PropTypes.object,
     style: PropTypes.object,
   };
@@ -162,6 +171,8 @@ class DropdownAutoCompleteMenu extends React.Component {
       children,
       items,
       menuProps,
+      inputProps,
+      filterPlaceholder,
       alignMenu,
       blendCorner,
       maxHeight,
@@ -232,7 +243,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                     <StyledInput
                       autoFocus
                       placeholder={searchPlaceholder}
-                      {...getInputProps({onChange})}
+                      {...getInputProps({...inputProps, onChange})}
                     />
                     <InputLoadingWrapper>
                       {busy && <LoadingIndicator size={16} mini />}
