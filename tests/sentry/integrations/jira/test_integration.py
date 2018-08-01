@@ -617,3 +617,49 @@ class JiraIntegrationTest(APITestCase):
         assert IntegrationExternalProject.objects.filter(
             organization_integration_id=org_integration.id,
         ).count() == 0
+
+    def test_get_config_data(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org.id)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+
+        org_integration.config = {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': True,
+        }
+        org_integration.save()
+
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id='12345',
+            unresolved_status='in_progress',
+            resolved_status='done',
+        )
+
+        installation = integration.get_installation(org.id)
+
+        assert installation.get_config_data() == {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': {
+                '12345': {
+                    'on_resolve': 'done',
+                    'on_unresolve': 'in_progress',
+                },
+            },
+        }
