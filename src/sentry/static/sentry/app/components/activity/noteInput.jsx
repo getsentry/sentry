@@ -302,6 +302,13 @@ const NoteInput = createReactClass({
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
+    let errorMessage =
+      (errorJSON &&
+        (typeof errorJSON.detail === 'string'
+          ? errorJSON.detail
+          : (errorJSON.detail && errorJSON.detail.message) ||
+            t('Unable to post comment'))) ||
+      null;
     return (
       <form
         noValidate
@@ -360,8 +367,7 @@ const NoteInput = createReactClass({
             </MentionsInput>
           )}
           <div className="activity-actions">
-            {errorJSON &&
-              errorJSON.detail && <small className="error">{errorJSON.detail}</small>}
+            {errorMessage && <small className="error">{errorMessage}</small>}
             <button className="btn btn-default" type="submit" disabled={loading}>
               {btnText}
             </button>
