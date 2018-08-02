@@ -7,6 +7,7 @@ from sentry import analytics
 from sentry.models import (
     Activity, Commit, GroupAssignee, GroupLink, Release, Repository, PullRequest
 )
+from sentry.signals import issue_resolved_with_commit
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
@@ -78,6 +79,7 @@ def resolved_in_commit(instance, created, **kwargs):
             pass
         else:
             if repo is not None and repo.integration_id is not None:
+                issue_resolved_with_commit.send(group, sender=user_list)
                 analytics.record(
                     'integration.resolve.commit',
                     provider=repo.provider,

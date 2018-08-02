@@ -13,6 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.signals import deploy_received
 
 
 class DeploySerializer(serializers.Serializer):
@@ -111,6 +112,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 name=result.get('name'),
                 url=result.get('url'),
             )
+
+            deploy_received.send(deploy=deploy, sender=type(organization))
 
             # XXX(dcramer): this has a race for most recent deploy, but
             # should be unlikely to hit in the real world
