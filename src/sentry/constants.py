@@ -94,7 +94,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
 RESERVED_PROJECT_SLUGS = frozenset((
     'api-keys', 'audit-log', 'auth', 'members', 'projects',
     'rate-limits', 'repos', 'settings', 'teams', 'billing',
-    'payments', 'legal', 'subscription', 'support', 'integrations'
+    'payments', 'legal', 'subscription', 'support', 'integrations',
 ))
 
 LOG_LEVELS = {
