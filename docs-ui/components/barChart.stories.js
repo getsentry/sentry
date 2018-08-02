@@ -3,7 +3,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import BarChart from 'app/components/charts/barChart.jsx';
+import BarChart from 'app/components/charts/barChart';
 
 // eslint-disable-next-line
 storiesOf('Charts/BarChart', module).add(
@@ -22,15 +22,15 @@ storiesOf('Charts/BarChart', module).add(
               data: [
                 {
                   value: 923,
-                  category: 'Chrome',
+                  name: 'Chrome',
                 },
                 {
                   value: 107,
-                  category: 'Safari',
+                  name: 'Safari',
                 },
                 {
                   value: 50,
-                  category: 'Firefox',
+                  name: 'Firefox',
                 },
               ],
             },
@@ -39,15 +39,15 @@ storiesOf('Charts/BarChart', module).add(
               data: [
                 {
                   value: 100,
-                  category: 'Chrome',
+                  name: 'Chrome',
                 },
                 {
                   value: 99,
-                  category: 'Safari',
+                  name: 'Safari',
                 },
                 {
                   value: 66,
-                  category: 'Opera',
+                  name: 'Opera',
                 },
               ],
             },
@@ -62,15 +62,15 @@ storiesOf('Charts/BarChart', module).add(
               data: [
                 {
                   value: 923,
-                  category: 'Jan 1',
+                  name: 'Jan 1',
                 },
                 {
                   value: 107,
-                  category: 'Jan 2',
+                  name: 'Jan 2',
                 },
                 {
                   value: 50,
-                  category: 'Jan 3',
+                  name: 'Jan 3',
                 },
               ],
             },
@@ -79,19 +79,19 @@ storiesOf('Charts/BarChart', module).add(
               data: [
                 {
                   value: 100,
-                  category: 'Jan 1',
+                  name: 'Jan 1',
                 },
                 {
                   value: 99,
-                  category: 'Jan 2',
+                  name: 'Jan 2',
                 },
                 {
                   value: 66,
-                  category: 'Jan 3',
+                  name: 'Jan 3',
                 },
                 {
                   value: 66,
-                  category: 'Jan 4',
+                  name: 'Jan 4',
                 },
               ],
             },
@@ -106,15 +106,15 @@ storiesOf('Charts/BarChart', module).add(
               data: [
                 {
                   value: 923,
-                  category: 'Jan 1',
+                  name: 'Jan 1',
                 },
                 {
                   value: 107,
-                  category: 'Jan 2',
+                  name: 'Jan 2',
                 },
                 {
                   value: 50,
-                  category: 'Jan 3',
+                  name: 'Jan 3',
                 },
               ],
             },
@@ -123,19 +123,19 @@ storiesOf('Charts/BarChart', module).add(
               data: [
                 {
                   value: 100,
-                  category: 'Jan 1',
+                  name: 'Jan 1',
                 },
                 {
                   value: 99,
-                  category: 'Jan 2',
+                  name: 'Jan 2',
                 },
                 {
                   value: 66,
-                  category: 'Jan 3',
+                  name: 'Jan 3',
                 },
                 {
                   value: 66,
-                  category: 'Jan 4',
+                  name: 'Jan 4',
                 },
               ],
             },
