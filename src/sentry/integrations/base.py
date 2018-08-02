@@ -16,7 +16,7 @@ from .exceptions import (
     ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
 )
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
-from sentry.models import Identity, OrganizationIntegration, ProjectIntegration
+from sentry.models import Identity, OrganizationIntegration
 
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
