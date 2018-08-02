@@ -348,14 +348,29 @@ class ClientApiHelper(object):
         if 'sdk' in data:
             data['sdk'].pop('client_ip', None)
 
-    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
+    def insert_data_to_database(self, data, start_time=None,
+                                from_reprocessing=False, attachments=None):
         if start_time is None:
             start_time = time()
+
         # we might be passed some sublcasses of dict that fail dumping
         if isinstance(data, DOWNGRADE_DATA_TYPES):
             data = dict(data.items())
+
+        cache_timeout = 3600
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
-        default_cache.set(cache_key, data, timeout=3600)
+        default_cache.set(cache_key, data, cache_timeout)
+
+        # Attachments will be empty or None if the "event-attachments" feature
+        # is turned off. For native crash reports it will still contain the
+        # crash dump (e.g. minidump) so we can load it during processing.
+        if attachments is not None:
+            for index, attachment in enumerate(attachments):
+                attachment_data = attachment.pop('data')
+                attachment_key = '%s:a:%s'.format(cache_key, index)
+                default_cache.set(attachment_key, attachment_data, cache_timeout, raw=True)
+            default_cache.set(cache_key + ':a', attachments, cache_timeout)
+
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=start_time,

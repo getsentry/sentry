@@ -36,7 +36,7 @@ from sentry.coreapi import (
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import merge_minidump_event
-from sentry.models import File, EventAttachment, Project, OrganizationOption, Organization
+from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
@@ -483,26 +483,8 @@ class StoreView(APIView):
             # We filter data immediately before it ever gets into the queue
             helper.ensure_does_not_have_ip(data)
 
-        if attachments is not None:
-            for kind, attachment in attachments:
-                file = File.objects.create(
-                    name=attachment.name,
-                    type=kind,
-                    headers={'Content-Type': attachment.content_type},
-                )
-
-                attachment.seek(0)
-                file.putfile(attachment)
-
-                EventAttachment.objects.create(
-                    event_id=event_id,
-                    project_id=project.id,
-                    name=attachment.name,
-                    file=file,
-                )
-
         # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data, start_time=start_time)
+        helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
 
         cache.set(cache_key, '', 60 * 5)
 
@@ -602,11 +584,6 @@ class MinidumpView(StoreView):
         except KeyError:
             raise APIError('Missing minidump upload')
 
-        attachments = []
-        for name, file in six.iteritems(request.FILES):
-            if name != 'upload_file_minidump':
-                attachments.append(('event.attachment', file))
-
         # Breakpad on linux sometimes stores the entire HTTP request body as
         # dump file instead of just the minidump. The Electron SDK then for
         # example uploads a multipart formdata body inside the minidump file.
@@ -647,15 +624,30 @@ class MinidumpView(StoreView):
                 for chunk in minidump.chunks():
                     out.write(chunk)
 
-<<<<<<< HEAD
-=======
+        # Always store the minidump in attachments so we can access it during
+        # processing, regardless of the event-attachments feature. This will
+        # allow us to stack walk again with CFI once symbols are loaded.
+        attachments = []
+        minidump.seek(0)
+        attachments.append({
+            'name': minidump.name,
+            'content_type': minidump.content_type,
+            'type': 'event.minidump',
+            'data': minidump.read(),
+        })
+
+        # Append all other files as generic attachments. We can skip this if the
+        # feature is disabled since they won't be saved.
         if features.has('organizations:event-attachments',
                         project.organization, actor=request.user):
-            if project.get_option('sentry:store_crash_reports') or project.organization.get_option(
-                    'sentry:store_crash_reports'):
-                attachments.append(('event.minidump', minidump))
+            for name, file in six.iteritems(request.FILES):
+                if name != 'upload_file_minidump':
+                    attachments.append({
+                        'name': file.name,
+                        'content_type': file.content_type,
+                        'data': file.read(),
+                    })
 
->>>>>>> feat(minidump): Save minidumps as event attachments
         try:
             merge_minidump_event(data, minidump)
         except ProcessMinidumpError as e:
