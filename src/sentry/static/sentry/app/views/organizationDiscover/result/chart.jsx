@@ -30,8 +30,8 @@ export default class Result extends React.Component {
   getChartData(queryData, groupbyFields) {
     const {aggregations} = this.props.query;
     const aggregate = aggregations[0][2];
-    const rawDates = [
-      ...new Set(queryData.map(entry => moment(entry.time * 1000).format('MMM Do'))),
+    const dates = [
+      ...new Set(queryData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
     ];
     const output = {};
     queryData.forEach(data => {
@@ -39,19 +39,19 @@ export default class Result extends React.Component {
       if (key in output) {
         output[key].data.push({
           value: data[aggregate],
-          name: moment(data.time * 1000).format('MMM Do'),
+          name: moment.utc(data.time * 1000).format('MMM Do'),
         });
       } else {
         output[key] = {
           data: [
-            {value: data[aggregate], name: moment(data.time * 1000).format('MMM Do')},
+            {value: data[aggregate], name: moment.utc(data.time * 1000).format('MMM Do')},
           ],
         };
       }
     });
     const result = [];
     for (let key in output) {
-      const addDates = rawDates.filter(
+      const addDates = dates.filter(
         date => !output[key].data.map(entry => entry.name).includes(date)
       );
       for (let i = 0; i < addDates.length; i++) {
