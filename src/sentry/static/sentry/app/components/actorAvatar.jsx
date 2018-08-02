@@ -27,7 +27,7 @@ class ActorAvatar extends React.Component {
       return <Avatar team={team} hasTooltip {...props} />;
     }
 
-    sdk.captureException('Unknown avatar type', {
+    sdk.captureException(new Error('Unknown avatar type'), {
       extra: {actor},
     });
     return null;
