@@ -526,7 +526,11 @@ class FormModel {
    */
   @action
   handleSaveField(id, currentValue) {
-    return this.saveField(id, currentValue).then(() => {
+    const savePromise = this.saveField(id, currentValue);
+
+    if (!savePromise) return null;
+
+    return savePromise.then(() => {
       this.setFieldState(id, 'showSave', false);
     });
   }
