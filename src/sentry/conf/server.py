@@ -232,6 +232,8 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # XXX: This will exhaust the request body stream and cache it
+    'raven.contrib.django.middleware.DjangoRestFrameworkCompatMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 

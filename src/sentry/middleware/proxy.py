@@ -170,15 +170,6 @@ class DecompressBodyMiddleware(object):
             # the body.
             del request.META['HTTP_CONTENT_ENCODING']
 
-            # Raven's DjangoRestFrameworkCompatMiddleware reads the entire
-            # request body into memory before our middleware runs. We need to
-            # reset the request and read body again to make sure we read from
-            # our stream.
-            if hasattr(request, '_body'):
-                request._read_started = False
-                del request._body
-                request.body
-
 
 class ContentLengthHeaderMiddleware(object):
     """
