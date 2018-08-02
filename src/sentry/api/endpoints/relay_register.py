@@ -7,8 +7,8 @@ from rest_framework import serializers, status
 
 from django.conf import settings
 from django.utils import timezone
-from django.core.cache import cache as default_cache
 
+from sentry.cache import default_cache
 from sentry.utils import json
 from sentry.models import Relay
 from sentry.api.base import Endpoint
