@@ -9,6 +9,7 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 
 from raven.contrib.django.models import client as Raven
 
@@ -17,7 +18,7 @@ from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger('sentry')
@@ -55,6 +56,22 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     """
     Fires post processing hooks for a group.
     """
+    with redis.clusters.get('default').map() as client:
+        result = client.set(
+            'pp:{}/{}'.format(event.project_id, event.event_id),
+            '{:.0f}'.format(time.time()),
+            ex=60 * 60,
+            nx=True,
+        )
+
+    if not result.value:
+        logger.info('post_process.skipped', extra={
+            'project_id': event.project_id,
+            'event_id': event.event_id,
+            'reason': 'duplicate',
+        })
+        return
+
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
