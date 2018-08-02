@@ -29,13 +29,16 @@ export default class Result extends React.Component {
 
   getChartData(queryData, groupbyFields) {
     const {aggregations} = this.props.query;
+    // We only chart the first aggregation for now
     const aggregate = aggregations[0][2];
     const dates = [
       ...new Set(queryData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
     ];
     const output = {};
     queryData.forEach(data => {
-      const key = groupbyFields.map(field => this.getLabel(data[field])).join(',');
+      const key = groupbyFields.length
+        ? groupbyFields.map(field => this.getLabel(data[field])).join(',')
+        : aggregate;
       if (key in output) {
         output[key].data.push({
           value: data[aggregate],
