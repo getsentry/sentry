@@ -189,6 +189,10 @@ class ExternalIssueActions extends AsyncComponent {
     };
   }
 
+  getEndpoints() {
+    return [];
+  }
+
   getIssue() {
     return this.props.integration && this.props.integration.externalIssues
       ? this.props.integration.externalIssues[0]
