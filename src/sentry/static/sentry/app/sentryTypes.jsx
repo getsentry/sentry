@@ -295,6 +295,21 @@ export const ProjectKey = PropTypes.shape({
   cdnSdkUrl: PropTypes.string,
 });
 
+export const SeriesUnit = PropTypes.shape({
+  seriesName: PropTypes.string,
+  data: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.shape({
+        value: PropTypes.number,
+        category: PropTypes.string,
+      })
+    ),
+    PropTypes.arrayOf(PropTypes.number),
+  ]),
+});
+
+export const Series = PropTypes.arrayOf(SeriesUnit);
+
 let SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -311,6 +326,8 @@ let SentryTypes = {
   Tag,
   PageLinks,
   Project,
+  Series,
+  SeriesUnit,
   TagKey: PropTypes.shape({
     key: PropTypes.string.isRequired,
   }),
