@@ -25,10 +25,6 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         return views
 
     def build_integration(self, state):
-        # Normally this is saved into the ``identity`` state, but for some
-        # reason it gets wiped out in the NestedPipeline. Instead, we'll store
-        # it in it's own key (``vsts``) to be used down the line in
-        # ``VSTSOrganizationSelectionView``.
         state['account'] = {
             'AccountId': state['vsts']['AccountId'],
             'AccountName': state['vsts']['AccountName'],
@@ -50,7 +46,6 @@ class VstsExtensionFinishedView(PipelineView):
 
         messages.add_message(request, messages.SUCCESS, 'VSTS Extension installed.')
 
-        # TODO: replace with whatever we decide the finish step is.
         return HttpResponseRedirect(
             absolute_uri('/settings/{}/integrations/vsts-extension/{}/'.format(
                 pipeline.organization.slug,
