@@ -200,7 +200,10 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
     def get_group_description(self, group, event, **kwargs):
         output = [
-            absolute_uri(group.get_absolute_url()),
+            u'Associated Sentry Issue: [{}|{}]'.format(
+                group.qualified_short_id,
+                absolute_uri(group.get_absolute_url()),
+            )
         ]
         body = self.get_group_body(group, event)
         if body:
