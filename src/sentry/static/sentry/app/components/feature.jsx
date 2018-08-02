@@ -32,6 +32,11 @@ class Feature extends React.Component {
     configUser: PropTypes.object,
 
     /**
+     * InvitesEnabled from ConfigStore
+     */
+    invitesEnabled: PropTypes.bool,
+
+    /**
      * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
      * On the backend end, feature tags have a scope prefix string that is stripped out on the
      * frontend (since feature tags are attached to a context object).
@@ -49,6 +54,11 @@ class Feature extends React.Component {
      * Requires superuser
      */
     isSuperuser: PropTypes.bool,
+
+    /**
+     * Require "invitesEnabled" flag from ConfigStore
+     */
+    canInviteMembers: PropTypes.bool,
 
     /**
      * Custom renderer function for "no feature" message OR `true` to use default message.
@@ -109,10 +119,13 @@ class Feature extends React.Component {
     let {
       children,
       organization,
+      configUser,
+      invitesEnabled,
+
       feature,
       access,
-      configUser,
       isSuperuser,
+      canInviteMembers,
       renderNoFeatureMessage,
     } = this.props;
     let {access: orgAccess} = organization || {access: []};
@@ -121,6 +134,7 @@ class Feature extends React.Component {
       !feature || feature.every(feat => this.hasFeature(feat, allFeatures));
     let hasAccess = !access || access.every(acc => orgAccess.includes(acc));
     let hasSuperuser = !isSuperuser || configUser.isSuperuser;
+    let hasInvite = !canInviteMembers || invitesEnabled;
     let renderProps = {
       hasFeature,
       hasAccess,
@@ -139,7 +153,7 @@ class Feature extends React.Component {
 
     // if children is NOT a function,
     // then only render `children` iff `features` and `access` passes
-    if (hasFeature && hasAccess && hasSuperuser) {
+    if (hasFeature && hasAccess && hasSuperuser && hasInvite) {
       return children;
     }
 
@@ -178,6 +192,7 @@ const FeatureContainer = createReactClass({
       <Feature
         configFeatures={features}
         configUser={user}
+        invitesEnabled={!!this.state.config.invitesEnabled}
         organization={this.context.organization}
         project={this.context.project}
         {...this.props}
