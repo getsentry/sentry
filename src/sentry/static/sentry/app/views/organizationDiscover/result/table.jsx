@@ -6,7 +6,7 @@ import {Box} from 'grid-emotion';
 
 import theme from 'app/utils/theme';
 import AutoSelectText from 'app/components/autoSelectText';
-import {getDisplayValue} from './utils';
+import {getDisplayValue, getDisplayText} from './utils';
 
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
@@ -48,7 +48,7 @@ export default class ResultTable extends React.Component {
   // less than 20 columns of data to check
   getColumnWidth = ({index}, tableWidth) => {
     const MIN_COL_WIDTH = 100;
-    const MAX_COL_WIDTH = 200;
+    const MAX_COL_WIDTH = 400;
 
     const {meta, data} = this.props.result;
 
@@ -61,11 +61,11 @@ export default class ResultTable extends React.Component {
       const sizes = [this.measureText(colName, true)];
 
       if (data.length > 0) {
-        sizes.push(this.measureText(data[0][colName], false));
+        sizes.push(this.measureText(getDisplayText(data[0][colName]), false));
       }
 
       if (data.length > 1) {
-        sizes.push(this.measureText(data[1][colName], false));
+        sizes.push(this.measureText(getDisplayText(data[1][colName]), false));
       }
 
       // Ensure size is within max and min bounds, add 8px for cell padding
