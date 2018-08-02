@@ -41,7 +41,7 @@ class EventOrGroupTitle extends React.Component {
       return (
         <span style={this.props.style}>
           <span style={{marginRight: 10}}>{title}</span>
-          <em>{subtitle}</em>
+          <em title={subtitle}>{subtitle}</em>
           <br />
         </span>
       );

@@ -781,7 +781,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             >
                                               TypeError
                                             </span>
-                                            <em>
+                                            <em
+                                              title="length(app/views/groupSimilar/groupSimilarView)"
+                                            >
                                               length(app/views/groupSimilar/groupSimilarView)
                                             </em>
                                             <br />
