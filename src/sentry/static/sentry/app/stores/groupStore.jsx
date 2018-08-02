@@ -316,7 +316,7 @@ const GroupStore = Reflux.createStore({
     // Remove all but parent id (items were merged into this one)
     let mergedIdSet = new Set(mergedIds);
 
-    // Looks like the `	PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
+    // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
     // actually returns a 204, so there is no `response` body
     this.items = this.items.filter(
       item =>
