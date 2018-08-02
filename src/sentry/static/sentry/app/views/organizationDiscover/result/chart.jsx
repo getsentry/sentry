@@ -1,18 +1,82 @@
 import React from 'react';
+import moment from 'moment';
 import PropTypes from 'prop-types';
 
-export default class ResultChart extends React.Component {
+import BarChart from 'app/components/charts/barChart';
+import LineChart from 'app/components/charts/lineChart';
+
+export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
   };
 
+  // Converts a value to a string for the chart label. This could
+  // potentially cause incorrect grouping, e.g. if the value null and string
+  // 'null' are both present in the same series they will be merged into 1 value
+  getLabel(value) {
+    if (typeof value === 'object') {
+      try {
+        value = JSON.stringify(value);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+      }
+    }
+
+    return value;
+  }
+
+  getChartData(queryData, groupbyFields) {
+    const {aggregations} = this.props.query;
+    const aggregate = aggregations[0][2];
+    const dates = [
+      ...new Set(queryData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
+    ];
+    const output = {};
+    queryData.forEach(data => {
+      const key = groupbyFields.map(field => this.getLabel(data[field])).join(',');
+      if (key in output) {
+        output[key].data.push({
+          value: data[aggregate],
+          name: moment.utc(data.time * 1000).format('MMM Do'),
+        });
+      } else {
+        output[key] = {
+          data: [
+            {value: data[aggregate], name: moment.utc(data.time * 1000).format('MMM Do')},
+          ],
+        };
+      }
+    });
+    const result = [];
+    for (let key in output) {
+      const addDates = dates.filter(
+        date => !output[key].data.map(entry => entry.name).includes(date)
+      );
+      for (let i = 0; i < addDates.length; i++) {
+        output[key].data.push({
+          value: null,
+          name: addDates[i],
+        });
+      }
+
+      result.push({seriesName: key, data: output[key].data});
+    }
+    return result;
+  }
+
   render() {
-    const {aggregations, fields} = this.props.query;
-    // TODO: implement charts
+    const {fields} = this.props.query;
+    const {data} = this.props.data;
+
+    const chartData = this.getChartData(data, fields);
+
     return (
-      `data for charts: ${JSON.stringify(this.props.data)} ` +
-      `chart query: ${fields} ${aggregations}`
+      <div>
+        <LineChart series={chartData} style={{height: 300}} />
+        <BarChart series={chartData} stacked={true} style={{height: 300}} />
+      </div>
     );
   }
 }
