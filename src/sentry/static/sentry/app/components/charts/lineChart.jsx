@@ -21,7 +21,7 @@ export default class LineChart extends React.Component {
             boundaryGap: false,
           }),
           yAxis: YAxis({}),
-          series: series.map((s, i) => {
+          series: series.map(s => {
             return LineSeries({
               name: s.seriesName,
               data: s.data.map(({value, name}) => [name, value]),
