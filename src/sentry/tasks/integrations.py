@@ -93,7 +93,6 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
     integration = Integration.objects.get(id=external_issue.integration_id)
     installation = integration.get_installation(
         organization_id=external_issue.organization_id,
-        project_id=group.project_id,
     )
     if installation.should_sync('outbound_status'):
         installation.sync_status_outbound(
