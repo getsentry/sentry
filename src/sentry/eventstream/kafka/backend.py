@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import itertools
 import logging
 
 from confluent_kafka import Producer
@@ -85,7 +84,8 @@ class KafkaEventStream(EventStream):
             logger.warning('Could not publish event: %s', error, exc_info=True)
             raise
 
-    def relay(self, consumer_group, commit_log_topic, synchronize_commit_group):
+    def relay(self, consumer_group, commit_log_topic,
+              synchronize_commit_group, commit_batch_size=100):
         consumer = SynchronizedConsumer(
             bootstrap_servers=self.producer_configuration['bootstrap.servers'],
             consumer_group=consumer_group,
@@ -93,9 +93,9 @@ class KafkaEventStream(EventStream):
             synchronize_commit_group=synchronize_commit_group,
         )
         consumer.subscribe(self.publish_topic)
-        batch_size = 100  # TODO: Parameterize me?
         try:
-            for i in itertools.count(1):
+            i = 0
+            while True:
                 message = consumer.poll(0.1)
                 if message is None:
                     continue
@@ -104,11 +104,12 @@ class KafkaEventStream(EventStream):
                 if error is not None:
                     raise Exception(error)
 
+                i = i + 1
                 payload = parse_event_message(message.value())
                 if payload is not None:
                     post_process_group.delay(**payload)
 
-                if i % batch_size == 0:
+                if i % commit_batch_size == 0:
                     # TODO: Figure out exactly what the commit semantics are
                     # here - does this need to track and commit every partition
                     # specifically?

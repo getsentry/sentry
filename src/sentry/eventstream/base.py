@@ -30,5 +30,6 @@ class EventStream(Service):
                 primary_hash=primary_hash,
             )
 
-    def relay(self, consumer_group, commit_log_topic, synchronize_commit_group):
+    def relay(self, consumer_group, commit_log_topic,
+              synchronize_commit_group, commit_batch_size=100):
         raise NotImplementedError
