@@ -251,3 +251,18 @@ def cron(**options):
             # without_heartbeat=True,
             **options
         ).run()
+
+
+@run.command()
+@click.argument('consumer_group')
+@click.argument('commit_log_topic')
+@click.argument('synchronize_commit_group')
+@log_options()
+@configuration
+def relay(**options):
+    from sentry import eventstream
+    eventstream.relay(
+        consumer_group=options['consumer_group'],
+        commit_log_topic=options['commit_log_topic'],
+        synchronize_commit_group=options['synchronize_commit_group'],
+    )
