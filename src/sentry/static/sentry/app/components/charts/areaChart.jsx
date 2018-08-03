@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
-import React from 'react';
 import moment from 'moment';
+import React from 'react';
 
 import theme from 'app/utils/theme';
+import SentryTypes from 'app/sentryTypes';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
@@ -12,54 +12,36 @@ import YAxis from './components/yAxis';
 
 class AreaChart extends React.Component {
   static propTypes = {
-    // We passthrough all props exception `options`
     ...BaseChart.propTypes,
 
-    startDate: PropTypes.string,
-    series: PropTypes.arrayOf(
-      PropTypes.shape({
-        name: PropTypes.string,
-        data: PropTypes.arrayOf(PropTypes.number),
-      })
-    ),
     /**
-     * Other line series to display
+     * Display previous period as a line
      */
-    lines: PropTypes.arrayOf(
-      PropTypes.shape({
-        name: PropTypes.string,
-        data: PropTypes.arrayOf(PropTypes.number),
-      })
-    ),
+    previousPeriod: SentryTypes.SeriesUnit,
   };
 
   render() {
-    const {series, lines, startDate, ...props} = this.props;
+    const {series, previousPeriod, ...props} = this.props;
     if (!series.length) return null;
-
-    const numDates = series[0].data.length;
-    const DATES = [...Array(numDates)].map((value, i) =>
-      moment(startDate)
-        .add(i, 'day')
-        .format('MMM D')
-    );
 
     return (
       <BaseChart
         {...props}
         options={{
           xAxis: XAxis({
-            type: 'category',
-            data: DATES,
+            type: 'time',
             boundaryGap: false,
+            axisLabel: {
+              formatter: (value, index) => moment(value).format('MMM D'),
+            },
           }),
           yAxis: YAxis({}),
           series: [
             ...series.map((s, i) =>
               AreaSeries({
                 stack: 'test',
-                name: s.name,
-                data: s.data,
+                name: s.seriesName,
+                data: s.data.map(({name, value}) => [name, value]),
                 lineStyle: {
                   color: '#fff',
                   width: 2,
@@ -70,16 +52,15 @@ class AreaChart extends React.Component {
                 },
               })
             ),
-            ...lines.map(s =>
+            previousPeriod &&
               LineSeries({
-                name: s.name,
-                data: s.data,
+                name: previousPeriod.seriesName,
+                data: previousPeriod.data.map(({name, value}) => [name, value]),
                 lineStyle: {
                   color: theme.gray1,
                   type: 'dotted',
                 },
-              })
-            ),
+              }),
           ],
         }}
       />
