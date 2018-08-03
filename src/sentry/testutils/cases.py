@@ -786,7 +786,7 @@ class SnubaTestCase(TestCase):
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,
-            'data': data,
+            'data': dict(data),
             'primary_hash': primary_hash,
         }
 
