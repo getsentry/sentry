@@ -18,6 +18,14 @@ SAMPLE_CREATE_META_RESPONSE = """
   "projects": [
     {
       "self": "http://www.example.com/jira/rest/api/2/project/EX",
+      "id": "10001",
+      "key": "ABC",
+      "name": "ABC Project",
+      "avatarUrls": {},
+      "issuetypes": []
+    },
+    {
+      "self": "http://www.example.com/jira/rest/api/2/project/EX",
       "id": "10000",
       "key": "EX",
       "name": "Example Project",
@@ -34,6 +42,25 @@ SAMPLE_CREATE_META_RESPONSE = """
           "description": "An error in the code",
           "iconUrl": "http://www.example.com/jira/images/icons/issuetypes/bug.png",
           "name": "Bug",
+          "subtask": false,
+          "fields": {
+            "issuetype": {
+              "required": true,
+              "name": "Issue Type",
+              "key": "issuetype",
+              "hasDefaultValue": false,
+              "operations": [
+                "set"
+              ]
+            }
+          }
+        },
+        {
+          "self": "http://www.example.com/jira/rest/api/2/issueType/2",
+          "id": "2",
+          "description": "A task to be done",
+          "iconUrl": "http://www.example.com/jira/images/icons/issuetypes/task.png",
+          "name": "Task",
           "subtask": false,
           "fields": {
             "issuetype": {
@@ -371,7 +398,16 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
+<<<<<<< HEAD
         integration.add_organization(org, self.user)
+=======
+        config = {
+            'project_issue_defaults': {
+                group.project_id: {'project': '10000', 'issuetype': '2'},
+            }
+        }
+        integration.add_organization(org.id, config=config)
+>>>>>>> tests
 
         installation = integration.get_installation(org.id)
 
@@ -407,8 +443,8 @@ class JiraIntegrationTest(APITestCase):
                 'autosize': True,
                 'maxRows': 10,
             }, {
-                'default': '1',
-                'choices': [('1', 'Bug')],
+                'default': '2',
+                'choices': [('1', 'Bug'), ('2', 'Task')],
                 'type': 'select',
                 'name': 'issuetype',
                 'label': 'Issue Type',

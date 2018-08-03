@@ -41,14 +41,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
-    def get_persisted_default_config_fields(self):
-        return ['repo']
-
-    def get_create_issue_config(self, group, **kwargs):
-        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
-
-        params = kwargs.get('params', {})
-
+    def _get_repo_choices(self, group, params):
         # project_id is a long, but stored in the config as a string
         project_id = six.text_type(group.project_id)
 
@@ -68,6 +61,17 @@ class GitHubIssueBasic(IssueBasicMixin):
         default_repo = field_defaults.get('repo', repo_choices[0][0])
         default_repo = params.get('repo', default_repo)
 
+        return repo_choices, default_repo
+
+    def get_persisted_default_config_fields(self):
+        return ['repo']
+
+    def get_create_issue_config(self, group, **kwargs):
+        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
+
+        params = kwargs.get('params', {})
+
+        repo_choices, default_repo = self._get_repo_choices(group, params)
         assignees = self.get_allowed_assignees(default_repo)
 
         org = group.organization
@@ -125,20 +129,16 @@ class GitHubIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group, **kwargs):
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-
         params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+        # default_repo = params.get('repo', repo_choices[0][0])
 
         org = group.organization
         autocomplete_url = reverse(
             'sentry-extensions-github-search', args=[org.slug, self.model.id],
         )
+
+        repo_choices, default_repo = self._get_repo_choices(group, params)
+        # issues = self.get_repo_issues(default_repo)
 
         return [
             {
