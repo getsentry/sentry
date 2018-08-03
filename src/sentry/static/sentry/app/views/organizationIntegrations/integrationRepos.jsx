@@ -146,10 +146,10 @@ export default class IntegrationRepos extends AsyncComponent {
       );
     }
     const repositories = new Set(this.state.itemList.map(i => i.name));
-    let repositoryOptions = this.state.integrationRepos.repos.filter(repo => {
-      return !repositories.has(repo.identifier);
-    });
-    let items = (repositoryOptions || []).map(repo => {
+    const repositoryOptions = (this.state.integrationRepos.repos || []).filter(
+      repo => !repositories.has(repo.identifier)
+    );
+    let items = repositoryOptions.map(repo => {
       return {
         searchKey: repo.name,
         value: repo.identifier,
