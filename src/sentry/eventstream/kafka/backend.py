@@ -106,8 +106,9 @@ class KafkaEventStream(EventStream):
                     raise Exception(error)
 
                 i = i + 1
-                payload = parse_event_message(message.value())
                 offsets[(message.topic(), message.partition())] = message.offset() + 1
+
+                payload = parse_event_message(message.value())
                 if payload is not None:
                     post_process_group.delay(**payload)
 
