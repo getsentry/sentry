@@ -31,6 +31,10 @@ const conditionList = [
     internal: 'message NOT LIKE something%',
     external: ['message', 'NOT LIKE', 'something%'],
   },
+  {
+    internal: 'message LIKE',
+    external: ['message', 'LIKE', null],
+  },
 ];
 
 describe('Conditions', function() {

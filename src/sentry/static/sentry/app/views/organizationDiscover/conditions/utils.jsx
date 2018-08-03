@@ -72,7 +72,11 @@ export function getExternal(internal, columns) {
 
   // Validate value and convert to correct type
   if (external[0] && external[1] && !specialConditions.has(external[1])) {
-    external[2] = internal.replace(`${external[0]} ${external[1]} `, '');
+    const strStart = `${external[0]} ${external[1]} `;
+
+    if (internal.startsWith(strStart)) {
+      external[2] = internal.replace(strStart, '');
+    }
 
     const type = columns.find(({name}) => name === colValue).type;
 
