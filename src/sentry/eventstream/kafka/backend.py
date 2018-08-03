@@ -93,7 +93,7 @@ class KafkaEventStream(EventStream):
             synchronize_commit_group=synchronize_commit_group,
         )
 
-        consumer.subscribe(self.publish_topic)
+        consumer.subscribe([self.publish_topic])
 
         offsets = {}
 
