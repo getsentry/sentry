@@ -175,7 +175,7 @@ matrix:
       before_install:
         - docker --version
         - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test -env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
         - curl -m 10 http://localhost:8123/
         - curl -m 10 http://localhost:1218/ || docker logs snuba && return 1
