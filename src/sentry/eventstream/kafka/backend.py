@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
-from confluent_kafka import Producer
+from confluent_kafka import Producer, TopicPartition
 from django.utils.functional import cached_property
 
 from sentry import quotas
@@ -93,6 +93,7 @@ class KafkaEventStream(EventStream):
             synchronize_commit_group=synchronize_commit_group,
         )
         consumer.subscribe(self.publish_topic)
+        offsets = {}
         try:
             i = 0
             while True:
@@ -106,14 +107,14 @@ class KafkaEventStream(EventStream):
 
                 i = i + 1
                 payload = parse_event_message(message.value())
+                offsets[(message.topic(), message.partition())] = message.offset() + 1
                 if payload is not None:
                     post_process_group.delay(**payload)
 
                 if i % commit_batch_size == 0:
-                    # TODO: Figure out exactly what the commit semantics are
-                    # here - does this need to track and commit every partition
-                    # specifically?
-                    raise NotImplementedError
+                    consumer.commit(offsets=[
+                        TopicPartition(topic, partition, offset) for (topic, partition), offset in offsets.items()
+                    ], asynchronous=False)
         except KeyboardInterrupt:
             logger.info('Stop requested, committing offsets and closing consumer...')
             consumer.close()
