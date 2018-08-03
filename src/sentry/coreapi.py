@@ -25,6 +25,7 @@ from six import BytesIO
 from time import time
 
 from sentry import filters
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.interfaces.base import get_interface
 from sentry.event_manager import EventManager
@@ -365,11 +366,7 @@ class ClientApiHelper(object):
         # is turned off. For native crash reports it will still contain the
         # crash dump (e.g. minidump) so we can load it during processing.
         if attachments is not None:
-            for index, attachment in enumerate(attachments):
-                attachment_data = attachment.pop('data')
-                attachment_key = '%s:a:%s'.format(cache_key, index)
-                default_cache.set(attachment_key, attachment_data, cache_timeout, raw=True)
-            default_cache.set(cache_key + ':a', attachments, cache_timeout)
+            attachment_cache.set(cache_key, attachments, cache_timeout)
 
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event

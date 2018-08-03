@@ -17,6 +17,7 @@ from time import time
 from django.utils import timezone
 
 from sentry import features, reprocessing
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -298,7 +299,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     return True
 
 
-def save_attachment(event, data, name=None, type=None, content_type=None):
+def save_attachment(event, attachment):
     """
     Saves an event attachment to blob storage.
     """
@@ -306,24 +307,23 @@ def save_attachment(event, data, name=None, type=None, content_type=None):
     # If the attachment is a crash report (e.g. minidump), we need to honor the
     # store_crash_reports setting. Otherwise, we assume that the client has
     # already verified PII and just store the attachment.
-    attachment_type = type or 'event.attachment'
-    if attachment_type in CRASH_REPORT_TYPES:
+    if attachment.type in CRASH_REPORT_TYPES:
         if not event.project.get_option('sentry:store_crash_reports') and \
                 not event.project.organization.get_option('sentry:store_crash_reports'):
             return
 
     file = File.objects.create(
-        name=name,
-        type=attachment_type,
-        headers={'Content-Type': content_type},
+        name=attachment.name,
+        type=attachment.type,
+        headers={'Content-Type': attachment.content_type},
     )
-    file.putfile(six.BytesIO(data))
+    file.putfile(six.BytesIO(attachment.data))
 
     EventAttachment.objects.create(
         event_id=event.event_id,
         group_id=event.group_id,
         project_id=event.project_id,
-        name=name,
+        name=attachment.name,
         file=file,
     )
 
@@ -378,12 +378,10 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
 
         # Always load attachments from the cache so we can later prune them.
         # Only save them if the event-attachments feature is active, though.
-        attachments = default_cache.get(cache_key + ':a') or []
         if features.has('organizations:event-attachments', event.project.organization, actor=None):
-            for index, attachment in enumerate(attachments):
-                attachment_key = '%s:a:%s'.format(cache_key, index)
-                attachment_data = default_cache.get(attachment_key, raw=True)
-                save_attachment(event, attachment_data, **attachment)
+            attachments = attachment_cache.get(cache_key) or []
+            for attachment in attachments:
+                save_attachment(event, attachment)
 
     except HashDiscarded:
         increment_list = [
@@ -423,9 +421,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     finally:
         if cache_key:
             default_cache.delete(cache_key)
-            default_cache.delete(cache_key + ':a')
-            for i in range(0, len(attachments or []) - 1):
-                default_cache.delete('%s:a:%s'.format(cache_key, i))
+            attachment_cache.delete(cache_key)
 
         if start_time:
             metrics.timing(

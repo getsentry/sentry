@@ -29,6 +29,7 @@ from raven.contrib.django.models import client as Raven
 from symbolic import ProcessMinidumpError
 
 from sentry import features, quotas, tsdb
+from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
     MinidumpApiHelper,
@@ -629,12 +630,7 @@ class MinidumpView(StoreView):
         # allow us to stack walk again with CFI once symbols are loaded.
         attachments = []
         minidump.seek(0)
-        attachments.append({
-            'name': minidump.name,
-            'content_type': minidump.content_type,
-            'type': 'event.minidump',
-            'data': minidump.read(),
-        })
+        attachments.append(CachedAttachment.from_upload(minidump, type='event.minidump'))
 
         # Append all other files as generic attachments. We can skip this if the
         # feature is disabled since they won't be saved.
@@ -642,11 +638,7 @@ class MinidumpView(StoreView):
                         project.organization, actor=request.user):
             for name, file in six.iteritems(request.FILES):
                 if name != 'upload_file_minidump':
-                    attachments.append({
-                        'name': file.name,
-                        'content_type': file.content_type,
-                        'data': file.read(),
-                    })
+                    attachments.append(CachedAttachment.from_upload(file))
 
         try:
             merge_minidump_event(data, minidump)
