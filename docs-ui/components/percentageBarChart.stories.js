@@ -27,31 +27,31 @@ storiesOf('Charts/PercentageBarChart', module).add(
               data: [
                 {
                   value: getValue(),
-                  category: getDate(0),
+                  name: getDate(0),
                 },
                 {
                   value: 0,
-                  category: getDate(1),
+                  name: getDate(1),
                 },
                 {
                   value: getValue(),
-                  category: getDate(2),
+                  name: getDate(2),
                 },
                 {
                   value: getValue(),
-                  category: getDate(3),
+                  name: getDate(3),
                 },
                 {
                   value: getValue(),
-                  category: getDate(4),
+                  name: getDate(4),
                 },
                 {
                   value: getValue(),
-                  category: getDate(5),
+                  name: getDate(5),
                 },
                 {
                   value: getValue(),
-                  category: getDate(6),
+                  name: getDate(6),
                 },
               ],
             },
@@ -60,31 +60,31 @@ storiesOf('Charts/PercentageBarChart', module).add(
               data: [
                 {
                   value: getValue(),
-                  category: getDate(0),
+                  name: getDate(0),
                 },
                 {
                   value: 0,
-                  category: getDate(1),
+                  name: getDate(1),
                 },
                 {
                   value: getValue(),
-                  category: getDate(2),
+                  name: getDate(2),
                 },
                 {
                   value: getValue(),
-                  category: getDate(3),
+                  name: getDate(3),
                 },
                 {
                   value: getValue(),
-                  category: getDate(4),
+                  name: getDate(4),
                 },
                 {
                   value: getValue(),
-                  category: getDate(5),
+                  name: getDate(5),
                 },
                 {
                   value: getValue(),
-                  category: getDate(6),
+                  name: getDate(6),
                 },
               ],
             },
@@ -93,31 +93,31 @@ storiesOf('Charts/PercentageBarChart', module).add(
               data: [
                 {
                   value: getValue(),
-                  category: getDate(0),
+                  name: getDate(0),
                 },
                 {
                   value: 0,
-                  category: getDate(1),
+                  name: getDate(1),
                 },
                 {
                   value: getValue(),
-                  category: getDate(2),
+                  name: getDate(2),
                 },
                 {
                   value: getValue(),
-                  category: getDate(3),
+                  name: getDate(3),
                 },
                 {
                   value: getValue(),
-                  category: getDate(4),
+                  name: getDate(4),
                 },
                 {
                   value: getValue(),
-                  category: getDate(5),
+                  name: getDate(5),
                 },
                 {
                   value: getValue(),
-                  category: getDate(6),
+                  name: getDate(6),
                 },
               ],
             },
@@ -126,31 +126,31 @@ storiesOf('Charts/PercentageBarChart', module).add(
               data: [
                 {
                   value: getValue(),
-                  category: getDate(0),
+                  name: getDate(0),
                 },
                 {
                   value: 0,
-                  category: getDate(1),
+                  name: getDate(1),
                 },
                 {
                   value: getValue(),
-                  category: getDate(2),
+                  name: getDate(2),
                 },
                 {
                   value: getValue(),
-                  category: getDate(3),
+                  name: getDate(3),
                 },
                 {
                   value: getValue(),
-                  category: getDate(4),
+                  name: getDate(4),
                 },
                 {
                   value: getValue(),
-                  category: getDate(5),
+                  name: getDate(5),
                 },
                 {
                   value: getValue(),
-                  category: getDate(6),
+                  name: getDate(6),
                 },
               ],
             },
