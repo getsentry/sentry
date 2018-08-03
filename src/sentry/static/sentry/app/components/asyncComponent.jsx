@@ -251,17 +251,21 @@ class AsyncComponent extends React.Component {
   }
 
   renderError(error) {
-    let unauthorizedErrors = Object.keys(this.state.errors).find(endpointName => {
-      let result = this.state.errors[endpointName];
-      // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
-      return result && result.status === 401;
-    });
+    // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+    let unauthorizedErrors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 401
+    );
 
     // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    let permissionErrors = Object.keys(this.state.errors).find(endpointName => {
-      let result = this.state.errors[endpointName];
-      return result && result.status === 403;
-    });
+    let permissionErrors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 403
+    );
+
+    // If all error responses have status code === 0, then show erorr message but don't
+    // log it to sentry
+    let shouldLogSentry = !!Object.values(this.state.errors).find(
+      resp => resp.status !== 0
+    );
 
     if (unauthorizedErrors) {
       return (
@@ -273,7 +277,14 @@ class AsyncComponent extends React.Component {
       return <PermissionDenied />;
     }
 
-    return <RouteError error={error} component={this} onRetry={this.remountComponent} />;
+    return (
+      <RouteError
+        error={error}
+        component={this}
+        disableLogSentry={!shouldLogSentry}
+        onRetry={this.remountComponent}
+      />
+    );
   }
 
   renderComponent() {

@@ -8,6 +8,10 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
   static propTypes = {
+    /**
+     * Disable logging to Sentry
+     */
+    disableLogSentry: PropTypes.bool,
     error: PropTypes.object.isRequired,
     routes: PropTypes.array,
   };
@@ -18,8 +22,11 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {routes, error} = this.props;
+    let {disableLogSentry, routes, error} = this.props;
     let {organization, project} = this.context;
+
+    if (disableLogSentry) return;
+
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
