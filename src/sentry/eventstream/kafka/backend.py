@@ -92,8 +92,16 @@ class KafkaEventStream(EventStream):
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
         )
+
         consumer.subscribe(self.publish_topic)
+
         offsets = {}
+
+        def commit_offsets():
+            consumer.commit(offsets=[
+                TopicPartition(topic, partition, offset) for (topic, partition), offset in offsets.items()
+            ], asynchronous=False)
+
         try:
             i = 0
             while True:
@@ -113,9 +121,13 @@ class KafkaEventStream(EventStream):
                     post_process_group.delay(**payload)
 
                 if i % commit_batch_size == 0:
-                    consumer.commit(offsets=[
-                        TopicPartition(topic, partition, offset) for (topic, partition), offset in offsets.items()
-                    ], asynchronous=False)
+                    commit_offsets()
         except KeyboardInterrupt:
-            logger.info('Stop requested, committing offsets and closing consumer...')
-            consumer.close()
+            pass
+
+        logger.info('Committing offsets and closing consumer...')
+
+        if offsets:
+            commit_offsets()
+
+        consumer.close()
