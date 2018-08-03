@@ -229,14 +229,19 @@ class ActivityItem extends React.Component {
           issue: issueLink,
         });
       case 'assigned':
+        let assignee;
+
         if (data.assigneeType == 'team') {
+          let team = TeamStore.getById(data.assignee);
+          assignee = team ? team.slug : '<unknown-team>';
+
           return tct('[author] assigned [issue] to #[assignee]', {
             author,
             issue: issueLink,
-            assignee: TeamStore.getById(data.assignee).slug,
+            assignee,
           });
         }
-        let assignee;
+
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {
             author,
