@@ -232,7 +232,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             self.model.metadata['shared_secret'],
         )
 
-    def get_issue(self, issue_id):
+    def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         issue = client.get_issue(issue_id)
         return {
