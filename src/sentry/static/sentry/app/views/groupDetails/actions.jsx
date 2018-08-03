@@ -1,4 +1,4 @@
-import {browserHistory, Link} from 'react-router';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -222,9 +222,6 @@ const GroupDetailsActions = createReactClass({
 
     let hasRelease = this.getProjectFeatures().has('releases');
 
-    // account for both old and new style plugins
-    let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
-
     let isResolved = group.status === 'resolved';
     let isIgnored = group.status === 'ignored';
 
@@ -300,18 +297,6 @@ const GroupDetailsActions = createReactClass({
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
-        {!hasIssueTracking && (
-          <GuideAnchor type="text" target="issue_tracking">
-            <Link
-              to={`/${this.getOrganization().slug}/${this.getProject()
-                .slug}/settings/issue-tracking/`}
-              className={'btn btn-default btn-sm btn-config-issue-tracking'}
-              style={{marginRight: '5px'}}
-            >
-              {t('Link Issue Tracker')}
-            </Link>
-          </GuideAnchor>
-        )}
       </div>
     );
   },
