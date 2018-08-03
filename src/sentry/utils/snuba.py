@@ -49,7 +49,7 @@ def timer(name, prefix='snuba.client'):
 _snuba_pool = urllib3.connectionpool.connection_from_url(
     settings.SENTRY_SNUBA,
     retries=False,
-    timeout=1,
+    timeout=30,
     maxsize=10,
 )
 
