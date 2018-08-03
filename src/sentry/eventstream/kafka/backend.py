@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import itertools
 import logging
 
 from confluent_kafka import Producer
@@ -8,6 +9,9 @@ from django.utils.functional import cached_property
 from sentry import quotas
 from sentry.models import Organization
 from sentry.eventstream.base import EventStream
+from sentry.eventstream.kafka.consumer import SynchronizedConsumer
+from sentry.eventstream.kafka.protocol import parse_event_message
+from sentry.tasks.post_process import post_process_group
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -35,7 +39,8 @@ class KafkaEventStream(EventStream):
         if error is not None:
             logger.warning('Could not publish event (error: %s): %r', error, message)
 
-    def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
+    def publish(self, group, event, is_new, is_sample, is_regression,
+                is_new_group_environment, primary_hash, skip_consume=False):
         project = event.project
         retention_days = quotas.get_event_retention(
             organization=Organization(project.organization_id)
@@ -79,3 +84,35 @@ class KafkaEventStream(EventStream):
         except Exception as error:
             logger.warning('Could not publish event: %s', error, exc_info=True)
             raise
+
+    def relay(self, consumer_group, commit_log_topic, synchronize_commit_group):
+        consumer = SynchronizedConsumer(
+            bootstrap_servers=self.producer_configuration['bootstrap.servers'],
+            consumer_group=consumer_group,
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+        )
+        consumer.subscribe(self.publish_topic)
+        batch_size = 100  # TODO: Parameterize me?
+        try:
+            for i in itertools.count(1):
+                message = consumer.poll(0.1)
+                if message is None:
+                    continue
+
+                error = message.error()
+                if error is not None:
+                    raise Exception(error)
+
+                payload = parse_event_message(message.value())
+                if payload is not None:
+                    post_process_group.delay(**payload)
+
+                if i % batch_size == 0:
+                    # TODO: Figure out exactly what the commit semantics are
+                    # here - does this need to track and commit every partition
+                    # specifically?
+                    raise NotImplementedError
+        except KeyboardInterrupt:
+            logger.info('Stop requested, committing offsets and closing consumer...')
+            consumer.close()

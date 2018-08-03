@@ -12,9 +12,11 @@ logger = logging.getLogger(__name__)
 class EventStream(Service):
     __all__ = (
         'publish',
+        'relay',
     )
 
-    def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
+    def publish(self, group, event, is_new, is_sample, is_regression,
+                is_new_group_environment, primary_hash, skip_consume=False):
         if skip_consume:
             logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
         else:
@@ -27,3 +29,6 @@ class EventStream(Service):
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
             )
+
+    def relay(self, consumer_group, commit_log_topic, synchronize_commit_group):
+        raise NotImplementedError
