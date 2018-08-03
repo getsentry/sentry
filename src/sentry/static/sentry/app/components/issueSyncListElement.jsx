@@ -69,9 +69,9 @@ class IssueSyncElement extends React.Component {
     }
     if (this.props.externalIssueKey) {
       return this.props.externalIssueKey;
-    } else {
-      return `Link ${this.getPrettyName()} Issue`;
     }
+
+    return `Link ${this.getPrettyName()} Issue`;
   }
 
   render() {
