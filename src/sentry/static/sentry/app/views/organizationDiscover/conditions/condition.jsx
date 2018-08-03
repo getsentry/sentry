@@ -138,7 +138,7 @@ export default class Condition extends React.Component {
     return createKeyCodes.has(keyCode);
   };
 
-  onInputChange = value => {
+  handleInputChange = value => {
     const external = getExternal(value, this.props.columns);
 
     if (!external[0] && this.state.selectedColumn) {
@@ -179,7 +179,7 @@ export default class Condition extends React.Component {
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
-          onInputChange={this.onInputChange}
+          onInputChange={this.handleInputChange}
         />
       </Box>
     );

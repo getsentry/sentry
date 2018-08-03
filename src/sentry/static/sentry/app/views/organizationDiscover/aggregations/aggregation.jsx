@@ -121,7 +121,9 @@ export default class Aggregation extends React.Component {
   };
 
   handleInputChange = value => {
-    return value;
+    if (value === '') {
+      this.setState({selectedFunction: null});
+    }
   };
 
   render() {
