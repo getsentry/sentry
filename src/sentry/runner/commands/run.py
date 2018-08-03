@@ -266,9 +266,16 @@ def cron(**options):
 @configuration
 def relay(**options):
     from sentry import eventstream
-    eventstream.relay(
-        consumer_group=options['consumer_group'],
-        commit_log_topic=options['commit_log_topic'],
-        synchronize_commit_group=options['synchronize_commit_group'],
-        commit_batch_size=options['commit_batch_size'],
-    )
+    from sentry.eventstream.base import RelayNotRequired
+    try:
+        eventstream.relay(
+            consumer_group=options['consumer_group'],
+            commit_log_topic=options['commit_log_topic'],
+            synchronize_commit_group=options['synchronize_commit_group'],
+            commit_batch_size=options['commit_batch_size'],
+        )
+    except RelayNotRequired:
+        sys.stdout.write(
+            'The configured event stream backend does not need a relay '
+            'process to enqueue post-processing tasks. Exiting...\n')
+        return
