@@ -163,13 +163,18 @@ class GroupActivityItem extends React.Component {
       case 'first_seen':
         return t('%s first saw this issue', author);
       case 'assigned':
+        let assignee;
+
         if (data.assigneeType == 'team') {
+          let team = TeamStore.getById(data.assignee);
+          assignee = team ? team.slug : '<unknown-team>';
+
           return t('%(author)s assigned this issue to #%(assignee)s', {
             author,
-            assignee: TeamStore.getById(data.assignee).slug,
+            assignee,
           });
         }
-        let assignee;
+
         if (item.user && data.assignee === item.user.id) {
           assignee = 'themselves';
           return t('%s assigned this issue to themselves', author);
