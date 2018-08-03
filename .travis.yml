@@ -179,7 +179,8 @@ matrix:
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
-        - pip install -e ".[dev,tests,optional]" confluent-kafka
+        - pip install -e ".[dev,tests,optional]"
+        - pip install confluent-kafka
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
