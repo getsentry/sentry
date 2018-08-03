@@ -174,11 +174,11 @@ matrix:
         - postgresql
       before_install:
         - docker --version
-        - docker run -d --network host --ulimit nofile=262144:262144 yandex/clickhouse-server
-        - docker run -d --network host --env SNUBA_SETTINGS=test getsentry/snuba
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test getsentry/snuba
         - docker ps -a
         - docker run --rm --network host yandex/clickhouse-client -q 'select 1'
-        - curl http://localhost:1218/
+        - curl http://localhost:1218/ || docker logs snuba && return 1
       install:
         - pip install -e ".[dev,tests,optional]"
       before_script:
