@@ -8,6 +8,8 @@ sentry.attachments.base
 
 from __future__ import absolute_import
 
+import zlib
+
 
 class CachedAttachment(object):
     def __init__(self, name=None, content_type=None, type=None, data=None, load=None):
@@ -56,7 +58,8 @@ class BaseAttachmentCache(object):
     def set(self, key, attachments, timeout=None):
         key = self.make_key(key)
         for index, attachment in enumerate(attachments):
-            self.inner.set('{}:{}'.format(key, index), attachment.data, timeout, raw=True)
+            compressed = zlib.compress(attachment.data)
+            self.inner.set('{}:{}'.format(key, index), compressed, timeout, raw=True)
 
         meta = [attachment.meta() for attachment in attachments]
         self.inner.set(key, meta, timeout, raw=False)
@@ -67,7 +70,8 @@ class BaseAttachmentCache(object):
         if result is not None:
             result = [
                 CachedAttachment(
-                    load=lambda index=index: self.inner.get('{}:{}'.format(key, index), raw=True),
+                    load=lambda index=index: zlib.decompress(
+                        self.inner.get('{}:{}'.format(key, index), raw=True)),
                     **attachment
                 )
                 for index, attachment in enumerate(result)
