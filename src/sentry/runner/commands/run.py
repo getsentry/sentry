@@ -260,6 +260,8 @@ def cron(**options):
               help='Topic that the Snuba writer is publishing its committed offsets to.')
 @click.option('--synchronize-commit-group', default='snuba-consumers',
               help='Consumer group that the Snuba writer is committing its offset as.')
+@click.option('--commit-batch-size', default=1000, type=int,
+              help='How many messages to process (may or may not result in an enqueued task) before committing offsets.')
 @log_options()
 @configuration
 def relay(**options):
@@ -268,4 +270,5 @@ def relay(**options):
         consumer_group=options['consumer_group'],
         commit_log_topic=options['commit_log_topic'],
         synchronize_commit_group=options['synchronize_commit_group'],
+        commit_batch_size=options['commit_batch_size'],
     )
