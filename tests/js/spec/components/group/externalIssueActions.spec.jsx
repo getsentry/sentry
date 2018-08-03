@@ -49,7 +49,11 @@ describe('ExternalIssueActions', function() {
 
   describe('with an external issue linked', function() {
     let externalIssues = [
-      {id: '100', url: 'https://github.com/MeredithAnya/testing/issues/2'},
+      {
+        id: '100',
+        url: 'https://github.com/MeredithAnya/testing/issues/2',
+        key: 'getsentry/sentry#2',
+      },
     ];
     let integration = TestStubs.GitHubIntegration({externalIssues});
     let wrapper = mount(
@@ -61,7 +65,7 @@ describe('ExternalIssueActions', function() {
     });
 
     it('renders Link GitHub Issue when no issues currently linked', function() {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual('GH-100');
+      expect(wrapper.find('IntegrationLink a').text()).toEqual('getsentry/sentry#2');
     });
 
     describe('deletes linked issue', function() {

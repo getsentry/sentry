@@ -3,6 +3,7 @@
 exports[`ExternalIssueActions with an external issue linked renders 1`] = `
 <IssueSyncElement
   externalIssueId="100"
+  externalIssueKey="getsentry/sentry#2"
   externalIssueLink="https://github.com/MeredithAnya/testing/issues/2"
   integrationType="github"
   onClose={[Function]}
@@ -47,7 +48,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
             className="css-1ado49n-IntegrationLink e1vaar1z2"
             href="https://github.com/MeredithAnya/testing/issues/2"
           >
-            GH-100
+            getsentry/sentry#2
           </a>
         </IntegrationLink>
       </div>
@@ -148,6 +149,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
 >
   <IssueSyncElement
     externalIssueId={null}
+    externalIssueKey={null}
     externalIssueLink={null}
     integrationType="github"
     onClose={[Function]}
