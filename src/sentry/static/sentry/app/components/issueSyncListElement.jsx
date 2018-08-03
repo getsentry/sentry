@@ -9,6 +9,7 @@ class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.string,
+    externalIssueKey: PropTypes.string,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
@@ -21,17 +22,6 @@ class IssueSyncElement extends React.Component {
   handleDelete = evt => {
     return this.props.onClose(this.props.externalIssueId);
   };
-
-  getPrefix() {
-    switch (this.props.integrationType) {
-      case 'github':
-        return 'GH-';
-      case 'github_enterprise':
-        return 'GHE-';
-      default:
-        return this.getPrettyName() + '-';
-    }
-  }
 
   getIcon() {
     switch (this.props.integrationType) {
@@ -77,8 +67,8 @@ class IssueSyncElement extends React.Component {
     if (this.props.children) {
       return this.props.children;
     }
-    if (this.props.externalIssueId) {
-      return `${this.getPrefix()}${this.props.externalIssueId}`;
+    if (this.props.externalIssueKey) {
+      return this.props.externalIssueKey;
     } else {
       return `Link ${this.getPrettyName()} Issue`;
     }
