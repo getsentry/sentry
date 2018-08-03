@@ -4,15 +4,13 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import AreaChart from 'app/components/charts/areaChart';
-import BarChart from 'app/components/charts/barChart';
-
-const TOTAL = 6;
-const NOW = new Date().getTime();
 
 // eslint-disable-next-line
 storiesOf('Charts/AreaChart', module).add(
   'default',
   withInfo('Stacked AreaChart with previous period')(() => {
+    const TOTAL = 6;
+    const NOW = new Date().getTime();
     const getValue = () => Math.round(Math.random() * 1000);
     const getDate = num => NOW - (TOTAL - num) * 86400000;
     const getData = num =>
