@@ -8,10 +8,6 @@ sentry.attachments.base
 
 from __future__ import absolute_import
 
-from threading import local
-
-from sentry.utils.imports import import_string
-
 
 class CachedAttachment(object):
     def __init__(self, name=None, content_type=None, type=None, data=None, load=None):
@@ -49,11 +45,10 @@ class CachedAttachment(object):
         }
 
 
-class AttachmentCache(local):
-    appendix = 'a'
-
-    def __init__(self, cache_cls, **cache_options):
-        self.inner = import_string(cache_cls)(**cache_options)
+class BaseAttachmentCache(object):
+    def __init__(self, inner, appendix='a', **options):
+        self.appendix = appendix
+        self.inner = inner
 
     def make_key(self, key):
         return '{}:{}'.format(key, self.appendix)

@@ -925,7 +925,7 @@ SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
 
 # Attachment blob cache backend
-SENTRY_ATTACHMENTS = None
+SENTRY_ATTACHMENTS = 'sentry.attachments.default.DefaultAttachmentCache'
 SENTRY_ATTACHMENTS_OPTIONS = {}
 
 # The internal Django cache is still used in many places
