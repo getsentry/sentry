@@ -108,10 +108,6 @@ class SynchronizedConsumer(object):
     this consumer *may* consume up to the highest watermark point. (The
     implementation here tries to pause consuming from the partition as soon as
     possible, but this makes no explicit guarantees about that behavior.)
-
-    Subclasses are required to implement the ``handle`` method which is
-    provided with a message that is ready to be processed as its only argument.
-    Implementations are also responsible for managing their own offset commits.
     """
 
     def __init__(self, bootstrap_servers, consumer_group, commit_log_topic,
