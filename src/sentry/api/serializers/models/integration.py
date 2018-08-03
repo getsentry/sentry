@@ -122,7 +122,6 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
             config = installation.get_link_issue_config(
                 self.group,
                 params=self.params,
-                project_id=self.group.project_id,
             )
             config = installation.merge_issue_config_defaults(
                 self.group.project_id,
@@ -134,7 +133,6 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
             config = installation.get_create_issue_config(
                 self.group,
                 params=self.params,
-                project_id=self.group.project_id,
             )
             config = installation.merge_issue_config_defaults(
                 self.group.project_id,

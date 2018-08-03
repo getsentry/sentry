@@ -363,7 +363,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         params = kwargs.get('params', {})
 
         # project_id is a long, but stored in the config as a string
-        project_id = six.text_type(kwargs.get('project_id'))
+        project_id = six.text_type(group.project_id)
 
         # We have to merge in the fields here since initial fields depend on
         # persisted default values.
