@@ -13,18 +13,14 @@ from collections import namedtuple
 from datetime import timedelta
 from random import randint
 
-import pytz
 import six
 from django import template
-from django.conf import settings
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from pkg_resources import parse_version as Version
-from templatetag_sugar.parser import Constant, Name, Variable
-from templatetag_sugar.register import tag
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
@@ -156,25 +152,9 @@ def is_url(value):
     return True
 
 
-# seriously Django?
-@register.filter
-def subtract(value, amount):
-    return int(value) - int(amount)
-
-
 @register.filter
 def absolute_value(value):
     return abs(int(value) if isinstance(value, six.integer_types) else float(value))
-
-
-@register.filter
-def has_charts(group):
-    from sentry.utils.db import has_charts
-    if hasattr(group, '_state'):
-        db = group._state.db or 'default'
-    else:
-        db = 'default'
-    return has_charts(db)
 
 
 @register.filter
@@ -199,21 +179,6 @@ def small_count(v, precision=1):
                 return '%d%s' % (o, y)
             return ('%.{}f%s'.format(precision)) % (v / float(x), y)
     return v
-
-
-@register.filter
-def num_digits(value):
-    return len(six.text_type(value))
-
-
-@register.filter
-def to_str(data):
-    return six.text_type(data)
-
-
-@register.filter
-def is_none(value):
-    return value is None
 
 
 @register.simple_tag(takes_context=True)
@@ -286,62 +251,6 @@ def date(dt, arg=None):
     return date(dt, arg)
 
 
-@tag(
-    register, [
-        Constant('for'),
-        Variable('user'),
-        Constant('from'),
-        Variable('project'),
-        Constant('as'),
-        Name('asvar')
-    ]
-)
-def get_project_dsn(context, user, project, asvar):
-    from sentry.models import ProjectKey
-
-    if not user.is_authenticated():
-        context[asvar] = None
-        return ''
-
-    try:
-        key = ProjectKey.objects.filter(project=project)[0]
-    except ProjectKey.DoesNotExist:
-        context[asvar] = None
-    else:
-        context[asvar] = key.get_dsn()
-
-    return ''
-
-
-@register.filter
-def trim_schema(value):
-    return value.split('//', 1)[-1]
-
-
-@register.filter
-def with_metadata(group_list, request):
-    group_list = list(group_list)
-    if request.user.is_authenticated() and group_list:
-        project = group_list[0].project
-        bookmarks = set(
-            project.bookmark_set.filter(
-                user=request.user,
-                group__in=group_list,
-            ).values_list('group_id', flat=True)
-        )
-    else:
-        bookmarks = set()
-
-    # TODO(dcramer): this is obsolete and needs to pull from the tsdb backend
-    historical_data = {}
-
-    for g in group_list:
-        yield g, {
-            'is_bookmarked': g.pk in bookmarks,
-            'historical_data': ','.join(six.text_type(x[1]) for x in historical_data.get(g.id, [])),
-        }
-
-
 @register.simple_tag
 def percent(value, total, format=None):
     if not (value and total):
@@ -365,14 +274,6 @@ def split(value, delim=''):
     return value.split(delim)
 
 
-@register.inclusion_tag('sentry/partial/github_button.html')
-def github_button(user, repo):
-    return {
-        'user': user,
-        'repo': repo,
-    }
-
-
 @register.filter
 def urlquote(value, safe=''):
     return quote(value.encode('utf8'), safe)
@@ -381,23 +282,6 @@ def urlquote(value, safe=''):
 @register.filter
 def basename(value):
     return os.path.basename(value)
-
-
-@register.filter
-def user_display_name(user):
-    return user.name or user.username
-
-
-@register.simple_tag(takes_context=True)
-def localized_datetime(context, dt, format='DATETIME_FORMAT'):
-    request = context['request']
-    timezone = getattr(request, 'timezone', None)
-    if not timezone:
-        timezone = pytz.timezone(settings.SENTRY_DEFAULT_TIME_ZONE)
-
-    dt = dt.astimezone(timezone)
-
-    return date(dt, format)
 
 
 @register.filter
@@ -412,16 +296,6 @@ def count_pending_access_requests(organization):
     return OrganizationAccessRequest.objects.filter(
         team__organization=organization,
     ).count()
-
-
-@register.filter
-def format_userinfo(user):
-    parts = user.username.split('@')
-    if len(parts) == 1:
-        username = user.username
-    else:
-        username = parts[0].lower()
-    return mark_safe('<span title="%s">%s</span>' % (escape(user.username), escape(username), ))
 
 
 @register.filter
