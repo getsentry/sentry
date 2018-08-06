@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from threading import Event
 
 import pytest
-from six.moves import xrange
 from six.moves.queue import Full
 
 import mock
