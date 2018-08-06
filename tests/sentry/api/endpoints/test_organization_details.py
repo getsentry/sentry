@@ -11,6 +11,7 @@ from pprint import pprint
 
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
+    AuditLogEntry,
     Authenticator,
     DeletedOrganization,
     Organization,
@@ -170,30 +171,37 @@ class OrganizationUpdateTest(APITestCase):
 
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
+        initial_data = org.get_audit_log_data()
+
+        # clear audit logs
+        for log in AuditLogEntry.objects.filter(organization=org):
+            log.delete()
+
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.put(
-            url,
-            data={
-                'openMembership': False,
-                'isEarlyAdopter': True,
-                'allowSharedIssues': False,
-                'enhancedPrivacy': True,
-                'dataScrubber': True,
-                'dataScrubberDefaults': True,
-                'sensitiveFields': ['password'],
-                'safeFields': ['email'],
-                'scrubIPAddresses': True,
-                'scrapeJavaScript': False,
-                'defaultRole': 'owner',
-            }
-        )
+
+        data = {
+            'openMembership': False,
+            'isEarlyAdopter': True,
+            'allowSharedIssues': False,
+            'enhancedPrivacy': True,
+            'dataScrubber': True,
+            'dataScrubberDefaults': True,
+            'sensitiveFields': ['password'],
+            'safeFields': ['email'],
+            'scrubIPAddresses': True,
+            'scrapeJavaScript': False,
+            'defaultRole': 'owner',
+        }
+
+        response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
+        assert initial_data != org.get_audit_log_data()
 
         assert org.flags.early_adopter
         assert not org.flags.allow_joinleave
@@ -212,6 +220,20 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get('sentry:sensitive_fields') == ['password']
         assert options.get('sentry:safe_fields') == ['email']
         assert options.get('sentry:scrape_javascript') is False
+
+        # audit log created
+        audit_log = AuditLogEntry.objects.get(organization=org)
+        assert audit_log.get_event_display() == 'org.edit'
+        assert audit_log.data['allow_joinleave'] == 'to False'
+        assert audit_log.data['early_adopter'] == 'to True'
+        assert audit_log.data['disable_shared_issues'] == 'to True'
+        assert audit_log.data['enhanced_privacy'] == 'to True'
+        assert audit_log.data['dataScrubber'] == data['dataScrubber']
+        assert audit_log.data['dataScrubberDefaults'] == data['dataScrubberDefaults']
+        assert audit_log.data['sensitiveFields'] == data['sensitiveFields']
+        assert audit_log.data['safeFields'] == data['safeFields']
+        assert audit_log.data['scrubIPAddresses'] == data['scrubIPAddresses']
+        assert 'to owner' in audit_log.data['default_role']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
