@@ -18,10 +18,9 @@ class Migration(SchemaMigration):
             ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
             ('group_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(null=True)),
             ('event_id', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
-                to=orm['sentry.File'])),
+            ('file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
             ('name', self.gf('django.db.models.fields.TextField')()),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['EventAttachment'])
 

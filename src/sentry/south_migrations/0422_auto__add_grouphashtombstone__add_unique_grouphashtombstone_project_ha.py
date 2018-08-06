@@ -15,10 +15,9 @@ class Migration(SchemaMigration):
         # Adding model 'GroupHashTombstone'
         db.create_table('sentry_grouphashtombstone', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
-                to=orm['sentry.Project'])),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
             ('hash', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('deleted_at', self.gf('django.db.models.fields.DateTimeField')()),
+            ('deleted_at', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['GroupHashTombstone'])
 

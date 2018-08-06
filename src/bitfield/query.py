@@ -32,7 +32,7 @@ try:
                 lhs_sql = lhs_sql + ' & %s'
             else:
                 lhs_sql = lhs_sql + ' | %s'
-            params.extend(self.get_db_prep_lookup(self.rhs, connection)[1])
+            params.append(self.get_db_prep_lookup(self.rhs, connection)[1])
             return lhs_sql, params
 
         def get_db_prep_lookup(self, value, connection, prepared=False):

@@ -314,7 +314,7 @@ class UnmergeTestCase(TestCase):
         assert set(
             [(gtv.key, gtv.value, gtv.times_seen)
              for gtv in
-             GroupTagValue.objects.select_related('_key', '_value').filter(
+             GroupTagValue.objects.filter(
                  project_id=source.project_id,
                  group_id=source.id,
             )]
