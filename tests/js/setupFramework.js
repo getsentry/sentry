@@ -80,6 +80,30 @@ async function testSnapshot({currentTestName, source}) {
   // console.log(received.getDOMNode()); console.log(document.documentElement.outerHTML);
 }
 expect.extend({
+  toSnapshot: function(received, argument) {
+    ReactDOM.render(received, document.body);
+    // console.log(sprite.stringify());
+    const cloned = document.documentElement.cloneNode(true);
+    console.log('cloned', cloned);
+    const body = cloned.getElementsByTagName('body').item(0);
+    body.innerHTML = received.html();
+    puppeteer.launch().then(async browser => {
+      const page = await browser.newPage();
+      page.setViewport({width: 1200, height: 600, deviceScaleFactor: 4});
+      await page.setContent(cloned.outerHTML);
+      const image = await page.screenshot({
+        path: `${this.currentTestName}.png`,
+        fullPage: true,
+      });
+      expect(image).toMatchImageSnapshot();
+      await browser.close();
+    });
+    console.log(cloned.outerHTML);
+    return {
+      message: () => 'expected to save snapshot',
+      pass: true,
+    };
+  },
   toPercy: function(received, argument) {
     // ReactDOM.render(received, document.body);
     // console.log(sprite.stringify());
