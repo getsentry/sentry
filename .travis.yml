@@ -204,8 +204,6 @@ matrix:
 # to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
   allow_failures:
     - python: 2.7
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
-    - python: 2.7
       env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
     - language: node_js
       env: STORYBOOK_BUILD=1
