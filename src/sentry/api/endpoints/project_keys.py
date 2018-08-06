@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import F
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -50,7 +51,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         """
         queryset = ProjectKey.objects.filter(
             project=project,
-            roles=ProjectKey.roles.store,
+            roles=F('roles').bitor(ProjectKey.roles.store),
         )
         status = request.GET.get('status')
         if status == 'active':
