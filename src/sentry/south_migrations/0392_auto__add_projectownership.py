@@ -20,8 +20,8 @@ class Migration(SchemaMigration):
             ('raw', self.gf('django.db.models.fields.TextField')(null=True)),
             ('schema', self.gf('jsonfield.fields.JSONField')(null=True)),
             ('fallthrough', self.gf('django.db.models.fields.BooleanField')(default=True)),
-            ('date_created', self.gf('django.db.models.fields.DateTimeField')()),
-            ('last_updated', self.gf('django.db.models.fields.DateTimeField')()),
+            ('date_created', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('last_updated', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
         ))
         db.send_create_signal('sentry', ['ProjectOwnership'])

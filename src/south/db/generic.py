@@ -723,12 +723,14 @@ class DatabaseOperations(object):
             if not getattr(field, '_suppress_default', False):
                 if field.has_default():
                     default = field.get_default()
+                    # If the default is a callable, then scrap it as we dont want python-based defaults
+                    # written into the database
+                    if callable(default):
+                        get_logger().warn(text_type('discarded column default "%r" on "%s"' % (default, table_name)))
+                        default = None
+
                     # If the default is actually None, don't add a default term
                     if default is not None:
-                        # If the default is a callable, then call it!
-                        if callable(default):
-                            default = default()
-
                         default = field.get_db_prep_save(default, connection=self._get_connection())
                         default = self._default_value_workaround(default)
                         # Now do some very cheap quoting. TODO: Redesign return values to avoid
