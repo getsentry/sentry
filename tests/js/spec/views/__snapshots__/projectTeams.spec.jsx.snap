@@ -6,18 +6,6 @@ exports[`ProjectTeams renders 1`] = `
 >
   <div>
     <SettingsPageHeading
-      action={
-        <Button
-          disabled={false}
-          icon="icon-circle-add"
-          onClick={[Function]}
-          priority="primary"
-          size="small"
-          title={undefined}
-        >
-          Create Team
-        </Button>
-      }
       title={
         <span>
           <span>
@@ -39,6 +27,7 @@ exports[`ProjectTeams renders 1`] = `
         <div>
           <DropdownAutoComplete
             alignMenu="right"
+            emptyMessage="No teams"
             items={
               Array [
                 Object {
@@ -54,11 +43,22 @@ exports[`ProjectTeams renders 1`] = `
             menuHeader={
               <StyledTeamsLabel>
                 Teams
-                <StyledCreateTeamLink
-                  onClick={[Function]}
+                <Tooltip
+                  disabled={true}
+                  title="You do not have access to create teams."
+                  tooltipOptions={
+                    Object {
+                      "placement": "top",
+                    }
+                  }
                 >
-                  Create Team
-                </StyledCreateTeamLink>
+                  <StyledCreateTeamLink
+                    disabled={false}
+                    onClick={[Function]}
+                  >
+                    Create Team
+                  </StyledCreateTeamLink>
+                </Tooltip>
               </StyledTeamsLabel>
             }
             onSelect={[Function]}
@@ -91,6 +91,7 @@ exports[`ProjectTeams renders 1`] = `
           team={
             Object {
               "id": "1",
+              "isMember": true,
               "name": "Team Name",
               "slug": "team-slug",
             }

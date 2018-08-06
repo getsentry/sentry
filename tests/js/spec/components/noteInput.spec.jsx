@@ -27,7 +27,7 @@ describe('NoteInput', function() {
 
   it('renders', function() {
     let wrapper = shallow(
-      <NoteInput group={{}} memberList={[]} sessionUser={{}} />,
+      <NoteInput group={{project: {}}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
@@ -35,7 +35,7 @@ describe('NoteInput', function() {
 
   it('submits when meta + enter is pressed', function() {
     let wrapper = mount(
-      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
 
@@ -47,7 +47,7 @@ describe('NoteInput', function() {
 
   it('submits when ctrl + enter is pressed', function() {
     let wrapper = mount(
-      <NoteInput group={{id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
 
@@ -55,5 +55,24 @@ describe('NoteInput', function() {
 
     input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('handles 401 error objects', async function() {
+    Client.addMockResponse({
+      url: '/issues/groupId/comments/',
+      method: 'POST',
+      body: {detail: {message: '', code: 401, extra: ''}},
+      statusCode: 401,
+    });
+    let wrapper = mount(
+      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      TestStubs.routerContext()
+    );
+
+    let input = wrapper.find('textarea');
+
+    input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
+    wrapper.update();
+    expect(wrapper.find('.activity-actions .error')).toHaveLength(1);
   });
 });

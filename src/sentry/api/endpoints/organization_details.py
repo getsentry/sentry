@@ -4,7 +4,6 @@ import logging
 import six
 
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from uuid import uuid4
 
 from sentry import roles
@@ -16,14 +15,17 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Authenticator, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+ERR_NO_USER = 'This request requires an authenticated user.'
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type
@@ -34,6 +36,7 @@ ORG_OPTIONS = (
     ('sensitiveFields', 'sentry:sensitive_fields', list),
     ('safeFields', 'sentry:safe_fields', list),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
+    ('scrapeJavaScript', 'sentry:scrape_javascript', bool),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -82,8 +85,17 @@ class OrganizationSerializer(serializers.Serializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
+    scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+
+    @memoize
+    def _has_legacy_rate_limits(self):
+        org = self.context['organization']
+        return OrganizationOption.objects.filter(
+            organization=org,
+            key__in=LEGACY_RATE_LIMIT_OPTIONS,
+        ).exists()
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
@@ -124,7 +136,19 @@ class OrganizationSerializer(serializers.Serializer):
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
             raise serializers.ValidationError(
-                'User setting two-factor authentication enforcement without two-factor authentication enabled.')
+                'Cannot require two-factor authentication without personal two-factor enabled.')
+        return attrs
+
+    def validate_accountRateLimit(self, attrs, source):
+        if not self._has_legacy_rate_limits:
+            raise serializers.ValidationError(
+                'The accountRateLimit option cannot be configured for this organization')
+        return attrs
+
+    def validate_projectRateLimit(self, attrs, source):
+        if not self._has_legacy_rate_limits:
+            raise serializers.ValidationError(
+                'The accountRateLimit option cannot be configured for this organization')
         return attrs
 
     def validate(self, attrs):
@@ -260,7 +284,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             request.user,
             DetailedOrganizationSerializer(),
         )
-        return Response(context)
+        return self.respond(context)
 
     @attach_scenarios([update_organization_scenario])
     def put(self, request, organization):
@@ -293,7 +317,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             organization, changed_data = serializer.save()
 
-            if was_pending_deletion and organization.status == OrganizationStatus.VISIBLE:
+            if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,
                     organization=organization,
@@ -308,23 +332,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'model': Organization.__name__,
                     }
                 )
-            else:
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=organization.id,
-                    event=AuditLogEntryEvent.ORG_EDIT,
-                    data=changed_data
-                )
 
-            return Response(
+            return self.respond(
                 serialize(
                     organization,
                     request.user,
                     DetailedOrganizationSerializer(),
                 )
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
     def delete(self, request, organization):
@@ -346,10 +362,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return Response({'detail': 'This request requires a user.'}, status=401)
+            return self.respond({'detail': ERR_NO_USER}, status=401)
 
         if organization.is_default:
-            return Response({'detail': ERR_DEFAULT_ORG}, status=400)
+            return self.respond({'detail': ERR_DEFAULT_ORG}, status=400)
 
         updated = Organization.objects.filter(
             id=organization.id,
@@ -388,4 +404,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 }
             )
 
-        return Response(status=204)
+        context = serialize(
+            organization,
+            request.user,
+            DetailedOrganizationSerializer(),
+        )
+        return self.respond(context, status=202)

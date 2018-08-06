@@ -3,30 +3,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import MenuItem from './menuItem';
-import SentryTypes from '../../../../proptypes';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import replaceRouterParams from '../../../../utils/replaceRouterParams';
-import withLatestContext from '../../../../utils/withLatestContext';
-import withProjects from '../../../../utils/withProjects';
-
-const HEIGHT = '24px';
-const ProjectName = styled.div`
-  display: flex;
-
-  .loading {
-    width: 26px;
-    height: ${HEIGHT};
-    margin: 0;
-  }
-`;
-
-const ProjectTextLink = styled(TextLink)`
-  line-height: ${HEIGHT};
-`;
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import IdBadge from 'app/components/idBadge';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import SentryTypes from 'app/sentryTypes';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withLatestContext from 'app/utils/withLatestContext';
+import withProjects from 'app/utils/withProjects';
+import space from 'app/styles/space';
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -62,16 +49,14 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <div>
-                <ProjectTextLink
-                  to={replaceRouterParams('/settings/:orgId/:projectId/', {
-                    orgId: latestOrganization.slug,
-                    projectId: latestProject.slug,
-                  })}
-                >
-                  {latestProject.slug}
-                </ProjectTextLink>
-              </div>
+              <TextLink
+                to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                  orgId: latestOrganization.slug,
+                  projectId: latestProject.slug,
+                })}
+              >
+                <IdBadge project={latestProject} avatarSize={18} />
+              </TextLink>
             )}
           </ProjectName>
         }
@@ -90,7 +75,15 @@ class ProjectCrumb extends React.Component {
         }}
         items={projects.map(project => ({
           value: project.slug,
-          label: <MenuItem>{project.slug}</MenuItem>,
+          label: (
+            <MenuItem>
+              <IdBadge
+                project={project}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+              />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />
@@ -100,3 +93,16 @@ class ProjectCrumb extends React.Component {
 
 export {ProjectCrumb};
 export default withProjects(withLatestContext(ProjectCrumb));
+
+// Set height of crumb because of spinner
+const SPINNER_SIZE = '24px';
+
+const ProjectName = styled.div`
+  display: flex;
+
+  .loading {
+    width: ${SPINNER_SIZE};
+    height: ${SPINNER_SIZE};
+    margin: 0 ${space(0.25)} 0 0;
+  }
+`;

@@ -483,7 +483,7 @@ class CspReportTest(TestCase):
         assert output['message'] == e.data['sentry.interfaces.Message']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
-        self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)
+        self.assertDictContainsSubset(output['data'], e.data, e.data)
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)

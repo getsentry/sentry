@@ -23,14 +23,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'UserPermission', fields ['user', 'permission']
         db.create_unique('sentry_userpermission', ['user_id', 'permission'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'UserPermission', fields ['user', 'permission']
         db.delete_unique('sentry_userpermission', ['user_id', 'permission'])
 
         # Deleting model 'UserPermission'
         db.delete_table('sentry_userpermission')
-
 
     models = {
         'sentry.activity': {

@@ -2,8 +2,8 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Pills from 'sentry-ui/pills';
-import Pill from 'sentry-ui/pill';
+import Pills from 'app/components/pills';
+import Pill from 'app/components/pill';
 
 // eslint-disable-next-line
 storiesOf('Pills', module).add(

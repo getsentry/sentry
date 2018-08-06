@@ -21,7 +21,7 @@ from django.utils.functional import cached_property
 
 from sentry import roles
 from sentry.app import locks
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, sane_repr)
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
@@ -283,7 +283,11 @@ class Organization(Model):
                 with transaction.atomic():
                     project.update(organization=to_org)
             except IntegrityError:
-                slugify_instance(project, project.name, organization=to_org)
+                slugify_instance(
+                    project,
+                    project.name,
+                    organization=to_org,
+                    reserved=RESERVED_PROJECT_SLUGS)
                 project.update(
                     organization=to_org,
                     slug=project.slug,
@@ -371,7 +375,7 @@ class Organization(Model):
             if not Authenticator.objects.user_has_2fa(user):
                 context = {
                     'user': user,
-                    'url': absolute_uri(reverse('sentry-account-settings-2fa')),
+                    'url': absolute_uri(reverse('sentry-account-settings-security')),
                     'organization': self
                 }
                 message = MessageBuilder(

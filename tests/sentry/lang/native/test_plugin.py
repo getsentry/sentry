@@ -1,22 +1,28 @@
 from __future__ import absolute_import
 
 import os
+import pytest
 import zipfile
 from mock import patch
 from six import BytesIO
 
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.models import Event, File, ProjectDSymFile
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
+from sentry.models import Event, File, ProjectDSymFile
 
 from symbolic import parse_addr, Object, SymbolicError
 
 
 class BasicResolvingIntegrationTest(TestCase):
 
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
         object_name = (
@@ -97,18 +103,20 @@ class BasicResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -161,10 +169,25 @@ class BasicResolvingIntegrationTest(TestCase):
             }
         }
 
-        resp = self._postWithHeader(event_data)
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(event_data)
+        with self.assertWriteQueries({
+            'nodestore_node': 2,
+            'sentry_environmentproject': 1,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_filtervalue': 8,
+            'sentry_groupedmessage': 1,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 8,
+            'sentry_userreport': 1
+        }):
+            resp = self._postWithHeader(event_data)
+
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
 
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames
@@ -248,12 +271,6 @@ class BasicResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -291,18 +308,20 @@ class BasicResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -455,18 +474,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -606,12 +627,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -649,18 +664,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -759,12 +776,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -837,18 +848,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -972,18 +985,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -1282,3 +1297,198 @@ class RealResolvingIntegrationTest(TestCase):
         assert frames[0].filename == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
         assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
         assert frames[0].lineno == 35
+
+
+class ExceptionMechanismIntegrationTest(TestCase):
+
+    def test_full_mechanism(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT"
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        assert mechanism.type == 'mach'
+        assert mechanism.meta['signal']['number'] == 6
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGABRT'
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+    def test_mechanism_name_expansion(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 10,
+                                    "code": 0
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10
+                                }
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        assert mechanism.type == 'mach'
+        assert mechanism.meta['signal']['number'] == 10
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGBUS'
+        assert mechanism.meta['signal']['code_name'] == 'BUS_NOOP'
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+    def test_legacy_mechanism(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "posix_signal": {
+                                "signal": 6,
+                                "code": 0,
+                                "name": "SIGABRT"
+                            },
+                            "mach_exception": {
+                                "subcode": 0,
+                                "code": 0,
+                                "exception": 10,
+                                "exception_name": "EXC_CRASH"
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        # NOTE: legacy mechanisms are always classified "generic"
+        assert mechanism.type == 'generic'
+        assert mechanism.meta['signal']['number'] == 6
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGABRT'
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'

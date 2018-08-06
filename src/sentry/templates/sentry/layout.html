@@ -54,7 +54,7 @@
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
 
-    Sentry.ConfigStore.loadInitialData({% get_react_config %});
+    SentryApp.ConfigStore.loadInitialData({% get_react_config %}, {{ request.LANGUAGE_CODE|to_json|safe }});
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
 
@@ -87,8 +87,8 @@
               }
             },
             render: function () {
-              return React.createElement(Sentry.OrganizationsLoader, {},
-                React.createElement(Sentry.Sidebar));
+              return React.createElement(SentryApp.OrganizationsLoader, {},
+                React.createElement(SentryApp.Sidebar));
             }
           });
           SidebarWrapper.childContextTypes = {
@@ -177,7 +177,7 @@
         {% block header_nav %}{% endblock %}
         <script>
         $(function(){
-          ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
+          ReactDOM.render(React.createFactory(SentryApp.ProjectSelector)({
             organization: {% serialize_detailed_org organization %},
             projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
           }), document.getElementById('blk_projectselect'));
@@ -230,13 +230,6 @@
     </footer>
   </div>
 
-  {% block selectize %}
-  <script>
-  $(function() {
-    $('select').select2({placeholder: '--'});
-  });
-  </script>
-  {% endblock %}
   <script>
   $('.auto-select').click(function() {
     if (document.selection) {
@@ -256,92 +249,6 @@
     $('.project-dropdown').on('shown.bs.dropdown', function(event){
       $(event.target).find('input[type=text]').focus();
     });
-  });
-  $(function() {
-    var slideShow = function() {
-
-      var slideWidth = $(".slide").width();
-      var numSlides = 0;
-      var currentSlide;
-
-      // Find all slides
-
-      $(".slide").each(function(i) {
-        numSlides++;
-
-        var slide = i + 1;
-        var isActive;
-
-        if ($(this).hasClass("active")) {
-          isActive = true;
-          currentSlide = slide;
-        }
-
-        $(this).addClass("slide-" + slide );
-
-        // Build dot nav
-
-        $(".dot-nav").append('<li class="'+ (isActive ? "active" : "") + '"><a href="#" class="show-slide" data-show-slide="'+ slide +'"></a></li>')
-      });
-
-      // Input handlers
-
-      $(".show-slide").click(function() {
-        showSlide($(this).attr("data-show-slide"));
-      });
-
-      $(".close").click(function() {
-        $(".welcome-modal").fadeOut();
-      });
-
-      $(".slide-show-next").click(function() {
-        if (currentSlide + 1 <= numSlides) {
-          showSlide(currentSlide + 1);
-        } else {
-          showSlide(1);
-        }
-      });
-
-      $(".slide-show-prev").click(function() {
-        if (currentSlide - 1 != 0) {
-          showSlide(currentSlide - 1);
-        } else {
-          showSlide(numSlides);
-        }
-      });
-
-      this.showSlide = function(location) {
-        currentSlide = location;
-
-        // Clear active items
-        $(".slide").removeClass("active");
-        $(".dot-nav li").removeClass("active");
-
-        // Set new active items
-
-        $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
-        $(".slide-" + location).addClass("active");
-
-        // Use margin to show slide
-
-        $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
-
-        // Animate shit
-
-        $(".slide-" + location + " [data-animate]").addClass("animated");
-      }
-
-      showSlide(1);
-    }
-
-    // $( "body" ).keypress(function( event ) {
-    //   if ( event.which == 96 ) {
-    //      event.preventDefault();
-    //      $(".welcome-modal").fadeIn();
-    //   }
-    // });
-
-    slideShow();
   });
   </script>
   {% endblock %}

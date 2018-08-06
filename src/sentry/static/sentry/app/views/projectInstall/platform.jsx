@@ -3,16 +3,19 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader} from '../../components/panels';
-import {t, tct} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Button from '../../components/buttons/button';
-import LanguageNav from './languageNav';
-import Link from '../../components/link';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import NotFound from '../../components/errors/notFound';
-import TextBlock from '../settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import analytics from 'app/utils/analytics';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import ConfigStore from 'app/stores/configStore';
+import InstallReactTest from 'app/views/planout/installReact';
+import LanguageNav from 'app/views/projectInstall/languageNav';
+import Link from 'app/components/link';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const ProjectInstallPlatform = createReactClass({
   displayName: 'ProjectInstallPlatform',
@@ -56,12 +59,14 @@ const ProjectInstallPlatform = createReactClass({
       integration,
       platform,
       html: null,
+      experimentPlatforms: new Set(['javascript-react']),
     };
   },
 
   componentDidMount() {
     this.fetchData();
     $(window).scrollTop(0);
+    this.recordAnalytics();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -102,6 +107,28 @@ const ProjectInstallPlatform = createReactClass({
         {display || platform}
       </Link>
     );
+  },
+
+  inInstallExperiment() {
+    let {experimentPlatforms, integration} = this.state;
+    if (!integration || !integration.id) return '';
+
+    let currentPlatform = integration.id;
+    let installExperiment =
+      ConfigStore.get('features').has('install-experiment') &&
+      experimentPlatforms.has(currentPlatform);
+    return installExperiment;
+  },
+
+  recordAnalytics() {
+    let {experimentPlatforms, integration} = this.state;
+
+    if (!integration || !experimentPlatforms.has(integration.id)) return;
+
+    analytics('experiment.installation_instructions', {
+      integration: integration.id,
+      experiment: this.inInstallExperiment(),
+    });
   },
 
   renderSidebar() {
@@ -173,6 +200,48 @@ const ProjectInstallPlatform = createReactClass({
               priority="primary"
               size="large"
               to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
+            >
+              {t('Got it! Take me to the Issue Stream.')}
+            </Button>
+          )}
+        </PanelBody>
+      </Panel>
+    );
+  },
+
+  renderTestBody() {
+    let {integration, platform} = this.state;
+    let {dsnPublic} = this.props.platformData;
+    let {orgId, projectId} = this.props.params;
+
+    if (!integration || !platform) {
+      return <NotFound />;
+    }
+
+    return (
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Configure %(integration)s', {integration: integration.name})}
+          <Button size="small" href={integration.link} external>
+            {t('Full Documentation')}
+          </Button>
+        </PanelHeader>
+
+        <PanelBody disablePadding={false}>
+          {this.state.loading ? (
+            <LoadingIndicator />
+          ) : this.state.error ? (
+            <LoadingError onRetry={this.fetchData} />
+          ) : (
+            <InstallReactTest dsn={dsnPublic} />
+          )}
+          {this.isGettingStarted() && (
+            <Button
+              priority="primary"
+              size="large"
+              to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
             >
               {t('Got it! Take me to the Issue Stream.')}
             </Button>
@@ -183,9 +252,16 @@ const ProjectInstallPlatform = createReactClass({
   },
 
   render() {
+    let installExperiment;
+    if (!this.state.loading) {
+      installExperiment = this.inInstallExperiment();
+    }
+
     return (
       <div className="install row">
-        <div className="install-content col-md-10">{this.renderBody()}</div>
+        <div className="install-content col-md-10">
+          {installExperiment ? this.renderTestBody() : this.renderBody()}
+        </div>
         {this.renderSidebar()}
       </div>
     );
@@ -197,5 +273,9 @@ export default ProjectInstallPlatform;
 const DocumentationWrapper = styled('div')`
   p {
     line-height: 1.5;
+  }
+  pre {
+    word-break: break-all;
+    white-space: pre-wrap;
   }
 `;

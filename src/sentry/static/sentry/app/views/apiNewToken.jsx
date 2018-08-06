@@ -1,11 +1,11 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import AsyncView from './asyncView';
-import {API_SCOPES, DEFAULT_API_SCOPES} from '../constants';
-import NarrowLayout from '../components/narrowLayout';
-import {ApiForm, MultipleCheckboxField} from '../components/forms';
-import {t, tct} from '../locale';
+import AsyncView from 'app/views/asyncView';
+import {API_SCOPES, DEFAULT_API_SCOPES} from 'app/constants';
+import NarrowLayout from 'app/components/narrowLayout';
+import {ApiForm, MultipleCheckboxField} from 'app/components/forms';
+import {t, tct} from 'app/locale';
 
 const SORTED_DEFAULT_API_SCOPES = DEFAULT_API_SCOPES.sort();
 const API_CHOICES = API_SCOPES.map(s => [s, s]);

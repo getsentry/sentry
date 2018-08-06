@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Note from './note';
-import NoteInput from './noteInput';
+import Note from 'app/components/activity/note';
+import NoteInput from 'app/components/activity/noteInput';
 
 class NoteContainer extends React.Component {
   static propTypes = {

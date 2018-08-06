@@ -10,17 +10,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {addErrorMessage, addSuccessMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import CircleIndicator from '../../../../components/circleIndicator';
-import DateTime from '../../../../components/dateTime';
-import RecoveryCodes from './components/recoveryCodes';
-import RemoveConfirm from './components/removeConfirm';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import U2fEnrolledDetails from './components/u2fEnrolledDetails';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import DateTime from 'app/components/dateTime';
+import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import Tooltip from 'app/components/tooltip';
+import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
 const ENDPOINT = '/users/me/authenticators/';
 
@@ -57,6 +58,10 @@ class AuthenticatorDate extends React.Component {
 }
 
 class AccountSecurityDetails extends AsyncView {
+  static PropTypes = {
+    deleteDisabled: PropTypes.bool.isRequired,
+    onRegenerateBackupCodes: PropTypes.func.isRequired,
+  };
   constructor(...args) {
     super(...args);
     this._form = {};
@@ -110,20 +115,9 @@ class AccountSecurityDetails extends AsyncView {
     // TODO(billy): Implement me
   };
 
-  handleRegenerateBackupCodes = () => {
-    this.setState({loading: true}, () =>
-      this.api
-        .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
-          method: 'PUT',
-        })
-        .then(this.remountComponent, () =>
-          this.addError(t('Error regenerating backup codes'))
-        )
-    );
-  };
-
   renderBody() {
     let {authenticator} = this.state;
+    let {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
       <div>
@@ -137,9 +131,18 @@ class AccountSecurityDetails extends AsyncView {
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (
-              <RemoveConfirm onConfirm={this.handleRemove}>
-                <Button priority="danger">{authenticator.removeButton}</Button>
-              </RemoveConfirm>
+              <Tooltip
+                title={t(
+                  "Two-factor authentication is required for at least one organization you're a member of."
+                )}
+                disabled={!deleteDisabled}
+              >
+                <span>
+                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                    <Button priority="danger">{authenticator.removeButton}</Button>
+                  </RemoveConfirm>
+                </span>
+              </Tooltip>
             )
           }
         />
@@ -164,7 +167,7 @@ class AccountSecurityDetails extends AsyncView {
           )}
 
         <RecoveryCodes
-          onRegenerateBackupCodes={this.handleRegenerateBackupCodes}
+          onRegenerateBackupCodes={onRegenerateBackupCodes}
           isEnrolled={authenticator.isEnrolled}
           codes={authenticator.codes}
         />

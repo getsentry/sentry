@@ -1,21 +1,21 @@
-import {Flex} from 'grid-emotion';
+import {Box, Flex} from 'grid-emotion';
 import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import DateTime from '../components/dateTime';
-import FileSize from '../components/fileSize';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationState from '../mixins/organizationState';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
-import TimeSince from '../components/timeSince';
-import EmptyStateWarning from '../components/emptyStateWarning';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DateTime from 'app/components/dateTime';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TimeSince from 'app/components/timeSince';
 
 const marginBottomStyle = {marginBottom: 40};
 
@@ -173,11 +173,14 @@ const ProjectDebugSymbols = createReactClass({
       return (
         <Panel style={marginBottomStyle} key={app.id}>
           <PanelHeader>
-            <div
-              className="app-icon"
-              style={app.iconUrl && {backgroundImage: `url(${app.iconUrl})`}}
-            />
-            {app.name} <small>({app.appId})</small>
+            <div>
+              <div
+                className="app-icon"
+                style={app.iconUrl && {backgroundImage: `url(${app.iconUrl})`}}
+              />
+              {app.name}
+            </div>
+            <small>({app.appId})</small>
           </PanelHeader>
 
           <PanelBody>
@@ -199,19 +202,19 @@ const ProjectDebugSymbols = createReactClass({
                   className="hoverable"
                   onClick={() => this.setActive(app.id, version, builds)}
                 >
-                  <Flex p={2} flex="1" direction="column">
+                  <Flex flex="1" direction="column">
                     <h3 className="truncate">{version}</h3>
-                    <div className="event-message">
+                    <BuildLabel>
                       {t('Builds')}: {Object.keys(builds).length}
-                    </div>
+                    </BuildLabel>
                     <LastSeen align="center">
                       <TimeIcon className="icon icon-clock" />
                       <TimeSince date={lastSeen} />
                     </LastSeen>
                   </Flex>
-                  <Flex p={2}>
+                  <Box>
                     {t('Debug Information Files')}: {symbolsInVersion}
-                  </Flex>
+                  </Box>
                 </HoverablePanelItem>
               );
 
@@ -252,16 +255,16 @@ const ProjectDebugSymbols = createReactClass({
     this.mapObject(builds, (dsyms, build) => {
       buildPanelItems.push(
         <HoverablePanelItem key={build} onClick={() => this.openModal(build, dsyms)}>
-          <Flex p={2} flex="1" direction="column">
-            <div>{build}</div>
+          <Flex flex="1" direction="column">
+            <BuildLabel>{build}</BuildLabel>
             <LastSeen align="center">
               <TimeIcon className="icon icon-clock" />
               <TimeSince date={dateAdded} />
             </LastSeen>
           </Flex>
-          <Flex p={2}>
+          <Box>
             {t('Debug Information Files')}: {dsyms.length}
-          </Flex>
+          </Box>
         </HoverablePanelItem>
       );
     });
@@ -417,3 +420,7 @@ const ProjectDebugSymbols = createReactClass({
 });
 
 export default ProjectDebugSymbols;
+
+const BuildLabel = styled('div')`
+  margin-bottom: 4px;
+`;

@@ -1,13 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import GuideAnchor from '../../components/assistant/guideAnchor';
+import {t} from 'app/locale';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 class GroupEventDataSection extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired,
     title: PropTypes.any,
     type: PropTypes.string.isRequired,
     wrapTitle: PropTypes.bool,

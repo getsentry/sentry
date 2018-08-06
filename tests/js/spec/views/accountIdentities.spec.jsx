@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -19,14 +18,7 @@ describe('AccountIdentities', function() {
       body: [],
     });
 
-    let wrapper = shallow(<AccountIdentities />, {
-      context: {
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-    });
+    let wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
 
     expect(wrapper).toMatchSnapshot();
   });
@@ -44,14 +36,7 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    let wrapper = shallow(<AccountIdentities />, {
-      context: {
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-    });
+    let wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
     expect(wrapper).toMatchSnapshot();
   });
 
@@ -68,14 +53,7 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    let wrapper = mount(<AccountIdentities />, {
-      context: {
-        router: TestStubs.router(),
-      },
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-    });
+    let wrapper = mount(<AccountIdentities />, TestStubs.routerContext());
 
     let disconnectRequest = {
       url: `${ENDPOINT}1/`,

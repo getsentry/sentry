@@ -34,6 +34,17 @@ describe('TagStore', function() {
       TagStore.onMemberListStoreChange();
       expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith@example.org']);
     });
+
+    it('should fall back to email when the username is a UUID', () => {
+      sandbox.stub(MemberListStore, 'getAll').returns([
+        {
+          username: '8f5c6478172d4389930c12841f45dc18',
+          email: 'janesmith@example.org',
+        },
+      ]);
+      TagStore.onMemberListStoreChange();
+      expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith@example.org']);
+    });
   });
 
   describe('onLoadTagsSuccess()', () => {

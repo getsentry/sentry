@@ -3,23 +3,23 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
-import LoadingIndicator from '../../components/loadingIndicator';
-import LoadingError from '../../components/loadingError';
-import IconOpen from '../../icons/icon-open';
-import LastCommit from '../../components/lastCommit';
-import IssueList from '../../components/issueList';
-import CommitAuthorStats from '../../components/commitAuthorStats';
-import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
-import RepositoryFileSummary from '../../components/repositoryFileSummary';
-import TimeSince from '../../components/timeSince';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import IconOpen from 'app/icons/icon-open';
+import LastCommit from 'app/components/lastCommit';
+import IssueList from 'app/components/issueList';
+import CommitAuthorStats from 'app/components/commitAuthorStats';
+import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
+import RepositoryFileSummary from 'app/components/repositoryFileSummary';
+import TimeSince from 'app/components/timeSince';
 
-import ApiMixin from '../../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import {t} from '../../locale';
-import SentryTypes from '../../proptypes';
-import OrganizationState from '../../mixins/organizationState';
-import {Panel, PanelBody, PanelItem} from '../../components/panels';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import OrganizationState from 'app/mixins/organizationState';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
@@ -6,6 +5,8 @@ import {Client} from 'app/api';
 import ApiTokens from 'app/views/settings/account/apiTokens';
 
 describe('ApiTokens', function() {
+  let routerContext = TestStubs.routerContext();
+
   beforeEach(function() {
     Client.clearMockResponses();
   });
@@ -15,14 +16,7 @@ describe('ApiTokens', function() {
       url: '/api-tokens/',
     });
 
-    let wrapper = shallow(<ApiTokens />, {
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-      context: {
-        router: TestStubs.router(),
-      },
-    });
+    let wrapper = shallow(<ApiTokens />, routerContext);
 
     // Should be loading
     expect(wrapper).toMatchSnapshot();
@@ -34,14 +28,7 @@ describe('ApiTokens', function() {
       body: [TestStubs.ApiToken()],
     });
 
-    let wrapper = mount(<ApiTokens />, {
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-      context: {
-        router: TestStubs.router(),
-      },
-    });
+    let wrapper = shallow(<ApiTokens />, routerContext);
 
     // Should be loading
     expect(wrapper).toMatchSnapshot();
@@ -60,14 +47,7 @@ describe('ApiTokens', function() {
 
     expect(mock).not.toHaveBeenCalled();
 
-    let wrapper = mount(<ApiTokens />, {
-      childContextTypes: {
-        router: PropTypes.object,
-      },
-      context: {
-        router: TestStubs.router(),
-      },
-    });
+    let wrapper = mount(<ApiTokens />, routerContext);
 
     wrapper.find('.ref-delete-api-token').simulate('click');
 

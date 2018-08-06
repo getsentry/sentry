@@ -4,15 +4,16 @@ import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import ClippedBox from '../../clippedBox';
-import Tooltip from '../../tooltip';
-import StrictClick from '../../strictClick';
-import Truncate from '../../truncate';
-import {t} from '../../../locale';
-import {defined, objectIsEmpty, isUrl} from '../../../utils';
+import ClippedBox from 'app/components/clippedBox';
+import Tooltip from 'app/components/tooltip';
+import StrictClick from 'app/components/strictClick';
+import Truncate from 'app/components/truncate';
+import {t} from 'app/locale';
+import {defined, objectIsEmpty, isUrl} from 'app/utils';
 
-import ContextLine from './contextLine';
-import FrameVariables from './frameVariables';
+import ContextLine from 'app/components/events/interfaces/contextLine';
+import FrameVariables from 'app/components/events/interfaces/frameVariables';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 
 export function trimPackage(pkg) {
   let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');
@@ -32,6 +33,7 @@ const Frame = createReactClass({
     emptySourceNotation: PropTypes.bool,
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
+    registers: PropTypes.objectOf(PropTypes.string.isRequired),
   },
 
   getDefaultProps() {
@@ -66,11 +68,16 @@ const Frame = createReactClass({
     return !objectIsEmpty(this.props.data.vars);
   },
 
+  hasContextRegisters() {
+    return !objectIsEmpty(this.props.registers);
+  },
+
   isExpandable() {
     return (
       (!this.props.isOnlyFrame && this.props.emptySourceNotation) ||
       this.hasContextSource() ||
-      this.hasContextVars()
+      this.hasContextVars() ||
+      this.hasContextRegisters()
     );
   },
 
@@ -235,13 +242,14 @@ const Frame = createReactClass({
 
     let hasContextSource = this.hasContextSource();
     let hasContextVars = this.hasContextVars();
+    let hasContextRegisters = this.hasContextRegisters();
     let expandable = this.isExpandable();
 
     let contextLines = isExpanded
       ? data.context
       : data.context && data.context.filter(l => l[0] === data.lineNo);
 
-    if (hasContextSource || hasContextVars) {
+    if (hasContextSource || hasContextVars || hasContextRegisters) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}>
@@ -258,9 +266,12 @@ const Frame = createReactClass({
               );
             })}
 
-          {hasContextVars && (
+          {(hasContextRegisters || hasContextVars) && (
             <ClippedBox clipHeight={100}>
-              <FrameVariables data={data.vars} key="vars" />
+              {hasContextRegisters && (
+                <FrameRegisters data={this.props.registers} key="registers" />
+              )}
+              {hasContextVars && <FrameVariables data={data.vars} key="vars" />}
             </ClippedBox>
           )}
         </ol>

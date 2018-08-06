@@ -3,21 +3,23 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import {Box} from 'grid-emotion';
+import {omit, isEqual} from 'lodash';
+import qs from 'query-string';
 
-import SentryTypes from '../../proptypes';
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import Pagination from '../../components/pagination';
-import GuideAnchor from '../../components/assistant/guideAnchor';
-import SearchBar from '../../components/searchBar';
-import {t, tct} from '../../locale';
-import {Panel, PanelBody, PanelHeader} from '../../components/panels';
-import EmptyStateWarning from '../../components/emptyStateWarning';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import SearchBar from 'app/components/searchBar';
+import {t, tct} from 'app/locale';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
-import ReleaseList from './releaseList';
+import ReleaseList from 'app/views/projectReleases/releaseList';
 
-import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const DEFAULT_QUERY = '';
 
@@ -50,7 +52,12 @@ const ProjectReleases = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(nextProps.location.search), 'environment'),
+      omit(qs.parse(this.props.location.search), 'environment')
+    );
+
+    if (searchHasChanged) {
       let queryParams = nextProps.location.query;
       this.setState(
         {

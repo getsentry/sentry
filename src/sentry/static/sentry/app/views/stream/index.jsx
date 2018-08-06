@@ -4,12 +4,12 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {omit} from 'lodash';
 
-import SentryTypes from '../../proptypes';
-import ProjectState from '../../mixins/projectState';
-import TagStore from '../../stores/tagStore';
-import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
-import Stream from './stream';
-import {fetchTags} from '../../actionCreators/tags';
+import SentryTypes from 'app/sentryTypes';
+import ProjectState from 'app/mixins/projectState';
+import TagStore from 'app/stores/tagStore';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import Stream from 'app/views/stream/stream';
+import {fetchTags} from 'app/actionCreators/tags';
 
 const StreamContainer = createReactClass({
   displayName: 'StreamContainer',

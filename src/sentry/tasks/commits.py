@@ -68,7 +68,6 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
     release = Release.objects.get(id=release_id)
     user = User.objects.get(id=user_id)
-
     prev_release = None
     if prev_release_id is not None:
         try:
@@ -93,8 +92,9 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             continue
 
+        binding_key = 'integration-repository.provider' if is_integration_provider(repo.provider) else 'repository.provider'
         try:
-            provider_cls = bindings.get('repository.provider').get(repo.provider)
+            provider_cls = bindings.get(binding_key).get(repo.provider)
         except KeyError:
             continue
 
@@ -118,9 +118,11 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
         end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
-
         try:
-            repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
+            if is_integration_provider(provider.id):
+                repo_commits = provider.compare_commits(repo, start_sha, end_sha)
+            else:
+                repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
             pass
         except Exception as exc:
@@ -207,3 +209,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
         for deploy_id in pending_notifications:
             Deploy.notify_if_ready(deploy_id, fetch_complete=True)
+
+
+def is_integration_provider(provider):
+    return provider and provider.startswith('integrations:')

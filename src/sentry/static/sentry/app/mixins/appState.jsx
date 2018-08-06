@@ -1,4 +1,4 @@
-import OrganizationsStore from '../stores/organizationsStore';
+import OrganizationsStore from 'app/stores/organizationsStore';
 
 let AppState = {
   getOrganizationList() {

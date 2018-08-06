@@ -4,6 +4,7 @@ import _ from 'lodash';
 let validHookNames = new Set([
   'assistant:support-button',
   'component:org-members-view',
+  'component:org-auth-view',
   'footer',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
@@ -19,6 +20,8 @@ let validHookNames = new Set([
   'issue:secondary-column',
   'analytics:onboarding-complete',
   'analytics:event',
+  'analytics:log-experiment',
+  'sidebar:organization-dropdown-menu',
 ]);
 
 const HookStore = Reflux.createStore({
@@ -36,7 +39,7 @@ const HookStore = Reflux.createStore({
       this.hooks[hookName] = [];
     }
     this.hooks[hookName].push(callback);
-    this.trigger(hookName, [callback]);
+    this.trigger(hookName, this.hooks[hookName]);
   },
 
   remove(hookName, callback) {
@@ -55,4 +58,3 @@ const HookStore = Reflux.createStore({
 });
 
 export default HookStore;
-window.hook = HookStore;

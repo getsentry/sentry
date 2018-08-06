@@ -17,27 +17,18 @@ import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
-import './utils/emotion-setup';
+import 'app/utils/emotion-setup';
 
-import {CSRF_COOKIE_NAME} from './constants';
-import Main from './main';
-import * as api from './api';
-import getCookie from './utils/getCookie';
-import * as il8n from './locale';
-import plugins from './plugins';
-
-function csrfSafeMethod(method) {
-  // these HTTP methods do not require CSRF protection
-  return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
-}
+import Main from 'app/main';
+import * as api from 'app/api';
+import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import * as il8n from 'app/locale';
+import plugins from 'app/plugins';
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
-  beforeSend: function(xhr, settings) {
-    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader('X-CSRFToken', getCookie(CSRF_COOKIE_NAME));
-    }
-  },
+  //jQuery won't allow using the ajaxCsrfSetup function directly
+  beforeSend: ajaxCsrfSetup,
 });
 
 // these get exported to a global variable, which is important as its the only
@@ -87,21 +78,23 @@ export default {
 
   SentryRenderApp: () => render(Main),
 
-  Sentry: {
+  SentryApp: {
     api,
     forms: {
       // we dont yet export all form field classes as they're not
       // all needed by sentry.io
-      ApiForm: require('./components/forms/apiForm').default,
-      BooleanField: require('./components/forms/booleanField').default,
-      DateTimeField: require('./components/forms/dateTimeField').default,
-      EmailField: require('./components/forms/emailField').default,
-      Form: require('./components/forms/form').default,
-      RadioBooleanField: require('./components/forms/radioBooleanField').default,
-      RangeField: require('./components/forms/rangeField').default,
-      Select2Field: require('./components/forms/select2Field').default,
-      TextField: require('./components/forms/textField').default,
-      TextareaField: require('./components/forms/textareaField').default,
+      ApiForm: require('app/components/forms/apiForm').default,
+      BooleanField: require('app/components/forms/booleanField').default,
+      DateTimeField: require('app/components/forms/dateTimeField').default,
+      EmailField: require('app/components/forms/emailField').default,
+      Form: require('app/components/forms/form').default,
+      RadioBooleanField: require('app/components/forms/radioBooleanField').default,
+      RangeField: require('app/components/forms/rangeField').default,
+      SelectField: require('app/components/forms/selectField').default,
+      // TODO(billy): Remove this after getsentry is merged/updated #SELECT2
+      Select2Field: require('app/components/forms/selectField').default,
+      TextField: require('app/components/forms/textField').default,
+      TextareaField: require('app/components/forms/textareaField').default,
     },
     plugins: {
       add: plugins.add,
@@ -110,68 +103,70 @@ export default {
       DefaultIssuePlugin: plugins.DefaultIssuePlugin,
     },
 
-    Alerts: require('./components/alerts').default,
-    AlertActions: require('./actions/alertActions').default,
-    AsyncComponent: require('./components/asyncComponent').default,
-    AsyncView: require('./views/asyncView').default,
-    // TODO(billy): remove when old personal settings are deprecated #new-settings
-    AvatarSettings: require('./components/avatarSettings').default,
-    Button: require('./components/buttons/button').default,
+    Alerts: require('app/components/alerts').default,
+    AlertActions: require('app/actions/alertActions').default,
+    AsyncComponent: require('app/components/asyncComponent').default,
+    AsyncView: require('app/views/asyncView').default,
+    Button: require('app/components/buttons/button').default,
     mixins: {
-      ApiMixin: require('./mixins/apiMixin').default,
-      TooltipMixin: require('./mixins/tooltip').default,
+      ApiMixin: require('app/mixins/apiMixin').default,
+      TooltipMixin: require('app/mixins/tooltip').default,
     },
-    BarChart: require('./components/barChart').default,
+    BarChart: require('app/components/barChart').default,
     i18n: il8n,
-    ConfigStore: require('./stores/configStore').default,
-    Count: require('./components/count').default,
-    DateTime: require('./components/dateTime').default,
-    DropdownLink: require('./components/dropdownLink').default,
-    DynamicWrapper: require('./components/dynamicWrapper').default,
-    ErrorBoundary: require('./components/errorBoundary').default,
-    Form: require('./components/forms/form').default,
-    FormState: require('./components/forms/index').FormState,
-    GuideAnchor: require('./components/assistant/guideAnchor').default,
-    HookStore: require('./stores/hookStore').default,
-    Indicators: require('./components/indicators').default,
-    IndicatorStore: require('./stores/indicatorStore').default,
-    InviteMember: require('./views/inviteMember/inviteMember').default,
-    LoadingError: require('./components/loadingError').default,
-    LoadingIndicator: require('./components/loadingIndicator').default,
-    ListLink: require('./components/listLink').default,
-    MenuItem: require('./components/menuItem').default,
-    NarrowLayout: require('./components/narrowLayout').default,
-    OrganizationHomeContainer: require('./components/organizations/homeContainer')
+    ConfigStore: require('app/stores/configStore').default,
+    Confirm: require('app/components/confirm').default,
+    Count: require('app/components/count').default,
+    DateTime: require('app/components/dateTime').default,
+    DropdownLink: require('app/components/dropdownLink').default,
+    DynamicWrapper: require('app/components/dynamicWrapper').default,
+    ErrorBoundary: require('app/components/errorBoundary').default,
+    Form: require('app/components/forms/form').default,
+    FormState: require('app/components/forms/index').FormState,
+    GuideAnchor: require('app/components/assistant/guideAnchor').default,
+    HookStore: require('app/stores/hookStore').default,
+    Indicators: require('app/components/indicators').default,
+    IndicatorStore: require('app/stores/indicatorStore').default,
+    InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
+    LoadingError: require('app/components/loadingError').default,
+    LoadingIndicator: require('app/components/loadingIndicator').default,
+    ListLink: require('app/components/listLink').default,
+    MenuItem: require('app/components/menuItem').default,
+    NarrowLayout: require('app/components/narrowLayout').default,
+    OrganizationAuth: require('app/views/settings/organizationAuth').default,
+    OrganizationHomeContainer: require('app/components/organizations/homeContainer')
       .default,
-    OrganizationsLoader: require('./components/organizations/organizationsLoader')
+    OrganizationsLoader: require('app/components/organizations/organizationsLoader')
       .default,
-    OrganizationMembersView: require('./views/settings/organization/members/organizationMembersView')
+    OrganizationMembersView: require('app/views/settings/organizationMembers').default,
+    Panel: require('app/components/panels/panel').default,
+    PanelHeader: require('app/components/panels/panelHeader').default,
+    PanelBody: require('app/components/panels/panelBody').default,
+    PanelItem: require('app/components/panels/panelItem').default,
+    Pagination: require('app/components/pagination').default,
+    PluginConfig: require('app/components/pluginConfig').default,
+    ProjectIssueTracking: require('app/views/projectIssueTracking').default,
+    ProjectSelector: require('app/components/projectHeader/projectSelector').default,
+    SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
-    Panel: require('./components/panels/panel').default,
-    PanelHeader: require('./components/panels/panelHeader').default,
-    PanelBody: require('./components/panels/panelBody').default,
-    PanelItem: require('./components/panels/panelItem').default,
-    Pagination: require('./components/pagination').default,
-    PluginConfig: require('./components/pluginConfig').default,
-    ProjectIssueTracking: require('./views/projectIssueTracking').default,
-    ProjectSelector: require('./components/projectHeader/projectSelector').default,
-    SettingsPageHeader: require('./views/settings/components/settingsPageHeader').default,
-    Sidebar: require('./components/sidebar').default,
-    StackedBarChart: require('./components/stackedBarChart').default,
-    TextBlock: require('./views/settings/components/text/textBlock').default,
-    TimeSince: require('./components/timeSince').default,
-    TodoList: require('./components/onboardingWizard/todos').default,
-    Tooltip: require('./components/tooltip').default,
-    U2fEnrollment: require('./components/u2fenrollment').default,
-    U2fSign: require('./components/u2fsign').default,
-    Badge: require('./components/badge').default,
-    Switch: require('./components/switch').default,
-    GlobalModal: require('./components/globalModal').default,
-    SetupWizard: require('./components/setupWizard').default,
-    theme: require('./utils/theme').default,
+
+    Sidebar: require('app/components/sidebar').default,
+    StackedBarChart: require('app/components/stackedBarChart').default,
+    TextBlock: require('app/views/settings/components/text/textBlock').default,
+    TimeSince: require('app/components/timeSince').default,
+    TodoList: require('app/components/onboardingWizard/todos').default,
+    Tooltip: require('app/components/tooltip').default,
+    U2fEnrollment: require('app/components/u2fenrollment').default,
+    U2fSign: require('app/components/u2fsign').default,
+    Badge: require('app/components/badge').default,
+    Switch: require('app/components/switch').default,
+    GlobalModal: require('app/components/globalModal').default,
+    SetupWizard: require('app/components/setupWizard').default,
+    theme: require('app/utils/theme').default,
     utils: {
-      errorHandler: require('./utils/errorHandler').default,
-      logging: require('./utils/logging'),
+      errorHandler: require('app/utils/errorHandler').default,
+      ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
+      logging: require('app/utils/logging'),
     },
   },
 };

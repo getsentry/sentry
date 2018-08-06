@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import U2fInterface from './u2finterface';
-import {t} from '../locale';
+import U2fInterface from 'app/components/u2finterface';
+import {t} from 'app/locale';
 
 class U2fEnrollment extends React.Component {
   static propTypes = {

@@ -3,19 +3,19 @@ import React from 'react';
 import {Link} from 'react-router';
 import marked from 'marked';
 
-import PullRequestLink from '../../views/releases/pullRequestLink';
+import PullRequestLink from 'app/views/releases/pullRequestLink';
 
-import CommitLink from '../../components/commitLink';
-import Duration from '../../components/duration';
-import Avatar from '../../components/avatar';
-import IssueLink from '../../components/issueLink';
-import VersionHoverCard from '../../components/versionHoverCard';
-import MemberListStore from '../../stores/memberListStore';
-import TeamStore from '../../stores/teamStore';
-import TimeSince from '../../components/timeSince';
-import Version from '../../components/version';
+import CommitLink from 'app/components/commitLink';
+import Duration from 'app/components/duration';
+import Avatar from 'app/components/avatar';
+import IssueLink from 'app/components/issueLink';
+import VersionHoverCard from 'app/components/versionHoverCard';
+import MemberListStore from 'app/stores/memberListStore';
+import TeamStore from 'app/stores/teamStore';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
 
-import {t, tn, tct} from '../../locale';
+import {t, tn, tct} from 'app/locale';
 
 class ActivityItem extends React.Component {
   static propTypes = {
@@ -229,14 +229,19 @@ class ActivityItem extends React.Component {
           issue: issueLink,
         });
       case 'assigned':
+        let assignee;
+
         if (data.assigneeType == 'team') {
+          let team = TeamStore.getById(data.assignee);
+          assignee = team ? team.slug : '<unknown-team>';
+
           return tct('[author] assigned [issue] to #[assignee]', {
             author,
             issue: issueLink,
-            assignee: TeamStore.getById(data.assignee).slug,
+            assignee,
           });
         }
-        let assignee;
+
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {
             author,

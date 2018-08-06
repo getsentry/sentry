@@ -4,13 +4,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import DynamicWrapper from '../../components/dynamicWrapper';
-import ExternalLink from '../../components/externalLink';
-import PluginIcon from '../../plugins/components/pluginIcon';
-import SentryTypes from '../../proptypes';
-import Switch from '../../components/switch';
-import recreateRoute from '../../utils/recreateRoute';
+import {t} from 'app/locale';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import ExternalLink from 'app/components/externalLink';
+import Feature from 'app/components/feature';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import SentryTypes from 'app/sentryTypes';
+import Switch from 'app/components/switch';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const grayText = css`
   color: #979ba0;
@@ -32,37 +33,52 @@ class ProjectPluginRow extends React.PureComponent {
 
     let configureUrl = recreateRoute(id, this.props);
     return (
-      <Flex key={id} className={slug} flex="1" align="center">
-        <PluginInfo>
-          <StyledPluginIcon size={48} pluginId={id} />
-          <Flex justify="center" direction="column">
-            <PluginName>
-              {`${name} `}
-              <DynamicWrapper
-                value={<Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>}
-                fixed={<Version>v10</Version>}
+      <Feature access={['project:write']}>
+        {({hasAccess}) => {
+          const LinkOrSpan = hasAccess ? Link : 'span';
+
+          return (
+            <Flex key={id} className={slug} flex="1" align="center">
+              <PluginInfo>
+                <StyledPluginIcon size={48} pluginId={id} />
+                <Flex justify="center" direction="column">
+                  <PluginName>
+                    {`${name} `}
+                    <DynamicWrapper
+                      value={
+                        <Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>
+                      }
+                      fixed={<Version>v10</Version>}
+                    />
+                  </PluginName>
+                  <div>
+                    {author && (
+                      <ExternalLink css={grayText} href={author.url}>
+                        {author.name}
+                      </ExternalLink>
+                    )}
+                    {hasConfiguration && (
+                      <span>
+                        {' '}
+                        &middot;{' '}
+                        <LinkOrSpan css={grayText} to={configureUrl}>
+                          {t('Configure plugin')}
+                        </LinkOrSpan>
+                      </span>
+                    )}
+                  </div>
+                </Flex>
+              </PluginInfo>
+              <Switch
+                size="lg"
+                isDisabled={!hasAccess}
+                isActive={enabled}
+                toggle={this.handleChange}
               />
-            </PluginName>
-            <div>
-              {author && (
-                <ExternalLink css={grayText} href={author.url}>
-                  {author.name}
-                </ExternalLink>
-              )}
-              {hasConfiguration && (
-                <span>
-                  {' '}
-                  &middot;{' '}
-                  <Link css={grayText} to={configureUrl}>
-                    {t('Configure plugin')}
-                  </Link>
-                </span>
-              )}
-            </div>
-          </Flex>
-        </PluginInfo>
-        <Switch size="lg" isActive={enabled} toggle={this.handleChange} />
-      </Flex>
+            </Flex>
+          );
+        }}
+      </Feature>
     );
   }
 }

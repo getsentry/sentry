@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.models import Authenticator
 from sentry.utils import auth, json
@@ -40,14 +40,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = extract_lazy_object(request._request.user)
-        data = serialize(user, user)
-        # XXX(dcramer): we dont use is_active_superuser here as we simply
-        # want to tell the UI that we're an authenticated superuser, and
-        # for requests that require an *active* session, they should prompt
-        # on-demand. This ensures things like links to the Sentry admin can
-        # still easily be rendered.
-        data['isSuperuser'] = user.is_superuser
-        return Response(data)
+        return Response(serialize(user, user, DetailedUserSerializer()))
 
     def post(self, request):
         """

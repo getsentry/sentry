@@ -1,11 +1,11 @@
 import {withRouter} from 'react-router';
 import React from 'react';
 
-import {t} from '../locale';
-import AsyncView from './asyncView';
-import CreateTeamForm from '../components/createTeam/createTeamForm';
-import NarrowLayout from '../components/narrowLayout';
-import SentryTypes from '../proptypes';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import CreateTeamForm from 'app/components/createTeam/createTeamForm';
+import NarrowLayout from 'app/components/narrowLayout';
+import SentryTypes from 'app/sentryTypes';
 
 class TeamCreate extends AsyncView {
   static contextTypes = {
@@ -21,16 +21,8 @@ class TeamCreate extends AsyncView {
   }
 
   handleSubmitSuccess = data => {
-    let features = new Set(this.context.organization.features);
-
     let {orgId} = this.props.params;
-
-    // Legacy behavior: redirect to project creation
-    let redirectUrl = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
-    if (features.has('new-teams')) {
-      // New behavior: redirect to team settings page
-      redirectUrl = `/settings/${orgId}/teams/${data.slug}/`;
-    }
+    let redirectUrl = `/settings/${orgId}/teams/${data.slug}/`;
     this.props.router.push(redirectUrl);
   };
 

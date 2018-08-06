@@ -51,6 +51,7 @@ def find_translation(message):
 def format_message(message, data):
     return message.replace('%s', data)
 
+
 message_type_regexp = re.compile('^(?P<type>[a-zA-Z]*Error): (?P<message>.*)')
 
 

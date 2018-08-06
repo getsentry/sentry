@@ -4,24 +4,27 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addSuccessMessage,
   addErrorMessage,
   addLoadingMessage,
   removeIndicator,
-} from '../../../actionCreators/indicator';
-import {t, tct} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import Duration from '../../../components/duration';
-import EmptyStateWarning from '../../../components/emptyStateWarning';
-import EnvironmentStore from '../../../stores/environmentStore';
-import ListLink from '../../../components/listLink';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import recreateRoute from '../../../utils/recreateRoute';
+} from 'app/actionCreators/indicator';
+import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import Duration from 'app/components/duration';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ListLink from 'app/components/listLink';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tooltip from 'app/components/tooltip';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -50,6 +53,8 @@ const RuleRow = createReactClass({
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
+    firstRule: PropTypes.bool,
+    canEdit: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -85,7 +90,7 @@ const RuleRow = createReactClass({
   },
 
   render() {
-    const {data} = this.props;
+    const {data, canEdit} = this.props;
     const editLink = recreateRoute(`${data.id}/`, this.props);
 
     const env = EnvironmentStore.getByName(data.environment);
@@ -104,18 +109,33 @@ const RuleRow = createReactClass({
           </TextColorLink>
 
           <div>
-            <Button style={{marginRight: 5}} size="small" to={editLink}>
-              {t('Edit Rule')}
-            </Button>
-
-            <Confirm
-              message={t('Are you sure you want to remove this rule?')}
-              onConfirm={this.onDelete}
+            <Tooltip
+              disabled={canEdit}
+              title={t('You do not have permission to edit alert rules.')}
             >
-              <Button size="small">
-                <span className="icon-trash" />
+              <Button
+                data-test-id="edit-rule"
+                style={{marginRight: 5}}
+                disabled={!canEdit}
+                size="small"
+                to={editLink}
+              >
+                {t('Edit Rule')}
               </Button>
-            </Confirm>
+            </Tooltip>
+
+            <Tooltip
+              disabled={canEdit}
+              title={t('You do not have permission to edit alert rules.')}
+            >
+              <Confirm
+                message={t('Are you sure you want to remove this rule?')}
+                onConfirm={this.onDelete}
+                disabled={!canEdit}
+              >
+                <Button size="small" icon="icon-trash" />
+              </Confirm>
+            </Tooltip>
           </div>
         </PanelHeader>
 
@@ -127,17 +147,22 @@ const RuleRow = createReactClass({
                   <h6>
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
-                  <table className="conditions-list table">
-                    <tbody>
-                      {data.conditions.map((condition, i) => {
-                        return (
-                          <tr key={i}>
-                            <td>{condition.name}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  {conditionalGuideAnchor(
+                    this.props.firstRule,
+                    'alert_conditions',
+                    'text',
+                    <table className="conditions-list table">
+                      <tbody>
+                        {data.conditions.map((condition, i) => {
+                          return (
+                            <tr key={i}>
+                              <td>{condition.name}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
                 </Condition>
               )}
             </RuleDescriptionColumn>
@@ -151,17 +176,22 @@ const RuleRow = createReactClass({
                     </strong>{' '}
                     for an issue:
                   </h6>
-                  <table className="actions-list table">
-                    <tbody>
-                      {data.actions.map((action, i) => {
-                        return (
-                          <tr key={i}>
-                            <td>{action.name}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  {conditionalGuideAnchor(
+                    this.props.firstRule,
+                    'alert_actions',
+                    'text',
+                    <table className="actions-list table">
+                      <tbody>
+                        {data.actions.map((action, i) => {
+                          return (
+                            <tr key={i}>
+                              <td>{action.name}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
                 </Condition>
               )}
             </RuleDescriptionColumn>
@@ -175,6 +205,10 @@ const RuleRow = createReactClass({
 class ProjectAlertRules extends AsyncView {
   static propTypes = {
     routes: PropTypes.array.isRequired,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   getEndpoints() {
@@ -200,6 +234,9 @@ class ProjectAlertRules extends AsyncView {
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
+    let {organization} = this.context;
+    let canEditRule = organization.access.includes('project:write');
+
     return (
       <div className="rules-list">
         {this.state.ruleList.map(rule => {
@@ -212,6 +249,8 @@ class ProjectAlertRules extends AsyncView {
               params={this.props.params}
               routes={this.props.routes}
               onDelete={this.handleDeleteRule.bind(this, rule)}
+              firstRule={this.state.ruleList.indexOf(rule) === 0}
+              canEdit={canEditRule}
             />
           );
         })}
@@ -221,20 +260,28 @@ class ProjectAlertRules extends AsyncView {
 
   renderBody() {
     let {ruleList} = this.state;
+    let {organization} = this.context;
+    let canEditRule = organization.access.includes('project:write');
 
     return (
       <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
-            <Button
-              to={recreateRoute('new/', this.props)}
-              priority="primary"
-              size="small"
-              icon="icon-circle-add"
+            <Tooltip
+              disabled={canEditRule}
+              title={t('You do not have permission to edit alert rules.')}
             >
-              {t('New Alert Rule')}
-            </Button>
+              <Button
+                disabled={!canEditRule}
+                to={recreateRoute('new/', this.props)}
+                priority="primary"
+                size="small"
+                icon="icon-circle-add"
+              >
+                {t('New Alert Rule')}
+              </Button>
+            </Tooltip>
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>

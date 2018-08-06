@@ -1,26 +1,27 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 import ProjectPlugins from 'app/views/projectPlugins';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 
 jest.mock('app/api');
-jest.mock('app/utils/recreateRoute');
 
 describe('PluginNavigation Integration', function() {
-  let org, project, plugins, wrapper;
-  let sandbox;
+  let wrapper;
+  let routerContext = TestStubs.routerContext();
+  let org = routerContext.context.organization;
+  let project = routerContext.context.project;
+  let plugins = TestStubs.Plugins();
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    plugins = TestStubs.Plugins();
-
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/`,
+      url: `/organizations/${org.slug}/integrations/`,
       method: 'GET',
-      body: {providers: [TestStubs.GitHubIntegrationProvider()]},
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/`,
+      method: 'GET',
+      body: {organization: org},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
@@ -37,32 +38,17 @@ describe('PluginNavigation Integration', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
   // Integration test with PluginNavigation
   describe('with PluginNavigation', function() {
-    beforeEach(async function() {
+    beforeEach(function() {
       let params = {orgId: org.slug, projectId: project.slug};
-      let organization = {
-        id: org.slug,
-        features: [],
-      };
-
+      let organization = {...org, id: org.slug, features: []};
       wrapper = mount(
         <div>
           <ProjectPlugins params={params} organization={organization} />
-          <PluginNavigation urlRoot="/" />
+          <PluginNavigation organization={organization} urlRoot="/" />
         </div>,
-        {
-          context: {
-            router: TestStubs.router(),
-          },
-          childContextTypes: {
-            router: PropTypes.object,
-          },
-        }
+        TestStubs.routerContext()
       );
     });
 
@@ -73,20 +59,17 @@ describe('PluginNavigation Integration', function() {
     /**
      * This tests that ProjectPlugins and PluginNavigation respond to the same store
      */
-    it('has Amazon in <PluginNavigation /> after enabling', function(done) {
-      setTimeout(() => {
-        wrapper.update();
-        wrapper
-          .find('Switch')
-          .first()
-          .simulate('click');
+    it('has Amazon in <PluginNavigation /> after enabling', async function() {
+      await tick();
+      wrapper.update();
+      wrapper
+        .find('Switch')
+        .first()
+        .simulate('click');
 
-        setTimeout(() => {
-          wrapper.update();
-          expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
-          done();
-        });
-      });
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
     });
   });
 });

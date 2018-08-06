@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`GenericField render() renders text as TextInput 1`] = `
+exports[`GenericField renders text as TextInput 1`] = `
 <TextField
   disabled={false}
   formState="Ready"
@@ -14,13 +14,11 @@ exports[`GenericField render() renders text as TextInput 1`] = `
 />
 `;
 
-exports[`GenericField render() renders text with choices as Select2TextInput 1`] = `
-<Select2TextField
-  allowClear={false}
-  allowEmpty={false}
+exports[`GenericField renders text with choices as SelectCreatableField 1`] = `
+<SelectCreatableField
   choices={Array []}
+  clearable={true}
   disabled={false}
-  escapeMarkup={true}
   formState="Ready"
   help={null}
   hideErrorMessage={false}
@@ -28,7 +26,6 @@ exports[`GenericField render() renders text with choices as Select2TextInput 1`]
   label="field label*"
   multiple={false}
   name="field-name"
-  placeholder="--"
   required={true}
   type="text"
 />

@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
-import {Select2Field} from './forms';
-import {t} from '../locale';
+import {SelectField} from 'app/components/forms';
+import {t} from 'app/locale';
 
 export default class CustomIgnoreCountModal extends React.Component {
   static propTypes = {
@@ -58,11 +58,11 @@ export default class CustomIgnoreCountModal extends React.Component {
             </div>
             <div className="control-group m-b-1">
               <h6 className="nav-header">{t('Time window')}</h6>
-              <Select2Field
+              <SelectField
                 value={window}
                 name="window"
                 onChange={v => this.onChange('window', v)}
-                choices={[['', ' '], ...this.props.windowChoices]}
+                choices={this.props.windowChoices}
                 placeholder={t('e.g. per hour')}
                 allowClear={true}
                 help={t(

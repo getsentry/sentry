@@ -1,8 +1,8 @@
 import React from 'react';
 
-import SentryTypes from '../../../proptypes';
-import AsyncView from '../../asyncView';
-import RuleEditor from './ruleEditor';
+import SentryTypes from 'app/sentryTypes';
+import AsyncView from 'app/views/asyncView';
+import RuleEditor from 'app/views/settings/projectAlerts/ruleEditor';
 
 class ProjectAlertRuleDetails extends AsyncView {
   static contextTypes = {

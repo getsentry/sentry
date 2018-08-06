@@ -2,9 +2,9 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Button from 'sentry-ui/buttons/button';
-import DropdownAutoComplete from 'sentry-ui/dropdownAutoComplete';
-import DropdownButton from 'sentry-ui/dropdownButton';
+import Button from 'app/components/buttons/button';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
 
 const items = [
   {

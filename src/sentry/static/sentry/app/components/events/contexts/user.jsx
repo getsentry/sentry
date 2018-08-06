@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import Avatar from '../../../components/avatar';
-import ErrorBoundary from '../../errorBoundary';
-import KeyValueList from '../interfaces/keyValueList';
+import Avatar from 'app/components/avatar';
+import ErrorBoundary from 'app/components/errorBoundary';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 class UserContextType extends React.Component {
   static propTypes = {

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import SettingsNavigation from '../components/settingsNavigation';
-import navigationConfiguration from './navigationConfiguration';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
+import navigationConfiguration from 'app/views/settings/account/navigationConfiguration';
 
 const AccountSettingsNavigation = () => {
   return <SettingsNavigation navigationObjects={navigationConfiguration} />;

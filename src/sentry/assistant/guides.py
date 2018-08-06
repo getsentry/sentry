@@ -3,6 +3,24 @@ from __future__ import absolute_import
 from django.utils.translation import ugettext_lazy as _
 
 
+# Guide Schema
+# id (text, required): unique id
+# cue (text):  The text used to prompt the user to initiate the guide.
+# required_targets (list): An empty list will cause the guide to be shown regardless
+#                          of page/targets presence.
+# steps (list): List of steps
+
+# Step Schema
+# title (text, required): Title text. Tone should be active.
+# message (text, optional): Message text. Should help illustrate how to do a task, not
+#                           just literally what the button does.
+# target (text, optional): step is tied to an anchor target. If the anchor doesn't exist,
+#                          the step will not be shown. if the anchor exists but is of type
+#                         "invisible", it will not be pinged but will be scrolled to.
+#                          otherwise the anchor will be pinged and scrolled to. If you'd like
+#                          your step to show always or have a step is not tied to a specific
+#                          element but you'd still like it to be shown, set this as None.
+
 GUIDES = {
     'issue': {
         'id': 1,
@@ -69,6 +87,14 @@ GUIDES = {
                     'errors you don\'t care about.'),
                 'target': 'ignore_delete_discard',
             },
+            {
+                'title': _('Owners'),
+                'message': _(
+                    'Define users or teams that are responsible for specific paths or URLS so '
+                    'that notifications can be routed to the correct owner. Learn more '
+                    '<a href="https://docs.sentry.io/learn/issue-owners/" target="_blank">here</a>.'),
+                'target': 'owners',
+            },
         ],
     },
     'releases': {
@@ -117,8 +143,10 @@ GUIDES = {
             {
                 'title': _('Users'),
                 'message': _(
-                    'Sending user data to Sentry will unlock a number of features, primarily the ability to drill down into the number of users affected by an issue. '
-                    'Learn how easy it is to <a href="https://docs.sentry.io/learn/context/#capturing-the-user" target="_blank">set this up </a>today.'),
+                    'Sending user data to Sentry will unlock a number of features, primarily the ability to drill '
+                    'down into the number of users affected by an issue. '
+                    'Learn how easy it is to '
+                    '<a href="https://docs.sentry.io/learn/context/#capturing-the-user" target="_blank">set this up </a>today.'),
                 'target': 'users',
             },
         ]
@@ -150,5 +178,49 @@ GUIDES = {
                 'target': 'member_role',
             },
         ]
-    }
+    },
+    # Ideally, this would only be sent if the organization has never
+    # customized alert rules (as per FeatureAdoption)
+    'alert_rules': {
+        'id': 5,
+        'cue': _('Tips for alert rules'),
+        'required_targets': ['alert_conditions'],
+        'steps': [
+            {
+                'title': _('Reduce inbox noise'),
+                'message': _('Sentry, by default, alerts on every <i>new</i> issue via email. '
+                             'If that\'s too noisy, sending the new issue alerts to '
+                             'a service like Slack help reduce inbox noise.<br><br> Enabling '
+                             '<a href="https://sentry.io/settings/account/notifications/#weeklyReports" target="_blank">'
+                             'weekly reports</a> can also help you stay on top of issues without '
+                             'getting overwhelmed.'),
+                'target': 'alert_conditions',
+            },
+            {
+                'title': _('Define priority alerts'),
+                'message': _('Not all alerts are created equal. Create rules for frequently occuring errors or specific '
+                             'tags to escalate critical issues by alerting you via email or PagerDuty.<br><br>'
+                             '<a href="https://blog.sentry.io/2017/10/12/proactive-alert-rules" target="_blank">Learn more</a> '
+                             'about wrangling alerts.'),
+                'target': 'alert_actions',
+            },
+            {
+                'title': _('Fine-tune your personal settings'),
+                'message': _('You can control alerts at the project <em>and</em> the user level. '
+                             'If you\'d like to customize your <i>personal</i> alert settings, '
+                             'go to <a href="/account/settings/notifications/" target="_blank">Account Notifications</a>. '
+                             'There, you can choose which project\'s alert or workflow notifications you\'d like to receive.'),
+                'target': None,
+            },
+            {
+                'title': _('What are legacy integrations?'),
+                'message': _('You can see what integrations are legacy or not in '
+                             '<a href="/settings/${orgSlug}/${projectSlug}/plugins/" target="_blank">integration settings</a>. '
+                             'If you want an alert rule to trigger both legacy and global '
+                             'integrations, you need to add both as actions. '
+                             '<a href="https://help.sentry.io/hc/en-us/articles/360003063454" target="_blank">Learn more</a>.'),
+                'target': None,
+            },
+        ],
+    },
 }

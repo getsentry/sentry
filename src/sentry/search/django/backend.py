@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
-from sentry.search.base import SearchBackend
+from sentry.search.base import ANY, SearchBackend
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
@@ -164,13 +164,16 @@ def get_sort_clause(sort_by):
         return SORT_CLAUSES[sort_by]
 
 
-def assigned_to_filter(queryset, user, project):
+def assigned_to_filter(queryset, actor, project):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+
+    if isinstance(actor, Team):
+        return queryset.filter(assignee_set__team=actor)
 
     teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
-                user=user,
+                user=actor,
                 organization_id=project.organization_id,
             ),
             is_active=True,
@@ -178,7 +181,7 @@ def assigned_to_filter(queryset, user, project):
     )
 
     return queryset.filter(
-        Q(assignee_set__user=user, assignee_set__project=project) |
+        Q(assignee_set__user=actor, assignee_set__project=project) |
         Q(assignee_set__team__in=teams)
     )
 
@@ -206,8 +209,8 @@ def get_latest_release(project, environment):
 class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
-        from sentry.models import (Environment, Event, Group, GroupEnvironment,
-                                   GroupStatus, GroupSubscription, Release)
+
+        from sentry.models import Group, GroupStatus, GroupSubscription, Release
 
         if paginator_options is None:
             paginator_options = {}
@@ -272,34 +275,47 @@ class DjangoSearchBackend(SearchBackend):
         retention = quotas.get_event_retention(organization=project.organization)
         if retention:
             retention_window_start = timezone.now() - timedelta(days=retention)
-            # TODO: This could be optimized when building querysets to identify
-            # criteria that are logically impossible (e.g. if the upper bound
-            # for last seen is before the retention window starts, no results
-            # exist.)
-            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
         else:
             retention_window_start = None
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+        # seemed better to handle all the shared initialization and then handoff to the
+        # actual backend.
+        return self._query(project, retention_window_start, group_queryset, tags,
+                           environment, sort_by, limit, cursor, count_hits,
+                           paginator_options, **parameters)
+
+    def _query(self, project, retention_window_start, group_queryset, tags, environment,
+               sort_by, limit, cursor, count_hits, paginator_options, **parameters):
+
+        from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
 
         if environment is not None:
             if 'environment' in tags:
-                # TODO: This should probably just overwrite the existing tag,
-                # rather than asserting on it, but...?
-                assert Environment.objects.get(
+                environment_name = tags.pop('environment')
+                assert environment_name is ANY or Environment.objects.get(
                     projects=project,
-                    name=tags.pop('environment'),
+                    name=environment_name,
                 ).id == environment.id
 
             event_queryset_builder = QuerySetBuilder({
                 'date_from': ScalarCondition('date_added', 'gt'),
                 'date_to': ScalarCondition('date_added', 'lt'),
             })
+
             if any(key in parameters for key in event_queryset_builder.conditions.keys()):
                 event_queryset = event_queryset_builder.build(
                     tagstore.get_event_tag_qs(
-                        project.id,
-                        environment.id,
-                        'environment',
-                        environment.name,
+                        project_id=project.id,
+                        environment_id=environment.id,
+                        key='environment',
+                        value=environment.name,
                     ),
                     parameters,
                 )
@@ -310,6 +326,7 @@ class DjangoSearchBackend(SearchBackend):
                     id__in=list(event_queryset.distinct().values_list('group_id', flat=True)[:1000])
                 )
 
+            _, group_queryset_sort_clause = sort_strategies[sort_by]
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
                     lambda queryset, version: queryset.extra(
@@ -409,21 +426,22 @@ class DjangoSearchBackend(SearchBackend):
                     tables=[GroupEnvironment._meta.db_table],
                 ),
                 parameters,
-            )
+            ).order_by(group_queryset_sort_clause)
 
             get_sort_expression, sort_value_to_cursor_value = environment_sort_strategies[sort_by]
 
             group_tag_value_queryset = tagstore.get_group_tag_value_qs(
-                project.id,
-                set(group_queryset.values_list('id', flat=True)),  # TODO: Limit?,
-                environment.id,
-                'environment',
-                environment.name,
+                project_id=project.id,
+                group_id=set(group_queryset.values_list('id', flat=True)[:10000]),
+                environment_id=environment.id,
+                key='environment',
+                value=environment.name,
             )
 
             if retention_window_start is not None:
                 group_tag_value_queryset = group_tag_value_queryset.filter(
-                    last_seen__gte=retention_window_start)
+                    last_seen__gte=retention_window_start
+                )
 
             candidates = dict(
                 QuerySetBuilder({
@@ -451,10 +469,10 @@ class DjangoSearchBackend(SearchBackend):
                 # utilize the retention window start parameter for additional
                 # optimizations.
                 matches = tagstore.get_group_ids_for_search_filter(
-                    project.id,
-                    environment.id,
-                    tags,
-                    candidates.keys(),
+                    project_id=project.id,
+                    environment_id=environment.id,
+                    tags=tags,
+                    candidates=candidates.keys(),
                     limit=len(candidates),
                 )
                 for key in set(candidates) - set(matches or []):
@@ -475,6 +493,7 @@ class DjangoSearchBackend(SearchBackend):
                 'date_from': ScalarCondition('datetime', 'gt'),
                 'date_to': ScalarCondition('datetime', 'lt'),
             })
+
             if any(key in parameters for key in event_queryset_builder.conditions.keys()):
                 group_queryset = group_queryset.filter(
                     id__in=list(
@@ -511,9 +530,15 @@ class DjangoSearchBackend(SearchBackend):
             )
 
             if tags:
-                matches = tagstore.get_group_ids_for_search_filter(project.id, None, tags)
-                if matches:
-                    group_queryset = group_queryset.filter(id__in=matches)
+                group_ids = tagstore.get_group_ids_for_search_filter(
+                    project_id=project.id,
+                    environment_id=None,
+                    tags=tags,
+                    candidates=None,
+                )
+
+                if group_ids:
+                    group_queryset = group_queryset.filter(id__in=group_ids)
                 else:
                     group_queryset = group_queryset.none()
 

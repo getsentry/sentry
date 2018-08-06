@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features, roles, options
+from sentry import roles, options
 from sentry.web.frontend.base import ProjectView
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -61,15 +61,10 @@ class TransferProjectView(ProjectView):
                 user_id=owner.user_id,
                 transaction_id=transaction_id)
 
-            has_new_teams = features.has(
-                'organizations:new-teams',
-                organization,
-                actor=request.user,
-            )
             context = {
                 'email': email,
                 'from_org': organization.name,
-                'project_name': project.slug if has_new_teams else project.name,
+                'project_name': project.slug,
                 'request_time': timezone.now(),
                 'url':
                 absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),
@@ -96,7 +91,7 @@ class TransferProjectView(ProjectView):
             messages.add_message(
                 request, messages.SUCCESS,
                 _(u'A request was sent to move project %r to a different organization') %
-                ((project.slug if has_new_teams else project.name).encode('utf-8'), )
+                (project.slug.encode('utf-8'), )
             )
 
             return HttpResponseRedirect(

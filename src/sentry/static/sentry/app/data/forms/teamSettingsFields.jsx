@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {t, tct} from '../../locale';
+import {t, tct} from 'app/locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/teams/:teamId/settings/';
@@ -17,6 +17,7 @@ const formGroups = [
         label: t('Name'),
         placeholder: 'e.g. api-team',
         help: t('A unique ID used to identify the team'),
+        disabled: ({access}) => !access.has('team:write'),
 
         saveOnBlur: false,
         saveMessageAlertType: 'info',
@@ -28,6 +29,7 @@ const formGroups = [
         required: true,
         label: t('Legacy Name'),
         placeholder: 'e.g. API Team',
+        disabled: ({access}) => !access.has('team:write'),
         help: tct(
           '[Deprecated] In the future, only [Name] will be used to identify your team',
           {

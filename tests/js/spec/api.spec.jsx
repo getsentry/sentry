@@ -1,6 +1,8 @@
 import $ from 'jquery';
+
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
+import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
 
 jest.unmock('app/api');
 
@@ -45,6 +47,24 @@ describe('api', function() {
         })
       ).toBeUndefined();
     });
+
+    it('should keep environment when query is provided', function() {
+      expect(
+        paramsToQueryArgs({
+          query: 'is:unresolved',
+          environment: 'production',
+        })
+      ).toEqual({query: 'is:unresolved', environment: 'production'});
+    });
+
+    it('should exclude environment when it is null/undefined', function() {
+      expect(
+        paramsToQueryArgs({
+          query: 'is:unresolved',
+          environment: null,
+        })
+      ).toEqual({query: 'is:unresolved'});
+    });
   });
 
   describe('Client', function() {
@@ -72,6 +92,23 @@ describe('api', function() {
         expect(req2.xhr.abort.calledOnce).toBeTruthy();
       });
     });
+  });
+
+  it('does not call success callback if 302 was returned because of a project slug change', function() {
+    let successCb = jest.fn();
+    api.activeRequests = {id: {alive: true}};
+    api.wrapCallback('id', successCb)({
+      responseJSON: {
+        detail: {
+          code: PROJECT_MOVED,
+          message: '...',
+          extra: {
+            slug: 'new-slug',
+          },
+        },
+      },
+    });
+    expect(successCb).not.toHaveBeenCalled();
   });
 
   it('handles error callback', function() {

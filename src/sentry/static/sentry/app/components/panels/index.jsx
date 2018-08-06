@@ -1,8 +1,8 @@
-import Panel from './panel';
-import PanelHeader from './panelHeader';
-import PanelBody from './panelBody';
-import PanelFooter from './panelFooter';
-import PanelItem from './panelItem';
-import PanelAlert from './panelAlert';
+import Panel from 'app/components/panels/panel';
+import PanelHeader from 'app/components/panels/panelHeader';
+import PanelBody from 'app/components/panels/panelBody';
+import PanelFooter from 'app/components/panels/panelFooter';
+import PanelItem from 'app/components/panels/panelItem';
+import PanelAlert from 'app/components/panels/panelAlert';
 
 export {Panel, PanelHeader, PanelBody, PanelFooter, PanelItem, PanelAlert};

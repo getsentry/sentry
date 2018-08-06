@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.models import ApiKey, AuditLogEntryEvent, DeletedOrganization, DeletedTeam, DeletedProject
+from sentry.models import ApiKey, AuditLogEntryEvent, DeletedOrganization, DeletedTeam, DeletedProject, Organization, OrganizationStatus
 from sentry.testutils import TestCase
 from sentry.utils.audit import create_audit_entry
 
@@ -71,6 +71,26 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
+        Organization.objects.filter(
+            id=self.organization.id,
+        ).update(status=OrganizationStatus.PENDING_DELETION)
+
+        org = Organization.objects.get(id=self.organization.id)
+
+        Organization.objects.filter(
+            id=self.organization.id,
+        ).update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+
+        org2 = Organization.objects.get(id=self.organization.id)
+
+        Organization.objects.filter(
+            id=self.organization.id,
+        ).update(status=OrganizationStatus.VISIBLE)
+
+        org3 = Organization.objects.get(id=self.organization.id)
+
+        orgs = [org, org2, org3]
+
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
@@ -79,10 +99,27 @@ class CreateAuditEntryTest(TestCase):
             data=self.org.get_audit_log_data(),
         )
 
-        assert ('restored') in entry.get_note()
-        assert entry.actor == self.user
-        assert entry.target_object == self.org.id
-        assert entry.event == AuditLogEntryEvent.ORG_RESTORE
+        entry2 = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=AuditLogEntryEvent.ORG_EDIT,
+            data=self.org.get_audit_log_data(),
+        )
+
+        for i in orgs:
+            if i.status == OrganizationStatus.PENDING_DELETION or i.status == OrganizationStatus.DELETION_IN_PROGRESS:
+                assert i.status != OrganizationStatus.VISIBLE
+                assert ('restored') in entry.get_note()
+                assert entry.actor == self.user
+                assert entry.target_object == self.org.id
+                assert entry.event == AuditLogEntryEvent.ORG_RESTORE
+            else:
+                assert i.status == OrganizationStatus.VISIBLE
+                assert ('edited') in entry2.get_note()
+                assert entry2.actor == self.user
+                assert entry2.target_object == self.org.id
+                assert entry2.event == AuditLogEntryEvent.ORG_EDIT
 
     def test_audit_entry_team_delete_log(self):
         entry = create_audit_entry(

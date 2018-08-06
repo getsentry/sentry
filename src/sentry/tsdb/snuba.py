@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import collections
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba
+from sentry.utils.dates import to_datetime
 
 
 class SnubaTSDB(BaseTSDB):
@@ -24,12 +26,11 @@ class SnubaTSDB(BaseTSDB):
     model_columns = {
         TSDBModel.project: ('project_id', None),
         TSDBModel.group: ('issue', None),
-        TSDBModel.release: ('release', None),
-        TSDBModel.users_affected_by_group: ('issue', 'user_id'),
-        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
-        TSDBModel.users_affected_by_project: ('project_id', 'user_id'),
+        TSDBModel.release: ('tags[sentry:release]', None),
+        TSDBModel.users_affected_by_group: ('issue', 'tags[sentry:user]'),
+        TSDBModel.users_affected_by_project: ('project_id', 'tags[sentry:user]'),
         TSDBModel.frequent_environments_by_group: ('issue', 'environment'),
-        TSDBModel.frequent_releases_by_group: ('issue', 'release'),
+        TSDBModel.frequent_releases_by_group: ('issue', 'tags[sentry:release]'),
         TSDBModel.frequent_issues_by_project: ('project_id', 'issue'),
     }
 
@@ -68,8 +69,62 @@ class SnubaTSDB(BaseTSDB):
             keys_map['environment'] = [environment_id]
 
         aggregations = [[aggregation, model_aggregate, 'aggregate']]
-        return snuba.query(start, end, groupby, None, keys_map,
-                           aggregations, rollup)
+
+        # For historical compatibility with bucket-counted TSDB implementations
+        # we grab the original bucketed series and add the rollup time to the
+        # timestamp of the last bucket to get the end time.
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+        start = to_datetime(series[0])
+        end = to_datetime(series[-1] + rollup)
+
+        result = snuba.query(start, end, groupby, None, keys_map,
+                             aggregations, rollup, referrer='tsdb',
+                             is_grouprelease=(model == TSDBModel.frequent_releases_by_group))
+
+        if group_on_time:
+            keys_map['time'] = series
+
+        self.zerofill(result, groupby, keys_map)
+        self.trim(result, groupby, keys)
+
+        return result
+
+    def zerofill(self, result, groups, flat_keys):
+        """
+        Fills in missing keys in the nested result with zeroes.
+        `result` is the nested result
+        `groups` is the order in which the result is nested, eg: ['project', 'time']
+        `flat_keys` is a map from groups to lists of required keys for that group.
+                    eg: {'project': [1,2]}
+        """
+        if len(groups) > 0:
+            group, subgroups = groups[0], groups[1:]
+            # Zerofill missing keys
+            for k in flat_keys[group]:
+                if k not in result:
+                    result[k] = 0 if len(groups) == 1 else {}
+
+            if subgroups:
+                for v in result.values():
+                    self.zerofill(v, subgroups, flat_keys)
+
+    def trim(self, result, groups, keys):
+        """
+        Similar to zerofill, but removes keys that should not exist.
+        Uses the non-flattened version of keys, so that different sets
+        of keys can exist in different branches at the same nesting level.
+        """
+        if len(groups) > 0:
+            group, subgroups = groups[0], groups[1:]
+            if isinstance(result, dict):
+                for rk in result.keys():
+                    if group == 'time':  # Skip over time group
+                        self.trim(result[rk], subgroups, keys)
+                    elif rk in keys:
+                        if isinstance(keys, dict):
+                            self.trim(result[rk], subgroups, keys[rk])
+                    else:
+                        del result[rk]
 
     def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
         result = self.get_data(model, keys, start, end, rollup, environment_id,
@@ -109,8 +164,8 @@ class SnubaTSDB(BaseTSDB):
         #    {group:[top1, ...]}
         # into
         #    {group: [(top1, score), ...]}
-        for k in result:
-            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(result[k]))]
+        for k, top in six.iteritems(result):
+            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
             result[k] = list(reversed(item_scores))
 
         return result
@@ -126,7 +181,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group: [(timestamp, {top1: score, ...}), ...]}
         for k in result:
             result[k] = sorted([
-                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk))})
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
                 for (timestamp, topk) in result[k].items()
             ])
 
@@ -140,28 +195,22 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:{agg:count}}}
         # into
         #    {group: [(timestamp, {agg: count, ...}), ...]}
-        return {k: result[k].items() for k in result}
+        return {k: sorted(result[k].items()) for k in result}
 
     def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
         return self.get_data(model, items, start, end, rollup, environment_id,
                              aggregation='count()')
-
-    def get_optimal_rollup(self, start):
-        """
-        Always return the smallest rollup as we can bucket on any granularity.
-        """
-        return self.rollups.keys()[0]
 
     def flatten_keys(self, items):
         """
         Returns a normalized set of keys based on the various formats accepted
         by TSDB methods. The input is either just a plain list of keys for the
         top level or a `{level1_key: [level2_key, ...]}` dictionary->list map.
+        The output is a 2-tuple of ([level_1_keys], [all_level_2_keys])
         """
-        # Flatten keys
-        if isinstance(items, (list, tuple)):
-            return (items, None)
-        elif isinstance(items, dict):
+        if isinstance(items, collections.Mapping):
             return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
+        elif isinstance(items, (collections.Sequence, collections.Set)):
+            return (items, None)
         else:
-            return (None, None)
+            raise ValueError('Unsupported type: %s' % (type(items)))

@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import AlertLink from 'sentry-ui/alertLink';
+import AlertLink from 'app/components/alertLink';
 
 storiesOf('Links/AlertLink', module)
   .add(

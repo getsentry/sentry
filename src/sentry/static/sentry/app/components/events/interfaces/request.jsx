@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import RichHttpContent from './richHttpContent';
-import {getCurlCommand} from './utils';
-import {isUrl} from '../../../utils';
-import {t} from '../../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import {getCurlCommand} from 'app/components/events/interfaces/utils';
+import {isUrl} from 'app/utils';
+import {t} from 'app/locale';
 
-import Truncate from '../../../components/truncate';
+import Truncate from 'app/components/truncate';
 
 class RequestInterface extends React.Component {
   static propTypes = {

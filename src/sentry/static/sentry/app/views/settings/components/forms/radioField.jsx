@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import RadioGroup from './controls/radioGroup';
-import InputField from './inputField';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 class RadioField extends React.Component {
   static propTypes = {

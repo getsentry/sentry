@@ -27,6 +27,7 @@ from jsonfield import JSONField
 
 from sentry.app import locks
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
+from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -131,15 +132,24 @@ class FileBlob(Model):
     def delete(self, *args, **kwargs):
         lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
         with TimedRetryPolicy(60)(lock.acquire):
-            if self.path:
-                self.deletefile(commit=False)
             super(FileBlob, self).delete(*args, **kwargs)
+        if self.path:
+            self.deletefile(commit=False)
 
     def deletefile(self, commit=False):
         assert self.path
 
-        storage = get_storage()
-        storage.delete(self.path)
+        # Defer this by 1 minute just to make sure
+        # we avoid any transaction isolation where the
+        # FileBlob row might still be visible by the
+        # task before transaction is committed.
+        delete_file_task.apply_async(
+            kwargs={
+                'path': self.path,
+                'checksum': self.checksum,
+            },
+            countdown=60,
+        )
 
         self.path = None
 
@@ -163,7 +173,7 @@ class FileBlob(Model):
 class File(Model):
     __core__ = False
 
-    name = models.CharField(max_length=128)
+    name = models.TextField()
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = JSONField()
@@ -393,7 +403,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         def fetch_file(offset, getfile):
             with getfile() as sf:
-                while 1:
+                while True:
                     chunk = sf.read(65535)
                     if not chunk:
                         break

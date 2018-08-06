@@ -1,64 +1,126 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
-import Button from '../buttons/button';
-import {t} from '../../locale';
-import {recordFinish, nextStep} from '../../actionCreators/guides';
-import CueIcon from './cueIcon';
-import CloseIcon from './closeIcon';
-import AssistantContainer from './assistantContainer';
+import Button from 'app/components/buttons/button';
+import GuideStore from 'app/stores/guideStore';
+import {t} from 'app/locale';
+import {
+  closeGuide,
+  fetchGuides,
+  nextStep,
+  recordDismiss,
+  recordFinish,
+} from 'app/actionCreators/guides';
+import {
+  AssistantContainer,
+  CloseIcon,
+  CueContainer,
+  CueIcon,
+  CueText,
+} from 'app/components/assistant/styles';
 
-// GuideDrawer is what slides up when the user clicks on a guide cue.
-export default class GuideDrawer extends React.Component {
-  static propTypes = {
-    guide: PropTypes.object.isRequired,
-    step: PropTypes.number.isRequired,
-    onFinish: PropTypes.func.isRequired,
-    onDismiss: PropTypes.func.isRequired,
-    orgSlug: PropTypes.string,
-  };
+/* GuideDrawer is what slides up when the user clicks on a guide cue. */
+const GuideDrawer = createReactClass({
+  displayName: 'GuideDrawer',
 
-  handleFinish = useful => {
-    recordFinish(this.props.guide.id, useful);
-    this.props.onFinish();
-  };
+  mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
+
+  getInitialState() {
+    return {
+      currentGuide: null,
+      currentStep: 0,
+      currentOrgSlug: null,
+      currentProjectSlug: null,
+    };
+  },
+
+  componentDidMount() {
+    fetchGuides();
+  },
+
+  onGuideStateChange(data) {
+    this.setState({
+      currentGuide: data.currentGuide,
+      currentStep: data.currentStep,
+      currentOrgSlug: data.currentOrg ? data.currentOrg.slug : null,
+      currentProjectSlug: data.currentProject ? data.currentProject.slug : null,
+    });
+  },
+
+  /* Terminology:
+   - A guide can be FINISHED by answering whether or not is was useful in the last step.
+   - A guide can be DISMISSED by x-ing out of it at any time (including when it's cued).
+   - In both cases we consider it CLOSED.
+  */
+  handleFinish(useful) {
+    recordFinish(this.state.currentGuide.id, useful);
+    closeGuide();
+  },
+
+  handleDismiss(e) {
+    e.stopPropagation();
+    recordDismiss(this.state.currentGuide.id, this.state.currentStep);
+    closeGuide();
+  },
 
   interpolate(template, variables) {
     let regex = /\${([^{]+)}/g;
     return template.replace(regex, (match, g1) => {
       return variables[g1.trim()];
     });
-  }
+  },
 
   render() {
+    let {currentGuide, currentStep} = this.state;
+
+    if (!currentGuide) {
+      return null;
+    }
+
+    if (currentStep === 0) {
+      return (
+        <StyledCueContainer onClick={nextStep} className="assistant-cue">
+          {<CueIcon hasGuide={true} />}
+          <StyledCueText>{currentGuide.cue}</StyledCueText>
+          <div style={{display: 'flex'}} onClick={this.handleDismiss}>
+            <CloseIcon />
+          </div>
+        </StyledCueContainer>
+      );
+    }
+
     let messageVariables = {
-      orgSlug: this.props.orgSlug,
+      orgSlug: this.state.currentOrgSlug,
+      projectSlug: this.state.currentProjectSlug,
     };
 
     return (
-      <StyledAssistantContainer>
-        <StyledAssistantInputRow>
+      <GuideContainer>
+        <GuideInputRow>
           <CueIcon hasGuide={true} />
-          <StyledTitle>{this.props.guide.steps[this.props.step - 1].title}</StyledTitle>
-          <div
-            className="close-button"
-            style={{display: 'flex'}}
-            onClick={this.props.onDismiss}
-          >
-            <CloseIcon />
-          </div>
-        </StyledAssistantInputRow>
+          <StyledTitle>{currentGuide.steps[currentStep - 1].title}</StyledTitle>
+          {currentStep < currentGuide.steps.length && (
+            <div
+              className="close-button"
+              style={{display: 'flex'}}
+              onClick={this.handleDismiss}
+            >
+              <CloseIcon />
+            </div>
+          )}
+        </GuideInputRow>
         <StyledContent>
           <div
             dangerouslySetInnerHTML={{
               __html: this.interpolate(
-                this.props.guide.steps[this.props.step - 1].message,
+                currentGuide.steps[currentStep - 1].message,
                 messageVariables
               ),
             }}
           />
           <div style={{marginTop: '1em'}}>
-            {this.props.step < this.props.guide.steps.length ? (
+            {currentStep < currentGuide.steps.length ? (
               <div>
                 <Button priority="success" size="small" onClick={nextStep}>
                   {t('Next')} &rarr;
@@ -86,19 +148,35 @@ export default class GuideDrawer extends React.Component {
             )}
           </div>
         </StyledContent>
-      </StyledAssistantContainer>
+      </GuideContainer>
     );
-  }
-}
+  },
+});
 
-const StyledAssistantContainer = styled(AssistantContainer)`
+const StyledCueText = styled(CueText)`
+  width: auto;
+  opacity: 1;
+  margin-left: 8px;
+`;
+
+const StyledCueContainer = styled(CueContainer)`
+  right: 50%;
+  transform: translateX(50%);
+  background-color: ${p => p.theme.greenDark};
+  border-color: ${p => p.theme.greenLight};
+  color: ${p => p.theme.offWhite};
+`;
+
+const GuideContainer = styled(AssistantContainer)`
   background-color: ${p => p.theme.greenDark};
   border-color: ${p => p.theme.greenLight};
   color: ${p => p.theme.offWhite};
   height: auto;
+  right: 50%;
+  transform: translateX(50%);
 `;
 
-const StyledAssistantInputRow = styled('div')`
+const GuideInputRow = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -117,3 +195,5 @@ const StyledContent = styled('div')`
     color: ${p => p.theme.greenLight};
   }
 `;
+
+export default GuideDrawer;

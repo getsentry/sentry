@@ -3,9 +3,9 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import Avatar from '../avatar';
-import Tooltip from '../tooltip';
-import {userDisplayName} from '../../utils/formatters';
+import Avatar from 'app/components/avatar';
+import Tooltip from 'app/components/tooltip';
+import {userDisplayName} from 'app/utils/formatters';
 
 const GroupParticipants = createReactClass({
   displayName: 'GroupParticipants',

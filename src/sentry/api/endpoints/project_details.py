@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import logging
+from itertools import chain
 from uuid import uuid4
 
 from datetime import timedelta
@@ -18,9 +19,10 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
-    ProjectStatus, ProjectTeam, UserOption, Team,
+    ProjectStatus, ProjectTeam, UserOption,
 )
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -86,7 +88,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     securityToken = serializers.RegexField(r'^[-a-zA-Z0-9+/=\s]+$', max_length=255)
     securityTokenHeader = serializers.RegexField(r'^[a-zA-Z0-9_\-]+$', max_length=20)
     verifySSL = serializers.BooleanField(required=False)
-    defaultEnvironment = serializers.CharField(required=False)
+    defaultEnvironment = serializers.CharField(required=False, allow_none=True)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
@@ -129,6 +131,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
     def validate_slug(self, attrs, source):
         slug = attrs[source]
+        if slug in RESERVED_PROJECT_SLUGS:
+            raise serializers.ValidationError(
+                'The slug "%s" is reserved and not allowed.' %
+                (slug, ))
         project = self.context['project']
         other = Project.objects.filter(
             slug=slug,
@@ -221,6 +227,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             or (request.access and request.access.has_scope('project:write'))
         )
 
+        changed_proj_settings = {}
+
         if has_project_write:
             serializer_cls = ProjectAdminSerializer
         else:
@@ -240,7 +248,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         result = serializer.object
 
         if not has_project_write:
-            for key in six.iterkeys(ProjectAdminSerializer.base_fields):
+            # options isn't part of the serializer, but should not be editable by members
+            for key in chain(six.iterkeys(ProjectAdminSerializer.base_fields), ['options']):
                 if request.DATA.get(key) and not result.get(key):
                     return Response(
                         {
@@ -256,45 +265,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             old_slug = project.slug
             project.slug = result['slug']
             changed = True
+            changed_proj_settings['new_slug'] = project.slug
 
         if result.get('name'):
             project.name = result['name']
             changed = True
+            changed_proj_settings['new_project'] = project.name
 
         old_team_id = None
         new_team = None
         if result.get('team'):
-            if features.has('organizations:new-teams',
-                            project.organization, actor=request.user):
-                return Response(
-                    {
-                        'detail': ['Editing a team via this endpoint has been deprecated.']
-                    },
-                    status=400
-                )
-
-            team_list = [
-                t for t in Team.objects.get_for_user(
-                    organization=project.organization,
-                    user=request.user,
-                )
-                if request.access.has_team_scope(t, 'project:write')
-                if t.slug == result['team']
-            ]
-            if not team_list:
-                return Response(
-                    {
-                        'detail': ['The new team is not found.']
-                    }, status=400
-                )
-            # TODO(jess): update / deprecate this functionality
-            try:
-                old_team_id = project.teams.values_list('id', flat=True)[0]
-            except IndexError:
-                pass
-
-            new_team = team_list[0]
-            changed = True
+            return Response(
+                {
+                    'detail': ['Editing a team via this endpoint has been deprecated.']
+                },
+                status=400
+            )
 
         if result.get('platform'):
             project.platform = result['platform']
@@ -333,39 +319,54 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option(
                 'digests:mail:maximum_delay', result['digestsMaxDelay'])
         if result.get('subjectPrefix') is not None:
-            project.update_option('mail:subject_prefix',
-                                  result['subjectPrefix'])
+            if project.update_option('mail:subject_prefix',
+                                     result['subjectPrefix']):
+                changed_proj_settings['mail:subject_prefix'] = result['subjectPrefix']
         if result.get('subjectTemplate'):
             project.update_option('mail:subject_template',
                                   result['subjectTemplate'])
-        if result.get('defaultEnvironment') is not None:
-            project.update_option('sentry:default_environment', result['defaultEnvironment'])
         if result.get('scrubIPAddresses') is not None:
-            project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses'])
+            if project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses']):
+                changed_proj_settings['sentry:scrub_ip_address'] = result['scrubIPAddresses']
         if result.get('securityToken') is not None:
-            project.update_option('sentry:token', result['securityToken'])
+            if project.update_option('sentry:token', result['securityToken']):
+                changed_proj_settings['sentry:token'] = result['securityToken']
         if result.get('securityTokenHeader') is not None:
-            project.update_option('sentry:token_header', result['securityTokenHeader'])
+            if project.update_option('sentry:token_header', result['securityTokenHeader']):
+                changed_proj_settings['sentry:token_header'] = result['securityTokenHeader']
         if result.get('verifySSL') is not None:
-            project.update_option('sentry:verify_ssl', result['verifySSL'])
+            if project.update_option('sentry:verify_ssl', result['verifySSL']):
+                changed_proj_settings['sentry:verify_ssl'] = result['verifySSL']
         if result.get('dataScrubber') is not None:
-            project.update_option('sentry:scrub_data', result['dataScrubber'])
+            if project.update_option('sentry:scrub_data', result['dataScrubber']):
+                changed_proj_settings['sentry:scrub_data'] = result['dataScrubber']
         if result.get('dataScrubberDefaults') is not None:
-            project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults'])
+            if project.update_option('sentry:scrub_defaults', result['dataScrubberDefaults']):
+                changed_proj_settings['sentry:scrub_defaults'] = result['dataScrubberDefaults']
         if result.get('sensitiveFields') is not None:
-            project.update_option('sentry:sensitive_fields', result['sensitiveFields'])
+            if project.update_option('sentry:sensitive_fields', result['sensitiveFields']):
+                changed_proj_settings['sentry:sensitive_fields'] = result['sensitiveFields']
         if result.get('safeFields') is not None:
-            project.update_option('sentry:safe_fields', result['safeFields'])
+            if project.update_option('sentry:safe_fields', result['safeFields']):
+                changed_proj_settings['sentry:safe_fields'] = result['safeFields']
+        if 'defaultEnvironment' in result:
+            if result['defaultEnvironment'] is None:
+                project.delete_option('sentry:default_environment')
+            else:
+                project.update_option('sentry:default_environment', result['defaultEnvironment'])
         # resolveAge can be None
         if 'resolveAge' in result:
-            project.update_option(
+            if project.update_option(
                 'sentry:resolve_age',
                 0 if result.get('resolveAge') is None else int(
-                    result['resolveAge']))
+                    result['resolveAge'])):
+                changed_proj_settings['sentry:resolve_age'] = result['resolveAge']
         if result.get('scrapeJavaScript') is not None:
-            project.update_option('sentry:scrape_javascript', result['scrapeJavaScript'])
+            if project.update_option('sentry:scrape_javascript', result['scrapeJavaScript']):
+                changed_proj_settings['sentry:scrape_javascript'] = result['scrapeJavaScript']
         if result.get('allowedDomains'):
-            project.update_option('sentry:origins', result['allowedDomains'])
+            if project.update_option('sentry:origins', result['allowedDomains']):
+                changed_proj_settings['sentry:origins'] = result['allowedDomains']
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(
@@ -485,7 +486,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
-                data=project.get_audit_log_data(),
+                data=changed_proj_settings
             )
 
         data = serialize(project, request.user, DetailedProjectSerializer())

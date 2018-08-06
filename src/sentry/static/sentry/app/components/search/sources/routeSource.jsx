@@ -2,11 +2,11 @@ import {flattenDepth} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {createFuzzySearch} from '../../../utils/createFuzzySearch';
-import accountSettingsNavigation from '../../../views/settings/account/navigationConfiguration';
-import organizationSettingsNavigation from '../../../views/settings/organization/navigationConfiguration';
-import projectSettingsNavigation from '../../../views/settings/project/navigationConfiguration';
-import replaceRouterParams from '../../../utils/replaceRouterParams';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import accountSettingsNavigation from 'app/views/settings/account/navigationConfiguration';
+import organizationSettingsNavigation from 'app/views/settings/organization/navigationConfiguration';
+import projectSettingsNavigation from 'app/views/settings/project/navigationConfiguration';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // navigation configuration can currently be either:
 // * an array of {name: string, items: Array<{NavItem}>} OR

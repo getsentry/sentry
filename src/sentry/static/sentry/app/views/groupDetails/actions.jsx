@@ -4,22 +4,21 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../../components/dropdownLink';
-import GroupActions from '../../actions/groupActions';
-import GroupState from '../../mixins/groupState';
-import HookStore from '../../stores/hookStore';
-import IndicatorStore from '../../stores/indicatorStore';
-import IssuePluginActions from '../../components/group/issuePluginActions';
-import GuideAnchor from '../../components/assistant/guideAnchor';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import MenuItem from '../../components/menuItem';
-import ShareIssue from '../../components/shareIssue';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import GroupActions from 'app/actions/groupActions';
+import GroupState from 'app/mixins/groupState';
+import HookStore from 'app/stores/hookStore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import IssuePluginActions from 'app/components/group/issuePluginActions';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import MenuItem from 'app/components/menuItem';
+import ShareIssue from 'app/components/shareIssue';
 
-import ResolveActions from '../../components/actions/resolve';
-import IgnoreActions from '../../components/actions/ignore';
-import {openCreateOwnershipRule} from '../../actionCreators/modal';
+import ResolveActions from 'app/components/actions/resolve';
+import IgnoreActions from 'app/components/actions/ignore';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -222,11 +221,6 @@ const GroupDetailsActions = createReactClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
-    let hasOwners =
-      orgFeatures.has('code-owners') && orgFeatures.has('internal-catchall');
-
-    // account for both old and new style plugins
-    let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
 
     let isResolved = group.status === 'resolved';
     let isIgnored = group.status === 'ignored';
@@ -260,22 +254,6 @@ const GroupDetailsActions = createReactClass({
           onDiscard={this.onDiscard}
         />
 
-        {hasOwners && (
-          <div className="btn-group">
-            <a
-              onClick={() =>
-                openCreateOwnershipRule({
-                  project,
-                  organization: org,
-                  issueId: group.id,
-                })}
-              className={'btn btn-default btn-sm btn-create-ownership-rule'}
-            >
-              {t('Create Ownership Rule')}
-            </a>
-          </div>
-        )}
-
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
@@ -289,7 +267,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {group.pluginActions.length > 1 ? (
+        {group.pluginActions.length > 1 && !orgFeatures.has('new-issue-ui') ? (
           <div className="btn-group more">
             <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
               {group.pluginActions.map((action, actionIdx) => {
@@ -303,6 +281,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         ) : (
           group.pluginActions.length !== 0 &&
+          !orgFeatures.has('new-issue-ui') &&
           group.pluginActions.map((action, actionIdx) => {
             return (
               <div className="btn-group" key={actionIdx}>
@@ -314,20 +293,10 @@ const GroupDetailsActions = createReactClass({
           })
         )}
         {group.pluginIssues &&
+          !orgFeatures.has('new-issue-ui') &&
           group.pluginIssues.map(plugin => {
             return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
           })}
-        {!hasIssueTracking && (
-          <GuideAnchor type="text" target="issue_tracking">
-            <a
-              href={`/${this.getOrganization().slug}/${this.getProject()
-                .slug}/settings/issue-tracking/`}
-              className={'btn btn-default btn-sm btn-config-issue-tracking'}
-            >
-              {t('Link Issue Tracker')}
-            </a>
-          </GuideAnchor>
-        )}
       </div>
     );
   },

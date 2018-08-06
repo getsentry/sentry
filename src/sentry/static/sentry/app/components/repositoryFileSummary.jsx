@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import FileChange from './fileChange';
-import {t, tn} from '../locale';
+import FileChange from 'app/components/fileChange';
+import {t, tn} from 'app/locale';
 
 function Collapsed(props) {
   return (

@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import FormField from './formField';
-import Tooltip from '../tooltip';
+import FormField from 'app/components/forms/formField';
+import Tooltip from 'app/components/tooltip';
 
-import {defined} from '../../utils';
+import {defined} from 'app/utils';
 
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {

@@ -1,19 +1,37 @@
+import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import sinon from 'sinon';
-import ConfigStore from 'app/stores/configStore';
+import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/proptypes';
-import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 
+import ConfigStore from 'app/stores/configStore';
+import theme from 'app/utils/theme';
+
+import RoleList from './fixtures/roleList';
+import Release from './fixtures/release';
+import {AsanaPlugin, AsanaCreate, AsanaAutocomplete} from './fixtures/asana';
+import {
+  PhabricatorPlugin,
+  PhabricatorCreate,
+  PhabricatorAutocomplete,
+} from './fixtures/phabricator';
+import {VstsPlugin, VstsCreate} from './fixtures/vsts-old';
+
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
 jest.mock('react-router', () => {
   const ReactRouter = require.requireActual('react-router');
   return {
+    IndexRedirect: ReactRouter.IndexRedirect,
+    IndexRoute: ReactRouter.IndexRoute,
     Link: ReactRouter.Link,
+    Redirect: ReactRouter.Redirect,
+    Route: ReactRouter.Route,
     withRouter: ReactRouter.withRouter,
     browserHistory: {
       push: jest.fn(),
@@ -22,6 +40,17 @@ jest.mock('react-router', () => {
     },
   };
 });
+jest.mock('react-lazyload', () => {
+  const LazyLoadMock = ({children}) => children;
+  return LazyLoadMock;
+});
+
+jest.mock('app/utils/sdk', () => ({
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+  showReportDialog: jest.fn(),
+  lastEventId: jest.fn(),
+}));
 
 const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
@@ -37,16 +66,11 @@ window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
-window.scrollTo = sinon.spy();
+window.scrollTo = jest.fn();
 
-// Instead of wrapping codeblocks in `setTimeout`
-window.tick = () => new Promise(res => setTimeout(res));
+// emotion context broadcast
+const broadcast = createBroadcast(theme);
 
-window.Raven = {
-  captureMessage: sinon.spy(),
-  captureException: sinon.spy(),
-  lastEventId: sinon.spy(),
-};
 window.TestStubs = {
   // react-router's 'router' context
   router: (params = {}) => ({
@@ -55,6 +79,7 @@ window.TestStubs = {
     go: jest.fn(),
     goBack: jest.fn(),
     goForward: jest.fn(),
+    listen: jest.fn(),
     setRouteLeaveHook: jest.fn(),
     isActive: jest.fn(),
     createHref: jest.fn(),
@@ -62,13 +87,34 @@ window.TestStubs = {
     ...params,
   }),
 
-  location: () => ({
+  location: (params = {}) => ({
     query: {},
     pathame: '/mock-pathname/',
+    ...params,
+  }),
+
+  routes: () => [
+    {path: '/'},
+    {path: '/:orgId/'},
+    {name: 'this should be skipped'},
+    {path: '/organizations/:orgId/'},
+    {path: 'api-keys/', name: 'API Key'},
+  ],
+
+  routerProps: (params = {}) => ({
+    location: TestStubs.location(),
+    params: {},
+    routes: [],
+    stepBack: () => {},
+    ...params,
   }),
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
+      [channel]: {
+        subscribe: broadcast.subscribe,
+        unsubscribe: broadcast.unsubscribe,
+      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: TestStubs.Organization(),
@@ -76,24 +122,12 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
+      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
       project: PropTypes.object,
       ...childContextTypes,
-    },
-  }),
-
-  routerOrganizationContext: () => ({
-    context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-    },
-    childContextTypes: {
-      router: PropTypes.object,
-      location: PropTypes.object,
-      organization: SentryTypes.Organization,
     },
   }),
 
@@ -313,7 +347,7 @@ window.TestStubs = {
         lastUsedAt: null,
         enrollButton: 'Activate',
         description:
-          'Recovery codes can be used to access your account in the event you lose access to your device and cannot receive two-factor authentication codes.',
+          'Recovery codes are the only way to access your account if you lose your device and cannot receive two-factor authentication codes.',
         isEnrolled: true,
         removeButton: null,
         id: 'recovery',
@@ -324,9 +358,14 @@ window.TestStubs = {
         authId: '16',
         canValidateOtp: true,
         isBackupInterface: true,
+        codes: ['ABCD-1234', 'EFGH-5678'],
         ...params,
       }),
     };
+  },
+
+  AllAuthenticators: () => {
+    return Object.values(TestStubs.Authenticators()).map(x => x());
   },
 
   AccountEmails: () => {
@@ -348,6 +387,20 @@ window.TestStubs = {
       },
     ];
   },
+
+  Broadcast: params => ({
+    dateCreated: new Date(),
+    dateExpires: new Date(),
+    hasSeen: false,
+    id: '8',
+    isActive: true,
+    link:
+      'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry',
+    message:
+      'Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.',
+    title: 'Learn about Source Maps',
+    ...params,
+  }),
 
   DebugSymbols: params => ({
     debugSymbols: [
@@ -401,8 +454,24 @@ window.TestStubs = {
       id: '1',
       message: 'ApiException',
       groupID: '1',
-      eventID: '12345',
+      eventID: '12345678901234567890123456789012',
       ...params,
+    };
+  },
+
+  EventIdQueryResult: params => {
+    let event = TestStubs.Event({
+      metadata: {
+        type: 'event type',
+        value: 'event description',
+      },
+    });
+    return {
+      organizationSlug: 'org-slug',
+      projectSlug: 'project-slug',
+      groupId: event.groupID,
+      eventId: event.eventID,
+      event,
     };
   },
 
@@ -440,7 +509,11 @@ window.TestStubs = {
     return {
       key: 'github',
       name: 'GitHub',
+      canAdd: true,
+      canAddProject: false,
       config: [],
+      externalIssues: [],
+      features: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',
         width: 100,
@@ -449,12 +522,41 @@ window.TestStubs = {
       metadata: {
         description: '*markdown* formatted _description_',
         author: 'Morty',
+        noun: 'Installation',
         issue_url: 'http://example.com/integration_issue_url',
         source_url: 'http://example.com/integration_source_url',
         aspects: {
-          alert_link: {
-            text: 'This is a *alert link* with markdown formatting',
-            link: '/url/with/params/{orgId}/',
+          alerts: [
+            {
+              type: 'warning',
+              text: 'This is a an alert example',
+            },
+          ],
+        },
+      },
+      ...params,
+    };
+  },
+
+  JiraIntegrationProvider: params => {
+    return {
+      key: 'jira',
+      name: 'Jira',
+      canAdd: false,
+      canAddProject: true,
+      config: [],
+      features: [],
+      metadata: {
+        description: '*markdown* formatted Jira _description_',
+        author: 'Rick',
+        noun: 'Instance',
+        issue_url: 'http://example.com/jira_integration_issue_url',
+        source_url: 'http://example.com/jira_integration_source_url',
+        aspects: {
+          externalInstall: {
+            url: 'http://jira.com',
+            buttonText: 'Visit Jira',
+            noticeText: 'You must visit jira to install the integration',
           },
         },
       },
@@ -464,14 +566,42 @@ window.TestStubs = {
 
   GitHubIntegration: params => {
     return {
-      domain_name: 'gtithub.com/test-integration',
+      domainName: 'gtithub.com/test-integration',
       icon: 'http://example.com/integration_icon.png',
       id: '1',
       name: 'Test Integration',
       provider: {
         name: 'GitHub',
         key: 'github',
+        canAdd: true,
+        canAddProject: false,
+        features: [],
       },
+      projects: [],
+      configOrganization: [],
+      configProject: [],
+      configData: {},
+      ...params,
+    };
+  },
+
+  JiraIntegration: params => {
+    return {
+      domainName: 'jira.com/test-integration',
+      icon: 'http://jira.example.com/integration_icon.png',
+      id: '2',
+      name: 'Jira Test Integration',
+      provider: {
+        name: 'Jira',
+        key: 'jira',
+        canAdd: true,
+        canAddProject: true,
+        features: [],
+      },
+      projects: [],
+      configOrganization: [],
+      configProject: [],
+      configData: {},
       ...params,
     };
   },
@@ -494,31 +624,35 @@ window.TestStubs = {
     };
   },
 
-  Members: () => [
-    {
-      id: '1',
-      email: 'sentry1@test.com',
-      name: 'Sentry 1 Name',
-      role: '',
-      roleName: '',
-      pending: false,
-      flags: {
-        'sso:linked': false,
-      },
-      user: {
-        id: '1',
-        has2fa: false,
-        name: 'Sentry 1 Name',
-        email: 'sentry1@test.com',
-        username: 'Sentry 1 Username',
-      },
+  Incident: params => ({
+    id: '1',
+    title: 'Test Incident',
+    updates: ['First Update', 'Second Update'],
+    url: 'https://status.sentry.io',
+  }),
+
+  Member: params => ({
+    id: '1',
+    email: 'sentry1@test.com',
+    name: 'Sentry 1 Name',
+    role: 'member',
+    roleName: 'Member',
+    pending: false,
+    flags: {
+      'sso:linked': false,
     },
+    user: TestStubs.User(),
+    ...params,
+  }),
+
+  Members: () => [
+    TestStubs.Member(),
     {
       id: '2',
       name: 'Sentry 2 Name',
       email: 'sentry2@test.com',
-      role: '',
-      roleName: '',
+      role: 'member',
+      roleName: 'Member',
       pending: true,
       flags: {
         'sso:linked': false,
@@ -589,12 +723,40 @@ window.TestStubs = {
         id: 'active',
         name: 'active',
       },
+      scrapeJavaScript: true,
       features: [],
       onboardingTasks: [],
       teams: [],
       projects: [],
       ...params,
     };
+  },
+
+  Organizations: params => {
+    return [
+      {
+        id: '1',
+        name: 'test 1',
+        slug: 'test 1',
+        require2FA: false,
+        status: {
+          id: 'active',
+          name: 'active',
+        },
+        ...params,
+      },
+      {
+        id: '2',
+        name: 'test 2',
+        slug: 'test 2',
+        require2FA: false,
+        status: {
+          id: 'active',
+          name: 'active',
+        },
+        ...params,
+      },
+    ];
   },
 
   Plugin: params => {
@@ -746,6 +908,8 @@ window.TestStubs = {
           public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
           csp:
             'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
+          security:
+            'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
         },
         public: '188ee45a58094d939428d8585aa6f661',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2d',
@@ -771,6 +935,10 @@ window.TestStubs = {
     };
   },
 
+  Release,
+
+  RoleList,
+
   Searches: params => [
     {
       name: 'Needs Triage',
@@ -791,6 +959,22 @@ window.TestStubs = {
       isDefault: false,
     },
   ],
+
+  ShortIdQueryResult: params => {
+    let group = TestStubs.Group({
+      metadata: {
+        type: 'group type',
+        value: 'group description',
+      },
+    });
+    return {
+      organizationSlug: 'org-slug',
+      projectSlug: 'project-slug',
+      groupId: group.id,
+      shortId: 'test-1',
+      group,
+    };
+  },
 
   Subscriptions: () => {
     return [
@@ -831,6 +1015,7 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
+      isMember: true,
       ...params,
     };
   },
@@ -930,16 +1115,36 @@ window.TestStubs = {
     username: 'foo@example.com',
     email: 'foo@example.com',
     name: 'Foo Bar',
+    isAuthenticated: true,
+    options: {
+      timezone: 'UTC',
+    },
+    hasPasswordAuth: true,
+    flags: {
+      newsletter_consent_prompt: false,
+    },
     ...params,
   }),
 
-  UserReport: () => ({
+  UserFeedback: () => ({
     id: '123',
     name: 'Lyn',
     email: 'lyn@sentry.io',
     comments: 'Something bad happened',
     issue: TestStubs.Group(),
   }),
+
+  /**
+   * Plugins
+   */
+  AsanaPlugin,
+  AsanaCreate,
+  AsanaAutocomplete,
+  PhabricatorPlugin,
+  PhabricatorCreate,
+  PhabricatorAutocomplete,
+  VstsPlugin,
+  VstsCreate,
 };
 
 // this is very commonly used, so expose it globally
@@ -948,15 +1153,5 @@ window.MockApiClient = require.requireMock('app/api').Client;
 // default configuration
 ConfigStore.loadInitialData({
   messages: [],
-  user: {
-    isAuthenticated: true,
-    email: 'foo@example.com',
-    options: {
-      timezone: 'UTC',
-    },
-    hasPasswordAuth: true,
-    flags: {
-      newsletter_consent_prompt: false,
-    },
-  },
+  user: TestStubs.User(),
 });

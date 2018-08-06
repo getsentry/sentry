@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import SimilarSpectrum from 'sentry-ui/similarSpectrum';
+import SimilarSpectrum from 'app/components/similarSpectrum';
 
 storiesOf('SimilarSpectrum', module).add(
   'default',

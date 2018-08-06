@@ -2,14 +2,14 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
-import SentryTypes from '../../proptypes';
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {t, tct} from '../../locale';
-import {Panel, PanelHeader, PanelBody} from '../../components/panels';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t, tct} from 'app/locale';
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 
-import EventNode from './eventNode';
+import EventNode from 'app/views/projectDashboard/eventNode';
 
 const EventList = createReactClass({
   displayName: 'EventList',

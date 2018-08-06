@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.23.0.dev0'
+VERSION = '9.1.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -75,12 +75,13 @@ dev_requires = get_requirements('dev')
 tests_require = get_requirements('test')
 optional_requires = get_requirements('optional')
 
+# override django version in requirements file if DJANGO_VERSION is set
 DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
 if DJANGO_VERSION:
     install_requires = [
-        'Django{}'.format(DJANGO_VERSION[1:-1])
-        if k.startswith('Django>=') else k
-        for k in install_requires
+        'Django{}'.format(DJANGO_VERSION)
+        if r.startswith('Django>=') else r
+        for r in install_requires
     ]
 
 
@@ -141,8 +142,6 @@ setup(
     entry_points={
         'console_scripts': [
             'sentry = sentry.runner:main',
-        ],
-        'flake8.extension': [
         ],
     },
     classifiers=[

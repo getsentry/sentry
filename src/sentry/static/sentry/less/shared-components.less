@@ -336,14 +336,6 @@ table.table {
     font-weight: 600;
     font-size: 15px;
     margin: 0;
-
-    a {
-      color: @gray-dark;
-      &:hover,
-      &:active {
-        color: darken(@gray-dark, 20);
-      }
-    }
   }
 
   .table-user-info {
@@ -531,14 +523,6 @@ table.integrations {
   vertical-align: middle;
   position: relative;
   display: inline-block;
-
-  svg,
-  img {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    border-radius: 3px;
-  }
 }
 
 /**
@@ -828,7 +812,6 @@ table.integrations {
   &.switch-disabled {
     cursor: not-allowed;
     pointer-events: none;
-    background: @white-darker;
 
     .switch-toggle {
       opacity: 0.4;
@@ -1156,10 +1139,30 @@ table.integrations {
 * Project Dropdown
 * ============================================================================
 */
-
 .project-select {
+  position: relative;
+
   > a {
     color: @gray-darker;
+  }
+
+  h3 {
+    font-size: 20px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+
+    a {
+      color: @gray-dark;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+
+  .project-selected {
+    background-color: lighten(@blue-light, 30);
   }
 
   .home-crumb {
@@ -1176,6 +1179,7 @@ table.integrations {
 
 .project-dropdown {
   position: static;
+  height: 24px;
 
   .dropdown-toggle {
     height: 23px;
@@ -1202,11 +1206,13 @@ table.integrations {
     max-width: 500px;
     width: auto;
     padding-bottom: 0;
-    left: 30px;
+    left: 0;
+    top: 100%;
     .clearfix;
     overflow: auto;
     max-height: 500px;
     white-space: nowrap;
+    overflow: show;
 
     &:before {
       left: 11px;
@@ -1247,7 +1253,6 @@ table.integrations {
 
     li {
       position: relative;
-      padding: 0 5px 0 15px;
 
       &:nth-child(2) {
         margin-top: 5px;
@@ -1265,7 +1270,7 @@ table.integrations {
 
       > a {
         .truncate();
-        padding: 6px 0;
+        padding: 6px 6px 6px 0;
         border-radius: 0;
         line-height: 1;
         border-left: 3px solid transparent;
@@ -1276,17 +1281,19 @@ table.integrations {
 
         &.active,
         &:active {
-          color: @gray-dark;
+          color: @gray-darkest;
+          background: @white-dark;
 
           &:after {
             display: block;
             content: '';
             position: absolute;
             width: 4px;
-            left: 0;
+            left: -1px;
             top: 0;
             bottom: 0;
             background: @purple-light;
+            border-radius: 0 2px 2px 0;
           }
         }
       }
@@ -1600,7 +1607,6 @@ ul.faces {
       max-width: 100%;
       .truncate;
       display: inline-block;
-      line-height: 1;
       vertical-align: text-bottom;
     }
 
@@ -1610,6 +1616,7 @@ ul.faces {
       display: inline;
       margin: 0 0 0 8px;
       color: @gray-light;
+      line-height: 1.2;
 
       &:hover {
         color: @gray;
@@ -2407,7 +2414,7 @@ header + .alert {
       margin: 0;
       border: 0;
       background: none;
-      color: @gray;
+      color: @60;
       min-width: 30px;
       text-align: center;
 
@@ -2512,7 +2519,11 @@ header + .alert {
     background: inherit;
   }
 
-  &.badge-new {
+  &.strong {
+    background: @blue;
+  }
+
+  &.highlight {
     background: @green;
   }
 }
@@ -2620,7 +2631,7 @@ ul.radio-inputs {
 * ============================================================================
 */
 
-.modal-open .app {
+.modal-open .app > * {
   -webkit-filter: ~'blur(3px) grayscale(25%)';
 }
 
@@ -2641,10 +2652,12 @@ ul.radio-inputs {
     background: none;
     border: 0;
     padding: 0;
+    margin: 0;
     font-size: 24px;
     position: absolute;
-    top: 14px;
-    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 24px;
     z-index: 100;
     color: lighten(@gray, 20);
     .transition(color 0.1s linear);
@@ -2667,6 +2680,7 @@ ul.radio-inputs {
     border-radius: 7px 7px 0 0;
     padding: 20px 30px;
     margin: -30px -30px 20px;
+    position: relative;
 
     h1,
     h2,
@@ -2678,10 +2692,6 @@ ul.radio-inputs {
       font-weight: 600;
       margin-bottom: 0;
       line-height: 1.1;
-    }
-
-    .close {
-      margin-top: 1px;
     }
   }
 
@@ -2713,6 +2723,9 @@ ul.radio-inputs {
     padding: 20px 30px;
     border-top: 1px solid @trim;
     margin: 20px -30px -30px;
+    display: flex;
+    justify-content: flex-end;
+    text-align: initial;
   }
 
   .nav-stacked {
@@ -2727,6 +2740,28 @@ ul.radio-inputs {
         }
       }
     }
+  }
+}
+
+.custom-resolution-modal {
+  .modal-content {
+    overflow: visible;
+  }
+}
+
+// Sudo Modal
+.sudo-modal.modal {
+  .modal-header {
+    padding: 12px 30px;
+  }
+
+  .form-actions {
+    margin-left: -30px;
+    margin-right: -30px;
+    margin-bottom: -30px;
+    padding-right: 30px;
+    padding-bottom: 20px;
+    padding-top: 20px;
   }
 }
 
@@ -2747,6 +2782,12 @@ ul.radio-inputs {
   }
   .modal-content {
     overflow: initial;
+  }
+}
+
+.context-picker-modal.modal {
+  .modal-content {
+    overflow: visible;
   }
 }
 

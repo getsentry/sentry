@@ -28,16 +28,19 @@ describe('AccountSecurityEnroll', function() {
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-      wrapper = mount(<AccountSecurityEnroll />, {
-        context: {
-          router: {
-            ...TestStubs.router(),
-            params: {
-              authId: authenticator.authId,
+      wrapper = mount(
+        <AccountSecurityEnroll />,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: authenticator.authId,
+              },
             },
           },
-        },
-      });
+        ])
+      );
     });
 
     it('does not have enrolled circle indicator', function() {
@@ -69,6 +72,7 @@ describe('AccountSecurityEnroll', function() {
     });
   });
 
+  // eslint-disable-next-line jest/no-disabled-tests
   describe.skip('Recovery', function() {
     beforeEach(function() {
       Client.clearMockResponses();
@@ -76,16 +80,19 @@ describe('AccountSecurityEnroll', function() {
         url: `${ENDPOINT}16/`,
         body: TestStubs.Authenticators().Recovery(),
       });
-      wrapper = mount(<AccountSecurityEnroll />, {
-        context: {
-          router: {
-            ...TestStubs.router(),
-            params: {
-              authId: 16,
+      wrapper = mount(
+        <AccountSecurityEnroll />,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: 16,
+              },
             },
           },
-        },
-      });
+        ])
+      );
     });
 
     it('has enrolled circle indicator', function() {

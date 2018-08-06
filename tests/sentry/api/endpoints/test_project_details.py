@@ -5,7 +5,8 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect
+from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.models import Project, ProjectBookmark, ProjectStatus, UserOption, DeletedProject, ProjectRedirect, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
 
 
@@ -77,7 +78,9 @@ class ProjectDetailsTest(APITestCase):
 
         response = self.client.get(url)
         assert response.status_code == 302
-        assert response.data['detail']['slug'] == 'foobar'
+        assert response.data['slug'] == 'foobar'
+        assert response.data['detail']['extra']['url'] == '/api/0/projects/%s/%s/' % (project.organization.slug, 'foobar')
+        assert response['Location'] == 'http://testserver/api/0/projects/%s/%s/' % (project.organization.slug, 'foobar')
 
 
 class ProjectUpdateTest(APITestCase):
@@ -89,7 +92,7 @@ class ProjectUpdateTest(APITestCase):
         })
         self.login_as(user=self.user)
 
-    def test_team_changes(self):
+    def test_team_changes_deprecated(self):
         project = self.create_project()
         team = self.create_team(members=[self.user])
         self.login_as(user=self.user)
@@ -105,30 +108,11 @@ class ProjectUpdateTest(APITestCase):
                 'team': team.slug,
             }
         )
-        assert resp.status_code == 200, resp.content
-        project = Project.objects.get(id=project.id)
-        assert project.teams.first() == team
-
-    def test_team_changes_not_found(self):
-        project = self.create_project()
-        self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-project-details',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
-        )
-        resp = self.client.put(
-            url, data={
-                'team': 'the-team-that-does-not-exist',
-            }
-        )
         assert resp.status_code == 400, resp.content
-        assert resp.data['detail'][0] == 'The new team is not found.'
-        project = Project.objects.get(id=project.id)
+        assert resp.data['detail'][0] == 'Editing a team via this endpoint has been deprecated.'
 
-        assert project.teams.first() == self.team
+        project = Project.objects.get(id=project.id)
+        assert project.teams.first() != team
 
     def test_simple_member_restriction(self):
         project = self.create_project()
@@ -201,6 +185,10 @@ class ProjectUpdateTest(APITestCase):
             project=self.project,
             redirect_slug=self.project.slug,
         )
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
 
     def test_invalid_slug(self):
         new_project = self.create_project()
@@ -212,6 +200,12 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
+    def test_reserved_slug(self):
+        resp = self.client.put(self.path, data={
+            'slug': list(RESERVED_PROJECT_SLUGS)[0],
+        })
+        assert resp.status_code == 400, resp.content
+
     def test_platform(self):
         resp = self.client.put(self.path, data={
             'platform': 'cocoa',
@@ -222,7 +216,6 @@ class ProjectUpdateTest(APITestCase):
 
     def test_options(self):
         options = {
-            'sentry:origins': 'foo\nbar',
             'sentry:resolve_age': 1,
             'sentry:scrub_data': False,
             'sentry:scrub_defaults': False,
@@ -233,6 +226,13 @@ class ProjectUpdateTest(APITestCase):
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
             'filters:releases': '1.*\n2.1.*',
             'filters:error_messages': 'TypeError*\n*: integer division by modulo or zero',
+            'mail:subject_prefix': '[Sentry]',
+            'sentry:scrub_ip_address': False,
+            'sentry:origins': '*',
+            'sentry:scrape_javascript': False,
+            'sentry:token': '*',
+            'sentry:token_header': '*',
+            'sentry:verify_ssl': False
         }
         with self.feature('projects:custom-inbound-filters'):
             resp = self.client.put(self.path, data={'options': options})
@@ -241,10 +241,26 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:origins', []) == options['sentry:origins'].split('\n')
         assert project.get_option('sentry:resolve_age', 0) == options['sentry:resolve_age']
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:sensitive_fields',
                                   []) == options['sentry:sensitive_fields']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
         assert project.get_option('sentry:csp_ignored_sources_defaults',
                                   True) == options['sentry:csp_ignored_sources_defaults']
         assert project.get_option('sentry:csp_ignored_sources',
@@ -254,6 +270,52 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:error_messages') == [
             'TypeError*', '*: integer division by modulo or zero'
         ]
+        assert project.get_option('mail:subject_prefix', '[Sentry]')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:resolve_age', 1)
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option(
+            'sentry:scrub_ip_address',
+            True) == options['sentry:scrub_ip_address']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:origins', '*')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option(
+            'sentry:scrape_javascript',
+            False) == options['sentry:scrape_javascript']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:token', '*')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option('sentry:token_header', '*')
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
+        assert project.get_option(
+            'sentry:verify_ssl',
+            False) == options['sentry:verify_ssl']
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+        ).exists()
 
     def test_bookmarks(self):
         resp = self.client.put(self.path, data={

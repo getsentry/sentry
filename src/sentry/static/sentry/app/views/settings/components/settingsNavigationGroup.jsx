@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SentryTypes from '../../../proptypes';
-import SettingsNavItem from './settingsNavItem';
-import replaceRouterParams from '../../../utils/replaceRouterParams';
+import SentryTypes from 'app/sentryTypes';
+import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 const NavSection = styled.div`
   margin-bottom: 20px;

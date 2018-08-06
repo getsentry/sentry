@@ -2,21 +2,21 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import GroupState from '../mixins/groupState';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Pagination from '../components/pagination';
-import SearchBar from '../components/searchBar';
-import EventsTable from '../components/eventsTable/eventsTable';
-import {t, tct} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
-import {getQueryEnvironment, getQueryStringWithEnvironment} from '../utils/queryString';
-import EnvironmentStore from '../stores/environmentStore';
-import {setActiveEnvironment} from '../actionCreators/environments';
-import EmptyStateWarning from '../components/emptyStateWarning';
-import {Panel, PanelBody} from '../components/panels';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupState from 'app/mixins/groupState';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
+import EventsTable from 'app/components/eventsTable/eventsTable';
+import {t, tct} from 'app/locale';
+import withEnvironment from 'app/utils/withEnvironment';
+import {getQueryEnvironment, getQueryStringWithEnvironment} from 'app/utils/queryString';
+import EnvironmentStore from 'app/stores/environmentStore';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel, PanelBody} from 'app/components/panels';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',

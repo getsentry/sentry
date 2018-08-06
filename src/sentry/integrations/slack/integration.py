@@ -1,41 +1,53 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
+
 from sentry import http
-from sentry.integrations import Integration, IntegrationMetadata
-from sentry.utils.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.integrations import (
+    IntegrationFeatures, IntegrationMetadata, IntegrationProvider,
+)
+from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
 
 DESCRIPTION = """
-Define a relationship between Sentry and your Slack workspace(s).
+Connect your Sentry organization to one or more Slack workspaces, and start
+getting errors right in front of you where all the action happens in your
+office!
 
- * Unfurls Sentry URLs in slack, providing context and actionability on issues
-   directly within your Slack workspace.
+ * Unfurls Sentry URLs directly within Slack, providing you context and
+   actionability on issues right at your fingertips.
  * Resolve, ignore, and assign issues with minimal context switching.
- * Configure rule based Slack notifications to automatically be posted into the
-   specified channel.
+ * Configure rule based Slack notifications to automatically be posted into a
+   specific channel. Want any error that's happening more than 100 times a
+   minute to be posted in `#critical-errors`? Setup a rule for it!
 """
 
-alert_link = {
-    'text': 'Looking to send Sentry alerts to Slack? Add an **Alert Rule** for this project.',
-    'link': '/settings/{orgId}/{projectId}/alerts/rules/'
+setup_alert = {
+    'type': 'info',
+    'text': 'The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.',
 }
 
 metadata = IntegrationMetadata(
-    description=DESCRIPTION.strip(),
+    description=_(DESCRIPTION.strip()),
     author='The Sentry Team',
+    noun=_('Workspace'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
     aspects={
-        'alert_link': alert_link,
+        'alerts': [setup_alert],
     }
 )
 
 
-class SlackIntegration(Integration):
+class SlackIntegrationProvider(IntegrationProvider):
     key = 'slack'
     name = 'Slack'
     metadata = metadata
+    features = frozenset([
+        IntegrationFeatures.NOTIFICATION,
+        IntegrationFeatures.CHAT_UNFURL,
+    ])
 
     identity_oauth_scopes = frozenset([
         'channels:read',
@@ -97,7 +109,7 @@ class SlackIntegration(Integration):
             },
             'user_identity': {
                 'type': 'slack',
-                'external_id': data['installer_user_id'],
+                'external_id': data['authorizing_user_id'],
                 'scopes': [],
                 'data': {},
             },

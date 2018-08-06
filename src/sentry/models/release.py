@@ -88,7 +88,7 @@ class Release(Model):
         db_table = 'sentry_release'
         unique_together = (('organization', 'version'), )
 
-    __repr__ = sane_repr('organization', 'version')
+    __repr__ = sane_repr('organization_id', 'version')
 
     @staticmethod
     def is_valid_version(value):
@@ -325,23 +325,24 @@ class Release(Model):
         """
         Bind a list of commits to this release.
 
-        These should be ordered from newest to oldest.
-
         This will clear any existing commit log and replace it with the given
         commits.
         """
+
+        # Sort commit list in reverse order
+        commit_list.sort(key=lambda commit: commit.get('timestamp'), reverse=True)
+
         # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
             ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
-
+        # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
             if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
         ]
-
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
@@ -477,6 +478,7 @@ class Release(Model):
 
         pr_ids_by_merge_commit = list(PullRequest.objects.filter(
             merge_commit_sha__in=[rc['commit__key'] for rc in release_commits],
+            organization_id=self.organization_id,
         ).values_list('id', flat=True))
 
         pull_request_resolutions = list(

@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import '../../less/components/toolbarHeader.less';
+import 'app/../less/components/toolbarHeader.less';
 
 const ToolbarHeader = ({className, children, ...otherProps}) => {
   let cx = classNames('toolbar-header', className);

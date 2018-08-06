@@ -23,6 +23,31 @@ GENERIC_ERROR = _('An unknown error occurred while submitting your report. Pleas
 FORM_ERROR = _('Some fields were invalid. Please correct the errors and try again.')
 SENT_MESSAGE = _('Your feedback has been sent. Thank you!')
 
+DEFAULT_TITLE = _('It looks like we\'re having issues.')
+DEFAULT_SUBTITLE = _('Our team has been notified.')
+DEFAULT_SUBTITLE2 = _('If you\'d like to help, tell us what happened below.')
+
+DEFAULT_NAME_LABEL = _('Name')
+DEFAULT_EMAIL_LABEL = _('Email')
+DEFAULT_COMMENTS_LABEL = _('What happened?')
+
+DEFAULT_CLOSE_LABEL = _('Close')
+DEFAULT_SUBMIT_LABEL = _('Submit Crash Report')
+
+DEFAULT_OPTIONS = {
+    'title': DEFAULT_TITLE,
+    'subtitle': DEFAULT_SUBTITLE,
+    'subtitle2': DEFAULT_SUBTITLE2,
+    'labelName': DEFAULT_NAME_LABEL,
+    'labelEmail': DEFAULT_EMAIL_LABEL,
+    'labelComments': DEFAULT_COMMENTS_LABEL,
+    'labelClose': DEFAULT_CLOSE_LABEL,
+    'labelSubmit': DEFAULT_SUBMIT_LABEL,
+    'errorGeneric': GENERIC_ERROR,
+    'errorFormEntry': FORM_ERROR,
+    'successMessage': SENT_MESSAGE,
+}
+
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(
@@ -67,16 +92,23 @@ class ErrorPageEmbedView(View):
     def _get_origin(self, request):
         return origin_from_request(request)
 
-    def _json_response(self, request, context=None, status=200):
-        if context:
-            content = json.dumps(context)
-        else:
+    def _smart_response(self, request, context=None, status=200):
+        json_context = json.dumps(context or {})
+        accept = request.META.get('HTTP_ACCEPT') or ''
+        if 'text/javascript' in accept:
+            content_type = 'text/javascript'
             content = ''
-        response = HttpResponse(content, status=status, content_type='application/json')
+        else:
+            content_type = 'application/json'
+            content = json_context
+        response = HttpResponse(content, status=status, content_type=content_type)
         response['Access-Control-Allow-Origin'] = request.META.get('HTTP_ORIGIN', '')
         response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
         response['Access-Control-Max-Age'] = '1000'
         response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        response['Vary'] = 'Accept'
+        if content == '' and context:
+            response['X-Sentry-Context'] = json_context
         return response
 
     @csrf_exempt
@@ -84,24 +116,27 @@ class ErrorPageEmbedView(View):
         try:
             event_id = request.GET['eventId']
         except KeyError:
-            return self._json_response(request, status=400)
+            return self._smart_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
-        if not is_event_id(event_id):
-            return self._json_response(request, status=400)
+        if event_id and not is_event_id(event_id):
+            return self._smart_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
         key = self._get_project_key(request)
         if not key:
-            return self._json_response(request, status=404)
+            return self._smart_response(request, {'dsn': 'Missing or invalid parameter.'}, status=404)
 
         origin = self._get_origin(request)
-        if not origin:
-            return self._json_response(request, status=403)
-
         if not is_valid_origin(origin, key.project):
-            return HttpResponse(status=403)
+            return self._smart_response(request, status=403)
 
         if request.method == 'OPTIONS':
-            return self._json_response(request)
+            return self._smart_response(request)
+
+        # customization options
+        options = DEFAULT_OPTIONS.copy()
+        for name in six.iterkeys(options):
+            if name in request.GET:
+                options[name] = six.text_type(request.GET[name])
 
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
@@ -155,9 +190,9 @@ class ErrorPageEmbedView(View):
 
             user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
-            return self._json_response(request)
+            return self._smart_response(request)
         elif request.method == 'POST':
-            return self._json_response(
+            return self._smart_response(
                 request, {
                     "errors": dict(form.errors),
                 }, status=400
@@ -171,22 +206,25 @@ class ErrorPageEmbedView(View):
             'sentry/error-page-embed.html', {
                 'form': form,
                 'show_branding': show_branding,
+                'title': options['title'],
+                'subtitle': options['subtitle'],
+                'subtitle2': options['subtitle2'],
+                'name_label': options['labelName'],
+                'email_label': options['labelEmail'],
+                'comments_label': options['labelComments'],
+                'submit_label': options['labelSubmit'],
+                'close_label': options['labelClose'],
             }
         )
 
         context = {
-            'endpoint':
-            mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
-            'template':
-            mark_safe('*/' + json.dumps(template) + ';/*'),
-            'strings':
-            json.dumps_htmlsafe(
-                {
-                    'generic_error': six.text_type(GENERIC_ERROR),
-                    'form_error': six.text_type(FORM_ERROR),
-                    'sent_message': six.text_type(SENT_MESSAGE),
-                }
-            ),
+            'endpoint': mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
+            'template': mark_safe('*/' + json.dumps(template) + ';/*'),
+            'strings': json.dumps_htmlsafe({
+                'generic_error': six.text_type(options['errorGeneric']),
+                'form_error': six.text_type(options['errorFormEntry']),
+                'sent_message': six.text_type(options['successMessage']),
+            }),
         }
 
         return render_to_response(

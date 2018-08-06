@@ -1,7 +1,7 @@
 import React from 'react';
-import {extractMultilineFields} from '../../utils';
-import {t, tct, tn} from '../../locale';
-import getDynamicText from '../../utils/getDynamicText';
+import {extractMultilineFields} from 'app/utils';
+import {t, tct, tn} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/:projectId/';
@@ -63,18 +63,6 @@ export const fields = {
     saveMessageAlertType: 'info',
     saveMessage: t('You will be redirected to the new project slug after saving'),
   },
-  team: {
-    name: 'team',
-    type: 'array',
-    label: t('Team'),
-    visible: ({organization}) => {
-      let features = new Set(organization.features);
-      return !features.has('new-teams') && organization.teams.length > 1;
-    },
-    choices: ({organization}) =>
-      organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),
-    help: t('Update the team that owns this project'),
-  },
 
   subjectPrefix: {
     name: 'subjectPrefix',
@@ -124,6 +112,9 @@ export const fields = {
     // `props` are the props given to FormField
     setValue: (val, props) =>
       (props.organization && props.organization[props.name]) || val,
+    confirm: {
+      false: t('Are you sure you want to disable server-side data scrubbing?'),
+    },
   },
   dataScrubberDefaults: {
     name: 'dataScrubberDefaults',
@@ -137,6 +128,9 @@ export const fields = {
     // `props` are the props given to FormField
     setValue: (val, props) =>
       (props.organization && props.organization[props.name]) || val,
+    confirm: {
+      false: t('Are you sure you want to disable using default scrubbers?'),
+    },
   },
   scrubIPAddresses: {
     name: 'scrubIPAddresses',
@@ -148,11 +142,16 @@ export const fields = {
       (props.organization && props.organization[props.name]) || val,
     label: t('Prevent Storing of IP Addresses'),
     help: t('Preventing IP addresses from being stored for new events'),
+    confirm: {
+      false: t('Are you sure you want to disable scrubbing IP addresses?'),
+    },
   },
   sensitiveFields: {
     name: 'sensitiveFields',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('email'),
     label: t('Additional Sensitive Fields'),
     help: t(
@@ -165,6 +164,8 @@ export const fields = {
     name: 'safeFields',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('business-email'),
     label: t('Safe Fields'),
     help: t(
@@ -178,6 +179,8 @@ export const fields = {
     name: 'allowedDomains',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
@@ -187,6 +190,11 @@ export const fields = {
   scrapeJavaScript: {
     name: 'scrapeJavaScript',
     type: 'boolean',
+    // if this is off for the organization, it cannot be enabled for the project
+    disabled: ({organization, name}) => !organization[name],
+    disabledReason: ORG_DISABLED_REASON,
+    // `props` are the props given to FormField
+    setValue: (val, props) => props.organization && props.organization[props.name] && val,
     label: t('Enable JavaScript source fetching'),
     help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
   },

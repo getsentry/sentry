@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import LoadingIndicator from './loadingIndicator';
-import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
 const getLoadingStyle = p =>
   (p.loading &&
@@ -78,11 +78,20 @@ class IssueDiff extends React.Component {
     // diff multiple exceptions
     //
     // See: https://github.com/getsentry/sentry/issues/6055
-    const exc = event.entries.find(({type}) => type === 'exception');
+    let exc = event.entries.find(({type}) => type === 'exception');
 
-    if (!exc || !exc.data) return [];
+    if (!exc) {
+      // Look for a message if not an exception
+      let msg = event.entries.find(({type}) => type === 'message');
+      if (!msg) return [];
+
+      return msg.data && msg.data.message && [msg.data.message];
+    }
+
+    if (!exc.data) return [];
 
     return exc.data.values
+      .filter(value => !!value.stacktrace)
       .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
       .reduce((acc, value) => {
         return acc.concat(value);

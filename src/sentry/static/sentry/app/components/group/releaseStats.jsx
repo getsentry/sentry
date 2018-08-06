@@ -2,26 +2,24 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import {get as getPath} from 'lodash';
-
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../dropdownLink';
-import {setActiveEnvironment} from '../../actionCreators/environments';
-import EnvironmentStore from '../../stores/environmentStore';
-import LatestContextStore from '../../stores/latestContextStore';
-import LoadingIndicator from '../loadingIndicator';
-import LoadingError from '../loadingError';
-import GroupState from '../../mixins/groupState';
-import GroupReleaseChart from './releaseChart';
-import MenuItem from '../menuItem';
-import SeenInfo from './seenInfo';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import EnvironmentStore from 'app/stores/environmentStore';
+import LatestContextStore from 'app/stores/latestContextStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import GroupState from 'app/mixins/groupState';
+import GroupReleaseChart from 'app/components/group/releaseChart';
+import MenuItem from 'app/components/menuItem';
+import SeenInfo from 'app/components/group/seenInfo';
+import {t} from 'app/locale';
 
 const GroupReleaseStats = createReactClass({
   displayName: 'GroupReleaseStats',
 
   propTypes: {
     group: PropTypes.object,
+    allEnvironments: PropTypes.object,
   },
 
   contextTypes: {
@@ -38,29 +36,12 @@ const GroupReleaseStats = createReactClass({
     let envList = EnvironmentStore.getActive();
 
     return {
-      loading: true,
-      error: false,
-      data: {environment: {}},
       envList,
       environment: LatestContextStore.getInitialState().environment,
       hasEnvironmentsFeature: new Set(this.context.organization.features).has(
         'environments'
       ),
     };
-  },
-
-  componentWillMount() {
-    this.fetchData();
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      this.state.loading !== nextState.loading ||
-      this.state.error !== nextState.error ||
-      this.state.environment !== nextState.environment ||
-      this.props.group.id !== nextProps.group.id ||
-      this.state.data !== nextState.data
-    );
   },
 
   getEnvironment(envName) {
@@ -71,82 +52,12 @@ const GroupReleaseStats = createReactClass({
   },
 
   onLatestContextChange(context) {
-    this.setState({environment: context.environment || null}, this.fetchData);
-  },
-
-  fetchData() {
-    if (this.state.environment) {
-      this.fetchEnvironmentData();
-    } else {
-      this.fetchAllEnvironmentsData();
-    }
-  },
-
-  fetchEnvironmentData() {
-    // due to the current stats logic in Sentry we need to extend the bounds
-    let group = this.props.group;
-    let env = this.state.environment;
-
-    let stats = group.stats['24h'];
-    let until = stats[stats.length - 1][0] + 1;
-
-    // TODO(lyn): We might not need to make this request anymore since the group
-    // endpoint now accepts the environment parameter
-    this.api.request(`/issues/${group.id}/environments/${env.urlRoutingName}/`, {
-      query: {
-        until,
-      },
-      success: data => {
-        this.setState({
-          data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          data: null,
-          loading: false,
-          error: true,
-        });
-      },
-    });
-  },
-
-  fetchAllEnvironmentsData() {
-    let group = this.props.group;
-
-    // Grab data for all environments and set on state, following the format of /issues/group/environments/{envname}
-    let data = {
-      environment: {stats: group.stats},
-    };
-
-    if (group.firstRelease) {
-      data.firstRelease = {
-        release: group.firstRelease,
-        environment: getPath(group, 'firstRelease.lastDeploy.environment'),
-      };
-    }
-
-    if (group.lastRelease) {
-      data.lastRelease = {
-        release: group.lastRelease,
-        environment: getPath(group, 'lastDeploy.lastDeploy.environment'),
-      };
-    }
-
-    data.firstSeen = group.firstSeen;
-    data.lastSeen = group.lastSeen;
-
-    this.setState({
-      data,
-      loading: false,
-    });
+    this.setState({environment: context.environment || null});
   },
 
   render() {
-    let group = this.props.group;
-    let {environment, data, hasEnvironmentsFeature} = this.state;
+    let {group, allEnvironments} = this.props;
+    let {environment, hasEnvironmentsFeature} = this.state;
 
     let envList = this.state.envList || [];
 
@@ -155,6 +66,7 @@ const GroupReleaseStats = createReactClass({
     let projectId = this.getProject().slug;
     let orgId = this.getOrganization().slug;
     let hasRelease = this.getProjectFeatures().has('releases');
+    let isLoading = !group || !allEnvironments;
 
     return (
       <div className="env-stats">
@@ -186,29 +98,27 @@ const GroupReleaseStats = createReactClass({
           </span>
         </h6>
         <div className="env-content">
-          {this.state.loading ? (
+          {isLoading ? (
             <LoadingIndicator />
-          ) : this.state.error ? (
-            <LoadingError />
           ) : (
             <div>
               <GroupReleaseChart
-                group={group}
+                group={allEnvironments}
                 environment={envName}
-                environmentStats={data.environment.stats}
-                release={data.currentRelease ? data.currentRelease.release : null}
-                releaseStats={data.currentRelease ? data.currentRelease.stats : null}
+                environmentStats={group.stats}
+                release={group.currentRelease ? group.currentRelease.release : null}
+                releaseStats={group.currentRelease ? group.currentRelease.stats : null}
                 statsPeriod="24h"
                 title={t('Last 24 Hours')}
                 firstSeen={group.firstSeen}
                 lastSeen={group.lastSeen}
               />
               <GroupReleaseChart
-                group={group}
+                group={allEnvironments}
                 environment={envName}
-                environmentStats={data.environment.stats}
-                release={data.currentRelease ? data.currentRelease.release : null}
-                releaseStats={data.currentRelease ? data.currentRelease.stats : null}
+                environmentStats={group.stats}
+                release={group.currentRelease ? group.currentRelease.release : null}
+                releaseStats={group.currentRelease ? group.currentRelease.stats : null}
                 statsPeriod="30d"
                 title={t('Last 30 Days')}
                 className="bar-chart-small"
@@ -223,11 +133,11 @@ const GroupReleaseStats = createReactClass({
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={data.firstSeen}
-                dateGlobal={group.firstSeen}
+                date={group.firstSeen}
+                dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
                 environment={environment ? environment.name : null}
-                release={data.firstRelease ? data.firstRelease.release : null}
+                release={group.firstRelease || null}
                 title={t('First seen')}
               />
 
@@ -238,11 +148,11 @@ const GroupReleaseStats = createReactClass({
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={data.lastSeen}
-                dateGlobal={group.lastSeen}
+                date={group.lastSeen}
+                dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
                 environment={environment ? environment.name : null}
-                release={data.lastRelease ? data.lastRelease.release : null}
+                release={group.lastRelease || null}
                 title={t('Last seen')}
               />
             </div>

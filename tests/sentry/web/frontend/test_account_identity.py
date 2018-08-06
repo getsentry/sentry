@@ -19,11 +19,20 @@ class AccountIdentityTest(TestCase):
     def test_associate_identity(self):
         user = self.create_user()
         organization = self.create_organization(name='foo', owner=user)
-        IdentityProvider.objects.create(type='dummy', organization=organization, config={})
+        IdentityProvider.objects.create(
+            type='dummy',
+            external_id='1234',
+            config={},
+        )
 
         self.login_as(user)
 
-        path = reverse('sentry-account-associate-identity', args=[organization.slug, 'dummy'])
+        path = reverse(
+            'sentry-account-associate-identity',
+            args=[
+                organization.slug,
+                'dummy',
+                '1234'])
         resp = self.client.get(path)
 
         assert resp.status_code == 200

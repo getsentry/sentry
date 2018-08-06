@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {extractMultilineFields} from '../../utils';
-import {t, tct} from '../../locale';
+import {extractMultilineFields} from 'app/utils';
+import {t, tct} from 'app/locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
@@ -81,9 +81,15 @@ const formGroups = [
         type: 'boolean',
         label: t('Require Two-Factor Authentication'),
         help: t('Require two-factor authentication for all members'),
-        confirm: t(
-          'Enabling this feature will disable all accounts without two-factor authentication. It will also send an email to all users to enable two-factor authentication. Do you want to continue?'
-        ),
+        confirm: {
+          true: t(
+            'This will immediately force all users to enable two-factor authentication.' +
+              ' It will also send an email reminder to setup two-factor authentication. Do you want to continue?'
+          ),
+          false: t(
+            'Are you sure you want to allow users to access your organization without having two-factor authentication enabled?'
+          ),
+        },
         visible: ({features}) => features.has('require-2fa'),
       },
       {
@@ -92,6 +98,9 @@ const formGroups = [
 
         label: t('Allow Shared Issues'),
         help: t('Enable sharing of limited details on issues to anonymous users'),
+        confirm: {
+          true: t('Are you sure you want to allow sharing issues to anonymous users?'),
+        },
       },
       {
         name: 'enhancedPrivacy',
@@ -101,12 +110,22 @@ const formGroups = [
         help: t(
           'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications'
         ),
+        confirm: {
+          false: t(
+            'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+          ),
+        },
       },
       {
         name: 'dataScrubber',
         type: 'boolean',
         label: t('Require Data Scrubber'),
         help: t('Require server-side data scrubbing be enabled for all projects'),
+        confirm: {
+          false: t(
+            'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+          ),
+        },
       },
       {
         name: 'dataScrubberDefaults',
@@ -115,11 +134,18 @@ const formGroups = [
         help: t(
           'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
         ),
+        confirm: {
+          false: t(
+            'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+          ),
+        },
       },
       {
         name: 'sensitiveFields',
         type: 'string',
         multiline: true,
+        autosize: true,
+        maxRows: 10,
         placeholder: 'e.g. email',
         label: t('Global sensitive fields'),
         help: t(
@@ -135,6 +161,8 @@ const formGroups = [
         name: 'safeFields',
         type: 'string',
         multiline: true,
+        autosize: true,
+        maxRows: 10,
         placeholder: t('e.g. business-email'),
         label: t('Global safe fields'),
         help: t(
@@ -153,6 +181,22 @@ const formGroups = [
         help: t(
           'Preventing IP addresses from being stored for new events on all projects'
         ),
+        confirm: {
+          false: t(
+            'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
+          ),
+        },
+      },
+      {
+        name: 'scrapeJavaScript',
+        type: 'boolean',
+        confirm: {
+          false: t(
+            "Are you sure you want to disable sourcecode fetching for JavaScript events? This will affect Sentry's ability to aggregate issues if you're not already uploading sourcemaps as artifacts."
+          ),
+        },
+        label: t('Allow JavaScript source fetching'),
+        help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
       },
     ],
   },

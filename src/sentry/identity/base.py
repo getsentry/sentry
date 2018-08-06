@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 from collections import namedtuple
 
-from sentry.utils.pipeline import PipelineProvider
+from sentry.pipeline import PipelineProvider
 
 
 class MigratingIdentityId(namedtuple('MigratingIdentityId', ['id', 'legacy_id'])):
@@ -33,13 +33,6 @@ class Provider(PipelineProvider):
     def __init__(self, **config):
         self.config = config
         self.logger = logging.getLogger('sentry.identity.%s'.format(self.key))
-
-    def get_pipeline(self):
-        """
-        Return a list of AuthView instances representing the authentication
-        pipeline for this provider.
-        """
-        raise NotImplementedError
 
     def build_identity(self, state):
         """
@@ -77,7 +70,7 @@ class Provider(PipelineProvider):
         """
         return new_data
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity, *args, **kwargs):
         """
         Updates the AuthIdentity with any changes from upstream. The primary
         example of a change would be signalling this identity is no longer

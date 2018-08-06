@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 from mock import Mock
 
+from sentry.coreapi import APIRateLimited
 from sentry.models import ProjectKey
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
@@ -70,6 +71,34 @@ class SecurityReportCspTest(TestCase):
                 'violated-directive': 'style-src',
                 'disposition': 'enforce',
             }
+        )
+        assert resp.status_code == 201, resp.content
+
+
+class SecurityReportHpkpTest(TestCase):
+    @fixture
+    def path(self):
+        path = reverse('sentry-api-security-report', kwargs={'project_id': self.project.id})
+        return path + '?sentry_key=%s' % self.projectkey.public_key
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    @mock.patch('sentry.web.api.SecurityReportView.process')
+    def test_post_success(self, process):
+        process.return_value = 'ok'
+        resp = self.client.post(
+            self.path,
+            content_type='application/json',
+            data=json.dumps({
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "include-subdomains": False,
+                "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "known-pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""],
+            }),
+            HTTP_USER_AGENT='awesome',
         )
         assert resp.status_code == 201, resp.content
 
@@ -368,6 +397,11 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_ip_address', True)
         body = {
             "message": "foo bar",
+            "sdk": {
+                "name": "sentry-browser",
+                "version": "3.23.3",
+                "client_ip": "127.0.0.1"
+            },
             "sentry.interfaces.User": {
                 "ip_address": "127.0.0.1"
             },
@@ -385,6 +419,7 @@ class StoreViewTest(TestCase):
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['sentry.interfaces.User'].get('ip_address')
         assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+        assert not call_data['sdk'].get('client_ip')
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_org_ip_address_override(self, mock_insert_data_to_database):
@@ -583,7 +618,6 @@ class StoreViewTest(TestCase):
         assert call_data['sdk'] == {
             'name': '_postWithHeader',
             'version': '0.0.0',
-            'client_ip': '127.0.0.1',
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
@@ -718,3 +752,14 @@ class RobotsTxtTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'text/plain'
+
+
+def rate_limited_dispatch(*args, **kwargs):
+    raise APIRateLimited(retry_after=42.42)
+
+
+class APIViewTest(TestCase):
+    @mock.patch('sentry.web.api.APIView._dispatch', new=rate_limited_dispatch)
+    def test_retry_after_int(self):
+        resp = self._postWithHeader({})
+        assert resp['Retry-After'] == '43'

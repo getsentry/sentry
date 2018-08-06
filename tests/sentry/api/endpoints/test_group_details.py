@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Environment, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
+    Activity, Environment, Group, GroupHash, GroupHashTombstone, GroupAssignee, GroupBookmark,
+    GroupResolution, GroupSeen, GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -486,13 +486,16 @@ class GroupDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
+        hash = 'x' * 32
         GroupHash.objects.create(
             project=group.project,
-            hash='x' * 32,
+            hash=hash,
             group=group,
         )
 
         url = '/api/0/issues/{}/'.format(group.id)
+
+        assert not GroupHashTombstone.objects.filter(hash=hash).exists()
 
         response = self.client.delete(url, format='json')
 
@@ -502,6 +505,7 @@ class GroupDeleteTest(APITestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
         # BUT the hash should be gone
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+        assert GroupHashTombstone.objects.filter(hash=hash).exists()
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
@@ -515,3 +519,4 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+        assert GroupHashTombstone.objects.filter(hash=hash).exists()

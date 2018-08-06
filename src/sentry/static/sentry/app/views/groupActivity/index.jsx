@@ -6,23 +6,23 @@ import {
   addErrorMessage,
   addLoadingMessage,
   removeIndicator,
-} from '../../actionCreators/indicator';
-import {t, tct, tn} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Avatar from '../../components/avatar';
-import CommitLink from '../../components/commitLink';
-import ConfigStore from '../../stores/configStore';
-import Duration from '../../components/duration';
-import ErrorBoundary from '../../components/errorBoundary';
-import GroupState from '../../mixins/groupState';
-import GroupStore from '../../stores/groupStore';
-import MemberListStore from '../../stores/memberListStore';
-import NoteContainer from '../../components/activity/noteContainer';
-import NoteInput from '../../components/activity/noteInput';
-import PullRequestLink from '../../views/releases/pullRequestLink';
-import TeamStore from '../../stores/teamStore';
-import TimeSince from '../../components/timeSince';
-import Version from '../../components/version';
+} from 'app/actionCreators/indicator';
+import {t, tct, tn} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import CommitLink from 'app/components/commitLink';
+import ConfigStore from 'app/stores/configStore';
+import Duration from 'app/components/duration';
+import ErrorBoundary from 'app/components/errorBoundary';
+import GroupState from 'app/mixins/groupState';
+import GroupStore from 'app/stores/groupStore';
+import MemberListStore from 'app/stores/memberListStore';
+import NoteContainer from 'app/components/activity/noteContainer';
+import NoteInput from 'app/components/activity/noteInput';
+import PullRequestLink from 'app/views/releases/pullRequestLink';
+import TeamStore from 'app/stores/teamStore';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
 
 class GroupActivityItem extends React.Component {
   static propTypes = {
@@ -163,13 +163,18 @@ class GroupActivityItem extends React.Component {
       case 'first_seen':
         return t('%s first saw this issue', author);
       case 'assigned':
+        let assignee;
+
         if (data.assigneeType == 'team') {
+          let team = TeamStore.getById(data.assignee);
+          assignee = team ? team.slug : '<unknown-team>';
+
           return t('%(author)s assigned this issue to #%(assignee)s', {
             author,
-            assignee: TeamStore.getById(data.assignee).slug,
+            assignee,
           });
         }
-        let assignee;
+
         if (item.user && data.assignee === item.user.id) {
           assignee = 'themselves';
           return t('%s assigned this issue to themselves', author);

@@ -60,7 +60,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-identity.html')
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {'op': 'newuser'})
+        with self.settings(TERMS_URL='https://example.com/terms', PRIVACY_URL='https://example.com/privacy'):
+            resp = self.client.post(path, {'op': 'newuser'})
 
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
@@ -73,6 +74,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert user.email == 'foo@example.com'
         assert not user.has_usable_password()
         assert not user.is_managed
+        assert user.flags.newsletter_consent_prompt
 
         member = OrganizationMember.objects.get(
             organization=organization,
@@ -188,6 +190,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert user.email == 'bar@example.com'
         assert new_user != user
+
+        # Without settings.TERMS_URL and settings.PRIVACY_URL, this should be
+        # unset following new user creation
+        assert not new_user.flags.newsletter_consent_prompt
 
         member = OrganizationMember.objects.get(
             organization=organization,
@@ -598,6 +604,47 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         # there should be no prompt as we auto merge the identity
         assert resp.status_code == 200
+
+    def test_flow_authenticated_without_verified_without_password(self):
+        """
+        Given an existing authenticated user, and an updated identity (e.g.
+        the ident changed from the SSO provider), we should be re-linking
+        the identity automatically as they dont have a password.
+
+        This is specifically testing an unauthenticated flow.
+        """
+        organization = self.create_organization(name='foo', owner=self.user)
+        AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+
+        # setup a 'previous' identity, such as when we migrated Google from
+        # the old idents to the new
+        user = self.create_user(
+            'bar@example.com',
+            is_managed=False,
+            password='',
+        )
+        UserEmail.objects.filter(user=user, email='bar@example.com').update(is_verified=False)
+        self.create_member(
+            organization=organization,
+            user=user,
+        )
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        resp = self.client.post(path, {'init': True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode('utf-8')
+
+        path = reverse('sentry-auth-sso')
+
+        resp = self.client.post(path, {'email': 'bar@example.com'})
+        self.assertTemplateUsed(resp, 'sentry/auth-confirm-identity.html')
+        assert resp.status_code == 200
+        assert resp.context['existing_user'] == user
 
     def test_flow_managed_duplicate_users_without_membership(self):
         """

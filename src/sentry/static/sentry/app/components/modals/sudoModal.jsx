@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import Alert from '../alert';
-import ApiMixin from '../../mixins/apiMixin';
-import Button from '../buttons/button';
-import ConfigStore from '../../stores/configStore';
-import Form from '../../views/settings/components/forms/form';
-import InputField from '../../views/settings/components/forms/inputField';
-import TextBlock from '../../views/settings/components/text/textBlock';
-import U2fContainer from '../u2fContainer';
-import space from '../../styles/space';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import ConfigStore from 'app/stores/configStore';
+import Form from 'app/views/settings/components/forms/form';
+import InputField from 'app/views/settings/components/forms/inputField';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import U2fContainer from 'app/components/u2fContainer';
+import space from 'app/styles/space';
 
 class SudoModal extends React.Component {
   static propTypes = {
@@ -21,7 +21,9 @@ class SudoModal extends React.Component {
     /**
      * expects a function that returns a Promise
      */
-    retryRequest: PropTypes.func.isRequired,
+    retryRequest: PropTypes.func,
+
+    // User is a superuser without an active su session
     superuser: PropTypes.bool,
     router: PropTypes.object,
     user: PropTypes.object,
@@ -40,7 +42,11 @@ class SudoModal extends React.Component {
 
   handleSuccess = () => {
     let {closeModal, superuser, router, retryRequest} = this.props;
-    if (!retryRequest) return;
+
+    if (!retryRequest) {
+      closeModal();
+      return;
+    }
 
     if (superuser) {
       router.replace({...router.getCurrentLocation(), state: {forceUpdate: new Date()}});
@@ -91,12 +97,12 @@ class SudoModal extends React.Component {
   };
 
   render() {
-    let {closeModal, user, Header, Body} = this.props;
+    let {closeModal, superuser, user, Header, Body} = this.props;
 
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          {t('Confirm Your Identity')}
+          {t('Confirm Password to Continue')}
         </Header>
 
         <Body>
@@ -113,7 +119,11 @@ class SudoModal extends React.Component {
           ) : (
             <React.Fragment>
               <TextBlock css={{marginBottom: space(1)}}>
-                {t('Help us keep your account safe by confirming your identity.')}
+                {superuser
+                  ? t(
+                      'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+                    )
+                  : t('Help us keep your account safe by confirming your identity.')}
               </TextBlock>
 
               {this.state.error && (
@@ -129,7 +139,7 @@ class SudoModal extends React.Component {
               <Form
                 apiMethod="PUT"
                 apiEndpoint="/auth/"
-                submitLabel={t('Continue')}
+                submitLabel={t('Confirm Password')}
                 onSubmit={this.handleSubmit}
                 onSubmitSuccess={this.handleSuccess}
                 onSubmitError={this.handleError}
@@ -138,6 +148,7 @@ class SudoModal extends React.Component {
                 hideFooter={!user.hasPasswordAuth}
               >
                 <InputField
+                  autoFocus
                   type="password"
                   inline={false}
                   label={t('Password')}

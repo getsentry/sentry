@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../locale';
-import Alert from './alert';
-import DetailedError from './errors/detailedError';
+import sdk from 'app/utils/sdk';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import DetailedError from 'app/components/errors/detailedError';
 
 let exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'];
 
@@ -42,7 +42,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({error});
-    Raven.captureException(error, {extra: errorInfo});
+    sdk.captureException(error, {extra: errorInfo});
   }
 
   render() {

@@ -1,8 +1,8 @@
+import {mount} from 'enzyme';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import ProjectKeyDetails from 'app/views/settings/project/projectKeys/projectKeyDetails';
-import {mountWithTheme} from '../../../helpers';
 
 jest.mock('react-router', () => ({
   withRouter: i => i,
@@ -76,7 +76,7 @@ describe('ProjectKeyDetails', function() {
     });
     let routerContext = TestStubs.routerContext();
 
-    wrapper = mountWithTheme(
+    wrapper = mount(
       <ProjectKeyDetails
         routes={[]}
         params={{

@@ -54,7 +54,6 @@ var appEntry = {
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
     'create-react-class',
-    'crypto-js/md5',
     'jed',
     'jquery',
     'marked',
@@ -67,11 +66,8 @@ var appEntry = {
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
-    'react-sparklines',
     'reflux',
-    'select2',
     'vendor/simple-slider/simple-slider',
-    'ios-device-list',
     'emotion',
     'react-emotion',
     'grid-emotion',
@@ -179,7 +175,6 @@ var appConfig = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js',
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
@@ -202,6 +197,7 @@ var appConfig = {
   ],
   resolve: {
     alias: {
+      app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST
         ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
@@ -252,6 +248,10 @@ var pwConfig = {
 var legacyCssConfig = {
   entry: {
     sentry: 'less/sentry.less',
+
+    // Below is for old plugins that use select2 when creating a new issue for a plugin
+    // e.g. Trello, Teamwork
+    select2: 'less/select2.less',
   },
   context: path.join(__dirname, staticPrefix),
   output: {

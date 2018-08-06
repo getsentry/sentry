@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import {uniq} from 'lodash';
 import idx from 'idx';
 
-import {t} from '../../../../locale';
-import AsyncComponent from '../../../../components/asyncComponent';
+import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 
-import SentryTypes from '../../../../proptypes';
-import OwnerInput from './ownerInput';
+import SentryTypes from 'app/sentryTypes';
+import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 class ProjectOwnershipModal extends AsyncComponent {
   static propTypes = {
@@ -44,13 +44,15 @@ class ProjectOwnershipModal extends AsyncComponent {
           .map(i => i.value)
           .slice(0, 5)
       : [];
+
     // pull frame data out of exception or the stacktrace
     let frames =
       idx(
         eventData.entries.find(({type}) => type == 'exception'),
         _ => _.data.values[0].stacktrace.frames
       ) ||
-      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames);
+      idx(eventData.entries.find(({type}) => type == 'stacktrace'), _ => _.data.frames) ||
+      [];
 
     //filter frames by inApp unless there would be 0
     let inAppFrames = frames.filter(frame => frame.inApp);

@@ -56,16 +56,17 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details cocoa')
 
-    def test_javascript_event(self):
+    def test_javascript_specific_event(self):
         event = self.create_sample_event(
             platform='javascript'
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            '/{}/{}/issues/{}/events/{}/'.format(self.org.slug, self.project.slug, event.group.id, event.id)
         )
-        self.browser.wait_until('.entries')
-        self.browser.snapshot('issue details javascript')
+        self.browser.wait_until('.event-details-container')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('issue details javascript - event details')
 
     def test_rust_event(self):
         # TODO: This should become its own "rust" platform type

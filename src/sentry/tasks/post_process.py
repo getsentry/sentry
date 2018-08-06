@@ -9,7 +9,7 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 import logging
-import six
+import time
 
 from raven.contrib.django.models import client as Raven
 
@@ -18,7 +18,7 @@ from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger('sentry')
@@ -48,7 +48,7 @@ def _capture_stats(event, is_new):
 
     metrics.incr('events.processed')
     metrics.incr('events.processed.{platform}'.format(platform=platform))
-    metrics.timing('events.size.data', len(six.text_type(event.data)))
+    metrics.timing('events.size.data', event.size)
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
@@ -56,6 +56,22 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     """
     Fires post processing hooks for a group.
     """
+    with redis.clusters.get('default').map() as client:
+        result = client.set(
+            'pp:{}/{}'.format(event.project_id, event.event_id),
+            '{:.0f}'.format(time.time()),
+            ex=60 * 60,
+            nx=True,
+        )
+
+    if not result.value:
+        logger.info('post_process.skipped', extra={
+            'project_id': event.project_id,
+            'event_id': event.event_id,
+            'reason': 'duplicate',
+        })
+        return
+
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
@@ -156,7 +172,10 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.index_event_tags', default_retry_delay=60 * 5, max_retries=None
+    name='sentry.tasks.index_event_tags',
+    queue='events.index_event_tags',
+    default_retry_delay=60 * 5,
+    max_retries=None,
 )
 def index_event_tags(organization_id, project_id, event_id, tags,
                      group_id, environment_id, date_added=None, **kwargs):

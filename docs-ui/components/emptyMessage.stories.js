@@ -1,11 +1,10 @@
 import React from 'react';
+
+import {Panel, PanelHeader} from 'app/components/panels';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-
-import {Panel, PanelHeader} from 'sentry-ui/panels';
-import EmptyMessage from 'settings-ui/emptyMessage';
-
-import Button from 'sentry-ui/buttons/button';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 storiesOf('EmptyMessage', module)
   .add(
@@ -47,6 +46,18 @@ storiesOf('EmptyMessage', module)
         >
           Sentry is better with friends
         </EmptyMessage>
+      </Panel>
+    ))
+  )
+  .add(
+    'in panel with sub-description',
+    withInfo('Put this in a panel for maximum effect')(() => (
+      <Panel>
+        <PanelHeader>Members</PanelHeader>
+        <EmptyMessage
+          title="Sentry is better with Friends"
+          description="When you use sentry with friends, you'll find your world of possibilities expands!"
+        />
       </Panel>
     ))
   );

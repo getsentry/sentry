@@ -172,41 +172,6 @@
   }
 }
 
-.seen-by {
-  margin-top: 15px;
-  float: right;
-
-  ul {
-    .list-unstyled;
-
-    li:first-child {
-      background: @white-darker;
-      color: darken(@gray, 10);
-      border-radius: 2px;
-      .square(28px);
-      line-height: 26px;
-      text-align: center;
-
-      .icon-eye {
-        opacity: 0.4;
-        position: relative;
-        top: 2px;
-      }
-    }
-
-    li {
-      float: left;
-      margin-left: 5px;
-
-      .avatar {
-        display: inline-block;
-        position: relative;
-        .square(28px);
-      }
-    }
-  }
-}
-
 .group-notifications,
 .group-privacy {
   float: left;
@@ -376,7 +341,7 @@
     }
   }
 
-  .seen-info .tip {
+  .seen-info .dotted-underline {
     border-bottom: 1px dotted @trim;
   }
 
@@ -954,6 +919,26 @@
       }
     }
 
+    &.electron .context-item-icon {
+      background-image: url(../images/icons/context/electron.png);
+    }
+
+    &.net-framework .context-item-icon {
+      background-image: url(../images/icons/context/netframework.svg);
+    }
+
+    &.net-core .context-item-icon {
+      background-image: url(../images/icons/context/netcore.svg);
+    }
+
+    &.mono .context-item-icon {
+      background-image: url(../images/icons/context/mono-gorilla.svg);
+    }
+
+    &.php .context-item-icon {
+      background-image: url(../images/icons/context/php.svg);
+    }
+
     &.ipad .context-item-icon {
       background-image: url(../images/icons/context/ipad.svg);
     }
@@ -985,6 +970,7 @@
       }
     }
 
+    &.darwin,
     &.ios,
     &.macos,
     &.tvos,
@@ -992,7 +978,7 @@
     &.mac,
     &.watchos {
       .context-item-icon {
-        background-image: url(../images/icons/context/ios.svg);
+        background-image: url(../images/icons/context/apple-ios.svg);
         top: -2px;
       }
     }
@@ -1162,7 +1148,8 @@
     top: 0;
     right: 0;
     box-shadow: 0 0 0 5px #fff;
-    border-radius: 5px;
+    background: #fff;
+    border-radius: 50% 0 50% 50%;
   }
 
   .btn-group {
@@ -1522,6 +1509,9 @@ div.traceback > ul {
       &:first-of-type {
         margin-top: 0;
       }
+      &:first-child {
+        margin-top: -20px;
+      }
     }
 
     .tag-app {
@@ -1665,6 +1655,7 @@ div.traceback > ul {
   ol.context {
     margin: 0;
     list-style-position: inside;
+    list-style-type: decimal-leading-zero;
     border-radius: 3px;
     padding-left: 0;
 
@@ -2400,11 +2391,11 @@ ul.crumbs {
         padding: 0;
         margin-top: 1px;
         background: none;
+        word-break: break-all;
       }
     }
 
     div.summary {
-      max-height: 42px;
       overflow: hidden;
 
       &.can-expand {

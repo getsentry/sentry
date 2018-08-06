@@ -1,5 +1,88 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`IssueDiff can diff message 1`] = `
+<IssueDiff
+  api={Client {}}
+  baseEventId="latest"
+  baseIssueId="base"
+  targetEventId="latest"
+  targetIssueId="target"
+>
+  <IssueDiffWrapper
+    loading={false}
+  >
+    <div
+      className="css-no1ym5-IssueDiffWrapper e1mqtsvu0"
+    >
+      <SplitDiff
+        base="Foo World"
+        key="0"
+        target="Hello World"
+        type="words"
+      >
+        <table
+          className="split-diff"
+        >
+          <tbody>
+            <tr
+              key="0"
+            >
+              <td
+                className="split-view-cell removed-row"
+              >
+                <div
+                  className="split-diff-row"
+                >
+                  <span
+                    className="split-view-word removed"
+                    key="0"
+                  >
+                    Foo
+                  </span>
+                  <span
+                    className="split-view-word"
+                    key="1"
+                  >
+                     World
+                  </span>
+                </div>
+              </td>
+              <td
+                style={
+                  Object {
+                    "width": 20,
+                  }
+                }
+              />
+              <td
+                className="split-view-cell added-row"
+              >
+                <div
+                  className="split-diff-row"
+                >
+                  <span
+                    className="split-view-word added"
+                    key="0"
+                  >
+                    Hello
+                  </span>
+                  <span
+                    className="split-view-word"
+                    key="1"
+                  >
+                     World
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </SplitDiff>
+    </div>
+  </IssueDiffWrapper>
+</IssueDiff>
+`;
+
 exports[`IssueDiff can dynamically import SplitDiff 1`] = `
 <IssueDiff
   api={Client {}}
@@ -12,7 +95,7 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
     loading={false}
   >
     <div
-      className="css-no1ym5-IssueDiffWrapper css-dlc86z0"
+      className="css-no1ym5-IssueDiffWrapper e1mqtsvu0"
     >
       <SplitDiff
         base="SyntaxError: Unexpected token else

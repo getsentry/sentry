@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+import operator
+
 from jsonfield import JSONField
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import Model, sane_repr
@@ -48,54 +51,65 @@ class ProjectOwnership(Model):
                 project_id=project_id,
             )
 
+        rules = []
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
                 if rule.test(data):
-                    # This is O(n) to resolve, but should be fine for now
-                    # since we don't even explain that you can use multiple
-                    # let alone a number that would be potentially abusive.
-                    owners = []
-                    for o in rule.owners:
-                        try:
-                            owners.append(resolve_actor(o, project_id))
-                        except UnknownActor:
-                            continue
-                    return owners, rule.matcher
+                    rules.append(rule)
 
-        owners = cls.Everyone if ownership.fallthrough else []
-        return owners, None
+        if not rules:
+            return cls.Everyone if ownership.fallthrough else [], None
+
+        owners = {o for rule in rules for o in rule.owners}
+
+        return filter(None, resolve_actors(owners, project_id).values()), rules
 
 
-class UnknownActor(Exception):
-    pass
-
-
-def resolve_actor(owner, project_id):
-    """ Convert an Owner object into an Actor """
+def resolve_actors(owners, project_id):
+    """ Convert a list of Owner objects into a dictionary
+    of {Owner: Actor} pairs. Actors not identified are returned
+    as None. """
     from sentry.api.fields.actor import Actor
+    from sentry.ownership.grammar import Owner
     from sentry.models import User, Team
 
-    if owner.type == 'user':
-        try:
-            user_id = User.objects.filter(
-                email__iexact=owner.identifier,
+    if not owners:
+        return {}
+
+    users, teams = [], []
+
+    owners_to_actors = {o: None for o in owners}
+
+    for owner in owners:
+        if owner.type == 'user':
+            users.append(owner)
+        elif owner.type == 'team':
+            teams.append(owner)
+
+    actors = []
+    if users:
+        actors.extend([
+            ('user', email, Actor(u_id, User))
+            for u_id, email in User.objects.filter(
+                reduce(
+                    operator.or_,
+                    [Q(email__iexact=o.identifier) for o in users]
+                ),
                 is_active=True,
                 sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-            ).values_list('id', flat=True)[0]
-        except IndexError:
-            raise UnknownActor
+            ).values_list('id', 'email')
+        ])
 
-        return Actor(user_id, User)
-
-    if owner.type == 'team':
-        try:
-            team_id = Team.objects.filter(
+    if teams:
+        actors.extend([
+            ('team', slug, Actor(t_id, Team))
+            for t_id, slug in Team.objects.filter(
+                slug__in=[o.identifier for o in teams],
                 projectteam__project_id=project_id,
-                slug=owner.identifier,
-            ).values_list('id', flat=True)[0]
-        except IndexError:
-            raise UnknownActor
+            ).values_list('id', 'slug')
+        ])
 
-        return Actor(team_id, Team)
+    for type, identifier, actor in actors:
+        owners_to_actors[Owner(type, identifier)] = actor
 
-    raise TypeError('Unknown actor type: %r' % owner.type)
+    return owners_to_actors

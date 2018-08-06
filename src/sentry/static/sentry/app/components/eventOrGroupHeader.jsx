@@ -4,10 +4,10 @@ import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
 
-import ProjectLink from '../components/projectLink';
-import {Metadata} from '../proptypes';
-import EventOrGroupTitle from './eventOrGroupTitle';
-import Tooltip from '../components/tooltip';
+import ProjectLink from 'app/components/projectLink';
+import {Metadata} from 'app/sentryTypes';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import Tooltip from 'app/components/tooltip';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -20,7 +20,14 @@ class EventOrGroupHeader extends React.Component {
     data: PropTypes.shape({
       id: PropTypes.string,
       level: PropTypes.string,
-      type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
+      type: PropTypes.oneOf([
+        'error',
+        'csp',
+        'hpkp',
+        'expectct',
+        'expectstaple',
+        'default',
+      ]).isRequired,
       title: PropTypes.string,
       metadata: Metadata,
       groupID: PropTypes.string,
@@ -45,6 +52,10 @@ class EventOrGroupHeader extends React.Component {
         return metadata.value;
       case 'csp':
         return metadata.message;
+      case 'expectct':
+      case 'expectstaple':
+      case 'hpkp':
+        return '';
       default:
         return culprit || '';
     }

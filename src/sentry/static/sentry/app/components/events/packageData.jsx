@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {objectToArray} from '../../utils';
-import {t} from '../../locale';
-import ClippedBox from '../clippedBox';
-import ErrorBoundary from '../errorBoundary';
-import EventDataSection from './eventDataSection';
-import KeyValueList from './interfaces/keyValueList';
-import SentryTypes from '../../proptypes';
+import {objectToArray} from 'app/utils';
+import {t} from 'app/locale';
+import ClippedBox from 'app/components/clippedBox';
+import ErrorBoundary from 'app/components/errorBoundary';
+import EventDataSection from 'app/components/events/eventDataSection';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import SentryTypes from 'app/sentryTypes';
 
 class EventPackageData extends React.Component {
   static propTypes = {

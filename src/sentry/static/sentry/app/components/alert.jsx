@@ -2,8 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {cx} from 'emotion';
 import styled from 'react-emotion';
-import TextBlock from '../views/settings/components/text/textBlock';
-import InlineSvg from './inlineSvg';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
   margin-right: 12px;
@@ -46,7 +47,7 @@ const getSystemAlertColorStyles = ({background}) => `
 `;
 
 const AlertWrapper = styled.div`
-  margin: 0 0 ${p => p.theme.grid * 3}px;
+  margin: 0 0 ${space(3)};
   padding: ${p => p.theme.grid * 2}px;
   font-size: 15px;
   box-shadow: ${p => p.theme.dropShadowLight};

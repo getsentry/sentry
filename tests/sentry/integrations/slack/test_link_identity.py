@@ -12,11 +12,12 @@ from sentry.integrations.slack.link_identity import build_linking_url
 class SlackIntegrationLinkIdentityTest(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
-        self.user = self.create_user(is_superuser=False)
+        self.user1 = self.create_user(is_superuser=False)
+        self.user2 = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
-        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.team = self.create_team(organization=self.org, members=[self.user1, self.user2])
 
-        self.login_as(self.user)
+        self.login_as(self.user1)
 
         self.integration = Integration.objects.create(
             provider='slack',
@@ -32,7 +33,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
 
         self.idp = IdentityProvider.objects.create(
             type='slack',
-            organization=self.org,
+            external_id='TXXXXXXX1',
             config={},
         )
 
@@ -73,7 +74,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
 
         identity = Identity.objects.filter(
             external_id='new-slack-id',
-            user=self.user,
+            user=self.user1,
         )
 
         assert len(identity) == 1
@@ -83,18 +84,24 @@ class SlackIntegrationLinkIdentityTest(TestCase):
 
     @responses.activate
     @patch('sentry.integrations.slack.link_identity.unsign')
-    def test_overwrites_existing_external_id(self, unsign):
-        existing_identity = Identity.objects.create(
-            user=self.user,
+    def test_overwrites_existing_identities(self, unsign):
+        Identity.objects.create(
+            user=self.user1,
             idp=self.idp,
-            external_id='old-slack-id',
+            external_id='slack-id1',
+            status=IdentityStatus.VALID,
+        )
+        Identity.objects.create(
+            user=self.user2,
+            idp=self.idp,
+            external_id='slack-id2',
             status=IdentityStatus.VALID,
         )
 
         unsign.return_value = {
             'integration_id': self.integration.id,
             'organization_id': self.org.id,
-            'slack_id': 'new-slack-id',
+            'slack_id': 'slack-id2',
             'channel_id': 'my-channel',
             'response_url': 'http://example.slack.com/response_url',
         }
@@ -102,7 +109,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         linking_url = build_linking_url(
             self.integration,
             self.org,
-            'new-slack-id',
+            'slack-id2',
             'my-channel',
             'http://example.slack.com/response_url'
         )
@@ -116,8 +123,6 @@ class SlackIntegrationLinkIdentityTest(TestCase):
 
         self.client.post(linking_url)
 
-        assert Identity.objects.filter(
-            id=existing_identity.id,
-            external_id='new-slack-id',
-            user=self.user,
-        ).exists()
+        Identity.objects.get(external_id='slack-id2', user=self.user1)
+        assert not Identity.objects.filter(external_id='slack-id1', user=self.user1).exists()
+        assert not Identity.objects.filter(external_id='slack-id2', user=self.user2).exists()

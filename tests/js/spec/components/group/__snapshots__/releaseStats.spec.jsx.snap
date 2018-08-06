@@ -2,6 +2,39 @@
 
 exports[`GroupReleaseStats renders 1`] = `
 <GroupReleaseStats
+  allEnvironments={
+    Object {
+      "assignedTo": null,
+      "id": "1",
+      "project": Object {
+        "id": "2",
+        "slug": "project-slug",
+      },
+      "stats": Object {
+        "24h": Array [
+          Array [
+            1517281200,
+            2,
+          ],
+          Array [
+            1517310000,
+            1,
+          ],
+        ],
+        "30d": Array [
+          Array [
+            1514764800,
+            1,
+          ],
+          Array [
+            1515024000,
+            122,
+          ],
+        ],
+      },
+      "tags": Array [],
+    }
+  }
   group={
     Object {
       "assignedTo": null,
@@ -55,6 +88,7 @@ exports[`GroupReleaseStats renders 1`] = `
           title="All Environments"
         >
           <DropdownMenu
+            alwaysRenderMenu={true}
             keepMenuOpen={false}
           >
             <span
@@ -80,6 +114,7 @@ exports[`GroupReleaseStats renders 1`] = `
               <ul
                 className="dropdown-menu"
                 onClick={[Function]}
+                onMouseEnter={[Function]}
                 onMouseLeave={[Function]}
               >
                 <MenuItem

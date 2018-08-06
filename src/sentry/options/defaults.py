@@ -116,3 +116,20 @@ register('cloudflare.secret-key', default='')
 
 # Tagstore
 register('tagstore.multi-sampling', default=0.0)
+
+# Slack Integration
+register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
+register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
+
+# Github Integration
+register('github-app.id', default=0)
+register('github-app.name', default='')
+register('github-app.webhook-secret', default='')
+register('github-app.private-key', default='')
+register('github-app.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('github-app.client-secret', flags=FLAG_PRIORITIZE_DISK)
+
+# VSTS Integration
+register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)

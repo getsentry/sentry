@@ -1,6 +1,6 @@
-import {Client} from '../api';
-import GuideActions from '../actions/guideActions';
-import HookStore from '../stores/hookStore';
+import {Client} from 'app/api';
+import GuideActions from 'app/actions/guideActions';
+import analytics from 'app/utils/analytics';
 
 const api = new Client();
 
@@ -25,8 +25,8 @@ export function nextStep() {
   GuideActions.nextStep();
 }
 
-export function closeGuideOrSupport() {
-  GuideActions.closeGuideOrSupport();
+export function closeGuide() {
+  GuideActions.closeGuide();
 }
 
 export function recordFinish(guideId, useful) {
@@ -38,12 +38,10 @@ export function recordFinish(guideId, useful) {
       useful,
     },
   });
-  HookStore.get('analytics:event').forEach(cb =>
-    cb('assistant.guide_finished', {
-      guide: guideId,
-      useful,
-    })
-  );
+  analytics('assistant.guide_finished', {
+    guide: guideId,
+    useful,
+  });
 }
 
 export function recordDismiss(guideId, step) {
@@ -54,10 +52,8 @@ export function recordDismiss(guideId, step) {
       status: 'dismissed',
     },
   });
-  HookStore.get('analytics:event').forEach(cb =>
-    cb('assistant.guide_dismissed', {
-      guide: guideId,
-      step,
-    })
-  );
+  analytics('assistant.guide_dismissed', {
+    guide: guideId,
+    step,
+  });
 }

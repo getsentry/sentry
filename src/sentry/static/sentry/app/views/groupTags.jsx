@@ -3,17 +3,18 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import {Box, Flex} from 'grid-emotion';
 
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import Count from '../components/count';
-import GroupState from '../mixins/groupState';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import {percent, deviceNameMapper} from '../utils';
-import {t, tct} from '../locale';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
-import {Panel, PanelBody, PanelHeader} from '../components/panels';
-import Alert from '../components/alert';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import Count from 'app/components/count';
+import DeviceName from 'app/components/deviceName';
+import GroupState from 'app/mixins/groupState';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {percent} from 'app/utils';
+import {t, tct} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Alert from 'app/components/alert';
 
 const GroupTags = createReactClass({
   displayName: 'GroupTags',
@@ -105,7 +106,9 @@ const GroupTags = createReactClass({
                 }}
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
-                <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
+                <span className="tag-bar-label">
+                  <DeviceName>{tagValue.name}</DeviceName>
+                </span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
@@ -118,7 +121,7 @@ const GroupTags = createReactClass({
           <Box key={tagIdx} px={1} width={0.5}>
             <Panel>
               <PanelHeader hasButtons style={{textTransform: 'none'}}>
-                <div style={{fontSize: 16}}>{tag.name}</div>
+                <div style={{fontSize: 16}}>{tag.key}</div>
                 <Flex>
                   <Link
                     className="btn btn-default btn-sm"

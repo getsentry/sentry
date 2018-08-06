@@ -37,6 +37,7 @@ from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
+from sentry.utils.canonical import CANONICAL_TYPES
 
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
@@ -344,11 +345,14 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
+        if 'sdk' in data:
+            data['sdk'].pop('client_ip', None)
+
     def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
         if start_time is None:
             start_time = time()
-        # we might be passed LazyData
-        if isinstance(data, LazyData):
+        # we might be passed some sublcasses of dict that fail dumping
+        if isinstance(data, DOWNGRADE_DATA_TYPES):
             data = dict(data.items())
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
@@ -378,7 +382,7 @@ class MinidumpApiHelper(ClientApiHelper):
 
 class SecurityApiHelper(ClientApiHelper):
 
-    report_interfaces = ('sentry.interfaces.Csp', 'expectct', 'expectstaple')
+    report_interfaces = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
 
     def origin_from_request(self, request):
         # In the case of security reports, the origin is not available at the
@@ -497,14 +501,13 @@ class LazyData(MutableMapping):
         data['key_id'] = self._key.id
         data['sdk'] = data.get('sdk') or helper.parse_client_as_sdk(auth.client)
 
-        # mutates data
+        # does not mutate data, must use return value of normalize
         manager = EventManager(data, version=auth.version)
-        manager.normalize(request_env={
+        self._data = manager.normalize(request_env={
             'client_ip': self._client_ip,
             'auth': self._auth,
         })
 
-        self._data = data
         self._decoded = True
 
     def __getitem__(self, name):
@@ -536,3 +539,6 @@ class LazyData(MutableMapping):
         if not self._decoded:
             self._decode()
         return iter(self._data)
+
+
+DOWNGRADE_DATA_TYPES = CANONICAL_TYPES + (LazyData,)

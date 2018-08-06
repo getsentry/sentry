@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import rawStacktraceContent from './rawStacktraceContent';
-import ApiMixin from '../../../mixins/apiMixin';
-import LoadingIndicator from '../../loadingIndicator';
-import LoadingError from '../../loadingError';
-import ClippedBox from '../../clippedBox';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import ClippedBox from 'app/components/clippedBox';
 
 const RawExceptionContent = createReactClass({
   displayName: 'RawExceptionContent',

@@ -51,6 +51,7 @@ def load_defaults():
     default_manager.register(models.GroupEmailThread, BulkModelDeletionTask)
     default_manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     default_manager.register(models.GroupHash, BulkModelDeletionTask)
+    default_manager.register(models.GroupHashTombstone, BulkModelDeletionTask)
     default_manager.register(models.GroupLink, BulkModelDeletionTask)
     default_manager.register(models.GroupMeta, BulkModelDeletionTask)
     default_manager.register(models.GroupRedirect, BulkModelDeletionTask)

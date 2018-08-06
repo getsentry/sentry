@@ -5,22 +5,22 @@ import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
-import {t} from '../locale';
-import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
-import ActorAvatar from '../components/actorAvatar';
-import Avatar from '../components/avatar';
-import ConfigStore from '../stores/configStore';
-import DropdownLink from './dropdownLink';
-import FlowLayout from './flowLayout';
-import GroupStore from '../stores/groupStore';
-import InlineSvg from './inlineSvg';
-import LoadingIndicator from '../components/loadingIndicator';
-import MemberListStore from '../stores/memberListStore';
-import MenuItem from './menuItem';
-import ProjectsStore from '../stores/projectsStore';
-import SentryTypes from '../proptypes';
-import TextOverflow from './textOverflow';
+import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
+import ActorAvatar from 'app/components/actorAvatar';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import DropdownLink from 'app/components/dropdownLink';
+import FlowLayout from 'app/components/flowLayout';
+import GroupStore from 'app/stores/groupStore';
+import InlineSvg from 'app/components/inlineSvg';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import MenuItem from 'app/components/menuItem';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import TextOverflow from 'app/components/textOverflow';
 
 const AssigneeSelector = createReactClass({
   displayName: 'AssigneeSelector',
@@ -120,7 +120,7 @@ const AssigneeSelector = createReactClass({
     let group = GroupStore.get(this.props.id);
 
     return AssigneeSelector.filterAssignees(
-      (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+      (ProjectsStore.getBySlug(group.project.slug) || {
         teams: [],
       }).teams.sort((a, b) => a.slug.localeCompare(b.slug)),
       this.state.filter
@@ -248,31 +248,23 @@ const AssigneeSelector = createReactClass({
   renderTeamNodes() {
     let {filter} = this.state;
     let {size} = this.props;
-    let teamNodes = [];
-    let org = this.context.organization;
-    let features = new Set(org.features);
 
-    if (features.has('new-teams')) {
-      teamNodes = this.assignableTeams().map(({id, display, team}) => {
-        return (
-          <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
-            <MenuItemWrapper>
-              <IconContainer>
-                <Avatar team={team} size={size} />
-              </IconContainer>
-              <Label>{this.highlight(display, filter)}</Label>
-            </MenuItemWrapper>
-          </MenuItem>
-        );
-      });
-    }
-    return teamNodes;
+    return this.assignableTeams().map(({id, display, team}) => {
+      return (
+        <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
+          <MenuItemWrapper>
+            <IconContainer>
+              <Avatar team={team} size={size} />
+            </IconContainer>
+            <Label>{this.highlight(display, filter)}</Label>
+          </MenuItemWrapper>
+        </MenuItem>
+      );
+    });
   },
 
   renderDropdownItems() {
     let {loading, assignedTo} = this.state;
-    let org = this.context.organization;
-    let features = new Set(org.features);
     let teams = this.renderTeamNodes();
     let members = this.renderMemberNodes();
     let hasTeamsAndMembers = teams.length && members.length;
@@ -284,11 +276,7 @@ const AssigneeSelector = createReactClass({
           <input
             type="text"
             className="form-control input-sm"
-            placeholder={
-              features.has('new-teams')
-                ? t('Filter teams and people')
-                : t('Filter members')
-            }
+            placeholder={t('Filter teams and people')}
             ref={ref => this.onFilterMount(ref)}
             onClick={this.onFilterClick}
             onKeyDown={this.onFilterKeyDown}

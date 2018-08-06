@@ -1,12 +1,11 @@
 import _ from 'lodash';
 
 // import/export sub-utils
-import parseLinkHeader from './utils/parseLinkHeader';
-import deviceNameMapper from './utils/deviceNameMapper';
-import Collection from './utils/collection';
-import PendingChangeQueue from './utils/pendingChangeQueue';
-import CursorPoller from './utils/cursorPoller';
-import StreamManager from './utils/streamManager';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+import Collection from 'app/utils/collection';
+import PendingChangeQueue from 'app/utils/pendingChangeQueue';
+import CursorPoller from 'app/utils/cursorPoller';
+import StreamManager from 'app/utils/streamManager';
 
 /*eslint no-use-before-define:0*/
 
@@ -212,7 +211,7 @@ function projectDisplayCompare(a, b) {
   if (a.isBookmarked !== b.isBookmarked) {
     return a.isBookmarked ? -1 : 1;
   }
-  return a.id < b.id;
+  return a.slug.localeCompare(b.slug);
 }
 
 // Sort a list of projects by bookmarkedness, then by id
@@ -225,7 +224,7 @@ export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 
 // re-export under utils
-export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
+export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
 
 // backwards compatible default export for use w/ getsentry (exported
 // as a single object w/ function refs for consumption by getsentry)
@@ -245,7 +244,6 @@ export default {
   buildTeamId,
 
   // external imports
-  deviceNameMapper,
   objectToArray,
   Collection,
   PendingChangeQueue,

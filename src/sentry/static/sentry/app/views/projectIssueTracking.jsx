@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {fetchPlugins} from '../actionCreators/plugins';
-import {t} from '../locale';
-import LoadingIndicator from '../components/loadingIndicator';
-import PluginList from '../components/pluginList';
-import SentryTypes from '../proptypes';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
-import withPlugins from '../utils/withPlugins';
+import {fetchPlugins} from 'app/actionCreators/plugins';
+import {t} from 'app/locale';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import PluginList from 'app/components/pluginList';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import withPlugins from 'app/utils/withPlugins';
 
 class ProjectIssueTracking extends React.Component {
   static contextTypes = {

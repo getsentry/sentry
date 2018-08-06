@@ -9,14 +9,15 @@ import {
   TextField as LegacyTextField,
   PasswordField,
   BooleanField,
-} from 'sentry-ui/forms';
-import NewBooleanField from 'settings-ui/forms/booleanField';
-import RadioField from 'settings-ui/forms/radioField';
-import RadioGroup from 'settings-ui/forms/controls/radioGroup';
-import RangeSlider from 'settings-ui/forms/controls/rangeSlider';
-import Form from 'settings-ui/forms/form';
-import FormField from 'settings-ui/forms/formField';
-import TextField from 'settings-ui/forms/textField';
+} from 'app/components/forms';
+import NewBooleanField from 'app/views/settings/components/forms/booleanField';
+import RadioField from 'app/views/settings/components/forms/radioField';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
+import TextField from 'app/views/settings/components/forms/textField';
+import Switch from 'app/components/switch';
 
 class UndoButton extends React.Component {
   static contextTypes = {
@@ -112,6 +113,13 @@ storiesOf('Forms/Fields/New', module)
           required
           flexibleControlStateSize
         />
+        <TextField
+          name="textfielddisabled"
+          label="Text field with disabled reason"
+          placeholder="I am disabled"
+          disabled
+          disabledReason="This is the reason this field is disabled"
+        />
       </Form>
     ))
   )
@@ -185,4 +193,35 @@ storiesOf('Forms/Fields/New', module)
         />
       </div>
     ))
+  )
+  .add(
+    'Without a parent Form',
+    withInfo('New form fields used withing having a parent Form')(() => {
+      return (
+        <div>
+          <TextField
+            name="simpletextfield"
+            label="Simple Text Field"
+            placeholder="Simple Text Field"
+            onChange={action('TextField onChange')}
+          />
+          <NewBooleanField
+            name="field"
+            label="New Boolean Field"
+            onChange={action('BooleanField onChange')}
+          />
+          <RadioField
+            name="radio"
+            label="Radio Field"
+            onChange={action('RadioField onChange')}
+            choices={[
+              ['choice_one', 'Choice One'],
+              ['choice_two', 'Choice Two'],
+              ['choice_three', 'Choice Three'],
+            ]}
+          />
+          <Switch id="test" />
+        </div>
+      );
+    })
   );

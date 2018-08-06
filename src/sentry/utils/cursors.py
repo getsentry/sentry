@@ -31,7 +31,7 @@ class Cursor(object):
 
     def __repr__(self):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
-            type(self), self.value, self.offset, int(self.is_prev)
+            type(self).__name__, self.value, self.offset, int(self.is_prev)
         )
 
     def __nonzero__(self):
@@ -198,7 +198,8 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     return (prev_value, prev_offset, has_prev)
 
 
-def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None, max_hits=None):
+def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
+        max_hits=None, on_results=None):
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
@@ -232,6 +233,9 @@ def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
 
     next_cursor = Cursor(next_value or 0, next_offset, False, has_next)
     prev_cursor = Cursor(prev_value or 0, prev_offset, True, has_prev)
+
+    if on_results:
+        results = on_results(results)
 
     return CursorResult(
         results=results,

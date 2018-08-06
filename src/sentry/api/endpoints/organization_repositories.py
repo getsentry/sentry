@@ -73,6 +73,22 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             }, status=403)
 
         provider_id = request.DATA.get('provider')
+        has_ghe = provider_id == 'integrations:github_enterprise' and features.has(
+            'organizations:github-enterprise', organization, actor=request.user)
+        if features.has('organizations:internal-catchall', organization,
+                        actor=request.user) or has_ghe:
+            if provider_id is not None and provider_id.startswith('integrations:'):
+                try:
+                    provider_cls = bindings.get('integration-repository.provider').get(provider_id)
+                except KeyError:
+                    return Response(
+                        {
+                            'error_type': 'validation',
+                        }, status=400
+                    )
+                provider = provider_cls(id=provider_id)
+                return provider.dispatch(request, organization)
+
         try:
             provider_cls = bindings.get('repository.provider').get(provider_id)
         except KeyError:

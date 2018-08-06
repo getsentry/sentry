@@ -5,9 +5,9 @@ import styled, {keyframes} from 'react-emotion';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import $ from 'jquery';
-import {registerAnchor, unregisterAnchor} from '../../actionCreators/guides';
-import GuideStore from '../../stores/guideStore';
-import {expandOut} from '../../styles/animations';
+import {registerAnchor, unregisterAnchor} from 'app/actionCreators/guides';
+import GuideStore from 'app/stores/guideStore';
+import {expandOut} from 'app/styles/animations';
 
 // A guide anchor provides a ripple-effect on an element to draw attention to it.
 // Guide anchors register with the guide store, which uses this information to
@@ -78,6 +78,12 @@ const GuideAnchor = createReactClass({
     );
   },
 });
+
+export const conditionalGuideAnchor = (condition, target, type, children) => {
+  return condition
+    ? React.createElement(GuideAnchor, {target, type}, children)
+    : children;
+};
 
 const recedeAnchor = keyframes`
   0% {

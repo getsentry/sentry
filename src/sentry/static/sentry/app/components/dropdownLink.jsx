@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import DropdownMenu from './dropdownMenu';
+import DropdownMenu from 'app/components/dropdownMenu';
 
 class DropdownLink extends React.Component {
   static propTypes = {
@@ -58,7 +58,7 @@ class DropdownLink extends React.Component {
     // .dropdown-actor-title = flexbox to fix vertical alignment on firefox
     // Need the extra container because dropdown-menu alignment is off if `dropdown-actor` is a flexbox
     return (
-      <DropdownMenu {...otherProps}>
+      <DropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
           let shouldRenderMenu = alwaysRenderMenu || isOpen;
           let cx = classNames('dropdown-actor', className, {

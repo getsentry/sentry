@@ -5,11 +5,14 @@ __all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
 from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
+from django.views.decorators.csrf import csrf_exempt
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.utils.pipeline import PipelineView
+from sentry.pipeline import PipelineView
 
 from .base import Provider
 
@@ -30,40 +33,141 @@ class OAuth2Provider(Provider):
 
     oauth_scopes = ()
 
-    def get_oauth_client_id(self):
+    def _get_oauth_parameter(self, parameter_name):
+        """
+        Lookup an OAuth parameter for the provider. Depending on the context of the
+        pipeline using the provider, the parameter may come from 1 of 3 places:
+
+        1. Check the class property of the provider for the parameter.
+
+        2. If the provider has the parameters made available within the ``config``.
+
+        3. If provided, check the pipeline's ``provider_model`` for the oauth parameter
+           in the config field.
+
+        If the parameter cannot be found a KeyError will be raised.
+        """
+        try:
+            prop = getattr(self, u'oauth_{}'.format(parameter_name))
+            if prop is not '':
+                return prop
+        except AttributeError:
+            pass
+
+        if self.config.get(parameter_name):
+            return self.config.get(parameter_name)
+
+        model = self.pipeline.provider_model
+        if model and model.config.get(parameter_name) is not None:
+            return model.config.get(parameter_name)
+
+        raise KeyError(u'Unable to resolve OAuth parameter "{}"'.format(parameter_name))
+
+    def get_oauth_access_token_url(self):
+        return self._get_oauth_parameter('access_token_url')
+
+    def get_oauth_refresh_token_url(self):
         raise NotImplementedError
 
+    def get_oauth_authorize_url(self):
+        return self._get_oauth_parameter('authorize_url')
+
+    def get_oauth_client_id(self):
+        return self._get_oauth_parameter('client_id')
+
     def get_oauth_client_secret(self):
-        raise NotImplementedError
+        return self._get_oauth_parameter('client_secret')
 
     def get_oauth_scopes(self):
         return self.config.get('oauth_scopes', self.oauth_scopes)
 
+    def get_refresh_token_headers(self):
+        return None
+
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
-                authorize_url=self.oauth_authorize_url,
+                authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
             OAuth2CallbackView(
-                access_token_url=self.oauth_access_token_url,
+                access_token_url=self.get_oauth_access_token_url(),
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
             ),
         ]
 
+    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+        return {
+            'client_id': self.get_client_id(),
+            'client_secret': self.get_client_secret(),
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+        }
+
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}
-
         if 'expires_in' in payload:
-            data['expires'] = int(time()) + payload['expires_in']
+            data['expires'] = int(time()) + int(payload['expires_in'])
         if 'refresh_token' in payload:
             data['refresh_token'] = payload['refresh_token']
         if 'token_type' in payload:
             data['token_type'] = payload['token_type']
 
         return data
+
+    def handle_refresh_error(self, req, payload):
+        error_name = 'unknown_error'
+        error_description = 'no description available'
+        for name_key in ['error', 'Error']:
+            if name_key in payload:
+                error_name = payload.get(name_key)
+                break
+
+        for desc_key in ['error_description', 'ErrorDescription']:
+            if desc_key in payload:
+                error_description = payload.get(desc_key)
+                break
+
+        formatted_error = 'HTTP {} ({}): {}'.format(req.status_code, error_name, error_description)
+
+        if req.status_code == 401:
+            raise IdentityNotValid(formatted_error)
+
+        if req.status_code == 400:
+            # this may not be common, but at the very least Google will return
+            # an invalid grant when a user is suspended
+            if error_name == 'invalid_grant':
+                raise IdentityNotValid(formatted_error)
+
+        if req.status_code != 200:
+            raise ApiError(formatted_error)
+
+    def refresh_identity(self, identity, *args, **kwargs):
+        refresh_token = identity.data.get('refresh_token')
+
+        if not refresh_token:
+            raise IdentityNotValid('Missing refresh token')
+
+        data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
+
+        req = safe_urlopen(
+            url=self.get_refresh_token_url(),
+            headers=self.get_refresh_token_headers(),
+            data=data,
+        )
+
+        try:
+            body = safe_urlread(req)
+            payload = json.loads(body)
+        except Exception:
+            payload = {}
+
+        self.handle_refresh_error(req, payload)
+
+        identity.data.update(self.get_oauth_data(payload))
+        return identity.update(data=identity.data)
 
 
 class OAuth2LoginView(PipelineView):
@@ -95,6 +199,7 @@ class OAuth2LoginView(PipelineView):
             'redirect_uri': redirect_uri,
         }
 
+    @csrf_exempt
     def dispatch(self, request, pipeline):
         if 'code' in request.GET:
             return pipeline.next_step()
@@ -141,7 +246,8 @@ class OAuth2CallbackView(PipelineView):
             code=code,
             redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
-        req = safe_urlopen(self.access_token_url, data=data)
+        verify_ssl = pipeline.config.get('verify_ssl', True)
+        req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
         body = safe_urlread(req)
         if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
             return dict(parse_qsl(body))

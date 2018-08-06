@@ -3,9 +3,27 @@ from __future__ import absolute_import
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
+from sentry import analytics
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
 )
+
+
+class IntegrationExternalProject(Model):
+    __core__ = False
+
+    organization_integration_id = BoundedPositiveIntegerField(db_index=True)
+    date_added = models.DateTimeField(default=timezone.now)
+    name = models.CharField(max_length=128)
+    external_id = models.CharField(max_length=64)
+    resolved_status = models.CharField(max_length=64)
+    unresolved_status = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_integrationexternalproject'
+        unique_together = (('organization_integration_id', 'external_id'),)
 
 
 class OrganizationIntegration(Model):
@@ -14,6 +32,7 @@ class OrganizationIntegration(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     integration = FlexibleForeignKey('sentry.Integration')
     config = EncryptedJsonField(default=lambda: {})
+
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -52,6 +71,11 @@ class Integration(Model):
     # be used to store organization-specific information, as the Integration
     # instance is shared among multiple organizations
     metadata = EncryptedJsonField(default=lambda: {})
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.VISIBLE,
+        choices=ObjectStatus.as_choices(),
+        null=True,
+    )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
@@ -63,15 +87,21 @@ class Integration(Model):
         from sentry import integrations
         return integrations.get(self.provider)
 
+    def get_installation(self, organization_id, **kwargs):
+        return self.get_provider().get_installation(self, organization_id, **kwargs)
+
+    def has_feature(self, feature):
+        return feature in self.get_provider().features
+
     def add_organization(self, organization_id, default_auth_id=None, config=None):
         """
         Add an organization to this integration.
 
-        Returns True if the OrganizationIntegration was created
+        Returns False if the OrganizationIntegration was not created
         """
         try:
             with transaction.atomic():
-                OrganizationIntegration.objects.create(
+                return OrganizationIntegration.objects.create(
                     organization_id=organization_id,
                     integration_id=self.id,
                     default_auth_id=default_auth_id,
@@ -80,4 +110,38 @@ class Integration(Model):
         except IntegrityError:
             return False
         else:
-            return True
+            analytics.record(
+                'integration.added',
+                provider=self.provider,
+                id=self.id,
+                organization_id=organization_id,
+            )
+
+    def add_project(self, project_id, config=None):
+        """
+        Add a project to this integration. Requires that a
+        OrganizationIntegration must exist before the project can be added.
+
+        Returns False iff the ProjectIntegration was not created
+        """
+        from sentry.models import Project
+        org_id_queryset = Project.objects \
+            .filter(id=project_id) \
+            .values_list('organization_id', flat=True)
+        org_integration = OrganizationIntegration.objects.filter(
+            organization_id=org_id_queryset,
+            integration=self,
+        )
+
+        if not org_integration.exists():
+            return False
+
+        try:
+            with transaction.atomic():
+                return ProjectIntegration.objects.create(
+                    project_id=project_id,
+                    integration_id=self.id,
+                    config=config or {},
+                )
+        except IntegrityError:
+            return False

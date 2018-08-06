@@ -3,13 +3,13 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import LetterAvatar from '../../../../components/letterAvatar';
-import MenuItem from './menuItem';
-import SentryTypes from '../../../../proptypes';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import withLatestContext from '../../../../utils/withLatestContext';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import IdBadge from 'app/components/idBadge';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import SentryTypes from 'app/sentryTypes';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import withLatestContext from 'app/utils/withLatestContext';
 
 class OrganizationCrumb extends React.Component {
   static propTypes = {
@@ -36,14 +36,7 @@ class OrganizationCrumb extends React.Component {
             })}
           >
             <Flex align="center">
-              <span style={{width: 18, height: 18, marginRight: 6}}>
-                <LetterAvatar
-                  style={{display: 'inline-block'}}
-                  displayName={organization.slug}
-                  identifier={organization.slug}
-                />
-              </span>
-              {organization.slug}
+              <IdBadge avatarSize={18} organization={organization} />
             </Flex>
           </TextLink>
         }
@@ -65,7 +58,11 @@ class OrganizationCrumb extends React.Component {
         route={route}
         items={organizations.map(org => ({
           value: org.slug,
-          label: <MenuItem>{org.slug}</MenuItem>,
+          label: (
+            <MenuItem>
+              <IdBadge organization={org} />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />

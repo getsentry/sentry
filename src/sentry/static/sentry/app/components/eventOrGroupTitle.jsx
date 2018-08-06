@@ -1,11 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Metadata} from '../proptypes';
+import {Metadata} from 'app/sentryTypes';
 
 class EventOrGroupTitle extends React.Component {
   static propTypes = {
     data: PropTypes.shape({
-      type: PropTypes.oneOf(['error', 'csp', 'default']).isRequired,
+      type: PropTypes.oneOf([
+        'error',
+        'csp',
+        'hpkp',
+        'expectct',
+        'expectstaple',
+        'default',
+      ]).isRequired,
       title: PropTypes.string,
       metadata: Metadata.isRequired,
       culprit: PropTypes.string,
@@ -23,6 +30,9 @@ class EventOrGroupTitle extends React.Component {
     } else if (type == 'csp') {
       title = metadata.directive;
       subtitle = metadata.uri;
+    } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
+      title = metadata.message;
+      subtitle = metadata.origin;
     } else if (type == 'default') {
       title = metadata.title;
     }
@@ -31,7 +41,7 @@ class EventOrGroupTitle extends React.Component {
       return (
         <span style={this.props.style}>
           <span style={{marginRight: 10}}>{title}</span>
-          <em>{subtitle}</em>
+          <em title={subtitle}>{subtitle}</em>
           <br />
         </span>
       );

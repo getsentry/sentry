@@ -1,24 +1,35 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CreateProject render() should block if you have access to no teams 1`] = `
+exports[`CreateProject should block if you have access to no teams 1`] = `
 <div>
-  <div>
-    <h4>
-      You cannot create a new project because there are no teams to assign it to.
-    </h4>
-    <Link
-      className="btn btn-primary"
-      onlyActiveOnIndex={false}
-      style={Object {}}
-      to="/organizations/testOrg/teams/new/"
-    >
-      Create a Team
-    </Link>
-  </div>
+  <Panel
+    body={
+      <React.Fragment>
+        <PanelAlert
+          m={0}
+          mb={0}
+          type="error"
+        >
+          You cannot create a new project because there are no teams to assign it to.
+        </PanelAlert>
+        <CreateTeamBody>
+          <Button
+            className="ref-create-team"
+            disabled={false}
+            onClick={[Function]}
+            priority="primary"
+          >
+            Create a Team
+          </Button>
+        </CreateTeamBody>
+      </React.Fragment>
+    }
+    title="Cannot Create Project"
+  />
 </div>
 `;
 
-exports[`CreateProject render() should deal with incorrect platform name if its provided by url 1`] = `
+exports[`CreateProject should deal with incorrect platform name if its provided by url 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
   location={
@@ -795,7 +806,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
             </button>
           </div>
           <p>
-            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
           </p>
         </div>
       </div>
@@ -804,7 +815,7 @@ exports[`CreateProject render() should deal with incorrect platform name if its 
 </CreateProject>
 `;
 
-exports[`CreateProject render() should fill in platform name if its provided by url 1`] = `
+exports[`CreateProject should fill in platform name if its provided by url 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
   location={
@@ -1191,7 +1202,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
             </button>
           </div>
           <p>
-            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
           </p>
         </div>
       </div>
@@ -1200,7 +1211,7 @@ exports[`CreateProject render() should fill in platform name if its provided by 
 </CreateProject>
 `;
 
-exports[`CreateProject render() should fill in project name if its empty when platform is chosen 1`] = `
+exports[`CreateProject should fill in project name if its empty when platform is chosen 1`] = `
 <CreateProject
   getDocsUrl={[Function]}
   location={
@@ -1977,7 +1988,7 @@ exports[`CreateProject render() should fill in project name if its empty when pl
             </button>
           </div>
           <p>
-            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+            Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
           </p>
         </div>
       </div>

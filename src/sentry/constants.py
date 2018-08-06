@@ -87,9 +87,15 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
         'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
-        'team-avatar',
+        'project-avatar', 'team-avatar', 'careers', '_experiment',
     )
 )
+
+RESERVED_PROJECT_SLUGS = frozenset((
+    'api-keys', 'audit-log', 'auth', 'members', 'projects',
+    'rate-limits', 'repos', 'settings', 'teams', 'billing',
+    'payments', 'legal', 'subscription', 'support', 'integrations',
+))
 
 LOG_LEVELS = {
     logging.NOTSET: 'sample',
@@ -353,3 +359,5 @@ class ObjectStatus(object):
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+
+LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))

@@ -11,23 +11,23 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../../actionCreators/indicator';
-import {getOrganizationState} from '../../../../mixins/organizationState';
-import {t, tct} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import ClippedBox from '../../../../components/clippedBox';
-import Confirm from '../../../../components/confirm';
-import EmptyMessage from '../../components/emptyMessage';
-import ExternalLink from '../../../../components/externalLink';
-import Pagination from '../../../../components/pagination';
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import ProjectKeyCredentials from './projectKeyCredentials';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import recreateRoute from '../../../../utils/recreateRoute';
+} from 'app/actionCreators/indicator';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import ClippedBox from 'app/components/clippedBox';
+import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const KeyRow = createReactClass({
   displayName: 'KeyRow',
@@ -143,9 +143,7 @@ const KeyRow = createReactClass({
             'Are you sure you want to remove this key? This action is irreversible.'
           )}
         >
-          <Button size="small" disabled={this.state.loading}>
-            <span className="icon icon-trash" />
-          </Button>
+          <Button size="small" disabled={this.state.loading} icon="icon-trash" />
         </Confirm>
       );
     }
@@ -168,7 +166,7 @@ const KeyRow = createReactClass({
         </PanelHeader>
 
         <ClippedBox
-          clipHeight={150}
+          clipHeight={300}
           defaultClipped={true}
           btnClassName="btn btn-default btn-sm"
           btnText={t('Expand')}

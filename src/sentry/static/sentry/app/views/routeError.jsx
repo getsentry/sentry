@@ -1,27 +1,48 @@
+import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+
+import sdk from 'app/utils/sdk';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
   static propTypes = {
     error: PropTypes.object.isRequired,
-    // not used yet, but future proofing
-    onRetry: PropTypes.func,
+    routes: PropTypes.array,
+  };
+
+  static contextTypes = {
+    organization: PropTypes.object,
+    project: PropTypes.object,
   };
 
   componentWillMount() {
+    let {routes, error} = this.props;
+    let {organization, project} = this.context;
     // TODO(dcramer): show something in addition to embed (that contains it?)
-    // TODO(dcramer): capture better context
     // throw this in a timeout so if it errors we dont fall over
-    this._timeout = window.setTimeout(
-      function() {
-        Raven.captureException(this.props.error);
-        // TODO(dcramer): we do not have errorId until send() is called which
-        // has latency in production so this will literally never fire
-        Raven.showReportDialog();
-      }.bind(this)
-    );
+    this._timeout = window.setTimeout(() => {
+      let route = getRouteStringFromRoutes(routes);
+
+      if (!error) return;
+
+      if (route) {
+        error.message += `: ${route}`;
+      }
+
+      sdk.captureException(error, {
+        extra: {
+          route,
+          orgFeatures: (organization && organization.features) || [],
+          orgAccess: (organization && organization.access) || [],
+          projectFeatures: (project && project.features) || [],
+        },
+      });
+      // TODO(dcramer): we do not have errorId until send() is called which
+      // has latency in production so this will literally never fire
+      sdk.showReportDialog();
+    });
   }
 
   componentWillUnmount() {
@@ -73,4 +94,5 @@ class RouteError extends React.Component {
   }
 }
 
-export default RouteError;
+export default withRouter(RouteError);
+export {RouteError};

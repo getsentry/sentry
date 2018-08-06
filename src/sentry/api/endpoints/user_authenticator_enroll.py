@@ -19,7 +19,7 @@ SEND_SMS_ERR = {'details': 'Error sending SMS'}
 
 class TotpRestSerializer(serializers.Serializer):
     otp = serializers.CharField(
-        label='One-time password',
+        label='Authenticator code',
         help_text='Code from authenticator',
         required=True,
         max_length=20
@@ -34,7 +34,7 @@ class SmsRestSerializer(serializers.Serializer):
         max_length=20,
     )
     otp = serializers.CharField(
-        label='One-time password',
+        label='Authenticator code',
         help_text='Code from authenticator',
         required=False,
         max_length=20
@@ -54,6 +54,7 @@ class U2fRestSerializer(serializers.Serializer):
     response = serializers.CharField(
         required=True,
     )
+
 
 serializer_map = {
     'totp': TotpRestSerializer,
@@ -156,6 +157,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         except KeyError:
             pass
 
+        context = {}
         # Need to update interface with phone number before validating OTP
         if 'phone' in request.DATA:
             interface.phone_number = serializer.data['phone']
@@ -181,21 +183,25 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 serializer.data['response'],
                 serializer.data['deviceName']
             )
+            context.update({
+                'device_name': serializer.data['deviceName']
+            })
 
         try:
             interface.enroll(request.user)
         except Authenticator.AlreadyEnrolled:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
         else:
+            context.update({
+                'authenticator': interface.authenticator
+            })
             capture_security_activity(
                 account=request.user,
                 type='mfa-added',
                 actor=request.user,
                 ip_address=request.META['REMOTE_ADDR'],
-                context={
-                    'authenticator': interface.authenticator,
-                },
-                send_email=False,
+                context=context,
+                send_email=True,
             )
             request.user.clear_lost_passwords()
             request.user.refresh_session_nonce(self.request)

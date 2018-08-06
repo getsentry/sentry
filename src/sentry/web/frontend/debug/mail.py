@@ -227,13 +227,19 @@ def alert(request):
         make_group_generator(random, project),
     )
 
+    data = load_data(platform)
+    data['tags'] = [
+        ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
+        ('device', 'Other')
+    ]
+
     event = Event(
         id=1,
         event_id='44f1419e73884cd2b45c79918f4b6dc4',
         project=project,
         group=group,
         message=group.message,
-        data=load_data(platform),
+        data=data,
         datetime=to_datetime(
             random.randint(
                 to_timestamp(group.first_seen),
@@ -262,10 +268,6 @@ def alert(request):
             'interfaces': interface_list,
             'tags': event.get_tags(),
             'project_label': project.slug,
-            'tags': [
-                ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
-                ('device', 'Other')
-            ],
             'commits': [{
                 # TODO(dcramer): change to use serializer
                 "repository": {"status": "active", "name": "Example Repo", "url": "https://github.com/example/example", "dateCreated": "2018-02-28T23:39:22.402Z", "provider": {"id": "github", "name": "GitHub"}, "id": "1"},

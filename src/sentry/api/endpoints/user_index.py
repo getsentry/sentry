@@ -39,6 +39,16 @@ class UserIndexEndpoint(Endpoint):
                     queryset = queryset.filter(in_iexact('email', value))
                 elif key == 'username':
                     queryset = queryset.filter(in_iexact('username', value))
+                elif key == 'is':
+                    for v in value:
+                        if v == 'superuser':
+                            queryset = queryset.filter(is_superuser=True)
+                        else:
+                            queryset = queryset.none()
+                elif key == 'permission':
+                    queryset = queryset.filter(
+                        userpermission__permission__in=[v.lower() for v in value],
+                    )
                 else:
                     queryset = queryset.none()
 

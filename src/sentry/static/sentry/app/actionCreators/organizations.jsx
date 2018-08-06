@@ -1,11 +1,11 @@
 import {browserHistory} from 'react-router';
 
-import {Client} from '../api';
-import IndicatorStore from '../stores/indicatorStore';
-import OrganizationsActions from '../actions/organizationsActions';
-import OrganizationsStore from '../stores/organizationsStore';
-import ProjectsStore from '../stores/projectsStore';
-import TeamStore from '../stores/teamStore';
+import {Client} from 'app/api';
+import IndicatorStore from 'app/stores/indicatorStore';
+import OrganizationsActions from 'app/actions/organizationsActions';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 
 export function redirectToRemainingOrganization({orgId}) {
   // Remove queued, should redirect

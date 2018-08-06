@@ -5,22 +5,22 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {ALL_ENVIRONMENTS_KEY} from '../../../../constants';
-import {Panel, PanelBody, PanelHeader} from '../../../../components/panels';
-import {Select2Field, TextField} from '../../../../components/forms';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {SelectField, TextField} from 'app/components/forms';
 import {
   addErrorMessage,
   addSuccessMessage,
   addMessage,
-} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
-import Button from '../../../../components/buttons/button';
-import EnvironmentStore from '../../../../stores/environmentStore';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import RuleNodeList from './ruleNodeList';
-import recreateRoute from '../../../../utils/recreateRoute';
-import space from '../../../../styles/space';
+} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import EnvironmentStore from 'app/stores/environmentStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import RuleNodeList from 'app/views/settings/projectAlerts/ruleEditor/ruleNodeList';
+import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
@@ -236,7 +236,8 @@ const RuleEditor = createReactClass({
             <AlertRuleRow>
               {t(
                 'Every time %s of these conditions are met:',
-                <Select2Field
+                <SelectField
+                  clearable={false}
                   className={this.hasError('actionMatch') ? ' error' : ''}
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 100}}
                   name="actionMatch"
@@ -264,7 +265,8 @@ const RuleEditor = createReactClass({
             <hr />
 
             <h6>{t('In this environment')}:</h6>
-            <Select2Field
+            <SelectField
+              clearable={false}
               className={this.hasError('environment') ? ' error' : ''}
               style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
               name="environment"
@@ -295,7 +297,8 @@ const RuleEditor = createReactClass({
             <AlertRuleRow>
               {t(
                 'Perform these actions at most once every %s for an issue.',
-                <Select2Field
+                <SelectField
+                  clearable={false}
                   name="frequency"
                   className={this.hasError('frequency') ? ' error' : ''}
                   value={frequency}

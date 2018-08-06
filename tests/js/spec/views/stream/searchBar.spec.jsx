@@ -35,6 +35,34 @@ describe('SearchBar', function() {
     sandbox.restore();
   });
 
+  describe('componentWillReceiveProps()', function() {
+    it('should update state.query if props.query is updated from outside', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+
+      searchBar.setProps({query: 'two'});
+
+      expect(searchBar.state().query).toEqual('two');
+    });
+
+    it('should not reset user input if a noop props change happens', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+      searchBar.setState({query: 'two'});
+
+      searchBar.setProps({query: 'one'});
+
+      expect(searchBar.state().query).toEqual('two');
+    });
+
+    it('should reset user input if a meaningful props change happens', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+      searchBar.setState({query: 'two'});
+
+      searchBar.setProps({query: 'three'});
+
+      expect(searchBar.state().query).toEqual('three');
+    });
+  });
+
   describe('getQueryTerms()', function() {
     it('should extract query terms from a query string', function() {
       let query = 'tagname: ';
@@ -281,6 +309,23 @@ describe('SearchBar', function() {
       searchBar.updateAutoCompleteItems();
       clock.tick(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
+    });
+
+    it('does not request values when tag is `timesSeen`', function() {
+      // This should never get called
+      let mock = MockApiClient.addMockResponse({
+        url: '/projects/123/456/tags/timesSeen/values/',
+        body: [],
+      });
+      let props = {
+        orgId: '123',
+        projectId: '456',
+        query: 'timesSeen:',
+      };
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+      clock.tick(301);
+      expect(mock).not.toHaveBeenCalled();
     });
   });
 });

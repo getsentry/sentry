@@ -20,11 +20,11 @@ from pytz import utc
 from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
-    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
+    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, EventAttachment, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
-    TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
+    ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
+    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -79,7 +79,7 @@ def create_sample_event(*args, **kwargs):
 
 def generate_commits(user):
     commits = []
-    for i in range(random.randint(0, 20)):
+    for i in range(random.randint(1, 20)):
         if i == 1:
             filename = 'raven/base.py'
         else:
@@ -164,6 +164,8 @@ def create_system_time_series():
 def create_sample_time_series(event, release=None):
     if event is None:
         return
+
+    Event.objects.bind_nodes([event], 'data')
 
     group = event.group
 
@@ -485,6 +487,13 @@ def main(num_events=1, extra_events=False):
                 authors=[six.text_type(a.id) for a in authors],
             )
 
+            ReleaseProjectEnvironment.objects.create_or_update(
+                project=project,
+                environment=environment,
+                release=release,
+                defaults={'last_deploy_id': deploy.id}
+            )
+
             Activity.objects.create(
                 type=Activity.DEPLOY,
                 project=project,
@@ -520,6 +529,19 @@ def main(num_events=1, extra_events=False):
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
                     user=generate_user(),
+                )
+
+                EventAttachment.objects.create(
+                    project_id=project.id,
+                    group_id=event1.group_id,
+                    event_id=event1.event_id,
+                    name='example-logfile.txt',
+                    file=File.objects.get_or_create(
+                        name='example-logfile.txt',
+                        type='text/plain',
+                        checksum='abcde' * 8,
+                        size=13043,
+                    )[0],
                 )
 
                 event2 = create_sample_event(
@@ -583,7 +605,6 @@ def main(num_events=1, extra_events=False):
                         'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
                     },
                 )[0]
-
 
             create_sample_event(
                 project=project,

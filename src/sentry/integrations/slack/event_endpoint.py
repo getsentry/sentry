@@ -4,11 +4,12 @@ import json
 import re
 import six
 
-from sentry import http, options
+from sentry import http
 from sentry.api.base import Endpoint
-from sentry.models import Group, Integration, Project
+from sentry.models import Group, Project
 
 from .utils import build_attachment, logger
+from .requests import SlackEventRequest, SlackRequestError
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
@@ -83,61 +84,24 @@ class SlackEventEndpoint(Endpoint):
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request):
-        logging_data = {}
-
         try:
-            data = request.DATA
-        except (ValueError, TypeError):
-            logger.error('slack.event.invalid-json', extra=logging_data)
-            return self.respond(status=400)
+            slack_request = SlackEventRequest(request)
+            slack_request.validate()
+        except SlackRequestError as e:
+            return self.respond(status=e.status)
 
-        event_id = data.get('event_id')
-        team_id = data.get('team_id')
-        api_app_id = data.get('api_app_id')
-        # TODO(dcramer): should we verify this here?
-        # authed_users = data.get('authed_users')
+        if slack_request.is_challenge():
+            return self.on_url_verification(request, slack_request.data)
 
-        logging_data.update({
-            'slack_team_id': team_id,
-            'slack_api_app_id': api_app_id,
-            'slack_event_id': event_id,
-        })
-
-        token = data.get('token')
-        if token != options.get('slack.verification-token'):
-            logger.error('slack.event.invalid-token', extra=logging_data)
-            return self.respond(status=400)
-        payload_type = data.get('type')
-        logger.info('slack.event.{}'.format(payload_type), extra=logging_data)
-        if payload_type == 'url_verification':
-            return self.on_url_verification(request, data)
-
-        try:
-            integration = Integration.objects.get(
-                provider='slack',
-                external_id=team_id,
+        if slack_request.type == 'link_shared':
+            resp = self.on_link_shared(
+                request,
+                slack_request.integration,
+                slack_request.data.get('token'),
+                slack_request.data.get('event'),
             )
-        except Integration.DoesNotExist:
-            logger.error('slack.event.unknown-team-id', extra=logging_data)
-            return self.respond(status=400)
 
-        logging_data['integration_id'] = integration.id
+            if resp:
+                return resp
 
-        event_data = data.get('event')
-        if not event_data:
-            logger.error('slack.event.invalid-event-data', extra=logging_data)
-            return self.respond(status=400)
-
-        event_type = event_data.get('type')
-        if not event_data:
-            logger.error('slack.event.invalid-event-type', extra=logging_data)
-            return self.respond(status=400)
-
-        logging_data['slack_event_type'] = event_type
-        if event_type == 'link_shared':
-            resp = self.on_link_shared(request, integration, token, event_data)
-        else:
-            resp = None
-        if resp:
-            return resp
         return self.respond()

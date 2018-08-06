@@ -1,16 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel, PanelBody, PanelHeader} from '../../components/panels';
-import {intcomma} from '../../utils';
-import {t} from '../../locale';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import Pagination from '../../components/pagination';
-import ProjectTable from './projectTable';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
-import StackedBarChart from '../../components/stackedBarChart';
-import TextBlock from '../settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {intcomma} from 'app/utils';
+import {t} from 'app/locale';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import ProjectTable from 'app/views/organizationStats/projectTable';
+import StackedBarChart from 'app/components/stackedBarChart';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import {
+  ProjectTableLayout,
+  ProjectTableDataElement,
+} from 'app/views/organizationStats/projectTableLayout';
 
 class OrganizationStats extends React.Component {
   static propTypes = {
@@ -62,7 +65,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Organization Stats')} />
+        <h4>{t('Organization Stats')}</h4>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>
@@ -103,7 +106,15 @@ class OrganizationStats extends React.Component {
         </div>
 
         <Panel>
-          <PanelHeader>{t('Events by Project')}</PanelHeader>
+          <PanelHeader>
+            <ProjectTableLayout>
+              <div>{t('Project')}</div>
+              <ProjectTableDataElement>{t('Accepted')}</ProjectTableDataElement>
+              <ProjectTableDataElement>{t('Rate Limited')}</ProjectTableDataElement>
+              <ProjectTableDataElement>{t('Filtered')}</ProjectTableDataElement>
+              <ProjectTableDataElement>{t('Total')}</ProjectTableDataElement>
+            </ProjectTableLayout>
+          </PanelHeader>
           <PanelBody>
             {statsLoading || projectsLoading ? (
               <LoadingIndicator />

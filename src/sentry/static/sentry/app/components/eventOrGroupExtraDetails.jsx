@@ -5,10 +5,10 @@ import {Link} from 'react-router';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 
-import ProjectState from '../mixins/projectState';
-import TimeSince from './timeSince';
-import ShortId from './shortId';
-import {t, tct} from '../locale';
+import ProjectState from 'app/mixins/projectState';
+import TimeSince from 'app/components/timeSince';
+import ShortId from 'app/components/shortId';
+import {t, tct} from 'app/locale';
 
 const EventOrGroupExtraDetails = createReactClass({
   displayName: 'EventOrGroupExtraDetails',
@@ -126,7 +126,7 @@ const EventOrGroupExtraDetails = createReactClass({
 });
 
 const GroupExtra = styled(Flex)`
-  color: ${p => p.theme.gray3}
+  color: ${p => p.theme.gray3};
   font-size: 12px;
   a {
     color: inherit;

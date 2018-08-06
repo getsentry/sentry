@@ -5,7 +5,7 @@
     <desc>Created with Sketch.</desc>
     <defs></defs>
     <g id="Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
-        <g id="icon-chevron-down" stroke="#493E54">
+        <g id="icon-chevron-down" stroke="currentColor">
             <polyline id="Shape" transform="translate(5.000000, 2.715559) rotate(-90.000000) translate(-5.000000, -2.715559) " points="6.715559 6.715559 3.284441 2.71258796 6.71186974 -1.284441"></polyline>
         </g>
     </g>

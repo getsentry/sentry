@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import DynamicWrapper from 'sentry-ui/dynamicWrapper';
+import DynamicWrapper from 'app/components/dynamicWrapper';
 
 storiesOf('DynamicWrapper', module).add(
   'default',

@@ -6,6 +6,7 @@ import itertools
 import logging
 import threading
 
+import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings
@@ -15,6 +16,13 @@ from .imports import import_string
 
 
 logger = logging.getLogger(__name__)
+
+
+def raises(exceptions):
+    def decorator(function):
+        function.__raises__ = exceptions
+        return function
+    return decorator
 
 
 class Service(object):
@@ -85,6 +93,27 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = getattr(base, key)
 
 
+def resolve_callable(value):
+    if callable(value):
+        return value
+    elif isinstance(value, six.string_types):
+        return import_string(value)
+    else:
+        raise TypeError('Expected callable or string')
+
+
+class Context(object):
+    def __init__(self, request, backends):
+        self.request = request
+        self.backends = backends
+
+    def copy(self):
+        return Context(
+            self.request,
+            self.backends.copy(),
+        )
+
+
 class ServiceDelegator(Service):
     """\
     This is backend that coordinates and delegates method execution to multiple
@@ -116,20 +145,20 @@ class ServiceDelegator(Service):
         # ... etc ...
 
     The backends used for a method call are determined by a selector function
-    which is provided with the method name (as a string) and arguments (in the
-    form returned by ``inspect.getcallargs``) and expected to return a list of
-    strings which correspond to names in the backend mapping. (This list should
-    contain at least one member.) The first item in the result list is
-    considered the "primary backend". The remainder of the items in the result
-    list are considered "secondary backends". The result value of the primary
-    backend will be the result value of the delegated method (to callers, this
-    appears as a synchronous method call.) The secondary backends are called
-    asynchronously in the background.  (To receive the result values of these
-    method calls, provide a callback_func, described below.) If the primary
-    backend name returned by the selector function doesn't correspond to any
-    registered backend, the function will raise a ``InvalidBackend`` exception.
-    If any referenced secondary backends are not registered names, they will be
-    discarded and logged.
+    which is provided with the current context, the method name (as a string)
+    and arguments (in the form returned by ``inspect.getcallargs``) and
+    expected to return a list of strings which correspond to names in the
+    backend mapping. (This list should contain at least one member.) The first
+    item in the result list is considered the "primary backend". The remainder
+    of the items in the result list are considered "secondary backends". The
+    result value of the primary backend will be the result value of the
+    delegated method (to callers, this appears as a synchronous method call.)
+    The secondary backends are called asynchronously in the background.  (To
+    receive the result values of these method calls, provide a callback_func,
+    described below.) If the primary backend name returned by the selector
+    function doesn't correspond to any registered backend, the function will
+    raise a ``InvalidBackend`` exception.  If any referenced secondary backends
+    are not registered names, they will be discarded and logged.
 
     The members and ordering of the selector function result (and thus the
     primary and secondary backends for a method call) may vary from call to
@@ -139,8 +168,11 @@ class ServiceDelegator(Service):
     undergoing testing may be included based on the result of a random number
     generator (essentially calling it in the background for a sample of calls.)
 
-    The selector function and callback function are both provided as paths to a
-    callable that will be imported at backend instantation.
+    The selector function and callback function can be provided as either:
+
+    - A dotted import path string (``path.to.callable``) that will be
+      imported at backend instantiation, or
+    - A reference to a callable object.
 
     Implementation notes:
 
@@ -164,6 +196,7 @@ class ServiceDelegator(Service):
       attempting to retrieve the result.)
     - The ``callback_func`` is called after all futures have completed, either
       successfully or unsuccessfully. The function parameters are:
+      - the context,
       - the method name (as a string),
       - the calling arguments (as returned by ``inspect.getcallargs``),
       - the backend names (as returned by the selector function),
@@ -177,11 +210,11 @@ class ServiceDelegator(Service):
         function.
         """
 
-    class ServiceState(threading.local):
+    class State(threading.local):
         def __init__(self):
-            self.backends = {}
+            self.context = None
 
-    state = ServiceState()
+    __state = State()
 
     def __init__(self, backend_base, backends, selector_func, callback_func=None):
         self.__backend_base = import_string(backend_base)
@@ -201,10 +234,10 @@ class ServiceDelegator(Service):
                 load_executor(options.get('executor', {})),
             )
 
-        self.__selector_func = import_string(selector_func)
+        self.__selector_func = resolve_callable(selector_func)
 
         if callback_func is not None:
-            self.__callback_func = import_string(callback_func)
+            self.__callback_func = resolve_callable(callback_func)
         else:
             self.__callback_func = None
 
@@ -234,10 +267,19 @@ class ServiceDelegator(Service):
             return base_value
 
         def execute(*args, **kwargs):
+            context = type(self).__state.context
+
+            # If there is no context object already set in the thread local
+            # state, we are entering the delegator for the first time and need
+            # to create a new context.
+            if context is None:
+                from sentry.app import env  # avoids a circular import
+                context = Context(env.request, {})
+
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.
-            if self in self.state.backends:
-                backend = type(self).state.backends[self.__backend_base]
+            if self.__backend_base in context.backends:
+                backend = context.backends[self.__backend_base]
                 return getattr(backend, attribute_name)(*args, **kwargs)
 
             # Binding the call arguments to named arguments has two benefits:
@@ -250,7 +292,7 @@ class ServiceDelegator(Service):
             #    arguments that are supported by all backends.
             callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
 
-            selected_backend_names = list(self.__selector_func(attribute_name, callargs))
+            selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
             if not len(selected_backend_names) > 0:
                 raise self.InvalidBackend('No backends returned by selector!')
 
@@ -262,23 +304,41 @@ class ServiceDelegator(Service):
                     '{!r} is not a registered backend.'.format(
                         selected_backend_names[0]))
 
-            def call_backend_method(backend):
-                base = self.__backend_base
-                active_backends = type(self).state.backends
+            def call_backend_method(context, backend, is_primary):
+                # Update the thread local state in the executor to the provided
+                # context object. This allows the context to be propagated
+                # across different threads.
+                assert type(self).__state.context is None
+                type(self).__state.context = context
 
                 # Ensure that we haven't somehow accidentally entered a context
                 # where the backend we're calling has already been marked as
                 # active (or worse, some other backend is already active.)
-                assert base not in active_backends
+                base = self.__backend_base
+                assert base not in context.backends
 
                 # Mark the backend as active.
-                active_backends[base] = backend
+                context.backends[base] = backend
                 try:
                     return getattr(backend, attribute_name)(*args, **kwargs)
+                except Exception as e:
+                    # If this isn't the primary backend, we log any unexpected
+                    # exceptions so that they don't pass by unnoticed. (Any
+                    # exceptions raised by the primary backend aren't logged
+                    # here, since it's assumed that the caller will log them
+                    # from the calling thread.)
+                    if not is_primary:
+                        expected_raises = getattr(base_value, '__raises__', [])
+                        if not expected_raises or not isinstance(e, tuple(expected_raises)):
+                            logger.warning('%s caught in executor while calling %r on %s.',
+                                type(e).__name__,
+                                attribute_name,
+                                type(backend).__name__,
+                                exc_info=True,
+                            )
+                    raise
                 finally:
-                    # Unmark the backend as active.
-                    assert active_backends[base] is backend
-                    del active_backends[base]
+                    type(self).__state.context = None
 
             # Enqueue all of the secondary backend requests first since these
             # are non-blocking queue insertions. (Since the primary backend
@@ -302,7 +362,12 @@ class ServiceDelegator(Service):
                         exc_info=True)
                 else:
                     results[i] = executor.submit(
-                        functools.partial(call_backend_method, backend),
+                        functools.partial(
+                            call_backend_method,
+                            context.copy(),
+                            backend,
+                            is_primary=False,
+                        ),
                         priority=1,
                         block=False,
                     )
@@ -312,7 +377,12 @@ class ServiceDelegator(Service):
             # since we already ensured that the primary backend exists.)
             backend, executor = self.__backends[selected_backend_names[0]]
             results[0] = executor.submit(
-                functools.partial(call_backend_method, backend),
+                functools.partial(
+                    call_backend_method,
+                    context.copy(),
+                    backend,
+                    is_primary=True,
+                ),
                 priority=0,
                 block=True,
             )
@@ -320,6 +390,7 @@ class ServiceDelegator(Service):
             if self.__callback_func is not None:
                 FutureSet(filter(None, results)).add_done_callback(
                     lambda *a, **k: self.__callback_func(
+                        context,
                         attribute_name,
                         callargs,
                         selected_backend_names,

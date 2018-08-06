@@ -16,12 +16,12 @@ const SearchResultWrapper = styled(({highlighted, ...props}) => <div {...props} 
     `};
 
   &:first-child {
-    border-radius: 5px 5px 0 0;
+    border-radius: 4px 4px 0 0;
   }
 
   &:last-child {
     border-bottom: 0;
-    border-radius: 0 0 5px 5px;
+    border-radius: 0 0 4px 4px;
   }
 `;
 

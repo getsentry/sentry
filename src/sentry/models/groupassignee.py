@@ -1,12 +1,14 @@
 """
 sentry.models.groupassignee
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
+import logging
 import six
+
+from collections import defaultdict
 
 from django.conf import settings
 from django.db import models
@@ -18,8 +20,115 @@ from sentry.models.activity import Activity
 from sentry.signals import issue_assigned
 
 
+def get_user_project_ids(users):
+    """
+    Given a list of users, return a dict where keys are user_ids
+    and values are a set of the project_ids the user is a member of
+    """
+    from sentry.models import OrganizationMemberTeam, ProjectTeam
+    user_teams = list(OrganizationMemberTeam.objects.filter(
+        organizationmember__user__in=users,
+        is_active=True,
+    ).values('organizationmember__user', 'team'))
+
+    # team_id to list of projects
+    projects_by_team = defaultdict(set)
+    for tp in ProjectTeam.objects.filter(team__in=[ut['team'] for ut in user_teams]):
+        projects_by_team[tp.team_id].add(tp.project_id)
+
+    # user_id to projects
+    projects_by_user = defaultdict(set)
+    for ut in user_teams:
+        projects_by_user[ut['organizationmember__user']].update(projects_by_team[ut['team']])
+
+    return projects_by_user
+
+
+def sync_group_assignee_inbound(integration, email, external_issue_key, assign=True):
+    """
+    Given an integration, user email address and an external issue key,
+    assign linked groups to matching users. Checks project membership.
+    Returns a list of groups that were successfully assigned.
+    """
+    from sentry.models import Group, UserEmail, User
+
+    logger = logging.getLogger('sentry.integrations.%s' % integration.provider)
+
+    orgs_with_sync_enabled = []
+    for org_id in integration.organizations.values_list('id', flat=True):
+        installation = integration.get_installation(org_id)
+        if installation.should_sync('inbound_assignee'):
+            orgs_with_sync_enabled.append(org_id)
+
+    affected_groups = list(
+        Group.objects.get_groups_by_external_issue(
+            integration, external_issue_key,
+        ).filter(project__organization_id__in=orgs_with_sync_enabled),
+    )
+
+    if not affected_groups:
+        return []
+
+    if not assign:
+        for group in affected_groups:
+            GroupAssignee.objects.deassign(group)
+        return affected_groups
+
+    users = {u.id: u for u in User.objects.filter(
+        id__in=UserEmail.objects.filter(
+            is_verified=True,
+            email=email,
+        ).values_list('user_id', flat=True),
+    )}
+
+    projects_by_user = get_user_project_ids(users.values())
+
+    groups_assigned = []
+    for group in affected_groups:
+        try:
+            user_id = [
+                user_id for user_id, projects in projects_by_user.items()
+                if group.project_id in projects
+            ][0]
+        except IndexError:
+            logger.info(
+                'assignee-not-found-inbound',
+                extra={
+                    'integration_id': integration.id,
+                    'email': email,
+                    'issue_key': external_issue_key,
+                }
+            )
+        else:
+            user = users[user_id]
+            GroupAssignee.objects.assign(group, user)
+            groups_assigned.append(group)
+
+    return groups_assigned
+
+
+def sync_group_assignee_outbound(group, user_id, assign=True):
+    from sentry.tasks.integrations import sync_assignee_outbound
+    from sentry.models import GroupLink
+    external_issue_ids = GroupLink.objects.filter(
+        project_id=group.project_id,
+        group_id=group.id,
+        linked_type=GroupLink.LinkedType.issue,
+    ).values_list('linked_id', flat=True)
+
+    for external_issue_id in external_issue_ids:
+        sync_assignee_outbound.apply_async(
+            kwargs={
+                'external_issue_id': external_issue_id,
+                'user_id': user_id,
+                'assign': assign,
+            }
+        )
+
+
 class GroupAssigneeManager(BaseManager):
     def assign(self, group, assigned_to, acting_user=None):
+        from sentry import features
         from sentry.models import User, Team, GroupSubscription, GroupSubscriptionReason
 
         GroupSubscription.objects.subscribe_actor(
@@ -74,8 +183,13 @@ class GroupAssigneeManager(BaseManager):
                 },
             )
             activity.send_notification()
+            # sync Sentry assignee to external issues
+            if assignee_type == 'user' and features.has(
+                    'organizations:internal-catchall', group.organization, actor=acting_user):
+                sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
     def deassign(self, group, acting_user=None):
+        from sentry import features
         affected = GroupAssignee.objects.filter(
             group=group,
         )[:1].count()
@@ -91,6 +205,10 @@ class GroupAssigneeManager(BaseManager):
                 user=acting_user,
             )
             activity.send_notification()
+            # sync Sentry assignee to external issues
+            if features.has('organizations:internal-catchall',
+                            group.organization, actor=acting_user):
+                sync_group_assignee_outbound(group, None, assign=False)
 
 
 class GroupAssignee(Model):

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import sys
 import threading
 from Queue import Full, PriorityQueue
 from concurrent.futures import Future
@@ -121,8 +122,8 @@ class SynchronousExecutor(Executor):
         assert future.set_running_or_notify_cancel()
         try:
             result = callable()
-        except Exception as error:
-            future.set_exception(error)
+        except Exception:
+            future.set_exception_info(*sys.exc_info()[1:])
         else:
             future.set_result(result)
         return future
@@ -154,8 +155,8 @@ class ThreadedExecutor(Executor):
                 continue
             try:
                 result = function()
-            except Exception as error:
-                future.set_exception(error)
+            except Exception:
+                future.set_exception_info(*sys.exc_info()[1:])
             else:
                 future.set_result(result)
             queue.task_done()

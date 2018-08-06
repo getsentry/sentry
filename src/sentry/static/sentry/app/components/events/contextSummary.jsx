@@ -1,17 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from '../../components/avatar';
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import {objectIsEmpty, deviceNameMapper} from '../../utils';
+import Avatar from 'app/components/avatar';
+import DeviceName from 'app/components/deviceName';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import {objectIsEmpty} from 'app/utils';
 
 const generateClassName = function(name) {
   return name
     .split(/\d/)[0]
     .toLowerCase()
     .replace(/[^a-z0-9\-]+/g, '-')
-    .replace(/\-+$/, '');
+    .replace(/\-+$/, '')
+    .replace(/^\-+/, '');
 };
 
 class NoSummary extends React.Component {
@@ -51,6 +53,51 @@ class GenericSummary extends React.Component {
         <p>
           <strong>{t('Version:')}</strong> {data.version || t('Unknown')}
         </p>
+      </div>
+    );
+  }
+}
+
+export class OsSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
+
+  render() {
+    let data = this.props.data;
+
+    if (objectIsEmpty(data) || !data.name) {
+      return <NoSummary title={t('Unknown OS')} />;
+    }
+
+    let className = generateClassName(data.name);
+    let versionElement = null;
+
+    if (data.version) {
+      versionElement = (
+        <p>
+          <strong>{t('Version:')}</strong> {data.version}
+        </p>
+      );
+    } else if (data.kernel_version) {
+      versionElement = (
+        <p>
+          <strong>{t('Kernel:')}</strong> {data.kernel_version}
+        </p>
+      );
+    } else {
+      versionElement = (
+        <p>
+          <strong>{t('Version:')}</strong> {t('Unknown')}
+        </p>
+      );
+    }
+
+    return (
+      <div className={`context-item ${className}`}>
+        <span className="context-item-icon" />
+        <h3>{data.name}</h3>
+        {versionElement}
       </div>
     );
   }
@@ -133,7 +180,9 @@ class DeviceSummary extends React.Component {
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{data.model ? deviceNameMapper(data.model) : t('Unknown Device')}</h3>
+        <h3>
+          {data.model ? <DeviceName>{data.model}</DeviceName> : t('Unknown Device')}
+        </h3>
         {subTitle}
       </div>
     );
@@ -146,7 +195,7 @@ const KNOWN_CONTEXTS = [
   {key: 'user', Component: UserSummary},
   {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
   {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
-  {key: 'os', Component: GenericSummary, unknownTitle: t('Unknown OS')},
+  {key: 'os', Component: OsSummary},
   {key: 'device', Component: DeviceSummary},
 ];
 

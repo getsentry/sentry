@@ -16,7 +16,8 @@ describe('ResolveActions', function() {
           hasRelease={false}
           orgId={'org-1'}
           projectId={'proj-1'}
-        />
+        />,
+        TestStubs.routerContext()
       );
       button = component.find('a.btn.btn-default').first();
     });
@@ -43,7 +44,8 @@ describe('ResolveActions', function() {
           orgId={'org-1'}
           projectId={'proj-1'}
           isResolved={true}
-        />
+        />,
+        TestStubs.routerContext()
       );
     });
 
@@ -71,7 +73,8 @@ describe('ResolveActions', function() {
           projectId={'proj-1'}
           isResolved={true}
           isAutoResolved={true}
-        />
+        />,
+        TestStubs.routerContext()
       );
 
       component.find('a.btn').simulate('click');
@@ -89,7 +92,8 @@ describe('ResolveActions', function() {
           hasRelease={false}
           orgId={'org-1'}
           projectId={'proj-1'}
-        />
+        />,
+        TestStubs.routerContext()
       );
     });
 
@@ -118,7 +122,8 @@ describe('ResolveActions', function() {
           projectId={'proj-1'}
           shouldConfirm={true}
           confirmMessage={'Are you sure???'}
-        />
+        />,
+        TestStubs.routerContext()
       );
       button = component.find('a.btn.btn-default').first();
     });
@@ -138,6 +143,53 @@ describe('ResolveActions', function() {
         .click();
 
       expect(spy.called).toBe(true);
+    });
+  });
+
+  it('can resolve in "another version"', async function() {
+    let onUpdate = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [TestStubs.Release()],
+    });
+    let wrapper = mount(
+      <ResolveActions
+        hasRelease
+        orgId="org-slug"
+        projectId="project-slug"
+        onUpdate={onUpdate}
+      />,
+      TestStubs.routerContext()
+    );
+
+    wrapper
+      .find('ActionLink')
+      .last()
+      .simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([
+      expect.objectContaining({
+        value: '92eccef279d966b2319f0802fa4b22b430a5f72b',
+        label: expect.anything(),
+      }),
+    ]);
+
+    wrapper.find('input[id="version"]').simulate('change', {target: {value: '9'}});
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('input[id="version"]').simulate('keyDown', {keyCode: 13});
+
+    wrapper.find('CustomResolutionModal form').simulate('submit');
+    expect(onUpdate).toHaveBeenCalledWith({
+      status: 'resolved',
+      statusDetails: {
+        inRelease: '92eccef279d966b2319f0802fa4b22b430a5f72b',
+      },
     });
   });
 });

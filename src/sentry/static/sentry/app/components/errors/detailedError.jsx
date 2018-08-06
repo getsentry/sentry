@@ -2,9 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import {t} from '../../locale';
-import InlineSvg from '../../components/inlineSvg';
-import Button from '../../components/buttons/button';
+import sdk from 'app/utils/sdk';
+import {t} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+import Button from 'app/components/buttons/button';
 
 class DetailedError extends React.Component {
   static propTypes = {
@@ -24,7 +25,6 @@ class DetailedError extends React.Component {
   };
 
   componentDidMount() {
-    // window.Raven.lastEventId() may not be immediatly true, so double-check after raven has time to send an error
     setTimeout(() => {
       this.forceUpdate();
     }, 100);
@@ -32,9 +32,7 @@ class DetailedError extends React.Component {
 
   openFeedback(e) {
     e.preventDefault();
-    if (window.Raven) {
-      window.Raven.lastEventId() && window.Raven.showReportDialog();
-    }
+    sdk.lastEventId() && sdk.showReportDialog();
   }
 
   render() {
@@ -65,12 +63,11 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  {window.Raven &&
-                    window.Raven.lastEventId() && (
-                      <Button priority="link" onClick={this.openFeedback}>
-                        {t('Fill out a report')}
-                      </Button>
-                    )}
+                  {sdk.lastEventId() && (
+                    <Button priority="link" onClick={this.openFeedback}>
+                      {t('Fill out a report')}
+                    </Button>
+                  )}
                   <a href="https://status.sentry.io/">{t('Service status')}</a>
 
                   <a href="https://sentry.io/support/">{t('Contact support')}</a>

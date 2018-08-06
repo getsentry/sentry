@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../locale';
-import ProjectOwnershipModal from '../../views/settings/project/projectOwnership/modal';
-import SentryTypes from '../../proptypes';
+import {t} from 'app/locale';
+import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
+import SentryTypes from 'app/sentryTypes';
 
 class CreateOwnershipRuleModal extends React.Component {
   static propTypes = {

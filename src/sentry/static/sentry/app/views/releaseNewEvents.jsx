@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
-import SentryTypes from '../proptypes';
-import GroupList from '../components/groupList';
-import {t} from '../locale';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import SentryTypes from 'app/sentryTypes';
+import GroupList from 'app/components/groupList';
+import {t} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 class ReleaseNewEvents extends React.Component {
   static propTypes = {

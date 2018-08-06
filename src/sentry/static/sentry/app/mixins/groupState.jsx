@@ -1,5 +1,5 @@
-import SentryTypes from '../proptypes';
-import ProjectState from './projectState';
+import SentryTypes from 'app/sentryTypes';
+import ProjectState from 'app/mixins/projectState';
 
 let GroupState = {
   mixins: [ProjectState],

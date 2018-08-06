@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import InlineSvg from '../components/inlineSvg';
-import ConfigStore from '../stores/configStore';
-import ApiMixin from '../mixins/apiMixin';
-import {logAjaxError} from '../utils/logging';
+import InlineSvg from 'app/components/inlineSvg';
+import ConfigStore from 'app/stores/configStore';
+import ApiMixin from 'app/mixins/apiMixin';
+import {logAjaxError} from 'app/utils/logging';
 
 const ReleaseAnnouncement = ({close}) => {
   const mediaUrl = ConfigStore.get('mediaUrl');
@@ -13,7 +13,7 @@ const ReleaseAnnouncement = ({close}) => {
     <div>
       <h3>
         Releases are better with commits{' '}
-        <span className="badge badge-square badge-new">NEW</span>
+        <span className="badge badge-square highlight">NEW</span>
       </h3>
       <p>
         <img src={mediaUrl + 'images/onboarding/release-commits-modal.gif'} />

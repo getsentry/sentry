@@ -3,17 +3,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../../locale';
-import AsyncComponent from '../../../../components/asyncComponent';
-import FieldFromConfig from '../../../settings/components/forms/fieldFromConfig';
-import Form from '../../../settings/components/forms/form';
-import FormField from '../../../settings/components/forms/formField';
-import HookStore from '../../../../stores/hookStore';
-import JsonForm from '../../../settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SentryTypes from '../../../../proptypes';
-import Switch from '../../../../components/switch';
-import filterGroups, {customFilterFields} from '../../../../data/forms/inboundFilters';
+import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
+import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
+import HookStore from 'app/stores/hookStore';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SentryTypes from 'app/sentryTypes';
+import Switch from 'app/components/switch';
+import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
@@ -31,15 +31,20 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 10',
     title: 'Internet Explorer',
   },
+  safari_pre_6: {
+    icon: 'safari',
+    helpText: 'Version 5 and lower',
+    title: 'Safari',
+  },
   opera_pre_15: {
     icon: 'opera',
     helpText: 'Version 14 and lower',
     title: 'Opera',
   },
-  safari_pre_6: {
-    icon: 'safari',
-    helpText: 'Version 5 and lower',
-    title: 'Safari',
+  opera_mini_pre_8: {
+    icon: 'opera',
+    helpText: 'Version 8 and lower',
+    title: 'Opera Mini',
   },
   android_pre_4: {
     icon: 'android',
@@ -291,7 +296,7 @@ const FilterGridItem = styled.div`
 // We want this wrapper to maining 30% width
 const FilterGridItemWrapper = styled.div`
   padding: 12px;
-  flex: 1;
+  width: 50%;
 `;
 
 const FilterGridIcon = styled.div`

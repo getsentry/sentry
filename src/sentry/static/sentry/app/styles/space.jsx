@@ -10,12 +10,14 @@ const space = size => {
       return '4px';
     case 1:
       return '8px';
+    case 1.5:
+      return '12px';
     case 2:
       return '16px';
     case 3:
-      return '24px';
+      return '20px';
     case 4:
-      return '36px';
+      return '30px';
     default:
       return '8px';
   }

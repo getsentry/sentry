@@ -3,8 +3,6 @@ import {mount} from 'enzyme';
 
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
-jest.mock('lodash/debounce', () => jest.fn(fn => fn));
-
 describe('ApiSource', function() {
   let wrapper;
   let org = TestStubs.Organization();
@@ -12,9 +10,18 @@ describe('ApiSource', function() {
   let projectsMock;
   let teamsMock;
   let membersMock;
+  let shortIdMock;
+  let eventIdMock;
+  let allMocks;
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/',
+      query: 'test-1',
+      body: [TestStubs.Organization({slug: 'test-org'})],
+    });
+
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       query: 'foo',
@@ -35,6 +42,17 @@ describe('ApiSource', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
+    shortIdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/shortids/test-1/',
+      query: 'TEST-1',
+      body: TestStubs.ShortIdQueryResult(),
+    });
+    eventIdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
+      query: '12345678901234567890123456789012',
+      body: TestStubs.EventIdQueryResult(),
+    });
+    allMocks = {orgsMock, projectsMock, teamsMock, membersMock, shortIdMock, eventIdMock};
   });
 
   it('queries all API endpoints', function() {
@@ -50,6 +68,98 @@ describe('ApiSource', function() {
     expect(projectsMock).toHaveBeenCalled();
     expect(teamsMock).toHaveBeenCalled();
     expect(membersMock).toHaveBeenCalled();
+    expect(shortIdMock).not.toHaveBeenCalled();
+    expect(eventIdMock).not.toHaveBeenCalled();
+  });
+
+  it('only queries for shortids when query matches shortid format', async function() {
+    let mock = jest.fn().mockReturnValue(null);
+    wrapper = mount(
+      <ApiSource params={{orgId: org.slug}} query="test-">
+        {mock}
+      </ApiSource>,
+      TestStubs.routerContext()
+    );
+
+    await tick();
+    expect(shortIdMock).not.toHaveBeenCalled();
+    // Reset all mocks
+    Object.values(allMocks).forEach(m => m.mockReset);
+
+    // This is a valid short id now
+    wrapper.setProps({query: 'test-1'});
+    await tick();
+    wrapper.update();
+
+    expect(shortIdMock).toHaveBeenCalled();
+
+    // These may not be desired behavior in future, but lets specify the expectation regardless
+    expect(orgsMock).toHaveBeenCalled();
+    expect(projectsMock).toHaveBeenCalled();
+    expect(teamsMock).toHaveBeenCalled();
+    expect(membersMock).toHaveBeenCalled();
+    expect(eventIdMock).not.toHaveBeenCalled();
+    expect(mock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        results: [
+          {
+            item: expect.objectContaining({
+              title: 'group type',
+              description: 'group description',
+              sourceType: 'issue',
+              resultType: 'issue',
+              to: '/org-slug/project-slug/issues/1/',
+            }),
+          },
+        ],
+      })
+    );
+  });
+
+  it('only queries for eventids when query matches eventid format of 32 chars', async function() {
+    let mock = jest.fn().mockReturnValue(null);
+    wrapper = mount(
+      <ApiSource params={{orgId: org.slug}} query="1234567890123456789012345678901">
+        {mock}
+      </ApiSource>,
+      TestStubs.routerContext()
+    );
+
+    await tick();
+    expect(eventIdMock).not.toHaveBeenCalled();
+    // Reset all mocks
+    Object.values(allMocks).forEach(m => m.mockReset);
+
+    // This is a valid short id now
+    wrapper.setProps({query: '12345678901234567890123456789012'});
+    wrapper.update();
+
+    await tick();
+
+    expect(eventIdMock).toHaveBeenCalled();
+
+    // These may not be desired behavior in future, but lets specify the expectation regardless
+    expect(orgsMock).toHaveBeenCalled();
+    expect(projectsMock).toHaveBeenCalled();
+    expect(teamsMock).toHaveBeenCalled();
+    expect(membersMock).toHaveBeenCalled();
+    expect(shortIdMock).not.toHaveBeenCalled();
+    expect(mock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        results: [
+          {
+            item: expect.objectContaining({
+              title: 'event type',
+              description: 'event description',
+              sourceType: 'event',
+              resultType: 'event',
+              to:
+                '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
+            }),
+          },
+        ],
+      })
+    );
   });
 
   it('only queries org endpoint if there is no org in context', function() {

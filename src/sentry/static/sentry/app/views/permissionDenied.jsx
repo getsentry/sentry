@@ -1,12 +1,13 @@
 import {withRouter} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
-import {t, tct} from '../locale';
-import ExternalLink from '../components/externalLink';
-import LoadingError from '../components/loadingError';
+import sdk from 'app/utils/sdk';
+import {t, tct} from 'app/locale';
+import ExternalLink from 'app/components/externalLink';
+import LoadingError from 'app/components/loadingError';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 const ERROR_NAME = 'Permission Denied';
 
@@ -24,17 +25,10 @@ class PermissionDenied extends React.Component {
     let {routes} = this.props;
     let {organization, project} = this.context;
 
-    let route =
-      (Array.isArray(routes) &&
-        routes
-          .filter(({path}) => path)
-          .map(({path}) => path)
-          .join('')) ||
-      '';
-
-    Raven.captureException(new Error(ERROR_NAME), {
+    let route = getRouteStringFromRoutes(routes);
+    sdk.captureException(new Error(ERROR_NAME), {
       fingerprint: [ERROR_NAME, route],
-      extraInfo: {
+      extra: {
         route,
         orgFeatures: (organization && organization.features) || [],
         orgAccess: (organization && organization.access) || [],

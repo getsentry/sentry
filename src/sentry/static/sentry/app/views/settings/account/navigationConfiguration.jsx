@@ -1,4 +1,4 @@
-import {t} from '../../../locale';
+import {t} from 'app/locale';
 
 const pathPrefix = '/settings/account';
 

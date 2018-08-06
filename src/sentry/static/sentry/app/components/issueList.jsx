@@ -3,19 +3,21 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {Panel, PanelBody} from './panels';
-import ApiMixin from '../mixins/apiMixin';
-import CompactIssue from './compactIssue';
-import LoadingError from './loadingError';
-import LoadingIndicator from './loadingIndicator';
-import Pagination from './pagination';
-import {t} from '../locale';
+import {Panel, PanelBody} from 'app/components/panels';
+import ApiMixin from 'app/mixins/apiMixin';
+import CompactIssue from 'app/components/compactIssue';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
 
 const IssueList = createReactClass({
   displayName: 'IssueList',
 
   propTypes: {
     endpoint: PropTypes.string.isRequired,
+    emptyText: PropTypes.string,
     query: PropTypes.object,
     pagination: PropTypes.bool,
     renderEmpty: PropTypes.func,
@@ -132,7 +134,15 @@ const IssueList = createReactClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
+    const {emptyText} = this.props;
+
+    return (
+      <Panel>
+        <EmptyMessage icon="icon-circle-exclamation">
+          {emptyText ? emptyText : t('Nothing to show here, move along.')}
+        </EmptyMessage>
+      </Panel>
+    );
   },
 
   render() {

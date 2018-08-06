@@ -6,6 +6,7 @@ from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
     OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
@@ -30,7 +31,7 @@ class OrganizationSerializer(Serializer):
         if attrs.get('avatar'):
             avatar = {
                 'avatarType': attrs['avatar'].get_avatar_type_display(),
-                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file_id else None
             }
         else:
             avatar = {
@@ -50,6 +51,7 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'require2FA': bool(obj.flags.require_2fa),
             'avatar': avatar,
         }
 
@@ -67,7 +69,7 @@ class OnboardingTasksSerializer(Serializer):
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
-        from sentry import features
+        from sentry import features, experiments
         from sentry.app import env
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
@@ -105,6 +107,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('api-keys')
         if features.has('organizations:group-unmerge', obj, actor=user):
             feature_list.append('group-unmerge')
+        if features.has('organizations:github-apps', obj, actor=user):
+            feature_list.append('github-apps')
         if features.has('organizations:integrations-v3', obj, actor=user):
             feature_list.append('integrations-v3')
         if features.has('organizations:new-settings', obj, actor=user):
@@ -117,24 +121,37 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('repos')
         if features.has('organizations:internal-catchall', obj, actor=user):
             feature_list.append('internal-catchall')
+        if features.has('organizations:new-issue-ui', obj, actor=user):
+            feature_list.append('new-issue-ui')
+        if features.has('organizations:github-enterprise', obj, actor=user):
+            feature_list.append('github-enterprise')
         if features.has('organizations:suggested-commits', obj, actor=user):
             feature_list.append('suggested-commits')
         if features.has('organizations:new-teams', obj, actor=user):
             feature_list.append('new-teams')
-        if features.has('organizations:code-owners', obj, actor=user):
-            feature_list.append('code-owners')
         if features.has('organizations:unreleased-changes', obj, actor=user):
             feature_list.append('unreleased-changes')
-
+        if features.has('organizations:relay', obj, actor=user):
+            feature_list.append('relay')
+        if features.has('organizations:health', obj, actor=user):
+            feature_list.append('health')
+        if OrganizationOption.objects.filter(
+                organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
+            feature_list.append('legacy-rate-limits')
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
             feature_list.append('shared-issues')
         if getattr(obj.flags, 'require_2fa'):
             feature_list.append('require-2fa')
+        if features.has('organizations:event-attachments', obj, actor=user):
+            feature_list.append('event-attachments')
+
+        experiment_assignments = experiments.all(org=obj)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
+        context['experiments'] = experiment_assignments
         context['quota'] = {
             'maxRate': max_rate[0],
             'maxRateInterval': max_rate[1],
@@ -170,6 +187,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
             'safeFields': obj.get_option('sentry:safe_fields', None) or [],
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
+            'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', True)),
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())

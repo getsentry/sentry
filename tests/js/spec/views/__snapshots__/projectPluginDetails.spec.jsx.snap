@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPluginDetails renders 1`] = `
-<withPlugins
+<withPlugins(ProjectPluginDetails)
   location={
     Object {
       "pathame": "/mock-pathname/",
@@ -26,6 +26,7 @@ exports[`ProjectPluginDetails renders 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "projects": Array [],
+      "scrapeJavaScript": true,
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -78,6 +79,7 @@ exports[`ProjectPluginDetails renders 1`] = `
         "name": "Organization Name",
         "onboardingTasks": Array [],
         "projects": Array [],
+        "scrapeJavaScript": true,
         "slug": "org-slug",
         "status": Object {
           "id": "active",
@@ -128,6 +130,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Button
                   disabled={false}
                   onClick={[Function]}
+                  size="small"
                   style={
                     Object {
                       "marginRight": "6px",
@@ -139,6 +142,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Button
                   disabled={false}
                   onClick={[Function]}
+                  size="small"
                 >
                   Reset Configuration
                 </Button>
@@ -148,7 +152,7 @@ exports[`ProjectPluginDetails renders 1`] = `
           >
             <Wrapper>
               <div
-                className="css-foidy-Wrapper css-17jmgia0"
+                className="css-1pnrn3o-Wrapper e1kblvez1"
               >
                 <Flex
                   align="center"
@@ -162,11 +166,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                       is={null}
                     >
                       <Title>
-                        <div
-                          className="css-zmdcxu-Title css-17jmgia1"
+                        <Base
+                          className="css-1mqcea-Title e1kblvez0"
                         >
-                          Amazon SQS
-                        </div>
+                          <div
+                            className="css-1mqcea-Title e1kblvez0"
+                            is={null}
+                          >
+                            Amazon SQS
+                          </div>
+                        </Base>
                       </Title>
                       <div>
                         <div
@@ -175,68 +184,142 @@ exports[`ProjectPluginDetails renders 1`] = `
                           <Button
                             disabled={false}
                             onClick={[Function]}
+                            size="small"
                             style={
                               Object {
                                 "marginRight": "6px",
                               }
                             }
                           >
-                            <button
-                              className="button button-default"
+                            <StyledButton
+                              aria-label="Enable Plugin"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
+                              size="small"
                               style={
                                 Object {
                                   "marginRight": "6px",
                                 }
                               }
                             >
-                              <Flex
-                                align="center"
-                                className="button-label"
+                              <Component
+                                aria-label="Enable Plugin"
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="small"
+                                style={
+                                  Object {
+                                    "marginRight": "6px",
+                                  }
+                                }
                               >
-                                <Base
-                                  align="center"
-                                  className="button-label css-5ipae5"
+                                <button
+                                  aria-label="Enable Plugin"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="small"
+                                  style={
+                                    Object {
+                                      "marginRight": "6px",
+                                    }
+                                  }
                                 >
-                                  <div
-                                    className="button-label css-5ipae5"
-                                    is={null}
+                                  <ButtonLabel
+                                    size="small"
                                   >
-                                    Enable Plugin
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </button>
+                                    <Component
+                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      size="small"
+                                    >
+                                      <Flex
+                                        align="center"
+                                        className="css-19bmqb3-ButtonLabel e17811v31"
+                                        size="small"
+                                      >
+                                        <Base
+                                          align="center"
+                                          className="e17811v31 css-1eblpyp-ButtonLabel"
+                                          size="small"
+                                        >
+                                          <div
+                                            className="e17811v31 css-1eblpyp-ButtonLabel"
+                                            is={null}
+                                            size="small"
+                                          >
+                                            Enable Plugin
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
                           </Button>
                           <Button
                             disabled={false}
                             onClick={[Function]}
+                            size="small"
                           >
-                            <button
-                              className="button button-default"
+                            <StyledButton
+                              aria-label="Reset Configuration"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
+                              size="small"
                             >
-                              <Flex
-                                align="center"
-                                className="button-label"
+                              <Component
+                                aria-label="Reset Configuration"
+                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="small"
                               >
-                                <Base
-                                  align="center"
-                                  className="button-label css-5ipae5"
+                                <button
+                                  aria-label="Reset Configuration"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="small"
                                 >
-                                  <div
-                                    className="button-label css-5ipae5"
-                                    is={null}
+                                  <ButtonLabel
+                                    size="small"
                                   >
-                                    Reset Configuration
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </button>
+                                    <Component
+                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      size="small"
+                                    >
+                                      <Flex
+                                        align="center"
+                                        className="css-19bmqb3-ButtonLabel e17811v31"
+                                        size="small"
+                                      >
+                                        <Base
+                                          align="center"
+                                          className="e17811v31 css-1eblpyp-ButtonLabel"
+                                          size="small"
+                                        >
+                                          <div
+                                            className="e17811v31 css-1eblpyp-ButtonLabel"
+                                            is={null}
+                                            size="small"
+                                          >
+                                            Reset Configuration
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
                           </Button>
                         </div>
                       </div>
@@ -289,6 +372,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     "name": "Organization Name",
                     "onboardingTasks": Array [],
                     "projects": Array [],
+                    "scrapeJavaScript": true,
                     "slug": "org-slug",
                     "status": Object {
                       "id": "active",
@@ -312,90 +396,86 @@ exports[`ProjectPluginDetails renders 1`] = `
                 <Panel
                   className="plugin-config ref-plugin-config-amazon-sqs"
                 >
-                  <StyledPanel
-                    className="plugin-config ref-plugin-config-amazon-sqs"
+                  <Component
+                    className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
                   >
                     <div
-                      className="plugin-config ref-plugin-config-amazon-sqs css-wfa8ap-StyledPanel css-5bw71w0"
+                      className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
                     >
                       <PanelHeader
                         hasButtons={true}
                       >
-                        <StyledPanelHeader
+                        <Component
+                          className="css-xm0vov-PanelHeader-getPadding e1p8v8nv0"
                           hasButtons={true}
                         >
-                          <Component
-                            className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
-                            hasButtons={true}
+                          <Flex
+                            align="center"
+                            className="css-xm0vov-PanelHeader-getPadding e1p8v8nv0"
+                            justify="space-between"
                           >
-                            <Flex
+                            <Base
                               align="center"
-                              className="css-vzwv85-StyledPanelHeader css-1t1cqk30"
+                              className="e1p8v8nv0 css-13rknte-PanelHeader-getPadding"
                               justify="space-between"
                             >
-                              <Base
-                                align="center"
-                                className="css-1t1cqk30 css-1h9uuh9"
-                                justify="space-between"
+                              <div
+                                className="e1p8v8nv0 css-13rknte-PanelHeader-getPadding"
+                                is={null}
                               >
-                                <div
-                                  className="css-1t1cqk30 css-1h9uuh9"
-                                  is={null}
+                                <Flex
+                                  align="center"
+                                  flex="1"
                                 >
-                                  <Flex
+                                  <Base
                                     align="center"
+                                    className="css-1yrw3fm"
                                     flex="1"
                                   >
-                                    <Base
-                                      align="center"
+                                    <div
                                       className="css-1yrw3fm"
-                                      flex="1"
+                                      is={null}
                                     >
-                                      <div
-                                        className="css-1yrw3fm"
-                                        is={null}
+                                      <Flex
+                                        align="center"
+                                        mr={1}
                                       >
-                                        <Flex
+                                        <Base
                                           align="center"
+                                          className="css-fbx8di"
                                           mr={1}
                                         >
-                                          <Base
-                                            align="center"
+                                          <div
                                             className="css-fbx8di"
-                                            mr={1}
+                                            is={null}
                                           >
-                                            <div
-                                              className="css-fbx8di"
-                                              is={null}
+                                            <PluginIcon
+                                              pluginId="amazon-sqs"
+                                              size={20}
                                             >
-                                              <PluginIcon
-                                                pluginId="amazon-sqs"
+                                              <IntegrationIcon
+                                                image={Object {}}
                                                 size={20}
                                               >
-                                                <IntegrationIcon
-                                                  image={Object {}}
+                                                <div
+                                                  className="css-xzv6mr-IntegrationIcon e1bhjds90"
                                                   size={20}
-                                                >
-                                                  <div
-                                                    className="css-xzv6mr-IntegrationIcon css-10uim240"
-                                                    size={20}
-                                                  />
-                                                </IntegrationIcon>
-                                              </PluginIcon>
-                                            </div>
-                                          </Base>
-                                        </Flex>
-                                        <span>
-                                          Amazon SQS
-                                        </span>
-                                      </div>
-                                    </Base>
-                                  </Flex>
-                                </div>
-                              </Base>
-                            </Flex>
-                          </Component>
-                        </StyledPanelHeader>
+                                                />
+                                              </IntegrationIcon>
+                                            </PluginIcon>
+                                          </div>
+                                        </Base>
+                                      </Flex>
+                                      <span>
+                                        Amazon SQS
+                                      </span>
+                                    </div>
+                                  </Base>
+                                </Flex>
+                              </div>
+                            </Base>
+                          </Flex>
+                        </Component>
                       </PanelHeader>
                       <PanelBody
                         direction="column"
@@ -406,21 +486,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                         wrap="wrap"
                       >
                         <Flex
-                          className=""
+                          className="css-9vq8an-textStyles"
                           direction="column"
                           pt={2}
                           px={2}
                           wrap="wrap"
                         >
                           <Base
-                            className="css-1amiuv8"
+                            className="css-eaujjw-textStyles"
                             direction="column"
                             pt={2}
                             px={2}
                             wrap="wrap"
                           >
                             <div
-                              className="css-1amiuv8"
+                              className="css-eaujjw-textStyles"
                               is={null}
                             >
                               <div
@@ -449,6 +529,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     "name": "Organization Name",
                                     "onboardingTasks": Array [],
                                     "projects": Array [],
+                                    "scrapeJavaScript": true,
                                     "slug": "org-slug",
                                     "status": Object {
                                       "id": "active",
@@ -490,7 +571,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                         </Flex>
                       </PanelBody>
                     </div>
-                  </StyledPanel>
+                  </Component>
                 </Panel>
               </PluginConfig>
             </div>
@@ -552,5 +633,5 @@ exports[`ProjectPluginDetails renders 1`] = `
       </DocumentTitle>
     </SideEffect(DocumentTitle)>
   </ProjectPluginDetails>
-</withPlugins>
+</withPlugins(ProjectPluginDetails)>
 `;

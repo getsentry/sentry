@@ -269,7 +269,7 @@ class BaseView(View, OrganizationMixin):
         return reverse('sentry-login')
 
     def get_not_2fa_compliant_url(self, request, *args, **kwargs):
-        return reverse('sentry-account-settings-2fa')
+        return reverse('sentry-account-settings-security')
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
@@ -322,7 +322,7 @@ class OrganizationView(BaseView):
         if organization is None:
             return False
         if self.valid_sso_required:
-            if not request.access.sso_is_valid:
+            if request.access.requires_sso and not request.access.sso_is_valid:
                 return False
             if self.needs_sso(request, organization):
                 return False

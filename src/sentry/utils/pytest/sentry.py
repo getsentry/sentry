@@ -51,6 +51,7 @@ def pytest_configure(config):
                     'ENGINE': 'sentry.db.postgres',
                     'USER': 'postgres',
                     'NAME': 'sentry',
+                    'HOST': '127.0.0.1',
                 }
             )
             # postgres requires running full migration all the time
@@ -141,9 +142,17 @@ def pytest_configure(config):
             },
             'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
             'system.url-prefix': 'http://testserver',
+
             'slack.client-id': 'slack-client-id',
             'slack.client-secret': 'slack-client-secret',
             'slack.verification-token': 'slack-verification-token',
+
+            'github-app.name': 'sentry-test-app',
+            'github-app.client-id': 'github-client-id',
+            'github-app.client-secret': 'github-client-secret',
+
+            'vsts.client-id': 'vsts-client-id',
+            'vsts.client-secret': 'vsts-client-secret',
         }
     )
 
@@ -190,10 +199,20 @@ def register_extensions():
     plugins.register(TestIssuePlugin2)
 
     from sentry import integrations
-    from sentry.integrations.example import ExampleIntegration
-    from sentry.integrations.slack import SlackIntegration
-    integrations.register(ExampleIntegration)
-    integrations.register(SlackIntegration)
+    from sentry.integrations.bitbucket import BitbucketIntegrationProvider
+    from sentry.integrations.example import ExampleIntegrationProvider
+    from sentry.integrations.github import GitHubIntegrationProvider
+    from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+    from sentry.integrations.jira import JiraIntegrationProvider
+    from sentry.integrations.slack import SlackIntegrationProvider
+    from sentry.integrations.vsts import VstsIntegrationProvider
+    integrations.register(BitbucketIntegrationProvider)
+    integrations.register(ExampleIntegrationProvider)
+    integrations.register(GitHubIntegrationProvider)
+    integrations.register(GitHubEnterpriseIntegrationProvider)
+    integrations.register(JiraIntegrationProvider)
+    integrations.register(SlackIntegrationProvider)
+    integrations.register(VstsIntegrationProvider)
 
     from sentry.plugins import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
@@ -218,3 +237,7 @@ def pytest_runtest_teardown(item):
 
     from celery.task.control import discard_all
     discard_all()
+
+    from sentry.models import OrganizationOption, ProjectOption, UserOption
+    for model in (OrganizationOption, ProjectOption, UserOption):
+        model.objects.clear_local_cache()

@@ -35,7 +35,7 @@ def react_plugin_config(plugin, project, request):
     <div id="ref-plugin-config"></div>
     <script>
     $(function(){
-        ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
+        ReactDOM.render(React.createFactory(SentryApp.PluginConfig)({
             project: %s,
             organization: %s,
             data: %s

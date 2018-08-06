@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {t} from '../../locale';
-import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
-import withPlugins from '../../utils/withPlugins';
-import ProjectPlugins from './projectPlugins';
-import OrganizationIntegrations from './organizationIntegrations';
-import SentryTypes from '../../proptypes';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
+import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
+import {t} from 'app/locale';
+import ProjectIntegrations from 'app/views/settings/project/projectIntegrations';
+import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withPlugins from 'app/utils/withPlugins';
 
 class ProjectPluginsContainer extends React.Component {
   static propTypes = {
@@ -34,10 +34,7 @@ class ProjectPluginsContainer extends React.Component {
       <React.Fragment>
         <SettingsPageHeader title={t('Integrations')} />
 
-        <OrganizationIntegrations
-          orgId={this.props.params.orgId}
-          projectId={this.props.params.projectId}
-        />
+        <ProjectIntegrations {...this.props} />
 
         <ProjectPlugins
           {...this.props}

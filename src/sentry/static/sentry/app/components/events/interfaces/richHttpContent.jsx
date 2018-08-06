@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import queryString from 'query-string';
 
-import {objectIsEmpty} from '../../../utils';
-import {objectToSortedTupleArray} from './utils';
-import {t} from '../../../locale';
-import ClippedBox from '../../clippedBox';
-import ContextData from '../../contextData';
-import ErrorBoundary from '../../errorBoundary';
-import KeyValueList from './keyValueList';
+import {objectIsEmpty} from 'app/utils';
+import {objectToSortedTupleArray} from 'app/components/events/interfaces/utils';
+import {t} from 'app/locale';
+import ClippedBox from 'app/components/clippedBox';
+import ContextData from 'app/components/contextData';
+import ErrorBoundary from 'app/components/errorBoundary';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 class RichHttpContent extends React.Component {
   static propTypes = {

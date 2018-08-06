@@ -1,14 +1,14 @@
 import React from 'react';
 
-import {disablePlugin, enablePlugin} from '../actionCreators/plugins';
-import {t} from '../locale';
-import AsyncView from './asyncView';
-import Button from '../components/buttons/button';
-import ExternalLink from '../components/externalLink';
-import IndicatorStore from '../stores/indicatorStore';
-import PluginConfig from '../components/pluginConfig';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import withPlugins from '../utils/withPlugins';
+import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import ExternalLink from 'app/components/externalLink';
+import IndicatorStore from 'app/stores/indicatorStore';
+import PluginConfig from 'app/components/pluginConfig';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withPlugins from 'app/utils/withPlugins';
 
 /**
  * There are currently two sources of truths for plugin details:
@@ -81,13 +81,18 @@ class ProjectPluginDetails extends AsyncView {
     let enabled = this.getEnabled();
 
     let enable = (
-      <Button onClick={this.handleEnable} style={{marginRight: '6px'}}>
+      <Button size="small" onClick={this.handleEnable} style={{marginRight: '6px'}}>
         {t('Enable Plugin')}
       </Button>
     );
 
     let disable = (
-      <Button priority="danger" onClick={this.handleDisable} style={{marginRight: '6px'}}>
+      <Button
+        size="small"
+        priority="danger"
+        onClick={this.handleDisable}
+        style={{marginRight: '6px'}}
+      >
         {t('Disable Plugin')}
       </Button>
     );
@@ -97,7 +102,9 @@ class ProjectPluginDetails extends AsyncView {
     return (
       <div className="pull-right">
         {pluginDetails.canDisable && toggleEnable}
-        <Button onClick={this.handleReset}>{t('Reset Configuration')}</Button>
+        <Button size="small" onClick={this.handleReset}>
+          {t('Reset Configuration')}
+        </Button>
       </div>
     );
   }

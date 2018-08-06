@@ -2,10 +2,12 @@ import React from 'react';
 import {mount} from 'enzyme';
 import DropdownMenu from 'app/components/dropdownMenu';
 
+jest.useFakeTimers();
+
 describe('DropdownMenu', function() {
   let wrapper;
 
-  beforeEach(() => {
+  beforeEach(function() {
     wrapper = mount(
       <DropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
@@ -83,6 +85,8 @@ describe('DropdownMenu', function() {
     let rootClick = jest.fn();
     let actorClick = jest.fn();
     let menuClick = jest.fn();
+    let addSpy = jest.spyOn(document, 'addEventListener');
+    let removeSpy = jest.spyOn(document, 'removeEventListener');
 
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
@@ -130,5 +134,60 @@ describe('DropdownMenu', function() {
     // breaks in jest22
     // expect(wrapper).toMatchSnapshot();
     expect(wrapper.find('ul')).toHaveLength(1);
+    expect(document.addEventListener).toHaveBeenCalled();
+
+    wrapper.unmount();
+    expect(document.removeEventListener).toHaveBeenCalled();
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
+  it('always rendered menus should attach document event listeners only when opened', function() {
+    let addSpy = jest.spyOn(document, 'addEventListener');
+    let removeSpy = jest.spyOn(document, 'removeEventListener');
+
+    wrapper = mount(
+      <DropdownMenu alwaysRenderMenu>
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
+          return (
+            <span
+              {...getRootProps({
+                className: 'root',
+              })}
+            >
+              <button
+                {...getActorProps({
+                  className: 'actor',
+                })}
+              >
+                Open Dropdown
+              </button>
+              <ul
+                {...getMenuProps({
+                  className: 'menu',
+                })}
+              >
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            </span>
+          );
+        }}
+      </DropdownMenu>
+    );
+
+    // Make sure this is only called when menu is open
+    expect(document.addEventListener).not.toHaveBeenCalled();
+    wrapper.find('button').simulate('click');
+    expect(wrapper.state('isOpen')).toBe(true);
+    expect(document.addEventListener).toHaveBeenCalled();
+
+    expect(document.removeEventListener).not.toHaveBeenCalled();
+    wrapper.find('button').simulate('click');
+    expect(wrapper.state('isOpen')).toBe(false);
+    expect(document.removeEventListener).toHaveBeenCalled();
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
   });
 });

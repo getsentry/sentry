@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ErrorBoundary from '../../errorBoundary';
-import ExceptionContent from './exceptionContent';
-import RawExceptionContent from './rawExceptionContent';
-import SentryTypes from '../../../proptypes';
-import StacktraceContent from './stacktraceContent';
-import rawStacktraceContent from './rawStacktraceContent';
+import ErrorBoundary from 'app/components/errorBoundary';
+import ExceptionContent from 'app/components/events/interfaces/exceptionContent';
+import RawExceptionContent from 'app/components/events/interfaces/rawExceptionContent';
+import SentryTypes from 'app/sentryTypes';
+import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
 class CrashContent extends React.Component {
   static propTypes = {

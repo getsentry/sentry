@@ -2,9 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Link, browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import analytics from 'app/utils/analytics';
+import ApiMixin from 'app/mixins/apiMixin';
+import {t} from 'app/locale';
 
 const ErrorRobot = createReactClass({
   displayName: 'ErrorRobot',
@@ -66,6 +68,8 @@ const ErrorRobot = createReactClass({
   createSampleEvent() {
     let {org, project} = this.props;
     let url = `/projects/${org.slug}/${project.slug}/create-sample/`;
+
+    analytics('sample_event.created', {org_id: org.id, project_id: project.id});
     this.api.request(url, {
       method: 'POST',
       success: data => {
@@ -94,11 +98,10 @@ const ErrorRobot = createReactClass({
         );
     }
     return (
-      <div
+      <ErrorRobotWrapper
+        data-test-id="awaiting-events"
         className="awaiting-events"
-        style={
-          gradient && {backgroundImage: 'linear-gradient(to bottom, #F8F9FA, #ffffff)'}
-        }
+        gradient={gradient}
       >
         <div className="wrap">
           <div className="robot">
@@ -125,9 +128,20 @@ const ErrorRobot = createReactClass({
           </p>
           {sampleLink}
         </div>
-      </div>
+      </ErrorRobotWrapper>
     );
   },
 });
 
 export default ErrorRobot;
+
+const ErrorRobotWrapper = styled('div')`
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-radius: 0 0 3px 3px;
+  ${p =>
+    p.gradient
+      ? `
+          background-image: linear-gradient(to bottom, #F8F9FA, #ffffff);
+         `
+      : ''};
+`;

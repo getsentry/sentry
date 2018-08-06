@@ -86,7 +86,7 @@ def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
     try:
-        version = data['version'].split('-', 1)[0] + '.0' * 3
+        version = six.text_type(data['version']).split('-', 1)[0] + '.0' * 3
         system_version = tuple(int(x) for x in version.split('.')[:3])
     except ValueError:
         return
@@ -204,6 +204,7 @@ def merge_minidump_event(data, minidump):
                 'function': '<unknown>',  # Required by interface
                 'package': frame.module.name if frame.module else None,
             } for frame in reversed(list(thread.frames()))],
+            'registers': thread.get_frame(0).registers if thread.frame_count else None,
         },
     } for thread in state.threads()]
 
@@ -218,6 +219,13 @@ def merge_minidump_event(data, minidump):
         'type': state.crash_reason,
         # Move stacktrace here from crashed_thread (mutating!)
         'stacktrace': crashed_thread.pop('stacktrace'),
+        'mechanism': {
+            'type': 'minidump',
+            'handled': False,
+            # We cannot extract exception codes or signals with the breakpad
+            # extractor just yet. Once these capabilities are added to symbolic,
+            # these values should go in the mechanism here.
+        }
     }
 
     # Extract referenced (not all loaded) images

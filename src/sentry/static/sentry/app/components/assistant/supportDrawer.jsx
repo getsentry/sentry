@@ -1,31 +1,32 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import styled from 'react-emotion';
-import {t} from '../../locale';
-import ExternalLink from '../externalLink';
-import HookStore from '../../stores/hookStore';
-import CueIcon from './cueIcon';
-import CloseIcon from './closeIcon';
-import AssistantContainer from './assistantContainer';
-import Input from '../../views/settings/components/forms/controls/input';
-import InlineSvg from '../../components/inlineSvg';
+import {t} from 'app/locale';
+import analytics from 'app/utils/analytics';
+import ExternalLink from 'app/components/externalLink';
+import HookStore from 'app/stores/hookStore';
+import {
+  AssistantContainer,
+  CloseIcon,
+  CueContainer,
+  CueIcon,
+  CueText,
+} from 'app/components/assistant/styles';
+import Input from 'app/views/settings/components/forms/controls/input';
+import InlineSvg from 'app/components/inlineSvg';
 
 // SupportDrawer slides up when the user clicks on a "Need Help?" cue.
 const SupportDrawer = createReactClass({
   displayName: 'SupportDrawer',
-
-  propTypes: {
-    onClose: PropTypes.func.isRequired,
-  },
 
   getInitialState() {
     return {
       inputVal: '',
       docResults: [],
       helpcenterResults: [],
+      isOpen: false,
     };
   },
 
@@ -64,9 +65,7 @@ const SupportDrawer = createReactClass({
       },
     });
 
-    HookStore.get('analytics:event').forEach(cb =>
-      cb('assistant.search', {query: this.state.inputVal})
-    );
+    analytics('assistant.search', {query: this.state.inputVal});
   }, 300),
 
   handleChange(evt) {
@@ -102,9 +101,9 @@ const SupportDrawer = createReactClass({
     let results = helpcenterResults.concat(docsResults);
     let hasResults = results && results.length > 0;
 
-    return (
-      <StyledAssistantContainer hasResults={hasResults}>
-        <StyledAssistantInputRow>
+    return this.state.isOpen ? (
+      <SupportContainer hasResults={hasResults}>
+        <SupportInputRow>
           <CueIcon />
           <StyledSearchContainer>
             <StyledSearchIcon src="icon-search" />
@@ -117,28 +116,60 @@ const SupportDrawer = createReactClass({
             />
             <div
               className="close-button"
-              onClick={this.props.onClose}
+              onClick={() => this.setState({isOpen: false})}
               style={{display: 'flex'}}
             >
               <CloseIcon />
             </div>
           </StyledSearchContainer>
-        </StyledAssistantInputRow>
+        </SupportInputRow>
         {hasResults && <StyledResults>{results}</StyledResults>}
         {HookStore.get('assistant:support-button').map(cb => cb(this.state.inputVal))}
-      </StyledAssistantContainer>
+      </SupportContainer>
+    ) : (
+      <StyledCueContainer
+        onClick={() => this.setState({isOpen: true})}
+        className="assistant-cue"
+      >
+        <CueIcon hasGuide={false} />
+        <StyledCueText>{t('Need Help?')}</StyledCueText>
+      </StyledCueContainer>
     );
   },
 });
 
-const StyledAssistantContainer = styled(AssistantContainer)`
+const StyledCueText = styled(CueText)`
+  width: 0px;
+  opacity: 0;
+`;
+
+const StyledCueContainer = styled(CueContainer)`
+  background: ${p => p.theme.offWhite};
+  right: 1vw;
+  color: ${p => p.theme.purple};
+  border: 1px solid ${p => p.theme.borderLight};
+  &:hover ${StyledCueText} {
+    width: 6em;
+    /* this is roughly long enough for the copy 'need help?'
+       at any base font size. if you change the copy, change this value
+    */
+    opacity: 1;
+    margin: 0 0.5em;
+  }
+`;
+
+const SupportContainer = styled(AssistantContainer)`
   display: flex;
   flex-direction: column;
   transition: 0.1s height;
   ${p => (p.hasResults ? 'height: 300px' : '')};
+  right: 1vw;
+  background: ${p => p.theme.offWhite};
+  color: ${p => p.theme.purple};
+  border: 1px solid ${p => p.theme.borderLight};
 `;
 
-const StyledAssistantInputRow = styled('div')`
+const SupportInputRow = styled('div')`
   display: flex;
   align-items: center;
 `;
@@ -159,7 +190,7 @@ const StyledInput = styled(Input)`
 const StyledSearchIcon = styled(InlineSvg)`
   left: 0.75em;
   position: absolute;
-  top: 53%; //this is an optics thing
+  top: 53%; /* this is an optics thing */
   transform: translateY(-50%);
   color: ${p => p.theme.gray1};
 `;

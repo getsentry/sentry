@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Group} from '../../proptypes';
-import {t} from '../../locale';
-import Pagination from '../../components/pagination';
-import QueryCount from '../../components/queryCount';
-import SimilarItem from './similarItem';
-import SimilarSpectrum from '../../components/similarSpectrum';
-import SimilarToolbar from './similarToolbar';
-import SpreadLayout from '../../components/spreadLayout';
-import EmptyStateWarning from '../../components/emptyStateWarning';
-import {Panel} from '../../components/panels';
+import {Group} from 'app/sentryTypes';
+import {t} from 'app/locale';
+import Pagination from 'app/components/pagination';
+import QueryCount from 'app/components/queryCount';
+import SimilarItem from 'app/views/groupSimilar/similarItem';
+import SimilarSpectrum from 'app/components/similarSpectrum';
+import SimilarToolbar from 'app/views/groupSimilar/similarToolbar';
+import SpreadLayout from 'app/components/spreadLayout';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: Group,

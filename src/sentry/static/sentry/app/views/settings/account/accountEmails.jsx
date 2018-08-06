@@ -1,29 +1,20 @@
 import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
-import {addErrorMessage} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import AlertLink from '../../../components/alertLink';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import Tag from '../components/tag';
-import accountEmailsFields from '../../../data/forms/accountEmails';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tag from 'app/views/settings/components/tag';
+import accountEmailsFields from 'app/data/forms/accountEmails';
 
 const ENDPOINT = '/users/me/emails/';
-
-const RemoveButton = styled(({hidden, ...props}) => (
-  <Button priority="danger" size="small" {...props}>
-    <span className="icon-trash" />
-  </Button>
-))`
-  ${p => (p.hidden ? 'opacity: 0' : '')};
-`;
 
 class EmailRow extends React.Component {
   static propTypes = {
@@ -57,8 +48,16 @@ class EmailRow extends React.Component {
       <PanelItem justify="space-between">
         <Flex align="center">
           {email}
-          {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
-          {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
+          {!isVerified && (
+            <Tag ml={1} priority="warning">
+              {t('Unverified')}
+            </Tag>
+          )}
+          {isPrimary && (
+            <Tag ml={1} priority="success">
+              {t('Primary')}
+            </Tag>
+          )}
         </Flex>
         <Flex>
           {!isPrimary &&
@@ -72,14 +71,18 @@ class EmailRow extends React.Component {
               {t('Resend verification')}
             </Button>
           )}
-          {!hideRemove && (
-            <Box ml={1}>
-              <RemoveButton
-                onClick={this.handleRemove}
-                hidden={isPrimary || hideRemove}
-              />
-            </Box>
-          )}
+          {!hideRemove &&
+            !isPrimary && (
+              <Box ml={1}>
+                <Button
+                  data-test-id="remove"
+                  priority="danger"
+                  size="small"
+                  icon="icon-trash"
+                  onClick={this.handleRemove}
+                />
+              </Box>
+            )}
         </Flex>
       </PanelItem>
     );

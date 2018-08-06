@@ -1,13 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {uniqBy, flatMap} from 'lodash';
+import styled from 'react-emotion';
 
-import ApiMixin from '../../mixins/apiMixin';
-import GroupState from '../../mixins/groupState';
-import CommitRow from '../commitRow';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupState from 'app/mixins/groupState';
+import CommitRow from 'app/components/commitRow';
+import InlineSvg from 'app/components/inlineSvg';
 
-import {Panel} from '../panels';
+import {t} from 'app/locale';
+
+import {Panel} from 'app/components/panels';
+
+const ExpandButton = styled.span`
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+  top: 7px;
+`;
 
 export default createReactClass({
   displayName: 'EventCause',
@@ -21,7 +32,7 @@ export default createReactClass({
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
-    return {committers: undefined};
+    return {committers: undefined, expanded: false};
   },
 
   componentDidMount() {
@@ -59,36 +70,54 @@ export default createReactClass({
     );
   },
 
+  getUniqueCommitsWithAuthors() {
+    let {committers} = this.state;
+    //get a list of commits with author information attached
+    let commitsWithAuthors = flatMap(committers, ({commits, author}) =>
+      commits.map(commit => ({
+        ...commit,
+        author,
+      }))
+    );
+
+    //remove duplicate commits
+    let uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
+    return uniqueCommitsWithAuthors;
+  },
+
   render() {
-    if (!(this.state.committers && this.state.committers.length)) {
+    let {committers, expanded} = this.state;
+    if (!(committers && committers.length)) {
       return null;
     }
 
-    let commits = [];
-    let commitSet = new Set();
-    this.state.committers.forEach(committer => {
-      committer.commits.forEach(commit => {
-        if (!commitSet.has(commit.id)) {
-          commitSet.add(commit.id);
-          commits.push({
-            ...commit,
-            author: committer.author,
-          });
-        }
-      });
-    });
+    let commits = this.getUniqueCommitsWithAuthors();
+
     return (
       <div className="box">
         <div className="box-header">
           <h3>
             {t('Suspect Commits')} ({commits.length})
+            {commits.length > 1 && (
+              <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
+                {expanded ? (
+                  <React.Fragment>
+                    {t('Show less')} <InlineSvg src="icon-circle-subtract" size="16px" />
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    {t('Show more')} <InlineSvg src="icon-circle-add" size="16px" />
+                  </React.Fragment>
+                )}
+              </ExpandButton>
+            )}
           </h3>
+          <Panel>
+            {commits.slice(0, expanded ? 100 : 1).map(commit => {
+              return <CommitRow key={commit.id} commit={commit} />;
+            })}
+          </Panel>
         </div>
-        <Panel>
-          {commits.map(commit => {
-            return <CommitRow key={commit.id} commit={commit} />;
-          })}
-        </Panel>
       </div>
     );
   },

@@ -22,6 +22,8 @@ Statsd Backend
 Datadog Backend
 ---------------
 
+.. versionadded:: 8.0.0
+
 Datadog will require you to install the ``datadog`` package into your Sentry
 environment:
 
@@ -37,6 +39,42 @@ environment:
         'app_key': '...',
         'tags': {},
     }
+
+Once installed, the Sentry metrics will be emitted to the `Datadog REST API`_
+over HTTPS.
+
+.. _Datadog REST API: https://docs.datadoghq.com/api/?lang=python#post-time-series-points
+
+
+DogStatsD Backend
+-----------------
+
+.. versionadded:: 8.16.0
+
+Using the DogStatsD backend requires a `Datadog Agent`_ to be running with the
+DogStatsD backend (on by default at port 8125).
+
+You must also install the ``datadog`` Python package into your Sentry
+environment:
+
+.. code-block:: bash
+
+    $ pip install datadog
+
+.. code-block:: python
+
+    SENTRY_METRICS_BACKEND = 'sentry.metrics.datadog.DogStatsdMetricsBackend'
+    SENTRY_METRICS_OPTIONS = {
+        'host': 'localhost',
+        'port': 8125,
+        'tags': {},
+    }
+
+Once configured, the metrics backend will emit to the DogStatsD server and
+then flushed periodically to Datadog over HTTPS.
+
+.. _Datadog Agent: https://docs.datadoghq.com/agent/
+
 
 Logging Backend
 ---------------

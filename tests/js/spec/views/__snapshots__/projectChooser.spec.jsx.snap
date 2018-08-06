@@ -21,7 +21,7 @@ exports[`ProjectChooser renders 1`] = `
     >
       <PanelItem
         align="center"
-        key="test-project"
+        key="another-project"
         p={0}
       >
         <Box
@@ -30,14 +30,14 @@ exports[`ProjectChooser renders 1`] = `
         >
           <Link
             className="css-5kvhca"
-            to="/org/test-project/settings/install/"
+            to="/org/another-project/settings/install/"
           >
             <StyledProjectLabel
               project={
                 Object {
                   "isMember": true,
-                  "name": "Test Project",
-                  "slug": "test-project",
+                  "name": "Another Project",
+                  "slug": "another-project",
                   "team": Object {
                     "isMember": true,
                     "name": "Test Team",
@@ -61,7 +61,7 @@ exports[`ProjectChooser renders 1`] = `
       </PanelItem>
       <PanelItem
         align="center"
-        key="another-project"
+        key="test-project"
         p={0}
       >
         <Box
@@ -70,14 +70,14 @@ exports[`ProjectChooser renders 1`] = `
         >
           <Link
             className="css-5kvhca"
-            to="/org/another-project/settings/install/"
+            to="/org/test-project/settings/install/"
           >
             <StyledProjectLabel
               project={
                 Object {
                   "isMember": true,
-                  "name": "Another Project",
-                  "slug": "another-project",
+                  "name": "Test Project",
+                  "slug": "test-project",
                   "team": Object {
                     "isMember": true,
                     "name": "Test Team",

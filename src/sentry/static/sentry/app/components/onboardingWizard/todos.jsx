@@ -1,10 +1,10 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
-import TodoItem from './toDoItem';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
+import TodoItem from 'app/components/onboardingWizard/toDoItem';
 
 const TodoList = createReactClass({
   displayName: 'TodoList',
@@ -178,10 +178,6 @@ const TodoList = createReactClass({
     this.getOnboardingTasks();
   },
 
-  click(e) {
-    e.stopPropagation();
-  },
-
   render() {
     let nextTasks = this.state.tasks.filter(task => task.display);
 
@@ -191,7 +187,7 @@ const TodoList = createReactClass({
 
     return (
       <div>
-        <div onClick={this.click} className="onboarding-wrapper">
+        <div className="onboarding-wrapper">
           <ul className="list-unstyled">{todoListTasks}</ul>
         </div>
       </div>

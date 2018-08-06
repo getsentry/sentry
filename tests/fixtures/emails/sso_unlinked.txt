@@ -1,0 +1,9 @@
+Dummy Single Sign-On has been disabled for the My Company organization.
+
+
+You can now login using your email , and password. If you forgot your password you can always reset it by visiting the following url:
+
+
+
+
+SSO was disabled by foo@example.com

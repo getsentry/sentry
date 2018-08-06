@@ -1,12 +1,14 @@
-import {css} from 'emotion';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
-import AutoComplete from './autoComplete';
-import Input from '../views/settings/components/forms/controls/input';
-import space from '../styles/space';
+import {t} from 'app/locale';
+import AutoComplete from 'app/components/autoComplete';
+import Input from 'app/views/settings/components/forms/controls/input';
+import space from 'app/styles/space';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {
@@ -34,7 +36,27 @@ class DropdownAutoCompleteMenu extends React.Component {
       ),
     ]),
     isOpen: PropTypes.bool,
+
+    /**
+     * Show loading indicator next to input
+     */
+    busy: PropTypes.bool,
+
     onSelect: PropTypes.func,
+    /**
+     * When AutoComplete input changes
+     */
+    onChange: PropTypes.func,
+
+    /**
+     * Message to display when there are no items initially
+     */
+    emptyMessage: PropTypes.node,
+
+    /**
+     * Message to display when there are no items that match the search
+     */
+    noResultsMessage: PropTypes.node,
 
     /**
      * Presentational properties
@@ -55,6 +77,7 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
+
     css: PropTypes.object,
     style: PropTypes.object,
   };
@@ -62,6 +85,7 @@ class DropdownAutoCompleteMenu extends React.Component {
   static defaultProps = {
     onSelect: () => {},
     blendCorner: true,
+    emptyMessage: t('No items'),
   };
 
   filterItems = (items, inputValue) =>
@@ -102,19 +126,29 @@ class DropdownAutoCompleteMenu extends React.Component {
   render() {
     let {
       onSelect,
+      onChange,
       children,
       items,
       menuProps,
       alignMenu,
       blendCorner,
+      emptyMessage,
+      noResultsMessage,
       style,
       menuHeader,
       menuFooter,
+      busy,
       ...props
     } = this.props;
 
     return (
-      <AutoComplete itemToString={item => ''} onSelect={onSelect} {...props}>
+      <AutoComplete
+        resetInputOnClose
+        itemToString={item => ''}
+        onSelect={onSelect}
+        inputIsActor={false}
+        {...props}
+      >
         {({
           getActorProps,
           getRootProps,
@@ -127,6 +161,15 @@ class DropdownAutoCompleteMenu extends React.Component {
           isOpen,
           actions,
         }) => {
+          // Only filter results if menu is open
+          let autoCompleteResults =
+            (isOpen && this.autoCompleteFilter(items, inputValue)) || [];
+          let hasItems = items && !!items.length;
+          let hasResults = !!autoCompleteResults.length;
+          let showNoItems = !busy && !inputValue && !hasItems;
+          // Results mean there was a search (i.e. inputValue)
+          let showNoResultsMessage = !busy && inputValue && !hasResults;
+
           return (
             <AutoCompleteRoot {...getRootProps()}>
               {children({
@@ -141,33 +184,52 @@ class DropdownAutoCompleteMenu extends React.Component {
                   {...getMenuProps({
                     ...menuProps,
                     style,
+                    isStyled: true,
                     css: this.props.css,
                     blendCorner,
                     alignMenu,
                   })}
                 >
-                  <StyledInput
-                    autoFocus
-                    placeholder="Filter search"
-                    {...getInputProps()}
-                  />
+                  <Flex>
+                    <StyledInput
+                      autoFocus
+                      placeholder="Filter search"
+                      {...getInputProps({onChange})}
+                    />
+                    <InputLoadingWrapper>
+                      {busy && <LoadingIndicator size={16} mini />}
+                    </InputLoadingWrapper>
+                  </Flex>
                   <div>
                     {menuHeader && <StyledLabel>{menuHeader}</StyledLabel>}
-                    {this.autoCompleteFilter(items, inputValue).map(
-                      ({index, ...item}) =>
-                        item.groupLabel ? (
-                          <StyledLabel key={item.value}>{item.label}</StyledLabel>
-                        ) : (
-                          <AutoCompleteItem
-                            key={`${item.value}-${index}`}
-                            index={index}
-                            highlightedIndex={highlightedIndex}
-                            {...getItemProps({item, index})}
-                          >
-                            {item.label}
-                          </AutoCompleteItem>
-                        )
+
+                    {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                    {showNoResultsMessage && (
+                      <EmptyMessage>
+                        {noResultsMessage || `${emptyMessage} ${t('found')}`}
+                      </EmptyMessage>
                     )}
+                    {busy && (
+                      <Flex justify="center" p={1}>
+                        <EmptyMessage>{t('Searching...')}</EmptyMessage>
+                      </Flex>
+                    )}
+                    {!busy &&
+                      autoCompleteResults.map(
+                        ({index, ...item}) =>
+                          item.groupLabel ? (
+                            <StyledLabel key={item.value}>{item.label}</StyledLabel>
+                          ) : (
+                            <AutoCompleteItem
+                              key={`${item.value}-${index}`}
+                              index={index}
+                              highlightedIndex={highlightedIndex}
+                              {...getItemProps({item, index})}
+                            >
+                              {item.label}
+                            </AutoCompleteItem>
+                          )
+                      )}
                     {menuFooter && <StyledLabel>{menuFooter}</StyledLabel>}
                   </div>
                 </StyledMenu>
@@ -207,10 +269,21 @@ const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   display: inline-block;
 `;
 
+const InputLoadingWrapper = styled(Flex)`
+  align-items: center;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  flex-shrink: 0;
+  width: 30px;
+`;
+
 const StyledInput = styled(Input)`
+  flex: 1;
+
   &,
-  &:focus {
-    border: none;
+  &:focus,
+  &:active,
+  &:hover {
+    border: 1px solid transparent;
     border-bottom: 1px solid ${p => p.theme.borderLight};
     border-radius: 0;
     box-shadow: none;
@@ -222,6 +295,7 @@ const StyledInput = styled(Input)`
 `;
 
 const AutoCompleteItem = styled('div')`
+  font-size: 0.9em;
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${space(1)};
@@ -248,9 +322,7 @@ const StyledLabel = styled('div')`
   }
 `;
 
-const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
-  <div {...props} />
-))`
+const StyledMenu = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;
@@ -264,6 +336,13 @@ const StyledMenu = styled(({isOpen, blendCorner, alignMenu, ...props}) => (
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
+`;
+
+const EmptyMessage = styled('div')`
+  color: ${p => p.theme.gray1};
+  padding: ${space(2)};
+  text-align: center;
+  text-transform: none;
 `;
 
 export default DropdownAutoCompleteMenu;

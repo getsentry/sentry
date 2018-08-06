@@ -34,6 +34,8 @@ from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
 
+from six.moves.urllib.parse import urlencode
+
 NOTSET = object()
 
 logger = logging.getLogger(__name__)
@@ -195,6 +197,8 @@ class MailPlugin(NotificationPlugin):
 
         event = notification.event
 
+        environment = event.get_tag('environment')
+
         group = event.group
         project = group.project
         org = group.organization
@@ -202,6 +206,9 @@ class MailPlugin(NotificationPlugin):
         subject = event.get_email_subject()
 
         link = group.get_absolute_url()
+
+        if environment:
+            link = link + '?' + urlencode({'environment': environment})
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
@@ -241,6 +248,7 @@ class MailPlugin(NotificationPlugin):
             'rules': rules,
             'enhanced_privacy': enhanced_privacy,
             'commits': sorted(commits.values(), key=lambda x: x['score'], reverse=True),
+            'environment': environment
         }
 
         # if the organization has enabled enhanced privacy controls we dont send

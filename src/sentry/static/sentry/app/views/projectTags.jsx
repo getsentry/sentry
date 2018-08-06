@@ -1,22 +1,16 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
-import styled from 'react-emotion';
 
-import {t, tct} from '../locale';
-import AsyncView from './asyncView';
-import EmptyMessage from './settings/components/emptyMessage';
-import ExternalLink from '../components/externalLink';
-import LinkWithConfirmation from '../components/linkWithConfirmation';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../components/panels';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import TextBlock from './settings/components/text/textBlock';
-import Tooltip from '../components/tooltip';
-
-const Description = styled.span`
-  font-size: 0.8em;
-  color: ${p => p.theme.gray1};
-  margin-left: 8px;
-`;
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import Tooltip from 'app/components/tooltip';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -46,13 +40,12 @@ export default class ProjectTags extends AsyncView {
   renderLink(key, canDelete, idx) {
     return (
       <LinkWithConfirmation
-        className={'btn btn-sm btn-default'}
         title={'Remove tag?'}
         message={'Are you sure you want to remove this tag?'}
         onConfirm={() => this.onDelete(key, idx)}
         disabled={!canDelete}
       >
-        <span className="icon icon-trash" />
+        <Button size="xsmall" icon="icon-trash" data-test-id="delete" />
       </LinkWithConfirmation>
     );
   }
@@ -93,12 +86,11 @@ export default class ProjectTags extends AsyncView {
             )}
 
             {!isEmpty &&
-              tags.map(({key, name, canDelete}, idx) => {
+              tags.map(({key, canDelete}, idx) => {
                 return (
                   <PanelItem p={0} align="center" key={key} className="ref-tag-row">
                     <Box align="flex-end" flex="1" p={2}>
-                      <span>{name}</span>
-                      <Description>{key}</Description>
+                      <span>{key}</span>
                     </Box>
                     <Flex align="center" p={2}>
                       {canDelete ? (

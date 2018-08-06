@@ -1,18 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {defined} from '../../utils';
+import {defined} from 'app/utils';
 
-import BooleanField from './booleanField';
-import EmailField from './emailField';
-import NumberField from './numberField';
-import PasswordField from './passwordField';
-import RangeField from './rangeField';
-import Select2FieldAutocomplete from './select2FieldAutocomplete';
-import Select2Field from './select2Field';
-import Select2TextField from './select2TextField';
-import TextField from './textField';
-import TextareaField from './textareaField';
+import BooleanField from 'app/components/forms/booleanField';
+import EmailField from 'app/components/forms/emailField';
+import NumberField from 'app/components/forms/numberField';
+import PasswordField from 'app/components/forms/passwordField';
+import RangeField from 'app/components/forms/rangeField';
+import SelectAsyncField from 'app/components/forms/selectAsyncField';
+import SelectField from 'app/components/forms/selectField';
+import SelectCreatableField from 'app/components/forms/selectCreatableField';
+import TextField from 'app/components/forms/textField';
+import TextareaField from 'app/components/forms/textareaField';
 
 export default class GenericField extends React.Component {
   static propTypes = {
@@ -40,6 +40,7 @@ export default class GenericField extends React.Component {
       required,
       name: config.name,
       error: (this.props.formErrors || {})[config.name],
+      defaultValue: config.default,
       disabled: config.readonly,
       key: config.name,
       formState: this.props.formState,
@@ -61,7 +62,7 @@ export default class GenericField extends React.Component {
       case 'string':
       case 'text':
       case 'url':
-        if (props.choices) return <Select2TextField {...props} />;
+        if (props.choices) return <SelectCreatableField {...props} />;
         return <TextField {...props} />;
       case 'number':
         return <NumberField {...props} />;
@@ -70,13 +71,13 @@ export default class GenericField extends React.Component {
       case 'choice':
       case 'select':
         // the chrome required tip winds up in weird places
-        // for select2 elements, so just make it look like
+        // for select elements, so just make it look like
         // it's required (with *) and rely on server validation
         delete props.required;
         if (props.has_autocomplete) {
-          return <Select2FieldAutocomplete {...props} />;
+          return <SelectAsyncField {...props} />;
         }
-        return <Select2Field {...props} />;
+        return <SelectField {...props} />;
       default:
         return null;
     }

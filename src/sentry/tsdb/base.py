@@ -101,15 +101,7 @@ class TSDBModel(Enum):
 
 
 class BaseTSDB(Service):
-    __all__ = frozenset([
-        'get_earliest_timestamp',
-        'get_optimal_rollup_series',
-        'get_rollups',
-        'make_series',
-        'models',
-        'models_with_environment_support',
-        'rollup',
-
+    __read_methods__ = frozenset([
         'get_range',
         'get_sums',
         'get_distinct_counts_series',
@@ -119,7 +111,9 @@ class BaseTSDB(Service):
         'get_most_frequent_series',
         'get_frequency_series',
         'get_frequency_totals',
+    ])
 
+    __write_methods__ = frozenset([
         'incr',
         'incr_multi',
         'merge',
@@ -133,6 +127,16 @@ class BaseTSDB(Service):
         'delete_frequencies',
         'flush',
     ])
+
+    __all__ = frozenset([
+        'get_earliest_timestamp',
+        'get_optimal_rollup_series',
+        'get_rollups',
+        'make_series',
+        'models',
+        'models_with_environment_support',
+        'rollup',
+    ]) | __write_methods__ | __read_methods__
 
     models = TSDBModel
 

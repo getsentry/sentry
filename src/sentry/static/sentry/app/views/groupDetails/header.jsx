@@ -2,19 +2,19 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import ApiMixin from '../../mixins/apiMixin';
-import AssigneeSelector from '../../components/assigneeSelector';
-import Count from '../../components/count';
-import GroupActions from './actions';
-import GroupSeenBy from './seenBy';
-import IndicatorStore from '../../stores/indicatorStore';
-import ListLink from '../../components/listLink';
-import ShortId from '../../components/shortId';
-import EventOrGroupTitle from '../../components/eventOrGroupTitle';
-import GuideAnchor from '../../components/assistant/guideAnchor';
-import ProjectState from '../../mixins/projectState';
-import Tooltip from '../../components/tooltip';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AssigneeSelector from 'app/components/assigneeSelector';
+import Count from 'app/components/count';
+import GroupActions from 'app/views/groupDetails/actions';
+import GroupSeenBy from 'app/views/groupDetails/seenBy';
+import IndicatorStore from 'app/stores/indicatorStore';
+import ListLink from 'app/components/listLink';
+import ShortId from 'app/components/shortId';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectState from 'app/mixins/projectState';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
@@ -117,14 +117,14 @@ const GroupHeader = createReactClass({
                 </span>
               )}
               {group.annotations.map((annotation, i) => {
-                return (
-                  <span
-                    className="event-annotation"
-                    key={i}
-                    dangerouslySetInnerHTML={{__html: annotation}}
-                  />
-                );
-              })}
+                  return (
+                    <span
+                      className="event-annotation"
+                      key={i}
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                    />
+                  );
+                })}
             </div>
           </div>
           <div className="col-sm-5 stats">

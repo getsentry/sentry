@@ -6,19 +6,19 @@ import Reflux from 'reflux';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 
-import AssigneeSelector from '../assigneeSelector';
-import Count from '../count';
-import GroupChart from './groupChart';
-import GroupCheckBox from './groupCheckBox';
-import ProjectState from '../../mixins/projectState';
-import GroupStore from '../../stores/groupStore';
-import GuideAnchor from '../../components/assistant/guideAnchor';
-import SelectedGroupStore from '../../stores/selectedGroupStore';
-import EventOrGroupHeader from '../eventOrGroupHeader';
-import EventOrGroupExtraDetails from '../eventOrGroupExtraDetails';
-import {PanelItem} from '../panels';
+import AssigneeSelector from 'app/components/assigneeSelector';
+import Count from 'app/components/count';
+import GroupChart from 'app/components/stream/groupChart';
+import GroupCheckBox from 'app/components/stream/groupCheckBox';
+import ProjectState from 'app/mixins/projectState';
+import GroupStore from 'app/stores/groupStore';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
+import {PanelItem} from 'app/components/panels';
 
-import {valueIsEqual} from '../../utils';
+import {valueIsEqual} from 'app/utils';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',

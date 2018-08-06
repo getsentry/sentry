@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {explodeSlug} from '../../utils';
-import BaseAvatar from './baseAvatar';
-import SentryTypes from '../../proptypes';
+import {explodeSlug} from 'app/utils';
+import BaseAvatar from 'app/components/avatar/baseAvatar';
+import SentryTypes from 'app/sentryTypes';
 
 class TeamAvatar extends React.Component {
   static propTypes = {
@@ -20,7 +20,9 @@ class TeamAvatar extends React.Component {
     return (
       <BaseAvatar
         {...props}
-        type="letter_avatar"
+        type={(team.avatar && team.avatar.avatarType) || 'letter_avatar'}
+        uploadPath="team-avatar"
+        uploadId={team.avatar && team.avatar.avatarUuid}
         letterId={slug}
         tooltip={tooltip}
         title={title}

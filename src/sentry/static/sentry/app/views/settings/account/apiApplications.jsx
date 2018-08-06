@@ -4,20 +4,21 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import IndicatorStore from '../../../stores/indicatorStore';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
+} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -79,9 +80,13 @@ const ApiApplicationRow = createReactClass({
       <PanelItem justify="space-between" px={2} py={2}>
         <Box flex="1">
           <h4 style={{marginBottom: 5}}>
-            <Link to={`${ROUTE_PREFIX}applications/${app.id}/`}>{app.name}</Link>
+            <Link to={`${ROUTE_PREFIX}applications/${app.id}/`}>
+              {getDynamicText({value: app.name, fixed: 'PERCY_APPLICATION_NAME'})}
+            </Link>
           </h4>
-          <small style={{color: '#999'}}>{app.clientID}</small>
+          <small style={{color: '#999'}}>
+            {getDynamicText({value: app.clientID, fixed: 'PERCY_CLIENT_ID'})}
+          </small>
         </Box>
 
         <Flex align="center">

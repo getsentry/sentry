@@ -3,19 +3,24 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {debounce} from 'lodash';
 
-import {navigateTo} from '../../actionCreators/navigation';
-import {t} from '../../locale';
-import AutoComplete from '../autoComplete';
-import LoadingIndicator from '../loadingIndicator';
-import SearchResult from './searchResult';
-import SearchResultWrapper from './searchResultWrapper';
-import SearchSources from './sources';
-import replaceRouterParams from '../../utils/replaceRouterParams';
+import {navigateTo} from 'app/actionCreators/navigation';
+import {t} from 'app/locale';
+import analytics from 'app/utils/analytics';
+import AutoComplete from 'app/components/autoComplete';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SearchResult from 'app/components/search/searchResult';
+import SearchResultWrapper from 'app/components/search/searchResultWrapper';
+import SearchSources from 'app/components/search/sources';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // "Omni" search
 class Search extends React.Component {
   static propTypes = {
+    // For analytics
+    source: PropTypes.oneOf(['settings_search', 'command_palette']).isRequired,
+
     router: PropTypes.object,
     /**
      * Render prop for the main input for the search
@@ -51,15 +56,29 @@ class Search extends React.Component {
     // Default Search result rendering
     renderItem: ({item, matches, itemProps, highlighted}) => (
       <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-        <SearchResult item={item} matches={matches} />
+        <SearchResult highlighted={highlighted} item={item} matches={matches} />
       </SearchResultWrapper>
     ),
   };
 
+  componentDidMount() {
+    analytics(`${this.props.source}.open`);
+  }
+
   handleSelect = (item, state) => {
     if (!item) return;
 
-    let {to} = item;
+    analytics(`${this.props.source}.select`, {query: state && state.inputValue});
+
+    let {to, action} = item;
+
+    // `action` refers to a callback function while
+    // `to` is a react-router route
+    if (action) {
+      action(item, state);
+      return;
+    }
+
     if (!to) return;
 
     let {params, router} = this.props;
@@ -67,6 +86,11 @@ class Search extends React.Component {
 
     navigateTo(nextPath, router);
   };
+
+  saveQueryMetrics = debounce(
+    query => analytics(`${this.props.source}.query`, {query}),
+    200
+  );
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
     // resultObj is a fuse.js result object with {item, matches, score}
@@ -125,6 +149,8 @@ class Search extends React.Component {
         }) => {
           let searchQuery = inputValue.toLowerCase();
           let isValidSearch = inputValue.length >= minSearch;
+
+          this.saveQueryMetrics(searchQuery);
 
           return (
             <SearchWrapper>

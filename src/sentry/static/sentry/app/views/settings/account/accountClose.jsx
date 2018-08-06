@@ -2,14 +2,22 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {addMessage, addErrorMessage} from '../../../actionCreators/indicator';
-import {openModal} from '../../../actionCreators/modal';
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
+import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
@@ -116,22 +124,27 @@ class AccountClose extends AsyncView {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <TextBlock>
+        <Alert type="error" icon="icon-circle-exclamation">
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>
-        </TextBlock>
+        </Alert>
 
-        {!!organizations.length && (
-          <TextBlock>
-            {t('If you continue, the following organizations will be removed')}:
-          </TextBlock>
-        )}
+        <Panel>
+          <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
+          <PanelBody>
+            <PanelAlert type="info">
+              {t(
+                'Ownership will remain with other members if an organization is not deleted.'
+              )}
+              <br />
+              {t(
+                'Disabled boxes mean that there is no other owner within the organization so no one else can take ownership.'
+              )}
+            </PanelAlert>
 
-        <ul>
-          {organizations.map(({organization, singleOwner}) => {
-            return (
-              <li key={organization.slug}>
+            {organizations.map(({organization, singleOwner}) => (
+              <PanelItem key={organization.slug}>
                 <label>
                   <input
                     style={{marginRight: 6}}
@@ -146,18 +159,12 @@ class AccountClose extends AsyncView {
                     }
                     disabled={singleOwner}
                   />
-                  {organization.name} ({organization.slug})
+                  {organization.slug}
                 </label>
-              </li>
-            );
-          })}
-        </ul>
-
-        <TextBlock>
-          Ownership will remain with other members if an organization is not deleted.<br />
-          Disabled boxes mean that there is no other owner within the organization so no
-          one else can take ownership.
-        </TextBlock>
+              </PanelItem>
+            ))}
+          </PanelBody>
+        </Panel>
 
         <Confirm
           priority="danger"

@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import DateTime from '../../components/dateTime';
-import TimeSince from '../../components/timeSince';
-import Version from '../../components/version';
-import VersionHoverCard from '../../components/versionHoverCard';
-import Tooltip from '../../components/tooltip';
-import {defined, toTitleCase} from '../../utils';
-import componentToString from '../../utils/componentToString';
-import {t} from '../../locale';
+import DateTime from 'app/components/dateTime';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import VersionHoverCard from 'app/components/versionHoverCard';
+import Tooltip from 'app/components/tooltip';
+import {componentToString} from 'app/utils/componentToString';
+import {defined, toTitleCase} from 'app/utils';
+import {t} from 'app/locale';
 
 const SeenInfo = createReactClass({
   displayName: 'SeenInfo',
@@ -74,9 +74,9 @@ const SeenInfo = createReactClass({
         <dt key={0}>{t('When')}:</dt>
         {date ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle} tooltipOptions={{html: true}}>
+            <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
               <span>
-                <TimeSince date={date} />
+                <TimeSince className="dotted-underline" date={date} />
               </span>
             </Tooltip>
             <br />

@@ -1,36 +1,39 @@
+import {Link, browserHistory} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Link, browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 import qs from 'query-string';
-import {omit, isEqual} from 'lodash';
 
-import SentryTypes from '../../proptypes';
-import ApiMixin from '../../mixins/apiMixin';
-import ConfigStore from '../../stores/configStore';
-import GroupStore from '../../stores/groupStore';
-import EnvironmentStore from '../../stores/environmentStore';
-import HookStore from '../../stores/hookStore';
-import ErrorRobot from '../../components/errorRobot';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import ProjectState from '../../mixins/projectState';
-import Pagination from '../../components/pagination';
-import StreamGroup from '../../components/stream/group';
-import StreamActions from './../stream/actions';
-import StreamFilters from './../stream/filters';
-import StreamSidebar from './../stream/sidebar';
-import TimeSince from '../../components/timeSince';
-import utils from '../../utils';
-import queryString from '../../utils/queryString';
-import {logAjaxError} from '../../utils/logging';
-import parseLinkHeader from '../../utils/parseLinkHeader';
-import {t, tn, tct} from '../../locale';
-import {setActiveEnvironment} from '../../actionCreators/environments';
-import {Panel, PanelBody} from '../../components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
+import {logAjaxError} from 'app/utils/logging';
+import {
+  setActiveEnvironment,
+  setActiveEnvironmentName,
+} from 'app/actionCreators/environments';
+import {t, tn, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import ConfigStore from 'app/stores/configStore';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ErrorRobot from 'app/components/errorRobot';
+import GroupStore from 'app/stores/groupStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import ProjectState from 'app/mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
+import StreamActions from 'app/views/stream/actions';
+import StreamFilters from 'app/views/stream/filters';
+import StreamGroup from 'app/components/stream/group';
+import StreamSidebar from 'app/views/stream/sidebar';
+import TimeSince from 'app/components/timeSince';
+import analytics from 'app/utils/analytics';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+import queryString from 'app/utils/queryString';
+import utils from 'app/utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -119,7 +122,7 @@ const Stream = createReactClass({
     let nextSearchId = nextProps.params.searchId || null;
 
     let searchIdChanged = this.state.isDefaultSearch
-      ? nextSearchId
+      ? nextSearchId !== null
       : nextSearchId !== this.state.searchId;
 
     // We are using qs.parse with location.search since this.props.location.query
@@ -192,8 +195,22 @@ const Stream = createReactClass({
             data.find(search => search.isDefault);
 
           if (defaultResult) {
+            // Check if there is an environment specified in the default search
+            const envName = queryString.getQueryEnvironment(defaultResult.query);
+            const env = EnvironmentStore.getByName(envName);
+            if (env) {
+              setActiveEnvironment(env);
+            }
+
             newState.searchId = defaultResult.id;
-            newState.query = defaultResult.query;
+
+            if (this.getFeatures().has('environments')) {
+              newState.query = queryString.getQueryStringWithoutEnvironment(
+                defaultResult.query
+              );
+            } else {
+              newState.query = defaultResult.query;
+            }
             newState.isDefaultSearch = true;
           }
         }
@@ -289,6 +306,10 @@ const Stream = createReactClass({
           // Old behavior, keep the environment in the querystring
           newState.query = searchResult.query;
         }
+
+        if (this.state.searchId && !props.params.searchId) {
+          newState.isDefaultSearch = true;
+        }
       } else {
         newState.searchId = null;
       }
@@ -366,15 +387,21 @@ const Stream = createReactClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          if (data[0].matchingEventId) {
-            return void browserHistory.push(
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
-                .id}/events/${data[0].matchingEventId}/`
-            );
+          if (data && data[0].matchingEventId) {
+            let {project, id, matchingEventId, matchingEventEnvironment} = data[0];
+            let redirect = `/${this.props.params
+              .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
+            // Also direct to the environment of this specific event if this
+            // key exists. We need to explicitly check against undefined becasue
+            // an environment name may be an empty string, which is perfectly valid.
+            if (typeof matchingEventEnvironment !== 'undefined') {
+              setActiveEnvironmentName(matchingEventEnvironment);
+              redirect = `${redirect}?${qs.stringify({
+                environment: matchingEventEnvironment,
+              })}`;
+            }
+            return void browserHistory.push(redirect);
           }
-          return void browserHistory.push(
-            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
-          );
         }
 
         this._streamManager.push(data);
@@ -495,13 +522,11 @@ const Stream = createReactClass({
     // Ignore saved searches
     if (this.state.savedSearchList.map(s => s.query == this.state.query).length > 0) {
       let {orgId, projectId} = this.props.params;
-      HookStore.get('analytics:event').forEach(cb =>
-        cb('issue.search', {
-          query: this.state.query,
-          organization_id: orgId,
-          project_id: projectId,
-        })
-      );
+      analytics('issue.search', {
+        query: this.state.query,
+        organization_id: orgId,
+        project_id: projectId,
+      });
     }
   },
 
@@ -743,7 +768,9 @@ const Stream = createReactClass({
               projectId={params.projectId}
               hasReleases={projectFeatures.has('releases')}
               latestRelease={this.context.project.latestRelease}
+              environment={this.state.environment}
               query={this.state.query}
+              queryCount={this.state.queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}
               onRealtimeChange={this.onRealtimeChange}
               realtimeActive={this.state.realtimeActive}

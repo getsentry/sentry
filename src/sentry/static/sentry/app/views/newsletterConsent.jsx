@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import jQuery from 'jquery';
 import createReactClass from 'create-react-class';
 
-import {ApiForm, RadioBooleanField} from '../components/forms';
-import NarrowLayout from '../components/narrowLayout';
+import {ApiForm, RadioBooleanField} from 'app/components/forms';
+import NarrowLayout from 'app/components/narrowLayout';
 
 export default createReactClass({
   displayName: 'NewsletterConsent',
@@ -46,8 +46,8 @@ export default createReactClass({
               <span>
                 We'd love to keep you updated via email with product and feature
                 announcements, promotions, educational materials, and events. Our updates
-                focus on relevant information and never sell your data to marketing
-                companies. See our <a href="https://sentry.io/privacy/">
+                focus on relevant information, and we'll never sell your data to third
+                parties. See our <a href="https://sentry.io/privacy/">
                   Privacy Policy
                 </a>{' '}
                 for more details.

@@ -476,7 +476,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         self.max_fetches = MAX_RESOURCE_FETCHES
-        self.allow_scraping = self.project.get_option('sentry:scrape_javascript', True)
+        self.allow_scraping = (
+            self.project.organization.get_option('sentry:scrape_javascript', True) is not False
+            and self.project.get_option('sentry:scrape_javascript', True)
+        )
         self.fetch_count = 0
         self.sourcemaps_touched = set()
         self.cache = SourceCache()
@@ -676,19 +679,24 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
                     # As noted above:
                     # * [js/node] '~/' means they're coming from node_modules, so these are not app dependencies
-                    # * [node] sames goes for `./node_modules/`, which is used when bundling node apps
+                    # * [node] sames goes for `./node_modules/` and '../node_modules/', which is used when bundling node apps
                     # * [node] and webpack, which includes it's own code to bootstrap all modules and its internals
                     #   eg. webpack:///webpack/bootstrap, webpack:///external
                     if filename.startswith('~/') or \
-                            filename.startswith('./node_modules/') or \
+                            '/node_modules/' in filename or \
                             not filename.startswith('./'):
                         in_app = False
                     # And conversely, local dependencies start with './'
                     elif filename.startswith('./'):
                         in_app = True
-
                     # We want to explicitly generate a webpack module name
                     new_frame['module'] = generate_module(filename)
+
+                # while you could technically use a subpath of 'node_modules' for your libraries,
+                # it would be an extremely complicated decision and we've not seen anyone do it
+                # so instead we assume if node_modules is in the path its part of the vendored code
+                elif '/node_modules/' in abs_path:
+                    in_app = False
 
                 if abs_path.startswith('app:'):
                     if filename and NODE_MODULES_RE.search(filename):

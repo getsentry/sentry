@@ -1,4 +1,4 @@
-import {DEFAULT_FUSE_OPTIONS} from '../constants';
+import {DEFAULT_FUSE_OPTIONS} from 'app/constants';
 
 export function loadFuzzySearch() {
   return import('fuse.js');

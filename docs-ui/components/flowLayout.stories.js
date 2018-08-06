@@ -3,8 +3,8 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import FlowLayout from 'sentry-ui/flowLayout';
-import SpreadLayout from 'sentry-ui/spreadLayout';
+import FlowLayout from 'app/components/flowLayout';
+import SpreadLayout from 'app/components/spreadLayout';
 
 storiesOf('ComponentLayouts/FlowLayout', module)
   .add(

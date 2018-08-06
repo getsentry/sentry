@@ -26,18 +26,14 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = '/organizations/{}/settings/'.format(self.org.slug)
 
-    def load_organization_helper(self, snapshot_name):
-        self.browser.wait_until('.organization-home')
+    def load_organization_helper(self, snapshot_name=None):
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('organization settings -- ' + snapshot_name)
+        if snapshot_name is not None:
+            self.browser.snapshot('organization settings -- ' + snapshot_name)
         assert self.browser.element_exists('.ref-organization-settings')
 
     def renders_2fa_setting(self):
         return self.browser.element_exists('#require2FA')
-
-    def test_simple(self):
-        self.browser.get(self.path)
-        self.load_organization_helper("Simple")
 
     def test_disabled_2fa_feature(self):
         user_owner = self.create_user('owner@example.com')
@@ -46,7 +42,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         path = '/organizations/%s/settings/' % organization.slug
 
         self.browser.get(path)
-        self.load_organization_helper("disabled 2fa feature")
+        self.load_organization_helper()
         assert not self.renders_2fa_setting()
 
     def test_renders_2fa_setting_for_owner(self):
@@ -57,7 +53,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
 
         with self.feature('organizations:require-2fa'):
             self.browser.get(path)
-            self.load_organization_helper("renders 2fa setting for organization owner")
+            self.load_organization_helper()
             assert self.renders_2fa_setting()
 
     def test_renders_2fa_setting_for_manager(self):
@@ -70,7 +66,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
 
         with self.feature('organizations:require-2fa'):
             self.browser.get(path)
-            self.load_organization_helper("renders 2fa setting for organization manager")
+            self.load_organization_helper()
             assert self.renders_2fa_setting()
 
     def test_setting_2fa_without_2fa_enabled(self):
@@ -86,7 +82,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
             self.browser.click('#require2FA')
 
             self.browser.wait_until('.modal')
-            self.browser.click('.modal .button-primary')
+            self.browser.click('.modal [data-test-id="confirm-modal"]')
             self.browser.wait_until_not('.modal')
             self.browser.wait_until('.ref-toast.ref-error')
             self.load_organization_helper("setting 2fa without 2fa enabled")

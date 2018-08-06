@@ -1,7 +1,9 @@
 from __future__ import absolute_import, print_function
 
 from django.core.urlresolvers import reverse
+from django.db import IntegrityError
 from django.http import Http404
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
 from sentry import http
@@ -51,10 +53,10 @@ class SlackLinkIdentitiyView(BaseView):
 
         try:
             idp = IdentityProvider.objects.get(
+                external_id=integration.external_id,
                 type='slack',
-                organization=organization,
             )
-        except Integration.DoesNotExist:
+        except IdentityProvider.DoesNotExist:
             raise Http404
 
         if request.method != 'POST':
@@ -66,22 +68,23 @@ class SlackLinkIdentitiyView(BaseView):
         # TODO(epurkhiser): We could do some fancy slack querying here to
         # render a nice linking page with info about the user their linking.
 
-        identity, created = Identity.objects.get_or_create(
-            user=request.user,
-            idp=idp,
-            defaults={
-                'external_id': params['slack_id'],
-                'status': IdentityStatus.VALID,
-            },
-        )
-
-        if not created:
-            # TODO(epurkhiser): In this case we probably want to prompt and
-            # warn them that they had a previous identity linked to slack.
-            identity.update(
+        # Link the user with the identity. Handle the case where the user is linked to a
+        # different identity or the identity is linked to a different user.
+        defaults = {
+            'status': IdentityStatus.VALID,
+            'date_verified': timezone.now(),
+        }
+        try:
+            identity, created = Identity.objects.get_or_create(
+                idp=idp,
+                user=request.user,
                 external_id=params['slack_id'],
-                status=IdentityStatus.VALID
+                defaults=defaults,
             )
+            if not created:
+                identity.update(**defaults)
+        except IntegrityError:
+            Identity.reattach(idp, params['slack_id'], request.user, defaults)
 
         payload = {
             'replace_original': False,

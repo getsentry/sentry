@@ -859,7 +859,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 </button>
               </div>
               <p>
-                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
               </p>
             </div>
           </div>
@@ -976,6 +976,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   "csharp",
                 ],
               ],
+              "results": Array [
+                Object {
+                  "isThrow": false,
+                  "value": undefined,
+                },
+              ],
             }
           }
           setTeam={[Function]}
@@ -999,6 +1005,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                     Array [
                       "csharp",
                     ],
+                  ],
+                  "results": Array [
+                    Object {
+                      "isThrow": false,
+                      "value": undefined,
+                    },
                   ],
                 }
               }
@@ -1723,7 +1735,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 </button>
               </div>
               <p>
-                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
               </p>
             </div>
           </div>

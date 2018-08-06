@@ -1,11 +1,12 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import PropTypes from 'prop-types';
+import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import SentryTypes from '../proptypes';
-import LatestContextStore from '../stores/latestContextStore';
-import withOrganizations from './withOrganizations';
+import getDisplayName from 'app/utils/getDisplayName';
+import LatestContextStore from 'app/stores/latestContextStore';
+import SentryTypes from 'app/sentryTypes';
+import withOrganizations from 'app/utils/withOrganizations';
 
 // HoC that returns most usable organization + project
 // This means your org if you only have 1 org, or
@@ -13,7 +14,7 @@ import withOrganizations from './withOrganizations';
 const withLatestContext = WrappedComponent =>
   withOrganizations(
     createReactClass({
-      displayName: 'withLatestContext',
+      displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
       propTypes: {
         organizations: PropTypes.arrayOf(SentryTypes.Organization),
       },
@@ -22,7 +23,7 @@ const withLatestContext = WrappedComponent =>
       render() {
         let {organizations} = this.props;
         let {latestContext} = this.state;
-        let {organization, project} = latestContext || {};
+        let {organization, project, lastRoute} = latestContext || {};
 
         // Even though org details exists in LatestContextStore,
         // fetch organization from OrganizationsStore so that we can
@@ -39,6 +40,7 @@ const withLatestContext = WrappedComponent =>
             organizations={organizations}
             organization={latestOrganization}
             project={project}
+            lastRoute={lastRoute}
             {...this.props}
           />
         );

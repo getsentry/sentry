@@ -18,6 +18,7 @@ from sentry.coreapi import ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
+from sentry.utils.canonical import CanonicalKeyDict
 
 epoch = datetime.utcfromtimestamp(0)
 
@@ -112,15 +113,15 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         if not platform:
             continue
 
-        try:
-            sample_name = sample_name or INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
-        except KeyError:
-            continue
-
         json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'), ))
-
         if not os.path.exists(json_path):
             continue
+
+        if not sample_name:
+            try:
+                sample_name = INTEGRATION_ID_TO_PLATFORM_DATA[platform]['name']
+            except KeyError:
+                pass
 
         with open(json_path) as fp:
             data = json.loads(fp.read())
@@ -129,11 +130,12 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     if data is None:
         return
 
-    if platform == 'csp':
+    data = CanonicalKeyDict(data)
+    if platform in ('csp', 'hkpk', 'expectct', 'expectstaple'):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (sample_name, )
+    data['message'] = 'This is an example %s exception' % (sample_name or platform, )
     data['sentry.interfaces.User'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',
@@ -184,7 +186,9 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
     if breadcrumbs is not None:
         duration = 1000
-        values = breadcrumbs['values']
+        # At this point, breadcrumbs are not normalized. They can either be a
+        # direct list or a values object containing a list.
+        values = isinstance(breadcrumbs, list) and breadcrumbs or breadcrumbs['values']
         for value in reversed(values):
             value['timestamp'] = milliseconds_ago(start, duration)
 

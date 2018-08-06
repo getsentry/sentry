@@ -1,9 +1,9 @@
 import React from 'react';
 
-import GroupEventDataSection from './eventDataSection';
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import ContextData from '../contextData';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import ContextData from 'app/components/contextData';
 
 // TODO(hazat): Is this interface used somewhere? If not delete it?
 class DeviceInterface extends React.Component {

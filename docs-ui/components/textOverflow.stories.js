@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import TextOverflow from 'sentry-ui/textOverflow';
+import TextOverflow from 'app/components/textOverflow';
 
 storiesOf('TextOverflow', module).add(
   'default',

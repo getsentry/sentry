@@ -4,13 +4,15 @@ import createReactClass from 'create-react-class';
 import ReactDOMServer from 'react-dom/server';
 import moment from 'moment';
 
-import Avatar from '../avatar';
-import ActorAvatar from '../actorAvatar';
-import Tooltip from '../tooltip';
-import ApiMixin from '../../mixins/apiMixin';
-import GroupState from '../../mixins/groupState';
-import {assignToUser, assignToActor} from '../../actionCreators/group';
-import {t} from '../../locale';
+import Avatar from 'app/components/avatar';
+import ActorAvatar from 'app/components/actorAvatar';
+import Tooltip from 'app/components/tooltip';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupState from 'app/mixins/groupState';
+import {assignToUser, assignToActor} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {openCreateOwnershipRule} from 'app/actionCreators/modal';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
@@ -190,23 +192,52 @@ const SuggestedOwners = createReactClass({
 
   render() {
     let {committers, owners} = this.state;
-    let showOwners = new Set(this.getOrganization().features).has('code-owners');
 
-    if (committers.length == 0 && (!showOwners || owners.length == 0)) {
-      return null;
-    }
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let access = new Set(org.access);
+
+    let showCreateRule = access.has('project:write');
+
+    let showSuggestedAssignees = committers.length > 0 || owners.length > 0;
 
     return (
-      <div className="m-b-1">
-        <h6>
-          <span>{t('Suggested Assignees')}</span>
-          <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
-        </h6>
-        <div className="avatar-grid">
-          {committers.map(this.renderCommitter)}
-          {showOwners && owners.map(this.renderOwner)}
-        </div>
-      </div>
+      <React.Fragment>
+        {showSuggestedAssignees && (
+          <div className="m-b-1">
+            <h6>
+              <span>{t('Suggested Assignees')}</span>
+              <small style={{background: '#FFFFFF'}}>{t('Click to assign')}</small>
+            </h6>
+
+            <div className="avatar-grid">
+              {committers.map(this.renderCommitter)}
+              {owners.map(this.renderOwner)}
+            </div>
+          </div>
+        )}
+        {showCreateRule && (
+          <div className="m-b-1">
+            <h6>
+              <GuideAnchor target="owners" type="text" />
+              <span>{t('Ownership Rules')}</span>
+            </h6>
+
+            <a
+              onClick={() =>
+                openCreateOwnershipRule({
+                  project,
+                  organization: org,
+                  issueId: group.id,
+                })}
+              className="btn btn-default btn-sm btn-create-ownership-rule"
+            >
+              {t('Create Ownership Rule')}
+            </a>
+          </div>
+        )}
+      </React.Fragment>
     );
   },
 });

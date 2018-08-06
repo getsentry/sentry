@@ -17,8 +17,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
-    Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus, ProjectTeam,
-    Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
+    ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
 
@@ -130,6 +130,15 @@ class ProjectSerializer(Serializer):
         else:
             stats = None
 
+        avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
+        project_ids = [i.id for i in item_list]
+        platforms = ProjectPlatform.objects.filter(
+            project_id__in=project_ids,
+        ).values_list('project_id', 'platform')
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
+
         result = self.get_access_by_project(item_list, user)
         for item in item_list:
             result[item].update({
@@ -139,6 +148,8 @@ class ProjectSerializer(Serializer):
                     (item.id, 'mail:alert'),
                     default_subscribe,
                 )),
+                'avatar': avatars.get(item.id),
+                'platforms': platforms_by_project[item.id]
             })
             if stats:
                 result[item]['stats'] = stats[item.id]
@@ -160,6 +171,14 @@ class ProjectSerializer(Serializer):
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
+        if attrs.get('avatar'):
+            avatar = {
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file_id else None
+            }
+        else:
+            avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
+
         context = {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
@@ -175,6 +194,7 @@ class ProjectSerializer(Serializer):
             'isInternal': obj.is_internal_project(),
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
+            'avatar': avatar,
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
@@ -236,6 +256,43 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectSummarySerializer,
+                      self).get_attrs(item_list, user)
+
+        release_project_envs = list(ReleaseProjectEnvironment.objects.filter(
+            project__in=item_list,
+            last_deploy_id__isnull=False
+        ).values('release__version', 'environment__name', 'last_deploy_id', 'project__id'))
+
+        deploys = dict(
+            Deploy.objects.filter(
+                id__in=[
+                    rpe['last_deploy_id'] for rpe in release_project_envs]).values_list(
+                'id',
+                'date_finished'))
+
+        deploys_by_project = defaultdict(dict)
+
+        for rpe in release_project_envs:
+            env_name = rpe['environment__name']
+            project_id = rpe['project__id']
+            date_finished = deploys[rpe['last_deploy_id']]
+
+            if (
+                env_name not in deploys_by_project[project_id] or
+                deploys_by_project[project_id][env_name]['dateFinished'] < date_finished
+            ):
+                deploys_by_project[project_id][env_name] = {
+                    'version': rpe['release__version'],
+                    'dateFinished': date_finished
+                }
+
+        for item in item_list:
+            attrs[item]['deploys'] = deploys_by_project.get(item.id)
+
+        return attrs
+
     def serialize(self, obj, attrs, user):
         context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
@@ -249,6 +306,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
             'platform': obj.platform,
+            'platforms': attrs['platforms'],
+            'latestDeploys': attrs['deploys']
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
@@ -289,13 +348,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                       self).get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]
-
-        platforms = ProjectPlatform.objects.filter(
-            project_id__in=project_ids,
-        ).values_list('project_id', 'platform')
-        platforms_by_project = defaultdict(list)
-        for project_id, platform in platforms:
-            platforms_by_project[project_id].append(platform)
 
         num_issues_projects = Project.objects.filter(
             id__in=project_ids
@@ -353,7 +405,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     'latest_release': latest_releases.get(item.id),
                     'org': orgs[six.text_type(item.organization_id)],
                     'options': options_by_project[item.id],
-                    'platforms': platforms_by_project[item.id],
                     'processing_issues': processing_issues_by_project.get(item.id, 0),
                 }
             )

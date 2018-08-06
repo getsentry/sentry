@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import PluginActions from '../actions/pluginActions';
+import PluginActions from 'app/actions/pluginActions';
 
 const PluginsStore = Reflux.createStore({
   getInitialState() {

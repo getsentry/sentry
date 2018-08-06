@@ -2,14 +2,14 @@ import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 
-import {API_SCOPES, DEFAULT_API_SCOPES} from '../../../constants';
-import {t, tct} from '../../../locale';
-import ApiForm from '../components/forms/apiForm';
-import FormField from '../components/forms/formField';
-import MultipleCheckbox from '../components/forms/controls/multipleCheckbox';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
+import {API_SCOPES, DEFAULT_API_SCOPES} from 'app/constants';
+import {t, tct} from 'app/locale';
+import ApiForm from 'app/views/settings/components/forms/apiForm';
+import FormField from 'app/views/settings/components/forms/formField';
+import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const SORTED_DEFAULT_API_SCOPES = DEFAULT_API_SCOPES.sort();
 const API_CHOICES = API_SCOPES.map(s => [s, s]);

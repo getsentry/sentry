@@ -198,6 +198,7 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = [
         (models.EventMapping, 'date_added', '-date_added'),
+        (models.GroupHashTombstone, 'deleted_at', None),
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
     ] + EXTRA_BULK_QUERY_DELETES
@@ -241,13 +242,13 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
     else:
         if not silent:
             click.echo("Removing old NodeStore values")
-        else:
-            cutoff = timezone.now() - timedelta(days=days)
-            try:
-                nodestore.cleanup(cutoff)
-            except NotImplementedError:
-                click.echo(
-                    "NodeStore backend does not support cleanup operation", err=True)
+
+        cutoff = timezone.now() - timedelta(days=days)
+        try:
+            nodestore.cleanup(cutoff)
+        except NotImplementedError:
+            click.echo(
+                "NodeStore backend does not support cleanup operation", err=True)
 
     for bqd in BULK_QUERY_DELETES:
         if len(bqd) == 4:

@@ -1,13 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage} from '../actionCreators/indicator';
-import {t} from '../locale';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {AVATAR_URL_MAP} from 'app/constants';
+import {t} from 'app/locale';
 
 class AvatarCropper extends React.Component {
   static propTypes = {
-    user: PropTypes.object.isRequired,
+    model: PropTypes.object.isRequired,
     updateDataUrlState: PropTypes.func.isRequired,
+    type: PropTypes.oneOf(['user', 'team', 'organization', 'project']),
     savedDataUrl: PropTypes.string,
   };
 
@@ -312,9 +314,10 @@ class AvatarCropper extends React.Component {
   };
 
   getImgSrc = () => {
-    let uuid = this.props.user.avatar.avatarUuid;
-    let photoUrl = uuid && '/avatar/' + uuid + '/';
-    return this.props.savedDataUrl || this.state.objectURL || photoUrl;
+    let {savedDataUrl, model, type} = this.props;
+    let uuid = model && model.avatar.avatarUuid;
+    let photoUrl = uuid && `/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
+    return savedDataUrl || this.state.objectURL || photoUrl;
   };
 
   onImgDrag = ev => {

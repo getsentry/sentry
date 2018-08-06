@@ -2,22 +2,22 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AsyncComponent from '../../../components/asyncComponent';
-import AsyncView from '../../asyncView';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from '../../../components/panels';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import ErrorBoundary from '../../../components/errorBoundary';
-import Field from '../components/forms/field';
-import getDynamicText from '../../../utils/getDynamicText';
-import IndicatorStore from '../../../stores/indicatorStore';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import StackedBarChart from '../../../components/stackedBarChart';
-import TextBlock from '../components/text/textBlock';
-import TextCopyInput from '../components/forms/textCopyInput';
+import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
+import AsyncView from 'app/views/asyncView';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ErrorBoundary from 'app/components/errorBoundary';
+import Field from 'app/views/settings/components/forms/field';
+import getDynamicText from 'app/utils/getDynamicText';
+import IndicatorStore from 'app/stores/indicatorStore';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import StackedBarChart from 'app/components/stackedBarChart';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
-import ServiceHookSettingsForm from './serviceHookSettingsForm';
+import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
 
 // TODO(dcramer): this is duplicated in ProjectKeyDetails
 const EmptyHeader = styled.div`
@@ -64,7 +64,7 @@ class HookStats extends AsyncComponent {
       if (p.total) emptyStats = false;
       return {
         x: p.ts,
-        y: [p.accepted, p.dropped],
+        y: [p.total],
       };
     });
 

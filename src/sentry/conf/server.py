@@ -32,7 +32,14 @@ socket.setdefaulttimeout(5)
 
 
 def env(key, default='', type=None):
-    "Extract an environment variable for use in configuration"
+    """
+    Extract an environment variable for use in configuration
+
+    :param key: The environment variable to be extracted.
+    :param default: The value to be returned if `key` is not found.
+    :param type: The type of the returned object (defaults to the type of `default`).
+    :return: The environment variable if it exists, else `default`.
+    """
 
     # First check an internal cache, so we can `pop` multiple times
     # without actually losing the value.
@@ -255,6 +262,7 @@ INSTALLED_APPS = (
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
+    'sentry.eventstream',
 )
 
 import django
@@ -266,7 +274,10 @@ STATIC_URL = '/_static/{version}/'
 
 # various middleware will use this to identify resources which should not access
 # cookies
-ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/')
+ANONYMOUS_STATIC_PREFIXES = (
+    '/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/', '/project-avatar/',
+    '/js-sdk-loader/'
+)
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -434,7 +445,8 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
-    'sentry.tagstore.tasks', 'sentry.tasks.assemble'
+    'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
+    'sentry.tasks.files',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -448,6 +460,7 @@ CELERY_QUEUES = [
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
+    Queue('events.index_event_tags', routing_key='events.index_event_tags'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
     Queue(
         'events.reprocessing.preprocess_event', routing_key='events.reprocessing.preprocess_event'
@@ -456,6 +469,8 @@ CELERY_QUEUES = [
     Queue('events.reprocessing.process_event', routing_key='events.reprocessing.process_event'),
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
+    Queue('files.delete', routing_key='files.delete'),
+    Queue('integrations', routing_key='integrations'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
     Queue('reports.deliver', routing_key='reports.deliver'),
@@ -743,20 +758,26 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:event-attachments': False,
     'organizations:repos': True,
     'organizations:sso': True,
-    'organizations:sso-saml2': False,
+    'organizations:sso-saml2': True,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
+    'organizations:github-apps': False,
     'organizations:integrations-v3': False,
     'organizations:invite-members': True,
-    'organizations:new-settings': False,
+    'organizations:new-settings': True,
     'organizations:require-2fa': False,
     'organizations:environments': False,
     'organizations:internal-catchall': False,
-    'organizations:new-teams': False,
-    'organizations:code-owners': False,
+    'organizations:new-issue-ui': False,
+    'organizations:github-enterprise': False,
+    'organizations:new-teams': True,
     'organizations:unreleased-changes': False,
+    'organizations:suggested-commits': True,
+    'organizations:relay': False,
+    'organizations:health': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -766,6 +787,7 @@ SENTRY_FEATURES = {
     'projects:discard-groups': False,
     'projects:custom-inbound-filters': False,
     'projects:minidump': True,
+    'projects:servicehooks': False,
 }
 
 # Default time zone for localization in the UI.
@@ -825,6 +847,7 @@ SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
     'csp': 'sentry.interfaces.security.Csp',
+    'hpkp': 'sentry.interfaces.security.Hpkp',
     'expectct': 'sentry.interfaces.security.ExpectCT',
     'expectstaple': 'sentry.interfaces.security.ExpectStaple',
     'device': 'sentry.interfaces.device.Device',
@@ -842,20 +865,8 @@ SENTRY_INTERFACES = {
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
-    'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
-    'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
-    'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
-    'sentry.interfaces.Template': 'sentry.interfaces.template.Template',
-    'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
-    'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
-    'sentry.interfaces.User': 'sentry.interfaces.user.User',
-    'sentry.interfaces.Csp': 'sentry.interfaces.security.Csp',
-    'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
-    'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
-    'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
-    'sentry.interfaces.Threads': 'sentry.interfaces.threads.Threads',
-    'sentry.interfaces.DebugMeta': 'sentry.interfaces.debug_meta.DebugMeta',
 }
+PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     'smtp': 'django.core.mail.backends.smtp.EmailBackend',
@@ -866,6 +877,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 SENTRY_FILESTORE_ALIASES = {
     'filesystem': 'django.core.files.storage.FileSystemStorage',
     's3': 'sentry.filestore.s3.S3Boto3Storage',
+    'gcs': 'sentry.filestore.gcs.GoogleCloudStorage',
 }
 
 SENTRY_ANALYTICS_ALIASES = {
@@ -937,6 +949,9 @@ SENTRY_RATELIMITER_OPTIONS = {}
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 
+# Snuba configuration
+SENTRY_SNUBA = os.environ.get('SNUBA', 'http://localhost:1218')
+
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
@@ -956,7 +971,7 @@ SENTRY_TAGSTORE_OPTIONS = (
 )
 
 # Search backend
-SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'
+SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.django.DjangoSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],
@@ -969,6 +984,9 @@ SENTRY_TSDB_OPTIONS = {}
 
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
+
+SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
+SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -1045,6 +1063,7 @@ SENTRY_SCOPES = set(
         'project:write',
         'project:admin',
         'project:releases',
+        'project:integrations',
         'event:read',
         'event:write',
         'event:admin',
@@ -1058,6 +1077,7 @@ SENTRY_SCOPE_SETS = (
         ('org:read', 'Read access to organization details.'),
     ), (
         ('org:integrations', 'Read, write, and admin access to organization integrations.'),
+        ('project:integrations', 'Read, write, and admin access to project integrations.'),
     ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
@@ -1116,6 +1136,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1139,6 +1160,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1168,6 +1190,7 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
+                'project:integrations',
                 'event:read',
                 'event:write',
                 'event:admin',
@@ -1228,7 +1251,20 @@ SENTRY_ONPREMISE = True
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    'sentry.integrations.slack.SlackIntegration',
+    'sentry.integrations.bitbucket.BitbucketIntegrationProvider',
+    'sentry.integrations.slack.SlackIntegrationProvider',
+    'sentry.integrations.github.GitHubIntegrationProvider',
+    'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
+    'sentry.integrations.jira.JiraIntegrationProvider',
+    'sentry.integrations.vsts.VstsIntegrationProvider',
+)
+
+SENTRY_INTERNAL_INTEGRATIONS = (
+    'bitbucket',
+    'github',
+    'github_enterprise',
+    'jira',
+    'vsts',
 )
 
 
@@ -1311,3 +1347,17 @@ PRIVACY_URL = None
 SENTRY_MINIDUMP_CACHE = False
 # The location for cached minidumps
 SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+
+# Relay
+# List of PKs whitelisted by Sentry
+SENTRY_RELAY_WHITELIST_PK = []
+
+# CDN
+# If this is an absolute url like e.g.: https://js.sentry-cdn.com/
+# the full url will look like this: https://js.sentry-cdn.com/<public_key>.min.js
+# otherwise django reverse url lookup will be used.
+JS_SDK_LOADER_CDN_URL = ''
+# Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
+JS_SDK_LOADER_SDK_VERSION = ''
+# This should be the url pointing to the JS SDK
+JS_SDK_LOADER_DEFAULT_SDK_URL = ''

@@ -18,10 +18,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
+    BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
+from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.strings import truncatechars
 
 
@@ -43,9 +44,8 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
+        wrapper=CanonicalKeyDict,
     )
-
-    objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'
@@ -56,6 +56,19 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+
+        # do not pickle cached info.  We want to fetch this on demand
+        # again.  In particular if we were to pickle interfaces we would
+        # pickle a CanonicalKeyView which old sentry workers do not know
+        # about
+        state.pop('_project_cache', None)
+        state.pop('_group_cache', None)
+        state.pop('interfaces', None)
+
+        return state
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -106,8 +119,9 @@ class Event(Model):
         etype = self.data.get('type', 'default')
         if 'metadata' not in self.data:
             # TODO(dcramer): remove after Dec 1 2016
-            data = self.data.copy() if self.data else {}
+            data = dict(self.data or {})
             data['message'] = self.message
+            data = CanonicalKeyView(data)
             return eventtypes.get(etype)(data).get_metadata()
         return self.data['metadata']
 
@@ -152,7 +166,7 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        return get_interfaces(self.data)
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @memoize
     def interfaces(self):
@@ -199,7 +213,7 @@ class Event(Model):
 
     @property
     def size(self):
-        data_len = len(self.get_legacy_message())
+        data_len = 0
         for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len

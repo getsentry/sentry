@@ -14,8 +14,14 @@ class UserAuthenticatorEnrollTest(APITestCase):
         self.user = self.create_user(email='a@example.com', is_superuser=False)
         self.login_as(user=self.user)
 
+    def _assert_security_email_sent(self, email_type, email_log):
+        assert email_log.info.call_count == 1
+        assert 'mail.queued' in email_log.info.call_args[0]
+        assert email_log.info.call_args[1]['extra']['message_type'] == email_type
+
+    @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.TotpInterface.validate_otp', return_value=True)
-    def test_totp_can_enroll(self, validate_otp):
+    def test_totp_can_enroll(self, validate_otp, email_log):
         url = reverse(
             'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'totp'}
         )
@@ -42,14 +48,17 @@ class UserAuthenticatorEnrollTest(APITestCase):
         recovery = Authenticator.objects.get_interface(user=self.user, interface_id="recovery")
         assert recovery.is_enrolled
 
+        self._assert_security_email_sent('mfa-added', email_log)
+
         # can't enroll again because no multi enrollment is allowed
         resp = self.client.get(url)
         assert resp.status_code == 400
         resp = self.client.post(url)
         assert resp.status_code == 400
 
+    @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.TotpInterface.validate_otp', return_value=False)
-    def test_invalid_otp(self, validate_otp):
+    def test_invalid_otp(self, validate_otp, email_log):
         url = reverse(
             'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'totp'}
         )
@@ -62,10 +71,12 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_count == 1
         assert validate_otp.call_args == mock.call("1234")
         assert resp.status_code == 400
+        assert email_log.call_count == 0
 
+    @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.SmsInterface.validate_otp', return_value=True)
     @mock.patch('sentry.models.SmsInterface.send_text', return_value=True)
-    def test_sms_can_enroll(self, send_text, validate_otp):
+    def test_sms_can_enroll(self, send_text, validate_otp, email_log):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options['sms.twilio-account'] = 'twilio-account'
 
@@ -98,8 +109,11 @@ class UserAuthenticatorEnrollTest(APITestCase):
             interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
             assert interface.phone_number == "1231234"
 
+            self._assert_security_email_sent('mfa-added', email_log)
+
+    @mock.patch('sentry.utils.email.logger')
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
-    def test_u2f_can_enroll(self, try_enroll):
+    def test_u2f_can_enroll(self, try_enroll, email_log):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options['system.url-prefix'] = 'https://testserver'
         with self.settings(SENTRY_OPTIONS=new_options):
@@ -123,3 +137,5 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert try_enroll.call_count == 1
             assert try_enroll.call_args == mock.call("challenge", "response", "device name")
             assert resp.status_code == 204
+
+            self._assert_security_email_sent('mfa-added', email_log)

@@ -1,8 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[
-  `OrganizationDetails render() deletion in progress should render a deletion in progress prompt 1`
-] = `
+exports[`OrganizationDetails render() deletion in progress should render a deletion in progress prompt 1`] = `
 <div
   class="app"
 >
@@ -48,45 +46,11 @@ exports[
         </div>
       </div>
     </div>
-    <footer>
-      <div
-        class="container"
-      >
-        <div
-          class="pull-right"
-        >
-          <a
-            class="hidden-xs"
-            href="/api/"
-          >
-            API
-          </a>
-          <a
-            href="/docs/"
-          >
-            Docs
-          </a>
-          <a
-            class="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
-            Contribute
-          </a>
-        </div>
-        <a
-          class="icon-sentry-logo"
-          href="/"
-        />
-      </div>
-    </footer>
   </div>
 </div>
 `;
 
-exports[
-  `OrganizationDetails render() pending deletion should render a restoration prompt 1`
-] = `
+exports[`OrganizationDetails render() pending deletion should render a restoration prompt 1`] = `
 <div
   class="app"
 >
@@ -138,11 +102,13 @@ exports[
             </p>
             <p>
               <button
-                class="button button-primary"
+                aria-label="Restore Organization"
+                class="css-1msljz8-StyledButton-getColors e17811v30"
+                priority="primary"
                 role="button"
               >
                 <div
-                  class="button-label css-5ipae5"
+                  class="e17811v31 css-mvnt76-ButtonLabel"
                 >
                   Restore Organization
                 </div>
@@ -157,45 +123,11 @@ exports[
         </div>
       </div>
     </div>
-    <footer>
-      <div
-        class="container"
-      >
-        <div
-          class="pull-right"
-        >
-          <a
-            class="hidden-xs"
-            href="/api/"
-          >
-            API
-          </a>
-          <a
-            href="/docs/"
-          >
-            Docs
-          </a>
-          <a
-            class="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
-            Contribute
-          </a>
-        </div>
-        <a
-          class="icon-sentry-logo"
-          href="/"
-        />
-      </div>
-    </footer>
   </div>
 </div>
 `;
 
-exports[
-  `OrganizationDetails render() pending deletion should render a restoration prompt without action for members 1`
-] = `
+exports[`OrganizationDetails render() pending deletion should render a restoration prompt without action for members 1`] = `
 <div
   class="app"
 >
@@ -252,38 +184,6 @@ exports[
         </div>
       </div>
     </div>
-    <footer>
-      <div
-        class="container"
-      >
-        <div
-          class="pull-right"
-        >
-          <a
-            class="hidden-xs"
-            href="/api/"
-          >
-            API
-          </a>
-          <a
-            href="/docs/"
-          >
-            Docs
-          </a>
-          <a
-            class="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
-            Contribute
-          </a>
-        </div>
-        <a
-          class="icon-sentry-logo"
-          href="/"
-        />
-      </div>
-    </footer>
   </div>
 </div>
 `;

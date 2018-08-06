@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import LazyLoad from 'sentry-ui/lazyLoad';
+import LazyLoad from 'app/components/lazyLoad';
 
 storiesOf('LazyLoad', module).add(
   'default',

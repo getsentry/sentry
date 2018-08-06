@@ -4,18 +4,18 @@ import {Flex} from 'grid-emotion';
 
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../mixins/apiMixin';
-import OrganizationState from '../mixins/organizationState';
-import Tooltip from '../components/tooltip';
-import FileSize from '../components/fileSize';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import IndicatorStore from '../stores/indicatorStore';
-import Pagination from '../components/pagination';
-import LinkWithConfirmation from '../components/linkWithConfirmation';
-import {t} from '../locale';
-import {Panel, PanelHeader, PanelBody, PanelItem} from '../components/panels';
-import EmptyStateWarning from '../components/emptyStateWarning';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
+import Tooltip from 'app/components/tooltip';
+import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import IndicatorStore from 'app/stores/indicatorStore';
+import Pagination from 'app/components/pagination';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import {t} from 'app/locale';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 const ReleaseArtifacts = createReactClass({
   displayName: 'ReleaseArtifacts',
@@ -126,7 +126,9 @@ const ReleaseArtifacts = createReactClass({
       <div>
         <Panel>
           <PanelHeader>
-            <Flex flex="7">{t('Name')}</Flex>
+            <Flex flex="7" pr={2}>
+              {t('Name')}
+            </Flex>
             <Flex flex="2">{t('Distribution')}</Flex>
             <Flex flex="3">{t('Size')}</Flex>
           </PanelHeader>
@@ -134,7 +136,11 @@ const ReleaseArtifacts = createReactClass({
             {this.state.fileList.map(file => {
               return (
                 <PanelItem key={file.id}>
-                  <Flex flex="7" style={{wordWrap: 'break-word'}}>
+                  <Flex
+                    flex="7"
+                    pr={2}
+                    style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
+                  >
                     <strong>{file.name || '(empty)'}</strong>
                   </Flex>
                   <Flex flex="2">

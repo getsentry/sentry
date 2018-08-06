@@ -5,17 +5,18 @@ import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.integrations.slack import SlackIntegration
+from sentry.integrations.slack import SlackIntegrationProvider
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
 class SlackIntegrationTest(IntegrationTestCase):
-    provider = SlackIntegration
+    provider = SlackIntegrationProvider
 
-    @responses.activate
-    def test_basic_flow(self):
-        resp = self.client.get(self.path)
+    def assert_setup_flow(self, team_id='TXXXXXXX1', authorizing_user_id='UXXXXXXX1'):
+        responses.reset()
+
+        resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp['Location'])
         assert redirect.scheme == 'https'
@@ -35,11 +36,10 @@ class SlackIntegrationTest(IntegrationTestCase):
             responses.POST, 'https://slack.com/api/oauth.token',
             json={
                 'ok': True,
-                'user_id': 'UXXXXXXX1',
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'team_id': 'TXXXXXXX1',
+                'team_id': team_id,
                 'team_name': 'Example',
-                'installer_user_id': 'UXXXXXXX1',
+                'authorizing_user_id': authorizing_user_id,
             }
         )
 
@@ -55,7 +55,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         )
 
         resp = self.client.get('{}?{}'.format(
-            self.path,
+            self.setup_path,
             urlencode({
                 'code': 'oauth-code',
                 'state': authorize_params['state'],
@@ -72,6 +72,10 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
+
+    @responses.activate
+    def test_basic_flow(self):
+        self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == 'TXXXXXXX1'
@@ -90,7 +94,7 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         idp = IdentityProvider.objects.get(
             type='slack',
-            organization=self.organization,
+            external_id='TXXXXXXX1',
         )
         identity = Identity.objects.get(
             idp=idp,
@@ -98,3 +102,40 @@ class SlackIntegrationTest(IntegrationTestCase):
             external_id='UXXXXXXX1',
         )
         assert identity.status == IdentityStatus.VALID
+
+    @responses.activate
+    def test_multiple_integrations(self):
+        self.assert_setup_flow()
+        self.assert_setup_flow(team_id='TXXXXXXX2', authorizing_user_id='UXXXXXXX2')
+
+        integrations = Integration.objects.filter(provider=self.provider.key)
+
+        assert integrations.count() == 2
+        assert integrations[0].external_id == 'TXXXXXXX1'
+        assert integrations[1].external_id == 'TXXXXXXX2'
+
+        oi = OrganizationIntegration.objects.get(
+            integration=integrations[1],
+            organization=self.organization,
+        )
+        assert oi.config == {}
+
+        idps = IdentityProvider.objects.filter(type='slack')
+
+        assert idps.count() == 2
+
+        identities = Identity.objects.all()
+
+        assert identities.count() == 2
+        assert identities[0].external_id != identities[1].external_id
+        assert identities[0].idp != identities[1].idp
+
+    @responses.activate
+    def test_reassign_user(self):
+        self.assert_setup_flow()
+        identity = Identity.objects.get()
+        assert identity.external_id == 'UXXXXXXX1'
+
+        self.assert_setup_flow(authorizing_user_id='UXXXXXXX2')
+        identity = Identity.objects.get()
+        assert identity.external_id == 'UXXXXXXX2'

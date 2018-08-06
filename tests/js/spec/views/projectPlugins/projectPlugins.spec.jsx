@@ -4,6 +4,7 @@ import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function() {
   let wrapper;
+  let routerContext = TestStubs.routerContext();
   let plugins = TestStubs.Plugins();
   let org = TestStubs.Organization();
   let project = TestStubs.Project();
@@ -13,13 +14,19 @@ describe('ProjectPlugins', function() {
   };
 
   it('renders', function() {
-    wrapper = shallow(<ProjectPlugins params={params} plugins={plugins} />);
+    wrapper = shallow(
+      <ProjectPlugins params={params} plugins={plugins} />,
+      routerContext
+    );
 
     expect(wrapper).toMatchSnapshot();
   });
 
   it('has loading state', function() {
-    wrapper = shallow(<ProjectPlugins params={params} loading plugins={[]} />);
+    wrapper = shallow(
+      <ProjectPlugins params={params} loading plugins={[]} />,
+      routerContext
+    );
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
@@ -31,10 +38,11 @@ describe('ProjectPlugins', function() {
         plugins={null}
         loading
         error={new Error('An error')}
-      />
+      />,
+      routerContext
     );
 
-    expect(wrapper.find('RouteError')).toHaveLength(1);
+    expect(wrapper.dive().find('RouteError')).toHaveLength(1);
   });
 
   it('has error state when plugins=[]', function() {
@@ -44,9 +52,9 @@ describe('ProjectPlugins', function() {
         plugins={[]}
         loading
         error={new Error('An error')}
-      />
+      />,
+      routerContext
     );
-
-    expect(wrapper.find('RouteError')).toHaveLength(1);
+    expect(wrapper.dive().find('RouteError')).toHaveLength(1);
   });
 });

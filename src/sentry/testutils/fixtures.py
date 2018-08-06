@@ -29,6 +29,7 @@ from sentry.models import (
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
 )
+from sentry.utils.canonical import CanonicalKeyDict
 
 loremipsum = Generator()
 
@@ -162,6 +163,7 @@ DEFAULT_EVENT_DATA = {
         ],
     },
     'tags': [],
+    'platform': 'python',
 }
 
 
@@ -428,7 +430,8 @@ class Fixtures(object):
         kwargs.setdefault('is_superuser', False)
 
         user = User(email=email, **kwargs)
-        user.set_password('admin')
+        if not kwargs.get('password'):
+            user.set_password('admin')
         user.save()
 
         # UserEmail is created by a signal
@@ -457,11 +460,16 @@ class Fixtures(object):
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('data', copy.deepcopy(DEFAULT_EVENT_DATA))
+        kwargs.setdefault('platform', kwargs['data'].get('platform', 'python'))
+        kwargs.setdefault('message', kwargs['data'].get('message', 'message'))
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
                 tags = list(tags.items())
             kwargs['data']['tags'] = tags
+        if kwargs.get('stacktrace'):
+            stacktrace = kwargs.pop('stacktrace')
+            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
 
         kwargs['data'].setdefault(
             'errors', [{
@@ -487,6 +495,7 @@ class Fixtures(object):
                 }
             )
 
+        kwargs['data'] = CanonicalKeyDict(kwargs.pop('data'))
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,
@@ -607,7 +616,7 @@ class Fixtures(object):
             )
         if 'short_id' not in kwargs:
             kwargs['short_id'] = project.next_short_id()
-        return Group.objects.create(project=project, ** kwargs)
+        return Group.objects.create(project=project, **kwargs)
 
     def create_file(self, **kwargs):
         return File.objects.create(**kwargs)

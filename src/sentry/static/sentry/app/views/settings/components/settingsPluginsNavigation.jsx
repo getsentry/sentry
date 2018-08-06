@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../../locale';
-import SentryTypes from '../../../proptypes';
-import SettingsNavItem from './settingsNavItem';
-import NavSection from './navSection.styled';
-import SettingsHeading from './settingsHeading.styled';
-import replaceRouterParams from '../../../utils/replaceRouterParams';
-import PluginNavigation from '../../projectSettings/pluginNavigation';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
+import NavSection from 'app/views/settings/components/navSection.styled';
+import SettingsHeading from 'app/views/settings/components/settingsHeading.styled';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 
 /**
  * Navigation menu for integrations.

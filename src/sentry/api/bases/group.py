@@ -44,7 +44,7 @@ class GroupEndpoint(Endpoint):
         try:
             group, _ = get_group_with_redirect(
                 issue_id,
-                queryset=Group.objects.select_related('project'),
+                queryset=Group.objects.select_related('project', 'project__organization'),
             )
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
@@ -60,6 +60,8 @@ class GroupEndpoint(Endpoint):
 
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
+
+        request._request.organization = group.project.organization
 
         kwargs['group'] = group
 

@@ -1,12 +1,18 @@
 import PropTypes from 'prop-types';
-import React, {Fragment, Component} from 'react';
+import React, {Component} from 'react';
 
-import {t} from '../../locale';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {Panel, PanelItem} from '../../components/panels';
-import ProjectPluginRow from './projectPluginRow';
-import RouteError from '../routeError';
-import SentryTypes from '../../proptypes';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
+import {t} from 'app/locale';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
+import RouteError from 'app/views/routeError';
+import SentryTypes from 'app/sentryTypes';
 
 class ProjectPlugins extends Component {
   static propTypes = {
@@ -32,28 +38,30 @@ class ProjectPlugins extends Component {
     }
 
     return (
-      <Panel
-        title={
-          <React.Fragment>
-            <div>{t('Legacy Integration')}</div>
-            <div>{t('Enabled')}</div>
-          </React.Fragment>
-        }
-        body={
-          <Fragment>
-            {plugins.map(plugin => (
-              <PanelItem key={plugin.id}>
-                <ProjectPluginRow
-                  params={params}
-                  routes={routes}
-                  {...plugin}
-                  onChange={onChange}
-                />
-              </PanelItem>
-            ))}
-          </Fragment>
-        }
-      />
+      <Panel>
+        <PanelHeader>
+          <div>{t('Legacy Integration')}</div>
+          <div>{t('Enabled')}</div>
+        </PanelHeader>
+        <PanelBody>
+          <PanelAlert type="warning">
+            {t(
+              "Legacy Integrations must be configured per-project. It's recommended to prefer organization-integrations over the legacy project integrations when available, as features will be more robust and flexible."
+            )}
+          </PanelAlert>
+
+          {plugins.map(plugin => (
+            <PanelItem key={plugin.id}>
+              <ProjectPluginRow
+                params={params}
+                routes={routes}
+                {...plugin}
+                onChange={onChange}
+              />
+            </PanelItem>
+          ))}
+        </PanelBody>
+      </Panel>
     );
   }
 }

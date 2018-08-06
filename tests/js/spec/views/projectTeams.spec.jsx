@@ -5,6 +5,7 @@ import {Client} from 'app/api';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 
+jest.unmock('app/actionCreators/modal');
 jest.mock('app/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
@@ -101,8 +102,11 @@ describe('ProjectTeams', function() {
       })
     );
 
+    await tick();
+
     // Remove second team
     wrapper
+      .update()
       .find('PanelBody Button')
       .first()
       .simulate('click');
@@ -148,32 +152,6 @@ describe('ProjectTeams', function() {
       endpoint,
       expect.objectContaining({
         method: 'POST',
-      })
-    );
-  });
-
-  it('opens "create team modal" when creating a new team from header', function() {
-    let wrapper = mount(
-      <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
-        project={project}
-        organization={org}
-      />,
-      TestStubs.routerContext()
-    );
-
-    // Click "Create Team" in Panel Header
-    wrapper.find('SettingsPageHeading Button').simulate('click');
-
-    // action creator to open "create team modal" is called
-    expect(openCreateTeamModal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        project: expect.objectContaining({
-          slug: project.slug,
-        }),
-        organization: expect.objectContaining({
-          slug: org.slug,
-        }),
       })
     );
   });

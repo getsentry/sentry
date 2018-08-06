@@ -64,4 +64,5 @@ def create_citext_extension(db, **kwargs):
         except Exception:
             pass
 
+
 pre_syncdb.connect(create_citext_extension)

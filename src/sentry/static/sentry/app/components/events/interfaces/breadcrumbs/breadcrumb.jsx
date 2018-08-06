@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
-import HttpRenderer from './httpRenderer';
-import ErrorRenderer from './errorRenderer';
-import DefaultRenderer from './defaultRenderer';
+import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
+import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRenderer';
+import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
 
 const CUSTOM_RENDERERS = {
   http: HttpRenderer,

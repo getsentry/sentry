@@ -2,15 +2,15 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import LoadingIndicator from '../../components/loadingIndicator';
-import LoadingError from '../../components/loadingError';
-import DropdownLink from '../../components/dropdownLink';
-import MenuItem from '../../components/menuItem';
-import ApiMixin from '../../mixins/apiMixin';
-import CommitRow from '../../components/commitRow';
-import {Panel, PanelHeader, PanelBody} from '../../components/panels';
-import {t} from '../../locale';
-import EmptyStateWarning from '../../components/emptyStateWarning';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import ApiMixin from 'app/mixins/apiMixin';
+import CommitRow from 'app/components/commitRow';
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 const ReleaseCommits = createReactClass({
   displayName: 'ReleaseCommits',

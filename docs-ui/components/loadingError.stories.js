@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import LoadingError from 'sentry-ui/loadingError';
+import LoadingError from 'app/components/loadingError';
 
 // eslint-disable-next-line
 storiesOf('LoadingError', module)

@@ -16,6 +16,7 @@
 {% block main %}
     <h2 style="margin-bottom: 15px">
         New alert from <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
+        {% if environment %} in {{ environment }}{% endif %}
     </h2>
 
     {% if enhanced_privacy %}

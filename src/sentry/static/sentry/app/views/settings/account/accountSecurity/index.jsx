@@ -4,65 +4,63 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import PropTypes from 'prop-types';
 
-import {addErrorMessage} from '../../../../actionCreators/indicator';
-import {t} from '../../../../locale';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import CircleIndicator from '../../../../components/circleIndicator';
-import EmptyMessage from '../../components/emptyMessage';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../../components/panels';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import RemoveConfirm from './components/removeConfirm';
-import PasswordForm from '../passwordForm';
-
-const ENDPOINT = '/users/me/authenticators/';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import Tooltip from 'app/components/tooltip';
+import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import PasswordForm from 'app/views/settings/account/passwordForm';
 
 const AuthenticatorName = styled.span`
   font-size: 1.2em;
 `;
 
 class AccountSecurity extends AsyncView {
-  getEndpoints() {
-    return [['authenticators', '/users/me/authenticators/']];
-  }
-
+  static PropTypes = {
+    authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
+    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
+    countEnrolled: PropTypes.number.isRequired,
+    deleteDisabled: PropTypes.bool.isRequired,
+    onDisable: PropTypes.func.isRequired,
+  };
   getTitle() {
     return t('Security');
   }
 
-  handleDisable = auth => {
-    if (!auth || !auth.authId) return;
-
-    this.setState(
-      {
-        loading: true,
-      },
-      () =>
-        this.api
-          .requestPromise(`${ENDPOINT}${auth.authId}/`, {
-            method: 'DELETE',
-          })
-          .then(this.remountComponent, () => {
-            this.setState({loading: false});
-            addErrorMessage(t('Error disabling', auth.name));
-          })
-    );
-  };
+  getEndpoints() {
+    return [];
+  }
 
   renderBody() {
-    let isEmpty = !this.state.authenticators.length;
+    let {
+      authenticators,
+      orgsRequire2fa,
+      countEnrolled,
+      deleteDisabled,
+      onDisable,
+    } = this.props;
+    let isEmpty = !authenticators.length;
 
     return (
       <div>
         <SettingsPageHeader title="Security" />
 
+        {!isEmpty &&
+          countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
+
         <PasswordForm />
 
         <Panel>
           <PanelHeader>
-            <Box>{t('Two Factor Authentication')}</Box>
+            <Box>{t('Two-Factor Authentication')}</Box>
           </PanelHeader>
 
           {isEmpty && (
@@ -71,7 +69,7 @@ class AccountSecurity extends AsyncView {
 
           <PanelBody>
             {!isEmpty &&
-              this.state.authenticators.map(auth => {
+              authenticators.map(auth => {
                 let {
                   id,
                   authId,
@@ -95,6 +93,7 @@ class AccountSecurity extends AsyncView {
                             to={`/settings/account/security/${id}/enroll/`}
                             size="small"
                             priority="primary"
+                            className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
@@ -105,6 +104,7 @@ class AccountSecurity extends AsyncView {
                           <Button
                             to={`/settings/account/security/${authId}/`}
                             size="small"
+                            className="details-button"
                           >
                             {configureButton}
                           </Button>
@@ -112,11 +112,23 @@ class AccountSecurity extends AsyncView {
 
                       {!isBackupInterface &&
                         isEnrolled && (
-                          <RemoveConfirm onConfirm={() => this.handleDisable(auth)}>
-                            <Button css={{marginLeft: 6}} size="small">
-                              <span className="icon icon-trash" />
-                            </Button>
-                          </RemoveConfirm>
+                          <Tooltip
+                            title={t(
+                              "Two-factor authentication is required for at least one organization you're a member of."
+                            )}
+                            disabled={!deleteDisabled}
+                          >
+                            <span>
+                              <RemoveConfirm
+                                onConfirm={() => onDisable(auth)}
+                                disabled={deleteDisabled}
+                              >
+                                <Button css={{marginLeft: 6}} size="small">
+                                  <span className="icon icon-trash" />
+                                </Button>
+                              </RemoveConfirm>
+                            </span>
+                          </Tooltip>
                         )}
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import IndicatorStore from '../stores/indicatorStore';
+import IndicatorStore from 'app/stores/indicatorStore';
 
 class Clipboard extends React.Component {
   static propTypes = {

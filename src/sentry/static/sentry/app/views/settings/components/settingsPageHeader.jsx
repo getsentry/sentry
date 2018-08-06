@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
+import space from 'app/styles/space';
 
 class SettingsPageHeading extends React.Component {
   static propTypes = {
@@ -9,6 +10,12 @@ class SettingsPageHeading extends React.Component {
     title: PropTypes.node,
     action: PropTypes.node,
     tabs: PropTypes.node,
+    // Disables font styles in the title. Allows for more custom titles.
+    noTitleStyles: PropTypes.bool,
+  };
+
+  static defualtProps = {
+    noTitleStyles: false,
   };
 
   render() {
@@ -16,7 +23,9 @@ class SettingsPageHeading extends React.Component {
       <Wrapper tabs={this.props.tabs}>
         <Flex align="center">
           {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
-          {this.props.title && <Title>{this.props.title}</Title>}
+          {this.props.title && (
+            <Title styled={this.props.noTitleStyles}>{this.props.title}</Title>
+          )}
           {this.props.action && <div>{this.props.action}</div>}
         </Flex>
 
@@ -26,17 +35,20 @@ class SettingsPageHeading extends React.Component {
   }
 }
 
+const Title = styled(Flex)`
+  ${p =>
+    !p.styled &&
+    `
+    font-size: 20px;
+    font-weight: bold;`};
+  margin: ${space(3)} 0;
+  flex: 1;
+`;
+
 const Wrapper = styled.div`
   font-size: 14px;
   box-shadow: inset 0 -1px 0 ${p => p.theme.borderLight};
-  margin: -20px 0 30px;
-`;
-
-const Title = styled.div`
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  flex: 1;
+  margin: -${space(3)} 0 ${space(3)};
 `;
 
 export default SettingsPageHeading;

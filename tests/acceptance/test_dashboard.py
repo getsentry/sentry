@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
-from sentry.models import GroupAssignee
+from sentry.models import GroupAssignee, Release, Environment, Deploy, ReleaseProjectEnvironment
 from sentry.utils.samples import create_sample_event
 from datetime import datetime
 
@@ -28,18 +28,40 @@ class DashboardTest(AcceptanceTestCase):
             role='owner',
             teams=[self.team],
         )
+
+        release = Release.objects.create(
+            organization_id=self.org.id,
+            version='1',
+        )
+
+        environment = Environment.objects.create(
+            organization_id=self.org.id,
+            name='production',
+        )
+
+        deploy = Deploy.objects.create(
+            environment_id=environment.id,
+            organization_id=self.org.id,
+            release=release,
+            date_finished='2018-05-23'
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            last_deploy_id=deploy.id
+        )
+
         self.login_as(self.user)
         self.path = '/{}/'.format(self.org.slug)
 
     def test_no_issues(self):
+        # I think no "activity" would be more accurate?
         self.project.update(first_event=None)
         self.browser.get(self.path)
-        # dashboard is a bit complex to load since it has many subcomponents
-        # so we bank on a few containers being enough of a check
-        self.browser.wait_until('.organization-home')
-        self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.awaiting-events')
+        self.browser.wait_until('[data-test-id="awaiting-events"]')
         self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
@@ -60,11 +82,31 @@ class DashboardTest(AcceptanceTestCase):
         )
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
-        # dashboard is a bit complex to load since it has many subcomponents
-        # so we bank on the core container and the activity container being
-        # enough of a check
-        self.browser.wait_until('.organization-home')
-        self.browser.wait_until('.dashboard-barchart')
         self.browser.wait_until_not('.loading-indicator')
-        assert not self.browser.element_exists('.awaiting-events')
+        self.browser.wait_until('[data-test-id] figure')
         self.browser.snapshot('org dash one issue')
+
+
+class EmptyDashboardTest(AcceptanceTestCase):
+    def setUp(self):
+        super(EmptyDashboardTest, self).setUp()
+        self.user = self.create_user('foo@example.com')
+        self.org = self.create_organization(
+            name='Rowdy Tiger',
+            owner=None,
+        )
+        self.team = self.create_team(organization=self.org, name='Mariachi Band')
+        self.create_member(
+            user=self.user,
+            organization=self.org,
+            role='owner',
+            teams=[self.team],
+        )
+        self.login_as(self.user)
+        self.path = '/{}/'.format(self.org.slug)
+
+    def test_new_dashboard_empty(self):
+        with self.feature('organizations:dashboard'):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.snapshot('new dashboard empty')

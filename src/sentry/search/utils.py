@@ -8,7 +8,7 @@ from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, User
+from sentry.models import EventUser, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
@@ -51,74 +51,150 @@ def parse_datetime_range(value):
         raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag == '-':
-        return (timezone.now() - delta, None)
+        return (
+            (timezone.now() - delta, True),
+            None,
+        )
     else:
-        return (None, timezone.now() - delta)
+        return (
+            None,
+            (timezone.now() - delta, True),
+        )
+
+
+DATE_FORMAT = '%Y-%m-%d'
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+DATETIME_FORMAT_MICROSECONDS = '%Y-%m-%dT%H:%M:%S.%f'
+
+
+def parse_unix_timestamp(value):
+    return datetime.utcfromtimestamp(float(value)).replace(tzinfo=timezone.utc)
+
+
+def parse_datetime_string(value):
+    # timezones are not supported and are assumed UTC
+    if value[-1:] == 'Z':
+        value = value[:-1]
+
+    for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
+        try:
+            return datetime.strptime(value, format).replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
+
+    try:
+        return parse_unix_timestamp(value)
+    except ValueError:
+        pass
+
+    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
 def parse_datetime_comparison(value):
-    # TODO(dcramer): currently inclusitivity is not controllable by the query
-    # as from date is always inclusive, and to date is always exclusive
-    if value[:2] in ('>=', '=>'):
-        return (parse_datetime_value(value[2:])[0], None)
-    if value[:2] in ('<=', '=<'):
-        return (None, parse_datetime_value(value[2:])[0])
-    if value[:1] in ('>'):
-        return (parse_datetime_value(value[1:])[0], None)
-    if value[:1] in ('<'):
-        return (None, parse_datetime_value(value[1:])[0])
-    if value[0] == '=':
-        return parse_datetime_value(value[1:])
+    if value[:2] == '>=':
+        return (
+            (parse_datetime_string(value[2:]), True),
+            None,
+        )
+    if value[:2] == '<=':
+        return (
+            None,
+            (parse_datetime_string(value[2:]), True),
+        )
+    if value[:1] == '>':
+        return (
+            (parse_datetime_string(value[1:]), False),
+            None,
+        )
+    if value[:1] == '<':
+        return (
+            None,
+            (parse_datetime_string(value[1:]), False),
+        )
+
     raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
 def parse_datetime_value(value):
-    try:
-        return _parse_datetime_value(value)
-    except (ValueError, IndexError):
-        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
-
-
-def _parse_datetime_value(value):
-    # this one is fuzzy, and not entirely correct
-    if value.startswith(('-', '+')):
-        return parse_datetime_range(value)
-
     # timezones are not supported and are assumed UTC
-    if value[-1] == 'Z':
+    if value[-1:] == 'Z':
         value = value[:-1]
 
-    value_len = len(value)
-    if value_len in (8, 10):
-        value = datetime.strptime(value, '%Y-%m-%d').replace(
-            tzinfo=timezone.utc,
-        )
-        return [value, value + timedelta(days=1)]
-    elif value[4] == '-':
-        try:
-            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S').replace(
-                tzinfo=timezone.utc,
-            )
-        except ValueError:
-            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f').replace(
-                tzinfo=timezone.utc,
-            )
+    result = None
+
+    # A value that only specifies the date (without a time component) should be
+    # expanded to an interval that spans the entire day.
+    try:
+        result = datetime.strptime(value, DATE_FORMAT).replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
     else:
-        value = datetime.utcfromtimestamp(float(value)).replace(
-            tzinfo=timezone.utc,
+        return (
+            (result, True),
+            (result + timedelta(days=1), False),
         )
-    return [value - timedelta(minutes=5), value + timedelta(minutes=6)]
+
+    # A value that contains the time should converted to an interval.
+    for format in [DATETIME_FORMAT, DATETIME_FORMAT_MICROSECONDS]:
+        try:
+            result = datetime.strptime(value, format).replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
+        else:
+            break  # avoid entering the else clause below
+    else:
+        try:
+            result = parse_unix_timestamp(value)
+        except ValueError:
+            pass
+
+    if result is None:
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
+
+    return (
+        (result - timedelta(minutes=5), True),
+        (result + timedelta(minutes=6), False),
+    )
 
 
 def parse_datetime_expression(value):
-    # result must be (from inclusive, to exclusive)
     if value.startswith(('-', '+')):
         return parse_datetime_range(value)
-
-    if value.startswith(('>', '<', '=', '<=', '>=')):
+    elif value.startswith(('>', '<', '<=', '>=')):
         return parse_datetime_comparison(value)
+    else:
+        return parse_datetime_value(value)
 
-    return parse_datetime_value(value)
+
+def get_date_params(value, from_field, to_field):
+    date_from, date_to = parse_datetime_expression(value)
+    result = {}
+    if date_from is not None:
+        date_from_value, date_from_inclusive = date_from
+        result.update({
+            from_field: date_from_value,
+            '{}_inclusive'.format(from_field): date_from_inclusive,
+        })
+    if date_to is not None:
+        date_to_value, date_to_inclusive = date_to
+        result.update({
+            to_field: date_to_value,
+            '{}_inclusive'.format(to_field): date_to_inclusive,
+        })
+    return result
+
+
+def parse_team_value(project, value, user):
+    return Team.objects.filter(
+        slug__iexact=value[1:],
+        projectteam__project=project,
+    ).first() or Team(id=0)
+
+
+def parse_actor_value(project, value, user):
+    if value.startswith('#'):
+        return parse_team_value(project, value, user)
+    return parse_user_value(value, user)
 
 
 def parse_user_value(value, user):
@@ -131,22 +207,6 @@ def parse_user_value(value, user):
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
         return User(id=0)
-
-
-def get_date_params(value, from_field, to_field):
-    date_from, date_to = parse_datetime_expression(value)
-    result = {}
-    if date_from:
-        result.update({
-            from_field: date_from,
-            '{}_inclusive'.format(from_field): True,
-        })
-    if date_to:
-        result.update({
-            to_field: date_to,
-            '{}_inclusive'.format(to_field): False,
-        })
-    return result
 
 
 numeric_modifiers = [
@@ -184,39 +244,6 @@ def get_numeric_field_value(field, raw_value, type=int):
         return {
             field: type(raw_value),
         }
-
-
-reserved_tag_names = frozenset(
-    [
-        'query',
-        'is',
-        'assigned',
-        'bookmarks',
-        'subscribed',
-        'first-release',
-        'firstRelease',
-        'release',
-        'level',
-        'user',
-        'user.id',
-        'user.ip',
-        'has',
-        'age',
-        'firstSeen',
-        'activeSince',
-        'last_seen',
-        'lastSeen',
-        'environment',
-        'browser',
-        'device',
-        'os',
-        'app',
-        'os.name',
-        'url',
-        'event.timestamp'
-        'timesSeen',
-    ]
-)
 
 
 def tokenize_query(query):
@@ -342,7 +369,7 @@ def parse_query(project, query, user):
                     except KeyError:
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
-                results['assigned_to'] = parse_user_value(value, user)
+                results['assigned_to'] = parse_actor_value(project, value, user)
             elif key == 'bookmarks':
                 results['bookmarked_by'] = parse_user_value(value, user)
             elif key == 'subscribed':
@@ -364,7 +391,9 @@ def parse_query(project, query, user):
                     value = 'sentry:user'
                 elif value == 'release':
                     value = 'sentry:release'
-                results['tags'][value] = ANY
+                # `has:x` query should not take precedence over `x:value` queries
+                if value not in results['tags']:
+                    results['tags'][value] = ANY
             elif key in ('age', 'firstSeen'):
                 results.update(get_date_params(value, 'age_from', 'age_to'))
             elif key in ('last_seen', 'lastSeen'):

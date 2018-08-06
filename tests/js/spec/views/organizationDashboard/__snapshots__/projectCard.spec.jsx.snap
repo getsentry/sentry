@@ -1,0 +1,775 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectCard renders 1`] = `
+<ProjectCard
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+  project={
+    Object {
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "platforms": Array [
+        "javascript",
+      ],
+      "slug": "project-slug",
+      "stats": Array [
+        Array [
+          1525042800,
+          1,
+        ],
+        Array [
+          1525046400,
+          2,
+        ],
+      ],
+      "teams": Array [],
+    }
+  }
+>
+  <ProjectCardWrapper
+    data-test-id="project-slug"
+    width={
+      Array [
+        "100%",
+        "50%",
+        "33%",
+        "25%",
+      ]
+    }
+  >
+    <Base
+      className="css-3jemnr-ProjectCardWrapper efesc7i2"
+      data-test-id="project-slug"
+      width={
+        Array [
+          "100%",
+          "50%",
+          "33%",
+          "25%",
+        ]
+      }
+    >
+      <div
+        className="css-3jemnr-ProjectCardWrapper efesc7i2"
+        data-test-id="project-slug"
+        is={null}
+      >
+        <StyledProjectCard>
+          <div
+            className="css-18be1td-StyledProjectCard efesc7i3"
+          >
+            <Flex
+              align="center"
+              justify="space-between"
+            >
+              <Base
+                align="center"
+                className="css-v7pzd9"
+                justify="space-between"
+              >
+                <div
+                  className="css-v7pzd9"
+                  is={null}
+                >
+                  <Box
+                    ml={2}
+                  >
+                    <Base
+                      className="css-1dvsqd3"
+                      ml={2}
+                    >
+                      <div
+                        className="css-1dvsqd3"
+                        is={null}
+                      >
+                        <IdBadge
+                          avatarSize={24}
+                          displayName={
+                            <StyledTitle>
+                              <div>
+                                project-slug
+                              </div>
+                            </StyledTitle>
+                          }
+                          project={
+                            Object {
+                              "hasAccess": true,
+                              "id": "2",
+                              "isBookmarked": false,
+                              "isMember": true,
+                              "name": "Project Name",
+                              "platforms": Array [
+                                "javascript",
+                              ],
+                              "slug": "project-slug",
+                              "stats": Array [
+                                Array [
+                                  1525042800,
+                                  1,
+                                ],
+                                Array [
+                                  1525046400,
+                                  2,
+                                ],
+                              ],
+                              "teams": Array [],
+                            }
+                          }
+                        >
+                          <InlineErrorBoundary
+                            mini={true}
+                          >
+                            <ErrorBoundary
+                              className="css-otlbo1-InlineErrorBoundary e83vi020"
+                              mini={true}
+                            >
+                              <ProjectBadge
+                                avatarSize={24}
+                                displayName={
+                                  <StyledTitle>
+                                    <div>
+                                      project-slug
+                                    </div>
+                                  </StyledTitle>
+                                }
+                                hideAvatar={false}
+                                hideOverflow={true}
+                                project={
+                                  Object {
+                                    "hasAccess": true,
+                                    "id": "2",
+                                    "isBookmarked": false,
+                                    "isMember": true,
+                                    "name": "Project Name",
+                                    "platforms": Array [
+                                      "javascript",
+                                    ],
+                                    "slug": "project-slug",
+                                    "stats": Array [
+                                      Array [
+                                        1525042800,
+                                        1,
+                                      ],
+                                      Array [
+                                        1525046400,
+                                        2,
+                                      ],
+                                    ],
+                                    "teams": Array [],
+                                  }
+                                }
+                              >
+                                <BaseBadge
+                                  avatarProps={Object {}}
+                                  avatarSize={24}
+                                  displayName={
+                                    <StyledTitle>
+                                      <div>
+                                        project-slug
+                                      </div>
+                                    </StyledTitle>
+                                  }
+                                  hideAvatar={false}
+                                  project={
+                                    Object {
+                                      "hasAccess": true,
+                                      "id": "2",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "platforms": Array [
+                                        "javascript",
+                                      ],
+                                      "slug": "project-slug",
+                                      "stats": Array [
+                                        Array [
+                                          1525042800,
+                                          1,
+                                        ],
+                                        Array [
+                                          1525046400,
+                                          2,
+                                        ],
+                                      ],
+                                      "teams": Array [],
+                                    }
+                                  }
+                                >
+                                  <Flex
+                                    align="center"
+                                  >
+                                    <Base
+                                      align="center"
+                                      className="css-5ipae5"
+                                    >
+                                      <div
+                                        className="css-5ipae5"
+                                        is={null}
+                                      >
+                                        <StyledAvatar
+                                          className="css-0"
+                                          project={
+                                            Object {
+                                              "hasAccess": true,
+                                              "id": "2",
+                                              "isBookmarked": false,
+                                              "isMember": true,
+                                              "name": "Project Name",
+                                              "platforms": Array [
+                                                "javascript",
+                                              ],
+                                              "slug": "project-slug",
+                                              "stats": Array [
+                                                Array [
+                                                  1525042800,
+                                                  1,
+                                                ],
+                                                Array [
+                                                  1525046400,
+                                                  2,
+                                                ],
+                                              ],
+                                              "teams": Array [],
+                                            }
+                                          }
+                                          size={24}
+                                        >
+                                          <Avatar
+                                            className="css-robds0-StyledAvatar e165dl3i0"
+                                            hasTooltip={false}
+                                            project={
+                                              Object {
+                                                "hasAccess": true,
+                                                "id": "2",
+                                                "isBookmarked": false,
+                                                "isMember": true,
+                                                "name": "Project Name",
+                                                "platforms": Array [
+                                                  "javascript",
+                                                ],
+                                                "slug": "project-slug",
+                                                "stats": Array [
+                                                  Array [
+                                                    1525042800,
+                                                    1,
+                                                  ],
+                                                  Array [
+                                                    1525046400,
+                                                    2,
+                                                  ],
+                                                ],
+                                                "teams": Array [],
+                                              }
+                                            }
+                                            size={24}
+                                          >
+                                            <ProjectAvatar
+                                              className="css-robds0-StyledAvatar e165dl3i0"
+                                              hasTooltip={false}
+                                              project={
+                                                Object {
+                                                  "hasAccess": true,
+                                                  "id": "2",
+                                                  "isBookmarked": false,
+                                                  "isMember": true,
+                                                  "name": "Project Name",
+                                                  "platforms": Array [
+                                                    "javascript",
+                                                  ],
+                                                  "slug": "project-slug",
+                                                  "stats": Array [
+                                                    Array [
+                                                      1525042800,
+                                                      1,
+                                                    ],
+                                                    Array [
+                                                      1525046400,
+                                                      2,
+                                                    ],
+                                                  ],
+                                                  "teams": Array [],
+                                                }
+                                              }
+                                              size={24}
+                                            >
+                                              <PlatformList
+                                                className="css-robds0-StyledAvatar e165dl3i0"
+                                                consistentWidth={false}
+                                                direction="right"
+                                                hasTooltip={false}
+                                                max={3}
+                                                platforms={
+                                                  Array [
+                                                    "javascript",
+                                                  ]
+                                                }
+                                                size={24}
+                                              >
+                                                <PlatformIcons
+                                                  consistentWidth={false}
+                                                  direction="right"
+                                                  max={3}
+                                                  size={24}
+                                                >
+                                                  <div
+                                                    className="css-zaq10o-PlatformIcons ezvce7z0"
+                                                    direction="right"
+                                                    max={3}
+                                                    size={24}
+                                                  >
+                                                    <StyledPlatformIcon
+                                                      key="javascript"
+                                                      platform="javascript"
+                                                      size={24}
+                                                    >
+                                                      <Component
+                                                        className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                        platform="javascript"
+                                                        size={24}
+                                                      >
+                                                        <Platformicon
+                                                          className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                          platform="javascript"
+                                                          size="24px"
+                                                        >
+                                                          <img
+                                                            className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                            height="24px"
+                                                            src={
+                                                              Object {
+                                                                "default": Object {
+                                                                  "id": "test",
+                                                                  "viewBox": Object {},
+                                                                },
+                                                              }
+                                                            }
+                                                            width="24px"
+                                                          />
+                                                        </Platformicon>
+                                                      </Component>
+                                                    </StyledPlatformIcon>
+                                                  </div>
+                                                </PlatformIcons>
+                                              </PlatformList>
+                                            </ProjectAvatar>
+                                          </Avatar>
+                                        </StyledAvatar>
+                                        <DisplayNameAndDescription>
+                                          <Base
+                                            className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                          >
+                                            <div
+                                              className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                              is={null}
+                                            >
+                                              <div
+                                                data-test-id="badge-display-name"
+                                              >
+                                                <StyledTitle>
+                                                  <div
+                                                    className="css-25y8kw-StyledTitle efesc7i1"
+                                                  >
+                                                    <div>
+                                                      project-slug
+                                                    </div>
+                                                  </div>
+                                                </StyledTitle>
+                                              </div>
+                                            </div>
+                                          </Base>
+                                        </DisplayNameAndDescription>
+                                      </div>
+                                    </Base>
+                                  </Flex>
+                                </BaseBadge>
+                              </ProjectBadge>
+                            </ErrorBoundary>
+                          </InlineErrorBoundary>
+                        </IdBadge>
+                      </div>
+                    </Base>
+                  </Box>
+                  <Tooltip
+                    title="Add to bookmarks"
+                  >
+                    <Star
+                      active={false}
+                      className="tip project-select-bookmark icon icon-star-solid"
+                      onClick={[Function]}
+                      title="Add to bookmarks"
+                    >
+                      <a
+                        className="tip project-select-bookmark icon icon-star-solid css-9lfgnk-Star efesc7i4"
+                        onClick={[Function]}
+                        title="Add to bookmarks"
+                      />
+                    </Star>
+                  </Tooltip>
+                </div>
+              </Base>
+            </Flex>
+            <ChartContainer>
+              <div
+                className="css-1s8o1vf-ChartContainer efesc7i0"
+              >
+                <Chart
+                  noEvents={true}
+                  stats={
+                    Array [
+                      Array [
+                        1525042800,
+                        1,
+                      ],
+                      Array [
+                        1525046400,
+                        2,
+                      ],
+                    ]
+                  }
+                >
+                  <div>
+                    <StyledBarChart
+                      height={60}
+                      label="events"
+                      points={
+                        Array [
+                          Object {
+                            "x": 1525042800,
+                            "y": 1,
+                          },
+                          Object {
+                            "x": 1525046400,
+                            "y": 2,
+                          },
+                        ]
+                      }
+                    >
+                      <BarChart
+                        className="css-h6aoq0-StyledBarChart e1wib7610"
+                        height={60}
+                        label="events"
+                        points={
+                          Array [
+                            Object {
+                              "x": 1525042800,
+                              "y": 1,
+                            },
+                            Object {
+                              "x": 1525046400,
+                              "y": 2,
+                            },
+                          ]
+                        }
+                      >
+                        <StackedBarChart
+                          barClasses={
+                            Array [
+                              "chart-bar",
+                            ]
+                          }
+                          className="css-h6aoq0-StyledBarChart e1wib7610"
+                          height={60}
+                          label="events"
+                          markers={Array []}
+                          points={
+                            Array [
+                              Object {
+                                "x": 1525042800,
+                                "y": Array [
+                                  1,
+                                ],
+                              },
+                              Object {
+                                "x": 1525046400,
+                                "y": Array [
+                                  2,
+                                ],
+                              },
+                            ]
+                          }
+                          series={Array []}
+                          width={null}
+                        >
+                          <figure
+                            className="css-h6aoq0-StyledBarChart e1wib7610 barchart"
+                            style={
+                              Object {
+                                "height": 60,
+                                "width": null,
+                              }
+                            }
+                          >
+                            <span
+                              className="max-y"
+                            >
+                              <count
+                                value={10}
+                              >
+                                <span>
+                                  10
+                                </span>
+                              </count>
+                            </span>
+                            <span
+                              className="min-y"
+                            >
+                              0
+                            </span>
+                            <span>
+                              <Tooltip
+                                key="1525042800"
+                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                tooltipOptions={
+                                  Object {
+                                    "html": true,
+                                    "placement": "bottom",
+                                  }
+                                }
+                              >
+                                <a
+                                  className="tip chart-column"
+                                  style={
+                                    Object {
+                                      "height": "100%",
+                                      "width": "50%",
+                                    }
+                                  }
+                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                >
+                                  <span
+                                    className="chart-bar"
+                                    key="0"
+                                    style={
+                                      Object {
+                                        "backgroundColor": null,
+                                        "bottom": "0%",
+                                        "height": "9.9%",
+                                      }
+                                    }
+                                  >
+                                    1
+                                  </span>
+                                </a>
+                              </Tooltip>
+                              <Tooltip
+                                key="1525046400"
+                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                tooltipOptions={
+                                  Object {
+                                    "html": true,
+                                    "placement": "bottom",
+                                  }
+                                }
+                              >
+                                <a
+                                  className="tip chart-column"
+                                  style={
+                                    Object {
+                                      "height": "100%",
+                                      "width": "50%",
+                                    }
+                                  }
+                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                >
+                                  <span
+                                    className="chart-bar"
+                                    key="0"
+                                    style={
+                                      Object {
+                                        "backgroundColor": null,
+                                        "bottom": "0%",
+                                        "height": "19.8%",
+                                      }
+                                    }
+                                  >
+                                    2
+                                  </span>
+                                </a>
+                              </Tooltip>
+                            </span>
+                          </figure>
+                        </StackedBarChart>
+                      </BarChart>
+                    </StyledBarChart>
+                  </div>
+                </Chart>
+                <NoEvents>
+                  <Container>
+                    <div
+                      className="css-1m9okvh-Container eks1zeg0"
+                    >
+                      <EmptyText
+                        align="center"
+                        justify="center"
+                      >
+                        <Base
+                          align="center"
+                          className="css-k1bbsy-EmptyText eks1zeg1"
+                          justify="center"
+                        >
+                          <div
+                            className="css-k1bbsy-EmptyText eks1zeg1"
+                            is={null}
+                          >
+                            No activity yet.
+                          </div>
+                        </Base>
+                      </EmptyText>
+                    </div>
+                  </Container>
+                </NoEvents>
+              </div>
+            </ChartContainer>
+            <Deploys
+              orgId="org-slug"
+              project={
+                Object {
+                  "hasAccess": true,
+                  "id": "2",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Project Name",
+                  "platforms": Array [
+                    "javascript",
+                  ],
+                  "slug": "project-slug",
+                  "stats": Array [
+                    Array [
+                      1525042800,
+                      1,
+                    ],
+                    Array [
+                      1525046400,
+                      2,
+                    ],
+                  ],
+                  "teams": Array [],
+                }
+              }
+            >
+              <NoDeploys>
+                <DeployBox
+                  p={2}
+                >
+                  <Base
+                    className="css-1y6xtyw-DeployBox eltxe6c5"
+                    p={2}
+                  >
+                    <div
+                      className="css-1y6xtyw-DeployBox eltxe6c5"
+                      is={null}
+                    >
+                      <Background
+                        align="center"
+                        justify="center"
+                      >
+                        <Base
+                          align="center"
+                          className="css-itelel-Background eltxe6c6"
+                          justify="center"
+                        >
+                          <div
+                            className="css-itelel-Background eltxe6c6"
+                            is={null}
+                          >
+                            <Button
+                              disabled={false}
+                              external={true}
+                              href="https://blog.sentry.io/2017/05/09/release-deploys"
+                              size="xsmall"
+                            >
+                              <StyledButton
+                                aria-label="Track deploys"
+                                disabled={false}
+                                external={true}
+                                href="https://blog.sentry.io/2017/05/09/release-deploys"
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
+                              >
+                                <Component
+                                  aria-label="Track deploys"
+                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  disabled={false}
+                                  external={true}
+                                  href="https://blog.sentry.io/2017/05/09/release-deploys"
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ExternalLink
+                                    aria-label="Track deploys"
+                                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                                    disabled={false}
+                                    href="https://blog.sentry.io/2017/05/09/release-deploys"
+                                    onClick={[Function]}
+                                    rel="noreferrer noopener"
+                                    role="button"
+                                    size="xsmall"
+                                    target="_blank"
+                                  >
+                                    <a
+                                      aria-label="Track deploys"
+                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      disabled={false}
+                                      href="https://blog.sentry.io/2017/05/09/release-deploys"
+                                      onClick={[Function]}
+                                      rel="noreferrer noopener"
+                                      role="button"
+                                      size="xsmall"
+                                      target="_blank"
+                                    >
+                                      <ButtonLabel
+                                        size="xsmall"
+                                      >
+                                        <Component
+                                          className="css-6q5v1w-ButtonLabel e17811v31"
+                                          size="xsmall"
+                                        >
+                                          <Flex
+                                            align="center"
+                                            className="css-6q5v1w-ButtonLabel e17811v31"
+                                            size="xsmall"
+                                          >
+                                            <Base
+                                              align="center"
+                                              className="e17811v31 css-dqr4rq-ButtonLabel"
+                                              size="xsmall"
+                                            >
+                                              <div
+                                                className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                is={null}
+                                                size="xsmall"
+                                              >
+                                                Track deploys
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </a>
+                                  </ExternalLink>
+                                </Component>
+                              </StyledButton>
+                            </Button>
+                          </div>
+                        </Base>
+                      </Background>
+                    </div>
+                  </Base>
+                </DeployBox>
+              </NoDeploys>
+            </Deploys>
+          </div>
+        </StyledProjectCard>
+      </div>
+    </Base>
+  </ProjectCardWrapper>
+</ProjectCard>
+`;

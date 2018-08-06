@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import SplitDiff from 'sentry-ui/splitDiff';
+import SplitDiff from 'app/components/splitDiff';
 
 const base = `RangeError: Invalid array length
   at Constructor.render(./app/components/scoreBar.jsx:73:0)

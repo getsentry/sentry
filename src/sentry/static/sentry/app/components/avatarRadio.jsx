@@ -3,7 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 const AvatarRadio = createReactClass({
   displayName: 'AvatarRadio',

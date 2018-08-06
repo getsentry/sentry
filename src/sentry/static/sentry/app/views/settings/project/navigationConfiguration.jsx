@@ -1,4 +1,4 @@
-import {t} from '../../../locale';
+import {t} from 'app/locale';
 
 const pathPrefix = '/settings/:orgId/:projectId';
 
@@ -17,7 +17,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/teams/`,
-          title: t('Teams'),
+          title: t('Project Teams'),
           description: t('Manage team access for a project'),
         },
         {
@@ -47,13 +47,13 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/release-tracking/`,
-          title: t('Release Tracking'),
-          show: ({access}) => access.has('project:write'),
+          title: t('Releases'),
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: t('Issue Ownership'),
-          description: t('Manage code ownership rules for a project'),
+          title: t('Issue Owners'),
+          description: t('Manage issue ownership rules for a project'),
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -66,7 +66,7 @@ export default function getConfiguration({project}) {
         },
         {
           path: `${pathPrefix}/debug-symbols/`,
-          title: t('Debug Information Files'),
+          title: t('Debug Files'),
         },
         {
           path: `${pathPrefix}/processing-issues/`,
@@ -87,8 +87,8 @@ export default function getConfiguration({project}) {
           title: t('Error Tracking'),
         },
         {
-          path: `${pathPrefix}/csp/`,
-          title: t('CSP Reports'),
+          path: `${pathPrefix}/security-headers/`,
+          title: t('Security Headers'),
         },
         {
           path: `${pathPrefix}/user-feedback/`,

@@ -55,6 +55,12 @@ def register_plugins(settings):
         else:
             integrations.register(integration_cls)
 
+    for integration in integrations.all():
+        try:
+            integration.setup()
+        except AttributeError:
+            pass
+
 
 def init_plugin(plugin):
     from sentry.plugins import bindings

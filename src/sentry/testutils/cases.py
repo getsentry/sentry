@@ -11,13 +11,15 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
 )
 
 import base64
+import calendar
 import os
 import os.path
 import pytest
+import requests
 import six
 import types
 import logging
@@ -31,8 +33,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
@@ -48,7 +52,8 @@ from sentry.auth.superuser import (
 )
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
-    GroupMeta, ProjectOption, DeletedOrganization, Environment, GroupStatus, Organization, TotpInterface, UserReport
+    GroupEnvironment, GroupHash, GroupMeta, ProjectOption, DeletedOrganization,
+    Environment, GroupStatus, Organization, TotpInterface, UserReport,
 )
 from sentry.plugins import plugins
 from sentry.rules import EventState
@@ -56,7 +61,9 @@ from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
+from .helpers import (
+    AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
+)
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
@@ -130,16 +137,28 @@ class BaseTestCase(Fixtures, Exam):
         request.is_superuser = lambda: request.superuser.is_active
         return request
 
-    # TODO(dcramer): we want to make the default behavior be ``superuser=False``
-    # but for compatibility reasons we need to update other projects first
-    def login_as(self, user, organization_id=None, superuser=False):
+    # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
+    # a lot of tests changing
+    def login_as(self, user, organization_id=None, organization_ids=None,
+                 superuser=False, superuser_sso=True):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
         login(request, user)
         request.user = user
+
+        if organization_ids is None:
+            organization_ids = []
+        if superuser and superuser_sso is None:
+            if superuser.ORG_ID:
+                organization_ids.append(superuser.ORG_ID)
         if organization_id:
-            request.session[SSO_SESSION_KEY] = six.text_type(organization_id)
+            organization_ids.append(organization_id)
+
+        if organization_ids:
+            request.session[SSO_SESSION_KEY] = ','.join(
+                six.text_type(o) for o in set(organization_ids))
+
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
         # superuser-only code
@@ -305,6 +324,62 @@ class BaseTestCase(Fixtures, Exam):
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
 
+    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
+        func = kwargs.pop('func', None)
+        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
+        conn = connections[using]
+
+        context = _AssertQueriesContext(self, queries, debug, conn)
+        if func is None:
+            return context
+
+        with context:
+            func(*args, **kwargs)
+
+
+class _AssertQueriesContext(CaptureQueriesContext):
+    def __init__(self, test_case, queries, debug, connection):
+        self.test_case = test_case
+        self.queries = queries
+        self.debug = debug
+        super(_AssertQueriesContext, self).__init__(connection)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        super(_AssertQueriesContext, self).__exit__(exc_type, exc_value, traceback)
+        if exc_type is not None:
+            return
+
+        parsed_queries = parse_queries(self.captured_queries)
+
+        if (self.debug):
+            import pprint
+            pprint.pprint("====================== Raw Queries ======================")
+            pprint.pprint(self.captured_queries)
+            pprint.pprint("====================== Table writes ======================")
+            pprint.pprint(parsed_queries)
+
+        for table, num in parsed_queries.items():
+            expected = self.queries.get(table, 0)
+            if expected == 0:
+                import pprint
+                pprint.pprint("WARNING: no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                ))
+            else:
+                self.test_case.assertTrue(
+                    num == expected, "%d write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
+                        expected, table, num
+                    )
+                )
+
+        for table, num in self.queries.items():
+            executed = parsed_queries.get(table, None)
+            self.test_case.assertFalse(
+                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                )
+            )
+
 
 class TestCase(BaseTestCase, TestCase):
     pass
@@ -321,7 +396,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 class TwoFactorAPITestCase(APITestCase):
     @fixture
     def path_2fa(self):
-        return reverse('sentry-account-settings-2fa')
+        return reverse('sentry-account-settings-security')
 
     def enable_org_2fa(self, organization):
         organization.flags.require_2fa = True
@@ -666,7 +741,6 @@ class IntegrationTestCase(TestCase):
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.login_as(self.user)
-        self.path = '/extensions/{}/setup/'.format(self.provider.key)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
         self.pipeline = IntegrationPipeline(
@@ -675,8 +749,16 @@ class IntegrationTestCase(TestCase):
             provider_key=self.provider.key,
         )
 
-        self.pipeline.initialize()
+        self.init_path = reverse('sentry-organization-integrations-setup', kwargs={
+            'organization_slug': self.organization.slug,
+            'provider_id': self.provider.key,
+        })
 
+        self.setup_path = reverse('sentry-extension-setup', kwargs={
+            'provider_id': self.provider.key,
+        })
+
+        self.pipeline.initialize()
         self.save_session()
 
         feature = Feature('organizations:integrations-v3')
@@ -685,3 +767,83 @@ class IntegrationTestCase(TestCase):
 
     def assertDialogSuccess(self, resp):
         assert 'window.opener.postMessage(' in resp.content
+
+
+class SnubaTestCase(TestCase):
+    def setUp(self):
+        super(SnubaTestCase, self).setUp()
+
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+
+    def __wrap_event(self, event, data, primary_hash):
+        # TODO: Abstract and combine this with the stream code in
+        #       getsentry once it is merged, so that we don't alter one
+        #       without updating the other.
+        return {
+            'group_id': event.group_id,
+            'event_id': event.event_id,
+            'project_id': event.project_id,
+            'message': event.message,
+            'platform': event.platform,
+            'datetime': event.datetime,
+            'data': dict(data),
+            'primary_hash': primary_hash,
+        }
+
+    def create_event(self, *args, **kwargs):
+        """\
+        Takes the results from the existing `create_event` method and
+        inserts into the local test Snuba cluster so that tests can be
+        run against the same event data.
+
+        Note that we create a GroupHash as necessary because `create_event`
+        doesn't run them through the 'real' event pipeline. In a perfect
+        world all test events would go through the full regular pipeline.
+        """
+
+        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
+
+        event = super(SnubaTestCase, self).create_event(*args, **kwargs)
+
+        data = event.data.data
+        tags = dict(data.get('tags', []))
+
+        if not data.get('received'):
+            data['received'] = calendar.timegm(event.datetime.timetuple())
+
+        environment = Environment.get_or_create(
+            event.project,
+            tags['environment'],
+        )
+
+        GroupEnvironment.objects.get_or_create(
+            environment_id=environment.id,
+            group_id=event.group_id,
+        )
+
+        hashes = get_hashes_from_fingerprint(
+            event,
+            data.get('fingerprint', ['{{ default }}']),
+        )
+        primary_hash = md5_from_hash(hashes[0])
+
+        grouphash, _ = GroupHash.objects.get_or_create(
+            project=event.project,
+            group=event.group,
+            hash=primary_hash,
+        )
+
+        self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
+
+        return event
+
+    def snuba_insert(self, events):
+        "Write a (wrapped) event (or events) to Snuba."
+
+        if not isinstance(events, list):
+            events = [events]
+
+        assert requests.post(
+            settings.SENTRY_SNUBA + '/tests/insert',
+            data=json.dumps(events)
+        ).status_code == 200

@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+from rest_framework.response import Response
+
 from sentry import roles
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, ResourceMoved
+from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
 from sentry.app import raven
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
@@ -94,6 +96,15 @@ class RelaxedSearchPermission(ProjectPermission):
     }
 
 
+class ProjectIntegrationsPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:admin', 'project:integrations'],
+        'POST': ['project:write', 'project:admin', 'project:integrations'],
+        'PUT': ['project:write', 'project:admin', 'project:integrations'],
+        'DELETE': ['project:write', 'project:admin', 'project:integrations'],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission, )
 
@@ -112,7 +123,19 @@ class ProjectEndpoint(Endpoint):
                     redirect_slug=project_slug
                 )
 
-                raise ResourceMoved(detail={'slug': redirect.project.slug})
+                # get full path so that we keep query strings
+                requested_url = request.get_full_path()
+                new_url = requested_url.replace(
+                    'projects/%s/%s/' %
+                    (organization_slug, project_slug), 'projects/%s/%s/' %
+                    (organization_slug, redirect.project.slug))
+
+                # Resource was moved/renamed if the requested url is different than the new url
+                if requested_url != new_url:
+                    raise ProjectMoved(new_url, redirect.project.slug)
+
+                # otherwise project doesn't exist
+                raise ResourceDoesNotExist
             except ProjectRedirect.DoesNotExist:
                 raise ResourceDoesNotExist
 
@@ -126,5 +149,17 @@ class ProjectEndpoint(Endpoint):
             'organization': project.organization_id,
         })
 
+        request._request.organization = project.organization
+
         kwargs['project'] = project
         return (args, kwargs)
+
+    def handle_exception(self, request, exc):
+        if isinstance(exc, ProjectMoved):
+            response = Response({
+                'slug': exc.detail['extra']['slug'],
+                'detail': exc.detail
+            }, status=exc.status_code)
+            response['Location'] = exc.detail['extra']['url']
+            return response
+        return super(ProjectEndpoint, self).handle_exception(request, exc)

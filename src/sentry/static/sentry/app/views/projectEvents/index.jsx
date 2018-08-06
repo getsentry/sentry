@@ -5,18 +5,18 @@ import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
-import SentryTypes from '../../proptypes';
-import ProjectLink from '../../components/projectLink';
-import ApiMixin from '../../mixins/apiMixin';
-import DateTime from '../../components/dateTime';
-import Avatar from '../../components/avatar';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import Pagination from '../../components/pagination';
-import SearchBar from '../../components/searchBar';
-import {t} from '../../locale';
-import withEnvironmentInQueryString from '../../utils/withEnvironmentInQueryString';
-import EmptyStateWarning from '../../components/emptyStateWarning';
+import SentryTypes from 'app/sentryTypes';
+import ProjectLink from 'app/components/projectLink';
+import ApiMixin from 'app/mixins/apiMixin';
+import DateTime from 'app/components/dateTime';
+import Avatar from 'app/components/avatar';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
+import {t} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 const ProjectEvents = createReactClass({
   displayName: 'ProjectEvents',

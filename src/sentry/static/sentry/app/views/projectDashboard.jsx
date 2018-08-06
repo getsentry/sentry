@@ -3,12 +3,12 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
-import SentryTypes from '../proptypes';
-import EventList from './projectDashboard/eventList';
-import ProjectState from '../mixins/projectState';
-import ProjectChart from './projectDashboard/chart';
-import {t} from '../locale';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import SentryTypes from 'app/sentryTypes';
+import EventList from 'app/views/projectDashboard/eventList';
+import ProjectState from 'app/mixins/projectState';
+import ProjectChart from 'app/views/projectDashboard/chart';
+import {t} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const PERIOD_HOUR = '1h';
 const PERIOD_DAY = '1d';

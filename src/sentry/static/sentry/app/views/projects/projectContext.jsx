@@ -5,19 +5,18 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {loadEnvironments} from '../../actionCreators/environments';
-import {setActiveProject} from '../../actionCreators/projects';
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import MemberListStore from '../../stores/memberListStore';
-import MissingProjectMembership from '../../components/missingProjectMembership';
-import OrganizationState from '../../mixins/organizationState';
-import ProjectsStore from '../../stores/projectsStore';
-import recreateRoute from '../../utils/recreateRoute';
-import SentryTypes from '../../proptypes';
-import withProjects from '../../utils/withProjects';
+import {loadEnvironments} from 'app/actionCreators/environments';
+import {setActiveProject} from 'app/actionCreators/projects';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import MissingProjectMembership from 'app/components/missingProjectMembership';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -44,7 +43,6 @@ const ProjectContext = createReactClass({
     projectId: PropTypes.string,
     orgId: PropTypes.string,
     location: PropTypes.object,
-    router: PropTypes.object,
   },
 
   childContextTypes: {
@@ -197,31 +195,16 @@ const ProjectContext = createReactClass({
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
     } else {
-      // The project may have been renamed, attempt to lookup the project, if
-      // we 302 we will recieve the moved project slug and can update update
-      // our route accordingly.
-      const lookupHandler = resp => {
-        const {status, responseJSON} = resp;
-
-        if (status !== 302 || !responseJSON || !responseJSON.detail) {
+      // The request is a 404 or other error
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        error: () => {
           this.setState({
             loading: false,
             error: true,
             errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
           });
-          return;
-        }
-
-        this.props.router.replace(
-          recreateRoute('', {
-            ...this.props,
-            params: {...this.props.params, projectId: responseJSON.detail.slug},
-          })
-        );
-      };
-
-      // The request ill 404 or 302
-      this.api.request(`/projects/${orgId}/${projectId}/`, {error: lookupHandler});
+        },
+      });
     }
   },
 
@@ -242,13 +225,19 @@ const ProjectContext = createReactClass({
   },
 
   renderBody() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) {
+    if (this.state.loading) {
+      return (
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      );
+    } else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.PROJECT_NOT_FOUND:
+          // TODO(chrissy): use scale for margin values
           return (
             <div className="container">
-              <div className="alert alert-block">
+              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
                 {t('The project you were looking for was not found.')}
               </div>
             </div>

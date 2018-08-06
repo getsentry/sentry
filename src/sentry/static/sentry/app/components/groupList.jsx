@@ -4,18 +4,18 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
 
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import GroupListHeader from './groupListHeader';
-import GroupStore from '../stores/groupStore';
-import LoadingError from './loadingError';
-import LoadingIndicator from './loadingIndicator';
-import ProjectState from '../mixins/projectState';
-import StreamGroup from './stream/group';
-import utils from '../utils';
-import {t} from '../locale';
-import EmptyStateWarning from './emptyStateWarning';
-import {Panel, PanelBody} from './panels';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import GroupListHeader from 'app/components/groupListHeader';
+import GroupStore from 'app/stores/groupStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectState from 'app/mixins/projectState';
+import StreamGroup from 'app/components/stream/group';
+import utils from 'app/utils';
+import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel, PanelBody} from 'app/components/panels';
 
 const GroupList = createReactClass({
   displayName: 'GroupList',

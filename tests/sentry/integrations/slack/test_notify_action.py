@@ -5,7 +5,7 @@ import responses
 from six.moves.urllib.parse import parse_qs
 
 from sentry.utils import json
-from sentry.models import OrganizationIntegration, Integration, GroupStatus
+from sentry.models import Integration, GroupStatus
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.slack import SlackNotifyServiceAction
 
@@ -25,10 +25,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             }
         )
-        OrganizationIntegration.objects.create(
-            organization=event.project.organization,
-            integration=self.integration,
-        )
+        self.integration.add_organization(event.project.organization_id)
 
     @responses.activate
     def test_applies_correctly(self):

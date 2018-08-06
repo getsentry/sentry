@@ -15,4 +15,3 @@ Subcommands
  :maxdepth: 1
 
  query <query/index>
-

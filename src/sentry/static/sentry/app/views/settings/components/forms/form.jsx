@@ -2,9 +2,9 @@ import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import FormModel from './model';
+import {t} from 'app/locale';
+import Button from 'app/components/buttons/button';
+import FormModel from 'app/views/settings/components/forms/model';
 
 export default class Form extends React.Component {
   static propTypes = {
@@ -34,6 +34,7 @@ export default class Form extends React.Component {
     model: PropTypes.object,
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
+    'data-test-id': PropTypes.string,
   };
 
   static defaultProps = {
@@ -144,7 +145,11 @@ export default class Form extends React.Component {
     let shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
-      <form onSubmit={this.onSubmit} className={className}>
+      <form
+        onSubmit={this.onSubmit}
+        className={className}
+        data-test-id={this.props['data-test-id']}
+      >
         <div>{children}</div>
 
         {shouldShowFooter && (
@@ -152,6 +157,7 @@ export default class Form extends React.Component {
             <Observer>
               {() => (
                 <Button
+                  data-test-id="form-submit"
                   priority={submitPriority}
                   disabled={
                     this.model.isError ||

@@ -68,6 +68,16 @@ class User(BaseModel, AbstractBaseUser):
             'modifying their account (username, password, etc).'
         )
     )
+    is_sentry_app = models.NullBooleanField(
+        _('is sentry app'),
+        null=True,
+        default=None,
+        help_text=_(
+            'Designates whether this user is the entity used for Permissions'
+            'on behalf of a Sentry App. Cannot login or use Sentry like a'
+            'normal User would.'
+        )
+    )
     is_password_expired = models.BooleanField(
         _('password expired'),
         default=False,
@@ -292,8 +302,17 @@ class User(BaseModel, AbstractBaseUser):
             ).values('organization'),
         )
 
+    def get_orgs_require_2fa(self):
+        from sentry.models import (Organization, OrganizationStatus)
+        return Organization.objects.filter(
+            flags=models.F('flags').bitor(Organization.flags.require_2fa),
+            status=OrganizationStatus.VISIBLE,
+            member_set__user=self,
+        )
+
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field('last_login').null = True

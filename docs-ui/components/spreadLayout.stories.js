@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import SpreadLayout from 'sentry-ui/spreadLayout';
+import SpreadLayout from 'app/components/spreadLayout';
 
 storiesOf('ComponentLayouts/SpreadLayout', module)
   .add(

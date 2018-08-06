@@ -19,38 +19,100 @@ class ErrorPageEmbedTest(TestCase):
         self.project.update_option('sentry:origins', ['example.com'])
         self.key = self.create_project_key(self.project)
         self.event_id = uuid4().hex
-        self.path = '%s?eventId=%s&dsn=%s' % (
-            reverse('sentry-error-page-embed'), quote(self.event_id), quote(self.key.dsn_public),
+        self.path = reverse('sentry-error-page-embed')
+        self.path_with_qs = '%s?eventId=%s&dsn=%s' % (
+            self.path, quote(self.event_id), quote(self.key.dsn_public),
         )
 
     def test_invalid_referer(self):
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
-            resp = self.client.get(self.path, HTTP_REFERER='http://foo.com')
-        assert resp.status_code == 403
+            resp = self.client.get(
+                self.path_with_qs,
+                HTTP_REFERER='http://foo.com',
+            )
+        assert resp.status_code == 403, resp.content
+        assert resp['Content-Type'] == 'application/json'
+
+    def test_invalid_origin(self):
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
+            resp = self.client.get(
+                self.path_with_qs,
+                HTTP_ORIGIN='http://foo.com',
+            )
+        assert resp.status_code == 403, resp.content
+        assert resp['Content-Type'] == 'application/json'
+
+    def test_invalid_origin_respects_accept(self):
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
+            resp = self.client.get(
+                self.path_with_qs,
+                HTTP_ORIGIN='http://foo.com',
+                HTTP_ACCEPT='text/html, text/javascript',
+            )
+        assert resp.status_code == 403, resp.content
+        assert resp['Content-Type'] == 'text/javascript'
+
+    def test_missing_eventId(self):
+        path = '%s?dsn=%s' % (
+            self.path, quote(self.key.dsn_public),
+        )
+        with self.settings(SENTRY_ALLOW_ORIGIN='*'):
+            resp = self.client.get(
+                path,
+                HTTP_REFERER='http://example.com',
+                HTTP_ACCEPT='text/html, text/javascript',
+            )
+        assert resp.status_code == 400, resp.content
+        assert resp['Content-Type'] == 'text/javascript'
+        assert resp['X-Sentry-Context'] == '{"eventId":"Missing or invalid parameter."}'
+        assert resp.content == ''
+
+    def test_missing_dsn(self):
+        path = '%s?eventId=%s' % (
+            self.path, quote(self.event_id),
+        )
+        with self.settings(SENTRY_ALLOW_ORIGIN='*'):
+            resp = self.client.get(
+                path,
+                HTTP_REFERER='http://example.com',
+                HTTP_ACCEPT='text/html, text/javascript',
+            )
+        assert resp.status_code == 404, resp.content
+        assert resp['Content-Type'] == 'text/javascript'
+        assert resp['X-Sentry-Context'] == '{"dsn":"Missing or invalid parameter."}'
+        assert resp.content == ''
 
     def test_renders(self):
-        resp = self.client.get(self.path, HTTP_REFERER='http://example.com')
-        assert resp.status_code == 200
+        resp = self.client.get(
+            self.path_with_qs,
+            HTTP_REFERER='http://example.com',
+            HTTP_ACCEPT='text/html, text/javascript',
+        )
+        assert resp.status_code == 200, resp.content
         self.assertTemplateUsed(resp, 'sentry/error-page-embed.html')
 
     def test_uses_locale_from_header(self):
         resp = self.client.get(
-            self.path, HTTP_REFERER='http://example.com', HTTP_ACCEPT_LANGUAGE='fr'
+            self.path_with_qs,
+            HTTP_REFERER='http://example.com',
+            HTTP_ACCEPT_LANGUAGE='fr',
+            HTTP_ACCEPT='text/html, text/javascript',
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.content
         self.assertTemplateUsed(resp, 'sentry/error-page-embed.html')
         assert 'Fermer' in resp.content  # Close
 
     def test_submission(self):
         resp = self.client.post(
-            self.path, {
+            self.path_with_qs, {
                 'name': 'Jane Doe',
                 'email': 'jane@example.com',
                 'comments': 'This is an example!',
             },
-            HTTP_REFERER='http://example.com'
+            HTTP_REFERER='http://example.com',
+            HTTP_ACCEPT='application/json',
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.content
 
         report = UserReport.objects.get()
         assert report.name == 'Jane Doe'
@@ -61,14 +123,15 @@ class ErrorPageEmbedTest(TestCase):
         assert report.group is None
 
         resp = self.client.post(
-            self.path, {
+            self.path_with_qs, {
                 'name': 'Joe Shmoe',
                 'email': 'joe@example.com',
                 'comments': 'haha I updated it!',
             },
-            HTTP_REFERER='http://example.com'
+            HTTP_REFERER='http://example.com',
+            HTTP_ACCEPT='application/json',
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.content
 
         report = UserReport.objects.get()
         assert report.name == 'Joe Shmoe'
@@ -80,19 +143,20 @@ class ErrorPageEmbedTest(TestCase):
 
     def test_submission_invalid_event_id(self):
         self.event_id = 'x' * 100
-        self.path = '%s?eventId=%s&dsn=%s' % (
-            reverse('sentry-error-page-embed'), quote(self.event_id), quote(self.key.dsn_public),
+        path = '%s?eventId=%s&dsn=%s' % (
+            self.path, quote(self.event_id), quote(self.key.dsn_public),
         )
 
         resp = self.client.post(
-            self.path, {
+            path, {
                 'name': 'Jane Doe',
                 'email': 'jane@example.com',
                 'comments': 'This is an example!',
             },
-            HTTP_REFERER='http://example.com'
+            HTTP_REFERER='http://example.com',
+            HTTP_ACCEPT='application/json',
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 400, resp.content
 
 
 class ErrorPageEmbedEnvironmentTest(TestCase):

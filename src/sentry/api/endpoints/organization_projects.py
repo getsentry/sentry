@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSummarySerializer
-from sentry.models import Project, Team
+from sentry.models import Project, ProjectStatus, Team
 from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -89,10 +89,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 if key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                elif key == 'id':
+                    queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()
 
-        queryset = queryset.distinct()
+        queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
 
         return self.paginate(
             request=request,

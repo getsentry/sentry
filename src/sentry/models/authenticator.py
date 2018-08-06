@@ -57,7 +57,7 @@ class ActivationChallengeResult(ActivationResult):
 
 
 class AuthenticatorManager(BaseManager):
-    def all_interfaces_for_user(self, user, return_missing=False):
+    def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
@@ -71,7 +71,7 @@ class AuthenticatorManager(BaseManager):
             x.interface
             for x in Authenticator.objects.filter(
                 user=user,
-                type__in=[a.type for a in available_authenticators()],
+                type__in=[a.type for a in available_authenticators(ignore_backup=ignore_backup)],
             )
         ]
 
@@ -277,9 +277,9 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     interface_id = 'recovery'
     name = _('Recovery Codes')
     description = _(
-        'Recovery codes can be used to access your account in the '
-        'event you lose access to your device and cannot '
-        'receive two-factor authentication codes.'
+        'Recovery codes are the only way to access your account '
+        'if you lose your device and cannot receive two factor '
+        'authentication codes.'
     )
     enroll_button = _('Activate')
     configure_button = _('View Codes')
@@ -535,6 +535,11 @@ class U2fInterface(AuthenticatorInterface):
             self.config['devices'] = devices
             return True
         return False
+
+    def get_device_name(self, key):
+        for device in self.config.get('devices') or ():
+            if device['binding']['keyHandle'] == key:
+                return device['name']
 
     def get_registered_devices(self):
         rv = []

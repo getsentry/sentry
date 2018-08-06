@@ -77,9 +77,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             exc = self.data.get('sentry.interfaces.Exception')
             if exc is not None:
                 mechanism = exc['values'][0].get('mechanism')
-                if mechanism and 'posix_signal' in mechanism and \
-                   'signal' in mechanism['posix_signal']:
-                    signal = int(mechanism['posix_signal']['signal'])
+                if mechanism and 'meta' in mechanism and \
+                    'signal' in mechanism['meta'] and \
+                        'number' in mechanism['meta']['signal']:
+                    signal = int(mechanism['meta']['signal']['number'])
             registers = processable_frame.stacktrace_info.stacktrace.get(
                 'registers')
             if registers:
@@ -186,7 +187,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # similar we need to skip.
             try:
                 uuid.UUID(obj.id)
-            except ValueError:
+            except (ValueError, TypeError):
                 continue
 
             to_lookup.append(

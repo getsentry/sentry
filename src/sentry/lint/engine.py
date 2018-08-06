@@ -1,16 +1,13 @@
 """
 Our linter engine needs to run in 3 different scenarios:
  * Linting all files (python, js, less)
- * Linting only python files (--python)
+ * Linting only python files (--python) [NOTICE: moved to pre-commit]
  * Linting only js files (--js)
 
 For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
-
-This also means imports should be done lazily/inside of function calls for
-dependencies such as flake8/pep8.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 
 import os
@@ -19,24 +16,16 @@ import subprocess
 import json
 
 from subprocess import check_output, Popen
-from click import echo, secho, style
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
 
 
-def register_checks():
-    import pycodestyle
-
-    from sentry.lint.sentry_check import SentryCheck
-
-    pycodestyle.register_check(SentryCheck)
-
-
-register_checks()
-
-
 def get_project_root():
     return os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
+
+
+def get_sentry_bin(name):
+    return os.path.join(get_project_root(), 'bin', name)
 
 
 def get_node_modules_bin(name):
@@ -108,35 +97,52 @@ def get_python_files(file_list=None):
     ]
 
 
-# parseable is a no-op
-def py_lint(file_list, parseable=False):
-    from flake8.engine import get_style_guide
-
-    file_list = get_python_files(file_list)
-    flake8_style = get_style_guide(parse_argv=True)
-    report = flake8_style.check_files(file_list)
-
-    return report.total_errors != 0
-
-
 def js_lint(file_list=None, parseable=False, format=False):
 
+    # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin('eslint')
+    eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
-        from click import echo
-        echo('!! Skipping JavaScript linting because eslint is not installed.')
+        print('!! Skipping JavaScript linting because eslint is not installed.')  # noqa: B314
         return False
 
     js_file_list = get_js_files(file_list, snapshots=True)
 
     has_errors = False
     if js_file_list:
-        cmd = [eslint_path, '--ext', '.js,.jsx']
+        if os.environ.get('CI'):
+            cmd = [eslint_wrapper_path, '--ext', '.js,.jsx']
+        else:
+            cmd = [eslint_path, '--ext', '.js,.jsx']
+
         if format:
             cmd.append('--fix')
         if parseable:
             cmd.append('--format=checkstyle')
+        status = Popen(cmd + js_file_list).wait()
+        has_errors = status != 0
+
+    return has_errors
+
+
+def js_stylelint(file_list=None, parseable=False, format=False):
+    """
+    stylelint for styled-components
+    """
+
+    stylelint_path = get_node_modules_bin('stylelint')
+
+    if not os.path.exists(stylelint_path):
+        print('!! Skipping JavaScript styled-components linting because "stylelint" is not installed.')  # noqa: B314
+        return False
+
+    js_file_list = get_js_files(file_list, snapshots=False)
+
+    has_errors = False
+    if js_file_list:
+        cmd = [stylelint_path]
+
         status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
 
@@ -155,14 +161,12 @@ def yarn_check(file_list):
         return False
 
     if 'package.json' in file_list and 'yarn.lock' not in file_list:
-        echo(style("""
-Warning: package.json modified without accompanying yarn.lock modifications.
+        print(    # noqa: B314
+            '\033[33m' + """Warning: package.json modified without accompanying yarn.lock modifications.
 
 If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
 
-To skip this check, run:
-
-$ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
+To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`""" + '\033[0m')
         return True
 
     return False
@@ -170,7 +174,7 @@ $ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
 
 def is_prettier_valid(project_root, prettier_path):
     if not os.path.exists(prettier_path):
-        echo('[sentry.lint] Skipping JavaScript formatting because prettier is not installed.', err=True)
+        print('[sentry.lint] Skipping JavaScript formatting because prettier is not installed.', file=sys.stderr)  # noqa: B314
         return False
 
     # Get Prettier version from package.json
@@ -181,20 +185,40 @@ def is_prettier_valid(project_root, prettier_path):
             package_version = json.load(package_json)[
                 'devDependencies']['prettier']
         except KeyError:
-            echo('!! Prettier missing from package.json', err=True)
+            print('!! Prettier missing from package.json', file=sys.stderr)  # noqa: B314
             return False
 
     prettier_version = subprocess.check_output(
         [prettier_path, '--version']).rstrip()
     if prettier_version != package_version:
-        echo(
+        print(  # noqa: B314
             '[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
                 prettier_version,
                 package_version),
-            err=True)
+            file=sys.stderr)
         return False
 
     return True
+
+
+def js_lint_format(file_list=None):
+    """
+    We only format JavaScript code as part of this pre-commit hook. It is not part
+    of the lint engine. This uses eslint's `--fix` formatting feature.
+    """
+    eslint_path = get_node_modules_bin('eslint')
+
+    if not os.path.exists(eslint_path):
+        print('!! Skipping JavaScript linting and formatting because eslint is not installed.')  # noqa: B314
+        return False
+
+    js_file_list = get_js_files(file_list)
+
+    # manually exclude some bad files
+    js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
+
+    return run_formatter([eslint_path, '--fix', ],
+                         js_file_list)
 
 
 def js_format(file_list=None):
@@ -226,8 +250,7 @@ def js_test(file_list=None):
     jest_path = get_node_modules_bin('jest')
 
     if not os.path.exists(jest_path):
-        from click import echo
-        echo('[sentry.test] Skipping JavaScript testing because jest is not installed.')
+        print('[sentry.test] Skipping JavaScript testing because jest is not installed.')  # noqa: B314
         return False
 
     js_file_list = get_js_files(file_list)
@@ -264,12 +287,18 @@ def py_format(file_list=None):
     try:
         __import__('autopep8')
     except ImportError:
-        echo('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', err=True)
+        print('[sentry.lint] Skipping Python autoformat because autopep8 is not installed.', file=sys.stderr)  # noqa: B314
         return False
 
     py_file_list = get_python_files(file_list)
 
-    return run_formatter(['autopep8', '--in-place', '-j0'], py_file_list)
+    return run_formatter([
+        'autopep8',
+        '--in-place',
+        '-j0',
+        '--ignore',
+        'E721,E722,W690',
+    ], py_file_list)
 
 
 def run_formatter(cmd, file_list, prompt_on_changes=True):
@@ -281,28 +310,24 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     status = subprocess.Popen(cmd + file_list).wait()
     has_errors = status != 0
     if has_errors:
-        return False
+        return True
 
     # this is not quite correct, but it at least represents what would be staged
-    output = subprocess.check_output(['git', 'diff'] + file_list)
+    output = subprocess.check_output(['git', 'diff', '--color'] + file_list)
     if output:
-        echo('[sentry.lint] applied changes from autoformatting')
-        for line in output.splitlines():
-            if line.startswith('-'):
-                secho(line, fg='red')
-            elif line.startswith('+'):
-                secho(line, fg='green')
-            else:
-                echo(line)
+        print('[sentry.lint] applied changes from autoformatting')  # noqa: B314
+        print(output)  # noqa: B314
         if prompt_on_changes:
             with open('/dev/tty') as fp:
-                secho('Stage this patch and continue? [Y/n] ', bold=True)
+                print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
                 if fp.readline().strip().lower() != 'y':
-                    echo(
-                        '[sentry.lint] Aborted! Changes have been applied but not staged.', err=True)
-                    sys.exit(1)
-        status = subprocess.Popen(
-            ['git', 'update-index', '--add'] + file_list).wait()
+                    print(  # noqa: B314
+                        '[sentry.lint] Aborted! Changes have been applied but not staged.', file=sys.stderr)
+                    if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
+                        sys.exit(1)
+                else:
+                    status = subprocess.Popen(
+                        ['git', 'update-index', '--add'] + file_list).wait()
         has_errors = status != 0
     return has_errors
 
@@ -331,6 +356,8 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             if py:
                 results.append(py_format(file_list))
             if js:
+                # run eslint with --fix and skip these linters down below
+                results.append(js_lint_format(file_list))
                 results.append(js_format(file_list))
             if less:
                 results.append(less_format(file_list))
@@ -341,9 +368,14 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
         if lint:
             if py:
-                results.append(py_lint(file_list, parseable=parseable))
+                pass  # flake8 linting was moved to pre-commit
             if js:
-                results.append(js_lint(file_list, parseable=parseable, format=format))
+                # stylelint `--fix` doesn't work well
+                results.append(js_stylelint(file_list, parseable=parseable, format=format))
+
+                if not format:
+                    # these tasks are called when we need to format, so skip it here
+                    results.append(js_lint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:

@@ -4,8 +4,8 @@ import React from 'react';
 import styled from 'react-emotion';
 import idx from 'idx';
 
-import {defined} from '../../utils';
-import InlineSvg from '../inlineSvg';
+import {defined} from 'app/utils';
+import InlineSvg from 'app/components/inlineSvg';
 
 const StyledInlineSvg = styled(InlineSvg)`
   display: block;
@@ -112,8 +112,9 @@ export default class FormField extends React.PureComponent {
         value,
       },
       () => {
-        this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
-        form && form.onFieldChange(this.props.name, this.coerceValue(this.state.value));
+        let finalValue = this.coerceValue(this.state.value);
+        this.props.onChange && this.props.onChange(finalValue);
+        form && form.onFieldChange(this.props.name, finalValue);
       }
     );
   };

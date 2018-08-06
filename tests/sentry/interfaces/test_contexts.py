@@ -29,6 +29,25 @@ class ContextsTest(TestCase):
             }
         }
 
+    def test_os_normalization(self):
+        ctx = Contexts.to_python({
+            'os': {
+                'raw_description': 'Microsoft Windows 6.1.7601 S'
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('os', 'Windows 6.1.7601'),
+            ('os.name', 'Windows')
+        ]
+        assert ctx.to_json() == {
+            'os': {
+                'type': 'os',
+                'raw_description': 'Microsoft Windows 6.1.7601 S',
+                'name': 'Windows',
+                'version': '6.1.7601'
+            }
+        }
+
     def test_runtime(self):
         ctx = Contexts.to_python(
             {
@@ -49,6 +68,27 @@ class ContextsTest(TestCase):
                 'name': 'Java',
                 'version': '1.2.3',
                 'build': 'BLAH',
+            }
+        }
+
+    def test_runtime_normalization(self):
+        ctx = Contexts.to_python({
+            'runtime': {
+                'raw_description': '.NET Framework 4.0.30319.42000',
+                'build': '461808',
+            }
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('runtime', '.NET Framework 4.7.2'),
+            ('runtime.name', '.NET Framework')
+        ]
+        assert ctx.to_json() == {
+            'runtime': {
+                'type': 'runtime',
+                'raw_description': '.NET Framework 4.0.30319.42000',
+                'build': '461808',
+                'name': '.NET Framework',
+                'version': '4.7.2'
             }
         }
 

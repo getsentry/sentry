@@ -2,17 +2,18 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addErrorMessage} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
-import ConfigStore from '../../../stores/configStore';
-import Form from '../components/forms/form';
-import FormField from '../components/forms/formField';
-import JsonForm from '../components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextCopyInput from '../components/forms/textCopyInput';
-import apiApplication from '../../../data/forms/apiApplication';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import ConfigStore from 'app/stores/configStore';
+import Form from 'app/views/settings/components/forms/form';
+import FormField from 'app/views/settings/components/forms/formField';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import apiApplication from 'app/data/forms/apiApplication';
+import getDynamicText from 'app/utils/getDynamicText';
 
 class ApiApplicationDetails extends AsyncView {
   static contextTypes = {
@@ -62,7 +63,9 @@ class ApiApplicationDetails extends AsyncView {
                   {({value}) => {
                     return (
                       <div>
-                        <TextCopyInput>{value}</TextCopyInput>
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                        </TextCopyInput>
                       </div>
                     );
                   }}
@@ -77,7 +80,9 @@ class ApiApplicationDetails extends AsyncView {
                 >
                   {({value}) => {
                     return value ? (
-                      <TextCopyInput>{value}</TextCopyInput>
+                      <TextCopyInput>
+                        {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                      </TextCopyInput>
                     ) : (
                       <em>hidden</em>
                     );

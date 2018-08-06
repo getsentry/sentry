@@ -11,6 +11,7 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   padding-left: @sidebar-width;
+  min-height: 100vh;
 
   // Fake sidebar rendering until actual sidebar is loaded
 
@@ -22,7 +23,7 @@ body {
     overflow-y: scroll;
     background-image: none;
     background-color: #fcfcfc;
-    padding: 0 0 40px;
+    padding: 0;
 
     .messages-container {
       margin: 0;
@@ -31,6 +32,30 @@ body {
       z-index: 1000;
     }
   }
+
+  &.org-dashboard {
+    background-color: #fcfcfc;
+  }
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+    font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+
+    /* This is for organization level views e.g. "Assigned to me" */
+    .organization-home {
+      .container {
+        margin-top: 24px;
+      }
+    }
+  }
+}
+
+#blk_router {
+  min-height: 100vh;
 }
 
 /**
@@ -43,6 +68,14 @@ body.narrow {
   padding: 0;
 
   background: #fff;
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+  }
 
   &.dialog {
     padding-top: 0;
@@ -113,8 +146,115 @@ body.narrow {
 
 body.auth {
   .app > .container {
+    padding-top: 5vh;
+    max-width: 740px;
+  }
+
+  .box {
+    border: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    display: flex;
+    width: 100%;
+  }
+
+  .auth-sidebar {
+    padding-top: 20px;
+    width: 60px;
+    background: #564f64;
+    background-image: linear-gradient(
+      -180deg,
+      rgba(52, 44, 62, 0) 0%,
+      rgba(52, 44, 62, 0.5) 100%
+    );
+    box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1);
+    border-radius: 4px 0 0 4px;
+    margin-top: -1px;
+    margin-bottom: -1px;
+    text-align: center;
+
+    a {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1.5;
+    }
+  }
+
+  .org-login {
+    flex: 1;
+  }
+
+  .auth-container {
+    padding-left: 40px;
+    padding-right: 40px;
+
+    &.border-bottom {
+      border-bottom: 1px solid @trim;
+    }
+
+    ul,
+    ol,
+    p,
+    blockquote {
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .tab-content .auth-container {
     padding-top: 30px;
-    max-width: 540px;
+    padding-bottom: 40px;
+    display: flex;
+  }
+
+  .auth-form-column {
+    flex: 1;
+  }
+
+  .auth-provider-column {
+    width: 42%;
+    padding-left: 30px;
+    margin-left: 30px;
+    border-left: 1px solid @trim;
+
+    p {
+      margin-bottom: 15px;
+
+      &:first-child {
+        margin-top: 28px;
+      }
+    }
+
+    .btn-default {
+      display: block;
+      text-align: left;
+      padding: 8px 12px;
+
+      .provider-logo {
+        top: 0;
+      }
+    }
+  }
+
+  .auth-footer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+
+    > .btn {
+      margin-right: 6px;
+    }
+
+    .secondary {
+      flex: 1;
+      text-align: right;
+      color: @gray-light;
+
+      &:hover {
+        color: @gray-dark;
+      }
+    }
   }
 }
 
@@ -126,6 +266,7 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 
 .container {
@@ -133,6 +274,20 @@ body.auth {
   padding-left: 30px;
   padding-right: 30px;
   width: 100% !important;
+  flex: 1;
+}
+
+// Container around content in app.jsx
+.main-container {
+  min-height: 100vh;
+  outline: none;
+}
+
+// So loader can take up full height so that footer is fixed to bottom of screen
+.loading-full-layout {
+  flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 /**
@@ -174,6 +329,8 @@ body.auth {
 
   .project-header {
     display: flex;
+    margin-top: 18px;
+
     &-main {
       flex-grow: 1;
     }
@@ -185,6 +342,7 @@ body.auth {
         font-weight: normal;
         display: block;
         margin-top: 8px;
+        margin-bottom: 8px;
       }
     }
   }
@@ -196,7 +354,7 @@ body.auth {
 
   .project-select-bookmark {
     border-left: 1px solid @gray-lightest;
-    padding-left: 10px;
+    padding-left: 15px;
     margin-left: 10px;
     color: @40;
     &.active {
@@ -210,27 +368,7 @@ body.auth {
 
     + .dropdown-menu {
       z-index: @zindex-sticky-bar + 2;
-    }
-  }
-
-  .project-select {
-    position: relative;
-
-    h3 {
-      font-size: 20px;
-      margin: 0;
-
-      a {
-        color: @gray-dark;
-
-        &:hover {
-          color: @gray-darkest;
-        }
-      }
-    }
-
-    .project-selected {
-      background-color: lighten(@blue-light, 30);
+      width: 172px;
     }
   }
 
@@ -260,14 +398,14 @@ body.auth {
       z-index: 2;
 
       a {
-        padding-bottom: 13px;
+        padding-bottom: 10px;
       }
     }
   }
 
   .project-select-wrapper + .nav-tabs,
   #blk_projectselect + .nav-tabs {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 
   .align-right {
@@ -382,7 +520,6 @@ footer {
   header {
     display: none;
   }
-  .org-sidebar,
   .toolbar {
     display: none;
   }
@@ -421,6 +558,15 @@ footer {
 
     // Account for there being no footer on mobile
     padding-bottom: 20px;
+
+    &.body-sidebar {
+      padding-left: 0;
+      padding-top: @sidebar-mobile-height;
+
+      &.collapsed {
+        padding-left: 0;
+      }
+    }
   }
 
   .app {
@@ -479,14 +625,58 @@ footer {
       right: 0;
       top: 0;
       font-size: 20px;
-      background: @header-bg-color;
+      background: @sidebar-bg-color;
       padding-left: 30px;
     }
 
     .app > .container {
-      padding: 62px 10px 0 10px !important;
       .box-content.with-padding {
         padding: 20px 20px 10px;
+      }
+    }
+
+    .box {
+      flex-direction: column;
+    }
+
+    .auth-sidebar {
+      width: 100%;
+      text-align: left;
+      padding: 20px;
+      border-radius: 4px 4px 0 0;
+
+      a {
+        line-height: 1;
+        position: relative;
+        top: 3px;
+      }
+    }
+
+    .auth-container {
+      flex-wrap: wrap;
+      padding-left: 20px;
+      padding-right: 20px;
+
+      > div {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        border: 0;
+
+        &.auth-provider-column {
+          border-top: 1px solid @trim;
+          padding-top: 20px;
+          margin-top: 20px;
+          p {
+            margin-top: 0;
+          }
+        }
+      }
+    }
+
+    .tab-pane {
+      .auth-container {
+        padding: 20px;
       }
     }
   }

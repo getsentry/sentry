@@ -9,6 +9,16 @@ const ENDPOINT = '/users/me/password/';
 describe('PasswordForm', function() {
   let wrapper;
   let putMock;
+  let routerContext = TestStubs.routerContext([
+    {
+      router: {
+        ...TestStubs.router(),
+        params: {
+          authId: 15,
+        },
+      },
+    },
+  ]);
 
   beforeEach(function() {
     Client.clearMockResponses();
@@ -16,16 +26,7 @@ describe('PasswordForm', function() {
       url: ENDPOINT,
       method: 'PUT',
     });
-    wrapper = mount(<PasswordForm />, {
-      context: {
-        router: {
-          ...TestStubs.router(),
-          params: {
-            authId: 15,
-          },
-        },
-      },
-    });
+    wrapper = mount(<PasswordForm />, routerContext);
   });
 
   it('has 3 text inputs', function() {

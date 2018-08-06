@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
+
+import {imageStyle} from 'app/components/avatar/styles';
 
 /**
  * Also see avatar.py. Anything changed in this file (how colors
@@ -14,6 +16,7 @@ const LetterAvatar = createReactClass({
   propTypes: {
     identifier: PropTypes.string.isRequired,
     displayName: PropTypes.string.isRequired,
+    round: PropTypes.bool,
   },
 
   COLORS: [
@@ -53,7 +56,11 @@ const LetterAvatar = createReactClass({
 
   render() {
     return (
-      <svg viewBox="0 0 120 120" className={this.props.className}>
+      <Svg
+        viewBox="0 0 120 120"
+        round={this.props.round}
+        className={this.props.className}
+      >
         <rect
           x="0"
           y="0"
@@ -73,9 +80,13 @@ const LetterAvatar = createReactClass({
         >
           {this.getInitials()}
         </text>
-      </svg>
+      </Svg>
     );
   },
 });
 
 export default LetterAvatar;
+
+const Svg = styled('svg')`
+  ${imageStyle};
+`;

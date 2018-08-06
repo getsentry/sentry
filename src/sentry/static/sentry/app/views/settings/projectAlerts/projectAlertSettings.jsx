@@ -1,18 +1,19 @@
 import React from 'react';
 
-import {t} from '../../../locale';
-import AlertLink from '../../../components/alertLink';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import ListLink from '../../../components/listLink';
-import {PanelAlert} from '../../../components/panels';
-import PluginList from '../../../components/pluginList';
-import SentryTypes from '../../../proptypes';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import {fields} from '../../../data/forms/projectAlerts';
-import recreateRoute from '../../../utils/recreateRoute';
+import {PanelAlert} from 'app/components/panels';
+import {fields} from 'app/data/forms/projectAlerts';
+import {t} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import ListLink from 'app/components/listLink';
+import PluginList from 'app/components/pluginList';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tooltip from 'app/components/tooltip';
+import recreateRoute from 'app/utils/recreateRoute';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -65,20 +66,27 @@ export default class ProjectAlertSettings extends AsyncView {
   renderBody() {
     let {orgId, projectId} = this.props.params;
     let {organization} = this.props;
+    let canEditRule = organization.access.includes('project:write');
 
     return (
       <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts')}
           action={
-            <Button
-              to={recreateRoute('rules/new/', this.props)}
-              priority="primary"
-              size="small"
-              icon="icon-circle-add"
+            <Tooltip
+              disabled={canEditRule}
+              title={t('You do not have permission to edit alert rules.')}
             >
-              {t('New Alert Rule')}
-            </Button>
+              <Button
+                to={recreateRoute('rules/new/', this.props)}
+                disabled={!canEditRule}
+                priority="primary"
+                size="small"
+                icon="icon-circle-add"
+              >
+                {t('New Alert Rule')}
+              </Button>
+            </Tooltip>
           }
           tabs={
             <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
@@ -89,8 +97,7 @@ export default class ProjectAlertSettings extends AsyncView {
             </ul>
           }
         />
-        {/* TODO(ckj): change 'href' to 'to' when new settings is launched #NEW-SETTINGS */}
-        <AlertLink href={'/account/settings/notifications/'} icon="icon-mail">
+        <AlertLink to={'/settings/account/notifications/'} icon="icon-mail">
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
           )}

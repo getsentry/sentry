@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {mount} from 'enzyme';
 
@@ -6,8 +5,10 @@ import ProjectSavedSearches from 'app/views/projectSavedSearches';
 
 describe('ProjectSavedSearches', function() {
   let wrapper;
-  let org = TestStubs.Organization();
-  let project = TestStubs.Project();
+  let routerContext = TestStubs.routerContext();
+  let org = routerContext.context.organization;
+  let project = routerContext.context.project;
+
   beforeEach(function() {
     MockApiClient.mockAsync = false;
     MockApiClient.clearMockResponses();
@@ -19,18 +20,7 @@ describe('ProjectSavedSearches', function() {
 
     wrapper = mount(
       <ProjectSavedSearches params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          organization: org,
-          location: TestStubs.location(),
-          router: TestStubs.router(),
-        },
-        childContextTypes: {
-          organization: PropTypes.object,
-          location: PropTypes.object,
-          router: PropTypes.object,
-        },
-      }
+      routerContext
     );
   });
 
@@ -44,18 +34,7 @@ describe('ProjectSavedSearches', function() {
 
     wrapper = mount(
       <ProjectSavedSearches params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          organization: org,
-          location: TestStubs.location(),
-          router: TestStubs.router(),
-        },
-        childContextTypes: {
-          organization: PropTypes.object,
-          location: PropTypes.object,
-          router: PropTypes.object,
-        },
-      }
+      routerContext
     );
 
     expect(wrapper).toMatchSnapshot();

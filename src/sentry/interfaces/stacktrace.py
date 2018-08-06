@@ -37,9 +37,13 @@ _filename_version_re = re.compile(
 
 # Java Spring specific anonymous classes.
 # see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
-_java_enhancer_re = re.compile(r'''
-(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
-''', re.X)
+_java_cglib_enhancer_re = re.compile(r'''(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?''', re.X)
+
+# Handle Javassist auto-generated classes and filenames:
+#   com.example.api.entry.EntriesResource_$$_javassist_74
+#   com.example.api.entry.EntriesResource_$$_javassist_seam_74
+#   EntriesResource_$$_javassist_seam_74.java
+_java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?''', re.X)
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
@@ -183,15 +187,20 @@ def remove_filename_outliers(filename, platform=None):
     # contain things like /Users/foo/Dropbox/...
     if platform == 'cocoa':
         return posixpath.basename(filename)
+    elif platform == 'java':
+        filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
     return _filename_version_re.sub('<version>/', filename)
 
 
-def remove_module_outliers(module):
+def remove_module_outliers(module, platform=None):
     """Remove things that augment the module but really should not."""
-    if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
-        return 'sun.reflect.GeneratedMethodAccessor'
-    module = _java_enhancer_re.sub(r'\1<auto>', module)
-    return _clojure_enhancer_re.sub(r'\1<auto>', module)
+    if platform == 'java':
+        if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
+            return 'sun.reflect.GeneratedMethodAccessor'
+        module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
+        module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
+        module = _clojure_enhancer_re.sub(r'\1<auto>', module)
+    return module
 
 
 def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
@@ -409,7 +418,7 @@ class Frame(Interface):
             if self.is_unhashable_module(platform):
                 output.append('<module>')
             else:
-                output.append(remove_module_outliers(self.module))
+                output.append(remove_module_outliers(self.module, platform))
         elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename, platform))
 

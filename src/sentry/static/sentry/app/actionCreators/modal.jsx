@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ModalActions from '../actions/modalActions';
+import ModalActions from 'app/actions/modalActions';
 
 /**
  * Show a modal
@@ -19,7 +19,12 @@ export function closeModal() {
 export function openSudo({onClose, ...args} = {}) {
   import(/* webpackChunkName: "SudoModal" */ '../components/modals/sudoModal')
     .then(mod => mod.default)
-    .then(SudoModal => openModal(deps => <SudoModal {...deps} {...args} />, {onClose}));
+    .then(SudoModal =>
+      openModal(deps => <SudoModal {...deps} {...args} />, {
+        modalClassName: 'sudo-modal',
+        onClose,
+      })
+    );
 }
 
 export function openDiffModal(options) {
@@ -69,5 +74,37 @@ export function openCommandPalette(options = {}) {
       openModal(deps => <Modal {...deps} {...options} />, {
         modalClassName: 'command-palette',
       });
+    });
+}
+
+export function openRecoveryOptions(options = {}) {
+  import(/* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'recovery-options',
+      });
+    });
+}
+
+/**
+ * @param Object options.provider The integration provider to show the details for
+ * @param Function options.onAddIntegration Called after a new integration is added
+ */
+export function openIntegrationDetails(options = {}) {
+  import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'integration-details',
+      });
+    });
+}
+
+export function redirectToProject(newProjectSlug) {
+  import(/* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
     });
 }

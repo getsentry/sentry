@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import AutoComplete from 'sentry-ui/autoComplete';
+import AutoComplete from 'app/components/autoComplete';
 
 const items = [
   {

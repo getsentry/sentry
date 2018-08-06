@@ -1,15 +1,15 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 
-import {t, tct} from '../../../locale';
-import ApiTokenRow from './apiTokenRow';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import IndicatorStore from '../../../stores/indicatorStore';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
+import {t, tct} from 'app/locale';
+import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 class ApiTokens extends AsyncView {
   getTitle() {

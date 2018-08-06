@@ -1,17 +1,22 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import {browserHistory, Link} from 'react-router';
+import styled from 'react-emotion';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
-import ProjectActions from '../../actions/projectActions';
-
-import {getPlatformName} from './utils';
-import OnboardingProject from '../onboarding/project';
-
-import {t} from '../../locale';
+import sdk from 'app/utils/sdk';
+import {Panel} from 'app/components/panels';
+import {getPlatformName} from 'app/views/onboarding/utils';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/buttons/button';
+import OnboardingProject from 'app/views/onboarding/project';
+import OrganizationState from 'app/mixins/organizationState';
+import PanelAlert from 'app/components/panels/panelAlert';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
+import space from 'app/styles/space';
 
 const CreateProject = createReactClass({
   displayName: 'CreateProject',
@@ -21,10 +26,15 @@ const CreateProject = createReactClass({
   },
 
   contextTypes: {
+    router: PropTypes.object,
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [
+    ApiMixin,
+    OrganizationState,
+    Reflux.listenTo(TeamActions.createTeamSuccess, 'onTeamCreated'),
+  ],
 
   getDefaultProps() {
     return {
@@ -51,7 +61,18 @@ const CreateProject = createReactClass({
     };
   },
 
+  onTeamCreated() {
+    let {router} = this.context;
+
+    // After team gets created we need to force OrganizationContext to basically remount
+    router.replace({
+      pathname: router.location.pathname,
+      state: 'refresh',
+    });
+  },
+
   createProject() {
+    let {router} = this.context;
     let {slug} = this.getOrganization();
     let {projectName, platform, team, inFlight} = this.state;
 
@@ -60,7 +81,7 @@ const CreateProject = createReactClass({
     this.setState({inFlight: true});
 
     if (!projectName) {
-      Raven.captureMessage('Onboarding no project name ', {
+      sdk.captureMessage('Onboarding no project name ', {
         extra: {props: this.props, state: this.state},
       });
     }
@@ -77,7 +98,7 @@ const CreateProject = createReactClass({
         // navigate to new url _now_
         const url = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
         this.setState({inFlight: false});
-        browserHistory.push(url);
+        router.push(url);
       },
       error: err => {
         this.setState({
@@ -85,8 +106,11 @@ const CreateProject = createReactClass({
           error: err.responseJSON.detail,
         });
 
-        if (err.status != 403) {
-          Raven.captureMessage('Onboarding project creation failed', {
+        // Only log this if the error is something other than:
+        // * The user not having access to create a project, or,
+        // * A project with that slug already exists
+        if (err.status !== 403 && err.status !== 409) {
+          sdk.captureMessage('Onboarding project creation failed', {
             extra: {
               err,
               props: this.props,
@@ -100,7 +124,8 @@ const CreateProject = createReactClass({
 
   render() {
     let {projectName, platform, error} = this.state;
-    let {slug, teams} = this.getOrganization();
+    let organization = this.getOrganization();
+    let {teams} = organization;
     let accessTeams = teams.filter(team => team.hasAccess);
 
     const stepProps = {
@@ -125,16 +150,30 @@ const CreateProject = createReactClass({
         {accessTeams.length ? (
           <OnboardingProject {...stepProps} />
         ) : (
-          <div>
-            <h4>
-              {t(
-                'You cannot create a new project because there are no teams to assign it to.'
-              )}
-            </h4>
-            <Link to={`/organizations/${slug}/teams/new/`} className="btn btn-primary">
-              {t('Create a Team')}
-            </Link>
-          </div>
+          <Panel
+            title={t('Cannot Create Project')}
+            body={
+              <React.Fragment>
+                <PanelAlert type="error">
+                  {t(
+                    'You cannot create a new project because there are no teams to assign it to.'
+                  )}
+                </PanelAlert>
+                <CreateTeamBody>
+                  <Button
+                    className="ref-create-team"
+                    priority="primary"
+                    onClick={() =>
+                      openCreateTeamModal({
+                        organization,
+                      })}
+                  >
+                    {t('Create a Team')}
+                  </Button>
+                </CreateTeamBody>
+              </React.Fragment>
+            }
+          />
         )}
       </div>
     );
@@ -142,3 +181,9 @@ const CreateProject = createReactClass({
 });
 
 export default CreateProject;
+
+const CreateTeamBody = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(2)};
+`;

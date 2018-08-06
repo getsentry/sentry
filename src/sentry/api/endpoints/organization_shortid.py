@@ -6,8 +6,9 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import Group
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
+from sentry.models import Group
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -46,6 +47,10 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
                 'organizationSlug': organization.slug,
                 'projectSlug': group.project.slug,
                 'groupId': six.text_type(group.id),
+                'group': serialize(
+                    group,
+                    request.user,
+                ),
                 'shortId': group.qualified_short_id,
             }
         )

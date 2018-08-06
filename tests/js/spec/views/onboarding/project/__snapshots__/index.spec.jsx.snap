@@ -63,7 +63,7 @@ exports[`Project render() should render NotFound if no matching organization 1`]
       </button>
     </div>
     <p>
-      Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+      Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
     </p>
   </div>
 </div>
@@ -81,6 +81,12 @@ exports[`Project render() should set required class on empty submit 1`] = `
     [MockFunction] {
       "calls": Array [
         Array [],
+      ],
+      "results": Array [
+        Object {
+          "isThrow": false,
+          "value": undefined,
+        },
       ],
     }
   }
@@ -114,6 +120,12 @@ exports[`Project render() should set required class on empty submit 1`] = `
         [MockFunction] {
           "calls": Array [
             Array [],
+          ],
+          "results": Array [
+            Object {
+              "isThrow": false,
+              "value": undefined,
+            },
           ],
         }
       }
@@ -847,7 +859,7 @@ exports[`Project render() should set required class on empty submit 1`] = `
         </button>
       </div>
       <p>
-        Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+        Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
       </p>
     </div>
   </div>

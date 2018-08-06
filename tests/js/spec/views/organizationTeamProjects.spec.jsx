@@ -5,7 +5,7 @@ import {Client} from 'app/api';
 import TeamStore from 'app/stores/teamStore';
 import ProjectsStore from 'app/stores/projectsStore';
 
-import OrganizationTeamProjects from 'app/views/settings/team/teamProjects';
+import OrganizationTeamProjects from 'app/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', function() {
   let project;
@@ -55,17 +55,17 @@ describe('OrganizationTeamProjects', function() {
   it('Should render', function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     expect(wrapper).toMatchSnapshot();
-    expect(wrapper.find('.project-name').text()).toBe('Project Name');
+    expect(wrapper.find('.project-name').text()).toBe('project-slug');
   });
 
   it('Should allow bookmarking', function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     let star = wrapper.find('.icon-star-outline');
@@ -80,10 +80,10 @@ describe('OrganizationTeamProjects', function() {
     expect(putMock).toHaveBeenCalledTimes(1);
   });
 
-  it('Should allow adding and removing projects', function(done) {
+  it('Should allow adding and removing projects', async function() {
     let wrapper = mount(
       <OrganizationTeamProjects params={{orgId: 'org-slug', teamId: team.slug}} />,
-      TestStubs.routerOrganizationContext()
+      TestStubs.routerContext()
     );
 
     let add = wrapper.find('DropdownButton').first();
@@ -96,15 +96,13 @@ describe('OrganizationTeamProjects', function() {
 
     expect(postMock).toHaveBeenCalledTimes(1);
 
-    setTimeout(() => {
-      wrapper.update();
-      // find first project's remove button
-      let remove = wrapper.find('Button').at(1);
-      remove.simulate('click');
+    await tick();
+    wrapper.update();
 
-      expect(deleteMock).toHaveBeenCalledTimes(1);
+    // find second project's remove button
+    let remove = wrapper.find('PanelBody Button').at(1);
+    remove.simulate('click');
 
-      done();
-    }, 1);
+    expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 });

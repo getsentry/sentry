@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-import {t} from '../../locale';
-import CustomPropTypes from '../../proptypes';
-import EventsTableRow from './eventsTableRow';
+import {t} from 'app/locale';
+import CustomPropTypes from 'app/sentryTypes';
+import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
 
 class EventsTable extends React.Component {
   static propTypes = {

@@ -1,8 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../locale';
-import InlineSvg from './inlineSvg';
+import {t} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+
+const isBitbucket = providerId =>
+  ['bitbucket', 'integrations:bitbucket'].includes(providerId);
+const isGithub = providerId =>
+  ['github', 'integrations:github', 'integrations:github_enterprise'].includes(
+    providerId
+  );
 
 class CommitLink extends React.Component {
   static propTypes = {
@@ -13,10 +20,10 @@ class CommitLink extends React.Component {
 
   getCommitUrl = () => {
     // TODO(jess): move this to plugins
-    if (this.props.repository.provider.id === 'github') {
+    if (isGithub(this.props.repository.provider.id)) {
       return this.props.repository.url + '/commit/' + this.props.commitId;
     }
-    if (this.props.repository.provider.id === 'bitbucket') {
+    if (isBitbucket(this.props.repository.provider.id)) {
       return this.props.repository.url + '/commits/' + this.props.commitId;
     }
     return undefined;
@@ -38,10 +45,10 @@ class CommitLink extends React.Component {
         href={commitUrl}
         target="_blank"
       >
-        {repository.provider.id == 'github' && (
+        {isGithub(repository.provider.id) && (
           <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
         )}
-        {repository.provider.id == 'bitbucket' && (
+        {isBitbucket(repository.provider.id) && (
           <InlineSvg
             src="icon-bitbucket"
             style={{verticalAlign: 'text-top'}}

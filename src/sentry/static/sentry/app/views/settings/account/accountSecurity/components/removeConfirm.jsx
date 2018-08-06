@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {t} from '../../../../../locale';
-import ConfirmHeader from './confirmHeader';
-import Confirm from '../../../../../components/confirm';
-import TextBlock from '../../../components/text/textBlock';
+import {t} from 'app/locale';
+import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
+import Confirm from 'app/components/confirm';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 class RemoveConfirm extends React.Component {
   render() {

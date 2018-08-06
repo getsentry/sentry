@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 import pytest
 
 from collections import OrderedDict
@@ -8,9 +9,16 @@ from datetime import datetime
 from sentry.search.base import ANY
 from sentry.testutils import TestCase
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.v2.backend import V2TagStorage
-from sentry.tagstore.v2.models import TagKey, TagValue, GroupTagKey, GroupTagValue, EventTag
+from sentry.tagstore.v2 import models
+from sentry.tagstore.v2.backend import V2TagStorage, transformers
 from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
+
+
+def xfail_if_mysql(function):
+    return pytest.mark.xfail(
+        os.environ.get('TEST_SUITE') == 'mysql',
+        reason='mysql microsecond truncation breaks comparison',
+    )(function)
 
 
 class TagStorage(TestCase):
@@ -44,7 +52,7 @@ class TagStorage(TestCase):
         assert self.ts.get_tag_keys(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-        ) == []
+        ) == set()
 
         tk = self.ts.create_tag_key(
             project_id=self.proj1.id,
@@ -56,14 +64,14 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ).id == tk.id
+        ) == transformers[models.TagKey](tk)
 
         assert self.ts.get_tag_keys(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
-        ) == [tk]
+        ) == set([transformers[models.TagKey](tk)])
 
-        assert TagKey.objects.all().count() == 1
+        assert models.TagKey.objects.all().count() == 1
 
     def test_get_or_create_tag_key(self):
         tk1, _ = self.ts.get_or_create_tag_key(
@@ -79,13 +87,14 @@ class TagStorage(TestCase):
         )
 
         assert tk1.id == tk2.id
-        assert TagKey.objects.filter(
+        assert models.TagKey.objects.filter(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
         ).count() == 1
-        assert TagKey.objects.all().count() == 1
+        assert models.TagKey.objects.all().count() == 1
 
+    @xfail_if_mysql
     def test_create_tag_value(self):
         with pytest.raises(TagValueNotFound):
             self.ts.get_tag_value(
@@ -99,7 +108,7 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ) == []
+        ) == set()
 
         tv = self.ts.create_tag_value(
             project_id=self.proj1.id,
@@ -108,20 +117,21 @@ class TagStorage(TestCase):
             value=self.value1,
         )
 
-        assert self.ts.get_tag_values(
-            project_id=self.proj1.id,
-            environment_id=self.proj1env1.id,
-            key=self.key1,
-        ) == [tv]
-
         assert self.ts.get_tag_value(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
             value=self.value1,
-        ).id == tv.id
-        assert TagKey.objects.all().count() == 1
-        assert TagValue.objects.all().count() == 1
+        ) == transformers[models.TagValue](tv)
+
+        assert self.ts.get_tag_values(
+            project_id=self.proj1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+        ) == set([transformers[models.TagValue](tv)])
+
+        assert models.TagKey.objects.all().count() == 1
+        assert models.TagValue.objects.all().count() == 1
 
     def test_get_or_create_tag_value(self):
         tv1, _ = self.ts.get_or_create_tag_value(
@@ -140,21 +150,21 @@ class TagStorage(TestCase):
 
         assert tv1.id == tv2.id
 
-        tk = TagKey.objects.get(
+        tk = models.TagKey.objects.get(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
         )
 
-        assert TagKey.objects.all().count() == 1
+        assert models.TagKey.objects.all().count() == 1
 
-        assert TagValue.objects.filter(
+        assert models.TagValue.objects.filter(
             project_id=self.proj1.id,
             _key__environment_id=self.proj1env1.id,
             _key_id=tk.id,
             value=self.value1,
         ).count() == 1
-        assert TagValue.objects.all().count() == 1
+        assert models.TagValue.objects.all().count() == 1
 
     def test_create_group_tag_key(self):
         with pytest.raises(GroupTagKeyNotFound):
@@ -169,7 +179,7 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
-        ) == []
+        ) == set()
 
         gtk = self.ts.create_group_tag_key(
             project_id=self.proj1.id,
@@ -182,22 +192,23 @@ class TagStorage(TestCase):
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
-        ) == [gtk]
+        ) == [transformers[models.GroupTagKey](gtk)]
 
-        TagKey.objects.get(
+        models.TagKey.objects.get(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
         )
-        assert TagKey.objects.all().count() == 1
+        assert models.TagKey.objects.all().count() == 1
 
         assert self.ts.get_group_tag_key(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
-        ).id == gtk.id
-        assert GroupTagKey.objects.all().count() == 1
+        ) == transformers[models.GroupTagKey](gtk)
+
+        assert models.GroupTagKey.objects.all().count() == 1
 
     def test_get_or_create_group_tag_key(self):
         gtk1, _ = self.ts.get_or_create_group_tag_key(
@@ -216,21 +227,22 @@ class TagStorage(TestCase):
 
         assert gtk1.id == gtk2.id
 
-        tk = TagKey.objects.get(
+        tk = models.TagKey.objects.get(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
         )
-        assert TagKey.objects.all().count() == 1
+        assert models.TagKey.objects.all().count() == 1
 
-        assert GroupTagKey.objects.filter(
+        assert models.GroupTagKey.objects.filter(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             _key__environment_id=self.proj1env1.id,
             _key_id=tk.id,
         ).count() == 1
-        assert GroupTagKey.objects.all().count() == 1
+        assert models.GroupTagKey.objects.all().count() == 1
 
+    @xfail_if_mysql
     def test_create_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
             self.ts.get_group_tag_value(
@@ -256,24 +268,24 @@ class TagStorage(TestCase):
             value=self.value1,
         )
 
-        assert self.ts.get_group_tag_values(
-            project_id=self.proj1.id,
-            group_id=self.proj1group1.id,
-            environment_id=self.proj1env1.id,
-            key=self.key1,
-        ) == [gtv]
-
-        assert TagKey.objects.all().count() == 1
-        assert TagValue.objects.all().count() == 1
-
         assert self.ts.get_group_tag_value(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
             value=self.value1,
-        ).id == gtv.id
-        assert GroupTagValue.objects.all().count() == 1
+        ) == transformers[models.GroupTagValue](gtv)
+
+        assert self.ts.get_group_tag_values(
+            project_id=self.proj1.id,
+            group_id=self.proj1group1.id,
+            environment_id=self.proj1env1.id,
+            key=self.key1,
+        ) == [transformers[models.GroupTagValue](gtv)]
+
+        assert models.TagKey.objects.all().count() == 1
+        assert models.TagValue.objects.all().count() == 1
+        assert models.GroupTagValue.objects.all().count() == 1
 
     def test_get_or_create_group_tag_value(self):
         gtv1, _ = self.ts.get_or_create_group_tag_value(
@@ -294,29 +306,29 @@ class TagStorage(TestCase):
 
         assert gtv1.id == gtv2.id
 
-        tk = TagKey.objects.get(
+        tk = models.TagKey.objects.get(
             project_id=self.proj1.id,
             environment_id=self.proj1env1.id,
             key=self.key1,
         )
-        assert TagKey.objects.all().count() == 1
+        assert models.TagKey.objects.all().count() == 1
 
-        tv = TagValue.objects.get(
+        tv = models.TagValue.objects.get(
             project_id=self.proj1.id,
             _key__environment_id=self.proj1env1.id,
             _key_id=tk.id,
             value=self.value1,
         )
-        assert TagValue.objects.all().count() == 1
+        assert models.TagValue.objects.all().count() == 1
 
-        assert GroupTagValue.objects.filter(
+        assert models.GroupTagValue.objects.filter(
             project_id=self.proj1.id,
             group_id=self.proj1group1.id,
             _key__environment_id=self.proj1env1.id,
             _key_id=tk.id,
             _value_id=tv.id,
         ).count() == 1
-        assert GroupTagValue.objects.all().count() == 1
+        assert models.GroupTagValue.objects.all().count() == 1
 
     def test_create_event_tags(self):
         v1, _ = self.ts.get_or_create_tag_value(self.proj1.id, self.proj1env1.id, 'k1', 'v1')
@@ -332,9 +344,9 @@ class TagStorage(TestCase):
             tags=[(k.key, v.value) for k, v in tags]
         )
 
-        assert EventTag.objects.count() == 3
+        assert models.EventTag.objects.count() == 3
         for (k, v) in tags:
-            assert EventTag.objects.get(
+            assert models.EventTag.objects.get(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
                 key__environment_id=self.proj1env1.id,
@@ -364,7 +376,7 @@ class TagStorage(TestCase):
             key=self.key1,
         )
 
-        assert TagKey.objects.filter(
+        assert models.TagKey.objects.filter(
             project_id=self.proj1.id,
             status=TagKeyStatus.VISIBLE,
         ).count() == 2
@@ -373,13 +385,13 @@ class TagStorage(TestCase):
         assert tk1 in deleted
         assert tk2 in deleted
 
-        assert TagKey.objects.filter(
+        assert models.TagKey.objects.filter(
             project_id=self.proj1.id,
             status=TagKeyStatus.VISIBLE,
         ).count() == 0
 
     def test_delete_all_group_tag_keys(self):
-        assert GroupTagKey.objects.count() == 0
+        assert models.GroupTagKey.objects.count() == 0
 
         self.ts.create_group_tag_key(
             project_id=self.proj1.id,
@@ -388,14 +400,14 @@ class TagStorage(TestCase):
             key=self.key1,
         )
 
-        assert GroupTagKey.objects.count() == 1
+        assert models.GroupTagKey.objects.count() == 1
 
         self.ts.delete_all_group_tag_keys(self.proj1.id, self.proj1group1.id)
 
-        assert GroupTagKey.objects.count() == 0
+        assert models.GroupTagKey.objects.count() == 0
 
     def test_delete_all_group_tag_values(self):
-        assert GroupTagValue.objects.count() == 0
+        assert models.GroupTagValue.objects.count() == 0
 
         self.ts.create_group_tag_value(
             project_id=self.proj1.id,
@@ -405,13 +417,13 @@ class TagStorage(TestCase):
             value=self.value1,
         )
 
-        assert GroupTagValue.objects.count() == 1
+        assert models.GroupTagValue.objects.count() == 1
 
         self.ts.delete_all_group_tag_values(self.proj1.id, self.proj1group1.id)
 
-        assert GroupTagValue.objects.count() == 0
+        assert models.GroupTagValue.objects.count() == 0
 
-    def test_get_group_event_ids(self):
+    def test_get_group_event_filter(self):
         tags = {
             'abc': 'xyz',
             'foo': 'bar',
@@ -443,12 +455,12 @@ class TagStorage(TestCase):
             tags=different_tags.items(),
         )
 
-        assert len(
-            self.ts.get_group_event_ids(
-                self.proj1.id,
-                self.proj1group1.id,
-                self.proj1env1.id,
-                tags)) == 2
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            tags
+        ) == {'id__in': set([self.proj1group1event1.id, self.proj1group1event2.id])}
 
     def test_get_groups_user_counts(self):
         k1, _ = self.ts.get_or_create_group_tag_key(
@@ -581,6 +593,7 @@ class TagStorage(TestCase):
             self.proj1group1.id,
         ) == '2.0'
 
+    @xfail_if_mysql
     def test_get_release_tags(self):
         tv, _ = self.ts.get_or_create_tag_value(
             self.proj1.id,
@@ -589,7 +602,11 @@ class TagStorage(TestCase):
             '1.0'
         )
 
-        assert self.ts.get_release_tags([self.proj1.id], self.proj1env1.id, ['1.0']) == [tv]
+        assert self.ts.get_release_tags(
+            [self.proj1.id],
+            self.proj1env1.id,
+            ['1.0'],
+        ) == set([transformers[models.TagValue](tv)])
 
     def test_get_group_ids_for_users(self):
         from sentry.models import EventUser
@@ -605,8 +622,9 @@ class TagStorage(TestCase):
 
         assert self.ts.get_group_ids_for_users(
             [self.proj1.id],
-            [eu]) == [self.proj1group1.id]
+            [eu]) == set([self.proj1group1.id])
 
+    @xfail_if_mysql
     def test_get_group_tag_values_for_users(self):
         from sentry.models import EventUser
 
@@ -619,7 +637,9 @@ class TagStorage(TestCase):
 
         eu = EventUser(project_id=self.proj1.id, email='user@sentry.io')
 
-        assert self.ts.get_group_tag_values_for_users([eu]) == [v1]
+        assert self.ts.get_group_tag_values_for_users([eu]) == [
+            transformers[models.GroupTagValue](v1)
+        ]
 
     def test_get_group_ids_for_search_filter(self):
         tags = {
@@ -681,10 +701,10 @@ class TagStorage(TestCase):
             tags=tags
         )
 
-        assert EventTag.objects.filter(group_id=self.proj1group2.id).count() == 0
+        assert models.EventTag.objects.filter(group_id=self.proj1group2.id).count() == 0
 
         self.ts.update_group_for_events(
             self.proj1.id, [
                 self.proj1group1event1.id], self.proj1group2.id)
 
-        assert EventTag.objects.filter(group_id=self.proj1group2.id).count() == 3
+        assert models.EventTag.objects.filter(group_id=self.proj1group2.id).count() == 3

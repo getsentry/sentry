@@ -10,7 +10,7 @@ jest.mock('app/actionCreators/teams', () => ({
 }));
 
 describe('CreateTeamModal', function() {
-  let org = TestStubs.Organization({features: ['new-teams']});
+  let org = TestStubs.Organization();
   let closeModal = jest.fn();
   let onClose = jest.fn();
 

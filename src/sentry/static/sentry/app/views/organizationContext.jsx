@@ -1,22 +1,21 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 import DocumentTitle from 'react-document-title';
+import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
 
-import ApiMixin from '../mixins/apiMixin';
-import HookStore from '../stores/hookStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import BroadcastModal from '../components/broadcastModal';
-import SentryTypes from '../proptypes';
-import TeamStore from '../stores/teamStore';
-import ProjectsStore from '../stores/projectsStore';
-import ProjectActions from '../actions/projectActions';
-import ConfigStore from '../stores/configStore';
-import {setActiveOrganization} from '../actionCreators/organizations';
-
-import {t} from '../locale';
+import {setActiveOrganization} from 'app/actionCreators/organizations';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import BroadcastModal from 'app/components/broadcastModal';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectActions from 'app/actions/projectActions';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import TeamStore from 'app/stores/teamStore';
 
 let ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',

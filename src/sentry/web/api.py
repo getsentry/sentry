@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import base64
+import math
+
 import jsonschema
 import logging
 import os
@@ -14,7 +16,9 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.core.files import uploadhandler
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
+from django.http.multipartparser import MultiPartParser
 from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
@@ -22,6 +26,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
 from raven.contrib.django.models import client as Raven
+from symbolic import ProcessMinidumpError
 
 from sentry import quotas, tsdb
 from sentry.coreapi import (
@@ -136,7 +141,7 @@ class APIView(BaseView):
             response['X-Sentry-Error'] = context['error']
 
             if isinstance(e, APIRateLimited) and e.retry_after is not None:
-                response['Retry-After'] = six.text_type(e.retry_after)
+                response['Retry-After'] = six.text_type(int(math.ceil(e.retry_after)))
 
         except Exception as e:
             # TODO(dcramer): test failures are not outputting the log message
@@ -380,7 +385,7 @@ class StoreView(APIView):
                 project=project,
                 sender=type(self),
             )
-            raise APIForbidden('Event dropped due to filter')
+            raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(
@@ -587,7 +592,44 @@ class MinidumpView(StoreView):
                 for chunk in minidump.chunks():
                     out.write(chunk)
 
-        merge_minidump_event(data, minidump)
+        # Breakpad on linux sometimes stores the entire HTTP request body as
+        # dump file instead of just the minidump. The Electron SDK then for
+        # example uploads a multipart formdata body inside the minidump file.
+        # It needs to be re-parsed, to extract the actual minidump before
+        # continuing.
+        minidump.seek(0)
+        if minidump.read(2) == b'--':
+            # The remaining bytes of the first line are the form boundary. We
+            # have already read two bytes, the remainder is the form boundary
+            # (excluding the initial '--').
+            boundary = minidump.readline().rstrip()
+            minidump.seek(0)
+
+            # Next, we have to fake a HTTP request by specifying the form
+            # boundary and the content length, or otherwise Django will not try
+            # to parse our form body. Also, we need to supply new upload
+            # handlers since they cannot be reused from the current request.
+            meta = {
+                'CONTENT_TYPE': b'multipart/form-data; boundary=%s' % boundary,
+                'CONTENT_LENGTH': minidump.size,
+            }
+            handlers = [
+                uploadhandler.load_handler(handler, request)
+                for handler in settings.FILE_UPLOAD_HANDLERS
+            ]
+
+            _, files = MultiPartParser(meta, minidump, handlers).parse()
+            try:
+                minidump = files['upload_file_minidump']
+            except KeyError:
+                raise APIError('Missing minidump upload')
+
+        try:
+            merge_minidump_event(data, minidump)
+        except ProcessMinidumpError as e:
+            logger.exception(e)
+            raise APIError(e.message.split('\n', 1)[0])
+
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
@@ -689,6 +731,7 @@ class SecurityReportView(StoreView):
             'csp-report': 'sentry.interfaces.Csp',
             'expect-ct-report': 'expectct',
             'expect-staple-report': 'expectstaple',
+            'known-pins': 'hpkp',
         }
         if isinstance(body, dict):
             for k in report_type_for_key:

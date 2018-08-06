@@ -3,13 +3,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../../locale';
-import ApiForm from '../components/forms/apiForm';
-import BooleanField from '../components/forms/booleanField';
-import FormField from '../components/forms/formField';
-import TextField from '../components/forms/textField';
-import MultipleCheckbox from '../components/forms/controls/multipleCheckbox';
-import {Panel, PanelBody, PanelHeader} from '../../../components/panels';
+import {t} from 'app/locale';
+import ApiForm from 'app/views/settings/components/forms/apiForm';
+import BooleanField from 'app/views/settings/components/forms/booleanField';
+import FormField from 'app/views/settings/components/forms/formField';
+import TextField from 'app/views/settings/components/forms/textField';
+import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'].map(e => [e, e]);
 

@@ -1,63 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
-import TeamSettings from 'app/views/settings/team/teamSettings.old';
 import TeamStore from 'app/stores/teamStore';
-import NewTeamSettings from 'app/views/settings/team/teamSettings';
-import {mountWithTheme} from '../../../helpers';
+import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
 
-const childContextTypes = {
-  organization: PropTypes.object,
-  router: PropTypes.object,
-  location: PropTypes.object,
-};
-
-// #NEW-SETTINGS
 describe('TeamSettings', function() {
-  describe('render()', function() {
-    let wrapper;
-    beforeEach(function() {
-      let team = TestStubs.Team();
-      wrapper = shallow(
-        <TeamSettings
-          routes={[]}
-          params={{orgId: 'org', teamId: team.slug}}
-          team={team}
-          onTeamChange={() => {}}
-        />,
-        {
-          context: {
-            router: TestStubs.router(),
-            organization: {
-              id: '1337',
-              access: [],
-            },
-          },
-          childContextTypes,
-        }
-      );
-    });
-
-    it('renders', function() {
-      wrapper.update();
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('renders with remove team', function() {
-      wrapper.setContext({
-        organization: {
-          id: '1337',
-          access: ['team:admin'],
-        },
-      });
-      wrapper.update();
-      expect(wrapper).toMatchSnapshot();
-    });
-  });
-});
-
-describe('NewTeamSettings', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     sinon.stub(window.location, 'assign');
@@ -76,8 +23,8 @@ describe('NewTeamSettings', function() {
     let mountOptions = TestStubs.routerContext();
     let {router} = mountOptions.context;
 
-    let wrapper = mountWithTheme(
-      <NewTeamSettings
+    let wrapper = mount(
+      <TeamSettings
         routes={[]}
         router={router}
         params={{orgId: 'org', teamId: team.slug}}
@@ -121,11 +68,11 @@ describe('NewTeamSettings', function() {
     expect(router.push).toHaveBeenCalledWith('/settings/org/teams/new-slug/settings/');
   });
 
-  it('needs team:admin in order to see remove team button', function() {
+  it('needs team:admin in order to see an enabled Remove Team button', function() {
     let team = TestStubs.Team();
 
     let wrapper = mount(
-      <NewTeamSettings
+      <TeamSettings
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}
         team={team}
@@ -133,13 +80,13 @@ describe('NewTeamSettings', function() {
       />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );
-
     expect(
       wrapper
-        .find('PanelHeader')
+        .find('Panel')
         .last()
-        .text()
-    ).not.toBe('Remove Team');
+        .find('Button')
+        .prop('disabled')
+    ).toBe(true);
   });
 
   it('can remove team', async function() {
@@ -158,7 +105,7 @@ describe('NewTeamSettings', function() {
     ]);
 
     let wrapper = mount(
-      <NewTeamSettings
+      <TeamSettings
         router={{push: routerPushMock}}
         routes={[]}
         params={{orgId: 'org', teamId: team.slug}}

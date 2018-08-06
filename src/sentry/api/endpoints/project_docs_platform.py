@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+from sentry.utils.http import absolute_uri
 from rest_framework.response import Response
+from django.core.urlresolvers import reverse
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -19,6 +21,9 @@ def replace_keys(html, project_key):
     html = html.replace('___SECRET_KEY___', project_key.secret_key)
     html = html.replace('___PROJECT_ID___', six.text_type(project_key.project_id))
     html = html.replace('___MINIDUMP_URL___', project_key.minidump_endpoint)
+    html = html.replace('___RELAY_CDN_URL___', absolute_uri(
+        reverse('sentry-js-sdk-loader', args=[project_key.public_key])
+    ))
 
     # If we actually render this in the main UI we can also provide
     # extra information about the project (org slug and project slug)

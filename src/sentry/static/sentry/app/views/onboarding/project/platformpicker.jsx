@@ -3,11 +3,11 @@ import React from 'react';
 import classnames from 'classnames';
 import _ from 'lodash';
 
-import ListLink from '../../../components/listLink';
-import {flattenedPlatforms, categoryList} from '../utils';
-import PlatformCard from './platformCard';
-import {t} from '../../../locale';
-import HookStore from '../../../stores/hookStore';
+import analytics from 'app/utils/analytics';
+import ListLink from 'app/components/listLink';
+import {flattenedPlatforms, categoryList} from 'app/views/onboarding/utils';
+import PlatformCard from 'app/views/onboarding/project/platformCard';
+import {t} from 'app/locale';
 
 const allCategories = categoryList.concat({id: 'all', name: t('All')});
 
@@ -30,12 +30,10 @@ class PlatformPicker extends React.Component {
 
   logSearch = _.debounce(() => {
     if (this.state.filter) {
-      HookStore.get('analytics:event').forEach(cb =>
-        cb('platformpicker.search', {
-          query: this.state.filter.toLowerCase(),
-          num_results: this.getPlatformList().length,
-        })
-      );
+      analytics('platformpicker.search', {
+        query: this.state.filter.toLowerCase(),
+        num_results: this.getPlatformList().length,
+      });
     }
   }, 300);
 
@@ -85,9 +83,7 @@ class PlatformPicker extends React.Component {
               <ListLink
                 key={id}
                 onClick={e => {
-                  HookStore.get('analytics:event').forEach(cb =>
-                    cb('platformpicker.select_tab', {tab: id})
-                  );
+                  analytics('platformpicker.select_tab', {tab: id});
                   this.setState({tab: id, filter: ''});
                   e.preventDefault();
                 }}
@@ -110,9 +106,7 @@ class PlatformPicker extends React.Component {
                   })}
                   key={platform.id}
                   onClick={e => {
-                    HookStore.get('analytics:event').forEach(cb =>
-                      cb('platformpicker.select_platform', {platform: platform.id})
-                    );
+                    analytics('platformpicker.select_platform', {platform: platform.id});
                     this.props.setPlatform(platform.id);
                     e.preventDefault();
                   }}

@@ -1,0 +1,293 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExternalIssueActions with an external issue linked renders 1`] = `
+<IssueSyncElement
+  externalIssueId="100"
+  externalIssueKey="getsentry/sentry#2"
+  externalIssueLink="https://github.com/MeredithAnya/testing/issues/2"
+  integrationType="github"
+  onClose={[Function]}
+  onOpen={[Function]}
+>
+  <IssueSyncListElementContainer>
+    <div
+      className="css-43gy94-IssueSyncListElementContainer e1vaar1z0"
+    >
+      <div>
+        <IntegrationIcon
+          src="icon-github"
+        >
+          <InlineSvg
+            className="css-qf3g6n-IntegrationIcon e1vaar1z1"
+            src="icon-github"
+          >
+            <StyledSvg
+              className="css-qf3g6n-IntegrationIcon e1vaar1z1"
+              height="1em"
+              viewBox={Object {}}
+              width="1em"
+            >
+              <svg
+                className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                height="1em"
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+        </IntegrationIcon>
+        <IntegrationLink
+          href="https://github.com/MeredithAnya/testing/issues/2"
+        >
+          <a
+            className="css-1ado49n-IntegrationLink e1vaar1z2"
+            href="https://github.com/MeredithAnya/testing/issues/2"
+          >
+            getsentry/sentry#2
+          </a>
+        </IntegrationLink>
+      </div>
+      <OpenCloseIcon
+        isLinked="100"
+        onClick={[Function]}
+        src="icon-close"
+      >
+        <InlineSvg
+          className="css-92xk5s-OpenCloseIcon e1vaar1z3"
+          isLinked="100"
+          onClick={[Function]}
+          src="icon-close"
+        >
+          <StyledSvg
+            className="css-92xk5s-OpenCloseIcon e1vaar1z3"
+            height="1em"
+            isLinked="100"
+            onClick={[Function]}
+            viewBox={Object {}}
+            width="1em"
+          >
+            <svg
+              className="e1vaar1z3 css-1iszbb4-StyledSvg-OpenCloseIcon e2idor0"
+              height="1em"
+              onClick={[Function]}
+              viewBox={Object {}}
+              width="1em"
+            >
+              <use
+                href="#test"
+                xlinkHref="#test"
+              />
+            </svg>
+          </StyledSvg>
+        </InlineSvg>
+      </OpenCloseIcon>
+    </div>
+  </IssueSyncListElementContainer>
+</IssueSyncElement>
+`;
+
+exports[`ExternalIssueActions with no external issues linked renders 1`] = `
+<ExternalIssueActions
+  group={
+    Object {
+      "assignedTo": null,
+      "id": "1",
+      "project": Object {
+        "id": "2",
+        "slug": "project-slug",
+      },
+      "stats": Object {
+        "24h": Array [
+          Array [
+            1517281200,
+            2,
+          ],
+          Array [
+            1517310000,
+            1,
+          ],
+        ],
+        "30d": Array [
+          Array [
+            1514764800,
+            1,
+          ],
+          Array [
+            1515024000,
+            122,
+          ],
+        ],
+      },
+      "tags": Array [],
+    }
+  }
+  integration={
+    Object {
+      "configData": Object {},
+      "configOrganization": Array [],
+      "configProject": Array [],
+      "domainName": "gtithub.com/test-integration",
+      "externalIssues": Array [],
+      "icon": "http://example.com/integration_icon.png",
+      "id": "1",
+      "name": "Test Integration",
+      "projects": Array [],
+      "provider": Object {
+        "canAdd": true,
+        "canAddProject": false,
+        "features": Array [],
+        "key": "github",
+        "name": "GitHub",
+      },
+    }
+  }
+>
+  <IssueSyncElement
+    externalIssueId={null}
+    externalIssueKey={null}
+    externalIssueLink={null}
+    integrationType="github"
+    onClose={[Function]}
+    onOpen={[Function]}
+  >
+    <IssueSyncListElementContainer>
+      <div
+        className="css-43gy94-IssueSyncListElementContainer e1vaar1z0"
+      >
+        <div>
+          <IntegrationIcon
+            src="icon-github"
+          >
+            <InlineSvg
+              className="css-qf3g6n-IntegrationIcon e1vaar1z1"
+              src="icon-github"
+            >
+              <StyledSvg
+                className="css-qf3g6n-IntegrationIcon e1vaar1z1"
+                height="1em"
+                viewBox={Object {}}
+                width="1em"
+              >
+                <svg
+                  className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                  height="1em"
+                  viewBox={Object {}}
+                  width="1em"
+                >
+                  <use
+                    href="#test"
+                    xlinkHref="#test"
+                  />
+                </svg>
+              </StyledSvg>
+            </InlineSvg>
+          </IntegrationIcon>
+          <IntegrationLink
+            href={null}
+            onClick={[Function]}
+          >
+            <a
+              className="css-1ado49n-IntegrationLink e1vaar1z2"
+              href={null}
+              onClick={[Function]}
+            >
+              Link GitHub Issue
+            </a>
+          </IntegrationLink>
+        </div>
+        <OpenCloseIcon
+          isLinked={null}
+          onClick={[Function]}
+          src="icon-close"
+        >
+          <InlineSvg
+            className="css-100fxiy-OpenCloseIcon e1vaar1z3"
+            isLinked={null}
+            onClick={[Function]}
+            src="icon-close"
+          >
+            <StyledSvg
+              className="css-100fxiy-OpenCloseIcon e1vaar1z3"
+              height="1em"
+              isLinked={null}
+              onClick={[Function]}
+              viewBox={Object {}}
+              width="1em"
+            >
+              <svg
+                className="e1vaar1z3 css-3kdvxo-StyledSvg-OpenCloseIcon e2idor0"
+                height="1em"
+                onClick={[Function]}
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+        </OpenCloseIcon>
+      </div>
+    </IssueSyncListElementContainer>
+  </IssueSyncElement>
+  <Modal
+    animation={false}
+    autoFocus={true}
+    backdrop={true}
+    bsClass="modal"
+    dialogComponentClass={[Function]}
+    enforceFocus={false}
+    keyboard={true}
+    manager={
+      ModalManager {
+        "add": [Function],
+        "containers": Array [],
+        "data": Array [],
+        "handleContainerOverflow": true,
+        "hideSiblingNodes": true,
+        "isTopModal": [Function],
+        "modals": Array [],
+        "remove": [Function],
+      }
+    }
+    onHide={[Function]}
+    renderBackdrop={[Function]}
+    restoreFocus={true}
+    show={false}
+  >
+    <Modal
+      autoFocus={true}
+      backdrop={true}
+      backdropClassName="modal-backdrop"
+      containerClassName="modal-open"
+      enforceFocus={false}
+      keyboard={true}
+      manager={
+        ModalManager {
+          "add": [Function],
+          "containers": Array [],
+          "data": Array [],
+          "handleContainerOverflow": true,
+          "hideSiblingNodes": true,
+          "isTopModal": [Function],
+          "modals": Array [],
+          "remove": [Function],
+        }
+      }
+      onEntering={[Function]}
+      onExited={[Function]}
+      onHide={[Function]}
+      renderBackdrop={[Function]}
+      restoreFocus={true}
+      show={false}
+    />
+  </Modal>
+</ExternalIssueActions>
+`;

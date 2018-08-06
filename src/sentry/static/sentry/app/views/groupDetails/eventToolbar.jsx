@@ -5,12 +5,12 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import ConfigStore from '../../stores/configStore';
-import SentryTypes from '../../proptypes';
-import DateTime from '../../components/dateTime';
-import FileSize from '../../components/fileSize';
-import Tooltip from '../../components/tooltip';
-import {t} from '../../locale';
+import ConfigStore from 'app/stores/configStore';
+import SentryTypes from 'app/sentryTypes';
+import DateTime from 'app/components/dateTime';
+import FileSize from 'app/components/fileSize';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 let formatDateDelta = (reference, observed) => {
   let duration = moment.duration(Math.abs(+observed - +reference));

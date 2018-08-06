@@ -1,6 +1,6 @@
-import TeamActions from '../actions/teamActions';
-import {tct} from '../locale';
-import {addSuccessMessage, addErrorMessage} from './indicator';
+import TeamActions from 'app/actions/teamActions';
+import {tct} from 'app/locale';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 const doCallback = (params = {}, name, ...args) => {
   if (typeof params[name] === 'function') {
@@ -37,6 +37,10 @@ export function fetchTeamDetails(api, params, options) {
   });
 }
 
+export function updateTeamSuccess(teamId, data) {
+  TeamActions.updateSuccess(teamId, data);
+}
+
 export function updateTeam(api, params, options) {
   let endpoint = `/teams/${params.orgId}/${params.teamId}/`;
   TeamActions.update(params.teamId, params.data);
@@ -45,7 +49,7 @@ export function updateTeam(api, params, options) {
     method: 'PUT',
     data: params.data,
     success: data => {
-      TeamActions.updateSuccess(params.teamId, data);
+      updateTeamSuccess(params.teamId, data);
       doCallback(options, 'success', data);
     },
     error: error => {
@@ -108,7 +112,7 @@ export function createTeam(api, team, params, options) {
       data => {
         TeamActions.createTeamSuccess(data);
         addSuccessMessage(
-          tct('[team] has been add to the [organization] organization', {
+          tct('[team] has been added to the [organization] organization', {
             team: `#${data.slug}`,
             organization: params.orgId,
           })

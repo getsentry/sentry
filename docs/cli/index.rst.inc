@@ -40,4 +40,3 @@ Subcommands
  shell <shell/index>
  config <config/index>
  tsdb <tsdb/index>
-

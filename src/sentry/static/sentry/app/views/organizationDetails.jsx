@@ -1,14 +1,15 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 
-import AlertActions from '../actions/alertActions';
-import Button from '../components/buttons/button';
-import {Client} from '../api';
-import OrganizationContext from './organizationContext';
-import NarrowLayout from '../components/narrowLayout';
-import Footer from '../components/footer';
-import Sidebar from '../components/sidebar';
-import {t, tct} from '../locale';
+import AlertActions from 'app/actions/alertActions';
+import ErrorBoundary from 'app/components/errorBoundary';
+import Button from 'app/components/buttons/button';
+import {Client} from 'app/api';
+import OrganizationContext from 'app/views/organizationContext';
+import NarrowLayout from 'app/components/narrowLayout';
+import Footer from 'app/components/footer';
+import LazyLoad from 'app/components/lazyLoad';
+import {t, tct} from 'app/locale';
 
 class DeletionInProgress extends Component {
   static propTypes = {
@@ -125,6 +126,7 @@ class OrganizationDetailsBody extends Component {
 
   render() {
     let {organization} = this.context;
+
     if (organization.status)
       if (organization.status.id === 'pending_deletion') {
         return <DeletionPending organization={organization} />;
@@ -132,11 +134,19 @@ class OrganizationDetailsBody extends Component {
         return <DeletionInProgress organization={organization} />;
       }
     return (
-      <div>
-        <Sidebar />
-        {this.props.children}
+      <React.Fragment>
+        <LazyLoad
+          component={() =>
+            import(/*webpackChunkName: "NewSidebar"*/ 'app/components/sidebar').then(
+              mod => mod.default
+            )}
+          {...this.props}
+          organization={organization}
+        />
+
+        <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
-      </div>
+      </React.Fragment>
     );
   }
 }

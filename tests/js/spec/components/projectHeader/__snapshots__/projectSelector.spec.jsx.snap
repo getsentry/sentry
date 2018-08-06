@@ -5,64 +5,57 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
   organization={
     Object {
       "access": Array [],
+      "features": Array [
+        "new-teams",
+      ],
       "id": "org",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
       "projects": Array [
         Object {
+          "hasAccess": true,
+          "id": "test-project",
+          "isBookmarked": false,
           "isMember": true,
-          "name": "Test Project",
+          "name": "Project Name",
           "slug": "test-project",
-          "team": Object {
-            "isMember": true,
-            "name": "Test Team",
-            "projects": Array [
-              Object {
-                "name": "Test Project",
-                "slug": "test-project",
-              },
-              Object {
-                "name": "Another Project",
-                "slug": "another-project",
-              },
-            ],
-            "slug": "test-team",
-          },
-        },
-        Object {
-          "isMember": true,
-          "name": "Another Project",
-          "slug": "another-project",
-          "team": Object {
-            "isMember": true,
-            "name": "Test Team",
-            "projects": Array [
-              Object {
-                "name": "Test Project",
-                "slug": "test-project",
-              },
-              Object {
-                "name": "Another Project",
-                "slug": "another-project",
-              },
-            ],
-            "slug": "test-team",
-          },
-        },
-      ],
-      "slug": "org",
-      "teams": Array [
-        Object {
-          "isMember": true,
-          "name": "Test Team",
-          "projects": Array [
+          "teams": Array [
             Object {
-              "name": "Test Project",
-              "slug": "test-project",
-            },
-            Object {
-              "name": "Another Project",
-              "slug": "another-project",
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
             },
           ],
+        },
+        Object {
+          "hasAccess": true,
+          "id": "another-project",
+          "isBookmarked": false,
+          "isMember": true,
+          "name": "Project Name",
+          "slug": "another-project",
+          "teams": Array [
+            Object {
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
+            },
+          ],
+        },
+      ],
+      "scrapeJavaScript": true,
+      "slug": "org",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [
+        Object {
+          "id": "test-team",
+          "isMember": true,
+          "name": "Team Name",
           "slug": "test-team",
         },
       ],
@@ -74,19 +67,6 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
     className="project-select"
   >
     <h3>
-      <Link
-        className="home-crumb"
-        to="/org/"
-      >
-        <a
-          className="home-crumb"
-          href="/org/"
-        >
-          <span
-            className="icon-home"
-          />
-        </a>
-      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -110,6 +90,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
         topLevelClasses="project-dropdown"
       >
         <DropdownMenu
+          alwaysRenderMenu={false}
           isOpen={true}
           keepMenuOpen={false}
           onClose={[Function]}
@@ -136,6 +117,7 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <li
@@ -171,14 +153,303 @@ exports[`ProjectSelector render() can filter projects by project name 1`] = `
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <span>
-                      <strong
-                        className="highlight"
+                    <ProjectRow>
+                      <div
+                        className="css-130agdj-ProjectRow et07ovj0"
                       >
-                        Another
-                      </strong>
-                       Project
-                    </span>
+                        <IdBadge
+                          avatarProps={
+                            Object {
+                              "consistentWidth": true,
+                            }
+                          }
+                          avatarSize={16}
+                          displayName={
+                            <span>
+                              
+                              <strong
+                                className="highlight"
+                              >
+                                another
+                              </strong>
+                              -project
+                            </span>
+                          }
+                          project={
+                            Object {
+                              "hasAccess": true,
+                              "id": "another-project",
+                              "isBookmarked": false,
+                              "isMember": true,
+                              "name": "Project Name",
+                              "slug": "another-project",
+                              "teams": Array [
+                                Object {
+                                  "id": "test-team",
+                                  "isMember": true,
+                                  "name": "Team Name",
+                                  "slug": "test-team",
+                                },
+                              ],
+                            }
+                          }
+                        >
+                          <InlineErrorBoundary
+                            mini={true}
+                          >
+                            <ErrorBoundary
+                              className="css-otlbo1-InlineErrorBoundary e83vi020"
+                              mini={true}
+                            >
+                              <ProjectBadge
+                                avatarProps={
+                                  Object {
+                                    "consistentWidth": true,
+                                  }
+                                }
+                                avatarSize={16}
+                                displayName={
+                                  <span>
+                                    
+                                    <strong
+                                      className="highlight"
+                                    >
+                                      another
+                                    </strong>
+                                    -project
+                                  </span>
+                                }
+                                hideAvatar={false}
+                                hideOverflow={true}
+                                project={
+                                  Object {
+                                    "hasAccess": true,
+                                    "id": "another-project",
+                                    "isBookmarked": false,
+                                    "isMember": true,
+                                    "name": "Project Name",
+                                    "slug": "another-project",
+                                    "teams": Array [
+                                      Object {
+                                        "id": "test-team",
+                                        "isMember": true,
+                                        "name": "Team Name",
+                                        "slug": "test-team",
+                                      },
+                                    ],
+                                  }
+                                }
+                              >
+                                <BaseBadge
+                                  avatarProps={
+                                    Object {
+                                      "consistentWidth": true,
+                                    }
+                                  }
+                                  avatarSize={16}
+                                  displayName={
+                                    <span>
+                                      
+                                      <strong
+                                        className="highlight"
+                                      >
+                                        another
+                                      </strong>
+                                      -project
+                                    </span>
+                                  }
+                                  hideAvatar={false}
+                                  project={
+                                    Object {
+                                      "hasAccess": true,
+                                      "id": "another-project",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "slug": "another-project",
+                                      "teams": Array [
+                                        Object {
+                                          "id": "test-team",
+                                          "isMember": true,
+                                          "name": "Team Name",
+                                          "slug": "test-team",
+                                        },
+                                      ],
+                                    }
+                                  }
+                                >
+                                  <Flex
+                                    align="center"
+                                  >
+                                    <Base
+                                      align="center"
+                                      className="css-5ipae5"
+                                    >
+                                      <div
+                                        className="css-5ipae5"
+                                        is={null}
+                                      >
+                                        <StyledAvatar
+                                          className="css-0"
+                                          consistentWidth={true}
+                                          project={
+                                            Object {
+                                              "hasAccess": true,
+                                              "id": "another-project",
+                                              "isBookmarked": false,
+                                              "isMember": true,
+                                              "name": "Project Name",
+                                              "slug": "another-project",
+                                              "teams": Array [
+                                                Object {
+                                                  "id": "test-team",
+                                                  "isMember": true,
+                                                  "name": "Team Name",
+                                                  "slug": "test-team",
+                                                },
+                                              ],
+                                            }
+                                          }
+                                          size={16}
+                                        >
+                                          <Avatar
+                                            className="css-robds0-StyledAvatar e165dl3i0"
+                                            consistentWidth={true}
+                                            hasTooltip={false}
+                                            project={
+                                              Object {
+                                                "hasAccess": true,
+                                                "id": "another-project",
+                                                "isBookmarked": false,
+                                                "isMember": true,
+                                                "name": "Project Name",
+                                                "slug": "another-project",
+                                                "teams": Array [
+                                                  Object {
+                                                    "id": "test-team",
+                                                    "isMember": true,
+                                                    "name": "Team Name",
+                                                    "slug": "test-team",
+                                                  },
+                                                ],
+                                              }
+                                            }
+                                            size={16}
+                                          >
+                                            <ProjectAvatar
+                                              className="css-robds0-StyledAvatar e165dl3i0"
+                                              consistentWidth={true}
+                                              hasTooltip={false}
+                                              project={
+                                                Object {
+                                                  "hasAccess": true,
+                                                  "id": "another-project",
+                                                  "isBookmarked": false,
+                                                  "isMember": true,
+                                                  "name": "Project Name",
+                                                  "slug": "another-project",
+                                                  "teams": Array [
+                                                    Object {
+                                                      "id": "test-team",
+                                                      "isMember": true,
+                                                      "name": "Team Name",
+                                                      "slug": "test-team",
+                                                    },
+                                                  ],
+                                                }
+                                              }
+                                              size={16}
+                                            >
+                                              <PlatformList
+                                                className="css-robds0-StyledAvatar e165dl3i0"
+                                                consistentWidth={true}
+                                                direction="right"
+                                                hasTooltip={false}
+                                                max={3}
+                                                platforms={Array []}
+                                                size={16}
+                                              >
+                                                <PlatformIcons
+                                                  consistentWidth={true}
+                                                  direction="right"
+                                                  max={3}
+                                                  size={16}
+                                                >
+                                                  <div
+                                                    className="css-10kccj9-PlatformIcons ezvce7z0"
+                                                    direction="right"
+                                                    max={3}
+                                                    size={16}
+                                                  >
+                                                    <StyledPlatformIcon
+                                                      platform="default"
+                                                      size={16}
+                                                    >
+                                                      <Component
+                                                        className="css-htodfm-StyledPlatformIcon ezvce7z1"
+                                                        platform="default"
+                                                        size={16}
+                                                      >
+                                                        <Platformicon
+                                                          className="css-htodfm-StyledPlatformIcon ezvce7z1"
+                                                          platform="default"
+                                                          size="16px"
+                                                        >
+                                                          <img
+                                                            className="css-htodfm-StyledPlatformIcon ezvce7z1"
+                                                            height="16px"
+                                                            src={
+                                                              Object {
+                                                                "default": Object {
+                                                                  "id": "test",
+                                                                  "viewBox": Object {},
+                                                                },
+                                                              }
+                                                            }
+                                                            width="16px"
+                                                          />
+                                                        </Platformicon>
+                                                      </Component>
+                                                    </StyledPlatformIcon>
+                                                  </div>
+                                                </PlatformIcons>
+                                              </PlatformList>
+                                            </ProjectAvatar>
+                                          </Avatar>
+                                        </StyledAvatar>
+                                        <DisplayNameAndDescription>
+                                          <Base
+                                            className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                          >
+                                            <div
+                                              className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                              is={null}
+                                            >
+                                              <div
+                                                data-test-id="badge-display-name"
+                                              >
+                                                <span>
+                                                  <strong
+                                                    className="highlight"
+                                                  >
+                                                    another
+                                                  </strong>
+                                                  -project
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </Base>
+                                        </DisplayNameAndDescription>
+                                      </div>
+                                    </Base>
+                                  </Flex>
+                                </BaseBadge>
+                              </ProjectBadge>
+                            </ErrorBoundary>
+                          </InlineErrorBoundary>
+                        </IdBadge>
+                      </div>
+                    </ProjectRow>
                   </a>
                 </li>
               </MenuItem>
@@ -196,64 +467,57 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
   organization={
     Object {
       "access": Array [],
+      "features": Array [
+        "new-teams",
+      ],
       "id": "org",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
       "projects": Array [
         Object {
+          "hasAccess": true,
+          "id": "test-project",
+          "isBookmarked": false,
           "isMember": true,
-          "name": "Test Project",
+          "name": "Project Name",
           "slug": "test-project",
-          "team": Object {
-            "isMember": true,
-            "name": "Test Team",
-            "projects": Array [
-              Object {
-                "name": "Test Project",
-                "slug": "test-project",
-              },
-              Object {
-                "name": "Another Project",
-                "slug": "another-project",
-              },
-            ],
-            "slug": "test-team",
-          },
-        },
-        Object {
-          "isMember": true,
-          "name": "Another Project",
-          "slug": "another-project",
-          "team": Object {
-            "isMember": true,
-            "name": "Test Team",
-            "projects": Array [
-              Object {
-                "name": "Test Project",
-                "slug": "test-project",
-              },
-              Object {
-                "name": "Another Project",
-                "slug": "another-project",
-              },
-            ],
-            "slug": "test-team",
-          },
-        },
-      ],
-      "slug": "org",
-      "teams": Array [
-        Object {
-          "isMember": true,
-          "name": "Test Team",
-          "projects": Array [
+          "teams": Array [
             Object {
-              "name": "Test Project",
-              "slug": "test-project",
-            },
-            Object {
-              "name": "Another Project",
-              "slug": "another-project",
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
             },
           ],
+        },
+        Object {
+          "hasAccess": true,
+          "id": "another-project",
+          "isBookmarked": false,
+          "isMember": true,
+          "name": "Project Name",
+          "slug": "another-project",
+          "teams": Array [
+            Object {
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
+            },
+          ],
+        },
+      ],
+      "scrapeJavaScript": true,
+      "slug": "org",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [
+        Object {
+          "id": "test-team",
+          "isMember": true,
+          "name": "Team Name",
           "slug": "test-team",
         },
       ],
@@ -265,19 +529,6 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
     className="project-select"
   >
     <h3>
-      <Link
-        className="home-crumb"
-        to="/org/"
-      >
-        <a
-          className="home-crumb"
-          href="/org/"
-        >
-          <span
-            className="icon-home"
-          />
-        </a>
-      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -301,6 +552,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
         topLevelClasses="project-dropdown"
       >
         <DropdownMenu
+          alwaysRenderMenu={false}
           isOpen={true}
           keepMenuOpen={false}
           onClose={[Function]}
@@ -327,6 +579,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <li
@@ -346,28 +599,6 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
               </li>
               <MenuItem
                 className=""
-                href="/org/another-project/"
-                key="another-project"
-                linkClassName=""
-              >
-                <li
-                  className=""
-                  href={null}
-                  role="presentation"
-                  title={null}
-                >
-                  <a
-                    className=""
-                    href="/org/another-project/"
-                    onClick={[Function]}
-                    tabIndex="-1"
-                  >
-                    Another Project
-                  </a>
-                </li>
-              </MenuItem>
-              <MenuItem
-                className=""
                 href="/org/test-project/"
                 key="test-project"
                 linkClassName=""
@@ -384,14 +615,303 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
                     onClick={[Function]}
                     tabIndex="-1"
                   >
-                    <span>
-                      <strong
-                        className="highlight"
+                    <ProjectRow>
+                      <div
+                        className="css-130agdj-ProjectRow et07ovj0"
                       >
-                        Test
-                      </strong>
-                       Project
-                    </span>
+                        <IdBadge
+                          avatarProps={
+                            Object {
+                              "consistentWidth": true,
+                            }
+                          }
+                          avatarSize={16}
+                          displayName={
+                            <span>
+                              
+                              <strong
+                                className="highlight"
+                              >
+                                test
+                              </strong>
+                              -project
+                            </span>
+                          }
+                          project={
+                            Object {
+                              "hasAccess": true,
+                              "id": "test-project",
+                              "isBookmarked": false,
+                              "isMember": true,
+                              "name": "Project Name",
+                              "slug": "test-project",
+                              "teams": Array [
+                                Object {
+                                  "id": "test-team",
+                                  "isMember": true,
+                                  "name": "Team Name",
+                                  "slug": "test-team",
+                                },
+                              ],
+                            }
+                          }
+                        >
+                          <InlineErrorBoundary
+                            mini={true}
+                          >
+                            <ErrorBoundary
+                              className="css-otlbo1-InlineErrorBoundary e83vi020"
+                              mini={true}
+                            >
+                              <ProjectBadge
+                                avatarProps={
+                                  Object {
+                                    "consistentWidth": true,
+                                  }
+                                }
+                                avatarSize={16}
+                                displayName={
+                                  <span>
+                                    
+                                    <strong
+                                      className="highlight"
+                                    >
+                                      test
+                                    </strong>
+                                    -project
+                                  </span>
+                                }
+                                hideAvatar={false}
+                                hideOverflow={true}
+                                project={
+                                  Object {
+                                    "hasAccess": true,
+                                    "id": "test-project",
+                                    "isBookmarked": false,
+                                    "isMember": true,
+                                    "name": "Project Name",
+                                    "slug": "test-project",
+                                    "teams": Array [
+                                      Object {
+                                        "id": "test-team",
+                                        "isMember": true,
+                                        "name": "Team Name",
+                                        "slug": "test-team",
+                                      },
+                                    ],
+                                  }
+                                }
+                              >
+                                <BaseBadge
+                                  avatarProps={
+                                    Object {
+                                      "consistentWidth": true,
+                                    }
+                                  }
+                                  avatarSize={16}
+                                  displayName={
+                                    <span>
+                                      
+                                      <strong
+                                        className="highlight"
+                                      >
+                                        test
+                                      </strong>
+                                      -project
+                                    </span>
+                                  }
+                                  hideAvatar={false}
+                                  project={
+                                    Object {
+                                      "hasAccess": true,
+                                      "id": "test-project",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "slug": "test-project",
+                                      "teams": Array [
+                                        Object {
+                                          "id": "test-team",
+                                          "isMember": true,
+                                          "name": "Team Name",
+                                          "slug": "test-team",
+                                        },
+                                      ],
+                                    }
+                                  }
+                                >
+                                  <Flex
+                                    align="center"
+                                  >
+                                    <Base
+                                      align="center"
+                                      className="css-5ipae5"
+                                    >
+                                      <div
+                                        className="css-5ipae5"
+                                        is={null}
+                                      >
+                                        <StyledAvatar
+                                          className="css-0"
+                                          consistentWidth={true}
+                                          project={
+                                            Object {
+                                              "hasAccess": true,
+                                              "id": "test-project",
+                                              "isBookmarked": false,
+                                              "isMember": true,
+                                              "name": "Project Name",
+                                              "slug": "test-project",
+                                              "teams": Array [
+                                                Object {
+                                                  "id": "test-team",
+                                                  "isMember": true,
+                                                  "name": "Team Name",
+                                                  "slug": "test-team",
+                                                },
+                                              ],
+                                            }
+                                          }
+                                          size={16}
+                                        >
+                                          <Avatar
+                                            className="css-robds0-StyledAvatar e165dl3i0"
+                                            consistentWidth={true}
+                                            hasTooltip={false}
+                                            project={
+                                              Object {
+                                                "hasAccess": true,
+                                                "id": "test-project",
+                                                "isBookmarked": false,
+                                                "isMember": true,
+                                                "name": "Project Name",
+                                                "slug": "test-project",
+                                                "teams": Array [
+                                                  Object {
+                                                    "id": "test-team",
+                                                    "isMember": true,
+                                                    "name": "Team Name",
+                                                    "slug": "test-team",
+                                                  },
+                                                ],
+                                              }
+                                            }
+                                            size={16}
+                                          >
+                                            <ProjectAvatar
+                                              className="css-robds0-StyledAvatar e165dl3i0"
+                                              consistentWidth={true}
+                                              hasTooltip={false}
+                                              project={
+                                                Object {
+                                                  "hasAccess": true,
+                                                  "id": "test-project",
+                                                  "isBookmarked": false,
+                                                  "isMember": true,
+                                                  "name": "Project Name",
+                                                  "slug": "test-project",
+                                                  "teams": Array [
+                                                    Object {
+                                                      "id": "test-team",
+                                                      "isMember": true,
+                                                      "name": "Team Name",
+                                                      "slug": "test-team",
+                                                    },
+                                                  ],
+                                                }
+                                              }
+                                              size={16}
+                                            >
+                                              <PlatformList
+                                                className="css-robds0-StyledAvatar e165dl3i0"
+                                                consistentWidth={true}
+                                                direction="right"
+                                                hasTooltip={false}
+                                                max={3}
+                                                platforms={Array []}
+                                                size={16}
+                                              >
+                                                <PlatformIcons
+                                                  consistentWidth={true}
+                                                  direction="right"
+                                                  max={3}
+                                                  size={16}
+                                                >
+                                                  <div
+                                                    className="css-10kccj9-PlatformIcons ezvce7z0"
+                                                    direction="right"
+                                                    max={3}
+                                                    size={16}
+                                                  >
+                                                    <StyledPlatformIcon
+                                                      platform="default"
+                                                      size={16}
+                                                    >
+                                                      <Component
+                                                        className="css-htodfm-StyledPlatformIcon ezvce7z1"
+                                                        platform="default"
+                                                        size={16}
+                                                      >
+                                                        <Platformicon
+                                                          className="css-htodfm-StyledPlatformIcon ezvce7z1"
+                                                          platform="default"
+                                                          size="16px"
+                                                        >
+                                                          <img
+                                                            className="css-htodfm-StyledPlatformIcon ezvce7z1"
+                                                            height="16px"
+                                                            src={
+                                                              Object {
+                                                                "default": Object {
+                                                                  "id": "test",
+                                                                  "viewBox": Object {},
+                                                                },
+                                                              }
+                                                            }
+                                                            width="16px"
+                                                          />
+                                                        </Platformicon>
+                                                      </Component>
+                                                    </StyledPlatformIcon>
+                                                  </div>
+                                                </PlatformIcons>
+                                              </PlatformList>
+                                            </ProjectAvatar>
+                                          </Avatar>
+                                        </StyledAvatar>
+                                        <DisplayNameAndDescription>
+                                          <Base
+                                            className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                          >
+                                            <div
+                                              className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                              is={null}
+                                            >
+                                              <div
+                                                data-test-id="badge-display-name"
+                                              >
+                                                <span>
+                                                  <strong
+                                                    className="highlight"
+                                                  >
+                                                    test
+                                                  </strong>
+                                                  -project
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </Base>
+                                        </DisplayNameAndDescription>
+                                      </div>
+                                    </Base>
+                                  </Flex>
+                                </BaseBadge>
+                              </ProjectBadge>
+                            </ErrorBoundary>
+                          </InlineErrorBoundary>
+                        </IdBadge>
+                      </div>
+                    </ProjectRow>
                   </a>
                 </li>
               </MenuItem>
@@ -409,14 +929,6 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
   className="project-select"
 >
   <h3>
-    <Link
-      className="home-crumb"
-      to="/org/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -456,23 +968,83 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
       </li>
       <MenuItem
         className=""
-        href="/org/another-project/"
-        key="another-project"
-        linkClassName=""
-      >
-        <span>
-          Another Project
-        </span>
-      </MenuItem>
-      <MenuItem
-        className=""
         href="/org/test-project/"
         key="test-project"
         linkClassName=""
       >
-        <span>
-          Test Project
-        </span>
+        <ProjectRow>
+          <IdBadge
+            avatarProps={
+              Object {
+                "consistentWidth": true,
+              }
+            }
+            avatarSize={16}
+            displayName={
+              <span>
+                test-project
+              </span>
+            }
+            project={
+              Object {
+                "hasAccess": true,
+                "id": "test-project",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "test-project",
+                "teams": Array [
+                  Object {
+                    "id": "test-team",
+                    "isMember": true,
+                    "name": "Team Name",
+                    "slug": "test-team",
+                  },
+                ],
+              }
+            }
+          />
+        </ProjectRow>
+      </MenuItem>
+      <MenuItem
+        className=""
+        href="/org/another-project/"
+        key="another-project"
+        linkClassName=""
+      >
+        <ProjectRow>
+          <IdBadge
+            avatarProps={
+              Object {
+                "consistentWidth": true,
+              }
+            }
+            avatarSize={16}
+            displayName={
+              <span>
+                another-project
+              </span>
+            }
+            project={
+              Object {
+                "hasAccess": true,
+                "id": "another-project",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "another-project",
+                "teams": Array [
+                  Object {
+                    "id": "test-team",
+                    "isMember": true,
+                    "name": "Team Name",
+                    "slug": "test-team",
+                  },
+                ],
+              }
+            }
+          />
+        </ProjectRow>
       </MenuItem>
     </DropdownLink>
   </h3>
@@ -484,14 +1056,6 @@ exports[`ProjectSelector render() should show empty message and create project b
   className="project-select"
 >
   <h3>
-    <Link
-      className="home-crumb"
-      to="/org-slug/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -551,14 +1115,6 @@ exports[`ProjectSelector render() should show empty message with no projects but
   className="project-select"
 >
   <h3>
-    <Link
-      className="home-crumb"
-      to="/org-slug/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
     <span
       onClick={[Function]}
       role="button"
@@ -602,64 +1158,57 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
   organization={
     Object {
       "access": Array [],
+      "features": Array [
+        "new-teams",
+      ],
       "id": "org",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
       "projects": Array [
         Object {
+          "hasAccess": true,
+          "id": "test-project",
+          "isBookmarked": false,
           "isMember": true,
-          "name": "Test Project",
+          "name": "Project Name",
           "slug": "test-project",
-          "team": Object {
-            "isMember": true,
-            "name": "Test Team",
-            "projects": Array [
-              Object {
-                "name": "Test Project",
-                "slug": "test-project",
-              },
-              Object {
-                "name": "Another Project",
-                "slug": "another-project",
-              },
-            ],
-            "slug": "test-team",
-          },
-        },
-        Object {
-          "isMember": true,
-          "name": "Another Project",
-          "slug": "another-project",
-          "team": Object {
-            "isMember": true,
-            "name": "Test Team",
-            "projects": Array [
-              Object {
-                "name": "Test Project",
-                "slug": "test-project",
-              },
-              Object {
-                "name": "Another Project",
-                "slug": "another-project",
-              },
-            ],
-            "slug": "test-team",
-          },
-        },
-      ],
-      "slug": "org",
-      "teams": Array [
-        Object {
-          "isMember": true,
-          "name": "Test Team",
-          "projects": Array [
+          "teams": Array [
             Object {
-              "name": "Test Project",
-              "slug": "test-project",
-            },
-            Object {
-              "name": "Another Project",
-              "slug": "another-project",
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
             },
           ],
+        },
+        Object {
+          "hasAccess": true,
+          "id": "another-project",
+          "isBookmarked": false,
+          "isMember": true,
+          "name": "Project Name",
+          "slug": "another-project",
+          "teams": Array [
+            Object {
+              "id": "test-team",
+              "isMember": true,
+              "name": "Team Name",
+              "slug": "test-team",
+            },
+          ],
+        },
+      ],
+      "scrapeJavaScript": true,
+      "slug": "org",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [
+        Object {
+          "id": "test-team",
+          "isMember": true,
+          "name": "Team Name",
           "slug": "test-team",
         },
       ],
@@ -671,19 +1220,6 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
     className="project-select"
   >
     <h3>
-      <Link
-        className="home-crumb"
-        to="/org/"
-      >
-        <a
-          className="home-crumb"
-          href="/org/"
-        >
-          <span
-            className="icon-home"
-          />
-        </a>
-      </Link>
       <span
         onClick={[Function]}
         role="button"
@@ -707,6 +1243,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
         topLevelClasses="project-dropdown is-empty"
       >
         <DropdownMenu
+          alwaysRenderMenu={false}
           isOpen={true}
           keepMenuOpen={false}
           onClose={[Function]}
@@ -733,6 +1270,7 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <li

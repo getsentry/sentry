@@ -3,20 +3,20 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import Count from '../components/count';
-import ExternalLink from '../components/externalLink';
-import ListLink from '../components/listLink';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import ProjectState from '../mixins/projectState';
-import ReleaseStats from '../components/releaseStats';
-import SentryTypes from '../proptypes';
-import TextOverflow from '../components/textOverflow';
-import TimeSince from '../components/timeSince';
-import Version from '../components/version';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Count from 'app/components/count';
+import ExternalLink from 'app/components/externalLink';
+import ListLink from 'app/components/listLink';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectState from 'app/mixins/projectState';
+import ReleaseStats from 'app/components/releaseStats';
+import SentryTypes from 'app/sentryTypes';
+import TextOverflow from 'app/components/textOverflow';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const ReleaseDetails = createReactClass({
   displayName: 'ReleaseDetails',

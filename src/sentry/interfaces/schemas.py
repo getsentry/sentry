@@ -34,6 +34,7 @@ def apierror(message="Invalid data"):
     from sentry.coreapi import APIForbidden
     raise APIForbidden(message)
 
+
 PAIRS = {
     'type': 'array',
     'items': {
@@ -156,6 +157,64 @@ STACKTRACE_INTERFACE_SCHEMA = {
     'additionalProperties': {'not': {}},
 }
 
+EXCEPTION_MECHANISM_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'type': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'description': {
+            'type': 'string',
+        },
+        'help_link': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'handled': {
+            'type': 'boolean',
+        },
+        'data': {
+            'type': 'object',
+        },
+        'meta': {
+            'type': 'object',
+            'default': {},
+            'properties': {
+                'signal': {
+                    'type': 'object',
+                    'properties': {
+                        'number': {'type': 'number'},
+                        'code': {'type': 'number'},
+                        'name': {'type': 'string'},
+                        'code_name': {'type': 'string'},
+                    },
+                    'required': ['number'],
+                },
+                'errno': {
+                    'type': 'object',
+                    'properties': {
+                        'number': {'type': 'number'},
+                        'name': {'type': 'string'},
+                    },
+                    'required': ['number'],
+                },
+                'mach_exception': {
+                    'type': 'object',
+                    'properties': {
+                        'exception': {'type': 'number'},
+                        'code': {'type': 'number'},
+                        'subcode': {'type': 'number'},
+                        'name': {'type': 'string'},
+                    },
+                    'required': ['exception', 'code', 'subcode'],
+                },
+            },
+        }
+    },
+    'required': ['type'],
+}
+
 EXCEPTION_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -169,7 +228,7 @@ EXCEPTION_INTERFACE_SCHEMA = {
             # 'minLength': 1,
         },
         'module': {'type': 'string'},
-        'mechanism': {'type': 'object'},
+        'mechanism': {},  # see EXCEPTION_MECHANISM_INTERFACE_SCHEMA
         'stacktrace': {
             # To validate stacktraces use STACKTRACE_INTERFACE_SCHEMA
             'type': 'object',
@@ -195,6 +254,16 @@ EXCEPTION_INTERFACE_SCHEMA = {
     # TODO should be false but allowing extra garbage for now
     # for compatibility
     'additionalProperties': True,
+}
+
+GEO_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'country_code': {'type': 'string'},
+        'city': {'type': 'string'},
+        'region': {'type': 'string'},
+    },
+    'additionalProperties': False,
 }
 
 DEVICE_INTERFACE_SCHEMA = {
@@ -380,6 +449,7 @@ EVENT_SCHEMA = {
         # Other interfaces
         'sentry.interfaces.User': {'type': 'object'},
         'sentry.interfaces.Http': {},
+        'geo': {},  # GEO_INTERFACE_SCHEMA
 
         # Other reserved keys. (some are added in processing)
         'project': {'type': ['number', 'string']},
@@ -455,6 +525,40 @@ CSP_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {k.replace('-', '_'): v for k, v in six.iteritems(CSP_SCHEMA['properties']['csp-report']['properties'])},
     'required': ['effective_directive', 'violated_directive', 'blocked_uri'],
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+# RFC7469 Section 3
+HPKP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+        'hostname': {'type': 'string'},
+        'port': {'type': 'number'},
+        'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+        'include-subdomains': {'type': 'boolean'},
+        'noted-hostname': {'type': 'string'},
+        'served-certificate-chain': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'validated-certificate-chain': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'known-pins': {
+            'type': 'array',
+            'items': {'type': 'string'}  # TODO regex this string for 'pin-sha256="ABC123"' syntax
+        },
+    },
+    'required': ['hostname'],  # TODO fill in more required keys
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+HPKP_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(HPKP_SCHEMA['properties'])},
+    'required': ['hostname'],  # TODO fill in more required keys
     'additionalProperties': False,  # Don't allow any other keys.
 }
 
@@ -587,6 +691,7 @@ then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
+    'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
     'expectstaple': EXPECT_STAPLE_SCHEMA,
 }
@@ -607,13 +712,16 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Stacktrace': STACKTRACE_INTERFACE_SCHEMA,
     'frame': FRAME_INTERFACE_SCHEMA,  # Not listed in SENTRY_INTERFACES
     'logentry': MESSAGE_INTERFACE_SCHEMA,
+    'mechanism': EXCEPTION_MECHANISM_INTERFACE_SCHEMA,
     'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
     'device': DEVICE_INTERFACE_SCHEMA,
+    'geo': GEO_INTERFACE_SCHEMA,
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
     'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
 

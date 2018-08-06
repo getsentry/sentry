@@ -8,12 +8,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import FieldControl from './fieldControl';
-import FieldDescription from './fieldDescription';
-import FieldHelp from './fieldHelp';
-import FieldLabel from './fieldLabel';
-import FieldRequiredBadge from './fieldRequiredBadge';
-import FieldWrapper from './fieldWrapper';
+import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
+import FieldDescription from 'app/views/settings/components/forms/field/fieldDescription';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
+import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
+import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
+import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
 class Field extends React.Component {
   static propTypes = {
@@ -26,11 +26,6 @@ class Field extends React.Component {
      * Is "highlighted", i.e. after a search
      */
     highlighted: PropTypes.bool,
-
-    /**
-     * Padding
-     */
-    p: PropTypes.number,
 
     /**
      * Show "required" indicator
@@ -71,6 +66,11 @@ class Field extends React.Component {
      * Should Control be inline with Label
      */
     inline: PropTypes.bool,
+
+    /**
+     * Should the field display in a stacked manner (no borders + reduced padding
+     */
+    stacked: PropTypes.bool,
 
     /**
      * The control's `id` property
@@ -114,7 +114,7 @@ class Field extends React.Component {
       label,
       help,
       id,
-      p,
+      stacked,
       children,
       style,
     } = otherProps;
@@ -147,21 +147,23 @@ class Field extends React.Component {
 
     return (
       <FieldWrapper
-        p={p}
         className={className}
         inline={inline}
+        stacked={stacked}
         highlighted={highlighted}
         hasControlState={!flexibleControlStateSize}
         style={style}
       >
-        <FieldDescription inline={inline} htmlFor={id}>
-          {label && (
-            <FieldLabel>
-              {label} {required && <FieldRequiredBadge />}
-            </FieldLabel>
-          )}
-          {help && <FieldHelp>{help}</FieldHelp>}
-        </FieldDescription>
+        {(label || help) && (
+          <FieldDescription inline={inline} htmlFor={id}>
+            {label && (
+              <FieldLabel>
+                {label} {required && <FieldRequiredBadge />}
+              </FieldLabel>
+            )}
+            {help && <FieldHelp>{help}</FieldHelp>}
+          </FieldDescription>
+        )}
 
         {Control}
       </FieldWrapper>

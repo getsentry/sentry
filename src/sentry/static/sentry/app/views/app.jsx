@@ -10,21 +10,21 @@ import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
 import idx from 'idx';
 
-import {openCommandPalette} from '../actionCreators/modal';
-import {t} from '../locale';
-import AlertActions from '../actions/alertActions';
-import Alerts from '../components/alerts';
-import ApiMixin from '../mixins/apiMixin';
-import AssistantHelper from '../components/assistant/helper';
-import ConfigStore from '../stores/configStore';
-import ErrorBoundary from '../components/errorBoundary';
-import GlobalModal from '../components/globalModal';
-import Indicators from '../components/indicators';
-import InstallWizard from './installWizard';
-import LoadingIndicator from '../components/loadingIndicator';
-import NewsletterConsent from './newsletterConsent';
-import OrganizationsStore from '../stores/organizationsStore';
-import theme from '../utils/theme';
+import {openCommandPalette} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import AlertActions from 'app/actions/alertActions';
+import Alerts from 'app/components/alerts';
+import ApiMixin from 'app/mixins/apiMixin';
+import AssistantHelper from 'app/components/assistant/helper';
+import ConfigStore from 'app/stores/configStore';
+import ErrorBoundary from 'app/components/errorBoundary';
+import GlobalModal from 'app/components/globalModal';
+import Indicators from 'app/components/indicators';
+import InstallWizard from 'app/views/installWizard';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NewsletterConsent from 'app/views/newsletterConsent';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import theme from 'app/utils/theme';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -143,7 +143,7 @@ const App = createReactClass({
     if (Object.keys(newState).length > 0) this.setState(newState);
   },
 
-  @keydown('cmd+shift+p')
+  @keydown('meta+shift+p', 'meta+k')
   openCommandPalette(e) {
     openCommandPalette();
     e.preventDefault();
@@ -159,6 +159,14 @@ const App = createReactClass({
     this.setState({
       newsletterConsentPrompt: false,
     });
+  },
+
+  handleGlobalModalClose() {
+    if (!this.mainContainerRef) return;
+    if (typeof this.mainContainerRef.focus !== 'function') return;
+
+    // Focus the main container to get hotkeys to keep working after modal closes
+    this.mainContainerRef.focus();
   },
 
   renderBody() {
@@ -185,13 +193,17 @@ const App = createReactClass({
 
     return (
       <ThemeProvider theme={theme}>
-        <React.Fragment>
-          <GlobalModal />
+        <div
+          className="main-container"
+          tabIndex="-1"
+          ref={ref => (this.mainContainerRef = ref)}
+        >
+          <GlobalModal onClose={this.handleGlobalModalClose} />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
           {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
-        </React.Fragment>
+        </div>
       </ThemeProvider>
     );
   },

@@ -1,4 +1,4 @@
-import {t} from '../../../locale';
+import {t} from 'app/locale';
 
 const pathPrefix = '/settings/:orgId';
 
@@ -39,7 +39,11 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
-        show: ({access, features}) => features.has('sso') && access.has('org:admin'),
+        show: ({organization, access, features}) =>
+          (features.has('sso') ||
+            (organization.experiments &&
+              organization.experiments.SSOPaywallExperiment === 1)) &&
+          access.has('org:admin'),
         description: t('Configure single sign-on'),
       },
       {
@@ -56,7 +60,8 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/rate-limits/`,
         title: t('Rate Limits'),
-        show: ({access}) => access.has('org:write'),
+        show: ({access, features}) =>
+          features.has('legacy-rate-limits') && access.has('org:write'),
         description: t('Configure rate limits for all projects in the organization'),
       },
       {
@@ -64,6 +69,12 @@ const organizationNavigation = [
         title: t('Repositories'),
         show: ({access}) => access.has('org:write'),
         description: t('Manage repositories connected to the organization'),
+      },
+      {
+        path: `${pathPrefix}/integrations/`,
+        title: t('Integrations'),
+        show: ({access}) => access.has('org:integrations'),
+        description: t('Manage integrations for an organization'),
       },
     ],
   },

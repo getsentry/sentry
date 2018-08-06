@@ -52,6 +52,7 @@ exports[`GroupActions render() renders correctly 1`] = `
         "name": "Organization Name",
         "onboardingTasks": Array [],
         "projects": Array [],
+        "scrapeJavaScript": true,
         "slug": "org",
         "status": Object {
           "id": "active",
@@ -97,16 +98,5 @@ exports[`GroupActions render() renders correctly 1`] = `
       }
     }
   />
-  <GuideAnchor
-    target="issue_tracking"
-    type="text"
-  >
-    <a
-      className="btn btn-default btn-sm btn-config-issue-tracking"
-      href="/org/project/settings/issue-tracking/"
-    >
-      Link Issue Tracker
-    </a>
-  </GuideAnchor>
 </div>
 `;

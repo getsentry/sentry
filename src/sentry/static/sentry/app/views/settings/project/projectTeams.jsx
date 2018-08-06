@@ -1,30 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
+import {Box} from 'grid-emotion';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  removeIndicator,
-} from '../../../actionCreators/indicator';
-import {addTeamToProject} from '../../../actionCreators/projects';
-import {getOrganizationState} from '../../../mixins/organizationState';
-import {openCreateTeamModal} from '../../../actionCreators/modal';
-import {t, tct} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Confirm from '../../../components/confirm';
-import DropdownAutoComplete from '../../../components/dropdownAutoComplete';
-import DropdownButton from '../../../components/dropdownButton';
-import EmptyMessage from '../components/emptyMessage';
-import InlineSvg from '../../../components/inlineSvg';
-import Link from '../../../components/link';
-import {Panel, PanelBody, PanelHeader, PanelItem} from '../../../components/panels';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import space from '../../../styles/space';
+import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/buttons/button';
+import Confirm from 'app/components/confirm';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 const TeamRow = createReactClass({
   displayName: 'TeamRow',
@@ -50,38 +46,30 @@ const TeamRow = createReactClass({
   handleRemove() {
     if (this.state.loading) return;
 
-    let loadingIndicator = addLoadingMessage(t('Saving changes...'));
     let {orgId, projectId, team} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/teams/${team.slug}/`, {
-      method: 'DELETE',
-      success: (d, _, jqXHR) => {
-        this.props.onRemove();
-        addSuccessMessage(t(`#${team.slug} has been removed from project`));
-        removeIndicator(loadingIndicator);
-      },
-      error: () => {
+
+    removeTeamFromProject(this.api, orgId, projectId, team.slug)
+      .then(() => this.props.onRemove())
+      .catch(() => {
         this.setState({
           error: true,
           loading: false,
         });
-        removeIndicator(loadingIndicator);
-        addErrorMessage(t(`Unable to remove #${team.slug} from project`));
-      },
-    });
+      });
   },
 
   render() {
     let {team, access, orgId, projectId} = this.props;
 
     return (
-      <StyledPanelItem>
-        <div>
+      <PanelItem p={2} align="center">
+        <Box flex={1}>
           {access.has('team:write') ? (
             <Link to={`/settings/${orgId}/teams/${team.slug}/`}>#{team.slug}</Link>
           ) : (
             `#${team.slug}`
           )}
-        </div>
+        </Box>
         {this.props.access.has('project:write') && (
           <Confirm
             message={tct(
@@ -99,7 +87,7 @@ const TeamRow = createReactClass({
             </Button>
           </Confirm>
         )}
-      </StyledPanelItem>
+      </PanelItem>
     );
   },
 });
@@ -112,6 +100,14 @@ class ProjectTeams extends AsyncView {
       ['allTeams', `/organizations/${orgId}/teams/`],
     ];
   }
+
+  canCreateTeam = () => {
+    let {organization} = this.props;
+    let access = getOrganizationState(organization).getAccess();
+    return (
+      access.has('org:write') && access.has('team:write') && access.has('project:write')
+    );
+  };
 
   handleRemovedTeam = removedTeam => {
     this.setState(prevState => {
@@ -138,7 +134,7 @@ class ProjectTeams extends AsyncView {
 
     let {orgId, projectId} = this.props.params;
 
-    addTeamToProject(this.api, orgId, projectId, team.slug).then(
+    addTeamToProject(this.api, orgId, projectId, team).then(
       () => {
         this.handleAddedTeam(team);
       },
@@ -153,13 +149,17 @@ class ProjectTeams extends AsyncView {
 
   handleCreateTeam = e => {
     let {project, organization} = this.props;
+
+    if (!this.canCreateTeam()) return;
+
     e.stopPropagation();
     e.preventDefault();
+
     openCreateTeamModal({
       project,
       organization,
       onClose: data => {
-        addTeamToProject(this.api, organization.slug, project.slug, data.slug).then(
+        addTeamToProject(this.api, organization.slug, project.slug, data).then(
           this.remountComponent,
           this.remountComponent
         );
@@ -169,6 +169,8 @@ class ProjectTeams extends AsyncView {
 
   renderAddTeamToProject() {
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
+    let canCreateTeam = this.canCreateTeam();
+
     let teamsToAdd = this.state.allTeams
       .filter(team => {
         return team.hasAccess && !projectTeams.has(team.slug);
@@ -182,9 +184,15 @@ class ProjectTeams extends AsyncView {
     let menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        <StyledCreateTeamLink onClick={this.handleCreateTeam}>
-          {t('Create Team')}
-        </StyledCreateTeamLink>
+        <Tooltip
+          disabled={canCreateTeam}
+          title={t('You do not have access to create teams.')}
+          tooltipOptions={{placement: 'top'}}
+        >
+          <StyledCreateTeamLink disabled={!canCreateTeam} onClick={this.handleCreateTeam}>
+            {t('Create Team')}
+          </StyledCreateTeamLink>
+        </Tooltip>
       </StyledTeamsLabel>
     );
 
@@ -193,6 +201,7 @@ class ProjectTeams extends AsyncView {
         items={teamsToAdd}
         onSelect={this.handleAdd}
         menuHeader={menuHeader}
+        emptyMessage={t('No teams')}
       >
         {({isOpen, selectedItem}) => (
           <DropdownButton isOpen={isOpen} size="xsmall">
@@ -234,31 +243,12 @@ class ProjectTeams extends AsyncView {
     if (this.state.projectTeams.length > 0) body = this.renderResults();
     else body = this.renderEmpty();
 
-    let {organization, params} = this.props;
-    let canCreateTeams = getOrganizationState(organization)
-      .getAccess()
-      .has('project:admin');
+    let {params} = this.props;
 
     return (
       <div>
         <SettingsPageHeader
           title={tct('[projectId] Teams', {projectId: params.projectId})}
-          action={
-            <Button
-              priority="primary"
-              size="small"
-              disabled={!canCreateTeams}
-              title={
-                !canCreateTeams
-                  ? t('You do not have permission to create teams')
-                  : undefined
-              }
-              onClick={this.handleCreateTeam}
-              icon="icon-circle-add"
-            >
-              {t('Create Team')}
-            </Button>
-          }
         />
         <Panel>
           <PanelHeader hasButtons={true}>
@@ -287,12 +277,6 @@ const TeamDropdownElement = styled('div')`
   text-transform: none;
 `;
 
-const StyledPanelItem = styled(PanelItem)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const StyledTeamsLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
@@ -303,6 +287,13 @@ const StyledTeamsLabel = styled('div')`
 const StyledCreateTeamLink = styled(Link)`
   float: right;
   text-transform: none;
+  ${p =>
+    p.disabled &&
+    css`
+      cursor: not-allowed;
+      color: ${p.theme.gray2};
+      opacity: 0.6;
+    `};
 `;
 
 export default ProjectTeams;

@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import ContextSummary from 'app/components/events/contextSummary';
+import ContextSummary, {OsSummary} from 'app/components/events/contextSummary';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',
@@ -128,6 +128,46 @@ describe('ContextSummary', function() {
       };
 
       const wrapper = shallow(<ContextSummary event={event} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+  });
+});
+
+describe('OsSummary', function() {
+  describe('render()', function() {
+    it('should render the version string', () => {
+      const os = {
+        kernel_version: '17.5.0',
+        version: '10.13.4',
+        type: 'os',
+        build: '17E199',
+        name: 'Mac OS X',
+      };
+
+      const wrapper = shallow(<OsSummary data={os} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should render the kernel version when no version', () => {
+      const os = {
+        kernel_version: '17.5.0',
+        type: 'os',
+        build: '17E199',
+        name: 'Mac OS X',
+      };
+
+      const wrapper = shallow(<OsSummary data={os} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should render unknown when no version', () => {
+      const os = {
+        type: 'os',
+        build: '17E199',
+        name: 'Mac OS X',
+      };
+
+      const wrapper = shallow(<OsSummary data={os} />);
       expect(wrapper).toMatchSnapshot();
     });
   });

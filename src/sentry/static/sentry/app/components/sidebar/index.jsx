@@ -1,332 +1,393 @@
+import {withRouter} from 'react-router';
+import {ThemeProvider} from 'emotion-theming';
+import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import $ from 'jquery';
+import styled, {css, cx} from 'react-emotion';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
-import {load as loadIncidents} from '../../actionCreators/incidents';
+import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
+import {load as loadIncidents} from 'app/actionCreators/incidents';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import InlineSvg from 'app/components/inlineSvg';
+import SentryTypes from 'app/sentryTypes';
+import PreferencesStore from 'app/stores/preferencesStore';
+import theme from 'app/utils/theme';
+import space from 'app/styles/space';
+import withLatestContext from 'app/utils/withLatestContext';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
-import UserNav from './userNav';
-import OrganizationSelector from './organizationSelector';
-import SidebarPanel from '../sidebarPanel';
-import TodoList from '../onboardingWizard/todos';
-import IssueList from '../issueList';
-import ConfigStore from '../../stores/configStore';
+import SidebarDropdown from './sidebarDropdown';
+import SidebarItem from './sidebarItem';
+import OnboardingStatus from './onboardingStatus';
 
-import {t} from '../../locale';
-
-class OnboardingStatus extends React.Component {
+class Sidebar extends React.Component {
   static propTypes = {
-    org: PropTypes.object.isRequired,
-    currentPanel: PropTypes.string,
-    onShowPanel: PropTypes.func,
-    showPanel: PropTypes.bool,
-    hidePanel: PropTypes.func,
+    router: PropTypes.object,
+    organization: SentryTypes.Organization,
+    collapsed: PropTypes.bool,
+    location: PropTypes.object,
   };
 
-  render() {
-    let org = this.props.org;
-    if (org.features.indexOf('onboarding') === -1) return null;
-
-    let doneTasks = (org.onboardingTasks || []).filter(
-      task => task.status === 'complete' || task.status === 'skipped'
-    );
-
-    let percentage = Math.round(
-      doneTasks.length / TodoList.TASKS.length * 100
-    ).toString();
-
-    let style = {
-      height: percentage + '%',
+  constructor(props) {
+    super(props);
+    this.state = {
+      horizontal: false,
     };
 
-    if (doneTasks.length >= TodoList.TASKS.filter(task => task.display).length) {
-      return null;
-    }
-
-    return (
-      <li
-        className={
-          this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding'
-        }
-      >
-        <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
-          <div className="slider" style={style} />
-        </div>
-        {this.props.showPanel &&
-          this.props.currentPanel == 'todos' && (
-            <SidebarPanel
-              title="Getting Started with Sentry"
-              hidePanel={this.props.hidePanel}
-            >
-              <TodoList />
-            </SidebarPanel>
-          )}
-      </li>
-    );
+    if (!window.matchMedia) return;
+    // TODO(billy): We should consider moving this into a component
+    this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[0]})`);
+    this.mq.addListener(this.handleMediaQueryChange);
+    this.state.horizontal = this.mq.matches;
   }
-}
-
-const Sidebar = createReactClass({
-  displayName: 'Sidebar',
-
-  contextTypes: {
-    location: PropTypes.object,
-  },
-
-  mixins: [ApiMixin, OrganizationState],
-
-  getInitialState: function() {
-    return {
-      showTodos: location.hash === '#welcome',
-    };
-  },
 
   componentDidMount() {
-    $(window).on('hashchange', this.hashChangeHandler);
-    $(document).on('click', this.documentClickHandler);
+    let {router} = this.props;
+    jQuery(document.body).addClass('body-sidebar');
+    jQuery(document).on('click', this.documentClickHandler);
 
     loadIncidents();
-  },
 
-  componentWillReceiveProps(nextProps, nextContext) {
-    let {location} = this.context;
-    let nextLocation = nextContext.location;
+    // router can potentially not exist in server side (django) views
+    // Otherwise when we change routes using collapsed sidebar, the tooltips will remain after
+    // route changes.
+    this.routerListener =
+      router &&
+      router.listen(() => {
+        $('.tooltip').tooltip('hide');
+      });
+    this.doCollapse(this.props.collapsed);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    let {collapsed, location} = this.props;
+    let nextLocation = nextProps.location;
 
     // Close active panel if we navigated anywhere
-    if (location.pathname != nextLocation.pathname) {
+    if (nextLocation && location && location.pathname !== nextLocation.pathname) {
       this.hidePanel();
     }
-  },
+
+    if (collapsed === nextProps.collapsed) return;
+
+    this.doCollapse(nextProps.collapsed);
+  }
 
   componentWillUnmount() {
-    $(window).off('hashchange', this.hashChangeHandler);
-    $(document).off('click', this.documentClickHandler);
-  },
+    jQuery(document).off('click', this.documentClickHandler);
+    jQuery(document.body).removeClass('body-sidebar');
 
-  documentClickHandler(evt) {
-    // If click occurs outside of sidebar, close any
-    // active panel
-    if (!this.refs.navbar.contains(evt.target)) {
-      this.hidePanel();
+    if (this.mq) {
+      this.mq.removeListener(this.handleMediaQueryChange);
+      this.mq = null;
     }
-  },
 
-  hashChangeHandler() {
-    if (location.hash == '#welcome') {
+    // Unlisten to router changes
+    if (this.routerListener) {
+      this.routerListener();
+    }
+  }
+
+  doCollapse(collapsed) {
+    if (collapsed) {
+      jQuery(document.body).addClass('collapsed');
+    } else {
+      jQuery(document.body).removeClass('collapsed');
+    }
+  }
+
+  toggleSidebar = () => {
+    let {collapsed} = this.props;
+
+    if (!collapsed) {
+      hideSidebar();
+    } else {
+      showSidebar();
+    }
+  };
+
+  hashChangeHandler = () => {
+    if (window.location.hash == '#welcome') {
       this.setState({showTodos: true});
     }
-  },
+  };
 
-  toggleTodos(e) {
-    this.setState({showTodos: !this.state.showTodos});
-  },
+  handleMediaQueryChange = changed => {
+    this.setState({
+      horizontal: changed.matches,
+    });
+  };
 
-  hidePanel() {
+  // Hide slideout panel
+  hidePanel = () => {
+    if (!this.state.sidePanel && this.state.currentPanel === '') return;
+
     this.setState({
       showPanel: false,
       currentPanel: '',
     });
-  },
+  };
 
-  showPanel(panel) {
+  // Show slideout panel
+  showPanel = panel => {
     this.setState({
       showPanel: true,
       currentPanel: panel,
     });
-  },
+  };
 
-  togglePanel(panel) {
+  togglePanel = (panel, e) => {
     if (this.state.currentPanel === panel) this.hidePanel();
     else this.showPanel(panel);
-  },
+  };
 
-  renderBody() {
-    let org = this.getOrganization();
-    let config = ConfigStore.getConfig();
-
-    if (!org) {
-      // When no organization, just render Sentry logo at top
-      return (
-        <ul className="navbar-nav">
-          <li>
-            <a className="logo" href="/">
-              <span className="icon-sentry-logo" />
-            </a>
-          </li>
-        </ul>
-      );
+  documentClickHandler = evt => {
+    // If click occurs outside of sidebar, close any active panel
+    if (this.sidebar && !this.sidebar.contains(evt.target)) {
+      this.hidePanel();
     }
-
-    return (
-      <div>
-        <OrganizationSelector
-          organization={org}
-          showPanel={this.state.showPanel}
-          currentPanel={this.state.currentPanel}
-          togglePanel={() => this.togglePanel('org-selector')}
-          hidePanel={() => this.hidePanel()}
-        />
-
-        {/* Top nav links */}
-        <ul className="navbar-nav divider-bottom">
-          <li className={this.state.currentPanel == 'assigned' ? 'active' : null}>
-            <a title="Assigned to me">
-              <span
-                className="icon icon-user"
-                onClick={() => this.togglePanel('assigned')}
-              />
-            </a>
-          </li>
-          <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null}>
-            <a title="My Bookmarks">
-              <span
-                className="icon icon-star-solid"
-                onClick={() => this.togglePanel('bookmarks')}
-              />
-            </a>
-          </li>
-          <li className={this.state.currentPanel == 'history' ? 'active' : null}>
-            <a title="Recently Viewed">
-              <span
-                className="icon icon-av_timer"
-                onClick={() => this.togglePanel('history')}
-              />
-            </a>
-          </li>
-        </ul>
-        <ul className="navbar-nav">
-          <Broadcasts
-            showPanel={this.state.showPanel}
-            currentPanel={this.state.currentPanel}
-            onShowPanel={() => this.togglePanel('broadcasts')}
-            hidePanel={() => this.hidePanel()}
-          />
-          <Incidents
-            showPanel={this.state.showPanel}
-            currentPanel={this.state.currentPanel}
-            onShowPanel={() => this.togglePanel('statusupdate')}
-            hidePanel={() => this.hidePanel()}
-          />
-          <li>
-            <a
-              title="Support"
-              href={
-                !config.isOnPremise
-                  ? `/organizations/${org.slug}/support/`
-                  : 'https://forum.sentry.io/'
-              }
-            >
-              <span className="icon icon-support" />
-            </a>
-          </li>
-        </ul>
-
-        {/* Panel bodies */}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'assigned' && (
-            <SidebarPanel title={t('Assigned to me')} hidePanel={() => this.hidePanel()}>
-              <IssueList
-                endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
-                query={{
-                  statsPeriod: '24h',
-                  per_page: 10,
-                  status: 'unresolved',
-                }}
-                pagination={false}
-                renderEmpty={() => (
-                  <div className="sidebar-panel-empty" key="none">
-                    {t('No issues have been assigned to you.')}
-                  </div>
-                )}
-                ref="issueList"
-                showActions={false}
-                params={{orgId: org.slug}}
-              />
-            </SidebarPanel>
-          )}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'bookmarks' && (
-            <SidebarPanel title={t('My Bookmarks')} hidePanel={() => this.hidePanel()}>
-              <IssueList
-                endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
-                query={{
-                  statsPeriod: '24h',
-                  per_page: 10,
-                  status: 'unresolved',
-                }}
-                pagination={false}
-                renderEmpty={() => (
-                  <div className="sidebar-panel-empty" key="no">
-                    {t('You have no bookmarked issues.')}
-                  </div>
-                )}
-                ref="issueList"
-                showActions={false}
-                params={{orgId: org.slug}}
-                noBorder
-              />
-            </SidebarPanel>
-          )}
-        {this.state.showPanel &&
-          this.state.currentPanel == 'history' && (
-            <SidebarPanel title={t('Recently Viewed')} hidePanel={() => this.hidePanel()}>
-              <IssueList
-                endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
-                query={{
-                  statsPeriod: '24h',
-                  per_page: 10,
-                  status: 'unresolved',
-                }}
-                pagination={false}
-                renderEmpty={() => (
-                  <div className="sidebar-panel-empty" key="none">
-                    {t('No recently viewed issues.')}
-                  </div>
-                )}
-                ref="issueList"
-                showActions={false}
-                params={{orgId: org.slug}}
-                noBorder
-              />
-            </SidebarPanel>
-          )}
-      </div>
-    );
-  },
+  };
 
   render() {
-    let org = this.getOrganization();
+    let {organization, collapsed} = this.props;
+    let {currentPanel, showPanel, horizontal} = this.state;
+    let config = ConfigStore.getConfig();
+    let user = ConfigStore.get('user');
+    let hasPanel = !!currentPanel;
+    let orientation = horizontal ? 'top' : 'left';
+    let sidebarItemProps = {
+      orientation,
+      collapsed,
+      hasPanel,
+    };
+    let hasOrganization = !!organization;
 
-    // NOTE: this.props.orgId not guaranteed to be specified
     return (
-      <nav className="navbar" role="navigation" ref="navbar">
-        <div className="anchor-top">{this.renderBody()}</div>
+      <StyledSidebar
+        innerRef={ref => (this.sidebar = ref)}
+        collapsed={hasOrganization ? collapsed : true}
+      >
+        <SidebarSectionGroup>
+          <SidebarSection>
+            <SidebarDropdown
+              onClick={this.hidePanel}
+              orientation={orientation}
+              collapsed={collapsed}
+              org={organization}
+              user={user}
+              config={config}
+            />
+          </SidebarSection>
 
-        {/* Bottom nav links */}
-        <div className="anchor-bottom">
-          <ul className="navbar-nav">
-            {org && (
-              <OnboardingStatus
-                org={org}
-                showPanel={this.state.showPanel}
-                currentPanel={this.state.currentPanel}
-                onShowPanel={() => this.togglePanel('todos')}
-                hidePanel={() => this.hidePanel()}
+          {hasOrganization && (
+            <React.Fragment>
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  index
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-projects" />}
+                  label={t('Projects')}
+                  to={`/${organization.slug}/`}
+                />
+              </SidebarSection>
+
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-user" />}
+                  label={t('Assigned to me')}
+                  to={`/organizations/${organization.slug}/issues/assigned/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-star" />}
+                  label={t('Bookmarked issues')}
+                  to={`/organizations/${organization.slug}/issues/bookmarks/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-history" />}
+                  label={t('Recently viewed')}
+                  to={`/organizations/${organization.slug}/issues/history/`}
+                />
+              </SidebarSection>
+
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-activity" />}
+                  label={t('Activity')}
+                  to={`/organizations/${organization.slug}/activity/`}
+                />
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-stats" />}
+                  label={t('Stats')}
+                  to={`/organizations/${organization.slug}/stats/`}
+                />
+              </SidebarSection>
+            </React.Fragment>
+          )}
+        </SidebarSectionGroup>
+
+        {hasOrganization && (
+          <SidebarSectionGroup>
+            <SidebarSection>
+              <Broadcasts
+                orientation={orientation}
+                collapsed={collapsed}
+                showPanel={showPanel}
+                currentPanel={currentPanel}
+                onShowPanel={() => this.togglePanel('broadcasts')}
+                hidePanel={this.hidePanel}
               />
+              <Incidents
+                orientation={orientation}
+                collapsed={collapsed}
+                showPanel={showPanel}
+                currentPanel={currentPanel}
+                onShowPanel={() => this.togglePanel('statusupdate')}
+                hidePanel={this.hidePanel}
+              />
+            </SidebarSection>
+
+            {!horizontal && (
+              <SidebarSection noMargin>
+                <OnboardingStatus
+                  org={organization}
+                  currentPanel={currentPanel}
+                  onShowPanel={() => this.togglePanel('todos')}
+                  showPanel={showPanel}
+                  hidePanel={this.hidePanel}
+                  collapsed={collapsed}
+                />
+              </SidebarSection>
             )}
 
-            <li>
-              <UserNav className="user-settings" />
-            </li>
-          </ul>
-        </div>
-      </nav>
+            {!horizontal && (
+              <SidebarSection>
+                <SidebarCollapseItem
+                  data-test-id="sidebar-collapse"
+                  {...sidebarItemProps}
+                  icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
+                  label={collapsed ? t('Expand') : t('Collapse')}
+                  onClick={this.toggleSidebar}
+                />
+              </SidebarSection>
+            )}
+          </SidebarSectionGroup>
+        )}
+      </StyledSidebar>
     );
-  },
-});
+  }
+}
 
-export default Sidebar;
+const SidebarContainer = withRouter(
+  createReactClass({
+    displayName: 'SidebarContainer',
+    mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
+    getInitialState() {
+      return {
+        collapsed: PreferencesStore.getInitialState().collapsed,
+      };
+    },
+
+    onPreferenceChange(store) {
+      if (store.collapsed === this.state.collapsed) return;
+
+      this.setState({
+        collapsed: store.collapsed,
+      });
+    },
+
+    render() {
+      return (
+        <ThemeProvider theme={theme}>
+          <Sidebar {...this.props} collapsed={this.state.collapsed} />
+        </ThemeProvider>
+      );
+    },
+  })
+);
+
+export {Sidebar};
+export default withLatestContext(SidebarContainer);
+
+const responsiveFlex = css`
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: ${theme.breakpoints[0]}) {
+    flex-direction: row;
+  }
+`;
+
+const StyledSidebar = styled('div')`
+  background: ${p => p.theme.sidebar.background};
+  background: linear-gradient(${p => p.theme.gray4}, ${p => p.theme.gray5});
+  color: ${p => p.theme.sidebar.color};
+  line-height: 1;
+  padding: 12px 19px 2px; /* Allows for 32px avatars  */
+  width: ${p => p.theme.sidebar.expandedWidth};
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  justify-content: space-between;
+  z-index: ${p => p.theme.zIndex.sidebar};
+  ${responsiveFlex};
+  ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: ${p => p.theme.sidebar.mobileHeight};
+    bottom: auto;
+    width: auto;
+    padding: 0;
+    align-items: center;
+  }
+`;
+
+const SidebarSectionGroup = styled('div')`
+  ${responsiveFlex};
+  flex-shrink: 0;
+`;
+
+const SidebarSection = styled(SidebarSectionGroup)`
+  ${p => !p.noMargin && `margin: ${space(1)} 0`};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin: 0 ${space(1)};
+  }
+`;
+
+const ExpandedIcon = css`
+  transition: 0.3s transform ease;
+  transform: rotate(0deg);
+`;
+const CollapsedIcon = css`
+  transform: rotate(180deg);
+`;
+const StyledInlineSvg = styled(({className, collapsed, ...props}) => (
+  <InlineSvg
+    className={cx(className, ExpandedIcon, collapsed && CollapsedIcon)}
+    {...props}
+  />
+))``;
+
+const SidebarCollapseItem = styled(SidebarItem)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;

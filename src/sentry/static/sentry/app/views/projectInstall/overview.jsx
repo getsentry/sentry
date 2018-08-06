@@ -2,12 +2,12 @@ import {browserHistory, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t, tct} from '../../locale';
-import AutoSelectText from '../../components/autoSelectText';
-import PlatformPicker from '../onboarding/project/platformpicker';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
-import TextBlock from '../settings/components/text/textBlock';
-import recreateRoute from '../../utils/recreateRoute';
+import {t, tct} from 'app/locale';
+import AutoSelectText from 'app/components/autoSelectText';
+import PlatformPicker from 'app/views/onboarding/project/platformpicker';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import recreateRoute from 'app/utils/recreateRoute';
 
 class ProjectInstallOverview extends React.Component {
   static propTypes = {

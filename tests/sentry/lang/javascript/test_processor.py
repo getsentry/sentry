@@ -11,6 +11,7 @@ from requests.exceptions import RequestException
 
 from sentry import http
 from sentry.lang.javascript.processor import (
+    JavaScriptStacktraceProcessor,
     discover_sourcemap,
     fetch_sourcemap,
     fetch_file,
@@ -33,6 +34,25 @@ unicode_body = b"""function add(a, b) {
     "use strict";
     return a + b; // f\xc3\xb4o
 }""".decode('utf-8')
+
+
+class JavaScriptStacktraceProcessorTest(TestCase):
+    def test_infers_allow_scraping(self):
+        project = self.create_project()
+        r = JavaScriptStacktraceProcessor({}, None, project)
+        # defaults
+        assert r.allow_scraping
+
+        # disabled for project
+        project.update_option('sentry:scrape_javascript', False)
+        r = JavaScriptStacktraceProcessor({}, None, project)
+        assert not r.allow_scraping
+
+        # disabled for org
+        project.delete_option('sentry:scrape_javascript')
+        project.organization.update_option('sentry:scrape_javascript', False)
+        r = JavaScriptStacktraceProcessor({}, None, project)
+        assert not r.allow_scraping
 
 
 class FetchReleaseFileTest(TestCase):
@@ -62,7 +82,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('file.min.js', release)
 
-        assert type(result.body) is six.binary_type
+        assert isinstance(result.body, six.binary_type)
         assert result == http.UrlResult(
             'file.min.js',
             {'content-type': 'application/json; charset=utf-8'},
@@ -118,7 +138,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('file.min.js', release, dist)
 
-        assert type(result.body) is six.binary_type
+        assert isinstance(result.body, six.binary_type)
         assert result == http.UrlResult(
             'file.min.js',
             {'content-type': 'application/json; charset=utf-8'},
@@ -158,7 +178,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('http://example.com/file.min.js?lol', release)
 
-        assert type(result.body) is six.binary_type
+        assert isinstance(result.body, six.binary_type)
         assert result == http.UrlResult(
             'http://example.com/file.min.js?lol',
             {'content-type': 'application/json; charset=utf-8'},

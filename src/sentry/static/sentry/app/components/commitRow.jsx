@@ -2,15 +2,15 @@ import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
-import Avatar from './avatar';
-import TimeSince from './timeSince';
-import CommitLink from './commitLink';
-import {t, tct} from '../locale';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
+import CommitLink from 'app/components/commitLink';
+import {t, tct} from 'app/locale';
 
-import {PanelItem} from './panels';
-import TextOverflow from './textOverflow';
+import {PanelItem} from 'app/components/panels';
+import TextOverflow from 'app/components/textOverflow';
 
 export default class CommitRow extends React.Component {
   static propTypes = {
@@ -31,27 +31,39 @@ export default class CommitRow extends React.Component {
     let {id, dateCreated, message, author, repository} = this.props.commit;
     return (
       <PanelItem key={id} align="center">
-        <Flex mr={2}>
+        <AvatarWrapper mr={2}>
           <Avatar size={36} user={author} />
-        </Flex>
-        <Flex flex="1" direction="column">
-          <TruncatedText>{this.renderMessage(message)}</TruncatedText>
-          <div style={{fontSize: 13}}>
+        </AvatarWrapper>
+        <Box flex="1" direction="column" style={{minWidth: 0}} mr={2}>
+          <Message>{this.renderMessage(message)}</Message>
+          <Meta>
             {tct('[author] committed [timeago]', {
               author: <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>,
               timeago: <TimeSince date={dateCreated} />,
             })}
-          </div>
-        </Flex>
-        <Flex className="hidden-xs">
+          </Meta>
+        </Box>
+        <Box className="hidden-xs">
           <CommitLink commitId={id} repository={repository} />
-        </Flex>
+        </Box>
       </PanelItem>
     );
   }
 }
 
-const TruncatedText = styled(TextOverflow)`
+const AvatarWrapper = styled(Box)`
+  align-self: flex-start;
+`;
+
+const Message = styled(TextOverflow)`
   font-size: 15px;
+  line-height: 1.1;
   font-weight: bold;
+`;
+
+const Meta = styled.p`
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: ${p => p.theme.gray3};
 `;

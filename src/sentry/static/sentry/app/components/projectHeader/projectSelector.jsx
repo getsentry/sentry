@@ -1,18 +1,17 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ApiMixin from '../../mixins/apiMixin';
-
-import ProjectLabel from '../../components/projectLabel';
-import DropdownLink from '../dropdownLink';
-import MenuItem from '../menuItem';
-import Link from '../link';
-
-import {sortArray} from '../../utils';
-import {t} from '../../locale';
+import {sortArray} from 'app/utils';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/link';
+import MenuItem from 'app/components/menuItem';
 
 const ProjectSelector = createReactClass({
   displayName: 'ProjectSelector',
@@ -75,7 +74,6 @@ const ProjectSelector = createReactClass({
   getProjectState(state) {
     state = state || this.state;
     let org = this.props.organization;
-    let features = new Set(org.features);
     let filter = state.filter.toLowerCase();
     let projectList = [];
 
@@ -94,11 +92,7 @@ const ProjectSelector = createReactClass({
       }
 
       let fullName;
-      if (features.has('new-teams')) {
-        fullName = [project.name, project.slug];
-      } else {
-        fullName = [team.name, project.name, team.slug, project.slug];
-      }
+      fullName = [project.name, project.slug];
       fullName = fullName.join(' ').toLowerCase();
 
       if (filter && fullName.indexOf(filter) === -1) {
@@ -214,31 +208,22 @@ const ProjectSelector = createReactClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="icon-star-solid bookmark " />}
-        {label}
+        <ProjectRow>
+          <IdBadge
+            project={project}
+            avatarSize={16}
+            displayName={label}
+            avatarProps={{consistentWidth: true}}
+          />
+          {project.isBookmarked && <BookmarkIcon />}
+        </ProjectRow>
       </MenuItem>
     );
   },
 
   getProjectLabel(team, project, hasSingleTeam, highlightText) {
-    let label, text;
-    let features = new Set(this.props.organization.features);
-
-    if (features.has('new-teams')) {
-      label = <span>{project.slug}</span>;
-      text = project.slug;
-    } else if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
-      label = (
-        <span>
-          {team.name} /{' '}
-          <ProjectLabel project={project} organization={this.props.organization} />
-        </span>
-      );
-      text = team.name + ' / ' + project.name;
-    } else {
-      label = <span>{project.name}</span>;
-      text = project.name;
-    }
+    let label = <span>{project.slug}</span>;
+    let text = project.slug;
 
     if (!highlightText) {
       return label;
@@ -246,7 +231,6 @@ const ProjectSelector = createReactClass({
 
     // in case we have something to highlight we just render a replacement
     // selector without the callsigns.
-    // TODO(mitsuhiko): make this work with the project label.
     highlightText = highlightText.toLowerCase();
     let idx = text.toLowerCase().indexOf(highlightText);
     if (idx === -1) {
@@ -262,20 +246,22 @@ const ProjectSelector = createReactClass({
   },
 
   getLinkNode(team, project) {
-    let org = this.props.organization;
+    let {organization} = this.props;
     let label = this.getProjectLabel(team, project);
 
-    if (!this.context.location) {
-      return <a {...this.getProjectUrlProps(project)}>{label}</a>;
-    }
-
-    let orgId = org.slug;
-    let projectId = project.slug;
+    // TODO(billy): Only show platform icons for internal users
+    let internalOnly =
+      organization &&
+      organization.features &&
+      organization.features.includes('internal-catchall');
 
     return (
-      <span>
-        <Link to={`/${orgId}/${projectId}/`}>{label}</Link>
-      </span>
+      <IdBadge
+        project={project}
+        avatarSize={16}
+        hideAvatar={!internalOnly}
+        displayName={<Link {...this.getProjectUrlProps(project)}>{label}</Link>}
+      />
     );
   },
 
@@ -316,20 +302,12 @@ const ProjectSelector = createReactClass({
 
   render() {
     let org = this.props.organization;
-    let features = new Set(org.features);
     let access = new Set(org.access);
     let hasSingleTeam = org.teams.length === 1;
 
-    let projectList;
-    if (features.has('new-teams')) {
-      projectList = sortArray(this.state.projectList, ([team, project]) => {
-        return [!project.isBookmarked, project.name];
-      });
-    } else {
-      projectList = sortArray(this.state.projectList, ([team, project]) => {
-        return [!project.isBookmarked, team.name, project.name];
-      });
-    }
+    let projectList = sortArray(this.state.projectList, ([team, project]) => {
+      return [!project.isBookmarked, project.name];
+    });
 
     let children = projectList.map(([team, project], index) => {
       return this.getProjectNode(
@@ -349,9 +327,6 @@ const ProjectSelector = createReactClass({
     return (
       <div className="project-select">
         <h3>
-          <Link to={`/${org.slug}/`} className="home-crumb">
-            <span className="icon-home" />
-          </Link>
           {this.state.activeProject ? (
             this.getLinkNode(this.state.activeTeam, this.state.activeProject)
           ) : (
@@ -399,5 +374,20 @@ const ProjectSelector = createReactClass({
     );
   },
 });
+
+const ProjectRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-left: 4px;
+`;
+
+const BookmarkIcon = styled(props => (
+  <div {...props}>
+    <span className="icon-star-solid bookmark" />
+  </div>
+))`
+  font-size: 12px;
+`;
 
 export default ProjectSelector;

@@ -48,7 +48,19 @@ class CreateProjectTest(AcceptanceTestCase):
         )
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
-        self.browser.snapshot(name='create project no teams')
+        self.browser.snapshot(name='create project no teams - index')
+
+        self.browser.click('.ref-create-team')
+        self.browser.wait_until('.modal-dialog')
+        input = self.browser.element('input[name="slug"]')
+        input.send_keys('new-team')
+
+        self.browser.snapshot(name='create project no teams - create team modal')
+        self.browser.element('.modal-dialog form').submit()
+
+        # After creating team, should end up in onboarding screen
+        self.browser.wait_until('.onboarding-info')
+        self.browser.snapshot(name='create project no teams - after create team')
 
     def test_many_teams(self):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')

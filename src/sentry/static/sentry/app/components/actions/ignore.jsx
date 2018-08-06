@@ -2,15 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
-import {t} from '../../locale';
-import MenuItem from '../menuItem';
-import DropdownLink from '../dropdownLink';
-import Duration from '../duration';
-import CustomIgnoreCountModal from '../customIgnoreCountModal';
-import CustomIgnoreDurationModal from '../customIgnoreDurationModal';
-import ActionLink from './actionLink';
-import Tooltip from '../tooltip';
-import GuideAnchor from '../assistant/guideAnchor';
+import {t} from 'app/locale';
+import MenuItem from 'app/components/menuItem';
+import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
+import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
+import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
+import ActionLink from 'app/components/actions/actionLink';
+import Tooltip from 'app/components/tooltip';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -124,7 +124,7 @@ export default class IgnoreActions extends React.Component {
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
-            <span className="icon-ban" style={{marginRight: 5}} />
+            <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
             <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>

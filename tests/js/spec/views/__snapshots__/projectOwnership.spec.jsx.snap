@@ -6,14 +6,8 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <SettingsPageHeading
-      title="Issue Ownership"
+      title="Issue Owners"
     />
-    <div
-      className="alert alert-block alert-info"
-    >
-      Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!
-    </div>
     <Panel>
       <PanelHeader>
         Ownership Rules
@@ -23,29 +17,52 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         disablePadding={false}
         flex={false}
       >
-        <p>
+        <Block>
           Define rules here to configure automated ownership for new issues and direct email alerts
-        </p>
-        <p>
-          Rules follow the pattern type:glob owner owner
-        </p>
-        <p>
-          Owners can be team identifiers starting with #, or user emails (use @ to input from list)
-        </p>
-        <p>
+        </Block>
+        <Block>
+          Rules follow the pattern: 
+          <code>
+            type:glob owner owner
+          </code>
+        </Block>
+        <Block>
+          <span
+            key="4"
+          >
+            <span
+              key="0"
+            >
+              Owners can be team identifiers starting with 
+            </span>
+            <code
+              key="1"
+            >
+              #
+            </code>
+            <span
+              key="2"
+            >
+              , or user emails
+            </span>
+          </span>
+        </Block>
+        <Block>
           Globbing Syntax:
           <CodeBlock>
             * matches everything
 ? matches any single character
           </CodeBlock>
-        </p>
-        Examples:
-        <CodeBlock>
-          path:src/example/pipeline/* person@sentry.io #infrastructure
-          
+        </Block>
+        <Block>
+          Examples:
+          <CodeBlock>
+            path:src/example/pipeline/* person@sentry.io #infrastructure
+            
 
-          url:http://example.com/settings/* #product
-        </CodeBlock>
+            url:http://example.com/settings/* #product
+          </CodeBlock>
+        </Block>
         <OwnerInput
           initialText="url:src @dummy@example.com"
           organization={
@@ -66,6 +83,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
               "name": "Organization Name",
               "onboardingTasks": Array [],
               "projects": Array [],
+              "scrapeJavaScript": true,
               "slug": "org-slug",
               "status": Object {
                 "id": "active",
@@ -147,12 +165,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "fields": Array [
                 Object {
-                  "label": "Default Owner is everyone",
+                  "help": "Owners will receive notifications for issues they are responsible for.",
+                  "label": "All users with access to this project are owners",
                   "name": "fallthrough",
                   "type": "boolean",
                 },
               ],
-              "title": "Default Ownership",
+              "title": "If ownership cannot be determined for an issue...",
             },
           ]
         }

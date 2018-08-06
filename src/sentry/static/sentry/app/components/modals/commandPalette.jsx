@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import Search from '../search';
-import SearchResult from '../search/searchResult';
-import SearchResultWrapper from '../search/searchResultWrapper';
+import {t} from 'app/locale';
+import Search from 'app/components/search';
+import SearchResult from 'app/components/search/searchResult';
+import SearchResultWrapper from 'app/components/search/searchResultWrapper';
+import analytics from 'app/utils/analytics';
 
 const dropdownStyle = css`
   width: 100%;
@@ -23,6 +24,10 @@ class CommandPaletteModal extends React.Component {
     Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
   };
 
+  componentDidMount() {
+    analytics('omnisearch.open');
+  }
+
   handleSuccess = data => {
     if (this.props.onClose) {
       this.props.onClose(data);
@@ -38,6 +43,7 @@ class CommandPaletteModal extends React.Component {
       <Body>
         <Search
           {...this.props}
+          source="command_palette"
           minSearch={1}
           maxResults={10}
           dropdownStyle={dropdownStyle}
@@ -55,7 +61,7 @@ class CommandPaletteModal extends React.Component {
           )}
           renderItem={({item, matches, itemProps, highlighted}) => (
             <CommandPaletteSearchResultWrapper {...itemProps} highlighted={highlighted}>
-              <SearchResult item={item} matches={matches} />
+              <SearchResult highlighted={highlighted} item={item} matches={matches} />
             </CommandPaletteSearchResultWrapper>
           )}
         />

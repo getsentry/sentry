@@ -1,8 +1,9 @@
 import Reflux from 'reflux';
 import $ from 'jquery';
-import GuideActions from '../actions/guideActions';
-import HookStore from './hookStore';
-import OrganizationsActions from '../actions/organizationsActions';
+import GuideActions from 'app/actions/guideActions';
+import OrganizationsActions from 'app/actions/organizationsActions';
+import analytics from 'app/utils/analytics';
+import ProjectActions from 'app/actions/projectActions';
 
 const GuideStore = Reflux.createStore({
   init() {
@@ -19,26 +20,37 @@ const GuideStore = Reflux.createStore({
 
       currentOrg: null,
 
+      currentProject: null,
+
       forceShow: false,
+      prevGuide: null,
     };
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
-    this.listenTo(GuideActions.closeGuideOrSupport, this.onCloseGuideOrSupport);
+    this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
     this.listenTo(GuideActions.nextStep, this.onNextStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
+    this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeSlug);
 
-    window.addEventListener('hashchange', this.onHashChange, false);
+    window.addEventListener('hashchange', this.onURLChange, false);
+    window.addEventListener('load', this.onURLChange, false);
   },
 
-  onHashChange() {
+  onURLChange() {
     this.state.forceShow = window.location.hash === '#assistant';
     this.updateCurrentGuide();
   },
 
   onSetActiveOrganization(data) {
     this.state.currentOrg = data;
+    this.trigger(this.state);
+  },
+
+  onSetActiveProject(data) {
+    this.state.currentProject = data;
+    this.trigger(this.state);
   },
 
   onChangeSlug(prev, next) {
@@ -50,16 +62,15 @@ const GuideStore = Reflux.createStore({
     this.updateCurrentGuide();
   },
 
-  // This handles both closing a guide and the support drawer.
-  onCloseGuideOrSupport() {
+  onCloseGuide() {
     let {currentGuide} = this.state;
-    if (currentGuide) {
-      this.state.guides[
-        Object.keys(this.state.guides).find(key => {
-          return this.state.guides[key].id == currentGuide.id;
-        })
-      ].seen = true;
-    }
+    this.state.guides[
+      Object.keys(this.state.guides).find(key => {
+        return this.state.guides[key].id == currentGuide.id;
+      })
+    ].seen = true;
+    // Don't continue to force show if the user dismissed the guide.
+    this.state.forceShow = false;
     this.updateCurrentGuide();
   },
 
@@ -67,11 +78,9 @@ const GuideStore = Reflux.createStore({
     this.state.currentStep += 1;
     this.trigger(this.state);
     if (this.state.currentGuide && this.state.currentStep == 1) {
-      HookStore.get('analytics:event').forEach(cb =>
-        cb('assistant.guide_opened', {
-          guide: this.state.currentGuide.id,
-        })
-      );
+      analytics('assistant.guide_opened', {
+        guide: this.state.currentGuide.id,
+      });
     }
   },
 
@@ -83,6 +92,22 @@ const GuideStore = Reflux.createStore({
   onUnregisterAnchor(anchor) {
     this.state.anchors.delete(anchor);
     this.updateCurrentGuide();
+  },
+
+  recordCue(id, cue) {
+    analytics('assistant.guide_cued', {
+      guide: id,
+      cue,
+    });
+  },
+
+  updatePrevGuide(bestGuide) {
+    if (!bestGuide) return;
+
+    if (!this.state.prevGuide || this.state.prevGuide.id !== bestGuide.id) {
+      this.recordCue(bestGuide.id, bestGuide.cue);
+      this.state.prevGuide = bestGuide;
+    }
   },
 
   updateCurrentGuide() {
@@ -105,10 +130,12 @@ const GuideStore = Reflux.createStore({
       bestGuide = $.extend(true, {}, this.state.guides[bestGuideKey]);
       // Remove steps that don't have an anchor on the page.
       bestGuide.steps = bestGuide.steps.filter(
-        step => step.target && availableTargets.indexOf(step.target) >= 0
+        step =>
+          step.target === null ||
+          (step.target && availableTargets.indexOf(step.target) >= 0)
       );
     }
-
+    this.updatePrevGuide(bestGuide);
     this.state.currentGuide = bestGuide;
 
     this.state.currentStep = this.state.forceShow ? 1 : 0;

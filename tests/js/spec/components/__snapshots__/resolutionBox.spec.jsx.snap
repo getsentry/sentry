@@ -7,7 +7,9 @@ exports[`ResolutionBox render() handles default 1`] = `
   <span
     className="icon icon-checkmark"
   />
-  <p>
+  <p
+    className="truncate break-all"
+  >
     This issue has been marked as resolved.
   </p>
 </div>
@@ -20,7 +22,9 @@ exports[`ResolutionBox render() handles inNextRelease 1`] = `
   <span
     className="icon icon-checkmark"
   />
-  <p>
+  <p
+    className="truncate break-all"
+  >
     This issue has been marked as resolved in the upcoming release.
   </p>
 </div>
@@ -33,7 +37,9 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
   <span
     className="icon icon-checkmark"
   />
-  <p>
+  <p
+    className="truncate break-all"
+  >
     <span
       key="3"
     >
@@ -47,6 +53,7 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
           user={
             Object {
               "email": "david@sentry.io",
+              "id": "111",
               "name": "David Cramer",
             }
           }
@@ -78,7 +85,9 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
   <span
     className="icon icon-checkmark"
   />
-  <p>
+  <p
+    className="truncate break-all"
+  >
     <span
       key="4"
     >
@@ -92,6 +101,7 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
         key="1"
         orgId="org"
         projectId="project"
+        showShortVersion={true}
         version="1.0"
       />
       <span
@@ -111,7 +121,9 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
   <span
     className="icon icon-checkmark"
   />
-  <p>
+  <p
+    className="truncate break-all"
+  >
     <span
       key="5"
     >
@@ -125,6 +137,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
           user={
             Object {
               "email": "david@sentry.io",
+              "id": "111",
               "name": "David Cramer",
             }
           }
@@ -149,6 +162,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
         key="2"
         orgId="org"
         projectId="project"
+        showShortVersion={true}
         version="1.0"
       />
       <span

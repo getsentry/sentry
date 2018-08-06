@@ -7,11 +7,8 @@ sentry.tagstore.legacy.models.grouptagkey
 """
 from __future__ import absolute_import
 
-import six
-
 from django.db import models, router, transaction, DataError
 
-from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, BaseManager, sane_repr
@@ -57,27 +54,3 @@ class GroupTagKey(Model):
         except DataError:
             # it's possible to hit an out of range value for counters
             pass
-
-
-@register(GroupTagKey)
-class GroupTagKeySerializer(Serializer):
-    def get_attrs(self, item_list, user):
-        from sentry import tagstore
-
-        result = {}
-        for item in item_list:
-            key = tagstore.get_standardized_key(item.key)
-            result[item] = {
-                'name': tagstore.get_tag_key_label(item.key),
-                'key': key,
-            }
-
-        return result
-
-    def serialize(self, obj, attrs, user):
-        return {
-            'id': six.text_type(obj.id),
-            'name': attrs['name'],
-            'key': attrs['key'],
-            'uniqueValues': obj.values_seen,
-        }

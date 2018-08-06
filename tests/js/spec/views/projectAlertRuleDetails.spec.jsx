@@ -5,7 +5,10 @@ import {browserHistory} from 'react-router';
 import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
 import EnvironmentStore from 'app/stores/environmentStore';
 
+import {selectByValue} from '../../helpers/select';
+
 jest.mock('jquery');
+jest.unmock('app/utils/recreateRoute');
 
 describe('ProjectAlertRuleDetails', function() {
   let projectAlertRuleDetailsRoutes = [
@@ -78,12 +81,7 @@ describe('ProjectAlertRuleDetails', function() {
           routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug'}}
         />,
-        {
-          context: {
-            project: TestStubs.Project(),
-            organization: TestStubs.Organization(),
-          },
-        }
+        TestStubs.routerContext()
       );
     });
     it('renders', function() {
@@ -91,7 +89,7 @@ describe('ProjectAlertRuleDetails', function() {
     });
 
     it('sets defaults', function() {
-      let selects = wrapper.find('Select2Field');
+      let selects = wrapper.find('SelectField Select');
       expect(selects.first().props().value).toBe('all');
       expect(selects.last().props().value).toBe(30);
     });
@@ -137,12 +135,7 @@ describe('ProjectAlertRuleDetails', function() {
           routes={projectAlertRuleDetailsRoutes}
           params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}
         />,
-        {
-          context: {
-            project: TestStubs.Project(),
-            organization: TestStubs.Organization(),
-          },
-        }
+        TestStubs.routerContext()
       );
     });
     it('renders', function() {
@@ -162,10 +155,10 @@ describe('ProjectAlertRuleDetails', function() {
     });
 
     it('sends correct environment value', function() {
-      wrapper
-        .find('select#id-environment')
-        .simulate('change', {target: {value: 'production'}});
-      expect(wrapper.find('select#id-environment').props().value).toBe('production');
+      selectByValue(wrapper, 'production', {name: 'environment'});
+      expect(
+        wrapper.find('SelectField[name="environment"] Select').prop('value')
+      ).toEqual(expect.objectContaining({value: 'production'}));
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledWith(
@@ -176,10 +169,8 @@ describe('ProjectAlertRuleDetails', function() {
       );
     });
 
-    it('strips environment value if "All environments" is selected', function() {
-      wrapper
-        .find('select#id-environment')
-        .simulate('change', {target: {value: '__all_environments__'}});
+    it('strips environment value if "All environments" is selected', async function() {
+      selectByValue(wrapper, '__all_environments__', {name: 'environment'});
       wrapper.find('form').simulate('submit');
 
       expect(mock).not.toHaveBeenCalledWith(

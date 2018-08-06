@@ -1,12 +1,14 @@
+import {withRouter} from 'react-router';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import SentryTypes from '../proptypes';
-import EnvironmentStore from '../stores/environmentStore';
-import ProjectHeader from '../components/projectHeader';
-import ProjectState from '../mixins/projectState';
-import withEnvironment from '../utils/withEnvironment';
+import {setLastRoute} from 'app/actionCreators/navigation';
+import SentryTypes from 'app/sentryTypes';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ProjectHeader from 'app/components/projectHeader';
+import ProjectState from 'app/mixins/projectState';
+import withEnvironment from 'app/utils/withEnvironment';
 
 const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',
@@ -24,6 +26,13 @@ const ProjectDetailsLayout = createReactClass({
     };
   },
 
+  componentWillUnmount() {
+    let {location} = this.props;
+    let {pathname, search} = location;
+    // Save last route so that we can jump back to view from settings
+    setLastRoute(`${pathname}${search || ''}`);
+  },
+
   /**
    * This callback can be invoked by the child component
    * to update the active nav section (which is then passed
@@ -39,7 +48,7 @@ const ProjectDetailsLayout = createReactClass({
     if (!this.context.project) return null;
 
     return (
-      <div>
+      <React.Fragment>
         <ProjectHeader
           activeSection={this.state.projectNavSection}
           project={this.context.project}
@@ -55,9 +64,10 @@ const ProjectDetailsLayout = createReactClass({
             })}
           </div>
         </div>
-      </div>
+      </React.Fragment>
     );
   },
 });
 
-export default withEnvironment(ProjectDetailsLayout);
+export {ProjectDetailsLayout};
+export default withRouter(withEnvironment(ProjectDetailsLayout));

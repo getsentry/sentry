@@ -1,7 +1,7 @@
 /*eslint no-console:0*/
-import {DefaultPlugin} from './defaultPlugin';
-import {DefaultIssuePlugin} from './defaultIssuePlugin';
-import {defined} from '../utils';
+import {DefaultPlugin} from 'app/plugins/defaultPlugin';
+import {DefaultIssuePlugin} from 'app/plugins/defaultIssuePlugin';
+import {defined} from 'app/utils';
 
 export default class Registry {
   constructor() {

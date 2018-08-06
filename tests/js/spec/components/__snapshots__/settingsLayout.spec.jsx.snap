@@ -5,9 +5,7 @@ exports[`SettingsLayout renders 1`] = `
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
-        <withOrganizations>
-          Back to Project
-        </withOrganizations>
+        <withOrganizations(withLatestContext(BackButton)) />
       </Container>
     </SettingsSubheader>
     <Container>
@@ -18,7 +16,7 @@ exports[`SettingsLayout renders 1`] = `
         <Box
           flex="1"
         >
-          <SettingsBreadcrumb
+          <ConnectedSettingsBreadcrumb
             route={Object {}}
             routes={Array []}
           />
@@ -29,11 +27,11 @@ exports[`SettingsLayout renders 1`] = `
       </Flex>
     </Container>
   </SettingsHeader>
-  <Container>
-    <Content>
-      <NewSettingsWarning />
-    </Content>
-  </Container>
+  <ContentContainerWrapper>
+    <Container>
+      <Content />
+    </Container>
+  </ContentContainerWrapper>
   <Footer />
 </React.Fragment>
 `;

@@ -1,14 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import InputField from './inputField';
-import Switch from '../../../../components/switch';
-import Confirm from '../../../../components/confirm';
+import InputField from 'app/views/settings/components/forms/inputField';
+import Switch from 'app/components/switch';
+import Confirm from 'app/components/confirm';
 
 export default class BooleanField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
-    confirm: PropTypes.node,
+    confirm: PropTypes.shape({
+      true: PropTypes.node,
+      false: PropTypes.node,
+    }),
   };
   coerceValue(value) {
     return value ? true : false;
@@ -42,16 +45,17 @@ export default class BooleanField extends InputField {
 
           if (confirm) {
             return (
-              <Confirm message={confirm} onConfirm={() => handleChange({})}>
+              <Confirm
+                renderMessage={() => confirm[!value]}
+                onConfirm={() => handleChange({})}
+              >
                 {({open}) => (
                   <Switch
                     {...switchProps}
                     toggle={e => {
                       // If we have a `confirm` prop and enabling switch
                       // Then show confirm dialog, otherwise propagate change as normal
-                      //
-                      // TODO(billy): We will probably want a way to control if it happens on enable or disable
-                      if (!value) {
+                      if (confirm[!value]) {
                         // Open confirm modal
                         open();
                         return;

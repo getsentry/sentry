@@ -1,8 +1,12 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
-from sentry.integrations import Integration, IntegrationMetadata
-from sentry.utils.pipeline import PipelineView
+from sentry.integrations import (
+    Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
+)
+from sentry.integrations.exceptions import IntegrationError
+from sentry.integrations.issues import IssueSyncMixin
+from sentry.pipeline import PipelineView
 
 
 class ExampleSetupView(PipelineView):
@@ -22,6 +26,7 @@ class ExampleSetupView(PipelineView):
 
         return HttpResponse(self.TEMPLATE)
 
+
 DESCRIPTION = """
 This is an example integration
 
@@ -31,19 +36,66 @@ This is an example integration
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
+    noun='example',
     issue_url='https://github.com/getsentry/sentry/issues/new',
     source_url='https://github.com/getsentry/sentry',
     aspects={},
 )
 
 
-class ExampleIntegration(Integration):
+class ExampleIntegration(Integration, IssueSyncMixin):
+    comment_key = 'sync_comments'
+    outbound_status_key = 'sync_status_outbound'
+    inbound_status_key = 'sync_status_inbound'
+    outbound_assignee_key = 'sync_assignee_outbound'
+    inbound_assignee_key = 'sync_assignee_inbound'
+
+    def get_issue_url(self, key):
+        return 'https://example/issues/{}'.format(key)
+
+    def create_comment(self):
+        pass
+
+    def create_issue(self, data, **kwargs):
+        if 'assignee' not in data:
+            raise IntegrationError('Assignee is required')
+        return {
+            'key': 'APP-123',
+            'title': 'This is a test external issue title',
+            'description': 'This is a test external issue description',
+        }
+
+    def get_issue(self, issue_id, **kwargs):
+        return {
+            'key': issue_id,
+            'title': 'This is a test external issue title',
+            'description': 'This is a test external issue description',
+        }
+
+    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+        pass
+
+    def sync_status_outbound(self, external_issue, is_resolved, project_id):
+        pass
+
+    def should_unresolve(self, data):
+        return data['status']['category'] != 'done'
+
+    def should_resolve(self, data):
+        return data['status']['category'] == 'done'
+
+
+class ExampleIntegrationProvider(IntegrationProvider):
     """
     An example integration, generally used for testing.
     """
     key = 'example'
     name = 'Example'
     metadata = metadata
+
+    integration_cls = ExampleIntegration
+
+    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     def get_pipeline_views(self):
         return [
