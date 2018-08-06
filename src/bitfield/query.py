@@ -29,7 +29,10 @@ try:
         def process_lhs(self, qn, connection, lhs=None):
             lhs_sql, params = super(BitQueryLookupWrapper, self).process_lhs(
                 qn, connection, lhs)
-            lhs_sql = lhs_sql + ' | %s'
+            if self.rhs:
+                lhs_sql = lhs_sql + ' & %s'
+            else:
+                lhs_sql = lhs_sql + ' | %s'
             params.extend(self.process_rhs(qn, connection)[1])
             return lhs_sql, params
 
