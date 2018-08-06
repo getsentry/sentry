@@ -332,14 +332,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'model': Organization.__name__,
                     }
                 )
-            # else:
-            #     self.create_audit_entry(
-            #         request=request,
-            #         organization=organization,
-            #         target_object=organization.id,
-            #         event=AuditLogEntryEvent.ORG_EDIT,
-            #         data=changed_data
-            #     )
+            else:
+                self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_EDIT,
+                    data=changed_data
+                )
 
             return self.respond(
                 serialize(
