@@ -22,9 +22,9 @@ class Migration(SchemaMigration):
             ('environment', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['sentry.Environment'])),
             ('new_issues_count', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
-            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('first_seen', self.gf('django.db.models.fields.DateTimeField')()),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                default=datetime.datetime.now, db_index=True)),
+                db_index=True)),
         ))
         db.send_create_signal('sentry', ['ReleaseProjectEnvironment'])
 
