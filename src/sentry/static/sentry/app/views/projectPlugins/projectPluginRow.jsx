@@ -29,7 +29,16 @@ class ProjectPluginRow extends React.PureComponent {
   };
 
   render() {
-    let {id, name, slug, version, author, hasConfiguration, enabled} = this.props;
+    let {
+      id,
+      name,
+      slug,
+      version,
+      author,
+      hasConfiguration,
+      enabled,
+      canDisable,
+    } = this.props;
 
     let configureUrl = recreateRoute(id, this.props);
     return (
@@ -71,7 +80,7 @@ class ProjectPluginRow extends React.PureComponent {
               </PluginInfo>
               <Switch
                 size="lg"
-                isDisabled={!hasAccess}
+                isDisabled={!hasAccess || !canDisable}
                 isActive={enabled}
                 toggle={this.handleChange}
               />
