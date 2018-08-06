@@ -123,7 +123,7 @@
       "enzyme-to-json/serializer"
     ],
     "moduleNameMapper": {
-      "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
+      "\\.(css|less|png|woff|woff2)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
       "integration-docs-platforms": "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
     },
