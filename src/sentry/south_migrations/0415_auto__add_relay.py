@@ -17,8 +17,8 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('relay_id', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
             ('public_key', self.gf('django.db.models.fields.CharField')(max_length=200)),
-            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('first_seen', self.gf('django.db.models.fields.DateTimeField')()),
+            ('last_seen', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['Relay'])
 

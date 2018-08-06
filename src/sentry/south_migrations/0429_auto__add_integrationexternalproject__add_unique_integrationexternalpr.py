@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('organization_integration_id', self.gf(
                 'sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('external_id', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('resolved_status', self.gf('django.db.models.fields.CharField')(max_length=64)),

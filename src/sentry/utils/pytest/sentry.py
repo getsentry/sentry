@@ -173,6 +173,10 @@ def pytest_configure(config):
     configure_structlog()
     fix_south(settings)
 
+    import django
+    if hasattr(django, 'setup'):
+        django.setup()
+
     bind_cache_to_option_store()
 
     initialize_receivers()
