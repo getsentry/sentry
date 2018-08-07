@@ -196,7 +196,13 @@ class OrganizationUpdateTest(APITestCase):
             'scrubIPAddresses': True,
             'scrapeJavaScript': False,
             'defaultRole': 'owner',
+            'require2FA': True
         }
+
+        # needed to set require2FA
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        assert Authenticator.objects.user_has_2fa(self.user)
 
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content
@@ -224,16 +230,21 @@ class OrganizationUpdateTest(APITestCase):
         # audit log created
         audit_log = AuditLogEntry.objects.get(organization=org)
         assert audit_log.get_event_display() == 'org.edit'
+
+        # Organization.flags
         assert audit_log.data['allow_joinleave'] == 'to False'
         assert audit_log.data['early_adopter'] == 'to True'
         assert audit_log.data['disable_shared_issues'] == 'to True'
         assert audit_log.data['enhanced_privacy'] == 'to True'
+        assert audit_log.data['require_2fa'] == 'to True'
+        # Organization charfields
+        assert audit_log.data['default_role'] == 'from member to owner'
+        # OrganizationOptions
         assert audit_log.data['dataScrubber'] == data['dataScrubber']
         assert audit_log.data['dataScrubberDefaults'] == data['dataScrubberDefaults']
         assert audit_log.data['sensitiveFields'] == data['sensitiveFields']
         assert audit_log.data['safeFields'] == data['safeFields']
         assert audit_log.data['scrubIPAddresses'] == data['scrubIPAddresses']
-        assert 'to owner' in audit_log.data['default_role']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
