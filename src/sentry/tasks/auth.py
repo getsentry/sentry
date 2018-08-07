@@ -30,7 +30,7 @@ def email_missing_links(org_id, actor_id, provider_key, **kwargs):
 
     member_list = OrganizationMember.objects.filter(
         organization=org,
-        flags=F('flags').bitand(~getattr(OrganizationMember.flags, 'sso:linked')),
+        flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
     )
     for member in member_list:
         member.send_sso_link_email(actor, provider)

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.core.urlresolvers import reverse
+from django.db.models import F
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import AuthProvider, OrganizationMember
@@ -15,7 +16,7 @@ class AuthProviderSerializer(Serializer):
         organization = obj.organization
         pending_links_count = OrganizationMember.objects.filter(
             organization=organization,
-            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
         ).count()
 
         return {

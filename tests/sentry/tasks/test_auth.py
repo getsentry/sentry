@@ -19,16 +19,16 @@ class EmailMissingLinksTest(TestCase):
         om = OrganizationMember.objects.create(
             user=self.user,
             organization=self.organization,
-            flags=getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=OrganizationMember.flags['sso:linked'],
         )
-        assert getattr(om.flags, 'sso:linked')
+        assert om.flags['sso:linked']
         self.user2 = self.create_user(email='baz@example.com')
         om2 = OrganizationMember.objects.create(
             user=self.user2,
             organization=self.organization,
             flags=0,
         )
-        assert not getattr(om2.flags, 'sso:linked')
+        assert not om2.flags['sso:linked']
 
     def test_email_missing_links(self):
         with self.tasks():
