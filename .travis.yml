@@ -31,7 +31,6 @@ env:
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - SOUTH_TESTS_MIGRATE=1
-    - USE_SOUTH_MIGRATIONS=1
     - DJANGO_VERSION=">=1.6.11,<1.7"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
@@ -166,7 +165,7 @@ matrix:
 
     # django 1.8 compatibility with migrations
     - python: 2.7
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" USE_SOUTH_MIGRATIONS=0
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0
       services:
         - memcached
         - redis-server
