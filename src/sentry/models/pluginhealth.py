@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
 from sentry.db.models import (
-    ArrayField, Model, FlexibleForeignKey, sane_repr
+    ArrayField, BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr
 )
 from django.db import models
 from jsonfield import JSONField
 from django.utils import timezone
+from sentry.constants import ObjectStatus
+from django.utils.translation import ugettext_lazy as _
 
 
 class PluginHealth(Model):
@@ -17,6 +19,15 @@ class PluginHealth(Model):
     link = models.URLField(null=True, blank=True)
     author = models.CharField(max_length=64)
     metadata = JSONField()
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (ObjectStatus.VISIBLE,
+             _('Active')), (ObjectStatus.PENDING_DELETION, _('Pending Deletion')),
+            (ObjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+        ),
+        db_index=True
+    )
 
     class Meta:
         app_label = 'sentry'
