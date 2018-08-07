@@ -155,7 +155,7 @@ def handle_new_membership(auth_provider, organization, request, auth_identity):
         organization=organization,
         role=organization.default_role,
         user=user,
-        flags=getattr(OrganizationMember.flags, 'sso:linked'),
+        flags=OrganizationMember.flags['sso:linked'],
     )
 
     default_teams = auth_provider.default_teams.all()
@@ -236,8 +236,8 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
             except OrganizationMember.DoesNotExist:
                 pass
             else:
-                setattr(other_member.flags, 'sso:invalid', True)
-                setattr(other_member.flags, 'sso:linked', False)
+                other_member.flags['sso:invalid'] = True
+                other_member.flags['sso:linked'] = False
                 other_member.save()
 
         auth_identity.update(
@@ -263,7 +263,7 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
                 organization=organization,
                 role=organization.default_role,
                 user=user,
-                flags=getattr(OrganizationMember.flags, 'sso:linked'),
+                flags=OrganizationMember.flags['sso:linked'],
             )
 
             default_teams = auth_provider.default_teams.all()
