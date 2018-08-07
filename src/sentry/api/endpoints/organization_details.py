@@ -186,7 +186,7 @@ class OrganizationSerializer(serializers.Serializer):
                 # default value evaluates as truthy, but this should work for now with the
                 # current ORG_OPTIONS (assumes ORG_OPTIONS are falsy)
                 if type_(self.init_data[key]):
-                    changed_data[key] = self.init_data[key]
+                    changed_data[key] = u'to {}'.format(self.init_data[key])
             else:
                 option_inst.value = self.init_data[key]
                 # check if ORG_OPTIONS changed

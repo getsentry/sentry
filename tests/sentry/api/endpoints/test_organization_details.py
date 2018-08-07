@@ -171,9 +171,9 @@ class OrganizationUpdateTest(APITestCase):
 
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
-        initial_data = org.get_audit_log_data()
+        initial = org.get_audit_log_data()
 
-        # clear audit logs
+        # clear logs
         for log in AuditLogEntry.objects.filter(organization=org):
             log.delete()
 
@@ -191,8 +191,8 @@ class OrganizationUpdateTest(APITestCase):
             'enhancedPrivacy': True,
             'dataScrubber': True,
             'dataScrubberDefaults': True,
-            'sensitiveFields': ['password'],
-            'safeFields': ['email'],
+            'sensitiveFields': [u'password'],
+            'safeFields': [u'email'],
             'scrubIPAddresses': True,
             'scrapeJavaScript': False,
             'defaultRole': 'owner',
@@ -207,13 +207,13 @@ class OrganizationUpdateTest(APITestCase):
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
-        assert initial_data != org.get_audit_log_data()
+        assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
-        assert org.flags.enhanced_privacy
+        assert org.flags.require_2fa
         assert org.default_role == 'owner'
 
         options = {o.key: o.value for o in OrganizationOption.objects.filter(
@@ -227,24 +227,22 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get('sentry:safe_fields') == ['email']
         assert options.get('sentry:scrape_javascript') is False
 
-        # audit log created
-        audit_log = AuditLogEntry.objects.get(organization=org)
-        assert audit_log.get_event_display() == 'org.edit'
-
-        # Organization.flags
-        assert audit_log.data['allow_joinleave'] == 'to False'
-        assert audit_log.data['early_adopter'] == 'to True'
-        assert audit_log.data['disable_shared_issues'] == 'to True'
-        assert audit_log.data['enhanced_privacy'] == 'to True'
-        assert audit_log.data['require_2fa'] == 'to True'
-        # Organization charfields
-        assert audit_log.data['default_role'] == 'from member to owner'
-        # OrganizationOptions
-        assert audit_log.data['dataScrubber'] == data['dataScrubber']
-        assert audit_log.data['dataScrubberDefaults'] == data['dataScrubberDefaults']
-        assert audit_log.data['sensitiveFields'] == data['sensitiveFields']
-        assert audit_log.data['safeFields'] == data['safeFields']
-        assert audit_log.data['scrubIPAddresses'] == data['scrubIPAddresses']
+        # log created
+        log = AuditLogEntry.objects.get(organization=org)
+        assert log.get_event_display() == 'org.edit'
+        # org fields & flags
+        assert 'to {}'.format(data['defaultRole']) in log.data['default_role']
+        assert 'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
+        assert 'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
+        assert 'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
+        assert 'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
+        assert 'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        # org options
+        assert 'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
+        assert 'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
+        assert 'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
+        assert 'to {}'.format(data['safeFields']) in log.data['safeFields']
+        assert 'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
