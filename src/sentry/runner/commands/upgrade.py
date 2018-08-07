@@ -8,21 +8,34 @@ sentry.runner.commands.upgrade
 from __future__ import absolute_import, print_function
 
 import click
+import django
+
+from django.conf import settings
 from sentry.runner.decorators import configuration
+
+DJANGO_17 = django.VERSION[0] > 1 or (django.VERSION[0] == 1 and django.VERSION[1] >= 7)
 
 
 def _upgrade(interactive, traceback, verbosity, repair):
     from django.core.management import call_command as dj_call_command
 
-    dj_call_command(
-        'migrate',
-        interactive=interactive,
-        traceback=traceback,
-        verbosity=verbosity,
-        migrate=True,
-        merge=True,
-        ignore_ghost_migrations=True,
-    )
+    if 'south' in settings.INSTALLED_APPS or DJANGO_17:
+        dj_call_command(
+            'migrate',
+            interactive=interactive,
+            traceback=traceback,
+            verbosity=verbosity,
+            migrate=True,
+            merge=True,
+            ignore_ghost_migrations=True,
+        )
+    else:
+        dj_call_command(
+            'syncdb',
+            interactive=interactive,
+            traceback=traceback,
+            verbosity=verbosity,
+        )
 
     if repair:
         from sentry.runner import call_command

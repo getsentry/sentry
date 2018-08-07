@@ -96,7 +96,7 @@ def increment_project_counter(project, delta=1):
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
 def create_counter_function(db, created_models, app, **kwargs):
-    if app.__name__ != 'sentry.models':
+    if app is None or app.__name__ != 'sentry.models':
         return
 
     if not is_postgres(db):
