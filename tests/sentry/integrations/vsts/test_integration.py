@@ -123,10 +123,11 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             integration.organizations.first().id
         ).get_organization_config()
 
+        print [field['name'] for field in fields]
+
         assert [field['name'] for field in fields] == [
-            'resolve_status',
-            'resolve_when',
-            'regression_status',
+            'sync_status_reverse',
+            'sync_status_forward',
             'sync_comments',
             'sync_forward_assignment',
             'sync_reverse_assignment',

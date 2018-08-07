@@ -49,9 +49,9 @@ class VstsWebhookWorkItemTest(APITestCase):
         )
         self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
         self.org_integration.config = {
+            'sync_status_reverse': True,
+            'sync_status_forward': True,
             'sync_comments': True,
-            'resolve_status': 'Resolved',
-            'resolve_when': True,
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
         }

@@ -43,10 +43,9 @@ metadata = IntegrationMetadata(
 
 class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     logger = logging.getLogger('sentry.integrations')
-    # TODO(lb): improvised until form changes are finalized.
     comment_key = 'sync_comments'
-    outbound_status_key = 'resolve_status'
-    inbound_status_key = 'resolve_when'
+    outbound_status_key = 'sync_status_forward'
+    inbound_status_key = 'sync_status_reverse'
     outbound_assignee_key = 'sync_forward_assignment'
     inbound_assignee_key = 'sync_reverse_assignment'
 
@@ -92,67 +91,70 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         instance = self.model.metadata['domain_name']
 
         try:
-            # TODO(lb): this is clearly wrong. I'm just getting the first project.
-            # should be completely changed pending evan's changes?
-            project = client.get_projects(instance)['value'][0]['id']
-            work_item_states = client.get_work_item_states(instance, project)['value']
-            statuses = [(c['name'], c['name']) for c in work_item_states]
+            projects = client.get_projects(instance)['value']
+
+            project_selector = []
+            all_states = set()
+
+            for project in projects:
+                project_selector.append({'value': project['id'], 'label': project['name']})
+                project_states = client.get_work_item_states(instance, project['id'])['value']
+                for state in project_states:
+                    all_states.add(state['name'])
+
+            all_states = [(state, state) for state in all_states]
             disabled = False
+
         except ApiError:
-            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
-            # statuses is a little heavy handed. Is there something better we
-            # can fall back to?
-            statuses = []
+            all_states = []
             disabled = True
 
         return [
             {
-                'name': 'resolve_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Resolved Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
-            },
-            {
-                'name': 'resolve_when',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Resolve in Sentry When'),
-                'placeholder': _('Select a Status'),
-                'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
-            },
-            {
-                'name': 'regression_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Regression Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
-            },
-            {
-                'name': 'sync_comments',
+                'name': self.inbound_status_key,
                 'type': 'boolean',
-                'label': _('Post Comments to Visual Studio Team Services'),
-                'help': _('Synchronize comments from Sentry issues to linked Visual Studio Team Services tickets.'),
+                'label': _('Sync Status from VSTS to Sentry'),
+                'help': _("When a VSTS work item is moved to a done category, it's linked Sentry issue will be resolved. When a VSTS ticket is moved out of a Done category, it's linked Sentry issue will be unresolved."),
             },
             {
-                'name': 'sync_forward_assignment',
+                'name': self.outbound_status_key,
+                'type': 'choice_mapper',
+                'label': _('Sync Status from Sentry to VSTS'),
+                'disabled': disabled,
+                'help': _('Declares what the linked VSTS ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
+                'addButtonText': _('Map Project'),
+                'addDropdown': {
+                    'emptyMessage': _('All projects configured'),
+                    'noResultsMessage': _('Could not find VSTS project'),
+                    'items': project_selector,
+                },
+                'mappedSelectors': {
+                    'on_resolve': {'choices': all_states, 'placeholder': _('Select a status')},
+                    'on_unresolve': {'choices': all_states, 'placeholder': _('Select a status')},
+                },
+                'columnLabels': {
+                    'on_resolve': _('When resolved'),
+                    'on_unresolve': _('When unresolved'),
+                },
+                'mappedColumnLabel': _('VSTS Project'),
+            },
+            {
+                'name': self.comment_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Visual Studio Team Services'),
-                'help': _('When assigning something in Sentry, the linked Visual Studio Team Services ticket will have the associated Visual Studio Team Services user assigned.'),
+                'label': _('Post Comments to VSTS'),
+                'help': _('Synchronize comments from Sentry issues to linked VSTS work items.'),
             },
             {
-                'name': 'sync_reverse_assignment',
+                'name': self.outbound_assignee_key,
+                'type': 'boolean',
+                'label': _('Synchronize Assignment to VSTS'),
+                'help': _('When assigning something in Sentry, the linked VSTS ticket will have the associated VSTS user assigned.'),
+            },
+            {
+                'name': self.inbound_assignee_key,
                 'type': 'boolean',
                 'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'help': _('When assigning a user to a Linked VSTS ticket, the associated Sentry user will be assigned to the Sentry issue.'),
             },
         ]
 
@@ -176,6 +178,20 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         config = self.org_integration.config
         config.update(data)
         self.org_integration.update(config=config)
+
+    def get_config_data(self):
+        config = self.org_integration.config
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id,
+        )
+        sync_status_forward = {}
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                'on_unresolve': pm.unresolved_status,
+                'on_resolve': pm.resolved_status,
+            }
+        config['sync_status_forward'] = sync_status_forward
+        return config
 
     @property
     def instance(self):
