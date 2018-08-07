@@ -29,6 +29,8 @@ class BitFieldFlags(object):
             raise AttributeError
         return Bit(self._flags.index(key))
 
+    __getitem__ = __getattr__
+
     def iteritems(self):
         for flag in self._flags:
             yield flag, Bit(self._flags.index(flag))
