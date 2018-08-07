@@ -74,41 +74,41 @@ class PluginHealthTest(Model):
         }
 
     def configure_test(self, plugin_health):
-        test_results = ?
+        test_results = None
         return test_results
 
     def create_issue_test(self, plugin_health):
         if PluginFeatures.issue_basic not in plugin_health.features_list:
             return None
-        test_results = ?
+        test_results = None
         return test_results
 
     def link_issue_test(self, plugin_health):
         if PluginFeatures.issue_basic not in plugin_health.features_list:
             return None
-        test_results = ?
+        test_results = None
         return test_results
 
     def sync_assignment_test(self, plugin_health):
         if PluginFeatures.issue_sync not in plugin_health.features_list:
             return None
-        test_results = ?
+        test_results = None
         return test_results
 
     def sync_comment_test(self, plugin_health):
         if PluginFeatures.issue_sync not in plugin_health.features_list:
             return None
-        test_results = ?
+        test_results = None
         return test_results
 
     def sync_status_test(self, plugin_health):
         if PluginFeatures.issue_sync not in plugin_health.features_list:
             return None
-        test_results = ?
+        test_results = None
         return test_results
 
     def repository_test(self, plugin_health):
         if PluginFeatures.repository not in plugin_health.features_list:
             return None
-        test_results = ?
+        test_results = None
         return test_results
