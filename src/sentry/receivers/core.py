@@ -37,7 +37,7 @@ def handle_db_failure(func):
 
 
 def create_default_projects(created_models, app, verbosity=2, **kwargs):
-    if app is None or app.__name__ != 'sentry.models':
+    if app and app.__name__ != 'sentry.models':
         return
 
     if Project not in created_models:
@@ -129,7 +129,7 @@ def set_sentry_version(latest=None, **kwargs):
 
 
 def create_keys_for_project(instance, created, app=None, **kwargs):
-    if app is None or app.__name__ != 'sentry.models':
+    if app and app.__name__ != 'sentry.models':
         return
 
     if not created or kwargs.get('raw'):
