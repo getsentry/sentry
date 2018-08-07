@@ -269,7 +269,7 @@ INSTALLED_APPS = (
 )
 
 import django
-if django.VERSION < (1, 9):
+if django.VERSION < (1, 9) and os.environ.get('USE_SOUTH_MIGRATIONS', '1') == '1':
     INSTALLED_APPS += ('south', )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
