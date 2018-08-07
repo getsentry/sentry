@@ -36,7 +36,10 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(created_models, verbosity=2, **kwargs):
+def create_default_projects(created_models, app, verbosity=2, **kwargs):
+    if app.__name__ != 'sentry.models':
+        return
+
     if Project not in created_models:
         return
 
@@ -125,7 +128,10 @@ def set_sentry_version(latest=None, **kwargs):
     options.set('sentry:latest_version', (latest or current))
 
 
-def create_keys_for_project(instance, created, **kwargs):
+def create_keys_for_project(instance, created, app, **kwargs):
+    if app.__name__ != 'sentry.models':
+        return
+
     if not created or kwargs.get('raw'):
         return
 
