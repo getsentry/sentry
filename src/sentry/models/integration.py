@@ -31,7 +31,7 @@ class OrganizationIntegration(Model):
 
     organization = FlexibleForeignKey('sentry.Organization')
     integration = FlexibleForeignKey('sentry.Integration')
-    config = EncryptedJsonField(default=lambda: {})
+    config = EncryptedJsonField(default=dict)
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -53,7 +53,7 @@ class ProjectIntegration(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     integration = FlexibleForeignKey('sentry.Integration')
-    config = EncryptedJsonField(default=lambda: {})
+    config = EncryptedJsonField(default=dict)
 
     class Meta:
         app_label = 'sentry'
@@ -76,7 +76,7 @@ class Integration(Model):
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as the Integration
     # instance is shared among multiple organizations
-    metadata = EncryptedJsonField(default=lambda: {})
+    metadata = EncryptedJsonField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),
