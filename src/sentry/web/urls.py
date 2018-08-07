@@ -438,13 +438,6 @@ urlpatterns += patterns(
         name='sentry-organization-stats'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
-    url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$',
-        RedirectView.as_view(url='/settings/%(organization_slug)s/teams/%(team_slug)s/settings'),
-        name='sentry-remove-team-old'
-    ),
-    url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/restore/$',
         RestoreOrganizationView.as_view(),
         name='sentry-restore-organization'
