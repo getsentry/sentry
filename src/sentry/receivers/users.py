@@ -7,8 +7,12 @@ from sentry.models import User
 
 
 def create_first_user(app, created_models, verbosity, db, **kwargs):
+    # this is super confusing
+    if app.__name__ != 'sentry.models':
+        return
     if User not in created_models:
         return
+
     if hasattr(router, 'allow_migrate'):
         if not router.allow_migrate(db, User):
             return
