@@ -10,15 +10,23 @@ from uuid import uuid4
 from sentry.db.models import BoundedBigIntegerField, Model
 
 
+def default_guid():
+    return uuid4().hex
+
+
+def default_date_schedule():
+    return timezone.now() + timedelta(days=30)
+
+
 class ScheduledDeletion(Model):
     __core__ = False
 
-    guid = models.CharField(max_length=32, unique=True, default=lambda: uuid4().hex)
+    guid = models.CharField(max_length=32, unique=True, default=default_guid)
     app_label = models.CharField(max_length=64)
     model_name = models.CharField(max_length=64)
     object_id = BoundedBigIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
-    date_scheduled = models.DateTimeField(default=lambda: (timezone.now() + timedelta(days=30)))
+    date_scheduled = models.DateTimeField(default=default_date_schedule)
     actor_id = BoundedBigIntegerField(null=True)
     data = JSONField(default={})
     in_progress = models.BooleanField(default=False)

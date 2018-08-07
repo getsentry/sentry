@@ -13,13 +13,17 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 CHARACTERS = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
+def default_validation_hash(cls):
+    return get_random_string(32, CHARACTERS)
+
+
 class UserEmail(Model):
     __core__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name='emails')
     email = models.EmailField(_('email address'))
     validation_hash = models.CharField(
-        max_length=32, default=lambda: get_random_string(32, CHARACTERS)
+        max_length=32, default=default_validation_hash
     )
     date_hash_added = models.DateTimeField(default=timezone.now)
     is_verified = models.BooleanField(
@@ -37,7 +41,7 @@ class UserEmail(Model):
 
     def set_hash(self):
         self.date_hash_added = timezone.now()
-        self.validation_hash = get_random_string(32, CHARACTERS)
+        self.validation_hash = default_validation_hash()
 
     def hash_is_valid(self):
         return self.validation_hash and self.date_hash_added > timezone.now() - timedelta(hours=48)
