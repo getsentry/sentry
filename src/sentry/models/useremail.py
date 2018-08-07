@@ -13,7 +13,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 CHARACTERS = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
-def default_validation_hash(cls):
+def default_validation_hash():
     return get_random_string(32, CHARACTERS)
 
 
