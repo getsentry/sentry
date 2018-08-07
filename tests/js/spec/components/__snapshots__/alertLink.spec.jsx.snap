@@ -2,7 +2,7 @@
 
 exports[`AlertLink renders 1`] = `
 <Component
-  className="css-19kzmmy-AlertLink e1fthm6j2"
+  className="css-bvjbpd-AlertLink e1fthm6j2"
   to="/settings/accounts/notifications"
 >
   This is an external link button
@@ -10,11 +10,101 @@ exports[`AlertLink renders 1`] = `
 `;
 
 exports[`AlertLink renders with icon 1`] = `
-<Component
-  className="css-19kzmmy-AlertLink e1fthm6j2"
+<AlertLink
   icon="icon-mail"
   to="/settings/accounts/notifications"
 >
-  This is an external link button
-</Component>
+  <Component
+    className="css-bvjbpd-AlertLink e1fthm6j2"
+    icon="icon-mail"
+    to="/settings/accounts/notifications"
+  >
+    <Link
+      className="css-bvjbpd-AlertLink e1fthm6j2"
+      to="/settings/accounts/notifications"
+    >
+      <Link
+        className="css-bvjbpd-AlertLink e1fthm6j2"
+        onlyActiveOnIndex={false}
+        style={Object {}}
+        to="/settings/accounts/notifications"
+      >
+        <a
+          className="css-bvjbpd-AlertLink e1fthm6j2"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <StyledInlineSvg
+            size="1.5em"
+            src="icon-mail"
+          >
+            <InlineSvg
+              className="css-1q6d38c-StyledInlineSvg e1fthm6j1"
+              size="1.5em"
+              src="icon-mail"
+            >
+              <StyledSvg
+                className="css-1q6d38c-StyledInlineSvg e1fthm6j1"
+                dangerouslySetInnerHTML={
+                  Object {
+                    "__html": "  <g id=\\"icon-mail\\" stroke=\\"currentColor\\" fill=\\"none\\">    <g id=\\"mail-icon\\" transform=\\"translate(1.000000, 1.000000)\\">      <rect id=\\"Rectangle-21\\" x=\\"0\\" y=\\"0\\" width=\\"14\\" height=\\"10\\" rx=\\"1.5\\"></rect>      <polyline id=\\"Path-22\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" points=\\"0.519760813 0.500399501 7 5 13.5116327 0.500399501\\"></polyline>    </g>  </g>",
+                  }
+                }
+                height="1.5em"
+                viewBox="0 0 16 12"
+                width="1.5em"
+              >
+                <svg
+                  className="e1fthm6j1 css-1lfljwe-StyledSvg-StyledInlineSvg e1m3vhyd0"
+                  dangerouslySetInnerHTML={
+                    Object {
+                      "__html": "  <g id=\\"icon-mail\\" stroke=\\"currentColor\\" fill=\\"none\\">    <g id=\\"mail-icon\\" transform=\\"translate(1.000000, 1.000000)\\">      <rect id=\\"Rectangle-21\\" x=\\"0\\" y=\\"0\\" width=\\"14\\" height=\\"10\\" rx=\\"1.5\\"></rect>      <polyline id=\\"Path-22\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" points=\\"0.519760813 0.500399501 7 5 13.5116327 0.500399501\\"></polyline>    </g>  </g>",
+                    }
+                  }
+                  height="1.5em"
+                  viewBox="0 0 16 12"
+                  width="1.5em"
+                />
+              </StyledSvg>
+            </InlineSvg>
+          </StyledInlineSvg>
+          <AlertLinkText>
+            <div
+              className="css-19z7wog-AlertLinkText e1fthm6j0"
+            >
+              This is an external link button
+            </div>
+          </AlertLinkText>
+          <InlineSvg
+            size="1em"
+            src="icon-chevron-right"
+          >
+            <StyledSvg
+              dangerouslySetInnerHTML={
+                Object {
+                  "__html": "  <polyline    stroke=\\"currentColor\\"    stroke-width=\\"1\\"    fill=\\"none\\"    stroke-linecap=\\"round\\"    stroke-linejoin=\\"round\\"    points=\\"4.5 0.5 10.5 7.5 4.5 14.5\\"  />",
+                }
+              }
+              height="1em"
+              viewBox="0 0 15 15"
+              width="1em"
+            >
+              <svg
+                className="css-ryh69w-StyledSvg e1m3vhyd0"
+                dangerouslySetInnerHTML={
+                  Object {
+                    "__html": "  <polyline    stroke=\\"currentColor\\"    stroke-width=\\"1\\"    fill=\\"none\\"    stroke-linecap=\\"round\\"    stroke-linejoin=\\"round\\"    points=\\"4.5 0.5 10.5 7.5 4.5 14.5\\"  />",
+                  }
+                }
+                height="1em"
+                viewBox="0 0 15 15"
+                width="1em"
+              />
+            </StyledSvg>
+          </InlineSvg>
+        </a>
+      </Link>
+    </Link>
+  </Component>
+</AlertLink>
 `;
