@@ -23,7 +23,7 @@ class CheckAuthTest(TestCase):
         OrganizationMember.objects.create(
             user=user,
             organization=organization,
-            flags=getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=OrganizationMember.flags['sso:linked'],
         )
 
         ai = AuthIdentity.objects.create(
@@ -59,7 +59,7 @@ class CheckAuthIdentityTest(TestCase):
         om = OrganizationMember.objects.create(
             user=user,
             organization=organization,
-            flags=getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=OrganizationMember.flags['sso:linked'],
         )
 
         ai = AuthIdentity.objects.create(
@@ -76,8 +76,8 @@ class CheckAuthIdentityTest(TestCase):
 
         # because of an error, it should become inactive
         om = OrganizationMember.objects.get(id=om.id)
-        assert not getattr(om.flags, 'sso:linked')
-        assert getattr(om.flags, 'sso:invalid')
+        assert not om.flags['sso:linked']
+        assert om.flags['sso:invalid']
 
         updated_ai = AuthIdentity.objects.get(id=ai.id)
         assert updated_ai.last_synced != ai.last_synced
