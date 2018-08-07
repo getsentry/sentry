@@ -124,19 +124,11 @@ class AuthIdentityAdmin(admin.ModelAdmin):
 admin.site.register(AuthIdentity, AuthIdentityAdmin)
 
 
-class TeamProjectInline(admin.TabularInline):
-    model = Project
-    extra = 1
-    fields = ('name', 'slug')
-    raw_id_fields = ('organization',)
-
-
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'organization', 'status', 'date_added')
     list_filter = ('status', )
     search_fields = ('name', 'organization__name', 'slug')
     raw_id_fields = ('organization', )
-    inlines = (TeamProjectInline, )
 
     def save_model(self, request, obj, form, change):
         prev_org = obj.organization_id
