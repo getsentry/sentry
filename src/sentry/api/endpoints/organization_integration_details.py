@@ -6,6 +6,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationIntegrationsPermission
 )
 from sentry.api.serializers import serialize
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Integration, OrganizationIntegration, ProjectIntegration
 
 
@@ -47,6 +48,9 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
             raise Http404
 
         installation = integration.get_installation(organization.id)
-        installation.update_organization_config(request.DATA)
+        try:
+            installation.update_organization_config(request.DATA)
+        except IntegrationError as e:
+            return self.respond({'detail': e.message}, status=400)
 
         return self.respond(status=200)
