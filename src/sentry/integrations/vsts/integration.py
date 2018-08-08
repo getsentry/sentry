@@ -96,11 +96,14 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
             project_selector = []
             all_states = set()
 
-            for project in projects:
+            for idx, project in enumerate(projects):
                 project_selector.append({'value': project['id'], 'label': project['name']})
-                project_states = client.get_work_item_states(instance, project['id'])['value']
-                for state in project_states:
-                    all_states.add(state['name'])
+                # only request states for the first 5 projects to limit number
+                # of requests
+                if idx <= 5:
+                    project_states = client.get_work_item_states(instance, project['id'])['value']
+                    for state in project_states:
+                        all_states.add(state['name'])
 
             all_states = [(state, state) for state in all_states]
             disabled = False
