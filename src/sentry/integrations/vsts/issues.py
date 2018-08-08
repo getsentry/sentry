@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from mistune import markdown
 
 from sentry.models import ProjectIntegration
@@ -47,6 +48,9 @@ class VstsIssueSync(IssueSyncMixin):
     def get_link_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
         return fields
+
+    def get_issue_url(self, key, **kwargs):
+        return 'https://%s/_workitems/edit/%s' % (self.instance, six.text_type(key))
 
     def create_issue(self, data, **kwargs):
         """
