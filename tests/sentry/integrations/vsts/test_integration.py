@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.identity.vsts import VSTSIdentityProvider
+from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
     Integration, IntegrationExternalProject, OrganizationIntegration, Repository
@@ -191,6 +192,18 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         model = Integration.objects.get(provider='vsts')
         integration = VstsIntegration(model, self.organization.id)
+
+        # test validation
+        data = {
+            'sync_status_forward': {
+                1: {
+                    'on_resolve': '',
+                    'on_unresolve': 'UnresolvedStatus1',
+                },
+            },
+        }
+        with self.assertRaises(IntegrationError):
+            integration.update_organization_config(data)
 
         data = {
             'sync_status_forward': {

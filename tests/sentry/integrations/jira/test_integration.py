@@ -5,6 +5,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (
     ExternalIssue, Integration, IntegrationExternalProject, OrganizationIntegration
 )
@@ -516,6 +517,23 @@ class JiraIntegrationTest(APITestCase):
         integration.add_organization(org.id)
 
         installation = integration.get_installation(org.id)
+
+        # test validation
+        data = {
+            'sync_comments': True,
+            'sync_forward_assignment': True,
+            'sync_reverse_assignment': True,
+            'sync_status_reverse': True,
+            'sync_status_forward': {
+                10100: {
+                    'on_resolve': '',
+                    'on_unresolve': '3',
+                },
+            },
+        }
+
+        with self.assertRaises(IntegrationError):
+            installation.update_organization_config(data)
 
         data = {
             'sync_comments': True,
