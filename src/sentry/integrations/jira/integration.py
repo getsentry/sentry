@@ -146,6 +146,10 @@ class JiraIntegration(Integration, IssueSyncMixin):
         if 'sync_status_forward' in data:
             project_mappings = data.pop('sync_status_forward')
 
+            if any(not mapping['on_unresolve'] or not mapping['on_resolve']
+                    for mapping in project_mappings.values()):
+                raise IntegrationError('Resolve and unresolve status are required.')
+
             data['sync_status_forward'] = bool(project_mappings)
 
             IntegrationExternalProject.objects.filter(

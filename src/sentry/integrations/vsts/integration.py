@@ -164,6 +164,10 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     def update_organization_config(self, data):
         if 'sync_status_forward' in data:
             project_ids_and_statuses = data.pop('sync_status_forward')
+            if any(not mapping['on_unresolve'] or not mapping['on_resolve']
+                    for mapping in project_ids_and_statuses.values()):
+                raise IntegrationError('Resolve and unresolve status are required.')
+
             data['sync_status_forward'] = bool(project_ids_and_statuses)
 
             IntegrationExternalProject.objects.filter(
