@@ -124,9 +124,8 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         ).get_organization_config()
 
         assert [field['name'] for field in fields] == [
-            'resolve_status',
-            'resolve_when',
-            'regression_status',
+            'sync_status_reverse',
+            'sync_status_forward',
             'sync_comments',
             'sync_forward_assignment',
             'sync_reverse_assignment',
