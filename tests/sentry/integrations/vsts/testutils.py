@@ -726,3 +726,15 @@ WORK_ITEM_STATES = {
         }
     ]
 }
+
+GET_PROJECTS_RESPONSE = """{
+    "count": 1,
+    "value": [{
+        "id": "ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+        "name": "Fabrikam-Fiber-Git",
+        "url": "https://jess-dev.visualstudio.com/_apis/projects/ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+        "state": "wellFormed",
+        "revision": 16,
+        "visibility": "private"
+    }]
+}"""
