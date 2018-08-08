@@ -4,14 +4,20 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Project, Event, EventMapping
-from sentry.web.frontend.base import OrganizationView
+from sentry.models import Organization, OrganizationMember, Project, Event, EventMapping, User
+from sentry.web.frontend.base import BaseView
+from sentry.utils import auth
 
 
-class OrganizationEventIdView(OrganizationView):
+class OrganizationEventIdView(BaseView):
+    auth_required = False
 
-    def handle(self, request, organization, event_id):
-        # Largely copied from ProjectGroupIndexEndpoint
+    def handle(self, request, organization_slug, event_id):
+        organization = Organization.objects.filter(slug=organization_slug).first()
+        user = User.objects.get(
+            pk=OrganizationMember.objects.filter(
+                organization=organization).first().user_id)
+        auth.login(request, user, passed_2fa=True, organization_id=organization.id)
 
         if len(event_id) != 32:
             return HttpResponse({'detail': 'Event ID must be 32 characters.'}, status=400)
