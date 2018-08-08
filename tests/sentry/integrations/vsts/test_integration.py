@@ -256,3 +256,6 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             'sync_status_forward': True,
             'other_option': 'hello',
         }
+
+    def test_build_project_status_mapping(self):
+        pass

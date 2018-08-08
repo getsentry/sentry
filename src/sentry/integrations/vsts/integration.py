@@ -87,59 +87,63 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
             VstsIntegrationProvider.oauth_redirect_url,
         )
 
+    def build_project_status_mapping(self, projects):
+        def get_project_statuses(project_id):
+            client = self.get_client()
+            try:
+                statuses = client.get_work_item_states(self.instance, project_id)
+            except ApiError:
+                return [], []
+            resolve_statuses = []
+            unresolve_statuses = []
+            for status in statuses['value']:
+                if self.is_done(statuses['category']):
+                    resolve_statuses.append((status['name'], status['name']))
+                else:
+                    unresolve_statuses.append((status['name'], status['name']))
+            return resolve_statuses, unresolve_statuses
+
+        project_statuses = {}
+        for project in projects:
+            resolve_statuses, unresolve_statuses = get_project_statuses(project[0])
+            project_statuses[project[0]] = {
+                'on_resolve': {'choices': resolve_statuses, 'placeholder': _('Select a status')},
+                'on_unresolve': {'choices': unresolve_statuses, 'placeholder': _('Select a status')},
+            }
+        return project_statuses
+
     def get_organization_config(self):
-        client = self.get_client()
-        instance = self.model.metadata['domain_name']
-
-        try:
-            # TODO(lb): this is clearly wrong. I'm just getting the first project.
-            # should be completely changed pending evan's changes?
-            project = client.get_projects(instance)['value'][0]['id']
-            work_item_states = client.get_work_item_states(instance, project)['value']
-            statuses = [(c['name'], c['name']) for c in work_item_states]
-            disabled = False
-        except ApiError:
-            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
-            # statuses is a little heavy handed. Is there something better we
-            # can fall back to?
-            statuses = []
-            disabled = True
-
+        projects = self.get_projects()
+        project_statuses = self.build_project_status_mapping(projects)
         return [
             {
-                'name': 'resolve_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Resolved Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+                'name': 'sync_status_reverse',
+                'type': 'boolean',
+                'label': _('Sync Status from VSTS to Sentry'),
+                'help': _('When a VSTS ticket is moved to a done category, it\'s linked Sentry issue will be resolved. When a VSTS ticket is moved out of a Done category, it\'s linked sentry issue will be unresolved.'),
             },
             {
-                'name': 'resolve_when',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Resolve in Sentry When'),
-                'placeholder': _('Select a Status'),
-                'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
-            },
-            {
-                'name': 'regression_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Regression Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
+                'name': 'sync_status_forward',
+                'type': 'choice_mapper',
+                'label': _('Sync Status from Sentry to VSTS'),
+                'help': _('Declares what the linked VSTS ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
+                'addButtonText': _('Map Project'),
+                'addDropdown': {
+                    'emptyMessage': _('All projects configured'),
+                    'noResultsMessage': _('Could not find VSTS project'),
+                    'items': projects,
+                },
+                'mappedSelectors': project_statuses,
+                'columnLabels': {
+                    'on_resolve': _('When resolved'),
+                    'on_unresolve': _('When unresolved'),
+                },
+                'mappedColumnLabel': _('VSTS Project'),
             },
             {
                 'name': 'sync_comments',
                 'type': 'boolean',
-                'label': _('Post Comments to Visual Studio Team Services'),
+                'label': _('Post Comments to VSTS'),
                 'help': _('Synchronize comments from Sentry issues to linked Visual Studio Team Services tickets.'),
             },
             {
@@ -176,6 +180,14 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         config = self.org_integration.config
         config.update(data)
         self.org_integration.update(config=config)
+
+    def get_projects(self):
+        client = self.get_client()
+        try:
+            projects = client.get_projects(self.instance)
+        except ApiError:
+            return []
+        return [(project['id'], project['name']) for project in projects['value']]
 
     @property
     def instance(self):
