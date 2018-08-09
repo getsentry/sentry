@@ -29,10 +29,10 @@ class AcceptProjectTransferEndpoint(Endpoint):
     def get_validated_data(self, data, user):
         try:
             data = unsign(force_str(data))
-        except BadSignature:
-            raise InvalidPayload('Could not approve transfer, please make sure link is valid.')
         except SignatureExpired:
             raise InvalidPayload('Project transfer link has expired.')
+        except BadSignature:
+            raise InvalidPayload('Could not approve transfer, please make sure link is valid.')
 
         if data['user_id'] != user.id:
             raise InvalidPayload('Invalid permissions')
