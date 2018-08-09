@@ -24,8 +24,8 @@ from .webhooks import WorkItemWebhook
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
 
-* Create and link Sentry issue groups directly to a VSTS workitem in any of your projects, providing a quick way to jump from Sentry bug to tracked ticket!
-* Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and tickets match up to your Sentry and VSTS assignees.
+* Create and link Sentry issue groups directly to a VSTS work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
+* Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and VSTS assignees.
 * Never forget to close a resolved workitem! Resolving an issue in Sentry will resolve your linked workitems and viceversa.
 * Synchronize comments on Sentry Issues directly to the linked VSTS workitems.
 
@@ -114,18 +114,12 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
 
         return [
             {
-                'name': self.inbound_status_key,
-                'type': 'boolean',
-                'label': _('Sync Status from VSTS to Sentry'),
-                'help': _("When a VSTS work item is moved to a done category, it's linked Sentry issue will be resolved. When a VSTS ticket is moved out of a Done category, it's linked Sentry issue will be unresolved."),
-            },
-            {
                 'name': self.outbound_status_key,
                 'type': 'choice_mapper',
-                'label': _('Sync Status from Sentry to VSTS'),
                 'disabled': disabled,
-                'help': _('Declares what the linked VSTS ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
-                'addButtonText': _('Map Project'),
+                'label': _('Sync Sentry Status to VSTS'),
+                'help': _('When a Sentry issue changes status, change the status of the linked work item in VSTS.'),
+                'addButtonText': _('Add VSTS Project'),
                 'addDropdown': {
                     'emptyMessage': _('All projects configured'),
                     'noResultsMessage': _('Could not find VSTS project'),
@@ -142,22 +136,30 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'mappedColumnLabel': _('VSTS Project'),
             },
             {
-                'name': self.comment_key,
-                'type': 'boolean',
-                'label': _('Post Comments to VSTS'),
-                'help': _('Synchronize comments from Sentry issues to linked VSTS work items.'),
-            },
-            {
                 'name': self.outbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to VSTS'),
-                'help': _('When assigning something in Sentry, the linked VSTS ticket will have the associated VSTS user assigned.'),
+                'label': _('Sync Sentry Assignment to VSTS'),
+                'help': _('When an issue is assigned in Sentry, assign its linked VSTS work item to the same user.'),
+            },
+            {
+                'name': self.comment_key,
+                'type': 'boolean',
+                'label': _('Sync Sentry Comments to VSTS'),
+                'help': _('Post comments from Sentry issues to linked VSTS work items'),
+            },
+            {
+                'name': self.inbound_status_key,
+                'type': 'boolean',
+                'label': _('Sync VSTS Status to Sentry'),
+                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry.'
+                          'When a VSTS work item is removed from being done, unresolve its linked Sentry issue.'
+                          ),
             },
             {
                 'name': self.inbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assigning a user to a Linked VSTS ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'label': _('Sync VSTS Assignment to Sentry'),
+                'help': _('When a work item is assigned in VSTS, assign its linked Sentry issue to the same user.'),
             },
         ]
 
