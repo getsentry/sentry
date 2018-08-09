@@ -30,7 +30,6 @@ import OrganizationHomeContainer from 'app/components/organizations/homeContaine
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
-import OrganizationEvent from 'app/views/organizationEvent';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
@@ -794,10 +793,6 @@ function routes() {
             <Redirect path="rate-limits/" to="/settings/:orgId/rate-limits/" />
             <Redirect path="repos/" to="/settings/:orgId/repos/" />
             <Route path="stats/" component={errorHandler(OrganizationStats)} />
-            <Route
-              path="event/"
-              component={errorHandler(EventRedirect)}
-            />
           </Route>
 
           <Route
