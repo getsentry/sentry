@@ -190,6 +190,7 @@ with just setting up the defaults in ``config.yml``:
             host: 127.0.0.1
             port: 6379
             # password: "my-secret-password"
+            # db: "1"
 
 All built-in Redis implementations (other than the queue) will use these
 default settings, but each individual service also will allow you to
