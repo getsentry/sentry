@@ -90,10 +90,10 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         client = self.get_client()
         instance = self.model.metadata['domain_name']
 
+        project_selector = []
+
         try:
             projects = client.get_projects(instance)['value']
-
-            project_selector = []
             all_states = set()
 
             for idx, project in enumerate(projects):
