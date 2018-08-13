@@ -392,6 +392,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
+                          alignLabel="flex-start"
                           disabled={true}
                           onClick={[Function]}
                           size="small"
@@ -446,22 +447,26 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 to={null}
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-o42ntg-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-gzxb22-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-gzxb22-ButtonLabel"
                                           is={null}
                                         >
                                           Compare
@@ -486,6 +491,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                     >
                       <div>
                         <Button
+                          alignLabel="flex-start"
                           className="toggle-collapse-all"
                           disabled={false}
                           onClick={[Function]}
@@ -516,22 +522,26 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 size="small"
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-o42ntg-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-gzxb22-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-gzxb22-ButtonLabel"
                                           is={null}
                                         >
                                           Collapse All
@@ -1851,6 +1861,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
+                          alignLabel="flex-start"
                           disabled={true}
                           onClick={[Function]}
                           size="small"
@@ -1905,22 +1916,26 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 to={null}
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-o42ntg-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-gzxb22-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-gzxb22-ButtonLabel"
                                           is={null}
                                         >
                                           Compare
@@ -1945,6 +1960,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                     >
                       <div>
                         <Button
+                          alignLabel="flex-start"
                           className="toggle-collapse-all"
                           disabled={false}
                           onClick={[Function]}
@@ -1975,22 +1991,26 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 size="small"
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-o42ntg-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-gzxb22-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-gzxb22-ButtonLabel"
                                           is={null}
                                         >
                                           Collapse All

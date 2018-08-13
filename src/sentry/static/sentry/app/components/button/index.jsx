@@ -44,11 +44,17 @@ class Button extends React.Component {
      */
     label: PropTypes.string,
 
+    /**
+     * flexbox justify property to use to align label
+     */
+    alignLabel: PropTypes.string,
+
     onClick: PropTypes.func,
   };
 
   static defaultProps = {
     disabled: false,
+    alignLabel: 'flex-start',
   };
 
   // Intercept onClick and propagate
@@ -80,6 +86,8 @@ class Button extends React.Component {
       label,
       borderless,
       priority,
+      alignLabel,
+
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
       // eslint-disable-next-line no-unused-vars
@@ -105,7 +113,12 @@ class Button extends React.Component {
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel size={size} priority={priority} borderless={borderless}>
+        <ButtonLabel
+          justify={alignLabel}
+          size={size}
+          priority={priority}
+          borderless={borderless}
+        >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg

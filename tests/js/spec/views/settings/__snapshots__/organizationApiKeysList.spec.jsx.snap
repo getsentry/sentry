@@ -46,6 +46,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <SettingsPageHeading
       action={
         <Button
+          alignLabel="flex-start"
           disabled={false}
           icon="icon-circle-add"
           priority="primary"
@@ -85,6 +86,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 </Title>
                 <div>
                   <Button
+                    alignLabel="flex-start"
                     disabled={false}
                     icon="icon-circle-add"
                     priority="primary"
@@ -117,24 +119,28 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           size="small"
                         >
                           <ButtonLabel
+                            justify="flex-start"
                             priority="primary"
                             size="small"
                           >
                             <Component
                               className="css-o42ntg-ButtonLabel eqrebog1"
+                              justify="flex-start"
                               priority="primary"
                               size="small"
                             >
                               <Flex
                                 align="center"
                                 className="css-o42ntg-ButtonLabel eqrebog1"
+                                justify="flex-start"
                               >
                                 <Base
                                   align="center"
-                                  className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                  className="eqrebog1 css-gzxb22-ButtonLabel"
+                                  justify="flex-start"
                                 >
                                   <div
-                                    className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                    className="eqrebog1 css-gzxb22-ButtonLabel"
                                     is={null}
                                   >
                                     <Icon

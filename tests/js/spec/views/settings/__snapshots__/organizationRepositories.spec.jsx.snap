@@ -105,6 +105,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
               priority="primary"
             >
               <Button
+                alignLabel="flex-start"
                 disabled={false}
                 icon="icon-trash"
                 size="xsmall"

@@ -229,6 +229,7 @@ exports[`ProjectTags renders 1`] = `
                                     title="Remove tag?"
                                   >
                                     <Button
+                                      alignLabel="flex-start"
                                       data-test-id="delete"
                                       disabled={false}
                                       icon="icon-trash"
@@ -258,22 +259,26 @@ exports[`ProjectTags renders 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              justify="flex-start"
                                               size="xsmall"
                                             >
                                               <Component
                                                 className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                justify="flex-start"
                                                 size="xsmall"
                                               >
                                                 <Flex
                                                   align="center"
                                                   className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                  justify="flex-start"
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                    className="eqrebog1 css-v6dd0e-ButtonLabel"
+                                                    justify="flex-start"
                                                   >
                                                     <div
-                                                      className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                      className="eqrebog1 css-v6dd0e-ButtonLabel"
                                                       is={null}
                                                     >
                                                       <Icon
@@ -472,6 +477,7 @@ exports[`ProjectTags renders 1`] = `
                                     title="Remove tag?"
                                   >
                                     <Button
+                                      alignLabel="flex-start"
                                       data-test-id="delete"
                                       disabled={false}
                                       icon="icon-trash"
@@ -501,22 +507,26 @@ exports[`ProjectTags renders 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              justify="flex-start"
                                               size="xsmall"
                                             >
                                               <Component
                                                 className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                justify="flex-start"
                                                 size="xsmall"
                                               >
                                                 <Flex
                                                   align="center"
                                                   className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                  justify="flex-start"
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                    className="eqrebog1 css-v6dd0e-ButtonLabel"
+                                                    justify="flex-start"
                                                   >
                                                     <div
-                                                      className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                      className="eqrebog1 css-v6dd0e-ButtonLabel"
                                                       is={null}
                                                     >
                                                       <Icon
@@ -715,6 +725,7 @@ exports[`ProjectTags renders 1`] = `
                                     title="Remove tag?"
                                   >
                                     <Button
+                                      alignLabel="flex-start"
                                       data-test-id="delete"
                                       disabled={false}
                                       icon="icon-trash"
@@ -744,22 +755,26 @@ exports[`ProjectTags renders 1`] = `
                                             size="xsmall"
                                           >
                                             <ButtonLabel
+                                              justify="flex-start"
                                               size="xsmall"
                                             >
                                               <Component
                                                 className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                justify="flex-start"
                                                 size="xsmall"
                                               >
                                                 <Flex
                                                   align="center"
                                                   className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                  justify="flex-start"
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                    className="eqrebog1 css-v6dd0e-ButtonLabel"
+                                                    justify="flex-start"
                                                   >
                                                     <div
-                                                      className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                      className="eqrebog1 css-v6dd0e-ButtonLabel"
                                                       is={null}
                                                     >
                                                       <Icon
@@ -966,6 +981,7 @@ exports[`ProjectTags renders 1`] = `
                                         title="Remove tag?"
                                       >
                                         <Button
+                                          alignLabel="flex-start"
                                           data-test-id="delete"
                                           disabled={false}
                                           icon="icon-trash"
@@ -995,22 +1011,26 @@ exports[`ProjectTags renders 1`] = `
                                                 size="xsmall"
                                               >
                                                 <ButtonLabel
+                                                  justify="flex-start"
                                                   size="xsmall"
                                                 >
                                                   <Component
                                                     className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                    justify="flex-start"
                                                     size="xsmall"
                                                   >
                                                     <Flex
                                                       align="center"
                                                       className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                      justify="flex-start"
                                                     >
                                                       <Base
                                                         align="center"
-                                                        className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                        className="eqrebog1 css-v6dd0e-ButtonLabel"
+                                                        justify="flex-start"
                                                       >
                                                         <div
-                                                          className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                          className="eqrebog1 css-v6dd0e-ButtonLabel"
                                                           is={null}
                                                         >
                                                           <Icon

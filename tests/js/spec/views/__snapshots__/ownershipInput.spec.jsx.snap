@@ -810,6 +810,7 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
+            alignLabel="flex-start"
             className="css-po7kq7-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
@@ -848,24 +849,28 @@ exports[`Project Ownership Input renders 1`] = `
                   to={null}
                 >
                   <ButtonLabel
+                    justify="flex-start"
                     priority="primary"
                     size="small"
                   >
                     <Component
                       className="css-o42ntg-ButtonLabel eqrebog1"
+                      justify="flex-start"
                       priority="primary"
                       size="small"
                     >
                       <Flex
                         align="center"
                         className="css-o42ntg-ButtonLabel eqrebog1"
+                        justify="flex-start"
                       >
                         <Base
                           align="center"
-                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                          className="eqrebog1 css-gzxb22-ButtonLabel"
+                          justify="flex-start"
                         >
                           <div
-                            className="eqrebog1 css-l5mlqc-ButtonLabel"
+                            className="eqrebog1 css-gzxb22-ButtonLabel"
                             is={null}
                           >
                             <Icon
@@ -1005,6 +1010,7 @@ url:http://example.com/settings/* #product"
               className="css-5zvod-SaveButton en3n9di1"
             >
               <Button
+                alignLabel="flex-start"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -1037,24 +1043,28 @@ url:http://example.com/settings/* #product"
                       size="small"
                     >
                       <ButtonLabel
+                        justify="flex-start"
                         priority="primary"
                         size="small"
                       >
                         <Component
                           className="css-o42ntg-ButtonLabel eqrebog1"
+                          justify="flex-start"
                           priority="primary"
                           size="small"
                         >
                           <Flex
                             align="center"
                             className="css-o42ntg-ButtonLabel eqrebog1"
+                            justify="flex-start"
                           >
                             <Base
                               align="center"
-                              className="eqrebog1 css-l5mlqc-ButtonLabel"
+                              className="eqrebog1 css-gzxb22-ButtonLabel"
+                              justify="flex-start"
                             >
                               <div
-                                className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                className="eqrebog1 css-gzxb22-ButtonLabel"
                                 is={null}
                               >
                                 Save Changes

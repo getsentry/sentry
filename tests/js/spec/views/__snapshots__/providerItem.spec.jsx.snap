@@ -21,6 +21,7 @@ exports[`ProviderItem renders 1`] = `
   </Box>
   <Box>
     <Button
+      alignLabel="flex-start"
       disabled={false}
       name="provider"
       onClick={[Function]}

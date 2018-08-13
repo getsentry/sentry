@@ -32,109 +32,103 @@ describe('ProjectSelector', function() {
     access: [],
   });
 
-  describe('render()', function() {
-    beforeEach(function() {
-      jQuery(document).off('click');
-    });
+  beforeAll(function() {
+    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+  });
 
-    it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
-      let wrapper = shallow(
-        <ProjectSelector
-          organization={{
-            id: 'org',
-            slug: 'org-slug',
-            teams: [],
-            projects: [],
-            access: [],
-          }}
-          projectId=""
-        />,
-        {
-          context: {router: TestStubs.router()},
-        }
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+  afterAll(function() {
+    window.location.assign.mockRestore();
+  });
 
-    it('should show empty message and create project button, when no projects and has "project:write" access', function() {
-      let wrapper = shallow(
-        <ProjectSelector
-          organization={{
-            id: 'org',
-            slug: 'org-slug',
-            teams: [],
-            projects: [],
-            access: ['project:write'],
-          }}
-          projectId=""
-        />,
-        {
-          context: {router: TestStubs.router()},
-        }
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+  const openMenu = wrapper => wrapper.find('DropdownLabel').simulate('click');
 
-    it('lists projects and has filter', function() {
-      let wrapper = shallow(<ProjectSelector organization={mockOrg} projectId="" />, {
-        context: {router: TestStubs.router()},
-      });
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
+    let wrapper = mount(
+      <ProjectSelector
+        organization={{
+          id: 'org',
+          slug: 'org-slug',
+          teams: [],
+          projects: [],
+          access: [],
+        }}
+        projectId=""
+      />,
+      TestStubs.routerContext()
+    );
+    openMenu(wrapper);
+    expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
+    // Should not have "Create Project" button
+    expect(wrapper.find('CreateProjectButton')).toHaveLength(0);
+  });
 
-    it('can filter projects by team name/project name', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
-      wrapper.find('.dropdown-actor').simulate('click');
+  it('should show empty message and create project button, when no projects and has "project:write" access', function() {
+    let wrapper = mount(
+      <ProjectSelector
+        organization={{
+          id: 'org',
+          slug: 'org-slug',
+          teams: [],
+          projects: [],
+          access: ['project:write'],
+        }}
+        projectId=""
+      />,
+      TestStubs.routerContext()
+    );
+    openMenu(wrapper);
+    expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
+    // Should not have "Create Project" button
+    expect(wrapper.find('CreateProjectButton')).toHaveLength(1);
+  });
 
-      const input = wrapper.find('.project-filter input');
-      // Team name contains test
-      input.value = 'TEST';
-      input.simulate('change', {target: input});
+  it('lists projects and has filter', function() {
+    let wrapper = mount(
+      <ProjectSelector organization={mockOrg} projectId="" />,
+      TestStubs.routerContext()
+    );
+    openMenu(wrapper);
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
+  });
 
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('can filter projects by project name', function() {
+    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    openMenu(wrapper);
 
-    it('can filter projects by project name', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
-      wrapper.find('.dropdown-actor').simulate('click');
+    wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
 
-      const input = wrapper.find('.project-filter input');
-      input.value = 'another';
-      input.simulate('change', {target: input});
+    const result = wrapper.find('AutoCompleteItem ProjectBadge');
+    expect(result).toHaveLength(1);
+    expect(result.prop('project').slug).toBe('test-project');
+  });
 
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('does not close dropdown when input is clicked', async function() {
+    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    openMenu(wrapper);
 
-    it('does not close dropdown when input is clicked', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
-      wrapper.find('.dropdown-actor').simulate('click');
+    wrapper.find('StyledInput').simulate('click');
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(true);
+  });
 
-      const input = wrapper.find('.project-filter input');
-      input.simulate('click', {target: input});
+  it('closes dropdown when project is selected', function() {
+    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    openMenu(wrapper);
 
-      expect(wrapper.find('.dropdown-menu')).toHaveLength(1);
-    });
+    // Select first project
+    wrapper
+      .find('AutoCompleteItem')
+      .first()
+      .simulate('click');
+    expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(false);
+  });
 
-    it('closes dropdown when project is selected', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
-      wrapper.find('.dropdown-actor').simulate('click');
-      // Select first project
-      wrapper
-        .find('.dropdown-menu [role="presentation"] a')
-        .first()
-        .simulate('click');
-      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
-    });
+  it('shows empty filter message when filtering has no results', function() {
+    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    openMenu(wrapper);
 
-    it('shows empty filter message when filtering has no results', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
-      wrapper.find('.dropdown-actor').simulate('click');
-
-      const input = wrapper.find('.project-filter input');
-      input.value = 'Foo';
-      input.simulate('change', {target: input});
-
-      expect(wrapper).toMatchSnapshot();
-    });
+    wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
+    expect(wrapper.find('EmptyMessage').prop('children')).toBe('No projects found');
   });
 });

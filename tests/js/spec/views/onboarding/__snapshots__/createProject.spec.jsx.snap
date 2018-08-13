@@ -12,6 +12,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
         </PanelAlert>
         <CreateTeamBody>
           <Button
+            alignLabel="flex-start"
             className="ref-create-team"
             disabled={false}
             onClick={[Function]}
