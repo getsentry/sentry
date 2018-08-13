@@ -19,7 +19,7 @@ Bitbucket for Sentry.io
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
-    noun=_('Account'),
+    noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
     aspects={},
