@@ -1,29 +1,21 @@
 import {Flex} from 'grid-emotion';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import CircleIndicator from 'app/components/circleIndicator';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 const Legend = styled(
   class Legend extends React.Component {
     static propTypes = {
-      series: PropTypes.arrayOf(
-        PropTypes.shape({
-          name: PropTypes.string,
-          data: PropTypes.arrayOf(PropTypes.number),
-        })
-      ),
+      series: SentryTypes.Series,
 
       /**
        * Previous Period
        */
-      previousPeriod: PropTypes.shape({
-        name: PropTypes.string,
-        data: PropTypes.arrayOf(PropTypes.number),
-      }),
+      previousPeriod: SentryTypes.SeriesUnit,
     };
 
     render() {
@@ -34,16 +26,16 @@ const Legend = styled(
           {previousPeriod && (
             <SeriesGroup>
               <DottedLineIndicator />
-              <SeriesName>{previousPeriod.name}</SeriesName>
+              <SeriesName>{previousPeriod.seriesName}</SeriesName>
             </SeriesGroup>
           )}
 
           {series &&
-            series.map((serie, i) => {
+            series.map((seriesUnit, i) => {
               return (
-                <SeriesGroup key={serie.name}>
+                <SeriesGroup key={seriesUnit.seriesName}>
                   <CircleIndicator color={theme.charts.colors[i]} />
-                  <SeriesName>{serie.name}</SeriesName>
+                  <SeriesName>{seriesUnit.seriesName}</SeriesName>
                 </SeriesGroup>
               );
             })}
