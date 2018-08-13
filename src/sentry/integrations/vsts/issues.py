@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import six
 from mistune import markdown
 
-from sentry.models import ProjectIntegration
+from sentry.models import IntegrationExternalProject, OrganizationIntegration
 from sentry.integrations.issues import IssueSyncMixin
 
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError
@@ -47,6 +48,9 @@ class VstsIssueSync(IssueSyncMixin):
     def get_link_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
         return fields
+
+    def get_issue_url(self, key, **kwargs):
+        return 'https://%s/_workitems/edit/%s' % (self.instance, six.text_type(key))
 
     def create_issue(self, data, **kwargs):
         """
@@ -134,18 +138,46 @@ class VstsIssueSync(IssueSyncMixin):
             )
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
-        project_integration = ProjectIntegration.objects.get(
-            integration_id=external_issue.integration_id,
-            project_id=project_id,
-        )
+        client = self.get_client()
+        work_item = client.get_work_item(self.instance, external_issue.key)
 
-        status_name = 'resolve_status' if is_resolved else 'regression_status'
+        # For some reason, vsts doesn't include the project id
+        # in the work item response.
+        # TODO(jess): figure out if there's a better way to do this
+        vsts_project_name = work_item['fields']['System.TeamProject']
+
+        vsts_projects = client.get_projects(self.instance)['value']
+
+        vsts_project_id = None
+        for p in vsts_projects:
+            if p['name'] == vsts_project_name:
+                vsts_project_id = p['id']
+                break
+
         try:
-            status = project_integration.config[status_name]
-        except KeyError:
+            external_project = IntegrationExternalProject.objects.get(
+                external_id=vsts_project_id,
+                organization_integration_id__in=OrganizationIntegration.objects.filter(
+                    organization_id=external_issue.organization_id,
+                    integration_id=external_issue.integration_id,
+                )
+            )
+        except IntegrationExternalProject.DoesNotExist:
+            self.logger.info(
+                'vsts.external-project-not-found',
+                extra={
+                    'integration_id': external_issue.integration_id,
+                    'is_resolved': is_resolved,
+                    'issue_key': external_issue.key,
+                }
+            )
             return
+
+        status = external_project.resolved_status if \
+            is_resolved else external_project.unresolved_status
+
         try:
-            self.get_client().update_work_item(
+            client.update_work_item(
                 self.instance, external_issue.key, state=status)
         except (ApiUnauthorized, ApiError) as error:
             self.logger.info(

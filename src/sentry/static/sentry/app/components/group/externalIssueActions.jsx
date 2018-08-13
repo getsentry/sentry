@@ -189,6 +189,10 @@ class ExternalIssueActions extends AsyncComponent {
     };
   }
 
+  getEndpoints() {
+    return [];
+  }
+
   getIssue() {
     return this.props.integration && this.props.integration.externalIssues
       ? this.props.integration.externalIssues[0]
@@ -242,6 +246,7 @@ class ExternalIssueActions extends AsyncComponent {
           onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
           externalIssueId={issue ? issue.id : null}
+          externalIssueKey={issue ? issue.key : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
         />

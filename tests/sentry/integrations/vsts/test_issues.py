@@ -7,11 +7,14 @@ from django.test import RequestFactory
 from time import time
 
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models import ExternalIssue, Identity, IdentityProvider, Integration
+from sentry.models import (
+    ExternalIssue, Identity, IdentityProvider, Integration,
+    IntegrationExternalProject
+)
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from .testutils import WORK_ITEM_RESPONSE, GET_USERS_RESPONSE
+from .testutils import WORK_ITEM_RESPONSE, GET_PROJECTS_RESPONSE, GET_USERS_RESPONSE
 
 
 class VstsIssueSycnTest(TestCase):
@@ -167,6 +170,18 @@ class VstsIssueSycnTest(TestCase):
             body=GET_USERS_RESPONSE,
             content_type='application/json',
         )
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
+            body=WORK_ITEM_RESPONSE,
+            content_type='application/json',
+        )
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/projects',
+            body=GET_PROJECTS_RESPONSE,
+            content_type='application/json',
+        )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -175,9 +190,21 @@ class VstsIssueSycnTest(TestCase):
             title='I\'m a title!',
             description='I\'m a description.'
         )
+
+        IntegrationExternalProject.objects.create(
+            external_id='ac7c05bb-7f8e-4880-85a6-e08f37fd4a10',
+            organization_integration_id=self.integration.org_integration.id,
+            resolved_status='Resolved',
+            unresolved_status='New',
+        )
         self.integration.sync_status_outbound(external_issue, True, self.project.id)
-        assert len(responses.calls) == 1
-        req = responses.calls[0].request
+        assert len(responses.calls) == 3
+        req = responses.calls[2].request
         assert req.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id
         assert req.body == '[{"path": "/fields/System.State", "value": "Resolved", "op": "replace"}]'
-        assert responses.calls[0].response.status_code == 200
+        assert responses.calls[2].response.status_code == 200
+
+    def test_get_issue_url(self):
+        work_id = 345
+        url = self.integration.get_issue_url(work_id)
+        assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'

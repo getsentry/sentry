@@ -33,6 +33,29 @@ function getDisplayValue(val, idx) {
   return val;
 }
 
+function getDisplayText(val) {
+  if (typeof val === 'string') {
+    return `"${val}"`;
+  }
+
+  if (val === null) {
+    return 'null';
+  }
+
+  if (Array.isArray(val)) {
+    return `[
+        ${val.map(getDisplayValue).reduce((acc, curr, arrayIdx) => {
+          if (arrayIdx !== 0) {
+            return [...acc, ',', curr];
+          }
+          return [...acc, curr];
+        }, [])}
+        ]`;
+  }
+
+  return val;
+}
+
 const LightGray = styled.span`
   color: ${p => p.theme.gray1};
 `;
@@ -41,4 +64,4 @@ const DarkGray = styled.span`
   color: ${p => p.theme.gray5};
 `;
 
-export {getDisplayValue};
+export {getDisplayValue, getDisplayText};

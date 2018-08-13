@@ -49,15 +49,15 @@ class VstsWebhookWorkItemTest(APITestCase):
         )
         self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
         self.org_integration.config = {
+            'sync_status_reverse': True,
+            'sync_status_forward': True,
             'sync_comments': True,
-            'resolve_status': 'Resolved',
-            'resolve_when': True,
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
         }
         self.org_integration.save()
         self.project_integration = self.model.add_project(self.project.id)
-        self.integration = VstsIntegration(self.model, self.organization.id, self.project.id)
+        self.integration = VstsIntegration(self.model, self.organization.id)
 
         self.user_to_assign = self.create_user('sentryuseremail@email.com')
 

@@ -89,7 +89,7 @@ const InviteMember = createReactClass({
             },
           });
 
-          sdk.captureMessage('[members]: data fetch invalid response', {
+          sdk.captureException(new Error('[members]: data fetch invalid response'), {
             extra: {resp, state: this.state},
           });
         } else {
@@ -105,11 +105,13 @@ const InviteMember = createReactClass({
         if (error.status == 404 && isSuperuser) {
           // use the static list
           this.setState({roleList: STATIC_ROLE_LIST, loading: false});
-        } else {
-          sdk.captureMessage('[members]: data fetch error ', {
+        } else if (error.status !== 0) {
+          sdk.captureException(new Error('[members]: data fetch error'), {
             extra: {error, state: this.state},
           });
         }
+
+        addErrorMessage(t('Error with request, please reload'));
       },
     });
   },
@@ -179,7 +181,7 @@ const InviteMember = createReactClass({
       .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (error && !error.email && !error.role) {
-          sdk.captureMessage('Unknown invite member api response', {
+          sdk.captureException(new Error('Unknown invite member api response'), {
             extra: {error, state: this.state},
           });
         }

@@ -75,17 +75,11 @@ class JiraIntegration(Integration, IssueSyncMixin):
     def get_organization_config(self):
         configuration = [
             {
-                'name': self.inbound_status_key,
-                'type': 'boolean',
-                'label': _('Sync Status from Jira to Sentry'),
-                'help': _("When a Jira ticket is moved to a done category, it's linked Sentry issue will be resolved. When a Jira ticket is moved out of a Done category, it's linked sentry issue will be unresolved."),
-            },
-            {
                 'name': self.outbound_status_key,
                 'type': 'choice_mapper',
-                'label': _('Sync Status from Sentry to Jira'),
-                'help': _('Declares what the linked Jira ticket workflow status should be transitioned to when the Sentry issue is resolved or unresolved.'),
-                'addButtonText': _('Map Project'),
+                'label': _('Sync Sentry Status to Jira'),
+                'help': _('When a Sentry issue changes status, change the status of the linked ticket in Jira.'),
+                'addButtonText': _('Add Jira Project'),
                 'addDropdown': {
                     'emptyMessage': _('All projects configured'),
                     'noResultsMessage': _('Could not find Jira project'),
@@ -102,22 +96,30 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'mappedColumnLabel': _('Jira Project'),
             },
             {
-                'name': self.comment_key,
-                'type': 'boolean',
-                'label': _('Post Comments to Jira'),
-                'help': _('Synchronize comments from Sentry issues to linked Jira tickets.'),
-            },
-            {
                 'name': self.outbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Jira'),
-                'help': _('When assigning something in Sentry, the linked Jira ticket will have the associated Jira user assigned.'),
+                'label': _('Sync Sentry Assignment to Jira'),
+                'help': _('When an issue is assigned in Sentry, assign its linked Jira ticket to the same user.'),
+            },
+            {
+                'name': self.comment_key,
+                'type': 'boolean',
+                'label': _('Sync Sentry Comments to Jira'),
+                'help': _('Post comments from Sentry issues to linked Jira tickets'),
+            },
+            {
+                'name': self.inbound_status_key,
+                'type': 'boolean',
+                'label': _('Sync Jira Status to Sentry'),
+                'help': _('When a Jira ticket is marked done, resolve its linked issue in Sentry.'
+                          'When a Jira ticket is removed from being done, unresolve its linked Sentry issue.'
+                          ),
             },
             {
                 'name': self.inbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assigning a user to a Linked Jira ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'label': _('Sync Jira Assignment to Sentry'),
+                'help': _('When a ticket is assigned in Jira, assign its linked Sentry issue to the same user.'),
             },
         ]
 
@@ -125,14 +127,14 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         try:
             statuses = [(c['id'], c['name']) for c in client.get_valid_statuses()]
-            configuration[1]['mappedSelectors']['on_resolve']['choices'] = statuses
-            configuration[1]['mappedSelectors']['on_unresolve']['choices'] = statuses
+            configuration[0]['mappedSelectors']['on_resolve']['choices'] = statuses
+            configuration[0]['mappedSelectors']['on_unresolve']['choices'] = statuses
 
             projects = [{'value': p['id'], 'label': p['name']} for p in client.get_projects_list()]
-            configuration[1]['addDropdown']['items'] = projects
+            configuration[0]['addDropdown']['items'] = projects
         except ApiError:
-            configuration[1]['disabled'] = True
-            configuration[1]['disabledReason'] = _(
+            configuration[0]['disabled'] = True
+            configuration[0]['disabledReason'] = _(
                 'Unable to communicate with the Jira instance. You may need to reinstall the addon.')
 
         return configuration
@@ -232,7 +234,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             self.model.metadata['shared_secret'],
         )
 
-    def get_issue(self, issue_id):
+    def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         issue = client.get_issue(issue_id)
         return {

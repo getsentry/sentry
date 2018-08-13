@@ -24,8 +24,8 @@ from .webhooks import WorkItemWebhook
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
 
-* Create and link Sentry issue groups directly to a VSTS workitem in any of your projects, providing a quick way to jump from Sentry bug to tracked ticket!
-* Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and tickets match up to your Sentry and VSTS assignees.
+* Create and link Sentry issue groups directly to a VSTS work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
+* Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and VSTS assignees.
 * Never forget to close a resolved workitem! Resolving an issue in Sentry will resolve your linked workitems and viceversa.
 * Synchronize comments on Sentry Issues directly to the linked VSTS workitems.
 
@@ -43,10 +43,9 @@ metadata = IntegrationMetadata(
 
 class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     logger = logging.getLogger('sentry.integrations')
-    # TODO(lb): improvised until form changes are finalized.
     comment_key = 'sync_comments'
-    outbound_status_key = 'resolve_status'
-    inbound_status_key = 'resolve_when'
+    outbound_status_key = 'sync_status_forward'
+    inbound_status_key = 'sync_status_reverse'
     outbound_assignee_key = 'sync_forward_assignment'
     inbound_assignee_key = 'sync_reverse_assignment'
 
@@ -91,68 +90,76 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         client = self.get_client()
         instance = self.model.metadata['domain_name']
 
+        project_selector = []
+
         try:
-            # TODO(lb): this is clearly wrong. I'm just getting the first project.
-            # should be completely changed pending evan's changes?
-            project = client.get_projects(instance)['value'][0]['id']
-            work_item_states = client.get_work_item_states(instance, project)['value']
-            statuses = [(c['name'], c['name']) for c in work_item_states]
+            projects = client.get_projects(instance)['value']
+            all_states = set()
+
+            for idx, project in enumerate(projects):
+                project_selector.append({'value': project['id'], 'label': project['name']})
+                # only request states for the first 5 projects to limit number
+                # of requests
+                if idx <= 5:
+                    project_states = client.get_work_item_states(instance, project['id'])['value']
+                    for state in project_states:
+                        all_states.add(state['name'])
+
+            all_states = [(state, state) for state in all_states]
             disabled = False
+
         except ApiError:
-            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
-            # statuses is a little heavy handed. Is there something better we
-            # can fall back to?
-            statuses = []
+            all_states = []
             disabled = True
 
         return [
             {
-                'name': 'resolve_status',
-                'type': 'choice',
-                'allowEmpty': True,
+                'name': self.outbound_status_key,
+                'type': 'choice_mapper',
                 'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Resolved Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+                'label': _('Sync Sentry Status to VSTS'),
+                'help': _('When a Sentry issue changes status, change the status of the linked work item in VSTS.'),
+                'addButtonText': _('Add VSTS Project'),
+                'addDropdown': {
+                    'emptyMessage': _('All projects configured'),
+                    'noResultsMessage': _('Could not find VSTS project'),
+                    'items': project_selector,
+                },
+                'mappedSelectors': {
+                    'on_resolve': {'choices': all_states, 'placeholder': _('Select a status')},
+                    'on_unresolve': {'choices': all_states, 'placeholder': _('Select a status')},
+                },
+                'columnLabels': {
+                    'on_resolve': _('When resolved'),
+                    'on_unresolve': _('When unresolved'),
+                },
+                'mappedColumnLabel': _('VSTS Project'),
             },
             {
-                'name': 'resolve_when',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Resolve in Sentry When'),
-                'placeholder': _('Select a Status'),
-                'help': _('When a Visual Studio Team Services ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
-            },
-            {
-                'name': 'regression_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'disabled': disabled,
-                'choices': statuses,
-                'label': _('Visual Studio Team Services Regression Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Visual Studio Team Services ticket workflow status should be transitioned to when the Sentry issue has a regression.'),
-            },
-            {
-                'name': 'sync_comments',
+                'name': self.outbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Post Comments to Visual Studio Team Services'),
-                'help': _('Synchronize comments from Sentry issues to linked Visual Studio Team Services tickets.'),
+                'label': _('Sync Sentry Assignment to VSTS'),
+                'help': _('When an issue is assigned in Sentry, assign its linked VSTS work item to the same user.'),
             },
             {
-                'name': 'sync_forward_assignment',
+                'name': self.comment_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Visual Studio Team Services'),
-                'help': _('When assigning something in Sentry, the linked Visual Studio Team Services ticket will have the associated Visual Studio Team Services user assigned.'),
+                'label': _('Sync Sentry Comments to VSTS'),
+                'help': _('Post comments from Sentry issues to linked VSTS work items'),
             },
             {
-                'name': 'sync_reverse_assignment',
+                'name': self.inbound_status_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assigning a user to a Linked Visual Studio Team Services ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'label': _('Sync VSTS Status to Sentry'),
+                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry.'
+                          'When a VSTS work item is removed from being done, unresolve its linked Sentry issue.'
+                          ),
+            },
+            {
+                'name': self.inbound_assignee_key,
+                'type': 'boolean',
+                'label': _('Sync VSTS Assignment to Sentry'),
+                'help': _('When a work item is assigned in VSTS, assign its linked Sentry issue to the same user.'),
             },
         ]
 
@@ -176,6 +183,20 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         config = self.org_integration.config
         config.update(data)
         self.org_integration.update(config=config)
+
+    def get_config_data(self):
+        config = self.org_integration.config
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id,
+        )
+        sync_status_forward = {}
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                'on_unresolve': pm.unresolved_status,
+                'on_resolve': pm.resolved_status,
+            }
+        config['sync_status_forward'] = sync_status_forward
+        return config
 
     @property
     def instance(self):

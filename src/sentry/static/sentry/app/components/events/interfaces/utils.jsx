@@ -44,7 +44,7 @@ export function getCurlCommand(data) {
         if (isString(data.data)) {
           result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
         } else {
-          sdk.captureMessage('Unknown event data', {
+          sdk.captureException(new Error('Unknown event data'), {
             extra: data,
           });
         }

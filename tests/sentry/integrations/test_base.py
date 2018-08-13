@@ -35,12 +35,9 @@ class IntegrationTestCase(TestCase):
         integration = Integration(self.model, self.organization.id)
         integration.name = 'Base'
 
-        assert integration.project_integration is None
-
     def test_with_context(self):
-        integration = Integration(self.model, self.organization.id, self.project.id)
+        integration = Integration(self.model, self.organization.id)
 
         assert integration.model == self.model
         assert integration.org_integration == self.org_integration
-        assert integration.project_integration == self.project_integration
         assert integration.get_default_identity() == self.identity

@@ -50,7 +50,6 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         try:
             install = obj.get_installation(
                 organization_id=self.organization_id,
-                project_id=self.project_id,
             )
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
