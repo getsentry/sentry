@@ -7,6 +7,11 @@ class HeaderItem extends React.Component {
   static propTypes = {
     label: PropTypes.node,
     align: PropTypes.oneOf(['right', 'left']),
+
+    /**
+     * className for <Label> component
+     */
+    labelClassName: PropTypes.string,
   };
 
   static defaultProps = {
@@ -14,11 +19,11 @@ class HeaderItem extends React.Component {
   };
 
   render() {
-    const {className, label, align, children} = this.props;
+    const {className, labelClassName, label, align, children} = this.props;
 
     return (
       <StyledHeaderItem align={align} className={className}>
-        <Label>{label}</Label>
+        <Label className={labelClassName}>{label}</Label>
         {children}
       </StyledHeaderItem>
     );
