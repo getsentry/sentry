@@ -81,8 +81,8 @@ export default class OrganizationDiscover extends React.Component {
           )}`,
         });
       },
-      () => {
-        addErrorMessage(t('An error occurred'));
+      errMessage => {
+        addErrorMessage(errMessage);
         this.setState({result: null, isFetchingQuery: false});
       }
     );
