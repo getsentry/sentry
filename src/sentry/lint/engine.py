@@ -322,7 +322,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
                 print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
                 if fp.readline().strip().lower() != 'y':
                     print(  # noqa: B314
-                        '[sentry.lint] Changes have been applied but not staged.', file=sys.stderr)
+                        '[sentry.lint] Unstaged changes have not been staged.', file=sys.stderr)
                     if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
                         print('[sentry.lint] Aborted!', file=sys.stderr)  # noqa: B314
                         sys.exit(1)
