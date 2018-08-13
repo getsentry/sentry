@@ -12,6 +12,9 @@ logger = logging.getLogger('sentry.integrations.issues')
 
 class IssueBasicMixin(object):
 
+    def should_sync(self, attribute):
+        return False
+
     def get_group_title(self, group, event, **kwargs):
         return event.error()
 
