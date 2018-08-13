@@ -33,7 +33,7 @@ Connect your Sentry organization to one or more of your Visual Studio Team Servi
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     author='The Sentry Team',
-    noun=_('Account'),
+    noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=VSTS%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vsts',
     aspects={},
