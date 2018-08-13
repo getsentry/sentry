@@ -12,16 +12,16 @@ describe('PanelChart', function() {
           title="Panel Chart"
           series={[
             {
-              name: 'Foo',
+              seriesName: 'Foo',
               data: [1, 2, 3, 4],
             },
             {
-              name: 'Bar',
+              seriesName: 'Bar',
               data: [2, 3, 4, 5],
             },
           ]}
           previousPeriod={{
-            name: 'Previous',
+            seriesName: 'Previous',
             data: [1, 2, 3, 4],
           }}
         >
@@ -70,16 +70,16 @@ describe('PanelChart', function() {
       <PanelChart
         series={[
           {
-            name: 'Foo',
+            seriesName: 'Foo',
             data: [1, 2, 3, 4],
           },
           {
-            name: 'Bar',
+            seriesName: 'Bar',
             data: [2, 3, 4, 5],
           },
         ]}
         previousPeriod={{
-          name: 'Previous',
+          seriesName: 'Previous',
           data: [1, 2, 3, 4],
         }}
       >

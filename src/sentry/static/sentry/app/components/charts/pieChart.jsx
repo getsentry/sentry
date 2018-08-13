@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import PieSeries from './series/pieSeries';
@@ -8,20 +7,18 @@ class PieChart extends React.Component {
   static propTypes = {
     // We passthrough all props exception `options`
     ...BaseChart.propTypes,
-
-    name: PropTypes.string,
-
-    data: PropTypes.arrayOf(
-      PropTypes.shape({
-        name: PropTypes.string,
-        value: PropTypes.number,
-      })
-    ),
   };
 
   render() {
-    const {name, data, ...props} = this.props;
-    if (!data.length) return null;
+    const {series, ...props} = this.props;
+    if (!series || !series.length) return null;
+    if (series.length > 1) {
+      // eslint-disable-next-line no-console
+      console.warn('PieChart only uses the first series!');
+    }
+
+    // Note, we only take the first series unit!
+    const [firstSeries] = series;
 
     return (
       <BaseChart
@@ -29,8 +26,8 @@ class PieChart extends React.Component {
         options={{
           series: [
             PieSeries({
-              name,
-              data,
+              name: firstSeries.seriesName,
+              data: firstSeries.data,
               avoidLabelOverlap: false,
               label: {
                 normal: {
