@@ -7,6 +7,7 @@ from sentry import analytics
 from sentry.models import (
     Activity, Commit, GroupAssignee, GroupLink, Release, Repository, PullRequest
 )
+from sentry.signals import resolved_with_commit
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
@@ -77,13 +78,16 @@ def resolved_in_commit(instance, created, **kwargs):
         except IntegrityError:
             pass
         else:
-            if repo is not None and repo.integration_id is not None:
-                analytics.record(
-                    'integration.resolve.commit',
-                    provider=repo.provider,
-                    id=repo.integration_id,
-                    organization_id=repo.organization_id,
-                )
+            if repo is not None:
+                if repo.integration_id is not None:
+                    analytics.record(
+                        'integration.resolve.commit',
+                        provider=repo.provider,
+                        id=repo.integration_id,
+                        organization_id=repo.organization_id,
+                    )
+                resolved_with_commit.send(
+                    organization_id=repo.organization_id, sender='resolved_in_commit')
 
 
 def resolved_in_pull_request(instance, created, **kwargs):

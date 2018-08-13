@@ -30,7 +30,7 @@ from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.signals import advanced_search, issue_resolved_in_release
+from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
@@ -685,6 +685,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 'ignoreWindow': ignore_window,
                                 'actor': serialize(extract_lazy_object(request.user), request.user),
                             }
+                        issue_ignored.send(project=project, sender=self.__class__)
                     else:
                         GroupSnooze.objects.filter(
                             group__in=group_ids,
