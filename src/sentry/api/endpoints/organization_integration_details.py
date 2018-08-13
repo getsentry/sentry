@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from uuid import uuid4
+
 from django.http import Http404
 
 from sentry.api.bases.organization import (
@@ -7,7 +9,8 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Integration, OrganizationIntegration, ProjectIntegration
+from sentry.models import Integration, OrganizationIntegration
+from sentry.tasks.deletion import delete_organization_integration
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
@@ -25,16 +28,23 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(serialize(integration, request.user))
 
     def delete(self, request, organization, integration_id):
-        # Removing the integration removes both the organization and project
-        # integration.
-        OrganizationIntegration.objects.filter(
-            integration_id=integration_id,
-            organization=organization,
-        ).delete()
-        ProjectIntegration.objects.filter(
-            integration_id=integration_id,
-            project__organization=organization,
-        ).delete()
+        # Removing the integration removes the organization and project
+        # integrations and all linked issues.
+        try:
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
+            raise Http404
+        delete_organization_integration.apply_async(
+            kwargs={
+                'object_id': org_integration.id,
+                'transaction_id': uuid4().hex,
+                'actor_id': request.user.id,
+            },
+            countdown=0,
+        )
 
         return self.respond(status=204)
 

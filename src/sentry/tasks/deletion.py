@@ -389,3 +389,39 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
             },
             countdown=15,
         )
+
+
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_organization_integration',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
+def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):
+    from sentry import deletions
+    from sentry.models import OrganizationIntegration
+
+    try:
+        OrganizationIntegration.objects.get(id=object_id)
+    except OrganizationIntegration.DoesNotExist:
+        return
+
+    task = deletions.get(
+        model=OrganizationIntegration,
+        actor_id=actor_id,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_organization_integration.apply_async(
+            kwargs={
+                'object_id': object_id,
+                'transaction_id': transaction_id,
+                'actor_id': actor_id,
+            },
+            countdown=15,
+        )
