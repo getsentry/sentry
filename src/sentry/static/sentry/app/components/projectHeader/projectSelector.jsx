@@ -6,6 +6,7 @@ import styled, {css} from 'react-emotion';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
@@ -161,12 +162,14 @@ const ProjectSelector = withRouter(
               items={projectList.map(project => ({
                 value: project,
                 searchKey: project.slug,
-                label: (
+                label: ({inputValue}) => (
                   <ProjectRow>
                     <IdBadge
                       project={project}
                       avatarSize={16}
-                      displayName={project.slug}
+                      displayName={
+                        <Highlight text={inputValue}>{project.slug}</Highlight>
+                      }
                       avatarProps={{consistentWidth: true}}
                     />
                     {project.isBookmarked && <BookmarkIcon />}
