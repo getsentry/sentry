@@ -374,6 +374,7 @@ class FormModel {
   /**
    * Attempts to save field and show undo message if necessary.
    * Calls submit handlers.
+   * TODO(billy): This should return a promise that resolves (instead of null)
    */
   @action
   saveField(id, currentValue) {
