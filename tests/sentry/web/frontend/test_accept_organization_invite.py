@@ -71,7 +71,7 @@ class AcceptInviteTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/accept-organization-invite.html')
         assert not resp.context['needs_authentication']
 
-    def test_renders_user_eeds_2fa_template(self):
+    def test_renders_user_needs_2fa_template(self):
         self._require_2fa_for_organization()
         self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
 
@@ -194,7 +194,7 @@ class AcceptInviteTest(TestCase):
 
         self._assert_2fa_cookie_set(resp, om)
 
-    def test_2fa_cookie_deleted_afer_accept(self):
+    def test_2fa_cookie_deleted_after_accept(self):
         self._require_2fa_for_organization()
         self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
 
