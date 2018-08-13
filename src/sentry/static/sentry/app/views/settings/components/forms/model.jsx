@@ -374,6 +374,7 @@ class FormModel {
   /**
    * Attempts to save field and show undo message if necessary.
    * Calls submit handlers.
+   * TODO(billy): This should return a promise that resolves (instead of null)
    */
   @action
   saveField(id, currentValue) {
@@ -526,7 +527,11 @@ class FormModel {
    */
   @action
   handleSaveField(id, currentValue) {
-    return this.saveField(id, currentValue).then(() => {
+    const savePromise = this.saveField(id, currentValue);
+
+    if (!savePromise) return null;
+
+    return savePromise.then(() => {
       this.setFieldState(id, 'showSave', false);
     });
   }
