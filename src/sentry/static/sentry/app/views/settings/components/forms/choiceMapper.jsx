@@ -63,11 +63,16 @@ export default class ChoiceMapper extends React.Component {
      * per item specify this as true.
      */
     perItemMapping: PropTypes.bool,
+    /**
+     * Automatically save even if fields are empty
+     */
+    allowEmpty: PropTypes.bool,
   };
 
   static defaultProps = {
     addButtonText: t('Add Item'),
     perItemMapping: false,
+    allowEmpty: false,
   };
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
@@ -83,6 +88,7 @@ export default class ChoiceMapper extends React.Component {
       mappedSelectors,
       perItemMapping,
       disabled,
+      allowEmpty,
     } = props;
 
     const mappedKeys = Object.keys(columnLabels);
@@ -91,21 +97,28 @@ export default class ChoiceMapper extends React.Component {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? props.value : {};
 
+    const saveChanges = nextValue => {
+      onChange(nextValue, {});
+
+      const validValues = !Object.values(nextValue)
+        .map(o => Object.values(o).find(v => v === null))
+        .includes(null);
+
+      if (allowEmpty || validValues) onBlur();
+    };
+
     const addRow = data => {
-      onChange({...value, [data.value]: emptyValue}, {});
-      onBlur();
+      saveChanges({...value, [data.value]: emptyValue});
     };
 
     const removeRow = itemKey => {
       //eslint-disable-next-line no-unused-vars
       const {[itemKey]: _, ...updatedValue} = value;
-      onChange(updatedValue, {});
-      onBlur();
+      saveChanges(updatedValue);
     };
 
     const setValue = (itemKey, fieldKey, fieldValue) => {
-      onChange({...value, [itemKey]: {...value[itemKey], [fieldKey]: fieldValue}}, {});
-      onBlur();
+      saveChanges({...value, [itemKey]: {...value[itemKey], [fieldKey]: fieldValue}}, {});
     };
 
     // Remove already added values from the items list
