@@ -160,6 +160,7 @@ const ProjectSelector = withRouter(
               }
               items={projectList.map(project => ({
                 value: project,
+                searchKey: project.slug,
                 label: (
                   <ProjectRow>
                     <IdBadge
