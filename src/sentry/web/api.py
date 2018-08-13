@@ -584,14 +584,6 @@ class MinidumpView(StoreView):
         except KeyError:
             raise APIError('Missing minidump upload')
 
-        if settings.SENTRY_MINIDUMP_CACHE:
-            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
-                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
-
-            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
-                for chunk in minidump.chunks():
-                    out.write(chunk)
-
         # Breakpad on linux sometimes stores the entire HTTP request body as
         # dump file instead of just the minidump. The Electron SDK then for
         # example uploads a multipart formdata body inside the minidump file.
@@ -623,6 +615,14 @@ class MinidumpView(StoreView):
                 minidump = files['upload_file_minidump']
             except KeyError:
                 raise APIError('Missing minidump upload')
+
+        if settings.SENTRY_MINIDUMP_CACHE:
+            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
+                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
+
+            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
+                for chunk in minidump.chunks():
+                    out.write(chunk)
 
         try:
             merge_minidump_event(data, minidump)
