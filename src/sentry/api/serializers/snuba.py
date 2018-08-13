@@ -151,12 +151,12 @@ SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
 SnubaLookup('os.name', 'tags[os.name]')
 SnubaLookup('browser.name', 'tags[browser.name]', conditions=[])
 SnubaLookup('error.type', 'error_type', selected_columns=[
-    ('arrayElement', ('exception_stacks.type', 1), 'error_type'),
+    ('emptyIfNull', ('arrayElement', ('exception_stacks.type', 1)), 'error_type'),
 ], conditions=[
     [('notEmpty', ('exception_stacks.type',)), '=', 1],
 ])
 SnubaLookup('error.handled', 'error_handled', selected_columns=[
-    ('arrayElement', ('exception_stacks.mechanism_handled', 1), 'error_handled'),
+    ('emptyIfNull', ('arrayElement', ('exception_stacks.mechanism_handled', 1)), 'error_handled'),
 ], conditions=[
     [('notEmpty', ('exception_stacks.mechanism_handled',)), '=', 1],
 ])
