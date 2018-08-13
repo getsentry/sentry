@@ -157,7 +157,14 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         if not data:
             return self.empty()
 
-        values = [value_from_row(r, lookup.columns) for r in data]
+        values = []
+        is_null = False
+        for row in data:
+            value = value_from_row(row, lookup.columns)[0]
+            if value is None:
+                is_null = True
+            else:
+                values.append(value)
 
         previous = query(
             end=now - stats_period,
@@ -172,7 +179,8 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             conditions=lookup.conditions + [
                 # This isn't really right, and is relying on the fact
                 # that project_id is the other key in this composite key
-                [lookup.tagkey, 'IN', [v[0] for v in values]],
+                [lookup.tagkey, 'IN', values] if values else [],
+                [lookup.tagkey, 'IS NULL', None] if is_null else [],
                 environment,
             ],
             groupby=lookup.columns,

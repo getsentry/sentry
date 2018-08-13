@@ -154,9 +154,10 @@ SnubaLookup('error.type', 'error_type', selected_columns=[
     ('emptyIfNull', ('arrayElement', ('exception_stacks.type', 1)), 'error_type'),
 ], conditions=[
     [('notEmpty', ('exception_stacks.type',)), '=', 1],
+    [('error_type', '!=', '')],
 ])
 SnubaLookup('error.handled', 'error_handled', selected_columns=[
-    ('emptyIfNull', ('arrayElement', ('exception_stacks.mechanism_handled', 1)), 'error_handled'),
+    ('arrayElement', ('exception_stacks.mechanism_handled', 1), 'error_handled'),
 ], conditions=[
     [('notEmpty', ('exception_stacks.mechanism_handled',)), '=', 1],
 ])
