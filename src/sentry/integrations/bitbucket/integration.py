@@ -96,7 +96,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
-        return [identity_pipeline_view]
+        return [identity_pipeline_view, VerifyInstallation()]
 
     def post_install(self, integration, organization):
         repos = Repository.objects.filter(
@@ -112,7 +112,6 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             repo.update(integration_id=integration.id)
 
     def build_integration(self, state):
-        # TODO(LB): Add verification for clientKey
         if state.get('publicKey'):
             principal_data = state['principal']
             return {
@@ -133,7 +132,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         else:
             return {
                 'provider': self.key,
-                'external_id': state['identity']['bitbucket_client_key'],
+                'external_id': state['external_id'],
                 'expect_exists': True,
             }
 
@@ -152,5 +151,5 @@ class VerifyInstallation(PipelineView):
             integration = get_integration_from_request(request, BitbucketIntegrationProvider.key)
         except AtlassianConnectValidationError:
             raise AtlassianConnectValidationError('Unable to verify installation.')
-        # TODO(lb): this is wrong please fix
-        return integration
+        pipeline.bind_state('external_id', integration.external_id)
+        return pipeline.next_step()
