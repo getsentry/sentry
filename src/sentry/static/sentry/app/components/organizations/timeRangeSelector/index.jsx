@@ -4,8 +4,9 @@ import moment from 'moment';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import DropdownLink from 'app/components/dropdownLink';
 import Button from 'app/components/buttons/button';
+import HeaderItem from 'app/components/organizations/headerItem';
+import DropdownLink from 'app/components/dropdownLink';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import {t} from 'app/locale';
 
@@ -85,8 +86,7 @@ class TimeRangeSelector extends React.Component {
       : `${ALLOWED_RELATIVE_DATES[relative]}`;
 
     return (
-      <Flex direction="column" justify="center" className={className}>
-        <Label>{t('Time range')}</Label>
+      <HeaderItem className={className} label={t('Time Range')}>
         <DropdownLink
           title={<DynamicWrapper value={summary} fixed="start to end" />}
           keepMenuOpen={true}
@@ -109,26 +109,9 @@ class TimeRangeSelector extends React.Component {
             </div>
           </Flex>
         </DropdownLink>
-      </Flex>
+      </HeaderItem>
     );
   }
 }
 
-const StyledTimeRangeSelector = styled(TimeRangeSelector)`
-  text-align: right;
-
-  .dropdown-actor-title {
-    font-size: 15px;
-    height: auto;
-    color: ${p => p.theme.button.default.colorActive};
-  }
-`;
-
-const Label = styled('label')`
-  font-weight: 400;
-  font-size: 13px;
-  color: ${p => p.theme.gray6};
-  margin-bottom: 12px;
-`;
-
-export default StyledTimeRangeSelector;
+export default TimeRangeSelector;
