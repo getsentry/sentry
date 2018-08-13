@@ -211,6 +211,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.proxy.ChunkedMiddleware',
+    'sentry.middleware.proxy.DecompressBodyMiddleware',
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
     'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
@@ -231,6 +232,8 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # XXX: This will exhaust the request body stream and cache it
+    'raven.contrib.django.middleware.DjangoRestFrameworkCompatMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
