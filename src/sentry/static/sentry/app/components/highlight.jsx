@@ -31,7 +31,7 @@ class HighlightComponent extends React.Component {
     let idx = children.toLowerCase().indexOf(highlightText);
 
     if (idx === -1) {
-      return text;
+      return children;
     }
 
     return (
