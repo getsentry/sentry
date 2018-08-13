@@ -288,8 +288,13 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
-        if not IntegrationModel.objects.filter(
-                provider='vsts', external_id=account['AccountId']).exists():
+        try:
+            subscription = IntegrationModel.objects.get(
+                provider='vsts',
+                external_id=account['AccountId']
+            ).metadata['subscription']
+            assert 'id' in subscription and 'secret' in subscription
+        except (IntegrationModel.DoesNotExist, KeyError, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
                 instance, account['AccountId'], oauth_data)
             integration['metadata']['subscription'] = {

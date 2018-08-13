@@ -114,6 +114,30 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         data = VstsIntegrationProvider().build_integration(state)
         assert 'subscription' not in data['metadata']
 
+    def test_fix_subscription(self):
+        external_id = '1234567890'
+        Integration.objects.create(
+            metadata={},
+            provider='vsts',
+            external_id=external_id,
+        )
+        data = VstsIntegrationProvider().build_integration({
+            'account': {
+                'AccountName': self.vsts_account_name,
+                'AccountId': external_id,
+            },
+            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'identity': {
+                'data': {
+                    'access_token': self.access_token,
+                    'expires_in': '3600',
+                    'refresh_token': self.refresh_token,
+                    'token_type': 'jwt-bearer',
+                },
+            },
+        })
+        assert 'subscription' in data
+
 
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
