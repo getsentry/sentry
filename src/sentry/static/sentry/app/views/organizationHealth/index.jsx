@@ -78,9 +78,9 @@ class OrganizationHealth extends React.Component {
                 />
                 <HeaderSeparator />
                 <TimeRangeSelector
-                  absolute={false}
-                  relative
-                  value={this.state.params.period}
+                  showAbsolute={false}
+                  showRelative
+                  relative={this.state.params.period}
                   onChange={this.handleChangeTime}
                 />
               </Header>
