@@ -118,7 +118,7 @@ const TagDistributionMeter = createReactClass({
 
           const tooltipHtml =
             '<div class="truncate">' +
-            escape(deviceNameMapper(value.name || '', this.state.iOSDeviceList)) +
+            escape(deviceNameMapper(value.name || '', this.state.iOSDeviceList) || '') +
             '</div>' +
             pctLabel +
             '%';
