@@ -16,7 +16,7 @@
         </div>
 
         <p style="font-size: 1.3em;">
-          {% blocktrans with org_name=organization.name %}<strong>{{ org_name }}</strong> is using Sentry to aggregate errors.{% endblocktrans %}
+          {% blocktrans %}<strong>{{ org_name }}</strong> is using Sentry to aggregate errors.{% endblocktrans %}
         </p>
 
         {% if existing_member %}
@@ -49,12 +49,22 @@
             </div>
             <a href="{{ register_url }}" class="btn btn-primary">{% trans "Create a new account" %}</a>
           </fieldset>
+
+        {% elif needs_2fa %}
+          <p>{% blocktrans %}To continue, <strong>{{ org_name }}</strong> requires all members to setup two-factor authentication.{% endblocktrans %}</p>
+
+          <p class="form-actions">
+            <a href="{% url 'sentry-account-settings-security' %}" class="btn btn-primary">
+              {% trans "Setup Two-Factor Authentication" %}
+            </a>
+          </p>
+
         {% else %}
           <form method="POST">
             {% csrf_token %}
             <p>
               <button type="submit" class="btn btn-primary">
-                {% blocktrans with org_name=organization.name %}Join the {{ org_name }} organization{% endblocktrans %}
+                {% blocktrans %}Join the {{ org_name }} organization{% endblocktrans %}
               </button>
             </p>
           </form>

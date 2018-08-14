@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import React from 'react';
 import PropTypes from 'prop-types';
+import Cookies from 'js-cookie';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
@@ -52,6 +53,20 @@ class BackButton extends React.Component {
       shouldGoBackToProject || (!lastAppContext && projectId)
         ? t('Project')
         : t('Organization');
+
+    // if the user needs to setup 2fa as part of the org invite flow,
+    // send them back to accept the invite
+    let pendingInvite = Cookies.get('pending-invite');
+    let shouldGoBackToInvite = pendingInvite && !lastAppContext;
+
+    if (shouldGoBackToInvite) {
+      return (
+        <BackButtonWrapper href={pendingInvite}>
+          <Icon src="icon-chevron-left" size="10px" />
+          {t('Back to Invite')}
+        </BackButtonWrapper>
+      );
+    }
 
     return (
       <BackButtonWrapper

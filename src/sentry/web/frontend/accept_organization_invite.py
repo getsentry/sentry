@@ -6,12 +6,14 @@ from django.core.urlresolvers import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import AuditLogEntryEvent, OrganizationMember, Project
+from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember, Project
 from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
 ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
+PENDING_INVITE = 'pending-invite'
+MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
 class AcceptInviteForm(forms.Form):
@@ -30,7 +32,7 @@ class AcceptOrganizationInviteView(BaseView):
         assert request.method in ('POST', 'GET')
 
         try:
-            om = OrganizationMember.objects.get(pk=member_id)
+            om = OrganizationMember.objects.select_related('organization').get(pk=member_id)
         except OrganizationMember.DoesNotExist:
             messages.add_message(
                 request,
@@ -65,11 +67,16 @@ class AcceptOrganizationInviteView(BaseView):
         project_list = list(qs[:25])
         project_count = qs.count()
 
+        org_requires_2fa = organization.flags.require_2fa.is_set
+        user_has_2fa = Authenticator.objects.user_has_2fa(request.user.id)
+        needs_2fa = org_requires_2fa and not user_has_2fa
+
         context = {
-            'organization': om.organization,
+            'org_name': organization.name,
             'project_list': project_list,
             'project_count': project_count,
             'needs_authentication': not request.user.is_authenticated(),
+            'needs_2fa': needs_2fa,
             'logout_url': '{}?next={}'.format(
                 reverse('sentry-logout'),
                 request.path,
@@ -91,6 +98,12 @@ class AcceptOrganizationInviteView(BaseView):
             request.session['invite_email'] = om.email
 
             return self.respond('sentry/accept-organization-invite.html', context)
+
+        if needs_2fa:
+            # redirect to setup 2fa
+            response = self.respond('sentry/accept-organization-invite.html', context)
+            response.set_cookie(PENDING_INVITE, request.path, max_age=MAX_AGE)
+            return response
 
         # if they're already a member of the organization its likely they're
         # using a shared account and either previewing this invite or
@@ -135,8 +148,11 @@ class AcceptOrganizationInviteView(BaseView):
                 member_joined.send(member=om, sender=self)
 
             request.session.pop('can_register', None)
+            response = self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
 
-            return self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
+            if PENDING_INVITE in request.COOKIES:
+                response.delete_cookie(PENDING_INVITE)
+            return response
 
         context['form'] = form
 
