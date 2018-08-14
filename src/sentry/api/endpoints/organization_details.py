@@ -186,7 +186,7 @@ class OrganizationSerializer(serializers.Serializer):
                 # default value evaluates as truthy, but this should work for now with the
                 # current ORG_OPTIONS (assumes ORG_OPTIONS are falsy)
                 if type_(self.init_data[key]):
-                    changed_data[key] = self.init_data[key]
+                    changed_data[key] = u'to {}'.format(self.init_data[key])
             else:
                 option_inst.value = self.init_data[key]
                 # check if ORG_OPTIONS changed
@@ -331,6 +331,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'object_id': organization.id,
                         'model': Organization.__name__,
                     }
+                )
+            else:
+                self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_EDIT,
+                    data=changed_data
                 )
 
             return self.respond(

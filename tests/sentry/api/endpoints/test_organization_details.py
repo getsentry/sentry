@@ -11,6 +11,7 @@ from pprint import pprint
 
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
+    AuditLogEntry,
     Authenticator,
     DeletedOrganization,
     Organization,
@@ -170,36 +171,49 @@ class OrganizationUpdateTest(APITestCase):
 
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
+        initial = org.get_audit_log_data()
+
+        # clear logs
+        for log in AuditLogEntry.objects.filter(organization=org):
+            log.delete()
+
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.put(
-            url,
-            data={
-                'openMembership': False,
-                'isEarlyAdopter': True,
-                'allowSharedIssues': False,
-                'enhancedPrivacy': True,
-                'dataScrubber': True,
-                'dataScrubberDefaults': True,
-                'sensitiveFields': ['password'],
-                'safeFields': ['email'],
-                'scrubIPAddresses': True,
-                'scrapeJavaScript': False,
-                'defaultRole': 'owner',
-            }
-        )
+
+        data = {
+            'openMembership': False,
+            'isEarlyAdopter': True,
+            'allowSharedIssues': False,
+            'enhancedPrivacy': True,
+            'dataScrubber': True,
+            'dataScrubberDefaults': True,
+            'sensitiveFields': [u'password'],
+            'safeFields': [u'email'],
+            'scrubIPAddresses': True,
+            'scrapeJavaScript': False,
+            'defaultRole': 'owner',
+            'require2FA': True
+        }
+
+        # needed to set require2FA
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        assert Authenticator.objects.user_has_2fa(self.user)
+
+        response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
+        assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
-        assert org.flags.enhanced_privacy
+        assert org.flags.require_2fa
         assert org.default_role == 'owner'
 
         options = {o.key: o.value for o in OrganizationOption.objects.filter(
@@ -212,6 +226,23 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get('sentry:sensitive_fields') == ['password']
         assert options.get('sentry:safe_fields') == ['email']
         assert options.get('sentry:scrape_javascript') is False
+
+        # log created
+        log = AuditLogEntry.objects.get(organization=org)
+        assert log.get_event_display() == 'org.edit'
+        # org fields & flags
+        assert 'to {}'.format(data['defaultRole']) in log.data['default_role']
+        assert 'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
+        assert 'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
+        assert 'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
+        assert 'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
+        assert 'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        # org options
+        assert 'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
+        assert 'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
+        assert 'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
+        assert 'to {}'.format(data['safeFields']) in log.data['safeFields']
+        assert 'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
