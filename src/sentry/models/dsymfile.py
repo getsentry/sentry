@@ -297,11 +297,7 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
             if rv.file.checksum == checksum:
                 return rv, False
         except ProjectDSymFile.DoesNotExist:
-            pass
-        else:
-            # The checksum mismatches.  In this case we delete the old object
-            # and perform a re-upload.
-            rv.delete()
+            rv = None
 
         file = File.objects.create(
             name=debug_id,
@@ -309,18 +305,26 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
             headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
         )
         file.putfile(fileobj)
-        try:
-            with transaction.atomic():
-                rv = ProjectDSymFile.objects.create(
-                    file=file,
-                    debug_id=debug_id,
-                    cpu_name=cpu_name,
-                    object_name=object_name,
-                    project=project,
-                )
-        except IntegrityError:
-            file.delete()
-            rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+
+        kwargs = {
+            'file': file,
+            'debug_id': debug_id,
+            'cpu_name': cpu_name,
+            'object_name': object_name,
+            'project': project
+        }
+
+        if rv is None:
+            try:
+                with transaction.atomic():
+                    rv = ProjectDSymFile.objects.create(**kwargs)
+            except IntegrityError:
+                file.delete()
+                rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+        else:
+            oldfile = rv.file
+            rv.update(**kwargs)
+            oldfile.delete()
     else:
         try:
             rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
@@ -336,13 +340,13 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
                     )
             except IntegrityError:
                 rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
-                rv.file.delete()
-                rv.file = file
-                rv.save()
+                oldfile = rv.file
+                rv.update(file=file)
+                oldfile.delete()
         else:
-            rv.file.delete()
-            rv.file = file
-            rv.save()
+            oldfile = rv.file
+            rv.update(file=file)
+            oldfile.delete()
         rv.file.headers['Content-Type'] = DSYM_MIMETYPES[dsym_type]
         rv.file.save()
 
