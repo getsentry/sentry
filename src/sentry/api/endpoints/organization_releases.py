@@ -173,7 +173,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     version=result['version'],
                 ), False
             else:
-                release_created.send_robust(release, sender=self.__class__)
+                release_created.send_robust(release=release, sender=self.__class__)
 
             new_projects = []
             for project in projects:
