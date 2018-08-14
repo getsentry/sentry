@@ -33,7 +33,7 @@ export default class SelectField extends React.Component {
     escapeMarkup: true,
     multiple: false,
     small: false,
-    prettyValue: (value, props) =>
+    formatMessageValue: (value, props) =>
       (getChoices(props).find(v => v[0] === value) || [null, value])[1],
   };
 

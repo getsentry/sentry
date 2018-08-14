@@ -5,7 +5,7 @@ import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlide
 
 export default class RangeField extends React.Component {
   static defaultProps = {
-    prettyValue: (value, props) =>
+    formatMessageValue: (value, props) =>
       (typeof props.formatLabel === 'function' && props.formatLabel(value)) || value,
   };
 

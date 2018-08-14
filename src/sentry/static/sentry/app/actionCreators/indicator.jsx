@@ -58,9 +58,12 @@ const PRETTY_VALUES = {
 const prettyFormString = (val, model, fieldName) => {
   let descriptor = model.fieldDescriptor.get(fieldName);
 
-  if (typeof descriptor.prettyValue === 'function') {
+  if (descriptor && typeof descriptor.formatMessageValue === 'function') {
     let initialData = model.initialData;
-    return descriptor.prettyValue(val, {...descriptor, initialData});
+    // XXX(epurkhsier): We pass the "props" as the descriptor and initialData.
+    // This isn't necessarily all of the props of the form field, but should
+    // make up a good portion needed for formatting.
+    return descriptor.formatMessageValue(val, {...descriptor, initialData});
   }
 
   if (val in PRETTY_VALUES) {
@@ -84,14 +87,20 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
 
   if (!label) return;
 
-  let prettifyVal = val => prettyFormString(val, model, fieldName);
+  let prettifyValue = val => prettyFormString(val, model, fieldName);
+  let showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
 
   addSuccessMessage(
-    tct('Changed [fieldName] from [oldValue] to [newValue]', {
-      fieldName: <strong>{label}</strong>,
-      oldValue: <FormValue>{prettifyVal(change.old)}</FormValue>,
-      newValue: <FormValue>{prettifyVal(change.new)}</FormValue>,
-    }),
+    tct(
+      showChangeText
+        ? 'Changed [fieldName] from [oldValue] to [newValue]'
+        : 'Changed [fieldName]',
+      {
+        fieldName: <strong>{label}</strong>,
+        oldValue: <FormValue>{prettifyValue(change.old)}</FormValue>,
+        newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
+      }
+    ),
     DEFAULT_TOAST_DURATION,
     {
       model,
@@ -111,22 +120,32 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
 
         if (!saveResult) {
           addErrorMessage(
-            tct('Unable to restore [fieldName] from [oldValue] to [newValue]', {
-              fieldName: <strong>{label}</strong>,
-              oldValue: <FormValue>{prettifyVal(oldValue)}</FormValue>,
-              newValue: <FormValue>{prettifyVal(newValue)}</FormValue>,
-            })
+            tct(
+              showChangeText
+                ? 'Unable to restore [fieldName] from [oldValue] to [newValue]'
+                : 'Unable to restore [fieldName]',
+              {
+                fieldName: <strong>{label}</strong>,
+                oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+                newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+              }
+            )
           );
           return;
         }
 
         saveResult.then(() => {
           addMessage(
-            tct('Restored [fieldName] from [oldValue] to [newValue]', {
-              fieldName: <strong>{label}</strong>,
-              oldValue: <FormValue>{prettifyVal(oldValue)}</FormValue>,
-              newValue: <FormValue>{prettifyVal(newValue)}</FormValue>,
-            }),
+            tct(
+              showChangeText
+                ? 'Restored [fieldName] from [oldValue] to [newValue]'
+                : 'Restored [fieldName]',
+              {
+                fieldName: <strong>{label}</strong>,
+                oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+                newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+              }
+            ),
             'undo',
             {
               duration: DEFAULT_TOAST_DURATION,
