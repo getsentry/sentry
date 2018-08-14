@@ -45,11 +45,26 @@ export function addSuccessMessage(...args) {
   return addMessageWithType('success')(...args);
 }
 
+const PRETTY_VALUES = {
+  '': '<empty>',
+  [null]: '<none>',
+  [undefined]: '<unset>',
+  [false]: 'disabled',
+  [true]: 'enabled',
+};
+
 // Transform form values into a string
 // Otherwise bool values will not get rendered and empty strings look like a bug
-const prettyFormString = val => {
-  if (val === '') {
-    return '<empty>';
+const prettyFormString = (val, model, fieldName) => {
+  let descriptor = model.fieldDescriptor.get(fieldName);
+
+  if (typeof descriptor.prettyValue === 'function') {
+    let initialData = model.initialData;
+    return descriptor.prettyValue(val, {...descriptor, initialData});
+  }
+
+  if (val in PRETTY_VALUES) {
+    return PRETTY_VALUES[val];
   }
 
   return `${val}`;
@@ -69,11 +84,13 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
 
   if (!label) return;
 
+  let prettifyVal = val => prettyFormString(val, model, fieldName);
+
   addSuccessMessage(
     tct('Changed [fieldName] from [oldValue] to [newValue]', {
       fieldName: <strong>{label}</strong>,
-      oldValue: <FormValue>{prettyFormString(change.old)}</FormValue>,
-      newValue: <FormValue>{prettyFormString(change.new)}</FormValue>,
+      oldValue: <FormValue>{prettifyVal(change.old)}</FormValue>,
+      newValue: <FormValue>{prettifyVal(change.new)}</FormValue>,
     }),
     DEFAULT_TOAST_DURATION,
     {
@@ -96,8 +113,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
           addErrorMessage(
             tct('Unable to restore [fieldName] from [oldValue] to [newValue]', {
               fieldName: <strong>{label}</strong>,
-              oldValue: <FormValue>{prettyFormString(oldValue)}</FormValue>,
-              newValue: <FormValue>{prettyFormString(newValue)}</FormValue>,
+              oldValue: <FormValue>{prettifyVal(oldValue)}</FormValue>,
+              newValue: <FormValue>{prettifyVal(newValue)}</FormValue>,
             })
           );
           return;
@@ -107,8 +124,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
           addMessage(
             tct('Restored [fieldName] from [oldValue] to [newValue]', {
               fieldName: <strong>{label}</strong>,
-              oldValue: <FormValue>{prettyFormString(oldValue)}</FormValue>,
-              newValue: <FormValue>{prettyFormString(newValue)}</FormValue>,
+              oldValue: <FormValue>{prettifyVal(oldValue)}</FormValue>,
+              newValue: <FormValue>{prettifyVal(newValue)}</FormValue>,
             }),
             'undo',
             {
