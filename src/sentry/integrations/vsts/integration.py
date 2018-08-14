@@ -289,12 +289,11 @@ class VstsIntegrationProvider(IntegrationProvider):
         }
 
         try:
-            subscription = IntegrationModel.objects.get(
+            assert 'subscription' in IntegrationModel.objects.get(
                 provider='vsts',
                 external_id=account['AccountId']
-            ).metadata['subscription']
-            assert 'id' in subscription and 'secret' in subscription
-        except (IntegrationModel.DoesNotExist, KeyError, AssertionError):
+            ).metadata
+        except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
                 instance, account['AccountId'], oauth_data)
             integration['metadata']['subscription'] = {
