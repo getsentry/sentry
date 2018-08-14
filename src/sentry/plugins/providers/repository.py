@@ -8,6 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.exceptions import PluginError
 from sentry.models import Repository
 from sentry.plugins.config import ConfigValidator
+from sentry.signals import repo_linked
 
 from .base import ProviderMixin
 
@@ -94,6 +95,8 @@ class RepositoryProvider(ProviderMixin):
                 {'errors': {'__all__': 'A repository with that name already exists'}},
                 status=400,
             )
+        else:
+            repo_linked.send_robust(repo=repo, sender=self.__class__)
 
         return Response(serialize(repo, request.user), status=201)
 

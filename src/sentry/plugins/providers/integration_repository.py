@@ -8,6 +8,7 @@ from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Repository
+from sentry.signals import repo_linked
 
 
 class IntegrationRepositoryProvider(object):
@@ -68,6 +69,8 @@ class IntegrationRepositoryProvider(object):
                 {'errors': {'__all__': 'A repository with that name already exists'}},
                 status=400,
             )
+        else:
+            repo_linked.send_robust(repo=repo, sender=self.__class__)
 
         analytics.record(
             'integration.repo.added',
