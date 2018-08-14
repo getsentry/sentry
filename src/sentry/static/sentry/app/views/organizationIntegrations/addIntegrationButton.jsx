@@ -91,7 +91,7 @@ export default class AddIntegrationButton extends React.Component {
   render() {
     // eslint-disable-next-line no-unused-vars
     const {provider, onAddIntegration, reinstall, ...buttonProps} = this.props;
-    let buttonText = t(reinstall ? 'Reinstall %s' : 'Add %s', provider.metadata.noun);
+    let buttonText = t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
 
     return (
       <Tooltip
