@@ -139,88 +139,98 @@ exports[`ProjectIntegrations Renders emptystate with access 1`] = `
                             }
                             renderNoFeatureMessage={false}
                           >
-                            <Tooltip
-                              disabled={true}
-                              title="You don't have permission to manage organization integrations"
+                            <FeatureWrapper
+                              hasSuperuser={false}
                             >
-                              <span>
-                                <Button
-                                  disabled={false}
-                                  size="xsmall"
-                                  to="/settings/org-slug/integrations/"
+                              <FeatureWrapperComponent
+                                className="css-i3t65r-FeatureWrapper e144iwy60"
+                                hasSuperuser={false}
+                                showSuperuserNotice={false}
+                              >
+                                <Tooltip
+                                  disabled={true}
+                                  title="You don't have permission to manage organization integrations"
                                 >
-                                  <StyledButton
-                                    aria-label="Manage Integrations"
-                                    disabled={false}
-                                    onClick={[Function]}
-                                    role="button"
-                                    size="xsmall"
-                                    to="/settings/org-slug/integrations/"
-                                  >
-                                    <Component
-                                      aria-label="Manage Integrations"
-                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  <span>
+                                    <Button
                                       disabled={false}
-                                      onClick={[Function]}
-                                      role="button"
                                       size="xsmall"
                                       to="/settings/org-slug/integrations/"
                                     >
-                                      <Link
+                                      <StyledButton
                                         aria-label="Manage Integrations"
-                                        className="css-dkprmi-StyledButton-getColors e17811v30"
                                         disabled={false}
                                         onClick={[Function]}
-                                        onlyActiveOnIndex={false}
                                         role="button"
                                         size="xsmall"
-                                        style={Object {}}
                                         to="/settings/org-slug/integrations/"
                                       >
-                                        <a
+                                        <Component
                                           aria-label="Manage Integrations"
                                           className="css-dkprmi-StyledButton-getColors e17811v30"
                                           disabled={false}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
-                                          style={Object {}}
+                                          to="/settings/org-slug/integrations/"
                                         >
-                                          <ButtonLabel
+                                          <Link
+                                            aria-label="Manage Integrations"
+                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            disabled={false}
+                                            onClick={[Function]}
+                                            onlyActiveOnIndex={false}
+                                            role="button"
                                             size="xsmall"
+                                            style={Object {}}
+                                            to="/settings/org-slug/integrations/"
                                           >
-                                            <Component
-                                              className="css-6q5v1w-ButtonLabel e17811v31"
+                                            <a
+                                              aria-label="Manage Integrations"
+                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              disabled={false}
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
+                                              style={Object {}}
                                             >
-                                              <Flex
-                                                align="center"
-                                                className="css-6q5v1w-ButtonLabel e17811v31"
+                                              <ButtonLabel
                                                 size="xsmall"
                                               >
-                                                <Base
-                                                  align="center"
-                                                  className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                <Component
+                                                  className="css-6q5v1w-ButtonLabel e17811v31"
                                                   size="xsmall"
                                                 >
-                                                  <div
-                                                    className="e17811v31 css-dqr4rq-ButtonLabel"
-                                                    is={null}
+                                                  <Flex
+                                                    align="center"
+                                                    className="css-6q5v1w-ButtonLabel e17811v31"
                                                     size="xsmall"
                                                   >
-                                                    Manage Integrations
-                                                  </div>
-                                                </Base>
-                                              </Flex>
-                                            </Component>
-                                          </ButtonLabel>
-                                        </a>
-                                      </Link>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                              </span>
-                            </Tooltip>
+                                                    <Base
+                                                      align="center"
+                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                      size="xsmall"
+                                                    >
+                                                      <div
+                                                        className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                        is={null}
+                                                        size="xsmall"
+                                                      >
+                                                        Manage Integrations
+                                                      </div>
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </a>
+                                          </Link>
+                                        </Component>
+                                      </StyledButton>
+                                    </Button>
+                                  </span>
+                                </Tooltip>
+                              </FeatureWrapperComponent>
+                            </FeatureWrapper>
                           </Feature>
                         </FeatureContainer>
                       </div>
@@ -353,42 +363,52 @@ exports[`ProjectIntegrations Renders emptystate with access 1`] = `
                               }
                               renderNoFeatureMessage={false}
                             >
-                              <span
-                                key="6"
+                              <FeatureWrapper
+                                hasSuperuser={false}
                               >
-                                <span
-                                  key="1"
+                                <FeatureWrapperComponent
+                                  className="css-i3t65r-FeatureWrapper e144iwy60"
+                                  hasSuperuser={false}
+                                  showSuperuserNotice={false}
                                 >
-                                  Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities.
-                                </span>
-                                <span
-                                  key="2"
-                                >
-                                   Visit the 
-                                </span>
-                                <Link
-                                  key="3"
-                                  to="/settings/org-slug/integrations"
-                                >
-                                  <Link
-                                    onlyActiveOnIndex={false}
-                                    style={Object {}}
-                                    to="/settings/org-slug/integrations"
+                                  <span
+                                    key="6"
                                   >
-                                    <a
-                                      onClick={[Function]}
-                                      style={Object {}}
+                                    <span
+                                      key="1"
                                     >
-                                      Organization Integration Settings
-                                    </a>
-                                  </Link>
-                                </Link>
-                                <span
-                                  key="4"
-                                >
-                                   to configure integrations.
-                                </span>
-                              </span>
+                                      Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities.
+                                    </span>
+                                    <span
+                                      key="2"
+                                    >
+                                       Visit the 
+                                    </span>
+                                    <Link
+                                      key="3"
+                                      to="/settings/org-slug/integrations"
+                                    >
+                                      <Link
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/integrations"
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Organization Integration Settings
+                                        </a>
+                                      </Link>
+                                    </Link>
+                                    <span
+                                      key="4"
+                                    >
+                                       to configure integrations.
+                                    </span>
+                                  </span>
+                                </FeatureWrapperComponent>
+                              </FeatureWrapper>
                             </Feature>
                           </FeatureContainer>
                         </div>
@@ -544,41 +564,29 @@ exports[`ProjectIntegrations Renders emptystate with no permissions 1`] = `
                             }
                             renderNoFeatureMessage={false}
                           >
-                            <Tooltip
-                              disabled={false}
-                              title="You don't have permission to manage organization integrations"
+                            <FeatureWrapper
+                              hasSuperuser={false}
                             >
-                              <span
-                                className="tip"
-                                title="You don't have permission to manage organization integrations"
+                              <FeatureWrapperComponent
+                                className="css-i3t65r-FeatureWrapper e144iwy60"
+                                hasSuperuser={false}
+                                showSuperuserNotice={false}
                               >
-                                <Button
-                                  disabled={true}
-                                  size="xsmall"
-                                  to="/settings/org-slug/integrations/"
+                                <Tooltip
+                                  disabled={false}
+                                  title="You don't have permission to manage organization integrations"
                                 >
-                                  <StyledButton
-                                    aria-label="Manage Integrations"
-                                    disabled={true}
-                                    href={null}
-                                    onClick={[Function]}
-                                    role="button"
-                                    size="xsmall"
-                                    to={null}
+                                  <span
+                                    className="tip"
+                                    title="You don't have permission to manage organization integrations"
                                   >
-                                    <Component
-                                      aria-label="Manage Integrations"
-                                      className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                                    <Button
                                       disabled={true}
-                                      href={null}
-                                      onClick={[Function]}
-                                      role="button"
                                       size="xsmall"
-                                      to={null}
+                                      to="/settings/org-slug/integrations/"
                                     >
-                                      <button
+                                      <StyledButton
                                         aria-label="Manage Integrations"
-                                        className="css-1rcxqx1-StyledButton-getColors e17811v30"
                                         disabled={true}
                                         href={null}
                                         onClick={[Function]}
@@ -586,40 +594,62 @@ exports[`ProjectIntegrations Renders emptystate with no permissions 1`] = `
                                         size="xsmall"
                                         to={null}
                                       >
-                                        <ButtonLabel
+                                        <Component
+                                          aria-label="Manage Integrations"
+                                          className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                                          disabled={true}
+                                          href={null}
+                                          onClick={[Function]}
+                                          role="button"
                                           size="xsmall"
+                                          to={null}
                                         >
-                                          <Component
-                                            className="css-6q5v1w-ButtonLabel e17811v31"
+                                          <button
+                                            aria-label="Manage Integrations"
+                                            className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                                            disabled={true}
+                                            href={null}
+                                            onClick={[Function]}
+                                            role="button"
                                             size="xsmall"
+                                            to={null}
                                           >
-                                            <Flex
-                                              align="center"
-                                              className="css-6q5v1w-ButtonLabel e17811v31"
+                                            <ButtonLabel
                                               size="xsmall"
                                             >
-                                              <Base
-                                                align="center"
-                                                className="e17811v31 css-dqr4rq-ButtonLabel"
+                                              <Component
+                                                className="css-6q5v1w-ButtonLabel e17811v31"
                                                 size="xsmall"
                                               >
-                                                <div
-                                                  className="e17811v31 css-dqr4rq-ButtonLabel"
-                                                  is={null}
+                                                <Flex
+                                                  align="center"
+                                                  className="css-6q5v1w-ButtonLabel e17811v31"
                                                   size="xsmall"
                                                 >
-                                                  Manage Integrations
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                              </span>
-                            </Tooltip>
+                                                  <Base
+                                                    align="center"
+                                                    className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                    size="xsmall"
+                                                  >
+                                                    <div
+                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                      is={null}
+                                                      size="xsmall"
+                                                    >
+                                                      Manage Integrations
+                                                    </div>
+                                                  </Base>
+                                                </Flex>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </Component>
+                                      </StyledButton>
+                                    </Button>
+                                  </span>
+                                </Tooltip>
+                              </FeatureWrapperComponent>
+                            </FeatureWrapper>
                           </Feature>
                         </FeatureContainer>
                       </div>
@@ -751,7 +781,17 @@ exports[`ProjectIntegrations Renders emptystate with no permissions 1`] = `
                               }
                               renderNoFeatureMessage={false}
                             >
-                              Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities.
+                              <FeatureWrapper
+                                hasSuperuser={false}
+                              >
+                                <FeatureWrapperComponent
+                                  className="css-i3t65r-FeatureWrapper e144iwy60"
+                                  hasSuperuser={false}
+                                  showSuperuserNotice={false}
+                                >
+                                  Project Integrations can be enabled here for this project. Currently no organization integrations are enabled with project-specific integration capabilities.
+                                </FeatureWrapperComponent>
+                              </FeatureWrapper>
                             </Feature>
                           </FeatureContainer>
                         </div>

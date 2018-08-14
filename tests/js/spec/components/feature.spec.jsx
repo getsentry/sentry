@@ -31,11 +31,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('has accesss (has feature because optional)', function() {
@@ -44,11 +46,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: false,
+          hasAccess: true,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('has feature and access', function() {
@@ -62,11 +66,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          hasAccess: true,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('has feature but no access', function() {
@@ -77,11 +83,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: false,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('has access but no feature', function() {
@@ -92,11 +100,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: false,
+          hasAccess: true,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('has no access and no feature', function() {
@@ -107,11 +117,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        hasAccess: false,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: false,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('calls render function when no feature', function() {
@@ -138,11 +150,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: false,
+          hasAccess: true,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('can specify project from props', function() {
@@ -156,12 +170,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: true,
-
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('handles no org/project', function() {
@@ -177,11 +192,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        hasAccess: false,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: false,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('handles features prefixed with org/project', function() {
@@ -196,11 +213,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
 
       mount(
         <Feature organization={organization} project={project} feature={['project:bar']}>
@@ -209,11 +228,13 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        hasAccess: true,
-        hasSuperuser: true,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('is superuser', function() {

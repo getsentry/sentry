@@ -82,149 +82,159 @@ exports[`ProjectPluginRow renders 1`] = `
       }
       renderNoFeatureMessage={false}
     >
-      <Flex
-        align="center"
-        className="amazon-sqs"
-        flex="1"
-        key="amazon-sqs"
+      <FeatureWrapper
+        hasSuperuser={false}
       >
-        <Base
-          align="center"
-          className="amazon-sqs css-1yrw3fm"
-          flex="1"
+        <FeatureWrapperComponent
+          className="css-i3t65r-FeatureWrapper e144iwy60"
+          hasSuperuser={false}
+          showSuperuserNotice={false}
         >
-          <div
-            className="amazon-sqs css-1yrw3fm"
-            is={null}
+          <Flex
+            align="center"
+            className="amazon-sqs"
+            flex="1"
+            key="amazon-sqs"
           >
-            <PluginInfo>
-              <div
-                className="css-sm2hu2-PluginInfo ectqpp0"
-              >
-                <StyledPluginIcon
-                  pluginId="amazon-sqs"
-                  size={48}
-                >
-                  <PluginIcon
-                    className="css-228l0j-StyledPluginIcon ectqpp2"
-                    pluginId="amazon-sqs"
-                    size={48}
-                  >
-                    <IntegrationIcon
-                      className="css-228l0j-StyledPluginIcon ectqpp2"
-                      image={Object {}}
-                      size={48}
-                    >
-                      <div
-                        className="ectqpp2 css-lxugym-IntegrationIcon-StyledPluginIcon e1bhjds90"
-                        size={48}
-                      />
-                    </IntegrationIcon>
-                  </PluginIcon>
-                </StyledPluginIcon>
-                <Flex
-                  direction="column"
-                  justify="center"
-                >
-                  <Base
-                    className="css-11zjqd3"
-                    direction="column"
-                    justify="center"
-                  >
-                    <div
-                      className="css-11zjqd3"
-                      is={null}
-                    >
-                      <PluginName>
-                        <div
-                          className="css-36lssg-PluginName ectqpp1"
-                        >
-                          Amazon SQS 
-                          <DynamicWrapper
-                            fixed={
-                              <Version>
-                                v10
-                              </Version>
-                            }
-                            value={
-                              <Version>
-                                v8.23.0.dev0
-                              </Version>
-                            }
-                          >
-                            <span>
-                              <Version>
-                                <span
-                                  className="css-1det7j8-Version ectqpp3"
-                                >
-                                  v8.23.0.dev0
-                                </span>
-                              </Version>
-                            </span>
-                          </DynamicWrapper>
-                        </div>
-                      </PluginName>
-                      <div>
-                        <ExternalLink
-                          className="css-8vm1xp-grayText"
-                          href="https://github.com/getsentry/sentry"
-                          rel="noreferrer noopener"
-                          target="_blank"
-                        >
-                          <a
-                            className="css-8vm1xp-grayText"
-                            href="https://github.com/getsentry/sentry"
-                            rel="noreferrer noopener"
-                            target="_blank"
-                          >
-                            Sentry Team
-                          </a>
-                        </ExternalLink>
-                        <span>
-                           
-                          ·
-                           
-                          <Link
-                            className="css-8vm1xp-grayText"
-                            onlyActiveOnIndex={false}
-                            style={Object {}}
-                            to="amazon-sqs"
-                          >
-                            <a
-                              className="css-8vm1xp-grayText"
-                              onClick={[Function]}
-                              style={Object {}}
-                            >
-                              Configure plugin
-                            </a>
-                          </Link>
-                        </span>
-                      </div>
-                    </div>
-                  </Base>
-                </Flex>
-              </div>
-            </PluginInfo>
-            <Switch
-              isActive={false}
-              isDisabled={false}
-              size="lg"
-              toggle={[Function]}
+            <Base
+              align="center"
+              className="amazon-sqs css-1yrw3fm"
+              flex="1"
             >
               <div
-                aria-checked={false}
-                className="switch switch-lg"
-                onClick={[Function]}
-                role="checkbox"
+                className="amazon-sqs css-1yrw3fm"
+                is={null}
               >
-                <span
-                  className="switch-toggle"
-                />
+                <PluginInfo>
+                  <div
+                    className="css-sm2hu2-PluginInfo ectqpp0"
+                  >
+                    <StyledPluginIcon
+                      pluginId="amazon-sqs"
+                      size={48}
+                    >
+                      <PluginIcon
+                        className="css-228l0j-StyledPluginIcon ectqpp2"
+                        pluginId="amazon-sqs"
+                        size={48}
+                      >
+                        <IntegrationIcon
+                          className="css-228l0j-StyledPluginIcon ectqpp2"
+                          image={Object {}}
+                          size={48}
+                        >
+                          <div
+                            className="ectqpp2 css-lxugym-IntegrationIcon-StyledPluginIcon e1bhjds90"
+                            size={48}
+                          />
+                        </IntegrationIcon>
+                      </PluginIcon>
+                    </StyledPluginIcon>
+                    <Flex
+                      direction="column"
+                      justify="center"
+                    >
+                      <Base
+                        className="css-11zjqd3"
+                        direction="column"
+                        justify="center"
+                      >
+                        <div
+                          className="css-11zjqd3"
+                          is={null}
+                        >
+                          <PluginName>
+                            <div
+                              className="css-36lssg-PluginName ectqpp1"
+                            >
+                              Amazon SQS 
+                              <DynamicWrapper
+                                fixed={
+                                  <Version>
+                                    v10
+                                  </Version>
+                                }
+                                value={
+                                  <Version>
+                                    v8.23.0.dev0
+                                  </Version>
+                                }
+                              >
+                                <span>
+                                  <Version>
+                                    <span
+                                      className="css-1det7j8-Version ectqpp3"
+                                    >
+                                      v8.23.0.dev0
+                                    </span>
+                                  </Version>
+                                </span>
+                              </DynamicWrapper>
+                            </div>
+                          </PluginName>
+                          <div>
+                            <ExternalLink
+                              className="css-8vm1xp-grayText"
+                              href="https://github.com/getsentry/sentry"
+                              rel="noreferrer noopener"
+                              target="_blank"
+                            >
+                              <a
+                                className="css-8vm1xp-grayText"
+                                href="https://github.com/getsentry/sentry"
+                                rel="noreferrer noopener"
+                                target="_blank"
+                              >
+                                Sentry Team
+                              </a>
+                            </ExternalLink>
+                            <span>
+                               
+                              ·
+                               
+                              <Link
+                                className="css-8vm1xp-grayText"
+                                onlyActiveOnIndex={false}
+                                style={Object {}}
+                                to="amazon-sqs"
+                              >
+                                <a
+                                  className="css-8vm1xp-grayText"
+                                  onClick={[Function]}
+                                  style={Object {}}
+                                >
+                                  Configure plugin
+                                </a>
+                              </Link>
+                            </span>
+                          </div>
+                        </div>
+                      </Base>
+                    </Flex>
+                  </div>
+                </PluginInfo>
+                <Switch
+                  isActive={false}
+                  isDisabled={false}
+                  size="lg"
+                  toggle={[Function]}
+                >
+                  <div
+                    aria-checked={false}
+                    className="switch switch-lg"
+                    onClick={[Function]}
+                    role="checkbox"
+                  >
+                    <span
+                      className="switch-toggle"
+                    />
+                  </div>
+                </Switch>
               </div>
-            </Switch>
-          </div>
-        </Base>
-      </Flex>
+            </Base>
+          </Flex>
+        </FeatureWrapperComponent>
+      </FeatureWrapper>
     </Feature>
   </FeatureContainer>
 </ProjectPluginRow>
