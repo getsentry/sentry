@@ -63,14 +63,14 @@ def get_integration_from_jwt(token, path, provider, query_params, method='GET'):
         raise AtlassianConnectValidationError('No integration found')
     # Verify the signature with the sharedSecret and
     # the algorithm specified in the header's alg field.
-
-    # If it's BitBucket, don't verify audience
+    options = {}
+    # If it's BitBucket, we only need the token + shared secret
+    # it will fail on this: https://github.com/jpadilla/pyjwt/blob/d25c92ca5e9980ca7bc8b31420bf36e3f4a9e3f0/jwt/api_jwt.py#L190
+    # if we try to verify the audience
     if provider == 'bitbucket':
-        decoded_verified = jwt.decode(
-            token, integration.metadata['shared_secret'], options={
-                'verify_aud': False})
-    else:
-        decoded_verified = jwt.decode(token, integration.metadata['shared_secret'])
+        options = {'verify_aud': False}
+
+    decoded_verified = jwt.decode(token, integration.metadata['shared_secret'], options=options)
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 
@@ -78,6 +78,7 @@ def get_integration_from_jwt(token, path, provider, query_params, method='GET'):
     if qsh != decoded_verified['qsh']:
         raise AtlassianConnectValidationError('Query hash mismatch')
 
+    raise AtlassianConnectValidationError
     return integration
 
 

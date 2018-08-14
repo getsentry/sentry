@@ -150,6 +150,6 @@ class VerifyInstallation(PipelineView):
         try:
             integration = get_integration_from_request(request, BitbucketIntegrationProvider.key)
         except AtlassianConnectValidationError:
-            raise AtlassianConnectValidationError('Unable to verify installation.')
+            return pipeline.error('Unable to verify installation.')
         pipeline.bind_state('external_id', integration.external_id)
         return pipeline.next_step()
