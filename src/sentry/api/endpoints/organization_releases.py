@@ -14,6 +14,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
 )
 from sentry.models import Activity, Environment, Release, ReleaseEnvironment
+from sentry.signals import release_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -171,6 +172,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     organization_id=organization.id,
                     version=result['version'],
                 ), False
+            else:
+                release_created.send_robust(release=release, sender=self.__class__)
 
             new_projects = []
             for project in projects:
