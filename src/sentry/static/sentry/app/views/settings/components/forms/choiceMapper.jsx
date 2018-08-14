@@ -56,7 +56,7 @@ export default class ChoiceMapper extends React.Component {
      * }
      */
     mappedSelectors: PropTypes.objectOf(
-      PropTypes.oneOf([selectControlShape, PropTypes.objectOf(selectControlShape)])
+      PropTypes.oneOfType([selectControlShape, PropTypes.objectOf(selectControlShape)])
     ).isRequired,
     /**
      * If using mappedSelectors to specifically map different choice selectors
