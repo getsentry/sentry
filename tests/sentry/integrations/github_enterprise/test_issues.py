@@ -73,11 +73,12 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         responses.add(
             responses.POST,
             'https://35.232.149.196/api/v3/repos/getsentry/sentry/issues',
-            json={'number': 321, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
+            json={'number': 321, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
         )
 
         form_data = {
-            'repo': 'getsentry/sentry',
+            'repo': 'sentry',
             'title': 'hello',
             'description': 'This is the description',
         }
@@ -133,11 +134,12 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         responses.add(
             responses.GET,
             'https://35.232.149.196/api/v3/repos/getsentry/sentry/issues/321',
-            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
+            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
         )
 
         data = {
-            'repo': 'getsentry/sentry',
+            'repo': 'sentry',
             'externalIssue': issue_id,
             'comment': 'hello',
         }
