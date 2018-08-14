@@ -825,6 +825,7 @@ window.TestStubs = {
       resolveAge: 48,
       sensitiveFields: ['creditcard', 'ssn'],
       safeFields: ['business-email', 'company'],
+      storeCrashReports: false,
       allowedDomains: ['example.com', 'https://example.com'],
       scrapeJavaScript: true,
       securityToken: 'security-token',

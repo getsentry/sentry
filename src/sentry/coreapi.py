@@ -25,6 +25,7 @@ from six import BytesIO
 from time import time
 
 from sentry import filters
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.interfaces.base import get_interface
 from sentry.event_manager import EventManager
@@ -348,14 +349,25 @@ class ClientApiHelper(object):
         if 'sdk' in data:
             data['sdk'].pop('client_ip', None)
 
-    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
+    def insert_data_to_database(self, data, start_time=None,
+                                from_reprocessing=False, attachments=None):
         if start_time is None:
             start_time = time()
+
         # we might be passed some sublcasses of dict that fail dumping
         if isinstance(data, DOWNGRADE_DATA_TYPES):
             data = dict(data.items())
+
+        cache_timeout = 3600
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
-        default_cache.set(cache_key, data, timeout=3600)
+        default_cache.set(cache_key, data, cache_timeout)
+
+        # Attachments will be empty or None if the "event-attachments" feature
+        # is turned off. For native crash reports it will still contain the
+        # crash dump (e.g. minidump) so we can load it during processing.
+        if attachments is not None:
+            attachment_cache.set(cache_key, attachments, cache_timeout)
+
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=start_time,
