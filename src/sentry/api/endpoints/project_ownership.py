@@ -122,6 +122,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         )
         if serializer.is_valid():
             ownership = serializer.save()
-            ownership_rule_created.send(project=project, sender=self.__class__)
+            ownership_rule_created.send_robust(project=project, sender=self.__class__)
             return Response(serialize(ownership, request.user))
         return Response(serializer.errors, status=400)

@@ -112,7 +112,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 name=result.get('name'),
                 url=result.get('url'),
             )
-            deploy_created.send(deploy=deploy, sender=self.__class__)
+            deploy_created.send_robust(deploy=deploy, sender=self.__class__)
 
             # XXX(dcramer): this has a race for most recent deploy, but
             # should be unlikely to hit in the real world

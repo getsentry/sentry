@@ -685,7 +685,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 'ignoreWindow': ignore_window,
                                 'actor': serialize(extract_lazy_object(request.user), request.user),
                             }
-                        issue_ignored.send(project=project, sender=self.__class__)
+                        issue_ignored.send_robust(project=project, sender=self.__class__)
                     else:
                         GroupSnooze.objects.filter(
                             group__in=group_ids,

@@ -96,7 +96,7 @@ class RepositoryProvider(ProviderMixin):
                 status=400,
             )
         else:
-            repo_linked.send(repo=repo, sender=self.__class__)
+            repo_linked.send_robust(repo=repo, sender=self.__class__)
 
         return Response(serialize(repo, request.user), status=201)
 

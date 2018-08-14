@@ -86,7 +86,7 @@ def resolved_in_commit(instance, created, **kwargs):
                         id=repo.integration_id,
                         organization_id=repo.organization_id,
                     )
-                resolved_with_commit.send(
+                resolved_with_commit.send_robust(
                     organization_id=repo.organization_id, sender='resolved_in_commit')
 
 
