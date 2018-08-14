@@ -1,9 +1,9 @@
 import React from 'react';
 
-class OrganizationHealthTransactions extends React.Component {
+class OrganizationHealthErrors extends React.Component {
   render() {
-    return <div>Transactions</div>;
+    return <div>Errors</div>;
   }
 }
 
-export default OrganizationHealthTransactions;
+export default OrganizationHealthErrors;
