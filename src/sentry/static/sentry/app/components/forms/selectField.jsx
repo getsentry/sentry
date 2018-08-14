@@ -43,7 +43,11 @@ export default class SelectField extends FormField {
       //
       // This can happen when this is apart of a field, and it re-renders onChange for a different field,
       // there will be a mismatch between this component's state.value and `this.getValue` result above
-      if (!isEqual(newValue, coercedValue) && !!newValue !== !!coercedValue) {
+      if (!newValue && !coercedValue) {
+        return;
+      }
+
+      if (!isEqual(newValue, coercedValue)) {
         this.setValue(newValue);
       }
     }
