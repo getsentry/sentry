@@ -11,6 +11,7 @@ import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import Feature from 'app/components/feature';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import PreferencesStore from 'app/stores/preferencesStore';
@@ -194,6 +195,15 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
+                <Feature feature={['health']} isSuperuser tint description="Health">
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-health" />}
+                    label={t('Health')}
+                    to={`/organizations/${organization.slug}/health/`}
+                  />
+                </Feature>
               </SidebarSection>
 
               <SidebarSection>
