@@ -136,7 +136,8 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 },
             },
         })
-        assert 'subscription' in data
+        subscription = data['metadata']['subscription']
+        assert subscription['id'] is not None and subscription['secret'] is not None
 
 
 class VstsIntegrationTest(VstsIntegrationTestCase):
