@@ -35,6 +35,10 @@ class OrganizationIntegration(Model):
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.VISIBLE,
+        choices=ObjectStatus.as_choices(),
+    )
 
     class Meta:
         app_label = 'sentry'
