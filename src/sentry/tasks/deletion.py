@@ -403,9 +403,12 @@ def delete_organization_integration(object_id, transaction_id=None, actor_id=Non
     from sentry.models import OrganizationIntegration
 
     try:
-        OrganizationIntegration.objects.get(id=object_id)
+        instance = OrganizationIntegration.objects.get(id=object_id)
     except OrganizationIntegration.DoesNotExist:
         return
+
+    if instance.status == ObjectStatus.VISIBLE:
+        raise DeleteAborted
 
     task = deletions.get(
         model=OrganizationIntegration,

@@ -9,7 +9,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, ObjectStatus, OrganizationIntegration
 from sentry.tasks.deletion import delete_organization_integration
 
 
@@ -37,14 +37,21 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
             )
         except OrganizationIntegration.DoesNotExist:
             raise Http404
-        delete_organization_integration.apply_async(
-            kwargs={
-                'object_id': org_integration.id,
-                'transaction_id': uuid4().hex,
-                'actor_id': request.user.id,
-            },
-            countdown=0,
-        )
+
+        updated = OrganizationIntegration.objects.filter(
+            id=org_integration.id,
+            status=ObjectStatus.VISIBLE,
+        ).update(status=ObjectStatus.PENDING_DELETION)
+
+        if updated:
+            delete_organization_integration.apply_async(
+                kwargs={
+                    'object_id': org_integration.id,
+                    'transaction_id': uuid4().hex,
+                    'actor_id': request.user.id,
+                },
+                countdown=0,
+            )
 
         return self.respond(status=204)
 
