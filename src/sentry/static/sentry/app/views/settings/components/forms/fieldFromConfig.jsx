@@ -42,7 +42,7 @@ export default class FieldFromConfig extends React.Component {
        * Function to format the value displayed in the undo toast. May also be
        * specified as false to disable showing the changed fields in the toast.
        */
-      formatMessageValue: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
+      formatMessageValue: PropTypes.oneOfType([PropTypes.func, PropTypes.oneOf([false])]),
       /**
        * Should show a "return key" icon in input?
        */
