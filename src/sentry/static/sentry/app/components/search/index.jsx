@@ -87,10 +87,11 @@ class Search extends React.Component {
     navigateTo(nextPath, router);
   };
 
-  saveQueryMetrics = debounce(
-    query => analytics(`${this.props.source}.query`, {query}),
-    200
-  );
+  saveQueryMetrics = debounce(query => {
+    if (query) {
+      analytics(`${this.props.source}.query`, {query});
+    }
+  }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
     // resultObj is a fuse.js result object with {item, matches, score}
