@@ -185,6 +185,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
             "ssn",
           ],
           "slug": "project-slug",
+          "storeCrashReports": false,
           "subjectPrefix": "[my-org]",
           "subjectTemplate": "[$project] \${tag:level}: $title",
           "teams": Array [],

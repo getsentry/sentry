@@ -28,11 +28,11 @@ class BaseCache(local):
             key,
         )
 
-    def set(self, key, value, timeout, version=None):
+    def set(self, key, value, timeout, version=None, raw=False):
         raise NotImplementedError
 
     def delete(self, key, version=None):
         raise NotImplementedError
 
-    def get(self, key, version=None):
+    def get(self, key, version=None, raw=False):
         raise NotImplementedError
