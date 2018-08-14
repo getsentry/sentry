@@ -5,11 +5,8 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import analytics from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/buttons/button';
-import ConfigStore from 'app/stores/configStore';
-import InstallReactTest from 'app/views/planout/installReact';
 import LanguageNav from 'app/views/projectInstall/languageNav';
 import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
@@ -59,14 +56,12 @@ const ProjectInstallPlatform = createReactClass({
       integration,
       platform,
       html: null,
-      experimentPlatforms: new Set(['javascript-react']),
     };
   },
 
   componentDidMount() {
     this.fetchData();
     $(window).scrollTop(0);
-    this.recordAnalytics();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -107,28 +102,6 @@ const ProjectInstallPlatform = createReactClass({
         {display || platform}
       </Link>
     );
-  },
-
-  inInstallExperiment() {
-    let {experimentPlatforms, integration} = this.state;
-    if (!integration || !integration.id) return '';
-
-    let currentPlatform = integration.id;
-    let installExperiment =
-      ConfigStore.get('features').has('install-experiment') &&
-      experimentPlatforms.has(currentPlatform);
-    return installExperiment;
-  },
-
-  recordAnalytics() {
-    let {experimentPlatforms, integration} = this.state;
-
-    if (!integration || !experimentPlatforms.has(integration.id)) return;
-
-    analytics('experiment.installation_instructions', {
-      integration: integration.id,
-      experiment: this.inInstallExperiment(),
-    });
   },
 
   renderSidebar() {
@@ -210,58 +183,10 @@ const ProjectInstallPlatform = createReactClass({
     );
   },
 
-  renderTestBody() {
-    let {integration, platform} = this.state;
-    let {dsnPublic} = this.props.platformData;
-    let {orgId, projectId} = this.props.params;
-
-    if (!integration || !platform) {
-      return <NotFound />;
-    }
-
-    return (
-      <Panel>
-        <PanelHeader hasButtons>
-          {t('Configure %(integration)s', {integration: integration.name})}
-          <Button size="small" href={integration.link} external>
-            {t('Full Documentation')}
-          </Button>
-        </PanelHeader>
-
-        <PanelBody disablePadding={false}>
-          {this.state.loading ? (
-            <LoadingIndicator />
-          ) : this.state.error ? (
-            <LoadingError onRetry={this.fetchData} />
-          ) : (
-            <InstallReactTest dsn={dsnPublic} />
-          )}
-          {this.isGettingStarted() && (
-            <Button
-              priority="primary"
-              size="large"
-              to={`/${orgId}/${projectId}/#welcome`}
-              style={{marginTop: 20}}
-            >
-              {t('Got it! Take me to the Issue Stream.')}
-            </Button>
-          )}
-        </PanelBody>
-      </Panel>
-    );
-  },
-
   render() {
-    let installExperiment;
-    if (!this.state.loading) {
-      installExperiment = this.inInstallExperiment();
-    }
-
     return (
       <div className="install row">
-        <div className="install-content col-md-10">
-          {installExperiment ? this.renderTestBody() : this.renderBody()}
-        </div>
+        <div className="install-content col-md-10">{this.renderBody()}</div>
         {this.renderSidebar()}
       </div>
     );
