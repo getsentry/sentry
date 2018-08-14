@@ -42,8 +42,8 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   getIntegrationRepos() {
-    let provider = `integrations:${this.props.integration.provider.key}`;
-    return this.state.itemList.filter(repo => repo.provider.id == provider);
+    let integrationId = this.props.integration.id;
+    return this.state.itemList.filter(repo => repo.integrationId === integrationId);
   }
 
   getStatusLabel(repo) {
