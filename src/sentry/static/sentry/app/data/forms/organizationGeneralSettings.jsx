@@ -198,15 +198,6 @@ const formGroups = [
         label: t('Allow JavaScript source fetching'),
         help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
       },
-      {
-        name: 'storeCrashReports',
-        type: 'boolean',
-        label: t('Store Native Crash Reports'),
-        help: t(
-          'Store native crash reports such as Minidumps for improved processing and download in issue details'
-        ),
-        visible: ({features}) => features.has('event-attachments'),
-      },
     ],
   },
 ];
