@@ -26,5 +26,5 @@ class RedisAttachmentCache(BaseAttachmentCache):
             'SENTRY_ATTACHMENTS_REDIS_CLUSTER',
             'rc-short'
         )
-        cache = RedisCache(cluster=redis.redis_clusters.get(cluster_id))
+        cache = RedisCache(client=redis.redis_clusters.get(cluster_id))
         super(RedisAttachmentCache, self).__init__(cache, **options)

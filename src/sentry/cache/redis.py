@@ -23,11 +23,11 @@ class RedisCache(BaseCache):
     max_size = 50 * 1024 * 1024  # 50MB
 
     def __init__(self, **options):
-        cluster = options.pop('cluster', None)
-        if cluster is None:
+        client = options.pop('client', None)
+        if client is None:
             cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
-        self.cluster = cluster
-        self.client = self.cluster.get_routing_client()
+            client = cluster.get_routing_client()
+        self.client = client
         super(RedisCache, self).__init__(**options)
 
     def set(self, key, value, timeout, version=None, raw=False):

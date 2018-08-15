@@ -10,11 +10,6 @@ from sentry.testutils import TestCase
 from sentry.utils.imports import import_string
 
 
-class FakeCluster(object):
-    def get_routing_client(self):
-        return ROUTING_CLIENT
-
-
 class FakeClient(object):
     def get(self, key):
         if key == 'c:1:foo:a':
@@ -23,19 +18,17 @@ class FakeClient(object):
             return zlib.compress(b'Hello World!')
 
 
-ROUTING_CLIENT = FakeClient()
-CLUSTER = FakeCluster()
+CLIENT = FakeClient()
 
 
 class RedisAttachmentTest(TestCase):
 
-    @mock.patch('sentry.utils.redis.redis_clusters.get', return_value=CLUSTER)
+    @mock.patch('sentry.utils.redis.redis_clusters.get', return_value=CLIENT)
     def test_process_pending_one_batch(self, cluster_get):
         attachment_cache = import_string('sentry.attachments.redis.RedisAttachmentCache')()
         cluster_get.assert_any_call('rc-short')
         assert isinstance(attachment_cache.inner, RedisCache)
-        assert attachment_cache.inner.client is ROUTING_CLIENT
-        assert attachment_cache.inner.cluster is CLUSTER
+        assert attachment_cache.inner.client is CLIENT
 
         rv = attachment_cache.get('foo')
         assert len(rv) == 1
