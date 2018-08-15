@@ -23,7 +23,7 @@ class OnboardingStatus extends React.Component {
       currentPanel !== prevProps.currentPanel &&
       (currentPanel || prevProps.currentPanel == 'todos')
     ) {
-      this.recordAnalytics(currentPanel, org.id);
+      this.recordAnalytics(currentPanel, parseInt(org.id, 10));
     }
   }
 
