@@ -34,7 +34,7 @@ export default class SelectField extends React.Component {
     multiple: false,
     small: false,
     formatMessageValue: (value, props) =>
-      (getChoices(props).find(v => v[0] === value) || [null, value])[1],
+      (getChoices(props).find(choice => choice[0] === value) || [null, value])[1],
   };
 
   handleChange = (onBlur, onChange, optionObj) => {
