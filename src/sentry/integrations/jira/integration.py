@@ -112,8 +112,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'type': 'boolean',
                 'label': _('Sync Jira Status to Sentry'),
                 'help': _('When a Jira ticket is marked done, resolve its linked issue in Sentry.'
-                          'When a Jira ticket is removed from being done, unresolve its linked Sentry issue.'
-                          ),
+                          ' When a Jira ticket is removed from being done, unresolve its linked Sentry issue.'),
             },
             {
                 'name': self.inbound_assignee_key,

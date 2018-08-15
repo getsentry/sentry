@@ -43,8 +43,7 @@ class JiraDescriptorEndpoint(Endpoint):
                         'event': 'jira:issue_updated',
                         'url': reverse('sentry-extensions-jira-issue-updated'),
                         'excludeBody': False,
-                    }
-                    ]
+                    }],
                 },
                 'scopes': [
                     'read',
