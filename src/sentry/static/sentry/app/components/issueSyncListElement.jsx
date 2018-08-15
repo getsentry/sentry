@@ -13,6 +13,7 @@ const hoverCardContainer = css`
 
 const hoverCardStyles = css`
   min-height: 0;
+  bottom: ${28 + 5}px; /* 28px is the current bottom value called in hovercard.less */
 `;
 
 class IssueSyncElement extends React.Component {
