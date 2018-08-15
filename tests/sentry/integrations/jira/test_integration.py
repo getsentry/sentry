@@ -22,7 +22,27 @@ SAMPLE_CREATE_META_RESPONSE = """
       "key": "ABC",
       "name": "ABC Project",
       "avatarUrls": {},
-      "issuetypes": []
+      "issuetypes": [
+        {
+          "self": "http://www.example.com/jira/rest/api/2/issueType/1",
+          "id": "1",
+          "description": "An error in the code",
+          "iconUrl": "http://www.example.com/jira/images/icons/issuetypes/bug.png",
+          "name": "Bug",
+          "subtask": false,
+          "fields": {
+            "issuetype": {
+              "required": true,
+              "name": "Issue Type",
+              "key": "issuetype",
+              "hasDefaultValue": false,
+              "operations": [
+                "set"
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "self": "http://www.example.com/jira/rest/api/2/project/EX",
