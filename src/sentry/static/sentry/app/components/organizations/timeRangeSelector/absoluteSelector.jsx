@@ -31,7 +31,7 @@ export default class AbsoluteSelector extends React.Component {
     const {className, start, end, onChange} = this.props;
 
     return (
-      <Box p={2} classsName={className}>
+      <Box p={2} className={className}>
         update time range (UTC)
         <DateTimeField
           name="start"
