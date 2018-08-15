@@ -18,7 +18,8 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         )
         self.integration.add_organization(self.org.id, config={'setting': 'value'})
 
-        self.path = '/api/0/organizations/{}/integrations/{}/'.format(self.org.slug, self.integration.id)
+        self.path = '/api/0/organizations/{}/integrations/{}/'.format(
+            self.org.slug, self.integration.id)
 
     def test_simple(self):
         response = self.client.get(self.path, format='json')
@@ -36,19 +37,20 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         assert self.integration.add_project(project1.id)
         assert self.integration.add_project(project2.id)
 
-        response = self.client.delete(self.path, format='json')
+        with self.tasks():
+            response = self.client.delete(self.path, format='json')
 
-        assert response.status_code == 204, response.content
-        assert Integration.objects.filter(id=self.integration.id).exists()
+            assert response.status_code == 204, response.content
+            assert Integration.objects.filter(id=self.integration.id).exists()
 
-        # Ensure both Organization *and* Project integrations are removed
-        assert not OrganizationIntegration.objects.filter(
-            integration=self.integration,
-            organization=self.org,
-        ).exists()
-        assert not ProjectIntegration.objects.filter(
-            project__organization=self.org
-        ).exists()
+            # Ensure both Organization *and* Project integrations are removed
+            assert not OrganizationIntegration.objects.filter(
+                integration=self.integration,
+                organization=self.org,
+            ).exists()
+            assert not ProjectIntegration.objects.filter(
+                project__organization=self.org
+            ).exists()
 
     def test_update_config(self):
         config = {
