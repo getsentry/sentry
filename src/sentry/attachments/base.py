@@ -48,7 +48,9 @@ class CachedAttachment(object):
 
 
 class BaseAttachmentCache(object):
-    def __init__(self, inner, appendix='a', **options):
+    def __init__(self, inner, appendix=None):
+        if appendix is None:
+            appendix = 'a'
         self.appendix = appendix
         self.inner = inner
 
