@@ -4,6 +4,16 @@ import React from 'react';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
 
+const getChoices = props => {
+  let choices = props.choices || [];
+
+  if (typeof props.choices === 'function') {
+    choices = props.choices(props);
+  }
+
+  return choices;
+};
+
 export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
@@ -23,6 +33,8 @@ export default class SelectField extends React.Component {
     escapeMarkup: true,
     multiple: false,
     small: false,
+    formatMessageValue: (value, props) =>
+      (getChoices(props).find(choice => choice[0] === value) || [null, value])[1],
   };
 
   handleChange = (onBlur, onChange, optionObj) => {
@@ -49,11 +61,7 @@ export default class SelectField extends React.Component {
         {...otherProps}
         alignRight={this.props.small}
         field={({onChange, onBlur, disabled, ...props}) => {
-          let choices = props.choices || [];
-
-          if (typeof props.choices === 'function') {
-            choices = props.choices(props);
-          }
+          let choices = getChoices(props);
 
           return (
             <SelectControl

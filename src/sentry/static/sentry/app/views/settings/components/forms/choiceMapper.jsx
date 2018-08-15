@@ -73,6 +73,10 @@ export default class ChoiceMapper extends React.Component {
     addButtonText: t('Add Item'),
     perItemMapping: false,
     allowEmpty: false,
+    // Since we're saving an object, there isn't a great way to render the
+    // change within the toast. Just turn off displaying the from/to portion of
+    // the message.
+    formatMessageValue: false,
   };
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
