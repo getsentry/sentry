@@ -21,9 +21,13 @@ class OrganizationHealth extends React.Component {
 
   constructor(props) {
     super(props);
+    let {organization} = props;
+    let projects = organization.projects
+      .filter(({isMember}) => isMember)
+      .map(({id}) => id);
     this.state = {
       params: {
-        projects: [],
+        projects,
         environments: [],
         period: '7d',
       },
