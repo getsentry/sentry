@@ -1,7 +1,10 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
+import OrganizationContext from 'app/views/organizationContext';
+import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
+import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import ProjectOwnership from 'app/views/settings/project/projectOwnership';
 
 describe('ProjectTeamsSettings', function() {
@@ -25,16 +28,22 @@ describe('ProjectTeamsSettings', function() {
   });
 
   describe('render()', function() {
-    it('renders', function() {
-      let wrapper = shallow(
-        <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
-          organization={org}
-          project={project}
-        />,
+    it('renders', async function() {
+      let wrapper = mount(
+        <OrganizationContext params={{orgId: 'org-slug'}}>
+          <SettingsWrapper>
+            <SettingsProjectProvider>
+              <ProjectOwnership
+                params={{orgId: org.slug, projectId: project.slug}}
+                organization={org}
+                project={project}
+              />
+            </SettingsProjectProvider>
+          </SettingsWrapper>
+        </OrganizationContext>,
         TestStubs.routerContext()
       );
-      expect(wrapper).toMatchSnapshot();
+      await expect(wrapper).toSnapshot();
     });
   });
 });

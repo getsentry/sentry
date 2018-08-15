@@ -26,6 +26,9 @@ import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import theme from 'app/utils/theme';
 
+// Global emotion styles (fonts, etc)
+import 'app/styles/global';
+
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
 function getAlertTypeForProblem(problem) {

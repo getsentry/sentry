@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 import AlertLink from 'app/components/alertLink';
 
 describe('AlertLink', function() {
@@ -7,17 +7,20 @@ describe('AlertLink', function() {
     let wrapper = shallow(
       <AlertLink to="/settings/accounts/notifications">
         This is an external link button
-      </AlertLink>
+      </AlertLink>,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with icon', function() {
-    let wrapper = shallow(
+    let wrapper = mount(
       <AlertLink to="/settings/accounts/notifications" icon="icon-mail">
         This is an external link button
-      </AlertLink>
+      </AlertLink>,
+      TestStubs.routerContext()
     );
+    expect(wrapper).toSnapshot();
     expect(wrapper).toMatchSnapshot();
   });
 });
