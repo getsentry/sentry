@@ -7,12 +7,12 @@ import HookStore from 'app/stores/hookStore';
  * 					note that params need to be string
  */
 export default function logExperiment(experimentName, experiments, data) {
-	let assignment = experiments[experimentName];
-	let param = data.params;
+  let assignment = experiments[experimentName];
+  let param = data.params;
 
-	if (assignment === null) return;
+  if (assignment === null) return;
 
-	data.experiment_name = experimentName;
-	data.params = `{${param}: ${experiments[experimentName]}}`
-	HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
+  data.experiment_name = experimentName;
+  data.params = `{${param}: ${experiments[experimentName]}}`;
+  HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
 }
