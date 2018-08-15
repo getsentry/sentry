@@ -11,6 +11,10 @@ const hoverCardContainer = css`
   align-items: center;
 `;
 
+const hoverCardStyles = css`
+  min-height: 0;
+`;
+
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
@@ -20,6 +24,8 @@ class IssueSyncElement extends React.Component {
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
     integrationName: PropTypes.string,
+    hoverCardHeader: PropTypes.node,
+    hoverCardBody: PropTypes.node,
   };
 
   isLinked() {
@@ -85,12 +91,15 @@ class IssueSyncElement extends React.Component {
   }
 
   render() {
+    console.log(this.props);
+
     return (
       <IssueSyncListElementContainer>
         <Hovercard
           containerClassName={hoverCardContainer}
-          header="cool header"
-          body="cool body"
+          header={this.props.hoverCardHeader}
+          body={this.props.hoverCardBody}
+          className={hoverCardStyles}
         >
           {this.getIcon()}
           {this.getLink()}
