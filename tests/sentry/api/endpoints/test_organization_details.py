@@ -193,6 +193,7 @@ class OrganizationUpdateTest(APITestCase):
             'dataScrubberDefaults': True,
             'sensitiveFields': [u'password'],
             'safeFields': [u'email'],
+            'storeCrashReports': True,
             'scrubIPAddresses': True,
             'scrapeJavaScript': False,
             'defaultRole': 'owner',
@@ -225,6 +226,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get('sentry:require_scrub_ip_address')
         assert options.get('sentry:sensitive_fields') == ['password']
         assert options.get('sentry:safe_fields') == ['email']
+        assert options.get('sentry:store_crash_reports') is True
         assert options.get('sentry:scrape_javascript') is False
 
         # log created

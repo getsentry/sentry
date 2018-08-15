@@ -23,14 +23,16 @@ class RedisCache(BaseCache):
     max_size = 50 * 1024 * 1024  # 50MB
 
     def __init__(self, **options):
-        self.cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
+        cluster = options.pop('cluster', None)
+        if cluster is None:
+            cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
+        self.cluster = cluster
         self.client = self.cluster.get_routing_client()
-
         super(RedisCache, self).__init__(**options)
 
-    def set(self, key, value, timeout, version=None):
+    def set(self, key, value, timeout, version=None, raw=False):
         key = self.make_key(key, version=version)
-        v = json.dumps(value)
+        v = json.dumps(value) if not raw else value
         if len(v) > self.max_size:
             raise ValueTooLarge('Cache key too large: %r %r' % (key, len(v)))
         if timeout:
@@ -42,9 +44,9 @@ class RedisCache(BaseCache):
         key = self.make_key(key, version=version)
         self.client.delete(key)
 
-    def get(self, key, version=None):
+    def get(self, key, version=None, raw=False):
         key = self.make_key(key, version=version)
         result = self.client.get(key)
-        if result is not None:
+        if result is not None and not raw:
             result = json.loads(result)
         return result

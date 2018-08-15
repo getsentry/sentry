@@ -12,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
-from sentry.models import Event, File, ProjectDSymFile
+from sentry.models import Event, EventAttachment, File, ProjectDSymFile
 
 from symbolic import parse_addr, Object, SymbolicError
 
@@ -1492,3 +1492,111 @@ class ExceptionMechanismIntegrationTest(TestCase):
         assert mechanism.meta['mach_exception']['code'] == 0
         assert mechanism.meta['mach_exception']['subcode'] == 0
         assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+
+class MinidumpIntegrationTest(TestCase):
+
+    def upload_symbols(self):
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym'),
+                'crash.sym')
+        f.close()
+
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+    def test_full_minidump(self):
+        self.project.update_option('sentry:store_crash_reports', True)
+        self.upload_symbols()
+
+        with self.feature('organizations:event-attachments'):
+            attachment = BytesIO(b'Hello World!')
+            attachment.name = 'hello.txt'
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                    'some_file': attachment,
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        frames = bt.frames
+        main = frames[-1]
+        assert main.function == 'main'
+        assert main.abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert main.errors is None
+        assert main.instruction_addr == '0x2a2a3d'
+
+        attachments = sorted(
+            EventAttachment.objects.filter(
+                event_id=event.event_id),
+            key=lambda x: x.name)
+        hello, minidump = attachments
+
+        assert hello.name == 'hello.txt'
+        assert hello.file.type == 'event.attachment'
+        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+
+        assert minidump.name == 'windows.dmp'
+        assert minidump.file.type == 'event.minidump'
+        assert minidump.file.checksum == '74bb01c850e8d65d3ffbc5bad5cabc4668fce247'
+
+    def test_attachments_only_minidumps(self):
+        self.project.update_option('sentry:store_crash_reports', False)
+        self.upload_symbols()
+
+        with self.feature('organizations:event-attachments'):
+            attachment = BytesIO(b'Hello World!')
+            attachment.name = 'hello.txt'
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                    'some_file': attachment,
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
+        assert len(attachments) == 1
+        hello = attachments[0]
+
+        assert hello.name == 'hello.txt'
+        assert hello.file.type == 'event.attachment'
+        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+
+    def test_disabled_attachments(self):
+        self.upload_symbols()
+
+        attachment = BytesIO(b'Hello World!')
+        attachment.name = 'hello.txt'
+        with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+            resp = self._postMinidumpWithHeader(f, {
+                'sentry[logger]': 'test-logger',
+                'some_file': attachment,
+            })
+            assert resp.status_code == 200
+
+        event = Event.objects.get()
+        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
+        assert attachments == []
