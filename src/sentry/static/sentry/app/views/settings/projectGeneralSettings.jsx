@@ -268,12 +268,14 @@ class ProjectGeneralSettings extends AsyncView {
           <JsonForm
             {...jsonFormProps}
             title={t('Data Privacy')}
+            features={organization.features}
             fields={[
               fields.dataScrubber,
               fields.dataScrubberDefaults,
               fields.scrubIPAddresses,
               fields.sensitiveFields,
               fields.safeFields,
+              fields.storeCrashReports,
             ]}
           />
 
