@@ -93,7 +93,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
@@ -350,9 +349,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('safeFields') is not None:
             if project.update_option('sentry:safe_fields', result['safeFields']):
                 changed_proj_settings['sentry:safe_fields'] = result['safeFields']
-        if result.get('storeCrashReports') is not None:
-            if project.update_option('sentry:store_crash_reports', result['storeCrashReports']):
-                changed_proj_settings['sentry:store_crash_reports'] = result['storeCrashReports']
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')
@@ -405,9 +401,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:safe_fields',
                     [s.strip().lower() for s in options['sentry:safe_fields']]
                 )
-            if 'sentry:store_crash_reports' in options:
-                project.update_option('sentry:store_crash_reports', bool(
-                    options['sentry:store_crash_reports']))
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',

@@ -239,19 +239,6 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
-    def _postMinidumpWithHeader(self, upload_file_minidump, data=None, key=None, **extra):
-        data = dict(data or {})
-        data['upload_file_minidump'] = upload_file_minidump
-        path = reverse('sentry-api-minidump', kwargs={'project_id': self.project.id})
-        path += '?sentry_key=%s' % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=data,
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
     def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
