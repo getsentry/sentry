@@ -13,13 +13,13 @@ const hoverCardContainer = css`
 
 const hoverCardStyles = css`
   min-height: 0;
-  bottom: ${28 + 5}px; /* 28px is the current bottom value called in hovercard.less */
+  bottom: ${28 + 10}px; /* 28px is the current bottom value called in hovercard.less */
 `;
 
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
-    externalIssueId: PropTypes.string,
+    externalIssueId: PropTypes.number,
     externalIssueKey: PropTypes.string,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
@@ -92,8 +92,6 @@ class IssueSyncElement extends React.Component {
   }
 
   render() {
-    console.log(this.props);
-
     return (
       <IssueSyncListElementContainer>
         <Hovercard

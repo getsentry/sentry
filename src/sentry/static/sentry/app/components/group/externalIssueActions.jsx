@@ -3,6 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import queryString from 'query-string';
+import styled from 'react-emotion';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -12,6 +13,8 @@ import IntegrationItem from 'app/views/organizationIntegrations/integrationItem'
 import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -241,8 +244,6 @@ class ExternalIssueActions extends AsyncComponent {
   renderBody() {
     let {action, selectedIntegration, issue} = this.state;
 
-    console.log(selectedIntegration);
-
     return (
       <React.Fragment>
         <IssueSyncListElement
@@ -255,6 +256,11 @@ class ExternalIssueActions extends AsyncComponent {
           integrationName={selectedIntegration.name}
           hoverCardHeader={`Integration: ${selectedIntegration.provider.name}`}
           hoverCardBody={
+            (issue && issue.title) ?
+            (<div>
+              <IssueTitle>{issue.title}</IssueTitle>
+              {issue.description && <IssueDescription>{issue.description}</IssueDescription>}
+            </div>) :
             <IntegrationItem integration={selectedIntegration} compact={false} />
           }
         />
@@ -298,5 +304,16 @@ class ExternalIssueActions extends AsyncComponent {
     );
   }
 }
+
+const IssueTitle = styled('div')`
+  font-size: 1.1em;
+  font-weight: 600;
+  ${overflowEllipsis};
+`;
+
+const IssueDescription = styled('div')`
+  margin-top: ${space(1)};
+  ${overflowEllipsis};
+`;
 
 export default ExternalIssueActions;
