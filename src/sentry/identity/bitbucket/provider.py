@@ -16,12 +16,10 @@ class BitbucketIdentityProvider(Provider):
 class BitbucketLoginView(PipelineView):
 
     def dispatch(self, request, pipeline):
-        client_key = request.GET.get('clientKey')
-        if client_key is None:
+        jwt = request.GET.get('jwt')
+        if jwt is None:
             return self.redirect(
-                'https://bitbucket.org/site/addons/authorize?descriptor_uri=%s&redirect_uri=%s' % (
+                'https://bitbucket.org/site/addons/authorize?descriptor_uri=%s' % (
                     absolute_uri('/extensions/bitbucket/descriptor/'),
-                    absolute_uri('/extensions/bitbucket/setup/'),
                 ))
-        pipeline.bind_state('bitbucket_client_key', client_key)
         return pipeline.next_step()
