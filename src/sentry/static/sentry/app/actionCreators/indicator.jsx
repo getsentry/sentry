@@ -88,6 +88,8 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
   if (!label) return;
 
   let prettifyValue = val => prettyFormString(val, model, fieldName);
+
+  // Hide the change text when formatMessageValue is explicitly set to false
   let showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
 
   addSuccessMessage(
