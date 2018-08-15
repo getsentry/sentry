@@ -4,17 +4,21 @@ import {browserHistory} from 'react-router';
 
 import sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
-import Waiting from 'app/views/onboarding/configure/waiting';
 import ApiMixin from 'app/mixins/apiMixin';
+import HookOrDefault from 'app/components/hookOrDefault';
+import HookStore from 'app/stores/hookStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
-import HookStore from 'app/stores/hookStore';
-import HookOrDefault from 'app/components/hookOrDefault';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/sentryTypes';
+import Waiting from 'app/views/onboarding/configure/waiting';
 
 const Configure = createReactClass({
   displayName: 'Configure',
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -40,6 +44,7 @@ const Configure = createReactClass({
 
   componentDidMount() {
     this.getWaitingComponent();
+    this.logExperiment();
   },
 
   componentWillUpdate(nextProps, nextState) {
@@ -100,12 +105,30 @@ const Configure = createReactClass({
     });
   },
 
+  logExperiment() {
+    let {organization} = this.context;
+    if (!organization.experiments) return;
+
+    let exposed = organization.experiments.SampleEventExperiment;
+
+    if (exposed === 0 || exposed === 1) {
+      let data = {
+        experiment_name: 'SampleEventExperiment',
+        unit_name: 'org_id',
+        unit_id: parseInt(organization.id, 10),
+        params: `{exposed: ${exposed}}`,
+      };
+
+      HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
+    }
+  },
+
   createSampleEvent() {
     let {orgId, projectId} = this.props.params;
     let url = `/projects/${orgId}/${projectId}/create-sample/`;
 
     analytics('sample_event.created', {
-      org_id: orgId,
+      org_id: parseInt(orgId, 10),
       project_id: projectId,
       source: 'installation',
     });
@@ -138,9 +161,9 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
-    let {loading, WaitingComponent} = this.state;
 
-    if (loading) return <LoadingIndicator />;
+    if (this.state.loading) return <LoadingIndicator />;
+    let {WaitingComponent} = this.state;
 
     return (
       <div>
