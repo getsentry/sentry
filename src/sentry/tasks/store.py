@@ -10,12 +10,14 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
+import six
 
 from raven.contrib.django.models import client as Raven
 from time import time
 from django.utils import timezone
 
-from sentry import reprocessing
+from sentry import features, reprocessing
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -24,13 +26,16 @@ from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
-from sentry.models import ProjectOption, Activity, Project
+from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
 info_logger = logging.getLogger('sentry.store')
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
+
+# Attachment file types that are considered a crash report (PII relevant)
+CRASH_REPORT_TYPES = ('event.minidump', )
 
 
 class RetryProcessing(Exception):
@@ -294,6 +299,35 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     return True
 
 
+def save_attachment(event, attachment):
+    """
+    Saves an event attachment to blob storage.
+    """
+
+    # If the attachment is a crash report (e.g. minidump), we need to honor the
+    # store_crash_reports setting. Otherwise, we assume that the client has
+    # already verified PII and just store the attachment.
+    if attachment.type in CRASH_REPORT_TYPES:
+        if not event.project.get_option('sentry:store_crash_reports') and \
+                not event.project.organization.get_option('sentry:store_crash_reports'):
+            return
+
+    file = File.objects.create(
+        name=attachment.name,
+        type=attachment.type,
+        headers={'Content-Type': attachment.content_type},
+    )
+    file.putfile(six.BytesIO(attachment.data))
+
+    EventAttachment.objects.create(
+        event_id=event.event_id,
+        group_id=event.group_id,
+        project_id=event.project_id,
+        name=attachment.name,
+        file=file,
+    )
+
+
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
 def save_event(cache_key=None, data=None, start_time=None, event_id=None,
                project_id=None, **kwargs):
@@ -340,7 +374,15 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
 
     try:
         manager = EventManager(data)
-        manager.save(project_id)
+        event = manager.save(project_id)
+
+        # Always load attachments from the cache so we can later prune them.
+        # Only save them if the event-attachments feature is active, though.
+        if features.has('organizations:event-attachments', event.project.organization, actor=None):
+            attachments = attachment_cache.get(cache_key) or []
+            for attachment in attachments:
+                save_attachment(event, attachment)
+
     except HashDiscarded:
         increment_list = [
             (tsdb.models.project_total_received_discarded, project_id),
@@ -379,6 +421,8 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     finally:
         if cache_key:
             default_cache.delete(cache_key)
+            attachment_cache.delete(cache_key)
+
         if start_time:
             metrics.timing(
                 'events.time-to-process',
