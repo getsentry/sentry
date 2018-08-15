@@ -230,14 +230,3 @@ class OrganizationTest(TestCase):
             key='sentry:safe_fields')
         f.value = ['email']
         assert f.has_changed('value') is False
-
-        OrganizationOption.objects.create(
-            organization=org,
-            key='sentry:store_crash_reports',
-            value=False
-        )
-        p = OrganizationOption.objects.get(
-            organization=org,
-            key='sentry:store_crash_reports')
-        p.value = True
-        assert p.has_changed('value') is True

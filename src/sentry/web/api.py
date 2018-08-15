@@ -28,8 +28,7 @@ from querystring_parser import parser
 from raven.contrib.django.models import client as Raven
 from symbolic import ProcessMinidumpError
 
-from sentry import features, quotas, tsdb
-from sentry.attachments import CachedAttachment
+from sentry import quotas, tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
     MinidumpApiHelper,
@@ -329,7 +328,7 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
-    def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
+    def process(self, request, project, key, auth, helper, data, **kwargs):
         metrics.incr('events.total')
 
         if not data:
@@ -485,7 +484,7 @@ class StoreView(APIView):
             helper.ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
+        helper.insert_data_to_database(data, start_time=start_time)
 
         cache.set(cache_key, '', 60 * 5)
 
@@ -544,7 +543,7 @@ class MinidumpView(StoreView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, project, **kwargs):
+    def post(self, request, **kwargs):
         # Minidump request payloads do not have the same structure as
         # usual events from other SDKs. Most notably, the event needs
         # to be transfered in the `sentry` form field. All other form
@@ -625,34 +624,13 @@ class MinidumpView(StoreView):
                 for chunk in minidump.chunks():
                     out.write(chunk)
 
-        # Always store the minidump in attachments so we can access it during
-        # processing, regardless of the event-attachments feature. This will
-        # allow us to stack walk again with CFI once symbols are loaded.
-        attachments = []
-        minidump.seek(0)
-        attachments.append(CachedAttachment.from_upload(minidump, type='event.minidump'))
-
-        # Append all other files as generic attachments. We can skip this if the
-        # feature is disabled since they won't be saved.
-        if features.has('organizations:event-attachments',
-                        project.organization, actor=request.user):
-            for name, file in six.iteritems(request.FILES):
-                if name != 'upload_file_minidump':
-                    attachments.append(CachedAttachment.from_upload(file))
-
         try:
             merge_minidump_event(data, minidump)
         except ProcessMinidumpError as e:
             logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
 
-        response_or_event_id = self.process(
-            request,
-            attachments=attachments,
-            data=data,
-            project=project,
-            **kwargs)
-
+        response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
 

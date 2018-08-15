@@ -35,7 +35,6 @@ ORG_OPTIONS = (
     ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool),
     ('sensitiveFields', 'sentry:sensitive_fields', list),
     ('safeFields', 'sentry:safe_fields', list),
-    ('storeCrashReports', 'sentry:store_crash_reports', bool),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
     ('scrapeJavaScript', 'sentry:scrape_javascript', bool),
 )
@@ -85,7 +84,6 @@ class OrganizationSerializer(serializers.Serializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
