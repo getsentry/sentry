@@ -151,7 +151,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'name': self.inbound_status_key,
                 'type': 'boolean',
                 'label': _('Sync VSTS Status to Sentry'),
-                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry.'
+                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry. '
                           'When a VSTS work item is removed from being done, unresolve its linked Sentry issue.'
                           ),
             },
