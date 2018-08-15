@@ -10,6 +10,8 @@ import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import HookStore from 'app/stores/hookStore';
+import HookOrDefault from 'app/components/hookOrDefault';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 const Configure = createReactClass({
   displayName: 'Configure',
@@ -19,6 +21,8 @@ const Configure = createReactClass({
     return {
       isFirstTimePolling: true,
       hasSentRealEvent: false,
+      loading: true,
+      WaitingComponent: null,
     };
   },
 
@@ -28,11 +32,14 @@ const Configure = createReactClass({
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-
     this.fetchEventData();
     this.timer = setInterval(() => {
       this.fetchEventData();
     }, 2000);
+  },
+
+  componentDidMount() {
+    this.getWaitingComponent();
   },
 
   componentWillUpdate(nextProps, nextState) {
@@ -47,6 +54,14 @@ const Configure = createReactClass({
 
   componentWillUnmount() {
     clearInterval(this.timer);
+  },
+
+  getWaitingComponent() {
+    let WaitingComponent = HookOrDefault({
+      hookName: 'experiment:sample-event',
+      defaultComponent: Waiting,
+    });
+    this.setState({WaitingComponent, loading: false});
   },
 
   sentRealEvent(data) {
@@ -123,6 +138,9 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
+    let {loading, WaitingComponent} = this.state;
+
+    if (loading) return <LoadingIndicator />;
 
     return (
       <div>
@@ -141,10 +159,10 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting
+          <WaitingComponent
             skip={this.submit}
             hasEvent={this.state.hasSentRealEvent}
-            onCreateSampleEvent={this.createSampleEvent}
+            params={this.props.params}
           />
         </div>
       </div>

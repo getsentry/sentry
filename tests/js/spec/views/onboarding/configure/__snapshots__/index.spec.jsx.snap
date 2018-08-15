@@ -1,31 +1,156 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Configure should render correctly render() should redirect to if no matching platform 1`] = `
-<div>
-  <div
-    className="onboarding-Configure"
-  >
-    <h2
-      style={
-        Object {
-          "marginBottom": 30,
-        }
-      }
+<Configure
+  next={[Function]}
+  params={
+    Object {
+      "orgId": "testOrg",
+      "platform": "other",
+      "projectId": "project-slug",
+    }
+  }
+>
+  <div>
+    <div
+      className="onboarding-Configure"
     >
-      Configure your application
-    </h2>
-    <withProjects(withRouter(ProjectContext))
-      orgId="testOrg"
-      projectId="project-slug"
-      style={
-        Object {
-          "marginBottom": 30,
+      <h2
+        style={
+          Object {
+            "marginBottom": 30,
+          }
         }
-      }
-    >
-      <ProjectDocsContext>
-        <ProjectInstallPlatform
-          linkPath={[Function]}
+      >
+        Configure your application
+      </h2>
+      <withProjects(withRouter(ProjectContext))
+        orgId="testOrg"
+        projectId="project-slug"
+        style={
+          Object {
+            "marginBottom": 30,
+          }
+        }
+      >
+        <withRouter(ProjectContext)
+          orgId="testOrg"
+          projectId="project-slug"
+          projects={
+            Array [
+              Object {
+                "hasAccess": true,
+                "id": "testProject",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Test Project",
+                "slug": "project-slug",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "coolid",
+                    "slug": "coolteam",
+                  },
+                ],
+              },
+            ]
+          }
+          style={
+            Object {
+              "marginBottom": 30,
+            }
+          }
+        >
+          <ProjectContext
+            location={
+              Object {
+                "query": Object {},
+              }
+            }
+            orgId="testOrg"
+            projectId="project-slug"
+            projects={
+              Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "testProject",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Test Project",
+                  "slug": "project-slug",
+                  "teams": Array [
+                    Object {
+                      "hasAccess": true,
+                      "id": "coolid",
+                      "slug": "coolteam",
+                    },
+                  ],
+                },
+              ]
+            }
+            router={
+              Object {
+                "createHref": [MockFunction],
+                "go": [MockFunction],
+                "goBack": [MockFunction],
+                "goForward": [MockFunction],
+                "isActive": [MockFunction],
+                "listen": [MockFunction],
+                "location": Object {
+                  "query": Object {},
+                },
+                "push": [MockFunction],
+                "replace": [MockFunction],
+                "setRouteLeaveHook": [MockFunction],
+              }
+            }
+            style={
+              Object {
+                "marginBottom": 30,
+              }
+            }
+          >
+            <SideEffect(DocumentTitle)
+              title="project-slug"
+            >
+              <DocumentTitle
+                title="project-slug"
+              >
+                <div
+                  className="loading-full-layout"
+                >
+                  <LoadingIndicator>
+                    <div
+                      className="loading"
+                    >
+                      <div
+                        className="loading-indicator"
+                        style={Object {}}
+                      />
+                      <div
+                        className="loading-message"
+                      />
+                    </div>
+                  </LoadingIndicator>
+                </div>
+              </DocumentTitle>
+            </SideEffect(DocumentTitle)>
+          </ProjectContext>
+        </withRouter(ProjectContext)>
+      </withProjects(withRouter(ProjectContext))>
+      <HookOrDefaultComponent
+        hasEvent={false}
+        params={
+          Object {
+            "orgId": "testOrg",
+            "platform": "other",
+            "projectId": "project-slug",
+          }
+        }
+        skip={[Function]}
+      >
+        <Waiting
+          hasEvent={false}
           params={
             Object {
               "orgId": "testOrg",
@@ -33,21 +158,147 @@ exports[`Configure should render correctly render() should redirect to if no mat
               "projectId": "project-slug",
             }
           }
-          platformData={
-            Object {
-              "hack": "actually set by ProjectDocsContext, this object is here to avoid proptypes warnings",
-            }
-          }
-        />
-      </ProjectDocsContext>
-    </withProjects(withRouter(ProjectContext))>
-    <Waiting
-      hasEvent={false}
-      onCreateSampleEvent={[Function]}
-      skip={[Function]}
-    />
+          skip={[Function]}
+        >
+          <div
+            className="awaiting-event"
+          >
+            <div
+              className="pull-right"
+            >
+              <Button
+                disabled={false}
+                priority="primary"
+              >
+                <StyledButton
+                  aria-label="See Sample Event"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                >
+                  <Component
+                    aria-label="See Sample Event"
+                    className="css-1msljz8-StyledButton-getColors e17811v30"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                  >
+                    <button
+                      aria-label="See Sample Event"
+                      className="css-1msljz8-StyledButton-getColors e17811v30"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
+                    >
+                      <ButtonLabel>
+                        <Component
+                          className="css-1dxlw1i-ButtonLabel e17811v31"
+                        >
+                          <Flex
+                            align="center"
+                            className="css-1dxlw1i-ButtonLabel e17811v31"
+                          >
+                            <Base
+                              align="center"
+                              className="e17811v31 css-mvnt76-ButtonLabel"
+                            >
+                              <div
+                                className="e17811v31 css-mvnt76-ButtonLabel"
+                                is={null}
+                              >
+                                See Sample Event
+                              </div>
+                            </Base>
+                          </Flex>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
+                  </Component>
+                </StyledButton>
+              </Button>
+              <span>
+                 or 
+              </span>
+              <Button
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+              >
+                <StyledButton
+                  aria-label="All done"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                >
+                  <Component
+                    aria-label="All done"
+                    className="css-1msljz8-StyledButton-getColors e17811v30"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                  >
+                    <button
+                      aria-label="All done"
+                      className="css-1msljz8-StyledButton-getColors e17811v30"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
+                    >
+                      <ButtonLabel>
+                        <Component
+                          className="css-1dxlw1i-ButtonLabel e17811v31"
+                        >
+                          <Flex
+                            align="center"
+                            className="css-1dxlw1i-ButtonLabel e17811v31"
+                          >
+                            <Base
+                              align="center"
+                              className="e17811v31 css-mvnt76-ButtonLabel"
+                            >
+                              <div
+                                className="e17811v31 css-mvnt76-ButtonLabel"
+                                is={null}
+                              >
+                                All done
+                              </div>
+                            </Base>
+                          </Flex>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
+                  </Component>
+                </StyledButton>
+              </Button>
+            </div>
+            <div
+              className="wrap waiting-text"
+            >
+              <h3
+                className="animated-ellipsis"
+              >
+                Waiting to receive an error
+              </h3>
+              <div
+                className="robot"
+              >
+                <span
+                  className="eye"
+                />
+              </div>
+            </div>
+          </div>
+        </Waiting>
+      </HookOrDefaultComponent>
+    </div>
   </div>
-</div>
+</Configure>
 `;
 
 exports[`Configure should render correctly render() should render platform docs 1`] = `
@@ -493,38 +744,46 @@ exports[`Configure should render correctly render() should render platform docs 
           </ProjectContext>
         </withRouter(ProjectContext)>
       </withProjects(withRouter(ProjectContext))>
-      <Waiting
+      <HookOrDefaultComponent
         hasEvent={false}
-        onCreateSampleEvent={[Function]}
+        params={
+          Object {
+            "orgId": "testOrg",
+            "platform": "node",
+            "projectId": "project-slug",
+          }
+        }
         skip={[Function]}
       >
-        <div
-          className="awaiting-event"
+        <Waiting
+          hasEvent={false}
+          params={
+            Object {
+              "orgId": "testOrg",
+              "platform": "node",
+              "projectId": "project-slug",
+            }
+          }
+          skip={[Function]}
         >
           <div
-            className="pull-right"
+            className="awaiting-event"
           >
-            <Button
-              disabled={false}
-              onClick={[Function]}
-              priority="primary"
+            <div
+              className="pull-right"
             >
-              <StyledButton
-                aria-label="See Sample Event"
+              <Button
                 disabled={false}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
+                <StyledButton
                   aria-label="See Sample Event"
-                  className="css-1msljz8-StyledButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
                   role="button"
                 >
-                  <button
+                  <Component
                     aria-label="See Sample Event"
                     className="css-1msljz8-StyledButton-getColors e17811v30"
                     disabled={false}
@@ -532,56 +791,56 @@ exports[`Configure should render correctly render() should render platform docs 
                     priority="primary"
                     role="button"
                   >
-                    <ButtonLabel>
-                      <Component
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
-                      >
-                        <Flex
-                          align="center"
+                    <button
+                      aria-label="See Sample Event"
+                      className="css-1msljz8-StyledButton-getColors e17811v30"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
+                    >
+                      <ButtonLabel>
+                        <Component
                           className="css-1dxlw1i-ButtonLabel e17811v31"
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            className="css-1dxlw1i-ButtonLabel e17811v31"
                           >
-                            <div
+                            <Base
+                              align="center"
                               className="e17811v31 css-mvnt76-ButtonLabel"
-                              is={null}
                             >
-                              See Sample Event
-                            </div>
-                          </Base>
-                        </Flex>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-            <span>
-               or 
-            </span>
-            <Button
-              disabled={false}
-              onClick={[Function]}
-              priority="primary"
-            >
-              <StyledButton
-                aria-label="All done"
+                              <div
+                                className="e17811v31 css-mvnt76-ButtonLabel"
+                                is={null}
+                              >
+                                See Sample Event
+                              </div>
+                            </Base>
+                          </Flex>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
+                  </Component>
+                </StyledButton>
+              </Button>
+              <span>
+                 or 
+              </span>
+              <Button
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
+                <StyledButton
                   aria-label="All done"
-                  className="css-1msljz8-StyledButton-getColors e17811v30"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
                   role="button"
                 >
-                  <button
+                  <Component
                     aria-label="All done"
                     className="css-1msljz8-StyledButton-getColors e17811v30"
                     disabled={false}
@@ -589,51 +848,60 @@ exports[`Configure should render correctly render() should render platform docs 
                     priority="primary"
                     role="button"
                   >
-                    <ButtonLabel>
-                      <Component
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
-                      >
-                        <Flex
-                          align="center"
+                    <button
+                      aria-label="All done"
+                      className="css-1msljz8-StyledButton-getColors e17811v30"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
+                    >
+                      <ButtonLabel>
+                        <Component
                           className="css-1dxlw1i-ButtonLabel e17811v31"
                         >
-                          <Base
+                          <Flex
                             align="center"
-                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            className="css-1dxlw1i-ButtonLabel e17811v31"
                           >
-                            <div
+                            <Base
+                              align="center"
                               className="e17811v31 css-mvnt76-ButtonLabel"
-                              is={null}
                             >
-                              All done
-                            </div>
-                          </Base>
-                        </Flex>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </div>
-          <div
-            className="wrap waiting-text"
-          >
-            <h3
-              className="animated-ellipsis"
-            >
-              Waiting to receive an error
-            </h3>
+                              <div
+                                className="e17811v31 css-mvnt76-ButtonLabel"
+                                is={null}
+                              >
+                                All done
+                              </div>
+                            </Base>
+                          </Flex>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
+                  </Component>
+                </StyledButton>
+              </Button>
+            </div>
             <div
-              className="robot"
+              className="wrap waiting-text"
             >
-              <span
-                className="eye"
-              />
+              <h3
+                className="animated-ellipsis"
+              >
+                Waiting to receive an error
+              </h3>
+              <div
+                className="robot"
+              >
+                <span
+                  className="eye"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </Waiting>
+        </Waiting>
+      </HookOrDefaultComponent>
     </div>
   </div>
 </Configure>
@@ -680,11 +948,6 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
         />
       </ProjectDocsContext>
     </withProjects(withRouter(ProjectContext))>
-    <Waiting
-      hasEvent={false}
-      onCreateSampleEvent={[Function]}
-      skip={[Function]}
-    />
   </div>
 </div>
 `;
