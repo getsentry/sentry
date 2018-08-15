@@ -75,7 +75,7 @@ class TimeRangeSelector extends React.Component {
       onChange,
       onUpdate,
     } = this.props;
-    // Currently we will only shwo either absolute or relative selector, with "absolute" taking precedence
+    // Currently we will only show either absolute or relative selector, with "absolute" taking precedence
     // Maybe an ideal selector would allow the user to choose between the two if both types of dates were allowed
     const shouldShowAbsolute = showAbsolute || !showRelative;
     const shouldShowRelative = !showAbsolute && showRelative;
@@ -86,7 +86,7 @@ class TimeRangeSelector extends React.Component {
 
     return (
       <Flex direction="column" justify="center" className={className}>
-        <label>{t('Time range')}</label>
+        <Label>{t('Time range')}</Label>
         <DropdownLink
           title={<DynamicWrapper value={summary} fixed="start to end" />}
           keepMenuOpen={true}
@@ -114,17 +114,21 @@ class TimeRangeSelector extends React.Component {
   }
 }
 
-export default styled(TimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   text-align: right;
-  label {
-    font-weight: 400;
-    font-size: 13px;
-    color: ${p => p.theme.gray6};
-    margin-bottom: 12px;
-  }
+
   .dropdown-actor-title {
     font-size: 15px;
     height: auto;
     color: ${p => p.theme.button.default.colorActive};
   }
 `;
+
+const Label = styled('label')`
+  font-weight: 400;
+  font-size: 13px;
+  color: ${p => p.theme.gray6};
+  margin-bottom: 12px;
+`;
+
+export default StyledTimeRangeSelector;
