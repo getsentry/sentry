@@ -25,7 +25,8 @@ class RedisCache(BaseCache):
     def __init__(self, **options):
         cluster = options.pop('cluster', None)
         if cluster is None:
-            self.cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
+            cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
+        self.cluster = cluster
         self.client = self.cluster.get_routing_client()
         super(RedisCache, self).__init__(**options)
 
