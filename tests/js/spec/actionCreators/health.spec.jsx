@@ -7,7 +7,37 @@ describe('Health ActionCreator', function() {
   const project = TestStubs.Project();
   let mock;
 
-  it('requests timeseries', function() {
+  it('requests timeseries w/o tag', function() {
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/health/graph/',
+    });
+    doHealthRequest(api, {
+      timeseries: true,
+      organization,
+      projects: [project.id],
+      environments: [],
+      topk: 5,
+      includePrevious: true,
+      period: '7d',
+    });
+
+    expect(mock).toHaveBeenCalled();
+
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/health/graph/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [project.id],
+          environment: [],
+          topk: 5,
+          includePrevious: true,
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('requests timeseries w/ tag', function() {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/health/graph/',
     });
