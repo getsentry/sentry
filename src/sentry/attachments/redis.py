@@ -13,6 +13,7 @@ import logging
 from django.conf import settings
 
 from sentry.utils import redis
+from sentry.cache.redis import RedisCache
 from .base import BaseAttachmentCache
 
 logger = logging.getLogger(__name__)
@@ -25,5 +26,5 @@ class RedisAttachmentCache(BaseAttachmentCache):
             'SENTRY_ATTACHMENTS_REDIS_CLUSTER',
             'rc-short'
         )
-        cache = redis.redis_clusters.get(cluster_id)
+        cache = RedisCache(cluster=redis.redis_clusters.get(cluster_id))
         super(RedisAttachmentCache, self).__init__(cache, **options)
