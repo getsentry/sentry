@@ -88,9 +88,8 @@ class Search extends React.Component {
   };
 
   saveQueryMetrics = debounce(query => {
-    if (query) {
-      analytics(`${this.props.source}.query`, {query});
-    }
+    if (!query) return;
+    analytics(`${this.props.source}.query`, {query});
   }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
