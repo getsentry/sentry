@@ -2,13 +2,18 @@
 
 exports[`AlertLink renders 1`] = `
 <IssueSyncListElementContainer>
-  <div>
+  <Hovercard
+    body="cool body"
+    containerClassName="css-1s8b4pt-hoverCardContainer"
+    displayTimeout={100}
+    header="cool header"
+  >
     <IntegrationIcon
       src="icon-github"
     />
     <IntegrationLink>
       Link GitHub Issue
     </IntegrationLink>
-  </div>
+  </Hovercard>
 </IssueSyncListElementContainer>
 `;
