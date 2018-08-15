@@ -145,13 +145,21 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
-        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration) \
+                as mock_get_integration_from_jwt:
             resp = self.client.post(
                 path,
                 data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS.strip()),
                 HTTP_AUTHORIZATION='JWT anexampletoken',
             )
             assert resp.status_code == 200
+            mock_get_integration_from_jwt.assert_called_with(
+                'anexampletoken',
+                u'/extensions/jira/issue-updated/',
+                'jira',
+                {},
+                method='POST',
+            )
             mock_sync_status_inbound.assert_called_with('APP-123', {
                 'changelog': {
                     'from': '10101',
