@@ -2,7 +2,7 @@
 
 exports[`ExternalIssueActions with an external issue linked renders 1`] = `
 <IssueSyncElement
-  externalIssueId="100"
+  externalIssueId={100}
   externalIssueKey="getsentry/sentry#2"
   externalIssueLink="https://github.com/MeredithAnya/testing/issues/2"
   integrationName="Test Integration"
@@ -17,7 +17,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
           "domainName": "gtithub.com/test-integration",
           "externalIssues": Array [
             Object {
-              "id": "100",
+              "id": 100,
               "key": "getsentry/sentry#2",
               "url": "https://github.com/MeredithAnya/testing/issues/2",
             },
@@ -58,7 +58,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
                 "domainName": "gtithub.com/test-integration",
                 "externalIssues": Array [
                   Object {
-                    "id": "100",
+                    "id": 100,
                     "key": "getsentry/sentry#2",
                     "url": "https://github.com/MeredithAnya/testing/issues/2",
                   },
@@ -78,7 +78,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
             }
           />
         }
-        className="css-1nc0qe-hoverCardStyles"
+        className="css-17m6soy-hoverCardStyles"
         containerClassName="css-1s8b4pt-hoverCardContainer"
         displayTimeout={100}
         header="Integration: GitHub"
@@ -128,20 +128,20 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
         </span>
       </Hovercard>
       <OpenCloseIcon
-        isLinked="100"
+        isLinked={100}
         onClick={[Function]}
         src="icon-close"
       >
         <InlineSvg
           className="css-92xk5s-OpenCloseIcon e1vaar1z3"
-          isLinked="100"
+          isLinked={100}
           onClick={[Function]}
           src="icon-close"
         >
           <StyledSvg
             className="css-92xk5s-OpenCloseIcon e1vaar1z3"
             height="1em"
-            isLinked="100"
+            isLinked={100}
             onClick={[Function]}
             viewBox={Object {}}
             width="1em"
@@ -288,7 +288,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               }
             />
           }
-          className="css-1nc0qe-hoverCardStyles"
+          className="css-17m6soy-hoverCardStyles"
           containerClassName="css-1s8b4pt-hoverCardContainer"
           displayTimeout={100}
           header="Integration: GitHub"

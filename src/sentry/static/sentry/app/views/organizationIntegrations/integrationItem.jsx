@@ -14,6 +14,18 @@ export default class IntegrationItem extends React.Component {
     compact: PropTypes.bool,
   };
 
+  labels({children, compact}) {
+    return compact ? (
+      <Flex align="center" direction="row" pl={1}>
+        {children}
+      </Flex>
+    ) : (
+      <Flex direction="column" pl={1}>
+        {children}
+      </Flex>
+    );
+  }
+
   render() {
     const {integration, compact} = this.props;
 
@@ -22,7 +34,7 @@ export default class IntegrationItem extends React.Component {
         <Box>
           <IntegrationIcon size={compact ? 26 : 32} integration={integration} />
         </Box>
-        <Labels compact={compact}>
+        <this.labels compact={compact}>
           <IntegrationName>
             {integration.name}
             {integration.status === 'disabled' && (
@@ -35,40 +47,20 @@ export default class IntegrationItem extends React.Component {
               </Tooltip>
             )}
           </IntegrationName>
-          <DomainName>{integration.domainName}</DomainName>
-        </Labels>
+          <DomainName compact={compact}>{integration.domainName}</DomainName>
+        </this.labels>
       </Flex>
     );
   }
 }
-
-const ExpandedLabels = styled(p => <Flex direction="column" pl={1} {...p} />)``;
-
-const CompactLabels = styled(p => (
-  <Flex align="center" direction="row" pl={1} {...p} />
-))``;
 
 const IntegrationName = styled('div')`
   font-size: 1.6rem;
 `;
 
 const DomainName = styled('div')`
-  color: ${p => p.theme.gray3};
+  color: ${p => (p.compact ? p.theme.gray1 : p.theme.gray3)};
+  margin-left: ${p => (p.compact ? space(1) : 'inherit')};
+  margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
   font-size: 1.4rem;
-
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${ExpandedLabels} & {
-    margin-top: 3px;
-  }
-
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${CompactLabels} & {
-    color: ${p => p.theme.gray1};
-    margin-left: ${space(1)};
-  }
 `;
-
-const Labels = p => {
-  const {compact, ...props} = p;
-  return compact ? <CompactLabels {...props} /> : <ExpandedLabels {...props} />;
-};
