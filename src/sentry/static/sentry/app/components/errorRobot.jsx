@@ -69,7 +69,10 @@ const ErrorRobot = createReactClass({
     let {org, project} = this.props;
     let url = `/projects/${org.slug}/${project.slug}/create-sample/`;
 
-    analytics('sample_event.created', {org_id: org.id, project_id: project.id});
+    analytics('sample_event.created', {
+      org_id: parseInt(org.id, 10),
+      project_id: project.id,
+    });
     this.api.request(url, {
       method: 'POST',
       success: data => {

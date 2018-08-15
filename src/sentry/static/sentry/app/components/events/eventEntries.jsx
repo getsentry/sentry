@@ -89,7 +89,7 @@ const EventEntries = createReactClass({
     let orgId = this.getOrganization().id;
 
     analytics('issue_error_banner.viewed', {
-      org_id: orgId,
+      org_id: parseInt(orgId, 10),
       platform: project.platform,
       group: event.groupID,
       error_type: errorTypes,
