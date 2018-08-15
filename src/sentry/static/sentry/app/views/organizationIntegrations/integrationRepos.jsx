@@ -8,11 +8,11 @@ import Button from 'app/components/buttons/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SpreadLayout from 'app/components/spreadLayout';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 
@@ -197,23 +197,18 @@ export default class IntegrationRepos extends AsyncComponent {
         {header}
         <PanelBody>
           {itemList.length === 0 && (
-            <div className="blankslate align-center p-x-2 p-y-1">
-              <div className="icon icon-lg icon-git-commit" />
-              <h3>{t('Sentry is better with commit data')}</h3>
-              <TextBlock>
-                {t(
-                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
-                )}
-              </TextBlock>
-              <p className="m-b-1">
-                <a
-                  className="btn btn-default"
-                  href="https://docs.sentry.io/learn/releases/"
-                >
-                  {t('Learn more')}
-                </a>
-              </p>
-            </div>
+            <EmptyMessage
+              icon="icon-circle-info"
+              title={t('Sentry is better with commit data')}
+              description={t(
+                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
+              )}
+              action={
+                <Button href="https://docs.sentry.io/learn/releases/">
+                  {t('Learn More')}
+                </Button>
+              }
+            />
           )}
           {itemList.map(repo => {
             let repoIsActive = repo.status === 'active';
