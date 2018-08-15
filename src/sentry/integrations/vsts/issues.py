@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 from mistune import markdown
 
 from sentry.models import IntegrationExternalProject, OrganizationIntegration
@@ -49,8 +48,9 @@ class VstsIssueSync(IssueSyncMixin):
         fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
         return fields
 
-    def get_issue_url(self, key, **kwargs):
-        return 'https://%s/_workitems/edit/%s' % (self.instance, six.text_type(key))
+    def get_issue_url(self, key):
+        issue_id = self.get_issue_id_from_key(key)
+        return 'https://%s/_workitems/edit/%s' % (self.instance, issue_id)
 
     def create_issue(self, data, **kwargs):
         """
@@ -81,6 +81,7 @@ class VstsIssueSync(IssueSyncMixin):
         return {
             'key': created_item['id'],
             # 'url': created_item['_links']['html']['href'],
+            'project': created_item['fields']['System.TeamProject'],
             'title': title,
             'description': description,
         }
@@ -89,7 +90,8 @@ class VstsIssueSync(IssueSyncMixin):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
-            'key': work_item['id'],
+            'key': issue_id,
+            'project': work_item['fields']['System.TeamProject'],
             'title': work_item['fields']['System.Title'],
             'description': work_item['fields'].get('System.Description')
         }
@@ -125,8 +127,9 @@ class VstsIssueSync(IssueSyncMixin):
                 return
 
         try:
+            issue_id = self.get_issue_id_from_key(external_issue.key)
             client.update_work_item(
-                self.instance, external_issue.key, assigned_to=assignee)
+                self.instance, issue_id, assigned_to=assignee)
         except (ApiUnauthorized, ApiError):
             self.logger.info(
                 'vsts.failed-to-assign',
@@ -139,7 +142,8 @@ class VstsIssueSync(IssueSyncMixin):
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         client = self.get_client()
-        work_item = client.get_work_item(self.instance, external_issue.key)
+        issue_id = self.get_issue_id_from_key(external_issue.key)
+        work_item = client.get_work_item(self.instance, issue_id)
 
         # For some reason, vsts doesn't include the project id
         # in the work item response.
@@ -178,7 +182,7 @@ class VstsIssueSync(IssueSyncMixin):
 
         try:
             client.update_work_item(
-                self.instance, external_issue.key, state=status)
+                self.instance, issue_id, state=status)
         except (ApiUnauthorized, ApiError) as error:
             self.logger.info(
                 'vsts.failed-to-change-status',
@@ -205,3 +209,9 @@ class VstsIssueSync(IssueSyncMixin):
             state['name'] for state in all_states if state['category'] in self.done_categories
         ]
         return done_states
+
+    def make_external_key(self, data):
+        return u'{}#{}'.format(data['project'], data['key'])
+
+    def get_issue_id_from_key(self, key):
+        return key.split('#')[1]
