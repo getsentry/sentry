@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.http import Http404
 from django.conf import settings
 
-from sentry.relay import Config
+from sentry.relay import config
 from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
@@ -33,7 +33,6 @@ class JavaScriptSdkLoader(BaseView):
         else:
             tmpl = 'sentry/js-sdk-loader.js.tmpl'
 
-        config = Config(key.project)
         context = {
             'config': config.get_project_key_config(key),
             'jsSdkUrl': sdk_url
