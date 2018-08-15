@@ -91,7 +91,6 @@ exports[`GroupActions render() renders correctly 1`] = `
           "ssn",
         ],
         "slug": "project",
-        "storeCrashReports": false,
         "subjectPrefix": "[my-org]",
         "subjectTemplate": "[$project] \${tag:level}: $title",
         "teams": Array [],

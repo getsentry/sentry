@@ -322,7 +322,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:scrub_data',
             'sentry:scrub_defaults',
             'sentry:safe_fields',
-            'sentry:store_crash_reports',
             'sentry:sensitive_fields',
             'sentry:csp_ignored_sources_defaults',
             'sentry:csp_ignored_sources',
@@ -466,7 +465,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 bool(attrs['options'].get('sentry:scrub_defaults', True)),
                 'safeFields':
                 attrs['options'].get('sentry:safe_fields', []),
-                'storeCrashReports': bool(attrs['options'].get('sentry:store_crash_reports', False)),
                 'sensitiveFields':
                 attrs['options'].get('sentry:sensitive_fields', []),
                 'subjectTemplate':
