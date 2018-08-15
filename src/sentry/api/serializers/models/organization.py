@@ -186,6 +186,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', False)),
             'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
             'safeFields': obj.get_option('sentry:safe_fields', None) or [],
+            'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', False)),
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
             'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', True)),
         })
