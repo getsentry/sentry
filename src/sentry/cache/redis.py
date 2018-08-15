@@ -28,9 +28,9 @@ class RedisCache(BaseCache):
 
         super(RedisCache, self).__init__(**options)
 
-    def set(self, key, value, timeout, version=None, raw=False):
+    def set(self, key, value, timeout, version=None):
         key = self.make_key(key, version=version)
-        v = json.dumps(value) if not raw else value
+        v = json.dumps(value)
         if len(v) > self.max_size:
             raise ValueTooLarge('Cache key too large: %r %r' % (key, len(v)))
         if timeout:
@@ -42,9 +42,9 @@ class RedisCache(BaseCache):
         key = self.make_key(key, version=version)
         self.client.delete(key)
 
-    def get(self, key, version=None, raw=False):
+    def get(self, key, version=None):
         key = self.make_key(key, version=version)
         result = self.client.get(key)
-        if result is not None and not raw:
+        if result is not None:
             result = json.loads(result)
         return result
