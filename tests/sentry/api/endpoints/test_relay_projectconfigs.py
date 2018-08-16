@@ -47,4 +47,8 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         )
 
         result = json.loads(resp.content)
-        assert result[six.text_type(self.project.id)] is not None
+        cfg = result['configs'][six.text_type(self.project.id)]
+        assert not cfg['disabled']
+        assert cfg['publicKeys'][self.projectkey.public_key] is True
+        assert cfg['trustedRelays'] == []
+        assert cfg['slug'] == self.project.slug

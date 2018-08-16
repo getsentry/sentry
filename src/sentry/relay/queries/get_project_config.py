@@ -30,4 +30,6 @@ class GetProjectConfig(BaseQuery):
         self.project = project
 
     def execute(self):
+        if not self.relay.has_org_access(self.project.organization):
+            return None
         return config.get_project_options(self.project)
