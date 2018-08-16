@@ -13,6 +13,7 @@ class IssueSyncElement extends React.Component {
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
+    integrationName: PropTypes.string,
   };
 
   isLinked() {
@@ -68,6 +69,9 @@ class IssueSyncElement extends React.Component {
       return this.props.children;
     }
     if (this.props.externalIssueKey) {
+      if (this.props.integrationType === 'vsts' && this.props.integrationName) {
+        return `${this.props.integrationName}#${this.props.externalIssueKey}`;
+      }
       return this.props.externalIssueKey;
     }
 
