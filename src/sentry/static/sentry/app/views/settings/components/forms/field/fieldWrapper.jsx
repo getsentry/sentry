@@ -39,9 +39,10 @@ const getPadding = p =>
 /**
  * `hasControlState` - adds padding to right if this is false
  */
-const FieldWrapper = styled(({highlighted, inline, hasControlState, p, ...props}) => (
-  <Flex {...props} />
-))`
+const FieldWrapper = styled(p => <Flex {...p} />, {
+  shouldForwardProp: prop =>
+    !['highlighted', 'inline', 'stacked', 'hasControlState', 'p'].includes(prop),
+})`
   ${getPadding};
   transition: background 0.15s;
 
