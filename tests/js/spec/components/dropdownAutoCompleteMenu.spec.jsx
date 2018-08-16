@@ -1,9 +1,10 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 
 describe('DropdownAutoCompleteMenu', function() {
+  const routerContext = TestStubs.routerContext();
   const items = [
     {
       value: 'apple',
@@ -19,24 +20,23 @@ describe('DropdownAutoCompleteMenu', function() {
     },
   ];
   it('renders without a group', function() {
-    const wrapper = shallow(
+    const wrapper = mount(
       <DropdownAutoCompleteMenu isOpen={true} items={items}>
         {() => 'Click Me!'}
-      </DropdownAutoCompleteMenu>
+      </DropdownAutoCompleteMenu>,
+      routerContext
     );
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with a group', function() {
-    const wrapper = shallow(
+    const wrapper = mount(
       <DropdownAutoCompleteMenu
         isOpen={true}
         items={[
           {
-            group: {
-              value: 'countries',
-              label: 'countries',
-            },
+            value: 'countries',
+            label: 'countries',
             items: [
               {
                 value: 'new zealand',
@@ -51,7 +51,8 @@ describe('DropdownAutoCompleteMenu', function() {
         ]}
       >
         {() => 'Click Me!'}
-      </DropdownAutoCompleteMenu>
+      </DropdownAutoCompleteMenu>,
+      routerContext
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -80,7 +81,8 @@ describe('DropdownAutoCompleteMenu', function() {
         ]}
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>
+      </DropdownAutoCompleteMenu>,
+      routerContext
     );
 
     wrapper
@@ -94,7 +96,8 @@ describe('DropdownAutoCompleteMenu', function() {
     const wrapper = mount(
       <DropdownAutoCompleteMenu isOpen={true} items={[]} emptyMessage="No items!">
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>
+      </DropdownAutoCompleteMenu>,
+      routerContext
     );
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
@@ -111,7 +114,8 @@ describe('DropdownAutoCompleteMenu', function() {
     const wrapper = mount(
       <DropdownAutoCompleteMenu isOpen={true} items={items} emptyMessage="No items!">
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>
+      </DropdownAutoCompleteMenu>,
+      routerContext
     );
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
@@ -128,7 +132,8 @@ describe('DropdownAutoCompleteMenu', function() {
         noResultsMessage="No search results"
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
-      </DropdownAutoCompleteMenu>
+      </DropdownAutoCompleteMenu>,
+      routerContext
     );
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});

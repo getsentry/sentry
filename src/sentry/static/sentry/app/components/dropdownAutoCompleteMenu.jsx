@@ -85,14 +85,6 @@ class DropdownAutoCompleteMenu extends React.Component {
     maxHeight: PropTypes.number,
 
     /**
-     * Add z-index to menu. Note this is not added by default because some
-     * implementations of DropdownAutocomplete DEPEND on no z-index.
-     * This is when we want to blend the bottom border of the actor button with the dropdown menu
-     * so that it looks a bit more seamless.
-     */
-    zIndex: PropTypes.number,
-
-    /**
      * Search input's placeholder text
      */
     searchPlaceholder: PropTypes.string,
@@ -190,7 +182,6 @@ class DropdownAutoCompleteMenu extends React.Component {
       searchPadding,
       itemPadding,
       busy,
-      zIndex,
       ...props
     } = this.props;
 
@@ -243,7 +234,6 @@ class DropdownAutoCompleteMenu extends React.Component {
                     blendCorner,
                     alignMenu,
                     menuWithArrow,
-                    zIndex,
                   })}
                 >
                   <Flex>
@@ -446,7 +436,9 @@ const StyledMenu = styled('div')`
   position: absolute;
   top: calc(100% - 1px);
   min-width: 250px;
-  ${p => (p.zIndex > 0 ? `z-index: ${p.zIndex};` : '')};
+  z-index: ${p =>
+    p.theme.zIndex.dropdownAutocomplete
+      .menu}; /* This is needed to be able to cover e.g. pagination buttons, but also be below dropdown actor button's zindex */
   right: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
 

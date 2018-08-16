@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 
@@ -27,14 +28,20 @@ class DropdownAutoComplete extends React.Component {
           } = renderProps.getActorProps();
 
           return (
-            <div role="button" onClick={renderProps.actions.open} {...actorProps}>
+            <Actor role="button" onClick={renderProps.actions.open} {...actorProps}>
               {children(renderProps)}
-            </div>
+            </Actor>
           );
         }}
       </DropdownAutoCompleteMenu>
     );
   }
 }
+
+const Actor = styled('div')`
+  position: relative;
+  /* This is needed to be able to cover dropdown menu so that it looks like one unit */
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+`;
 
 export default DropdownAutoComplete;
