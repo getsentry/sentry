@@ -47,4 +47,4 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading')
 
         assert self.browser.element_exists('.robot')
-        assert self.browser.element_exists('.btn-primary')
+        assert self.browser.element_exists('button[aria-label="All Done"]')
