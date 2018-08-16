@@ -87,11 +87,11 @@ class GroupIntegrationDetailsTest(APITestCase):
                     'label': 'Title',
                     'required': True,
                 }, {
-                    'default': ('%s\n\n```\n'
+                    'default': ('Sentry Issue: [%s](%s)\n\n```\n'
                                 'Stacktrace (most recent call last):\n\n  '
                                 'File "sentry/models/foo.py", line 29, in build_msg\n    '
                                 'string_max_length=self.string_max_length)\n\nmessage\n```'
-                                ) % (absolute_uri(group.get_absolute_url()),),
+                                ) % (group.qualified_short_id, absolute_uri(group.get_absolute_url())),
                     'type': 'textarea',
                     'name': 'description',
                     'label': 'Description',
