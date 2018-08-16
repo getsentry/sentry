@@ -158,6 +158,7 @@ export default {
     Tooltip: require('app/components/tooltip').default,
     U2fEnrollment: require('app/components/u2fenrollment').default,
     U2fSign: require('app/components/u2fsign').default,
+    Waiting: require('app/views/onboarding/configure/waiting').default,
     Badge: require('app/components/badge').default,
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,

@@ -75,7 +75,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         if assignee_changed or status_changed:
             try:
                 integration = get_integration_from_jwt(
-                    token, request.path, request.GET, method='POST'
+                    token, request.path, 'jira', request.GET, method='POST'
                 )
             except AtlassianConnectValidationError:
                 return self.respond(status=400)

@@ -79,8 +79,10 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 302
         assert response.data['slug'] == 'foobar'
-        assert response.data['detail']['extra']['url'] == '/api/0/projects/%s/%s/' % (project.organization.slug, 'foobar')
-        assert response['Location'] == 'http://testserver/api/0/projects/%s/%s/' % (project.organization.slug, 'foobar')
+        assert response.data['detail']['extra']['url'] == '/api/0/projects/%s/%s/' % (
+            project.organization.slug, 'foobar')
+        assert response['Location'] == 'http://testserver/api/0/projects/%s/%s/' % (
+            project.organization.slug, 'foobar')
 
 
 class ProjectUpdateTest(APITestCase):
@@ -221,6 +223,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:scrub_defaults': False,
             'sentry:sensitive_fields': ['foo', 'bar'],
             'sentry:safe_fields': ['token'],
+            'sentry:store_crash_reports': False,
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
@@ -257,6 +260,9 @@ class ProjectUpdateTest(APITestCase):
             event=AuditLogEntryEvent.PROJECT_EDIT,
         ).exists()
         assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
+        assert project.get_option(
+            'sentry:store_crash_reports',
+            False) == options['sentry:store_crash_reports']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
@@ -472,6 +478,14 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option('sentry:safe_fields') == [
             'foobar.com', 'https://example.com']
         assert resp.data['safeFields'] == ['foobar.com', 'https://example.com']
+
+    def test_store_crash_reports(self):
+        resp = self.client.put(self.path, data={
+            'storeCrashReports': True,
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:store_crash_reports') is True
+        assert resp.data['storeCrashReports'] is True
 
     def test_sensitive_fields(self):
         resp = self.client.put(self.path, data={

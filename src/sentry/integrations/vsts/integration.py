@@ -151,7 +151,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'name': self.inbound_status_key,
                 'type': 'boolean',
                 'label': _('Sync VSTS Status to Sentry'),
-                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry.'
+                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry. '
                           'When a VSTS work item is removed from being done, unresolve its linked Sentry issue.'
                           ),
             },
@@ -288,8 +288,12 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
-        if not IntegrationModel.objects.filter(
-                provider='vsts', external_id=account['AccountId']).exists():
+        try:
+            assert 'subscription' in IntegrationModel.objects.get(
+                provider='vsts',
+                external_id=account['AccountId']
+            ).metadata
+        except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
                 instance, account['AccountId'], oauth_data)
             integration['metadata']['subscription'] = {

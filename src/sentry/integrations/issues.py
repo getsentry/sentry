@@ -79,9 +79,9 @@ class IssueBasicMixin(object):
 
     def get_link_issue_config(self, group, **kwargs):
         """
-        Used by the `GroupIntegrationDetailsEndpoint` to
-        create an `ExternalIssue` using title/description
-        obtained from calling `get_issue` described below.
+        Used by the `GroupIntegrationDetailsEndpoint` to create an
+        `ExternalIssue` using title/description obtained from calling
+        `get_issue` described below.
         """
         return [
             {

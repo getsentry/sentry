@@ -127,7 +127,7 @@ export default class InstalledIntegration extends React.Component {
           {integration.status === 'disabled' && (
             <AddIntegrationButton
               size="xsmall"
-              priority="danger"
+              priority="success"
               provider={provider}
               integration={integration}
               onAddIntegration={this.reinstallIntegration}
