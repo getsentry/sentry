@@ -369,7 +369,8 @@ const InviteMemberIcon = styled(props => <InlineSvg {...props} src="icon-circle-
 
 const StyledChevron = styled(InlineSvg)`
   margin-left: ${space(1)};
-  font-size: 12px;
+  width: 12px;
+  height: 12px;
 `;
 
 const DropdownButton = styled('div')`
