@@ -4,7 +4,7 @@ import React from 'react';
 
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import SentryTypes from 'app/sentryTypes';
-import logExperiment from 'app/utils/logExposure';
+import logExperiment from 'app/utils/logExperiment';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {
