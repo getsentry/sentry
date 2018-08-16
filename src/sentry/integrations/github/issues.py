@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.utils.http import absolute_uri
@@ -51,13 +52,19 @@ class GitHubIssueBasic(IssueBasicMixin):
         default_repo = params.get('repo', repo_choices[0][0])
         assignees = self.get_allowed_assignees(default_repo)
 
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-github-search', args=[org.slug, self.model.id],
+        )
+
         return [
             {
                 'name': 'repo',
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'choices': repo_choices,
+                'defaultLabel': default_repo.split('/')[1],
+                'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
             }
@@ -109,7 +116,11 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
-        issues = self.get_repo_issues(default_repo)
+
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-github-search', args=[org.slug, self.model.id],
+        )
 
         return [
             {
@@ -117,7 +128,8 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'choices': repo_choices,
+                'defaultLabel': default_repo.split('/')[1],
+                'url': autocomplete_url,
                 'required': True,
                 'updatesForm': True,
             },
@@ -126,7 +138,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
-                'choices': issues,
+                'url': autocomplete_url,
                 'required': True,
             },
             {

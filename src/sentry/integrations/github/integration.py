@@ -79,6 +79,12 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
             data.append({'name': repo['name'], 'identifier': repo['full_name']})
         return data
 
+    def search_issues(self, query):
+        return self.get_client().search_issues(query)
+
+    def search_repositories(self, query):
+        return self.get_client().search_repositories(query)
+
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r['identifier'] for r in accessible_repos]
