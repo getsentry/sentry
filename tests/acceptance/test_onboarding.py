@@ -43,8 +43,8 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         assert project.platform == 'javascript-angular'
 
         self.browser.snapshot(name='onboarding-configure-project')
-        self.browser.click('button[aria-label="All Done"]')
+        self.browser.click('.btn-primary')
         self.browser.wait_until_not('.loading')
 
         assert self.browser.element_exists('.robot')
-        assert self.browser.element_exists('button[aria-label="All Done"]')
+        assert self.browser.element_exists('button[aria-label="All done"]')
