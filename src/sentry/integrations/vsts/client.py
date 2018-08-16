@@ -267,10 +267,10 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             )
         )
 
-    def search_issues(self, instance, query=None):
+    def search_issues(self, account_name, query=None):
         return self.post(
             VstsApiPath.work_item_search.format(
-                account_name=instance,
+                account_name=account_name,
             ),
             data={
                 'searchText': query,
