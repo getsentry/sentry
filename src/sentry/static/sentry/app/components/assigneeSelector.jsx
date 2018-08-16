@@ -283,7 +283,7 @@ const AssigneeSelectorComponent = createReactClass({
                   {assignedTo ? (
                     <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                   ) : (
-                    <IconUser />
+                    <IconUser src="icon-user" />
                   )}
                   <StyledChevron src="icon-chevron-down" />
                 </DropdownButton>
@@ -300,6 +300,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
   display: flex;
   justify-content: flex-end;
 
+  /* manually align menu underneath dropdown caret */
   /* stylelint-disable-next-line no-duplicate-selectors */
   ${StyledMenu} {
     right: -14px;
@@ -314,13 +315,10 @@ const getSvgStyle = () => `
   opacity: 0.3;
 `;
 
-const IconUser = styled(props => (
-  <div {...props}>
-    <span className="icon-user" />
-  </div>
-))`
+const IconUser = styled(InlineSvg)`
+  color: ${p => p.theme.gray3};
+  height: 24px;
   width: 24px;
-  text-align: center;
 `;
 
 const IconContainer = styled.div`
