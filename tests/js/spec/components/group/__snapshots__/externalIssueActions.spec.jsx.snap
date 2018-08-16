@@ -242,7 +242,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     autoFocus={true}
     backdrop={true}
     bsClass="modal"
-    className="issue-modal"
     dialogComponentClass={[Function]}
     enforceFocus={false}
     keyboard={true}
