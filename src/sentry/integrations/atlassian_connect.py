@@ -78,7 +78,6 @@ def get_integration_from_jwt(token, path, provider, query_params, method='GET'):
     if qsh != decoded_verified['qsh']:
         raise AtlassianConnectValidationError('Query hash mismatch')
 
-    raise AtlassianConnectValidationError
     return integration
 
 
