@@ -27,7 +27,7 @@ from uuid import uuid4
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
+    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission, EventAttachment
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -620,6 +620,26 @@ class Fixtures(object):
 
     def create_file(self, **kwargs):
         return File.objects.create(**kwargs)
+
+    def create_event_attachment(self, event=None, file=None, **kwargs):
+        if event is None:
+            event = self.event
+
+        if file is None:
+            file = self.create_file(
+                name='log.txt',
+                size=32,
+                headers={'Content-Type': 'text/plain'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return EventAttachment.objects.create(
+            project_id=event.project_id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+            file=file,
+            **kwargs
+        )
 
     def create_dsym_file(self, project=None, **kwargs):
         if project is None:
