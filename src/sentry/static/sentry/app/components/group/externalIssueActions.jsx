@@ -256,6 +256,7 @@ class ExternalIssueActions extends AsyncComponent {
             onHide={this.closeModal}
             animation={false}
             enforceFocus={false}
+            className="issue-modal"
           >
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
