@@ -34,19 +34,20 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
     token = serializers.CharField(required=True)
 
 
+def is_internal_relay(request, public_key):
+    """
+    Checks if the relay is allowed to register, otherwise raises an exception
+    """
+    if (settings.DEBUG or
+        request.META.get('REMOTE_ADDR', None) in settings.INTERNAL_IPS or
+            public_key in settings.SENTRY_RELAY_WHITELIST_PK):
+        return True
+    return False
+
+
 class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
-
-    def check_allowed_relay(self, request, data):
-        """
-        Checks if the relay is allowed to register, otherwise raises an exception
-        """
-        if (settings.DEBUG or
-            request.META.get('REMOTE_ADDR', None) in settings.INTERNAL_IPS or
-                data.get('public_key', None) in settings.SENTRY_RELAY_WHITELIST_PK):
-            return True
-        return False
 
     def post(self, request):
         """
@@ -68,7 +69,9 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if not self.check_allowed_relay(request, json_data):
+        # TODO: remove after old queries are removed that do not check
+        # access
+        if not is_internal_relay(request, json_data.get('public_key')):
             return Response({
                 'detail': 'Relay is not allowed to register',
             }, status=status.HTTP_401_UNAUTHORIZED)
@@ -165,15 +168,18 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 'detail': str(exc).splitlines()[0],
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        is_internal = is_internal_relay(request, params['public_key'])
         try:
             relay = Relay.objects.get(relay_id=relay_id)
         except Relay.DoesNotExist:
             relay = Relay.objects.create(
                 relay_id=relay_id,
                 public_key=params['public_key'],
+                is_internal=is_internal
             )
         else:
             relay.last_seen = timezone.now()
+            relay.is_internal = is_internal
             relay.save()
         default_cache.delete('relay-auth:%s' % relay_id)
 

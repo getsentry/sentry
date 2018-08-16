@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import uuid
 
 from datetime import datetime
@@ -40,6 +41,15 @@ def get_organization_options(org):
     return {
         'trustedRelays': org.get_option('sentry:trusted-relays', []),
     }
+
+
+def relay_has_org_access(relay, org):
+    # Internal relays always have access
+    if relay.is_internal:
+        return True
+    # Use the normalized form of the public key for the check
+    return six.text_type(relay.public_key_object) \
+        in org.get_option('sentry:trusted-relays', [])
 
 
 def get_project_key_config(project_key):

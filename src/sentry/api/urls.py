@@ -209,7 +209,7 @@ urlpatterns = patterns(
     url(
         r'^relays/projectconfigs/$',
         RelayProjectConfigsEndpoint.as_view(),
-        name='sentry-api-0-relay-project-configs'
+        name='sentry-api-0-relay-projectconfigs'
     ),
 
     url(
