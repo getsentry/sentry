@@ -249,6 +249,7 @@ class ExternalIssueActions extends AsyncComponent {
           externalIssueKey={issue ? issue.key : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
+          integrationName={selectedIntegration.name}
         />
         {selectedIntegration && (
           <Modal
