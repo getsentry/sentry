@@ -79,8 +79,6 @@ exports[`ConfirmDelete renders 1`] = `
             >
               <Component
                 className="css-8yn43f-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
-                hasControlState={false}
-                inline={false}
               >
                 <Flex
                   className="css-8yn43f-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
