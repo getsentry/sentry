@@ -72,10 +72,8 @@ export default class Result extends React.Component {
 
   checkLineChart(chartData) {
     for (let item in chartData) {
-      if (item.data) {
-        if (item.data.filter(({value}) => value !== null).length > 1) {
-          return true;
-        }
+      if (item.data && item.data.filter(({value}) => value !== null).length > 1) {
+        return true;
       }
     }
     return false;
