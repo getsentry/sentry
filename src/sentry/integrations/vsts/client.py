@@ -27,7 +27,7 @@ class VstsApiPath(object):
     subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
     work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
-    work_item_search = u'https://{account_name}.almsearch.visualstudio.com/{project}_apis/search/workitemsearchresults'
+    work_item_search = u'https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults'
     work_item_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
     users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
@@ -267,14 +267,22 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             )
         )
 
-    def search_issues(self, instance, project=None, query=None):
+    def search_issues(self, instance, query=None):
         return self.post(
             VstsApiPath.work_item_search.format(
                 account_name=instance,
-                project='{}/'.format(project) if project else '',
             ),
             data={
                 'searchText': query,
+                '$top': 1000,
+                'filters': {
+                    'System.WorkItemType': [
+                        'Bug',
+                        'User Story',
+                        'Feature',
+                        'Task'
+                    ],
+                }
             },
             api_preview=True,
         )

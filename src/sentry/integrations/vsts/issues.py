@@ -215,11 +215,3 @@ class VstsIssueSync(IssueSyncMixin):
             state['name'] for state in all_states if state['category'] in self.done_categories
         ]
         return done_states
-
-    def search_issues(self, query):
-        client = self.get_client()
-        try:
-            results = client.search_issues(query)['results']
-        except ApiError:
-            return []
-        return [wi['fields']['title'] for wi in results]

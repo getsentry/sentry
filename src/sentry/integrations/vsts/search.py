@@ -31,8 +31,9 @@ class VstsSearchEndpoint(OrganizationEndpoint):
         if field == 'externalIssue':
             if not query:
                 return Response
-            resp = installation.search_issues(query)
+
+            resp = installation.get_client().search_issues(integration.name, query)
             return Response([{
-                'label': '(%s) %s' % (i['id'], i['fields']['System.Title']),
-                'value': i['id'],
-            } for i in resp.get('issues', [])])
+                'label': '(%s) %s' % (i['fields']['system.id'], i['fields']['system.title']),
+                'value': i['fields']['system.id'],
+            } for i in resp.get('results', [])])
