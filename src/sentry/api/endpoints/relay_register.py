@@ -69,6 +69,12 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        if not settings.SENTRY_RELAY_OPEN_REGISTRATION and \
+           not is_internal_relay(request, json_data.get('public_key')):
+            return Response({
+                'detail': 'Relay is not allowed to register',
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
         sig = get_header_relay_signature(request)
         if not sig:
             return Response({
