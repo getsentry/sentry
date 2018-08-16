@@ -1,4 +1,3 @@
-import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -268,10 +267,12 @@ const AssigneeSelectorComponent = createReactClass({
                     to={`/settings/${this.context.organization
                       .slug}/members/new/?referrer=assignee_selector`}
                   >
-                    <IconContainer>
-                      <InviteMemberIcon />
-                    </IconContainer>
-                    <Label>{t('Invite Member')}</Label>
+                    <MenuItemWrapper>
+                      <IconContainer>
+                        <InviteMemberIcon />
+                      </IconContainer>
+                      <Label>{t('Invite Member')}</Label>
+                    </MenuItemWrapper>
                   </InviteMemberLink>
                 </Feature>
               )
@@ -330,20 +331,17 @@ const IconContainer = styled.div`
   flex-shrink: 0;
 `;
 
-const menuItemCss = props => css`
+const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
   cursor: pointer;
   display: flex;
   align-items: center;
   font-size: 13px;
-  ${typeof props.py !== 'undefined' &&
+  ${props =>
+    typeof props.py !== 'undefined' &&
     `
       padding-top: ${props.py};
       padding-bottom: ${props.py};
     `};
-`;
-
-const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
-  ${menuItemCss};
 `;
 
 const ClearAssignee = styled(MenuItemWrapper)`
@@ -352,7 +350,6 @@ const ClearAssignee = styled(MenuItemWrapper)`
 `;
 
 const InviteMemberLink = styled(Link)`
-  ${menuItemCss};
   color: ${p => p.theme.textColor};
 `;
 
