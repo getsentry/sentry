@@ -201,8 +201,9 @@ class OAuth2LoginView(PipelineView):
 
     @csrf_exempt
     def dispatch(self, request, pipeline):
-        if 'code' in request.GET:
-            return pipeline.next_step()
+        for param in ('code', 'error', 'state'):
+            if param in request.GET:
+                return pipeline.next_step()
 
         state = uuid4().hex
 
