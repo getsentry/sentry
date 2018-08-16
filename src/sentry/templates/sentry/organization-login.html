@@ -98,8 +98,20 @@
             {% include github_login_template %}
           {% endif %}
 
-          {% if vsts_login_template %}
-            {% include vsts_login_template %}
+          {% if github_login_link %}
+            <p style="text-align: center">
+              <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="width: 50%">
+                <span class="provider-logo github"></span> Sign in with GitHub
+              </a>
+            </p>
+          {% endif %}
+
+          {% if vsts_login_link %}
+            <p style="text-align: center">
+              <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="width: 50%">
+                <span class="provider-logo vsts"></span> Sign in with VSTS
+              </a>
+            </p>
           {% endif %}
 
           <p style="text-align: center">
