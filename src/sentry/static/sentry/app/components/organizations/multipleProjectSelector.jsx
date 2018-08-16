@@ -1,15 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import DropdownLink from 'app/components/dropdownLink';
 import Button from 'app/components/buttons/button';
 import MultiSelectField from 'app/components/forms/multiSelectField';
 import {t} from 'app/locale';
 
-class MultipleProjectSelector extends React.Component {
+import HeaderItem from './headerItem';
+
+export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
     value: PropTypes.array,
     projects: PropTypes.array,
@@ -41,8 +42,7 @@ class MultipleProjectSelector extends React.Component {
     });
 
     return (
-      <Flex direction="column" justify="center" className={className}>
-        <label>{t('Projects')}</label>
+      <HeaderItem className={className} label={t('Projects')}>
         <DropdownLink title={summary} keepMenuOpen={true} anchorRight={true}>
           <Box p={2}>
             searched project list
@@ -55,22 +55,7 @@ class MultipleProjectSelector extends React.Component {
             <Button onClick={onUpdate}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
-      </Flex>
+      </HeaderItem>
     );
   }
 }
-
-export default styled(MultipleProjectSelector)`
-  text-align: right;
-  label {
-    font-weight: 400;
-    font-size: 13px;
-    color: ${p => p.theme.gray6};
-    margin-bottom: 12px;
-  }
-  .dropdown-actor-title {
-    font-size: 15px;
-    height: auto;
-    color: ${p => p.theme.button.default.colorActive};
-  }
-`;
