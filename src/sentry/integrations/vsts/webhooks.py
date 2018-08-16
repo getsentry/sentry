@@ -6,8 +6,7 @@ from sentry.api.base import Endpoint
 from sentry.app import raven
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from rest_framework.response import Response
+
 # from sentry.models import Integration
 import re
 UNSET = object()
@@ -103,74 +102,3 @@ class WorkItemWebhook(Endpoint):
         # following this example
         # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
         return uuid4().hex + uuid4().hex
-
-
-class VstsSearchEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
-
-    def get(self, request, organization, integration_id):
-        try:
-            integration = Integration.objects.get(
-                organizations=organization,
-                id=integration_id,
-                provider='vsts',
-            )
-        except Integration.DoesNotExist:
-            return Response(status=404)
-
-        field = request.GET.get('field')
-        query = request.GET.get('query')
-        if field is None:
-            return Response({'detail': 'field is a required parameter'}, status=400)
-        if not query:
-            return Response({'detail': 'query is a required parameter'}, status=400)
-
-        installation = integration.get_installation(organization.id)
-
-        if field == 'externalIssue':
-            if not query:
-                return Response
-            resp = installation.search_issues(query)
-            return Response([{
-                'label': '(%s) %s' % (i['id'], i['fields']['System.Title']),
-                'value': i['id'],
-            } for i in resp.get('issues', [])])
-
-        # url = ?
-        # client = installation.get_client()
-        # try:
-        #     autocomplete_response = client.get_cached(url)
-        # except (ApiUnauthorized, ApiError):
-        #     autocomplete_response = None
-        # return Response(autocomplete_response)
-
-    #  def view_autocomplete(self, request, group, **kwargs):
-    #     field = request.GET.get('autocomplete_field')
-    #     query = request.GET.get('autocomplete_query')
-    #     if field != 'issue_id' or not query:
-    #         return Response({'issue_id': []})
-
-    #     repo = self.get_option('repo', group.project)
-    #     client = self.get_client(request.user)
-
-    #     try:
-    #         response = client.search_issues(repo, query.encode('utf-8'))
-    #     except Exception as e:
-    #         return Response(
-    #             {
-    #                 'error_type': 'validation',
-    #                 'errors': [{
-    #                     '__all__': self.message_from_error(e)
-    #                 }]
-    #             },
-    #             status=400
-    #         )
-
-    #     issues = [
-    #         {
-    #             'text': '(#%s) %s' % (i['local_id'], i['title']),
-    #             'id': i['local_id']
-    #         } for i in response.get('issues', [])
-    #     ]
-
-    #     return Response({field: issues})

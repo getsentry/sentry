@@ -3,6 +3,7 @@ from time import time
 import logging
 
 from django import forms
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import http
@@ -68,6 +69,18 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'identifier': repo['id'],
             })
         return data
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(VstsIntegration, self).get_link_issue_config(group, **kwargs)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-vsts-search', args=[org.slug, self.model.id],
+        )
+        for field in fields:
+            if field['name'] == 'externalIssue':
+                field['url'] = autocomplete_url
+                field['type'] = 'select'
+        return fields
 
     def get_unmigratable_repositories(self):
         return Repository.objects.filter(
