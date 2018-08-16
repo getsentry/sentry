@@ -93,9 +93,10 @@ describe('Discover', function() {
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(1);
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(2, {
         ...queryBuilder.getExternal(),
-        groupby: ['time'],
+        groupby: [queryBuilder.getExternal().fields[0]],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-count',
+        limit: 15,
       });
     });
   });

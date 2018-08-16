@@ -212,4 +212,23 @@ theme.charts = {
   previousPeriod: theme.gray1,
 };
 
+theme.discoverCharts = {
+  colors: [
+    '#444674',
+    '#574b80',
+    '#6d4e87',
+    '#855189',
+    '#9d5389',
+    '#b35586',
+    '#ca5682',
+    '#e2577b',
+    '#eb666a',
+    '#f0765b',
+    '#f4854d',
+    '#f6953e',
+    '#f5a62c',
+    '#f2b712',
+  ],
+};
+
 export default theme;

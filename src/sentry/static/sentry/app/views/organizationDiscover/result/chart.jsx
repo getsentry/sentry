@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
+import theme from 'app/utils/theme';
 
 export default class Result extends React.Component {
   static propTypes = {
@@ -77,8 +78,17 @@ export default class Result extends React.Component {
 
     return (
       <div>
-        <LineChart series={chartData} style={{height: 300}} />
-        <BarChart series={chartData} stacked={true} style={{height: 300}} />
+        <LineChart
+          series={chartData}
+          style={{height: 300}}
+          colors={theme.discoverCharts.colors}
+        />
+        <BarChart
+          series={chartData}
+          stacked={true}
+          style={{height: 300}}
+          colors={theme.discoverCharts.colors}
+        />
       </div>
     );
   }
