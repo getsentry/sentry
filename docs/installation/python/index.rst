@@ -361,7 +361,7 @@ go.
   [program:sentry-web]
   directory=/www/sentry/
   environment=SENTRY_CONF="/etc/sentry"
-  command=/www/sentry/bin/sentry start
+  command=/www/sentry/bin/sentry run web
   autostart=true
   autorestart=true
   redirect_stderr=true
