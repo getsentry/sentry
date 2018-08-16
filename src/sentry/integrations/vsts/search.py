@@ -37,3 +37,5 @@ class VstsSearchEndpoint(OrganizationEndpoint):
                 'label': '(%s) %s' % (i['fields']['system.id'], i['fields']['system.title']),
                 'value': i['fields']['system.id'],
             } for i in resp.get('results', [])])
+
+        return Response(status=400)
