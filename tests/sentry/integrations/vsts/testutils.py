@@ -738,3 +738,21 @@ GET_PROJECTS_RESPONSE = """{
         "visibility": "private"
     }]
 }"""
+GET_SINGLE_PROJECT_RESPONSE = {
+    "id": "53177684-7ffa-4e6b-9cc7-3dbb30ffaa43",
+    "name": "HelloWorld",
+    "url": "https://project11234567.visualstudio.com/_apis/projects/53177684-7ffa-4e6b-9cc7-3dbb30ffaa43",
+    "state": "wellFormed",
+    "revision": 9,
+    "_links": {
+        "self": {"href": "https://project11234567.visualstudio.com/_apis/projects/53177684-7ffa-4e6b-9cc7-3dbb30ffaa43"},
+        "collection": {"href": "https://project11234567.visualstudio.com/_apis/projectCollections/ad16b6c1-fe86-460c-8570-47314f8735c1"},
+        "web": {"href": "https://project11234567.visualstudio.com/HelloWorld"}
+    },
+    "visibility": "private",
+    "defaultTeam": {
+        "id": "e477aa5a-2a07-4107-8173-1ca2d5fb9de4",
+        "name": "HelloWorld Team",
+        "url": "https://project11234567.visualstudio.com/_apis/projects/53177684-7ffa-4e6b-9cc7-3dbb30ffaa43/teams/e477aa5a-2a07-4107-8173-1ca2d5fb9de4"
+    }
+}

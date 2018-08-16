@@ -149,7 +149,7 @@ class VstsIssueSycnTest(TestCase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,
-            key='%s#%s' % (self.project_name, vsts_work_item_id),
+            key=vsts_work_item_id,
             title='I\'m a title!',
             description='I\'m a description.'
         )
@@ -191,7 +191,7 @@ class VstsIssueSycnTest(TestCase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,
-            key='%s#%s' % (self.project_name, vsts_work_item_id),
+            key=vsts_work_item_id,
             title='I\'m a title!',
             description='I\'m a description.'
         )
