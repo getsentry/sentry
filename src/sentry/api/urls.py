@@ -5,6 +5,7 @@ from django.conf.urls import include, patterns, url
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, \
@@ -210,6 +211,12 @@ urlpatterns = patterns(
         r'^relays/projectconfigs/$',
         RelayProjectConfigsEndpoint.as_view(),
         name='sentry-api-0-relay-projectconfigs'
+    ),
+
+    url(
+        r'^relays/publickeys/$',
+        RelayPublicKeysEndpoint.as_view(),
+        name='sentry-api-0-relay-publickeys'
     ),
 
     url(
