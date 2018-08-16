@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
+import space from 'app/styles/space';
+
 class HeaderItem extends React.Component {
   static propTypes = {
     label: PropTypes.node,
@@ -36,6 +38,7 @@ const StyledHeaderItem = styled(props => (
   <Flex direction="column" justify="center" {...props} />
 ))`
   text-align: ${p => p.align};
+
   .dropdown-actor-title {
     font-size: 15px;
     height: auto;
@@ -47,5 +50,5 @@ const Label = styled('label')`
   font-weight: 400;
   font-size: 13px;
   color: ${p => p.theme.gray6};
-  margin-bottom: 12px;
+  margin-bottom: ${space(1)};
 `;
