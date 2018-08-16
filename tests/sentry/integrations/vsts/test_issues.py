@@ -144,7 +144,7 @@ class VstsIssueSycnTest(TestCase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,
-            key='%s#%s' % (self.project_name, vsts_work_item_id),
+            key=vsts_work_item_id,
             title='I\'m a title!',
             description='I\'m a description.'
         )
@@ -186,7 +186,7 @@ class VstsIssueSycnTest(TestCase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,
-            key='%s#%s' % (self.project_name, vsts_work_item_id),
+            key=vsts_work_item_id,
             title='I\'m a title!',
             description='I\'m a description.'
         )
@@ -205,6 +205,6 @@ class VstsIssueSycnTest(TestCase):
         assert responses.calls[2].response.status_code == 200
 
     def test_get_issue_url(self):
-        work_id = '%s#%s' % (self.project_name, 345),
+        work_id = 345
         url = self.integration.get_issue_url(work_id)
         assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'
