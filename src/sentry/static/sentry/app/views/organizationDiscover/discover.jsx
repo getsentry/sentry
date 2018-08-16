@@ -92,7 +92,7 @@ export default class OrganizationDiscover extends React.Component {
       const field = queryBuilder.getExternal().fields[0];
       const chartQuery = {
         ...queryBuilder.getExternal(),
-        groupby: [field],
+        groupby: [field, 'time'],
         rollup: 60 * 60 * 24,
         orderby: '-count',
         limit: 15,

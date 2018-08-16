@@ -75,6 +75,8 @@ export default class Result extends React.Component {
     const {data} = this.props.data;
 
     const chartData = this.getChartData(data, fields);
+    console.log('data', data);
+    console.log('chart data', chartData);
 
     return (
       <div>

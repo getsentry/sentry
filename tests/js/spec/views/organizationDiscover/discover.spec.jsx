@@ -93,7 +93,7 @@ describe('Discover', function() {
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(1);
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(2, {
         ...queryBuilder.getExternal(),
-        groupby: [queryBuilder.getExternal().fields[0]],
+        groupby: [queryBuilder.getExternal().fields[0], 'time'],
         rollup: 60 * 60 * 24,
         orderby: '-count',
         limit: 15,
