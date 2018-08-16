@@ -131,7 +131,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     Object {
       "configData": Object {},
       "configOrganization": Array [],
-      "configProject": Array [],
       "domainName": "gtithub.com/test-integration",
       "externalIssues": Array [],
       "icon": "http://example.com/integration_icon.png",
@@ -140,7 +139,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
       "projects": Array [],
       "provider": Object {
         "canAdd": true,
-        "canAddProject": false,
         "features": Array [],
         "key": "github",
         "name": "GitHub",

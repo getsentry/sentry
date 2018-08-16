@@ -5,7 +5,6 @@ import AsyncView from 'app/views/asyncView';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Form from 'app/views/settings/components/forms/form';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import IntegrationProjects from 'app/views/organizationIntegrations/integrationProjects';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -53,8 +52,6 @@ export default class ConfigureIntegration extends AsyncView {
             />
           </Form>
         )}
-
-        {provider.canAddProject && <IntegrationProjects integrationId={integration.id} />}
 
         {provider.features.includes('commits') && (
           <IntegrationRepos integration={integration} />

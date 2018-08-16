@@ -50,7 +50,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
       Array [
         Object {
           "canAdd": true,
-          "canAddProject": false,
           "config": Array [],
           "externalIssues": Array [],
           "features": Array [],
@@ -81,14 +80,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
         },
         Object {
           "canAdd": false,
-          "canAddProject": true,
           "config": Array [],
           "features": Array [],
           "integrations": Array [
             Object {
               "configData": Object {},
               "configOrganization": Array [],
-              "configProject": Array [],
               "domainName": "jira.com/test-integration",
               "icon": "http://jira.example.com/integration_icon.png",
               "id": "2",
@@ -96,7 +93,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               "projects": Array [],
               "provider": Object {
                 "canAdd": true,
-                "canAddProject": true,
                 "features": Array [],
                 "key": "jira",
                 "name": "Jira",
@@ -195,7 +191,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               provider={
                 Object {
                   "canAdd": true,
-                  "canAddProject": false,
                   "config": Array [],
                   "externalIssues": Array [],
                   "features": Array [],
@@ -875,7 +870,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                   Object {
                     "configData": Object {},
                     "configOrganization": Array [],
-                    "configProject": Array [],
                     "domainName": "jira.com/test-integration",
                     "icon": "http://jira.example.com/integration_icon.png",
                     "id": "2",
@@ -883,7 +877,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                     "projects": Array [],
                     "provider": Object {
                       "canAdd": true,
-                      "canAddProject": true,
                       "features": Array [],
                       "key": "jira",
                       "name": "Jira",
@@ -900,14 +893,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               provider={
                 Object {
                   "canAdd": false,
-                  "canAddProject": true,
                   "config": Array [],
                   "features": Array [],
                   "integrations": Array [
                     Object {
                       "configData": Object {},
                       "configOrganization": Array [],
-                      "configProject": Array [],
                       "domainName": "jira.com/test-integration",
                       "icon": "http://jira.example.com/integration_icon.png",
                       "id": "2",
@@ -915,7 +906,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                       "projects": Array [],
                       "provider": Object {
                         "canAdd": true,
-                        "canAddProject": true,
                         "features": Array [],
                         "key": "jira",
                         "name": "Jira",
@@ -1585,7 +1575,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                         Object {
                           "configData": Object {},
                           "configOrganization": Array [],
-                          "configProject": Array [],
                           "domainName": "jira.com/test-integration",
                           "icon": "http://jira.example.com/integration_icon.png",
                           "id": "2",
@@ -1593,7 +1582,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                           "projects": Array [],
                           "provider": Object {
                             "canAdd": true,
-                            "canAddProject": true,
                             "features": Array [],
                             "key": "jira",
                             "name": "Jira",
@@ -1608,14 +1596,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                       provider={
                         Object {
                           "canAdd": false,
-                          "canAddProject": true,
                           "config": Array [],
                           "features": Array [],
                           "integrations": Array [
                             Object {
                               "configData": Object {},
                               "configOrganization": Array [],
-                              "configProject": Array [],
                               "domainName": "jira.com/test-integration",
                               "icon": "http://jira.example.com/integration_icon.png",
                               "id": "2",
@@ -1623,7 +1609,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                               "projects": Array [],
                               "provider": Object {
                                 "canAdd": true,
-                                "canAddProject": true,
                                 "features": Array [],
                                 "key": "jira",
                                 "name": "Jira",
@@ -1656,7 +1641,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                           Object {
                             "configData": Object {},
                             "configOrganization": Array [],
-                            "configProject": Array [],
                             "domainName": "jira.com/test-integration",
                             "icon": "http://jira.example.com/integration_icon.png",
                             "id": "2",
@@ -1664,7 +1648,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                             "projects": Array [],
                             "provider": Object {
                               "canAdd": true,
-                              "canAddProject": true,
                               "features": Array [],
                               "key": "jira",
                               "name": "Jira",
@@ -1678,14 +1661,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                         provider={
                           Object {
                             "canAdd": false,
-                            "canAddProject": true,
                             "config": Array [],
                             "features": Array [],
                             "integrations": Array [
                               Object {
                                 "configData": Object {},
                                 "configOrganization": Array [],
-                                "configProject": Array [],
                                 "domainName": "jira.com/test-integration",
                                 "icon": "http://jira.example.com/integration_icon.png",
                                 "id": "2",
@@ -1693,7 +1674,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                 "projects": Array [],
                                 "provider": Object {
                                   "canAdd": true,
-                                  "canAddProject": true,
                                   "features": Array [],
                                   "key": "jira",
                                   "name": "Jira",
@@ -1726,7 +1706,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                             Object {
                               "configData": Object {},
                               "configOrganization": Array [],
-                              "configProject": Array [],
                               "domainName": "jira.com/test-integration",
                               "icon": "http://jira.example.com/integration_icon.png",
                               "id": "2",
@@ -1734,7 +1713,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                               "projects": Array [],
                               "provider": Object {
                                 "canAdd": true,
-                                "canAddProject": true,
                                 "features": Array [],
                                 "key": "jira",
                                 "name": "Jira",
@@ -1748,14 +1726,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                           provider={
                             Object {
                               "canAdd": false,
-                              "canAddProject": true,
                               "config": Array [],
                               "features": Array [],
                               "integrations": Array [
                                 Object {
                                   "configData": Object {},
                                   "configOrganization": Array [],
-                                  "configProject": Array [],
                                   "domainName": "jira.com/test-integration",
                                   "icon": "http://jira.example.com/integration_icon.png",
                                   "id": "2",
@@ -1763,7 +1739,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                   "projects": Array [],
                                   "provider": Object {
                                     "canAdd": true,
-                                    "canAddProject": true,
                                     "features": Array [],
                                     "key": "jira",
                                     "name": "Jira",
@@ -1820,7 +1795,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                           Object {
                                             "configData": Object {},
                                             "configOrganization": Array [],
-                                            "configProject": Array [],
                                             "domainName": "jira.com/test-integration",
                                             "icon": "http://jira.example.com/integration_icon.png",
                                             "id": "2",
@@ -1828,7 +1802,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                             "projects": Array [],
                                             "provider": Object {
                                               "canAdd": true,
-                                              "canAddProject": true,
                                               "features": Array [],
                                               "key": "jira",
                                               "name": "Jira",
@@ -1857,7 +1830,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         Object {
                                                           "configData": Object {},
                                                           "configOrganization": Array [],
-                                                          "configProject": Array [],
                                                           "domainName": "jira.com/test-integration",
                                                           "icon": "http://jira.example.com/integration_icon.png",
                                                           "id": "2",
@@ -1865,7 +1837,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           "projects": Array [],
                                                           "provider": Object {
                                                             "canAdd": true,
-                                                            "canAddProject": true,
                                                             "features": Array [],
                                                             "key": "jira",
                                                             "name": "Jira",
@@ -2221,7 +2192,6 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
       Array [
         Object {
           "canAdd": true,
-          "canAddProject": false,
           "config": Array [],
           "externalIssues": Array [],
           "features": Array [],
@@ -2252,7 +2222,6 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
         },
         Object {
           "canAdd": false,
-          "canAddProject": true,
           "config": Array [],
           "features": Array [],
           "integrations": Array [],
@@ -2348,7 +2317,6 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
               provider={
                 Object {
                   "canAdd": true,
-                  "canAddProject": false,
                   "config": Array [],
                   "externalIssues": Array [],
                   "features": Array [],
@@ -3033,7 +3001,6 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
               provider={
                 Object {
                   "canAdd": false,
-                  "canAddProject": true,
                   "config": Array [],
                   "features": Array [],
                   "integrations": Array [],

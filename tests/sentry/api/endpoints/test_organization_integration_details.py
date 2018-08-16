@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Integration, OrganizationIntegration, ProjectIntegration
+from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
 
@@ -47,9 +47,6 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             assert not OrganizationIntegration.objects.filter(
                 integration=self.integration,
                 organization=self.org,
-            ).exists()
-            assert not ProjectIntegration.objects.filter(
-                project__organization=self.org
             ).exists()
 
     def test_update_config(self):
