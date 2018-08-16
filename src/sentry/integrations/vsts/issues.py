@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import six
 from mistune import markdown
 
+
+from django.core.urlresolvers import reverse
 from sentry.models import IntegrationExternalProject, OrganizationIntegration
 from sentry.integrations.issues import IssueSyncMixin
 
@@ -47,6 +49,14 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-vsts-search', args=[org.slug, self.model.id],
+        )
+        for field in fields:
+            if field['name'] == 'externalIssue':
+                field['url'] = autocomplete_url
+                field['type'] = 'select'
         return fields
 
     def get_issue_url(self, key, **kwargs):
