@@ -70,46 +70,49 @@ def resolve_actors(owners, project_id):
     of {Owner: Actor} pairs. Actors not identified are returned
     as None. """
     from sentry.api.fields.actor import Actor
-    from sentry.ownership.grammar import Owner
     from sentry.models import User, Team
 
     if not owners:
         return {}
 
     users, teams = [], []
-
-    owners_to_actors = {o: None for o in owners}
+    owners_lookup = {}
 
     for owner in owners:
+        # teams aren't technical case insensitive, but teams also
+        # aren't allowed to have non-lowercase in slugs, so
+        # this kinda works itself out correctly since they won't match
+        owners_lookup[(owner.type, owner.identifier.lower())] = owner
         if owner.type == 'user':
             users.append(owner)
         elif owner.type == 'team':
             teams.append(owner)
 
-    actors = []
+    actors = {}
     if users:
-        actors.extend([
-            ('user', email, Actor(u_id, User))
+        actors.update({
+            ('user', email.lower()): Actor(u_id, User)
             for u_id, email in User.objects.filter(
                 reduce(
                     operator.or_,
-                    [Q(email__iexact=o.identifier) for o in users]
+                    [Q(emails__email__iexact=o.identifier) for o in users]
                 ),
+                emails__is_verified=True,
                 is_active=True,
                 sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
-            ).values_list('id', 'email')
-        ])
+            ).distinct().values_list('id', 'emails__email')
+        })
 
     if teams:
-        actors.extend([
-            ('team', slug, Actor(t_id, Team))
+        actors.update({
+            ('team', slug): Actor(t_id, Team)
             for t_id, slug in Team.objects.filter(
                 slug__in=[o.identifier for o in teams],
                 projectteam__project_id=project_id,
             ).values_list('id', 'slug')
-        ])
+        })
 
-    for type, identifier, actor in actors:
-        owners_to_actors[Owner(type, identifier)] = actor
-
-    return owners_to_actors
+    return {
+        o: actors.get((o.type, o.identifier.lower()))
+        for o in owners
+    }
