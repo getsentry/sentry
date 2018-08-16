@@ -70,21 +70,36 @@ export default class Result extends React.Component {
     return result;
   }
 
+  checkLineChart(chartData) {
+    for (let item in chartData) {
+      if (item.data) {
+        if (item.data.filter(({value}) => value !== null).length > 1) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   render() {
     const {fields} = this.props.query;
     const {data} = this.props.data;
 
+    // const data = [{"event_id": "09cb3bb51ac4457cbcbbd6adc7076f0a", "count": 1, "time": 1533686400}, {"event_id": "2493b895da1e450e9f5877ce5a070b5e", "count": 1, "time": 1533600000}, {"event_id": "8f3302ac4f844389b2ef1cee0891d0b7", "count": 1, "time": 1533600000}, {"event_id": "f8311eb5478e4bb3b215d25d8e516087", "count": 1, "time": 1533772800}, {"event_id": "4a6a44db6d8e487781c2aae49cb4875e", "count": 1, "time": 1533772800}, {"event_id": "1a98b8c5909949e691dbbbd941854860", "count": 1, "time": 1533600000}, {"event_id": "15b3c1c690e54e38b1fdf462abc70073", "count": 1, "time": 1533254400}, {"event_id": "7c41882d3b0e4ddfac2078f37aad6d9c", "count": 1, "time": 1534032000}, {"event_id": "e1b970e7c88c4d7f8d98030132314ef8", "count": 1, "time": 1533427200}, {"event_id": "d707d6861c794ec8abf58a7901905933", "count": 1, "time": 1533686400}, {"event_id": "17be32c3480548ffb949fd829fc3119d", "count": 1, "time": 1533859200}, {"event_id": "6f31cc213e834cf79c9909ad25278794", "count": 1, "time": 1533686400}, {"event_id": "55abea4dc3794def84b6f32cd9bb432e", "count": 1, "time": 1533686400}, {"event_id": "355aa3eb761e452cae64a435ab35ae9b", "count": 1, "time": 1534032000}, {"event_id": "db74f49f75e2435a96121373df1c4e2e", "count": 1, "time": 1533772800}]
     const chartData = this.getChartData(data, fields);
     console.log('data', data);
     console.log('chart data', chartData);
 
     return (
       <div>
-        <LineChart
-          series={chartData}
-          style={{height: 300}}
-          colors={theme.discoverCharts.colors}
-        />
+        {chartData && this.checkLineChart(chartData) ? (
+          <LineChart
+            series={chartData}
+            style={{height: 300}}
+            colors={theme.discoverCharts.colors}
+          />
+        ) : null}
+
         <BarChart
           series={chartData}
           stacked={true}
