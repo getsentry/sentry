@@ -198,7 +198,7 @@ export default class IntegrationRepos extends AsyncComponent {
         <PanelBody>
           {itemList.length === 0 && (
             <EmptyMessage
-              icon="icon-circle-info"
+              icon="icon-commit"
               title={t('Sentry is better with commit data')}
               description={t(
                 'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
