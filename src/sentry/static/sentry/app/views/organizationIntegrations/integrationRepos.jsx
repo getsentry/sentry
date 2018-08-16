@@ -197,7 +197,18 @@ export default class IntegrationRepos extends AsyncComponent {
         {header}
         <PanelBody>
           {itemList.length === 0 && (
-            <EmptyMessage size="large">{t('No Repositories Added')}</EmptyMessage>
+            <EmptyMessage
+              icon="icon-circle-info"
+              title={t('Sentry is better with commit data')}
+              description={t(
+                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
+              )}
+              action={
+                <Button href="https://docs.sentry.io/learn/releases/">
+                  {t('Learn More')}
+                </Button>
+              }
+            />
           )}
           {itemList.map(repo => {
             let repoIsActive = repo.status === 'active';
