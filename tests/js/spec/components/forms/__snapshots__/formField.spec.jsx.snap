@@ -85,8 +85,6 @@ exports[`FormField + model renders with Form 1`] = `
               >
                 <Component
                   className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
-                  hasControlState={true}
-                  inline={true}
                 >
                   <Flex
                     className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
