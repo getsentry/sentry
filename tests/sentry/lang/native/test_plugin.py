@@ -1600,3 +1600,22 @@ class MinidumpIntegrationTest(TestCase):
         event = Event.objects.get()
         attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
         assert attachments == []
+
+    def test_attachment_deletion(self):
+        event = self.create_event(
+            event_id='a' * 32,
+            message='Minidump test event',
+        )
+
+        attachment = self.create_event_attachment(event=event, name='log.txt')
+        file = attachment.file
+
+        self.login_as(self.user)
+        with self.tasks():
+            url = '/api/0/issues/{}/'.format(event.group_id)
+            response = self.client.delete(url)
+
+        assert response.status_code == 202
+        assert not Event.objects.filter(event_id=event.event_id).exists()
+        assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
+        assert not File.objects.filter(id=file.id).exists()
