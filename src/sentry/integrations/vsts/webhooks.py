@@ -7,7 +7,6 @@ from sentry.app import raven
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 
-# from sentry.models import Integration
 import re
 UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
