@@ -44,12 +44,7 @@ export default class CustomResolutionModal extends React.Component {
     let {orgId, projectId} = this.props;
 
     return (
-      <Modal
-        className="custom-resolution-modal"
-        show={this.props.show}
-        animation={false}
-        onHide={this.props.onCanceled}
-      >
+      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <form onSubmit={this.onSubmit}>
           <Header>{t('Resolved In')}</Header>
           <Body>

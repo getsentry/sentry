@@ -24,9 +24,7 @@ export function navigateTo(to, router) {
           }}
         />
       ),
-      {
-        modalClassName: 'context-picker-modal',
-      }
+      {}
     );
   } else {
     router.push(to);
