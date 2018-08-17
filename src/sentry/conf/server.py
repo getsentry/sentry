@@ -768,7 +768,6 @@ SENTRY_FEATURES = {
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
     'organizations:github-apps': False,
-    'organizations:integrations-v3': False,
     'organizations:invite-members': True,
     'organizations:new-settings': True,
     'organizations:require-2fa': False,
