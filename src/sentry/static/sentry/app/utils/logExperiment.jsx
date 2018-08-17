@@ -2,7 +2,7 @@ import HookStore from 'app/stores/hookStore';
 
 /**
  * @param {String} experimentName Name of the experiment
- * @param {Object} experiment config
+ * @param {Object} experiments Config
  * @param {Object} data Experiment data to be recorded: {unit_name, unit_id, params}
  * 					note that params need to be string
  */
@@ -13,6 +13,6 @@ export default function logExperiment(experimentName, experiments, data) {
   if (assignment === null) return;
 
   data.experiment_name = experimentName;
-  data.params = `{${param}: ${experiments[experimentName]}}`;
+  data.params = `{${param}: ${assignment}}`;
   HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
 }
