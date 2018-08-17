@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import FormModel from 'app/views/settings/components/forms/model';
-import {StyledPanel} from 'app/components/panels/panel';
+import Panel from 'app/components/panels/panel';
 
 export default class Form extends React.Component {
   static propTypes = {
@@ -205,7 +205,7 @@ const StyledFooter = styled('div')`
   ${p =>
     !p.saveOnBlur &&
     `
-    ${StyledPanel} & {
+    ${Panel} & {
       margin-top: 0;
       padding-right: 36px;
     }
