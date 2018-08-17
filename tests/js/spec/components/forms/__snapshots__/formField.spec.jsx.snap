@@ -195,7 +195,7 @@ exports[`FormField + model renders with Form 1`] = `
                                                         is={null}
                                                       >
                                                         <Observer>
-                                                          <Component
+                                                          <Input
                                                             disabled={false}
                                                             error={false}
                                                             field={[Function]}
@@ -209,33 +209,18 @@ exports[`FormField + model renders with Form 1`] = `
                                                             type="text"
                                                             value=""
                                                           >
-                                                            <Input
+                                                            <input
+                                                              className="css-1m7xmcf-Input-inputStyles e1xej46s0"
                                                               disabled={false}
-                                                              error={false}
-                                                              field={[Function]}
                                                               id="fieldName"
-                                                              initialData={Object {}}
-                                                              innerRef={[Function]}
                                                               name="fieldName"
                                                               onBlur={[Function]}
                                                               onChange={[Function]}
                                                               onKeyDown={[Function]}
                                                               type="text"
                                                               value=""
-                                                            >
-                                                              <input
-                                                                className="css-1m7xmcf-Input-inputStyles e1xej46s0"
-                                                                disabled={false}
-                                                                id="fieldName"
-                                                                name="fieldName"
-                                                                onBlur={[Function]}
-                                                                onChange={[Function]}
-                                                                onKeyDown={[Function]}
-                                                                type="text"
-                                                                value=""
-                                                              />
-                                                            </Input>
-                                                          </Component>
+                                                            />
+                                                          </Input>
                                                         </Observer>
                                                       </div>
                                                     </Base>

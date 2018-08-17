@@ -392,23 +392,21 @@ class FormField extends React.Component {
 
                   return (
                     <React.Fragment>
-                      <this.props.children
-                        innerRef={this.handleInputMount}
-                        {...{
-                          ...props,
-                          name,
-                          id,
-                          onKeyDown: this.handleKeyDown,
-                          onChange: this.handleChange,
-                          onBlur: this.handleBlur,
-                          // Fixes react warnings about input switching from controlled to uncontrolled
-                          // So force to empty string for null values
-                          value: value === null ? '' : value,
-                          error,
-                          disabled,
-                        }}
-                        initialData={model.initialData}
-                      />
+                      {this.props.children({
+                        innerRef: this.handleInputMount,
+                        ...props,
+                        name,
+                        id,
+                        onKeyDown: this.handleKeyDown,
+                        onChange: this.handleChange,
+                        onBlur: this.handleBlur,
+                        // Fixes react warnings about input switching from controlled to uncontrolled
+                        // So force to empty string for null values
+                        value: value === null ? '' : value,
+                        error,
+                        disabled,
+                        initialData: model.initialData,
+                      })}
                       {showReturnButton && <ReturnButtonStyled />}
                     </React.Fragment>
                   );
