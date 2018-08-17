@@ -10,7 +10,7 @@ import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits'];
+const CONFIGURABLE_FEATURES = ['commits', 'alert_rule'];
 
 const removeButton = (
   <Button borderless size="xsmall" icon="icon-trash">

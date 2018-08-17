@@ -34,6 +34,7 @@ class IntegrationFeatures(Enum):
     ISSUE_SYNC = 'issue_sync'
     COMMITS = 'commits'
     CHAT_UNFURL = 'chat_unfurl'
+    ALERT_RULE = 'alert_rule'
 
 
 class IntegrationProvider(PipelineProvider):
