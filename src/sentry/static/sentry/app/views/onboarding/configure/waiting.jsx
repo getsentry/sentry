@@ -15,7 +15,7 @@ class Waiting extends React.Component {
       <div className="awaiting-event">
         <div className="pull-right">
           <Button priority="primary" onClick={this.props.skip}>
-            {t('All done')}
+            {t('All done!')}
           </Button>
         </div>
         <div className="wrap waiting-text">

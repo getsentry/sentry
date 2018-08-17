@@ -123,29 +123,6 @@ const Configure = createReactClass({
     }
   },
 
-  createSampleEvent() {
-    let {orgId, projectId} = this.props.params;
-    let url = `/projects/${orgId}/${projectId}/create-sample/`;
-
-    analytics('sample_event.created', {
-      org_id: parseInt(orgId, 10),
-      project_id: projectId,
-      source: 'installation',
-    });
-
-    this.api.request(url, {
-      method: 'POST',
-      success: data => {
-        browserHistory.push(`/${orgId}/${projectId}/issues/${data.groupID}/`);
-      },
-      error: err => {
-        sdk.captureMessage('Create sample event in onboarding configure step failed', {
-          extra: err,
-        });
-      },
-    });
-  },
-
   submit() {
     HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
     analytics('onboarding.complete', {project: this.props.params.projectId});
