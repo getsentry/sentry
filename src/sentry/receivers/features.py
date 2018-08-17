@@ -22,6 +22,12 @@ from sentry.signals import (
     inbound_filter_toggled,
     sso_enabled,
     data_scrubber_enabled,
+    repo_linked,
+    release_created,
+    deploy_created,
+    resolved_with_commit,
+    ownership_rule_created,
+    issue_ignored,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -190,6 +196,48 @@ def deleted_and_discarded_issue(instance, created, **kwargs):
             organization_id=instance.project.organization_id,
             feature_slug="delete_and_discard"
         )
+
+
+@repo_linked.connect(weak=False)
+def record_repo_linked(repo, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=repo.organization_id, feature_slug="repo_linked", complete=True
+    )
+
+
+@release_created.connect(weak=False)
+def record_release_created(release, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=release.organization_id, feature_slug="release_created", complete=True
+    )
+
+
+@deploy_created.connect(weak=False)
+def record_deploy_created(deploy, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=deploy.organization_id, feature_slug="deploy_created", complete=True
+    )
+
+
+@resolved_with_commit.connect(weak=False)
+def record_resolved_with_commit(organization_id, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
+    )
+
+
+@ownership_rule_created.connect(weak=False)
+def record_ownership_rule_created(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id, feature_slug="ownership_rule_created", complete=True
+    )
+
+
+@issue_ignored.connect(weak=False)
+def record_issue_ignored(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id, feature_slug="issue_ignored", complete=True
+    )
 
 
 post_save.connect(
