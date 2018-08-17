@@ -6,6 +6,7 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 from sentry import http
+from sentry.constants import ObjectStatus
 from sentry.models import Integration as IntegrationModel, IntegrationExternalProject
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError, IntegrationError
@@ -21,6 +22,7 @@ from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
+
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
 
@@ -291,7 +293,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         try:
             assert 'subscription' in IntegrationModel.objects.get(
                 provider='vsts',
-                external_id=account['AccountId']
+                external_id=account['AccountId'],
+                status=ObjectStatus.VISIBLE,
             ).metadata
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
