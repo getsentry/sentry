@@ -639,7 +639,6 @@ class JiraIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     can_add = False
-    can_add_project = False
 
     def get_pipeline_views(self):
         return []
