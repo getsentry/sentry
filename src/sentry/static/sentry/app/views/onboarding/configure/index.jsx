@@ -8,6 +8,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import logExperiment from 'app/utils/logExperiment';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -109,18 +110,12 @@ const Configure = createReactClass({
     let {organization} = this.context;
     if (!organization.experiments) return;
 
-    let exposed = organization.experiments.SampleEventExperiment;
-
-    if (exposed === 0 || exposed === 1) {
-      let data = {
-        experiment_name: 'SampleEventExperiment',
-        unit_name: 'org_id',
-        unit_id: parseInt(organization.id, 10),
-        params: `{exposed: ${exposed}}`,
-      };
-
-      HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
-    }
+    //Experiment exposure is already assigned - this logs the exposure i.e. when the user gets to the settings page
+    logExperiment('SampleEventExperiment', organization.experiments, {
+      unit_name: 'org_id',
+      unit_id: organization.id,
+      params: 'exposed',
+    });
   },
 
   submit() {
