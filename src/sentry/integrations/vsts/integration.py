@@ -7,7 +7,7 @@ from django.utils.translation import ugettext as _
 
 from sentry import http
 from sentry.constants import ObjectStatus
-from sentry.models import Integration as IntegrationModel, IntegrationExternalProject
+from sentry.models import Integration as IntegrationModel, IntegrationExternalProject, OrganizationIntegration
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
@@ -291,11 +291,18 @@ class VstsIntegrationProvider(IntegrationProvider):
         }
 
         try:
-            assert 'subscription' in IntegrationModel.objects.get(
+            integration_model = IntegrationModel.objects.get(
                 provider='vsts',
                 external_id=account['AccountId'],
                 status=ObjectStatus.VISIBLE,
-            ).metadata
+            )
+            assert 'subscription' in integration_model.metadata
+            org_integrations = OrganizationIntegration.objects.filter(
+                integration_id=integration_model.id,
+                status=ObjectStatus.VISIBLE,
+            )
+            assert org_integrations
+
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
                 instance, account['AccountId'], oauth_data)
