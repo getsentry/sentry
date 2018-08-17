@@ -65,7 +65,11 @@ export default class Result extends React.Component {
         });
       }
 
-      result.push({seriesName: key, data: output[key].data});
+      let seriesNameValue = key;
+      if (key.length > 60) {
+        seriesNameValue = key.substring(0, 60) + '...';
+      }
+      result.push({seriesName: seriesNameValue, data: output[key].data});
     }
     return result;
   }
