@@ -32,10 +32,29 @@ class AcceptProjectTransfer extends AsyncView {
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {
-        addErrorMessage(t('Unable to transfer project.'));
+        let errorMsg =
+          error && error.responseJSON && typeof error.responseJSON.detail === 'string'
+            ? error.responseJSON.detail
+            : '';
+
+        addErrorMessage(
+          t('Unable to transfer project') + errorMsg ? `: ${errorMsg}` : ''
+        );
       },
     });
   };
+
+  renderError(error) {
+    let disableLog = false;
+    // Check if there is an error message with `transferDetails` endpoint
+    // If so, show as toast and ignore, otherwise log to sentry
+    if (error && error.responseJSON && typeof error.responseJSON.detail === 'string') {
+      addErrorMessage(error.responseJSON.detail);
+      disableLog = true;
+    }
+
+    super.renderError(error, disableLog);
+  }
 
   renderBody() {
     let {transferDetails} = this.state;
