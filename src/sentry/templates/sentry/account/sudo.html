@@ -1,4 +1,4 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -24,16 +24,8 @@
   </script>
 {% endblock %}
 
-{% block content %}
-    <div class="pattern-bg"></div>
-    <div class="box box-modal">
-        <div class="box-header">
-          <a href="/">
-            <span class="icon-sentry-logo-full"></span>
-            <span class="back-to">{% trans "Back to organization" %}</span>
-          </a>
-        </div>
-        <div class="box-content with-padding">
+{% block auth_main %}
+
           <h4>{% blocktrans %}Confirm your Identity{% endblocktrans %}</h4>
 
           <p>
@@ -63,11 +55,10 @@
                     </script>
                 {% endif %}
 
-                <div class="form-actions">
+                <div class="auth-footer">
                    <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
-                   <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+                   <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
                 </div>
             </form>
-        </div>
-    </div>
+
 {% endblock %}
