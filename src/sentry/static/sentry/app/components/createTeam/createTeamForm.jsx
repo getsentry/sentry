@@ -12,6 +12,7 @@ export default class CreateTeamForm extends React.Component {
     organization: SentryTypes.Organization.isRequired,
     onSuccess: PropTypes.func.isRequired,
     onSubmit: PropTypes.func,
+    formProps: PropTypes.object,
   };
 
   handleCreateTeamSuccess = data => {
@@ -37,6 +38,7 @@ export default class CreateTeamForm extends React.Component {
           onSubmit={this.props.onSubmit}
           onSubmitSuccess={this.handleCreateTeamSuccess}
           requireChanges
+          {...this.props.formProps}
         >
           <TextField
             name="slug"
