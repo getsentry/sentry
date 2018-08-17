@@ -4,7 +4,7 @@ import React from 'react';
 
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import SentryTypes from 'app/sentryTypes';
-import HookStore from 'app/stores/hookStore';
+import logExperiment from 'app/utils/logExperiment';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {
@@ -23,19 +23,12 @@ class SettingsNavigation extends React.Component {
     let {organization} = this.props;
     if (!organization || !organization.experiments) return;
 
-    let exposed = organization.experiments.SSOPaywallExperiment;
-
     //Experiment exposure is already assigned - this logs the exposure i.e. when the user gets to the settings page
-    if (exposed === 0 || exposed === 1) {
-      let data = {
-        experiment_name: 'SSOPaywallExperiment',
-        unit_name: 'org_id',
-        unit_id: parseInt(organization.id, 10),
-        params: `{exposed: ${exposed}}`,
-      };
-
-      HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
-    }
+    logExperiment('SSOPaywallExperiment', organization.experiments, {
+      unit_name: 'org_id',
+      unit_id: organization.id,
+      params: 'exposed',
+    });
   }
 
   render() {
