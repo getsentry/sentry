@@ -20,7 +20,7 @@ export default class IntegrationItem extends React.Component {
     return (
       <Flex>
         <Box>
-          <IntegrationIcon size={compact ? 26 : 32} integration={integration} />
+          <IntegrationIcon size={compact ? 22 : 32} integration={integration} />
         </Box>
         <Labels compact={compact}>
           <IntegrationName>

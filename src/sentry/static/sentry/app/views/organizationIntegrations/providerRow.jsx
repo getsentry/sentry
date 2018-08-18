@@ -14,6 +14,7 @@ import Link from 'app/components/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {growDown, highlight} from 'app/styles/animations';
 
 export default class ProviderRow extends React.Component {
   static contextTypes = {
@@ -95,7 +96,7 @@ export default class ProviderRow extends React.Component {
             <ProviderName>{this.props.provider.name}</ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
-              <Link onClick={this.openModal}>Learn More</Link>
+              <StyledLink onClick={openModal}>Learn More</StyledLink>
             </ProviderDetails>
           </Box>
           <Box>{this.renderButton()}</Box>
@@ -106,30 +107,33 @@ export default class ProviderRow extends React.Component {
   }
 }
 
-const ProviderName = styled('div')`
-  font-weight: bold;
-`;
-
 const ProviderDetails = styled(Flex)`
   align-items: center;
   margin-top: 6px;
-  font-size: 0.8em;
+  font-size: 0.9em;
 `;
 
 const Status = styled(
   withTheme(props => {
     const {enabled, ...p} = props;
     return (
-      <React.Fragment>
-        <CircleIndicator size={6} color={enabled ? p.theme.success : p.theme.gray2} />
+      <Flex align="center">
+        <CircleIndicator size={7} color={enabled ? p.theme.success : p.theme.gray2} />
         <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
-      </React.Fragment>
+      </Flex>
     );
   })
 )`
   color: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
-  margin-left: 5px;
-  margin-right: 10px;
+  margin-left: ${space(1)};
+  &:after {
+    content: '|';
+    color: ${p => p.theme.gray1};
+    margin-left: ${space(0.75)};
+    font-weight: normal;
+  }
+  margin-right: ${space(0.75)};
+  font-weight: bold;
 `;
 
 const StyledInstalledIntegration = styled(
@@ -145,29 +149,20 @@ const StyledInstalledIntegration = styled(
   padding: ${space(2)};
   padding-left: 0;
   margin-left: 68px;
-  border-top: 1px dotted ${p => p.theme.borderLight};
+  border-top: 1px dashed ${p => p.theme.borderLight};
+`;
+
+const StyledLink = styled(Link)`
+  color: ${p => p.theme.gray2};
+`;
+
+const ProviderName = styled('div')`
+  font-size: 1.1em;
 `;
 
 const NewInstallation = styled('div')`
-  @keyframes slidein {
-    from {
-      height: 0;
-    }
-    to {
-      height: 59px;
-    }
-  }
-  @keyframes highlight {
-    0%,
-    100% {
-      height: rgba(255, 255, 255, 0);
-    }
-
-    25% {
-      background: ${p => p.theme.yellowLightest};
-    }
-  }
-
+  animation: ${growDown('59px')} 160ms 500ms ease-in-out forwards,
+    ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
   height: 0;
   overflow: hidden;
   animation: slidein 160ms 500ms ease-in-out forwards,

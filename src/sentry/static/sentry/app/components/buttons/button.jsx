@@ -78,7 +78,8 @@ class Button extends React.Component {
       icon,
       children,
       label,
-
+      borderless,
+      priority,
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
       // eslint-disable-next-line no-unused-vars
@@ -98,11 +99,13 @@ class Button extends React.Component {
         to={this.getUrl(to)}
         href={this.getUrl(href)}
         size={size}
+        priority={priority}
+        borderless={borderless}
         {...buttonProps}
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel size={size}>
+        <ButtonLabel size={size} priority={priority} borderless={borderless}>
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg
@@ -139,7 +142,8 @@ const getFontSize = ({size, theme}) => {
   }
 };
 
-const getFontWeight = ({priority}) => `font-weight: ${priority === 'link' ? 400 : 600};`;
+const getFontWeight = ({priority, borderless}) =>
+  `font-weight: ${priority === 'link' || borderless ? 400 : 600};`;
 
 const getBoxShadow = active => ({priority, borderless, disabled}) => {
   if (disabled || borderless || priority === 'link') {
@@ -225,7 +229,7 @@ const StyledButton = styled(({busy, external, borderless, ...props}) => {
 /**
  * Get label padding determined by size
  */
-const getLabelPadding = ({size, priority}) => {
+const getLabelPadding = ({size, priority, borderless}) => {
   if (priority === 'link') {
     return '0';
   }
@@ -234,18 +238,20 @@ const getLabelPadding = ({size, priority}) => {
     case 'zero':
       return '0';
     case 'xsmall':
-      return '6px 10px';
+      return borderless ? '4px 6px' : '6px 10px';
     case 'small':
-      return '8px 12px;';
+      return borderless ? '6px 8px' : '8px 12px';
     case 'large':
-      return '14px 20px';
+      return borderless ? '8px 10px' : '14px 20px';
 
     default:
-      return '12px 16px;';
+      return borderless ? '6px 10px' : '12px 16px';
   }
 };
 
-const ButtonLabel = styled(props => <Flex align="center" {...props} />)`
+const ButtonLabel = styled(({size, priority, borderless, ...props}) => (
+  <Flex align="center" {...props} />
+))`
   padding: ${getLabelPadding};
 `;
 
@@ -258,7 +264,7 @@ const getIconMargin = ({size, hasChildren}) => {
   return size === 'small' ? '6px' : '8px';
 };
 
-const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
+const Icon = styled(Box)`
   margin-right: ${getIconMargin};
 `;
 
