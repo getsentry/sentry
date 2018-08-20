@@ -89,10 +89,15 @@ export default class OrganizationDiscover extends React.Component {
 
     // If there are aggregations, get data for chart
     if (queryBuilder.getInternal().aggregations.length > 0) {
-      const field = queryBuilder.getExternal().fields[0];
+      const field =
+        queryBuilder.getExternal().fields.length > 0
+          ? queryBuilder.getExternal().fields[0]
+          : null;
+      const groupBy = field ? [field, 'time'] : ['time'];
+
       const chartQuery = {
         ...queryBuilder.getExternal(),
-        groupby: [field, 'time'],
+        groupby: groupBy,
         rollup: 60 * 60 * 24,
         orderby: '-count',
         limit: 15,
