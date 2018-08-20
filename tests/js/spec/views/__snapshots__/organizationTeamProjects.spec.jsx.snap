@@ -104,13 +104,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   className="css-6v04yn-AutoCompleteRoot ejumqxq0"
                                 >
                                   <Actor
+                                    isOpen={false}
                                     onClick={[Function]}
                                     onMouseEnter={[Function]}
                                     onMouseLeave={[Function]}
                                     role="button"
                                   >
                                     <div
-                                      className="css-gtzpo2-Actor e53us8t0"
+                                      className="css-dy1pax-Actor e53us8t0"
                                       onClick={[Function]}
                                       onMouseEnter={[Function]}
                                       onMouseLeave={[Function]}

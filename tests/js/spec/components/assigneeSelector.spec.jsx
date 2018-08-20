@@ -167,6 +167,8 @@ describe('AssigneeSelector', function() {
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
 
+    // Flakey with 1 tick
+    await tick();
     await tick();
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
@@ -194,6 +196,8 @@ describe('AssigneeSelector', function() {
       })
     );
 
+    // Flakey with 1 tick
+    await tick();
     await tick();
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
@@ -221,6 +225,8 @@ describe('AssigneeSelector', function() {
     );
 
     // Waiting for assignment to finish updating
+    // Flakey with 1 tick
+    await tick();
     await tick();
     assigneeSelector.update();
 

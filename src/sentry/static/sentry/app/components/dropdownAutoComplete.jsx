@@ -28,7 +28,12 @@ class DropdownAutoComplete extends React.Component {
           } = renderProps.getActorProps();
 
           return (
-            <Actor role="button" onClick={renderProps.actions.open} {...actorProps}>
+            <Actor
+              isOpen={renderProps.isOpen}
+              role="button"
+              onClick={renderProps.actions.open}
+              {...actorProps}
+            >
               {children(renderProps)}
             </Actor>
           );
@@ -41,7 +46,7 @@ class DropdownAutoComplete extends React.Component {
 const Actor = styled('div')`
   position: relative;
   /* This is needed to be able to cover dropdown menu so that it looks like one unit */
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+  ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 `;
 
 export default DropdownAutoComplete;
