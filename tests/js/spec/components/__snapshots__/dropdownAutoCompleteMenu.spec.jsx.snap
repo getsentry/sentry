@@ -30,7 +30,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
   }
   maxHeight={300}
   onSelect={[Function]}
-  searchPadding="8px"
   searchPlaceholder="Filter search"
 >
   <AutoComplete
@@ -83,7 +82,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onChange={[Function]}
                         onFocus={[Function]}
                         onKeyDown={[Function]}
-                        padding="8px"
                         placeholder="Filter search"
                         value=""
                       >
@@ -208,7 +206,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
   }
   maxHeight={300}
   onSelect={[Function]}
-  searchPadding="8px"
   searchPlaceholder="Filter search"
 >
   <AutoComplete
@@ -261,7 +258,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onChange={[Function]}
                         onFocus={[Function]}
                         onKeyDown={[Function]}
-                        padding="8px"
                         placeholder="Filter search"
                         value=""
                       >

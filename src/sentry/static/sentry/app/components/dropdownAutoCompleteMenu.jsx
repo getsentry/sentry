@@ -90,11 +90,6 @@ class DropdownAutoCompleteMenu extends React.Component {
     searchPlaceholder: PropTypes.string,
 
     /**
-     * Padding value for search input (requires the `padding` shortcut value)
-     */
-    searchPadding: PropTypes.string,
-
-    /**
      * Padding value for dropdown items (requires the `padding` shortcut value)
      */
     itemPadding: PropTypes.string,
@@ -122,7 +117,6 @@ class DropdownAutoCompleteMenu extends React.Component {
     blendCorner: true,
     emptyMessage: t('No items'),
     searchPlaceholder: t('Filter search'),
-    searchPadding: `${space(1)}`,
     itemPadding: `${space(1)}`,
   };
 
@@ -179,7 +173,6 @@ class DropdownAutoCompleteMenu extends React.Component {
       menuFooter,
       menuWithArrow,
       searchPlaceholder,
-      searchPadding,
       itemPadding,
       busy,
       ...props
@@ -240,7 +233,6 @@ class DropdownAutoCompleteMenu extends React.Component {
                     <StyledInput
                       autoFocus
                       placeholder={searchPlaceholder}
-                      padding={searchPadding}
                       {...getInputProps({onChange})}
                     />
                     <InputLoadingWrapper>
@@ -386,7 +378,7 @@ const StyledInput = styled(Input)`
     border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
     box-shadow: none;
     font-size: 13px;
-    padding: ${p => p.padding};
+    padding: ${space(1)};
     font-weight: normal;
     color: ${p => p.gray2};
   }

@@ -240,7 +240,6 @@ const AssigneeSelectorComponent = createReactClass({
             alignMenu="right"
             onSelect={this.handleAssign}
             itemPadding={`5px ${space(1)}`}
-            searchPadding={`${space(1)}`}
             searchPlaceholder={t('Filter teams and people')}
             menuWithArrow
             menuHeader={
