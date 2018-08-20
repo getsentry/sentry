@@ -167,25 +167,30 @@ exports[`projectAlertRules renders 1`] = `
                                 style={Object {}}
                               >
                                 <ButtonLabel
+                                  priority="primary"
                                   size="small"
                                 >
                                   <Component
                                     className="css-19bmqb3-ButtonLabel e17811v31"
+                                    priority="primary"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-19bmqb3-ButtonLabel e17811v31"
+                                      priority="primary"
                                       size="small"
                                     >
                                       <Base
                                         align="center"
                                         className="e17811v31 css-1eblpyp-ButtonLabel"
+                                        priority="primary"
                                         size="small"
                                       >
                                         <div
                                           className="e17811v31 css-1eblpyp-ButtonLabel"
                                           is={null}
+                                          priority="primary"
                                           size="small"
                                         >
                                           <Icon

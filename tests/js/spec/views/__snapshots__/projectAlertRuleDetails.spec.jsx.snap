@@ -2391,21 +2391,27 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 priority="primary"
                                 role="button"
                               >
-                                <ButtonLabel>
+                                <ButtonLabel
+                                  priority="primary"
+                                >
                                   <Component
                                     className="css-1dxlw1i-ButtonLabel e17811v31"
+                                    priority="primary"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-1dxlw1i-ButtonLabel e17811v31"
+                                      priority="primary"
                                     >
                                       <Base
                                         align="center"
                                         className="e17811v31 css-mvnt76-ButtonLabel"
+                                        priority="primary"
                                       >
                                         <div
                                           className="e17811v31 css-mvnt76-ButtonLabel"
                                           is={null}
+                                          priority="primary"
                                         >
                                           Save Rule
                                         </div>
@@ -4534,21 +4540,27 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 priority="primary"
                                 role="button"
                               >
-                                <ButtonLabel>
+                                <ButtonLabel
+                                  priority="primary"
+                                >
                                   <Component
                                     className="css-1dxlw1i-ButtonLabel e17811v31"
+                                    priority="primary"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-1dxlw1i-ButtonLabel e17811v31"
+                                      priority="primary"
                                     >
                                       <Base
                                         align="center"
                                         className="e17811v31 css-mvnt76-ButtonLabel"
+                                        priority="primary"
                                       >
                                         <div
                                           className="e17811v31 css-mvnt76-ButtonLabel"
                                           is={null}
+                                          priority="primary"
                                         >
                                           Save Rule
                                         </div>
