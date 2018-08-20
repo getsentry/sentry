@@ -15,6 +15,9 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         has_ghe = features.has('organizations:github-enterprise',
                                organization,
                                actor=request.user)
+        has_bitbucket = features.has('organizations:bitbucket',
+                                     organization,
+                                     actor=request.user)
         has_catchall = features.has('organizations:internal-catchall',
                                     organization,
                                     actor=request.user)
@@ -29,6 +32,8 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
                 internal_integrations.remove('github_enterprise')
             if has_github_apps:
                 internal_integrations.remove('github')
+            if has_bitbucket:
+                internal_integrations.remove('bitbucket')
             if not has_catchall and provider.key in internal_integrations:
                 continue
 

@@ -25,6 +25,7 @@ default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-issue-ui', OrganizationFeature)  # NOQA
 default_manager.add('organizations:github-enterprise', OrganizationFeature)  # NOQA
+default_manager.add('organizations:bitbucket', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('organizations:environments', OrganizationFeature)  # NOQA

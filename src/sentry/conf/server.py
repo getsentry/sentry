@@ -776,6 +776,7 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     'organizations:new-issue-ui': False,
     'organizations:github-enterprise': False,
+    'organizations:bitbucket': False,
     'organizations:new-teams': True,
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
