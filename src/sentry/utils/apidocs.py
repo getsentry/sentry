@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import re
 import json
+import base64
 import inspect
 import requests
 import mimetypes
@@ -444,7 +445,8 @@ class Runner(object):
 
         req_headers = dict(headers)
         req_headers['Host'] = 'sentry.io'
-        req_headers['Authorization'] = 'Bearer %s' % api_key.key.encode('utf-8')
+        req_headers['Authorization'] = \
+            'Basic %s' % base64.b64encode('%s:' % (api_key.key.encode('utf-8')))
 
         url = 'http://127.0.0.1:%s%s' % (settings.SENTRY_APIDOCS_WEB_PORT, path, )
 
