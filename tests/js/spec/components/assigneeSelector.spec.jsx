@@ -319,6 +319,7 @@ describe('AssigneeSelector', function() {
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
 
     await tick();
+    await tick();
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
     expect(assigneeSelector.find('ActorAvatar')).toHaveLength(1);
