@@ -43,7 +43,6 @@ default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
 default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('user:assistant')
-default_manager.add('user:install-experiment')
 
 # expose public api
 add = default_manager.add
