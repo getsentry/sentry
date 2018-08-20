@@ -83,8 +83,8 @@ class IssueSyncElement extends React.Component {
     if (this.props.children) {
       return this.props.children;
     }
-    if (this.props.displayName) {
-      return this.props.displayName;
+    if (this.props.externalIssueDisplayName) {
+      return this.props.externalIssueDisplayName;
     }
     if (this.props.externalIssueKey) {
       return this.props.externalIssueKey;

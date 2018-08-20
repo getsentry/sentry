@@ -118,7 +118,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             'key': external_issue.key,
             'url': url,
             'integrationId': external_issue.integration_id,
-            'display_name': installation.get_issue_display_name(external_issue),
+            'displayName': installation.get_issue_display_name(external_issue),
         }
         return Response(context, status=201)
 

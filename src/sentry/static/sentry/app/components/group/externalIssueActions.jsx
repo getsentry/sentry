@@ -258,7 +258,8 @@ class ExternalIssueActions extends AsyncComponent {
           onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
           externalIssueId={issue ? `${issue.id}` : null}
-          externalIssueKey={issue ? issue.displayName || `${issue.key}` : null}
+          externalIssueKey={issue ? `${issue.key}` : null}
+          externalIssueDisplayName={issue ? issue.displayName : null }
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
           integrationName={selectedIntegration.name}
