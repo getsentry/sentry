@@ -107,7 +107,6 @@ export default class ProviderRow extends React.Component {
   }
 }
 
-
 const ProviderName = styled('div')`
   font-weight: bold;
 `;
@@ -123,7 +122,7 @@ const Status = styled(
     const {enabled, ...p} = props;
     return (
       <Flex align="center">
-        <CircleIndicator size={7} color={enabled ? p.theme.success : p.theme.gray2} />
+        <CircleIndicator size={6} color={enabled ? p.theme.success : p.theme.gray2} />
         <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
       </Flex>
     );
