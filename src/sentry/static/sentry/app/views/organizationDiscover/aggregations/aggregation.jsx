@@ -18,18 +18,18 @@ export default class Aggregation extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      selectedFunction: null,
+      inputValue: '',
     };
   }
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
-    const shouldDisplayValue = currentValue || this.state.selectedFunction;
+    const shouldDisplayValue = currentValue || this.state.inputValue;
     return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
-  filterOptions = (_options, input, _value) => {
-    input = input || this.state.selectedFunction || '';
+  filterOptions = () => {
+    const input = this.state.inputValue;
 
     let optionList = [
       {value: 'count', label: 'count'},
@@ -83,56 +83,48 @@ export default class Aggregation extends React.Component {
     const topKValues = new Set([...TOPK_COUNTS.map(num => `topK(${num})`)]);
 
     if (option.value === 'uniq' || option.value === 'avg' || option.value === 'topK') {
-      this.setState({selectedFunction: option.value}, this.focus);
+      this.setState({inputValue: option.value}, this.focus);
     } else if (topKValues.has(option.value)) {
       this.setState(
         {
-          selectedFunction: option.value,
+          inputValue: option.value,
         },
         this.focus
       );
     } else {
-      this.setState({selectedFunction: null}, () => {
-        this.props.onChange(getExternal(option.value));
-      });
+      this.setState({inputValue: option.value});
+      this.props.onChange(getExternal(option.value));
     }
   };
 
-  handleClose = () => {
-    this.setState({selectedFunction: null});
-  };
-
   inputRenderer = props => {
-    const val = `${this.state.selectedFunction || ''}`.trim();
-
     return (
       <input
         type="text"
         {...props}
-        value={props.value || val}
+        value={props.value || this.state.inputValue}
         style={{width: '100%', border: 0}}
       />
     );
   };
 
   valueRenderer = option => {
-    const hideValue = this.state.selectedFunction;
+    const hideValue = this.state.inputValue;
     return hideValue ? '' : option.value;
   };
 
   handleInputChange = value => {
-    if (value === '') {
-      this.setState({selectedFunction: null});
-    }
+    this.setState({
+      inputValue: value,
+    });
   };
 
   render() {
-    const value = getInternal(this.props.value);
     return (
       <Box w={1}>
         <SelectControl
           forwardedRef={ref => (this.select = ref)}
-          value={value}
+          value={getInternal(this.props.value)}
           placeholder={
             <PlaceholderText>{t('Add aggregation function...')}</PlaceholderText>
           }
@@ -145,7 +137,6 @@ export default class Aggregation extends React.Component {
           clearable={false}
           backspaceRemoves={false}
           deleteRemoves={false}
-          onClose={this.handleClose}
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
           onInputChange={this.handleInputChange}
