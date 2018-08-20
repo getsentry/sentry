@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import timedelta
 
 from rest_framework.exceptions import PermissionDenied
@@ -97,8 +97,31 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
         if environment is None:
             return []
         if environment.name == '':
-            return ['tags[environment]', 'IS NULL', None]
-        return ['tags[environment]', '=', environment.name]
+            return [['tags[environment]', 'IS NULL', None]]
+        return [['tags[environment]', '=', environment.name]]
+
+    def get_query_condition(self, request, organization):
+        qs = request.GET.getlist('q')
+        if not qs:
+            return [[]]
+
+        conditions = defaultdict(list)
+        for q in qs:
+            try:
+                tag, value = q.split(':', 1)
+            except ValueError:
+                # Malformed query
+                continue
+
+            try:
+                lookup = SnubaLookup.get(tag)
+            except KeyError:
+                # Not a valid lookup tag
+                continue
+
+            conditions[lookup.tagkey].append(value)
+
+        return [[k, 'IN', v] for k, v in conditions.items()]
 
 
 class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
@@ -127,6 +150,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             return self.empty()
 
         environment = self.get_environment(request, organization)
+        query_condition = self.get_query_condition(request, organization)
 
         aggregations = [('count()', '', 'count')]
         if 'topk' in request.GET:
@@ -146,9 +170,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             filter_keys={
                 'project_id': project_ids,
             },
-            conditions=lookup.conditions + [
-                environment,
-            ],
+            conditions=lookup.conditions + query_condition + environment,
             groupby=lookup.columns,
             orderby='-count',
             limit=limit,
@@ -176,12 +198,11 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             filter_keys={
                 'project_id': project_ids,
             },
-            conditions=lookup.conditions + [
+            conditions=lookup.conditions + query_condition + environment + [
                 # This isn't really right, and is relying on the fact
                 # that project_id is the other key in this composite key
                 [lookup.tagkey, 'IN', values] if values else [],
                 [lookup.tagkey, 'IS NULL', None] if is_null else [],
-                environment,
             ],
             groupby=lookup.columns,
         )
@@ -218,6 +239,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             return self.empty()
 
         environment = self.get_environment(request, organization)
+        query_condition = self.get_query_condition(request, organization)
 
         end = timezone.now()
         start = end - stats_period
@@ -234,9 +256,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             filter_keys={
                 'project_id': project_ids,
             },
-            conditions=lookup.conditions + [
-                environment,
-            ],
+            conditions=lookup.conditions + query_condition + environment,
             groupby=['time'] + lookup.columns,
             orderby='time',
         )
