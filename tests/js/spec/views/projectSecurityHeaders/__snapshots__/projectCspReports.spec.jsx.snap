@@ -24,7 +24,6 @@ exports[`ProjectCspReports renders 1`] = `
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"
-      footerClass="form-actions"
       initialData={Object {}}
       onSubmitError={[Function]}
       onSubmitSuccess={[Function]}

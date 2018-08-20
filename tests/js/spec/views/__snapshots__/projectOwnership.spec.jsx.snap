@@ -144,7 +144,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       apiMethod="PUT"
       cancelLabel="Cancel"
       className="form-stacked"
-      footerClass="form-actions"
       hideFooter={true}
       initialData={
         Object {
