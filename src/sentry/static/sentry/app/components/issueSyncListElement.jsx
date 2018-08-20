@@ -79,7 +79,6 @@ class IssueSyncElement extends React.Component {
   }
 
   getText() {
-    debugger;
     if (this.props.children) {
       return this.props.children;
     }
