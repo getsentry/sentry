@@ -45,16 +45,13 @@ class GitHubSearchEndpoint(OrganizationEndpoint):
             } for i in response.get('items', [])])
 
         if field == 'repo':
-
-            if integration.metadata['account_type'] == 'User':
-                query = (u'user:%s %s' % (integration.name, query)).encode('utf-8')
+            if self.model.metadata['account_type'] == 'User':
+                full_query = (u'user:%s %s' % (self.model.name, query)).encode('utf-8')
             else:
-                query = (u'org:%s %s' % (integration.name, query)).encode('utf-8')
+                full_query = (u'org:%s %s' % (self.model.name, query)).encode('utf-8')
 
             try:
-                response = installation.search_repositories(
-                    query=query,
-                )
+                response = installation.get_client().search_repositories(full_query)
             except Exception as e:
                 return self.handle_api_error(e)
 

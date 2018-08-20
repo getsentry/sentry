@@ -46,6 +46,23 @@ export default class IntegrationRepos extends AsyncComponent {
     return this.state.itemList.filter(repo => repo.integrationId === integrationId);
   }
 
+  searchRepositories(e) {
+    let orgId = this.context.organization.slug;
+    let query = {'search': e.target.value};
+    let endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
+    this.api.request(endpoint, {
+      method: 'GET',
+      query,
+      success: (data, _, jqXHR) => {
+        this.setState({integrationRepos: data});
+      },
+      error: error => {
+        console.log('hello');
+      },
+    });
+
+  }
+
   getStatusLabel(repo) {
     switch (repo.status) {
       case 'pending_deletion':
@@ -162,11 +179,13 @@ export default class IntegrationRepos extends AsyncComponent {
     });
 
     let menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
+    let onChange = true ? this.searchRepositories.bind(this) : {};
 
     return (
       <DropdownAutoComplete
         items={items}
         onSelect={this.addRepo.bind(this)}
+        onChange={onChange}
         menuHeader={menuHeader}
         emptyMessage={t('No repositories available')}
       >

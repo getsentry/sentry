@@ -100,10 +100,10 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   getOptions = (field, input) => {
+    if (!input && field.default && field.defaultLabel) {
+      return Promise.resolve({options: [{value: field.default, label: field.defaultLabel}]});
+    }
     if (!input) {
-      if (field.default && field.defaultLabel) {
-        return Promise.resolve({options: [{value: field.default, label: field.defaultLabel}]});
-      }
       return Promise.resolve([]);
     }
 
