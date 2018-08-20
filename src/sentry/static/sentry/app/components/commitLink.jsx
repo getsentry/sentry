@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/buttons/button';
+import InlineSvg from 'app/components/inlineSvg';
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
 const SUPPORTED_PROVIDERS = [
@@ -44,22 +44,19 @@ function CommitLink({inline, commitId, repository}) {
     baseUrl: repository.url,
   });
 
-  return (
-    <Button
-      external
-      href={commitUrl}
-      size="small"
-      className={inline ? 'inline-commit' : ''}
-    >
-      <InlineSvg
-        src={providerData.icon}
-        style={{verticalAlign: 'text-top'}}
-        size="14px"
-      />
-      &nbsp;
-      {inline ? '' : ' '}
+  return !inline ? (
+    <Button external href={commitUrl} size="small" icon={providerData.icon}>
       {shortId}
     </Button>
+  ) : (
+    <a className="inline-commit" href={commitUrl} target="_blank">
+      <InlineSvg
+        src={providerData.icon}
+        style={{verticalAlign: 'text-top', marginTop: '2px'}}
+        size="14px"
+      />
+      {' ' + shortId}
+    </a>
   );
 }
 
