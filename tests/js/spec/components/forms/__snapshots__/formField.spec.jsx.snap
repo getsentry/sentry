@@ -355,21 +355,27 @@ exports[`FormField + model renders with Form 1`] = `
                 role="button"
                 type="submit"
               >
-                <ButtonLabel>
+                <ButtonLabel
+                  priority="primary"
+                >
                   <Component
                     className="css-1dxlw1i-ButtonLabel e17811v31"
+                    priority="primary"
                   >
                     <Flex
                       align="center"
                       className="css-1dxlw1i-ButtonLabel e17811v31"
+                      priority="primary"
                     >
                       <Base
                         align="center"
                         className="e17811v31 css-mvnt76-ButtonLabel"
+                        priority="primary"
                       >
                         <div
                           className="e17811v31 css-mvnt76-ButtonLabel"
                           is={null}
+                          priority="primary"
                         >
                           Save Changes
                         </div>

@@ -72,6 +72,7 @@ class Button extends React.Component {
   render() {
     let {
       size,
+      priority,
       to,
       href,
       title,
@@ -98,11 +99,12 @@ class Button extends React.Component {
         to={this.getUrl(to)}
         href={this.getUrl(href)}
         size={size}
+        priority={priority}
         {...buttonProps}
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel size={size}>
+        <ButtonLabel size={size} priority={priority}>
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg
