@@ -958,7 +958,6 @@ url:http://example.com/settings/* #product"
       value="new"
     >
       <TextareaAutosize
-        async={false}
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
@@ -972,7 +971,6 @@ url:http://example.com/settings/* #product"
         value="new"
       >
         <textarea
-          async={false}
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
