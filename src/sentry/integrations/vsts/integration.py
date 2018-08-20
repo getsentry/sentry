@@ -300,7 +300,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             org_integrations = OrganizationIntegration.objects.filter(
                 integration_id=integration_model.id,
                 status=ObjectStatus.VISIBLE,
-            )
+            ).exists()
             assert org_integrations
 
         except (IntegrationModel.DoesNotExist, AssertionError):
