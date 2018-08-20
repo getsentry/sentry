@@ -28,19 +28,18 @@ class VstsIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
-        project_choices = []
+        self.project_choices = []
         initial_project = ('', '')
         for project in projects:
-            project_choices.append((project['id'], project['name']))
+            self.project_choices.append((project['id'], project['name']))
             if project['id'] == self.default_project:
                 initial_project = project['name']
         return [
             {
                 'name': 'project',
                 'required': True,
-                'name': 'project',
                 'type': 'choice',
-                'choices': project_choices,
+                'choices': self.project_choices,
                 'defaultValue': initial_project,
                 'label': _('Project'),
                 'placeholder': initial_project or _('MyProject'),
@@ -73,8 +72,7 @@ class VstsIssueSync(IssueSyncMixin):
 
         title = data['title']
         description = data['description']
-        # TODO(LB): Why was group removed from method?
-        # link = absolute_uri(group.get_absolute_url())
+
         try:
             created_item = client.create_work_item(
                 instance=self.instance,
@@ -83,16 +81,23 @@ class VstsIssueSync(IssueSyncMixin):
                 # Decriptions cannot easily be seen. So, a comment will be added as well.
                 description=markdown(description),
                 comment=markdown(description)
-                # link=link,
             )
         except Exception as e:
             self.raise_error(e)
 
+        project_name = None
+        for p_id, p_name in self.project_choices:
+            if p_id == project:
+                project_name = p_name
+                break
+
         return {
             'key': created_item['id'],
-            # 'url': created_item['_links']['html']['href'],
             'title': title,
             'description': description,
+            'metadata': {
+                'project': project_name,
+            }
         }
 
     def get_issue(self, issue_id, **kwargs):
@@ -101,16 +106,15 @@ class VstsIssueSync(IssueSyncMixin):
         return {
             'key': work_item['id'],
             'title': work_item['fields']['System.Title'],
-            'description': work_item['fields'].get('System.Description')
+            'description': work_item['fields'].get('System.Description'),
+            'metadata': {
+                'project': work_item['fields']['System.AreaPath'],
+            }
         }
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         client = self.get_client()
         assignee = None
-
-        # TODO(LB): What's the scope here? is this correct?
-        # Get a list of all users in a given scope. How do we define scope?
-        # https://docs.microsoft.com/en-us/rest/api/vsts/graph/users/list?view=vsts-rest-4.1
 
         if assign is True:
             vsts_users = client.get_users(self.model.name)
@@ -216,5 +220,5 @@ class VstsIssueSync(IssueSyncMixin):
         ]
         return done_states
 
-    def get_issue_display_name(self, external_issue):
+    def get_issue_display_name(self, external_issue_key):
         pass
