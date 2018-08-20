@@ -62,7 +62,7 @@
     "raven-js": "^3.26.3",
     "react": "16.3.2",
     "react-addons-css-transition-group": "15.6.2",
-    "react-autosize-textarea": "3.0.2",
+    "react-autosize-textarea": "^4.0.0",
     "react-bootstrap": "^0.32.0",
     "react-document-title": "2.0.3",
     "react-dom": "16.3.2",
