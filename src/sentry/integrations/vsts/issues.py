@@ -215,3 +215,6 @@ class VstsIssueSync(IssueSyncMixin):
             state['name'] for state in all_states if state['category'] in self.done_categories
         ]
         return done_states
+
+    def get_issue_display_name(self, external_issue):
+        pass
