@@ -74,38 +74,26 @@ export default class Result extends React.Component {
     return result;
   }
 
-  checkLineChart(chartData) {
-    for (let i = 0; i < chartData.length; i++) {
-      if (chartData[i].data.filter(({value}) => value !== null).length > 1) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   render() {
     const {fields} = this.props.query;
     const {data} = this.props.data;
 
     const chartData = this.getChartData(data, fields);
-    console.log('data', data);
-    console.log('chart data', chartData);
+    const renderLineChart = chartData.find(function(element) {
+      return element.data.filter(({value}) => value !== null).length > 1;
+    });
 
     return (
       <div>
-        {this.checkLineChart(chartData) ? (
-          <LineChart
-            series={chartData}
-            style={{height: 300}}
-            colors={theme.discoverCharts.colors}
-          />
+        {renderLineChart ? (
+          <LineChart series={chartData} height={300} colors={theme.charts.colors} />
         ) : null}
 
         <BarChart
           series={chartData}
           stacked={true}
-          style={{height: 300}}
-          colors={theme.discoverCharts.colors}
+          height={300}
+          colors={theme.charts.colors}
         />
       </div>
     );

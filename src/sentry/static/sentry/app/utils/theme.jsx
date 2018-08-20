@@ -208,11 +208,6 @@ theme.button = {
 };
 
 theme.charts = {
-  colors: ['#4C416B', '#7A5195', '#BC5090', '#EF5675', '#FF764A', '#FFA600'],
-  previousPeriod: theme.gray1,
-};
-
-theme.discoverCharts = {
   colors: [
     '#444674',
     '#564a7f',
@@ -230,6 +225,7 @@ theme.discoverCharts = {
     '#f5a72b',
     '#f2b712',
   ],
+  previousPeriod: theme.gray1,
 };
 
 export default theme;
