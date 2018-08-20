@@ -543,9 +543,6 @@ class EventManagerTest(TransactionTestCase):
             }
         )
 
-        integration.add_project(
-            group.project_id, {
-                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id,
             integration_id=integration.id,

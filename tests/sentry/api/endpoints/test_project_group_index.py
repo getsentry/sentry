@@ -465,9 +465,6 @@ class GroupUpdateTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org.id)
-        integration.add_project(
-            self.project.id, {
-                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
 
         OrganizationIntegration.objects.filter(
@@ -553,9 +550,6 @@ class GroupUpdateTest(APITestCase):
                 'sync_assignee_inbound': True,
             }
         )
-        integration.add_project(
-            group.project_id, {
-                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         GroupResolution.objects.create(
             group=group,
             release=release,

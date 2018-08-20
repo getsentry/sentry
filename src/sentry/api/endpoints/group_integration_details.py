@@ -24,7 +24,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # TODO(jess): should this eventually check ProjectIntegration?
             integration = Integration.objects.get(
                 id=integration_id,
                 organizations=organization_id,
@@ -55,7 +54,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # TODO(jess): should this eventually check ProjectIntegration?
             integration = Integration.objects.get(
                 id=integration_id,
                 organizations=organization_id,
@@ -125,7 +123,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def post(self, request, group, integration_id):
         organization_id = group.project.organization_id
         try:
-            # TODO(jess): should this eventually check ProjectIntegration?
             integration = Integration.objects.get(
                 id=integration_id,
                 organizations=organization_id,

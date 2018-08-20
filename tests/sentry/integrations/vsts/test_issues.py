@@ -53,7 +53,6 @@ class VstsIssueSycnTest(TestCase):
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
         }
-        model.add_project(self.project.id, self.config)
         self.integration = VstsIntegration(model, self.organization.id)
         self.issue_id = 309
 

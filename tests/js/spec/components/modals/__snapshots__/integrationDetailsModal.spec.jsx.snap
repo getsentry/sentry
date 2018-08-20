@@ -89,7 +89,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       provider={
         Object {
           "canAdd": true,
-          "canAddProject": false,
           "config": Array [],
           "externalIssues": Array [],
           "features": Array [],
