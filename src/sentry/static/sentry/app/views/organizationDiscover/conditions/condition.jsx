@@ -20,8 +20,7 @@ export default class Condition extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      selectedColumn: null,
-      selectedOperator: null,
+      inputValue: '',
     };
   }
 
@@ -33,26 +32,27 @@ export default class Condition extends React.Component {
     const external = getExternal(option.value, this.props.columns);
 
     if (isValidCondition(external, this.props.columns)) {
-      this.props.onChange(external);
+      this.setState(
+        {
+          inputValue: '',
+        },
+        this.props.onChange(external)
+      );
+
       return;
     }
 
-    if (new Set(this.props.columns.map(({name}) => name)).has(external[0])) {
-      this.setState({selectedColumn: external[0]}, this.focus);
-    }
-
-    if (new Set(CONDITION_OPERATORS).has(external[1])) {
-      this.setState({selectedOperator: external[1]}, this.focus);
-    }
-  };
-
-  handleClose = () => {
-    this.setState({selectedColumn: null, selectedOperator: null});
+    this.setState(
+      {
+        inputValue: option.value,
+      },
+      this.focus
+    );
   };
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
-    const shouldDisplayValue = currentValue || this.state.selectedColumn;
+    const shouldDisplayValue = currentValue || this.state.inputValue;
     return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
@@ -72,9 +72,7 @@ export default class Condition extends React.Component {
   }
 
   filterOptions = (options, input) => {
-    input =
-      input ||
-      `${this.state.selectedColumn || ''} ${this.state.selectedOperator || ''}`.trim();
+    input = input || this.state.inputValue;
 
     let optionList = options;
     const external = getExternal(input, this.props.columns);
@@ -84,9 +82,8 @@ export default class Condition extends React.Component {
       return [];
     }
 
-    const hasSelectedColumn = external[0] !== null || this.state.selectedColumn !== null;
-    const hasSelectedOperator =
-      external[1] !== null || this.state.selectedOperator !== null;
+    const hasSelectedColumn = external[0] !== null;
+    const hasSelectedOperator = external[1] !== null;
 
     if (!hasSelectedColumn) {
       optionList = this.props.columns.map(({name}) => ({
@@ -96,9 +93,9 @@ export default class Condition extends React.Component {
     }
 
     if (hasSelectedColumn && !hasSelectedOperator) {
-      const selectedColumn = external[0] || this.state.selectedColumn;
+      const selectedColumn = external[0];
       optionList = this.getConditionsForColumn(selectedColumn).map(op => {
-        const value = `${external[0] || this.state.selectedColumn} ${op}`;
+        const value = `${selectedColumn} ${op}`;
         return {
           value,
           label: value,
@@ -114,22 +111,18 @@ export default class Condition extends React.Component {
   };
 
   inputRenderer = props => {
-    let val = `${this.state.selectedColumn || ''} ${this.state.selectedOperator ||
-      ''}`.trim();
-
     return (
       <input
         type="text"
         {...props}
-        value={props.value || val}
-        style={{width: '100%', border: 0}}
+        value={this.state.inputValue}
+        style={{width: '100%', border: 0, zIndex: 1000}}
       />
     );
   };
 
   valueRenderer = option => {
-    const hideValue = this.state.selectedColumn || this.state.selectedOperator;
-
+    const hideValue = this.state.inputValue;
     return hideValue ? '' : option.value;
   };
 
@@ -139,19 +132,9 @@ export default class Condition extends React.Component {
   };
 
   handleInputChange = value => {
-    const external = getExternal(value, this.props.columns);
-
-    if (!external[0] && this.state.selectedColumn) {
-      this.setState({
-        selectedColumn: null,
-      });
-    }
-
-    if (!external[1] && this.state.selectedOperator) {
-      this.setState({
-        selectedOperator: null,
-      });
-    }
+    this.setState({
+      inputValue: value,
+    });
 
     return value;
   };
@@ -172,14 +155,13 @@ export default class Condition extends React.Component {
           clearable={false}
           backspaceRemoves={false}
           deleteRemoves={false}
-          onClose={this.handleClose}
-          creatable={true}
-          promptTextCreator={text => text}
           isValidNewOption={this.isValidNewOption}
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
-          shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
           onInputChange={this.handleInputChange}
+          creatable={true}
+          promptTextCreator={text => text}
+          shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
         />
       </Box>
     );
