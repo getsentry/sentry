@@ -96,15 +96,6 @@ class RelaxedSearchPermission(ProjectPermission):
     }
 
 
-class ProjectIntegrationsPermission(ProjectPermission):
-    scope_map = {
-        'GET': ['project:read', 'project:write', 'project:admin', 'project:integrations'],
-        'POST': ['project:write', 'project:admin', 'project:integrations'],
-        'PUT': ['project:write', 'project:admin', 'project:integrations'],
-        'DELETE': ['project:write', 'project:admin', 'project:integrations'],
-    }
-
-
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission, )
 

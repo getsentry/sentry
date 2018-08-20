@@ -6,7 +6,7 @@ from sentry import roles
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.models import OrganizationIntegration, OrganizationMember, ProjectIntegration
+from sentry.models import OrganizationIntegration, OrganizationMember
 
 
 class JiraConfigForm(forms.Form):
@@ -62,17 +62,11 @@ class JiraConfigureView(BaseView):
         enabled_orgs = form.cleaned_data['organizations']
         disabled_orgs = list(set(o.id for o in organizations) - set(enabled_orgs))
 
-        # Remove organization and project Jira integrations not in the set of
-        # enabled organizations
+        # Remove Jira integrations not in the set of enabled organizations
         OrganizationIntegration.objects.filter(
             integration__provider='jira',
             integration=integration,
             organization__in=disabled_orgs,
-        ).delete()
-        ProjectIntegration.objects.filter(
-            integration__provider='jira',
-            integration=integration,
-            integration__organizations__in=disabled_orgs,
         ).delete()
 
         # Ensure all enabled integrations.

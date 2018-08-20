@@ -29,7 +29,6 @@ class IntegrationTestCase(TestCase):
             }
         )
         self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
-        self.project_integration = self.model.add_project(self.project.id)
 
     def test_no_context(self):
         integration = Integration(self.model, self.organization.id)

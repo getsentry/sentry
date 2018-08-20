@@ -33,7 +33,6 @@ export default class InstalledIntegration extends React.Component {
    * met:
    *
    * - The Integration has organization-specific configuration options.
-   * - The Integration can be enabled for projects.
    * - The Integration has configurable features
    */
   hasConfiguration() {
@@ -41,7 +40,6 @@ export default class InstalledIntegration extends React.Component {
 
     return (
       integration.configOrganization.length > 0 ||
-      provider.canAddProject ||
       provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
     );
   }
