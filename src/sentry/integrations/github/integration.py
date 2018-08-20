@@ -69,6 +69,7 @@ API_ERRORS = {
 
 
 class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
+    repo_search = True
 
     def get_client(self):
         return GitHubAppsClient(integration=self.model)

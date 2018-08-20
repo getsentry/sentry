@@ -179,7 +179,7 @@ export default class IntegrationRepos extends AsyncComponent {
     });
 
     let menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
-    let onChange = true ? this.searchRepositories.bind(this) : {};
+    let onChange = this.state.integrationRepos.searchable ? this.searchRepositories.bind(this) : {};
 
     return (
       <DropdownAutoComplete

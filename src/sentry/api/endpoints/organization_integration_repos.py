@@ -39,7 +39,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
                 except IntegrationError as e:
                     return self.respond({'detail': e.message}, status=400)
 
-            context = {'repos': repositories}
+            context = {'repos': repositories, 'searchable': install.repo_search}
             return self.respond(context)
 
         return self.respond({'detail': 'Repositories not supported'}, status=400)

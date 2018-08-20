@@ -5,6 +5,7 @@ from sentry.models import Repository
 
 
 class RepositoryMixin(object):
+    repo_search = False
 
     def get_repositories(self):
         """
