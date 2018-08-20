@@ -68,7 +68,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
             'projects': [self.project.id],
             'fields': ['message', 'platform'],
             'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-            'end': datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+            'end': (datetime.now() + timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
             'orderby': '-timestamp',
         })
 
@@ -83,7 +83,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
             'projects': [self.project.id],
             'fields': ['message', 'exception_stacks.type'],
             'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-            'end': datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+            'end': (datetime.now() + timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
             'orderby': '-timestamp',
         })
         assert response.status_code == 200, response.content
