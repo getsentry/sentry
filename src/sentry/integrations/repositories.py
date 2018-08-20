@@ -20,6 +20,9 @@ class RepositoryMixin(object):
         """
         raise NotImplementedError
 
+    def get_unmigratable_repositories(self):
+        return []
+
     def reinstall_repositories(self):
         """
         reinstalls repositories associated with the integration

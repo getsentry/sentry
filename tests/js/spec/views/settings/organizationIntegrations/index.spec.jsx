@@ -2,7 +2,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
-import {shallow} from 'enzyme';
+import {mount} from 'enzyme';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
 import OrganizationIntegrations from 'app/views/organizationIntegrations';
 
@@ -18,7 +18,10 @@ describe('OrganizationIntegrations', function() {
   describe('render()', function() {
     const org = TestStubs.Organization();
 
-    const githubProvider = TestStubs.GitHubIntegrationProvider();
+    const githubProvider = TestStubs.GitHubIntegrationProvider({
+      integrations: [],
+      isInstalled: false,
+    });
     const jiraProvider = TestStubs.JiraIntegrationProvider();
 
     const githubIntegration = TestStubs.GitHubIntegration();
@@ -30,6 +33,10 @@ describe('OrganizationIntegrations', function() {
 
     const routerContext = TestStubs.routerContext();
 
+    const focus = jest.fn();
+    const open = jest.fn().mockReturnValue({focus});
+    global.open = open;
+
     describe('without integrations', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/`,
@@ -39,11 +46,16 @@ describe('OrganizationIntegrations', function() {
         url: `/organizations/${org.slug}/config/integrations/`,
         body: {providers: [githubProvider, jiraProvider]},
       });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/plugins/`,
+        body: [],
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+        body: [],
+      });
 
-      const wrapper = shallow(
-        <OrganizationIntegrations params={params} />,
-        routerContext
-      );
+      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
 
       it('Displays integration providers', function() {
         expect(wrapper).toMatchSnapshot();
@@ -52,11 +64,11 @@ describe('OrganizationIntegrations', function() {
       it('Opens the integration dialog on install', function() {
         const options = {
           provider: githubProvider,
-          onAddIntegration: wrapper.instance().mergeIntegration,
+          onAddIntegration: wrapper.instance().onInstall,
         };
 
         wrapper
-          .find('PanelItem Button')
+          .find('Button')
           .first()
           .simulate('click');
 
@@ -73,11 +85,16 @@ describe('OrganizationIntegrations', function() {
         url: `/organizations/${org.slug}/config/integrations/`,
         body: {providers: [githubProvider, jiraProvider]},
       });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/plugins/`,
+        body: [],
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+        body: [],
+      });
 
-      const wrapper = shallow(
-        <OrganizationIntegrations params={params} />,
-        routerContext
-      );
+      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
 
       const updatedIntegration = Object.assign({}, githubIntegration, {
         domain_name: 'updated-integration.github.com',
@@ -90,7 +107,7 @@ describe('OrganizationIntegrations', function() {
       });
 
       it('Merges installed integrations', function() {
-        wrapper.instance().mergeIntegration(updatedIntegration);
+        wrapper.instance().onInstall(updatedIntegration);
 
         expect(wrapper.instance().state.integrations).toHaveLength(2);
         expect(wrapper.instance().state.integrations[1]).toBe(updatedIntegration);
@@ -103,10 +120,73 @@ describe('OrganizationIntegrations', function() {
           statusCode: 200,
         });
 
-        wrapper.instance().handleDeleteIntegration(jiraIntegration);
+        wrapper.instance().onRemove(jiraIntegration);
 
         expect(wrapper.instance().state.integrations).toHaveLength(1);
         expect(wrapper.instance().state.integrations[0]).toBe(updatedIntegration);
+      });
+    });
+
+    describe('with matching plugins installed', function() {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/`,
+        body: [githubIntegration, jiraIntegration],
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/config/integrations/`,
+        body: {providers: [githubProvider, jiraProvider]},
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/plugins/`,
+        body: [
+          {
+            slug: 'github',
+            enabled: true,
+          },
+        ],
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+        body: [
+          {
+            provider: {
+              id: 'github',
+              name: 'GitHub',
+            },
+            name: 'Test-Org/foo',
+          },
+        ],
+      });
+
+      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+
+      it('fetches unmigratable repositories', function() {
+        expect(wrapper.instance().state.unmigratableRepos).toHaveLength(1);
+        expect(wrapper.instance().state.unmigratableRepos[0].name).toBe('Test-Org/foo');
+      });
+
+      it('displays a warning for each Org with unmigratable repos', () => {
+        // Use a regex because React/Enzyme/Jest/Whatever turns single quotes into
+        // apostrophes, so you can't match it explicitly.
+        expect(
+          wrapper
+            .find('AlertLink')
+            .first()
+            .text()
+        ).toMatch(/Your Test-Org repositories can.t send commit data to Sentry/);
+      });
+
+      it('opens the new Integration dialog when the warning is clicked', () => {
+        wrapper
+          .find('AlertLink')
+          .first()
+          .simulate('click');
+
+        expect(open.mock.calls).toHaveLength(1);
+        expect(focus.mock.calls).toHaveLength(1);
+        expect(open.mock.calls[0][2]).toBe(
+          'scrollbars=yes,width=100,height=100,top=334,left=462'
+        );
       });
     });
   });

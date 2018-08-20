@@ -8,7 +8,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.plugins import bindings
 
 
@@ -51,6 +51,29 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             queryset = queryset.exclude(
                 status=ObjectStatus.VISIBLE,
             )
+        # TODO(mn): Remove once old Plugins are removed or everyone migrates to
+        # the new Integrations. Hopefully someday?
+        elif status == 'unmigratable':
+            repos = []
+
+            org_integrations = OrganizationIntegration.objects.filter(
+                organization_id=organization.id,
+            )
+
+            integrations = Integration.objects.filter(
+                id__in=org_integrations,
+                provider__in=('bitbucket', 'github', 'vsts'),
+            )
+
+            repos = [
+                repo
+                for i in integrations
+                for repo in i.get_installation(organization.id)
+                             .get_unmigratable_repositories()
+            ]
+
+            return Response(serialize(repos, request.user))
+
         elif status:
             queryset = queryset.none()
 
