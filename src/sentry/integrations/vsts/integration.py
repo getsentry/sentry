@@ -64,7 +64,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         data = []
         for repo in repos['value']:
             data.append({
-                'name': '%s\%s' % (repo['project']['name'], repo['name']),
+                'name': '%s/%s' % (repo['project']['name'], repo['name']),
                 'identifier': repo['id'],
             })
         return data
