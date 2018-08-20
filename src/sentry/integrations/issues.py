@@ -146,6 +146,17 @@ class IssueBasicMixin(object):
         """
         return data['key']
 
+    def get_issue_display_name(self, external_issue_key):
+        """
+
+        Returns the display name of the issue.
+
+        This is not required but helpful for integrations whose external issue key
+        does not match the disired display name.
+
+        """
+        return None
+
 
 class IssueSyncMixin(IssueBasicMixin):
     comment_key = None

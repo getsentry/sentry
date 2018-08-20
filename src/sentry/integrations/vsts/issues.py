@@ -28,10 +28,10 @@ class VstsIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
-        self.project_choices = []
+        project_choices = []
         initial_project = ('', '')
         for project in projects:
-            self.project_choices.append((project['id'], project['name']))
+            project_choices.append(('%s#%s' % (project['id'], project['name']), project['name']))
             if project['id'] == self.default_project:
                 initial_project = project['name']
         return [
@@ -39,7 +39,7 @@ class VstsIssueSync(IssueSyncMixin):
                 'name': 'project',
                 'required': True,
                 'type': 'choice',
-                'choices': self.project_choices,
+                'choices': project_choices,
                 'defaultValue': initial_project,
                 'label': _('Project'),
                 'placeholder': initial_project or _('MyProject'),
@@ -68,6 +68,7 @@ class VstsIssueSync(IssueSyncMixin):
         project = data.get('project') or self.default_project
         if project is None:
             raise ValueError('VSTS expects project')
+        project_id, project_name = project.split('#')
         client = self.get_client()
 
         title = data['title']
@@ -76,7 +77,7 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             created_item = client.create_work_item(
                 instance=self.instance,
-                project=project,
+                project=project_id,
                 title=title,
                 # Decriptions cannot easily be seen. So, a comment will be added as well.
                 description=markdown(description),
@@ -85,18 +86,12 @@ class VstsIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
-        project_name = None
-        for p_id, p_name in self.project_choices:
-            if p_id == project:
-                project_name = p_name
-                break
-
         return {
-            'key': created_item['id'],
+            'key': six.text_type(created_item['id']),
             'title': title,
             'description': description,
             'metadata': {
-                'project': project_name,
+                'display_name': '%s#%s' % (project_name, created_item['id']),
             }
         }
 
@@ -104,11 +99,11 @@ class VstsIssueSync(IssueSyncMixin):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
-            'key': work_item['id'],
+            'key': six.text_type(work_item['id']),
             'title': work_item['fields']['System.Title'],
             'description': work_item['fields'].get('System.Description'),
             'metadata': {
-                'project': work_item['fields']['System.AreaPath'],
+                'display_name': '%s#%s' % (work_item['fields']['System.AreaPath'], work_item['id']),
             }
         }
 
@@ -220,5 +215,5 @@ class VstsIssueSync(IssueSyncMixin):
         ]
         return done_states
 
-    def get_issue_display_name(self, external_issue_key):
-        pass
+    def get_issue_display_name(self, external_issue):
+        return external_issue.metadata['display_name']

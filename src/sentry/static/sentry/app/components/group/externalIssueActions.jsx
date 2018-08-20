@@ -252,14 +252,13 @@ class ExternalIssueActions extends AsyncComponent {
 
   renderBody() {
     let {action, selectedIntegration, issue} = this.state;
-
     return (
       <React.Fragment>
         <IssueSyncListElement
           onOpen={this.openModal}
           externalIssueLink={issue ? issue.url : null}
-          externalIssueId={issue ? issue.id : null}
-          externalIssueKey={issue ? issue.key : null}
+          externalIssueId={issue ? `${issue.id}` : null}
+          externalIssueKey={issue ? issue.displayName || `${issue.key}` : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
           integrationName={selectedIntegration.name}
