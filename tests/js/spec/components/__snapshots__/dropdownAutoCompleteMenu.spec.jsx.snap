@@ -5,7 +5,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
   blendCorner={true}
   emptyMessage="No items"
   isOpen={true}
-  itemPadding="8px"
   items={
     Array [
       Object {
@@ -136,7 +135,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         index={0}
                         key="new zealand-0"
                         onClick={[Function]}
-                        padding="8px"
                       >
                         <div
                           className="css-le5ima-AutoCompleteItem ejumqxq3"
@@ -152,7 +150,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         index={1}
                         key="australia-1"
                         onClick={[Function]}
-                        padding="8px"
                       >
                         <div
                           className="css-14kg2cv-AutoCompleteItem ejumqxq3"
@@ -181,7 +178,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
   blendCorner={true}
   emptyMessage="No items"
   isOpen={true}
-  itemPadding="8px"
   items={
     Array [
       Object {
@@ -297,7 +293,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         index={0}
                         key="apple-0"
                         onClick={[Function]}
-                        padding="8px"
                       >
                         <div
                           className="css-le5ima-AutoCompleteItem ejumqxq3"
@@ -313,7 +308,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         index={1}
                         key="bacon-1"
                         onClick={[Function]}
-                        padding="8px"
                       >
                         <div
                           className="css-14kg2cv-AutoCompleteItem ejumqxq3"
@@ -329,7 +323,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         index={2}
                         key="corn-2"
                         onClick={[Function]}
-                        padding="8px"
                       >
                         <div
                           className="css-14kg2cv-AutoCompleteItem ejumqxq3"

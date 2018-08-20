@@ -239,7 +239,7 @@ const AssigneeSelectorComponent = createReactClass({
             items={memberList !== null ? this.renderNewDropdownItems() : []}
             alignMenu="right"
             onSelect={this.handleAssign}
-            itemPadding={`5px ${space(1)}`}
+            itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
             menuWithArrow
             menuHeader={

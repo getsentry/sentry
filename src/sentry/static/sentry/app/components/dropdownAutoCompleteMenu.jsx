@@ -90,9 +90,9 @@ class DropdownAutoCompleteMenu extends React.Component {
     searchPlaceholder: PropTypes.string,
 
     /**
-     * Padding value for dropdown items (requires the `padding` shortcut value)
+     * Size for dropdown items
      */
-    itemPadding: PropTypes.string,
+    itemSize: PropTypes.oneOf(['zero', 'small', '']),
 
     /**
      * Changes the menu style to have an arrow at the top
@@ -117,7 +117,6 @@ class DropdownAutoCompleteMenu extends React.Component {
     blendCorner: true,
     emptyMessage: t('No items'),
     searchPlaceholder: t('Filter search'),
-    itemPadding: `${space(1)}`,
   };
 
   filterItems = (items, inputValue) =>
@@ -173,7 +172,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       menuFooter,
       menuWithArrow,
       searchPlaceholder,
-      itemPadding,
+      itemSize,
       busy,
       ...props
     } = this.props;
@@ -265,7 +264,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                               )
                             ) : (
                               <AutoCompleteItem
-                                padding={itemPadding}
+                                size={itemSize}
                                 key={`${item.value}-${index}`}
                                 index={index}
                                 highlightedIndex={highlightedIndex}
@@ -384,11 +383,18 @@ const StyledInput = styled(Input)`
   }
 `;
 
+const getItemPaddingForSize = size => {
+  if (size === 'small') return `${space(0.5)} ${space(1)}`;
+  if (size === 'zero') return '0';
+
+  return space(1);
+};
+
 const AutoCompleteItem = styled('div')`
   font-size: 0.9em;
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
-  padding: ${p => p.padding};
+  padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLighter};
 

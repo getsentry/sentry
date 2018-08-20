@@ -67,7 +67,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         alignMenu="right"
                         blendCorner={true}
                         emptyMessage="No projects"
-                        itemPadding="8px"
                         items={
                           Array [
                             Object {
