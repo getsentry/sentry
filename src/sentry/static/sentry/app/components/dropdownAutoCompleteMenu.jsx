@@ -80,9 +80,9 @@ class DropdownAutoCompleteMenu extends React.Component {
     blendCorner: PropTypes.bool,
 
     /**
-     * Max height of dropdown menu
+     * Max height of dropdown menu. Units are assumed as `px` if number, otherwise will assume string has units
      */
-    maxHeight: PropTypes.number,
+    maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
      * Search input's placeholder text
@@ -441,7 +441,8 @@ const StyledMenu = styled('div')`
 `;
 
 const StyledItemList = styled('div')`
-  max-height: ${p => p.maxHeight}px;
+  max-height: ${p =>
+    typeof p.maxHeight === 'number' ? `${p.maxHeight}px` : p.maxHeight};
   overflow-y: auto;
 `;
 
