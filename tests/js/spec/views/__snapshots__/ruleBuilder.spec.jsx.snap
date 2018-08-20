@@ -942,7 +942,7 @@ exports[`RuleBuilder renders 1`] = `
             to={null}
           >
             <Component
-              className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
+              className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -952,7 +952,7 @@ exports[`RuleBuilder renders 1`] = `
               to={null}
             >
               <button
-                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
+                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
@@ -966,20 +966,20 @@ exports[`RuleBuilder renders 1`] = `
                   size="small"
                 >
                   <Component
-                    className="css-o42ntg-ButtonLabel e17811v31"
+                    className="css-o42ntg-ButtonLabel eqrebog1"
                     priority="primary"
                     size="small"
                   >
                     <Flex
                       align="center"
-                      className="css-o42ntg-ButtonLabel e17811v31"
+                      className="css-o42ntg-ButtonLabel eqrebog1"
                     >
                       <Base
                         align="center"
-                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                       >
                         <div
-                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                           is={null}
                         >
                           <Icon
@@ -987,20 +987,20 @@ exports[`RuleBuilder renders 1`] = `
                             size="small"
                           >
                             <Component
-                              className="css-ljhpxy-Icon e17811v32"
+                              className="css-ljhpxy-Icon eqrebog2"
                               hasChildren={false}
                               size="small"
                             >
                               <Box
-                                className="css-ljhpxy-Icon e17811v32"
+                                className="css-ljhpxy-Icon eqrebog2"
                                 size="small"
                               >
                                 <Base
-                                  className="e17811v32 css-7mohvl-Icon"
+                                  className="eqrebog2 css-7mohvl-Icon"
                                   size="small"
                                 >
                                   <div
-                                    className="e17811v32 css-7mohvl-Icon"
+                                    className="eqrebog2 css-7mohvl-Icon"
                                     is={null}
                                     size="small"
                                   >
@@ -1009,18 +1009,18 @@ exports[`RuleBuilder renders 1`] = `
                                       src="icon-circle-add"
                                     >
                                       <InlineSvg
-                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                         size="12px"
                                         src="icon-circle-add"
                                       >
                                         <StyledSvg
-                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                           height="12px"
                                           viewBox={Object {}}
                                           width="12px"
                                         >
                                           <svg
-                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                             height="12px"
                                             viewBox={Object {}}
                                             width="12px"
@@ -2682,7 +2682,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             size="small"
           >
             <Component
-              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e17811v30"
+              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2690,7 +2690,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               size="small"
             >
               <button
-                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e17811v30"
+                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -2702,20 +2702,20 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   size="small"
                 >
                   <Component
-                    className="css-o42ntg-ButtonLabel e17811v31"
+                    className="css-o42ntg-ButtonLabel eqrebog1"
                     priority="primary"
                     size="small"
                   >
                     <Flex
                       align="center"
-                      className="css-o42ntg-ButtonLabel e17811v31"
+                      className="css-o42ntg-ButtonLabel eqrebog1"
                     >
                       <Base
                         align="center"
-                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                       >
                         <div
-                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                           is={null}
                         >
                           <Icon
@@ -2723,20 +2723,20 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             size="small"
                           >
                             <Component
-                              className="css-ljhpxy-Icon e17811v32"
+                              className="css-ljhpxy-Icon eqrebog2"
                               hasChildren={false}
                               size="small"
                             >
                               <Box
-                                className="css-ljhpxy-Icon e17811v32"
+                                className="css-ljhpxy-Icon eqrebog2"
                                 size="small"
                               >
                                 <Base
-                                  className="e17811v32 css-7mohvl-Icon"
+                                  className="eqrebog2 css-7mohvl-Icon"
                                   size="small"
                                 >
                                   <div
-                                    className="e17811v32 css-7mohvl-Icon"
+                                    className="eqrebog2 css-7mohvl-Icon"
                                     is={null}
                                     size="small"
                                   >
@@ -2745,18 +2745,18 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       src="icon-circle-add"
                                     >
                                       <InlineSvg
-                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                         size="12px"
                                         src="icon-circle-add"
                                       >
                                         <StyledSvg
-                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                           height="12px"
                                           viewBox={Object {}}
                                           width="12px"
                                         >
                                           <svg
-                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                             height="12px"
                                             viewBox={Object {}}
                                             width="12px"

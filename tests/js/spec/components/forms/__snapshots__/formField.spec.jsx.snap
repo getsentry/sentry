@@ -337,7 +337,7 @@ exports[`FormField + model renders with Form 1`] = `
           >
             <Component
               aria-label="Save Changes"
-              className="css-1msljz8-StyledButton-getColors e17811v30"
+              className="css-1msljz8-StyledButton-getColors eqrebog0"
               data-test-id="form-submit"
               disabled={false}
               onClick={[Function]}
@@ -347,7 +347,7 @@ exports[`FormField + model renders with Form 1`] = `
             >
               <button
                 aria-label="Save Changes"
-                className="css-1msljz8-StyledButton-getColors e17811v30"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}
@@ -359,19 +359,19 @@ exports[`FormField + model renders with Form 1`] = `
                   priority="primary"
                 >
                   <Component
-                    className="css-1emshjx-ButtonLabel e17811v31"
+                    className="css-1emshjx-ButtonLabel eqrebog1"
                     priority="primary"
                   >
                     <Flex
                       align="center"
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                     >
                       <Base
                         align="center"
-                        className="e17811v31 css-1nhrbny-ButtonLabel"
+                        className="eqrebog1 css-1nhrbny-ButtonLabel"
                       >
                         <div
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                           is={null}
                         >
                           Save Changes

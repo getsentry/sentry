@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {Flex, Box} from 'grid-emotion';
 
 import {t, tct} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 

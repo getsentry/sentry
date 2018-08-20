@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import {text, boolean} from '@storybook/addon-knobs';
 
 import Tooltip from 'app/components/tooltip';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
 storiesOf('Tooltip', module).add(
   'default',

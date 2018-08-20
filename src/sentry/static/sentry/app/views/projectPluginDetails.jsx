@@ -3,7 +3,7 @@ import React from 'react';
 import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ExternalLink from 'app/components/externalLink';
 import IndicatorStore from 'app/stores/indicatorStore';
 import PluginConfig from 'app/components/pluginConfig';

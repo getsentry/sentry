@@ -686,7 +686,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                           type="button"
                                         >
                                           <Component
-                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -695,7 +695,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             type="button"
                                           >
                                             <button
-                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -707,19 +707,19 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                 size="small"
                                               >
                                                 <Component
-                                                  className="css-o42ntg-ButtonLabel e17811v31"
+                                                  className="css-o42ntg-ButtonLabel eqrebog1"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                      className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                         is={null}
                                                       >
                                                         <Icon
@@ -727,20 +727,20 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                           size="small"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon eqrebog2"
                                                             hasChildren={false}
                                                             size="small"
                                                           >
                                                             <Box
-                                                              className="css-ljhpxy-Icon e17811v32"
+                                                              className="css-ljhpxy-Icon eqrebog2"
                                                               size="small"
                                                             >
                                                               <Base
-                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                className="eqrebog2 css-7mohvl-Icon"
                                                                 size="small"
                                                               >
                                                                 <div
-                                                                  className="e17811v32 css-7mohvl-Icon"
+                                                                  className="eqrebog2 css-7mohvl-Icon"
                                                                   is={null}
                                                                   size="small"
                                                                 >
@@ -749,18 +749,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                                     src="icon-trash"
                                                                   >
                                                                     <InlineSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       size="12px"
                                                                       src="icon-trash"
                                                                     >
                                                                       <StyledSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
                                                                       >
                                                                         <svg
-                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                           height="12px"
                                                                           viewBox={Object {}}
                                                                           width="12px"
@@ -1467,7 +1467,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                           type="button"
                                         >
                                           <Component
-                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -1476,7 +1476,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                             type="button"
                                           >
                                             <button
-                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
                                               disabled={false}
                                               onClick={[Function]}
                                               role="button"
@@ -1488,19 +1488,19 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                 size="small"
                                               >
                                                 <Component
-                                                  className="css-o42ntg-ButtonLabel e17811v31"
+                                                  className="css-o42ntg-ButtonLabel eqrebog1"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
-                                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                      className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                     >
                                                       <div
-                                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                         is={null}
                                                       >
                                                         <Icon
@@ -1508,20 +1508,20 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                           size="small"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon eqrebog2"
                                                             hasChildren={false}
                                                             size="small"
                                                           >
                                                             <Box
-                                                              className="css-ljhpxy-Icon e17811v32"
+                                                              className="css-ljhpxy-Icon eqrebog2"
                                                               size="small"
                                                             >
                                                               <Base
-                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                className="eqrebog2 css-7mohvl-Icon"
                                                                 size="small"
                                                               >
                                                                 <div
-                                                                  className="e17811v32 css-7mohvl-Icon"
+                                                                  className="eqrebog2 css-7mohvl-Icon"
                                                                   is={null}
                                                                   size="small"
                                                                 >
@@ -1530,18 +1530,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                                                     src="icon-trash"
                                                                   >
                                                                     <InlineSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       size="12px"
                                                                       src="icon-trash"
                                                                     >
                                                                       <StyledSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
                                                                       >
                                                                         <svg
-                                                                          className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                           height="12px"
                                                                           viewBox={Object {}}
                                                                           width="12px"
@@ -2306,7 +2306,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <Component
                                 aria-label="Cancel"
-                                className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton e17811v30"
+                                className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -2314,7 +2314,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                               >
                                 <Link
                                   aria-label="Cancel"
-                                  className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton e17811v30"
+                                  className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
@@ -2324,7 +2324,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 >
                                   <a
                                     aria-label="Cancel"
-                                    className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton e17811v30"
+                                    className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton eqrebog0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -2332,18 +2332,18 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   >
                                     <ButtonLabel>
                                       <Component
-                                        className="css-1emshjx-ButtonLabel e17811v31"
+                                        className="css-1emshjx-ButtonLabel eqrebog1"
                                       >
                                         <Flex
                                           align="center"
-                                          className="css-1emshjx-ButtonLabel e17811v31"
+                                          className="css-1emshjx-ButtonLabel eqrebog1"
                                         >
                                           <Base
                                             align="center"
-                                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                                           >
                                             <div
-                                              className="e17811v31 css-1nhrbny-ButtonLabel"
+                                              className="eqrebog1 css-1nhrbny-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -2371,7 +2371,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           >
                             <Component
                               aria-label="Save Rule"
-                              className="css-1msljz8-StyledButton-getColors e17811v30"
+                              className="css-1msljz8-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -2379,7 +2379,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                             >
                               <button
                                 aria-label="Save Rule"
-                                className="css-1msljz8-StyledButton-getColors e17811v30"
+                                className="css-1msljz8-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -2389,19 +2389,19 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                   priority="primary"
                                 >
                                   <Component
-                                    className="css-1emshjx-ButtonLabel e17811v31"
+                                    className="css-1emshjx-ButtonLabel eqrebog1"
                                     priority="primary"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-1emshjx-ButtonLabel e17811v31"
+                                      className="css-1emshjx-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-1nhrbny-ButtonLabel"
+                                        className="eqrebog1 css-1nhrbny-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule
@@ -4452,7 +4452,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <Component
                                 aria-label="Cancel"
-                                className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton e17811v30"
+                                className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -4460,7 +4460,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                               >
                                 <Link
                                   aria-label="Cancel"
-                                  className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton e17811v30"
+                                  className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
@@ -4470,7 +4470,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 >
                                   <a
                                     aria-label="Cancel"
-                                    className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton e17811v30"
+                                    className="elb7f1e1 css-tzavck-StyledButton-getColors-CancelButton eqrebog0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -4478,18 +4478,18 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   >
                                     <ButtonLabel>
                                       <Component
-                                        className="css-1emshjx-ButtonLabel e17811v31"
+                                        className="css-1emshjx-ButtonLabel eqrebog1"
                                       >
                                         <Flex
                                           align="center"
-                                          className="css-1emshjx-ButtonLabel e17811v31"
+                                          className="css-1emshjx-ButtonLabel eqrebog1"
                                         >
                                           <Base
                                             align="center"
-                                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                                           >
                                             <div
-                                              className="e17811v31 css-1nhrbny-ButtonLabel"
+                                              className="eqrebog1 css-1nhrbny-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -4517,7 +4517,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           >
                             <Component
                               aria-label="Save Rule"
-                              className="css-1msljz8-StyledButton-getColors e17811v30"
+                              className="css-1msljz8-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -4525,7 +4525,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                             >
                               <button
                                 aria-label="Save Rule"
-                                className="css-1msljz8-StyledButton-getColors e17811v30"
+                                className="css-1msljz8-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -4535,19 +4535,19 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                   priority="primary"
                                 >
                                   <Component
-                                    className="css-1emshjx-ButtonLabel e17811v31"
+                                    className="css-1emshjx-ButtonLabel eqrebog1"
                                     priority="primary"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-1emshjx-ButtonLabel e17811v31"
+                                      className="css-1emshjx-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-1nhrbny-ButtonLabel"
+                                        className="eqrebog1 css-1nhrbny-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule

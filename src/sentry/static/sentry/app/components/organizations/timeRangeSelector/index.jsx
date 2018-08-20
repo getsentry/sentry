@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import {Flex} from 'grid-emotion';
 
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import HeaderItem from 'app/components/organizations/headerItem';
 import DropdownLink from 'app/components/dropdownLink';
 import DynamicWrapper from 'app/components/dynamicWrapper';

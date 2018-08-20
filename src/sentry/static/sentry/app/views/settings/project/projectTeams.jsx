@@ -10,7 +10,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';

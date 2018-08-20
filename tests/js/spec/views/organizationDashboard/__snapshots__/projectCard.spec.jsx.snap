@@ -695,7 +695,7 @@ exports[`ProjectCard renders 1`] = `
                               >
                                 <Component
                                   aria-label="Track deploys"
-                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   external={true}
                                   href="https://blog.sentry.io/2017/05/09/release-deploys"
@@ -705,7 +705,7 @@ exports[`ProjectCard renders 1`] = `
                                 >
                                   <ExternalLink
                                     aria-label="Track deploys"
-                                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
                                     disabled={false}
                                     href="https://blog.sentry.io/2017/05/09/release-deploys"
                                     onClick={[Function]}
@@ -716,7 +716,7 @@ exports[`ProjectCard renders 1`] = `
                                   >
                                     <a
                                       aria-label="Track deploys"
-                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       href="https://blog.sentry.io/2017/05/09/release-deploys"
                                       onClick={[Function]}
@@ -729,19 +729,19 @@ exports[`ProjectCard renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-6q5v1w-ButtonLabel e17811v31"
+                                          className="css-6q5v1w-ButtonLabel eqrebog1"
                                           size="xsmall"
                                         >
                                           <Flex
                                             align="center"
-                                            className="css-6q5v1w-ButtonLabel e17811v31"
+                                            className="css-6q5v1w-ButtonLabel eqrebog1"
                                           >
                                             <Base
                                               align="center"
-                                              className="e17811v31 css-dqr4rq-ButtonLabel"
+                                              className="eqrebog1 css-dqr4rq-ButtonLabel"
                                             >
                                               <div
-                                                className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                 is={null}
                                               >
                                                 Track deploys

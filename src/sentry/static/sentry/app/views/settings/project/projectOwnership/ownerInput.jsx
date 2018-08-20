@@ -7,7 +7,7 @@ import TextareaAutosize from 'react-autosize-textarea';
 import {Client} from 'app/api';
 import memberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';

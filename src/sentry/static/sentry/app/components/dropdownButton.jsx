@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 
 const DropdownButton = ({isOpen, children, ...props}) => {

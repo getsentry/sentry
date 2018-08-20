@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Avatar from 'app/components/avatar';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';

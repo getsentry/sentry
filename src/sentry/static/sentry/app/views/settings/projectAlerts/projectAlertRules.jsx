@@ -15,7 +15,7 @@ import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
