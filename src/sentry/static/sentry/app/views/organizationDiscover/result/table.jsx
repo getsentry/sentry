@@ -100,8 +100,13 @@ export default class ResultTable extends React.Component {
               rowHeight={30}
               columnWidth={opts => this.getColumnWidth(opts, width)}
               cellRenderer={this.cellRenderer}
-              style={{border: `1px solid ${theme.borderLight}`}}
-              styleTopRightGrid={{borderBottom: `2px solid ${theme.borderDark}`}}
+              styleBottomRightGrid={{
+                border: `1px solid ${theme.borderDark}`,
+              }}
+              styleTopRightGrid={{
+                border: `1px solid ${theme.borderDark}`,
+                borderBottom: 'none',
+              }}
             />
           )}
         </AutoSizer>
