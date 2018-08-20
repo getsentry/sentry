@@ -72,6 +72,7 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -514,6 +515,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$',
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-repository-commits'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/plugins/$',
+        OrganizationPluginsEndpoint.as_view(),
+        name='sentry-api-0-organization-plugins'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/$',
