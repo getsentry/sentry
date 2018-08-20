@@ -297,11 +297,11 @@ class VstsIntegrationProvider(IntegrationProvider):
                 status=ObjectStatus.VISIBLE,
             )
             assert 'subscription' in integration_model.metadata
-            org_integrations = OrganizationIntegration.objects.filter(
+
+            assert OrganizationIntegration.objects.filter(
                 integration_id=integration_model.id,
                 status=ObjectStatus.VISIBLE,
             ).exists()
-            assert org_integrations
 
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
