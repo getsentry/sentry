@@ -13,7 +13,7 @@ from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
 from django.forms.util import flatatt
 from django.forms import (
-    Field, CharField, IntegerField, Textarea, TypedChoiceField, ValidationError
+    Field, CharField, Textarea, TypedChoiceField, ValidationError
 )
 from django.utils.encoding import force_text
 from django.utils.html import format_html
@@ -83,21 +83,6 @@ class UserField(CharField):
             )
         except User.DoesNotExist:
             raise ValidationError(_('Invalid username'))
-
-
-class RangeField(IntegerField):
-    widget = RangeInput
-
-    def __init__(self, *args, **kwargs):
-        self.step_value = kwargs.pop('step_value', None)
-        super(RangeField, self).__init__(*args, **kwargs)
-
-    def widget_attrs(self, widget):
-        attrs = super(RangeField, self).widget_attrs(widget)
-        attrs.setdefault('min', self.min_value)
-        attrs.setdefault('max', self.max_value)
-        attrs.setdefault('step', self.step_value or 1)
-        return attrs
 
 
 class ReadOnlyTextWidget(Widget):
