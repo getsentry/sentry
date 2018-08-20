@@ -107,10 +107,15 @@ export default class ProviderRow extends React.Component {
   }
 }
 
+
+const ProviderName = styled('div')`
+  font-weight: bold;
+`;
+
 const ProviderDetails = styled(Flex)`
   align-items: center;
   margin-top: 6px;
-  font-size: 0.9em;
+  font-size: 0.8em;
 `;
 
 const Status = styled(
@@ -133,7 +138,13 @@ const Status = styled(
     font-weight: normal;
   }
   margin-right: ${space(0.75)};
-  font-weight: bold;
+`;
+
+const NewInstallation = styled('div')`
+  overflow: hidden;
+  transform-origin: 0 auto;
+  animation: ${growDown('59px')} 160ms 500ms ease-in-out forwards,
+    ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
 `;
 
 const StyledInstalledIntegration = styled(
@@ -154,17 +165,4 @@ const StyledInstalledIntegration = styled(
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.gray2};
-`;
-
-const ProviderName = styled('div')`
-  font-size: 1.1em;
-`;
-
-const NewInstallation = styled('div')`
-  animation: ${growDown('59px')} 160ms 500ms ease-in-out forwards,
-    ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
-  height: 0;
-  overflow: hidden;
-  animation: slidein 160ms 500ms ease-in-out forwards,
-    highlight 1000ms 500ms ease-in-out forwards;
 `;

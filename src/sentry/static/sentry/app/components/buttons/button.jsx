@@ -264,7 +264,7 @@ const getIconMargin = ({size, hasChildren}) => {
   return size === 'small' ? '6px' : '8px';
 };
 
-const Icon = styled(Box)`
+const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
   margin-right: ${getIconMargin};
 `;
 
