@@ -58,6 +58,13 @@ metadata = IntegrationMetadata(
     },
 )
 
+# hide sprint, epic link, parent and linked issues fields because they don't work
+# since sprint and epic link are "custom" we need to search for them by name
+HIDDEN_ISSUE_FIELDS = {
+    'keys': ['parent', 'issuelinks'],
+    'names': ['Sprint', 'Epic Link'],
+}
+
 # A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
     'select': 'com.atlassian.jira.plugin.system.customfieldtypes:select',
@@ -396,13 +403,10 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         # TODO(jess): are we going to allow ignored fields?
         # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
-
-        # hide sprint, epic link, parent and linked issues fields because they don't work
-        # since sprint and epic link are "custom" we need to search fo rthem by name
         ignored_fields = set(
-            k for k, v in six.iteritems(issue_type_meta['fields']) if v['name'] in {'Sprint', 'Epic Link'}
+            k for k, v in six.iteritems(issue_type_meta['fields']) if v['name'] in HIDDEN_ISSUE_FIELDS['names']
         )
-        ignored_fields.update(['parent', 'issuelinks'])
+        ignored_fields.update(HIDDEN_ISSUE_FIELDS['keys'])
 
         # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
