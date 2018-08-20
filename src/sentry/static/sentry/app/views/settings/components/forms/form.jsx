@@ -44,7 +44,6 @@ export default class Form extends React.Component {
     submitLabel: t('Save Changes'),
     submitDisabled: false,
     submitPriority: 'primary',
-    footerClass: 'form-actions',
     className: 'form-stacked',
     requireChanges: false,
     allowUndo: false,
@@ -205,9 +204,19 @@ const StyledFooter = styled('div')`
   ${p =>
     !p.saveOnBlur &&
     `
-    ${Panel} & {
-      margin-top: 0;
-      padding-right: 36px;
-    }
+  ${Panel} & {
+    margin-top: 0;
+    padding-right: 36px;
+  }
+
+  /* Better padding with form inside of a modal */
+  .modal-content & {
+    padding-right: 30px;
+    margin-left: -30px;
+    margin-right: -30px;
+    margin-bottom: -30px;
+    margin-top: 16px;
+    padding-bottom: 16px;
+  }
   `};
 `;
