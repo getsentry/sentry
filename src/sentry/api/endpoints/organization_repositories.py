@@ -75,8 +75,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         provider_id = request.DATA.get('provider')
         has_ghe = provider_id == 'integrations:github_enterprise' and features.has(
             'organizations:github-enterprise', organization, actor=request.user)
+        has_bb = provider_id == 'integrations:bitbucket' and features.has(
+            'organizations:bitbucket-integration', organization, actor=request.user)
+
         if features.has('organizations:internal-catchall', organization,
-                        actor=request.user) or has_ghe:
+                        actor=request.user) or has_ghe or has_bb:
             if provider_id is not None and provider_id.startswith('integrations:'):
                 try:
                     provider_cls = bindings.get('integration-repository.provider').get(provider_id)
