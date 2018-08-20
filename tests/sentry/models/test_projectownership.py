@@ -143,7 +143,9 @@ class ResolveActorsTestCase(TestCase):
         # Another secondary email, that isn't verified
         email2 = self.create_useremail(self.user, None, is_verified=False).email
         owner3 = Owner('user', email2)
-        actor3 = None
+        # Intentionally allow unverified emails
+        # actor3 = None
+        actor3 = actor1
 
         # An entirely unknown user
         owner4 = Owner('user', 'nope')

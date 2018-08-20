@@ -97,7 +97,8 @@ def resolve_actors(owners, project_id):
                     operator.or_,
                     [Q(emails__email__iexact=o.identifier) for o in users]
                 ),
-                emails__is_verified=True,
+                # We don't require verified emails
+                # emails__is_verified=True,
                 is_active=True,
                 sentry_orgmember_set__organizationmemberteam__team__projectteam__project_id=project_id,
             ).distinct().values_list('id', 'emails__email')
