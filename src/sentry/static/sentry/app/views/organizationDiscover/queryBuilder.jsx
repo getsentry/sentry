@@ -3,6 +3,7 @@
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {COLUMNS, PROMOTED_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
@@ -168,10 +169,21 @@ export default function createQueryBuilder(initial = {}, organization) {
     const api = new Client();
     const endpoint = `/organizations/${organization.slug}/discover/`;
 
-    return api.requestPromise(endpoint, {
-      method: 'POST',
-      data: data || getExternal(),
-    });
+    data = data || getExternal();
+
+    // Reject immediately if no projects are available
+    if (!data.projects.length) {
+      return Promise.reject(t('No projects selected'));
+    }
+
+    return api
+      .requestPromise(endpoint, {
+        method: 'POST',
+        data,
+      })
+      .catch(() => {
+        throw new Error(t('An error occurred'));
+      });
   }
 
   /**

@@ -88,6 +88,42 @@ describe('Query Builder', function() {
     });
   });
 
+  describe('fetch()', function() {
+    let queryBuilder, discoverMock;
+
+    beforeEach(function() {
+      queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+      discoverMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/',
+        method: 'POST',
+      });
+    });
+
+    afterEach(function() {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('makes request', async function() {
+      const data = {projects: [1], fields: ['event_id']};
+      await queryBuilder.fetch(data);
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/',
+        expect.objectContaining({
+          data,
+        })
+      );
+    });
+
+    it('handles no projects', async function() {
+      const result = queryBuilder.fetch({projects: []});
+      await expect(result).rejects.toEqual('No projects selected');
+      expect(discoverMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateField()', function() {
     let queryBuilder;
     beforeEach(function() {
