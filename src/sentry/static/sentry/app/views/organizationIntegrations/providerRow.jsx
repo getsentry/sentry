@@ -129,7 +129,7 @@ const Status = styled(
   })
 )`
   color: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
-  margin-left: ${space(1)};
+  margin-left: ${space(0.5)};
   &:after {
     content: '|';
     color: ${p => p.theme.gray1};
