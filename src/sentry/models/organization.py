@@ -30,7 +30,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.models import Authenticator, AuditLogEntryEvent
 
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger('sentry.auth')
 
 
 class OrganizationStatus(IntEnum):
@@ -393,11 +393,15 @@ class Organization(Model):
             member.user = None
             member.save()
         except (AssertionError, IntegrityError):
-            logger.error(
-                'access.2fa-non-compliant.user-not-removed-from-org',
+            logger.warning(
+                'Could not remove 2FA noncompliant user from org',
                 extra=logging_data
             )
         else:
+            logger.info(
+                '2FA noncompliant user removed from org',
+                extra=logging_data
+            )
             create_audit_entry(
                 request=request,
                 organization=org,

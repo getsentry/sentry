@@ -227,7 +227,7 @@ class Require2fa(TestCase):
             return self.create_user('')
         return self.create_user()
 
-    def _create_member(self, has_2fa=False, has_user_email=True, has_member_email=False):
+    def _create_user_and_member(self, has_2fa=False, has_user_email=True, has_member_email=False):
         user = self._create_user(has_email=has_user_email)
         if has_2fa:
             TotpInterface().enroll(user)
@@ -253,8 +253,8 @@ class Require2fa(TestCase):
 
     @mock.patch('sentry.utils.email.logger')
     def test_handle_2fa_required__compliant_and_non_compliant_members(self, email_log):
-        compliant_user, compliant_member = self._create_member(has_2fa=True)
-        non_compliant_user, non_compliant_member = self._create_member()
+        compliant_user, compliant_member = self._create_user_and_member(has_2fa=True)
+        non_compliant_user, non_compliant_member = self._create_user_and_member()
 
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.org.handle_2fa_required(self.request)
@@ -279,7 +279,7 @@ class Require2fa(TestCase):
     def test_handle_2fa_required__compliant_members(self, email_log):
         compliant = []
         for num in range(0, 4):
-            user, member = self._create_member(has_2fa=True)
+            user, member = self._create_user_and_member(has_2fa=True)
             compliant.append((user, member))
 
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
@@ -288,8 +288,7 @@ class Require2fa(TestCase):
         for user, member in compliant:
             self.is_organization_member(user.id, member.id)
 
-        assert len(mail.outbox) == 0
-        assert email_log.info.call_count == 0
+        assert len(mail.outbox) == email_log.info.call_count == 0
         assert not AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.MEMBER_PENDING,
             organization=self.org,
@@ -300,7 +299,7 @@ class Require2fa(TestCase):
     def test_handle_2fa_required__non_compliant_members(self, email_log):
         non_compliant = []
         for num in range(0, 4):
-            user, member = self._create_member()
+            user, member = self._create_user_and_member()
             non_compliant.append((user, member))
 
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
@@ -319,7 +318,7 @@ class Require2fa(TestCase):
 
     @mock.patch('sentry.utils.email.logger')
     def test_handle_2fa_required__pending_member__ok(self, email_log):
-        user, member = self._create_member(has_member_email=True)
+        user, member = self._create_user_and_member(has_member_email=True)
         member.user = None
         member.save()
 
@@ -328,8 +327,7 @@ class Require2fa(TestCase):
 
         self.is_pending_organization_member(user.id, member.id)
 
-        assert len(mail.outbox) == 0
-        assert email_log.info.call_count == 0
+        assert len(mail.outbox) == email_log.info.call_count == 0
         assert not AuditLogEntry.objects.filter(
             event=AuditLogEntryEvent.MEMBER_PENDING,
             organization=self.org,
@@ -338,8 +336,8 @@ class Require2fa(TestCase):
 
     @mock.patch('sentry.models.organization.logger')
     @mock.patch('sentry.utils.email.logger')
-    def test_remove_2fa_non_compliant_member__no_user_email__ok(self, email_log, org_log):
-        user, member = self._create_member(has_user_email=False, has_member_email=True)
+    def test_remove_2fa_non_compliant_member__no_user_email__ok(self, email_log, auth_log):
+        user, member = self._create_user_and_member(has_user_email=False, has_member_email=True)
         assert not user.email
         assert member.email
 
@@ -352,9 +350,9 @@ class Require2fa(TestCase):
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == [member.email]
 
-        assert not org_log.error.called
-        assert org_log.info.called_with(
-            'access.2fa-non-compliant.user-removed-from-org',
+        assert not auth_log.warning.called
+        auth_log.info.assert_called_with(
+            '2FA noncompliant user removed from org',
             extra={
                 'organization_id': self.org.id,
                 'user_id': user.id,
@@ -364,8 +362,8 @@ class Require2fa(TestCase):
 
     @mock.patch('sentry.models.organization.logger')
     @mock.patch('sentry.utils.email.logger')
-    def test_remove_2fa_non_compliant_member__no_email__log_error(self, email_log, org_log):
-        user, member = self._create_member(has_user_email=False)
+    def test_remove_2fa_non_compliant_member__no_email__warning(self, email_log, auth_log):
+        user, member = self._create_user_and_member(has_user_email=False)
         assert not user.email
         assert not member.email
 
@@ -374,8 +372,8 @@ class Require2fa(TestCase):
 
         self.is_organization_member(user.id, member.id)
 
-        assert org_log.error.called_with(
-            'access.2fa-non-compliant.user-not-removed-from-org',
+        auth_log.warning.assert_called_with(
+            'Could not remove 2FA noncompliant user from org',
             extra={
                 'organization_id': self.org.id,
                 'user_id': user.id,
