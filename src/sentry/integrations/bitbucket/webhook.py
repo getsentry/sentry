@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
-from sentry.models import (Commit, CommitAuthor, Organization, Repository)
+from sentry.models import (Commit, CommitAuthor, Organization, PullRequest, Repository)
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 
@@ -35,6 +35,22 @@ class Webhook(object):
     def __call__(self, organization, event):
         raise NotImplementedError
 
+    def repo_from_event(self, organization, event):
+        try:
+            repo = Repository.objects.get(
+                organization_id=organization.id,
+                provider=PROVIDER_NAME,
+                external_id=six.text_type(event['repository']['uuid']),
+            )
+        except Repository.DoesNotExist:
+            raise Http404()
+
+        if repo.config.get('name') != event['repository']['full_name']:
+            repo.config['name'] = event['repository']['full_name']
+            repo.save()
+
+        return repo
+
 
 def parse_raw_user_email(raw):
     # captures content between angle brackets
@@ -53,55 +69,67 @@ class PushEventWebhook(Webhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
     def __call__(self, organization, event):
         authors = {}
-
-        try:
-            repo = Repository.objects.get(
-                organization_id=organization.id,
-                provider=PROVIDER_NAME,
-                external_id=six.text_type(event['repository']['uuid']),
-            )
-        except Repository.DoesNotExist:
-            raise Http404()
-
-        if repo.config.get('name') != event['repository']['full_name']:
-            repo.config['name'] = event['repository']['full_name']
-            repo.save()
+        repo = self.repo_from_event(organization, event)
 
         for change in event['push']['changes']:
             for commit in change.get('commits', []):
                 if IntegrationRepositoryProvider.should_ignore_commit(commit['message']):
                     continue
 
-                author_email = parse_raw_user_email(commit['author']['raw'])
+                    author_email = parse_raw_user_email(commit['author']['raw'])
 
-                # TODO(dcramer): we need to deal with bad values here, but since
-                # its optional, lets just throw it out for now
-                if author_email is None or len(author_email) > 75:
-                    author = None
-                elif author_email not in authors:
-                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                        organization_id=organization.id,
-                        email=author_email,
-                        defaults={'name': commit['author']['raw'].split('<')[0].strip()}
-                    )[0]
-                else:
-                    author = authors[author_email]
-                try:
-                    with transaction.atomic():
-
-                        Commit.objects.create(
-                            repository_id=repo.id,
+                    # TODO(dcramer): we need to deal with bad values here, but since
+                    # its optional, lets just throw it out for now
+                    if author_email is None or len(author_email) > 75:
+                        author = None
+                    elif author_email not in authors:
+                        authors[author_email] = author = CommitAuthor.objects.get_or_create(
                             organization_id=organization.id,
-                            key=commit['hash'],
-                            message=commit['message'],
-                            author=author,
-                            date_added=dateutil.parser.parse(
-                                commit['date'],
-                            ).astimezone(timezone.utc),
-                        )
+                            email=author_email,
+                            defaults={'name': commit['author']['raw'].split('<')[0].strip()}
+                        )[0]
+                    else:
+                        author = authors[author_email]
+                    try:
+                        with transaction.atomic():
 
-                except IntegrityError:
-                    pass
+                            Commit.objects.create(
+                                repository_id=repo.id,
+                                organization_id=organization.id,
+                                key=commit['hash'],
+                                message=commit['message'],
+                                author=author,
+                                date_added=dateutil.parser.parse(
+                                    commit['date'],
+                                ).astimezone(timezone.utc),
+                            )
+
+                    except IntegrityError:
+                        pass
+
+
+class PullEventWebhook(Webhook):
+    def __call__(self, organization, event):
+        repo = self.repo_from_event(organization, event)
+        # TODO(lb): Cannot seem to find a way to get the user's email without another api call.
+        # I will trigger the event to ensure this is the case. :/
+        author = event['actor']['uuid']
+        pull_request = event['pullrequest']
+
+        try:
+            PullRequest.objects.create_or_update(
+                repository_id=repo.id,
+                key=pull_request['id'],
+                values={
+                    'organization_id': organization.id,
+                    'title': pull_request['title'],
+                    'author': author,
+                    'message': pull_request['description'],
+                    'merge_commit_sha': pull_request['merge_commit'],
+                },
+            )
+        except IntegrityError:
+            pass
 
 
 class BitbucketWebhookEndpoint(View):
