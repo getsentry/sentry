@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 from django import forms
+from django.core.urlresolvers import reverse
+from django.views.generic import View
 
 from sentry import roles
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
-from sentry.web.frontend.base import BaseView
+from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 from sentry.models import OrganizationIntegration, OrganizationMember
 
@@ -24,7 +26,7 @@ class JiraConfigForm(forms.Form):
         self.fields['organizations'].choices = [(o.id, o.slug) for o in organizations]
 
 
-class JiraConfigureView(BaseView):
+class JiraConfigureView(View):
 
     def get_response(self, context):
         context['ac_js_src'] = '%(base_url)s%(context_path)s/atlassian-connect/all.js' % {
@@ -35,11 +37,23 @@ class JiraConfigureView(BaseView):
         res['X-Frame-Options'] = 'ALLOW-FROM %s' % self.request.GET['xdm_e']
         return res
 
+    def get(self, request, *args, **kwargs):
+        return self.handle(request)
+
+    def post(self, request, *args, **kwargs):
+        return self.handle(request)
+
     def handle(self, request):
         try:
             integration = get_integration_from_request(request, 'jira')
         except AtlassianConnectValidationError:
             return self.get_response({'error_message': 'Unable to verify installation.'})
+
+        if not request.user.is_authenticated():
+            return self.get_response({
+                'login_required': True,
+                'login_url': absolute_uri(reverse('sentry-login')),
+            })
 
         organizations = request.user.get_orgs().filter(
             id__in=OrganizationMember.objects.filter(
