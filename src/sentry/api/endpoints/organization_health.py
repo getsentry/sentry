@@ -124,7 +124,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
                 # Not a valid lookup tag
                 continue
 
-            conditions[lookup.tagkey].append(lookup.decoder(value))
+            conditions[lookup.filter_key].append(value)
 
         return [[k, 'IN', v] for k, v in conditions.items()]
 
@@ -187,7 +187,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         values = []
         is_null = False
         for row in data['data']:
-            value = value_from_row(row, lookup.columns)[0]
+            value = lookup.encoder(value_from_row(row, lookup.columns))
             if value is None:
                 is_null = True
             else:
@@ -204,9 +204,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
                 'project_id': project_ids,
             },
             conditions=lookup.conditions + query_condition + environment + [
-                # This isn't really right, and is relying on the fact
-                # that project_id is the other key in this composite key
-                [lookup.tagkey, 'IN', values] if values else [],
+                [lookup.filter_key, 'IN', values] if values else [],
                 [lookup.tagkey, 'IS NULL', None] if is_null else [],
             ],
             groupby=lookup.columns,

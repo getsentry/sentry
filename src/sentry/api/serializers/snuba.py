@@ -15,7 +15,7 @@ HEALTH_ID_KEY = '_health_id'
 
 
 def make_health_id(lookup, value):
-    return '%s:%s' % (lookup.name, value)
+    return '%s:%s' % (lookup.name, lookup.encoder([value]))
 
 
 def serialize_releases(organization, item_list, user, lookup):
@@ -76,7 +76,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
             attr, value = tag.split(':', 1)
             eu = EventUser(project_id=project, **{EventUser.attr_from_keyword(attr): value})
         rv[(tag, project)] = {
-            HEALTH_ID_KEY: make_health_id(lookup, '%d:%s' % (eu.project_id, eu.tag_value)),
+            HEALTH_ID_KEY: make_health_id(lookup, (eu.tag_value, eu.project_id)),
             'id': six.text_type(eu.id) if eu.id else None,
             'project': projects.get(eu.project_id),
             'hash': eu.hash,
@@ -93,9 +93,12 @@ def serialize_eventusers(organization, item_list, user, lookup):
     return rv
 
 
-def decoder_eventuser(raw_value):
-    _, tag_value = raw_value.split(':', 1)
-    return tag_value
+def encoder_eventuser(value):
+    value = encoder_noop(value)
+    if not value:
+        return None
+    tag_value, project_id = value
+    return '%d:%s' % (project_id, tag_value)
 
 
 def serialize_projects(organization, item_list, user):
@@ -122,6 +125,12 @@ def serialize_noop(organization, item_list, user, lookup):
     }
 
 
+def encoder_noop(row):
+    if not row:
+        return None
+    return row[0]
+
+
 def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
 
@@ -145,20 +154,22 @@ def zerofill(data, start, end, rollup):
 
 
 class SnubaLookup(object):
-    __slots__ = 'name', 'tagkey', 'columns', 'selected_columns', 'conditions', 'serializer', 'decoder'
+    __slots__ = 'name', 'tagkey', 'columns', 'selected_columns', 'conditions', 'serializer', 'encoder', 'filter_key'
     __registry = {}
 
     def __init__(self, name, tagkey=None, extra=None, selected_columns=None,
-                 conditions=None, serializer=serialize_noop, decoder=lambda v: v):
+                 conditions=None, serializer=serialize_noop, encoder=encoder_noop,
+                 filter_key=None):
         cls = type(self)
         assert name not in cls.__registry
         self.name = name
         self.tagkey = tagkey or name
         self.columns = [self.tagkey] + list(extra or [])
         self.serializer = partial(serializer, lookup=self)
-        self.decoder = decoder
+        self.encoder = encoder
         self.conditions = conditions or [[self.tagkey, 'IS NOT NULL', None]]
         self.selected_columns = selected_columns or []
+        self.filter_key = filter_key or self.tagkey
         cls.__registry[name] = self
 
     @classmethod
@@ -171,7 +182,11 @@ SnubaLookup(
     'tags[sentry:user]',
     ['project_id'],
     serializer=serialize_eventusers,
-    decoder=decoder_eventuser)
+    encoder=encoder_eventuser,
+    filter_key=(
+        'concat', ('project_id', "':'", 'tags[sentry:user]')
+    ),
+)
 SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
 SnubaLookup('os.name', 'tags[os.name]')
 SnubaLookup('browser.name', 'tags[browser.name]', conditions=[])
