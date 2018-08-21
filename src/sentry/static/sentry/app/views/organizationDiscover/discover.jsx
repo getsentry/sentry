@@ -280,8 +280,10 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {chartData && <ResultChart data={chartData} query={chartQuery} />}
-            {result && <ResultTable result={result} />}
+            {chartData && (
+              <ResultChart data={chartData} query={chartQuery} maxCharsTooltip={60} />
+            )}
+            {result && <ResultTable result={result} maxCharsTooltip={60} />}
             {!result && <Intro />}
           </Box>
         </Flex>

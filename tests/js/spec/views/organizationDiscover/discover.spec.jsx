@@ -89,16 +89,11 @@ describe('Discover', function() {
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
       await tick();
-      const field =
-        queryBuilder.getExternal().fields.length > 0
-          ? queryBuilder.getExternal().fields[0]
-          : null;
-      const groupBy = field ? [field, 'time'] : ['time'];
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(2);
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(1);
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(2, {
         ...queryBuilder.getExternal(),
-        groupby: groupBy,
+        groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: '-count',
         limit: 15,

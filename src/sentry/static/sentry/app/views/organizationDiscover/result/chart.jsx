@@ -4,12 +4,12 @@ import PropTypes from 'prop-types';
 
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import theme from 'app/utils/theme';
 
 export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
+    maxCharsTooltip: PropTypes.object.isRequired,
   };
 
   // Converts a value to a string for the chart label. This could
@@ -30,6 +30,7 @@ export default class Result extends React.Component {
 
   getChartData(queryData, groupbyFields) {
     const {aggregations} = this.props.query;
+    const {maxCharsTooltip} = this.props;
     // We only chart the first aggregation for now
     const aggregate = aggregations[0][2];
     const dates = [
@@ -66,8 +67,8 @@ export default class Result extends React.Component {
       }
 
       let seriesNameValue = key;
-      if (key.length > 60) {
-        seriesNameValue = key.substring(0, 60) + '...';
+      if (key.length > maxCharsTooltip) {
+        seriesNameValue = key.substring(0, maxCharsTooltip) + '...';
       }
       result.push({seriesName: seriesNameValue, data: output[key].data});
     }
@@ -79,22 +80,15 @@ export default class Result extends React.Component {
     const {data} = this.props.data;
 
     const chartData = this.getChartData(data, fields);
-    const renderLineChart = chartData.find(function(element) {
-      return element.data.filter(({value}) => value !== null).length > 1;
-    });
+    const renderLineChart = chartData.find(
+      element => element.data.filter(({value}) => value !== null).length > 1
+    );
 
     return (
       <div>
-        {renderLineChart ? (
-          <LineChart series={chartData} height={300} colors={theme.charts.colors} />
-        ) : null}
+        {renderLineChart ? <LineChart series={chartData} height={300} /> : null}
 
-        <BarChart
-          series={chartData}
-          stacked={true}
-          height={300}
-          colors={theme.charts.colors}
-        />
+        <BarChart series={chartData} stacked={true} height={300} />
       </div>
     );
   }
