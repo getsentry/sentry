@@ -2,7 +2,6 @@ import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Box} from 'grid-emotion';
 
 import theme from 'app/utils/theme';
 import AutoSelectText from 'app/components/autoSelectText';
@@ -14,7 +13,7 @@ import {getDisplayValue, getDisplayText} from './utils';
  */
 export default class ResultTable extends React.Component {
   static propTypes = {
-    result: PropTypes.object.isRequired,
+    data: PropTypes.object.isRequired,
   };
 
   componentDidMount() {
@@ -23,13 +22,13 @@ export default class ResultTable extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (this.props.result.meta !== nextProps.result.meta) {
+    if (this.props.data.meta !== nextProps.data.meta) {
       this.grid.recomputeGridSize();
     }
   }
 
   cellRenderer = ({key, rowIndex, columnIndex, style}) => {
-    const {meta, data} = this.props.result;
+    const {meta, data} = this.props.data;
     const colName = meta[columnIndex].name;
 
     return (
@@ -50,7 +49,7 @@ export default class ResultTable extends React.Component {
     const MIN_COL_WIDTH = 100;
     const MAX_COL_WIDTH = 400;
 
-    const {meta, data} = this.props.result;
+    const {meta, data} = this.props.data;
 
     if (meta.length === 1) {
       return tableWidth;
@@ -82,7 +81,7 @@ export default class ResultTable extends React.Component {
   };
 
   renderTable() {
-    const {meta, data} = this.props.result;
+    const {meta, data} = this.props.data;
 
     const maxVisibleResults = Math.min(data.length, 15);
 
@@ -115,20 +114,13 @@ export default class ResultTable extends React.Component {
   }
 
   render() {
-    const {error, timing, data} = this.props.result;
+    const {error} = this.props.data;
 
     if (error) {
       return <div>{error}</div>;
     }
 
-    return (
-      <div>
-        <Summary mb={1}>
-          snuba query time: {timing.duration_ms}ms, {data.length} rows
-        </Summary>
-        {this.renderTable()}
-      </div>
-    );
+    return <div>{this.renderTable()}</div>;
   }
 }
 
@@ -145,8 +137,4 @@ const Cell = styled('div')`
   font-size: 14px;
   line-height: 30px;
   padding: 0 4px;
-`;
-
-const Summary = styled(Box)`
-  font-size: 12px;
 `;
