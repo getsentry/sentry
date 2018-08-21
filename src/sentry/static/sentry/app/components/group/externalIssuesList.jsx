@@ -18,19 +18,17 @@ class ExternalIssueList extends AsyncComponent {
 
   renderIntegrationIssues(integrations) {
     const {group} = this.props;
-    const externalIssues = [];
-
     if (!integrations || !integrations.length) return null;
 
-    integrations.forEach(integration => {
-      externalIssues.push(
+    const externalIssues = integrations
+      .filter(integration => integration.status === 'active')
+      .map(integration => (
         <ExternalIssueActions
           key={integration.id}
           integration={integration}
           group={group}
         />
-      );
-    });
+      ));
 
     return externalIssues;
   }
