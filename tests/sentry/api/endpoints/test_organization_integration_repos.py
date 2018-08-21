@@ -26,8 +26,9 @@ class OrganizationIntegrationReposTest(APITestCase):
         response = self.client.get(self.path, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data == {"repos": [{'name': 'rad-repo', 'identifier': 'Example/rad-repo'},
-                                           {'name': 'cool-repo', 'identifier': 'Example/cool-repo'}]}
+        assert response.data == {'repos': [{'name': 'rad-repo', 'identifier': 'Example/rad-repo'},
+                                           {'name': 'cool-repo', 'identifier': 'Example/cool-repo'}],
+                                 'searchable': True}
 
     def test_no_repository_method(self):
         integration = Integration.objects.create(

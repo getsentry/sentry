@@ -1,5 +1,6 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
+import {debounce} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -26,7 +27,7 @@ export default class IntegrationRepos extends AsyncComponent {
 
   constructor(props, context) {
     super(props, context);
-    this.state = {error: false, adding: false, itemList: [], errors: {}};
+    this.state = {error: false, adding: false, itemList: [], dropdownBusy: false, errors: {}};
   }
 
   getEndpoints() {
@@ -46,21 +47,34 @@ export default class IntegrationRepos extends AsyncComponent {
     return this.state.itemList.filter(repo => repo.integrationId === integrationId);
   }
 
-  searchRepositories(e) {
+  debouncedSearchRepositoriesRequest = debounce(query => {
+    this.setState(
+      {
+        dropdownBusy: true,
+      },
+      () => this.searchRepositoriesRequest(query)
+    );
+  }, 200)
+
+  searchRepositoriesRequest = (searchQuery) => {
     let orgId = this.context.organization.slug;
-    let query = {'search': e.target.value};
+    let query = {'search': searchQuery};
     let endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
-    this.api.request(endpoint, {
+    return this.api.request(endpoint, {
       method: 'GET',
       query,
       success: (data, _, jqXHR) => {
-        this.setState({integrationRepos: data});
+        this.setState({integrationRepos: data, dropdownBusy: false});
       },
       error: error => {
-        console.log('hello');
+        this.setState({dropdownBusy: false});
       },
     });
+  }
 
+  handleSearchRepositories(e) {
+    this.setState({dropdownBusy: true});
+    this.debouncedSearchRepositoriesRequest(e.target.value);
   }
 
   getStatusLabel(repo) {
@@ -179,7 +193,7 @@ export default class IntegrationRepos extends AsyncComponent {
     });
 
     let menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
-    let onChange = this.state.integrationRepos.searchable ? this.searchRepositories.bind(this) : {};
+    let onChange = this.state.integrationRepos.searchable ? this.handleSearchRepositories.bind(this) : {};
 
     return (
       <DropdownAutoComplete
