@@ -124,7 +124,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
                 # Not a valid lookup tag
                 continue
 
-            conditions[lookup.tagkey].append(value)
+            conditions[lookup.tagkey].append(lookup.decoder(value))
 
         return [[k, 'IN', v] for k, v in conditions.items()]
 

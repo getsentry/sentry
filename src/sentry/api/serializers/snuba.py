@@ -14,10 +14,14 @@ from sentry.utils.geo import geo_by_addr as _geo_by_addr
 HEALTH_ID_KEY = '_health_id'
 
 
+def make_health_id(lookup, value):
+    return '%s:%s' % (lookup.name, value)
+
+
 def serialize_releases(organization, item_list, user, lookup):
     return {
         (r.version,): {
-            HEALTH_ID_KEY: '%s:%s' % (lookup.name, r.version),
+            HEALTH_ID_KEY: make_health_id(lookup, r.version),
             'id': r.id,
             'version': r.version,
             'shortVersion': r.short_version,
@@ -72,7 +76,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
             attr, value = tag.split(':', 1)
             eu = EventUser(project_id=project, **{EventUser.attr_from_keyword(attr): value})
         rv[(tag, project)] = {
-            HEALTH_ID_KEY: '%s:%d:%s' % (lookup.name, eu.project_id, eu.tag_value),
+            HEALTH_ID_KEY: make_health_id(lookup, '%d:%s' % (eu.project_id, eu.tag_value)),
             'id': six.text_type(eu.id) if eu.id else None,
             'project': projects.get(eu.project_id),
             'hash': eu.hash,
@@ -87,6 +91,11 @@ def serialize_eventusers(organization, item_list, user, lookup):
             'geo': geo_by_addr(eu.ip_address),
         }
     return rv
+
+
+def decoder_eventuser(raw_value):
+    _, tag_value = raw_value.split(':', 1)
+    return tag_value
 
 
 def serialize_projects(organization, item_list, user):
@@ -106,7 +115,7 @@ def serialize_projects(organization, item_list, user):
 def serialize_noop(organization, item_list, user, lookup):
     return {
         i: {
-            HEALTH_ID_KEY: '%s:%s' % (lookup.name, i[0]),
+            HEALTH_ID_KEY: make_health_id(lookup, i[0]),
             'value': i[0],
         }
         for i in item_list
@@ -136,17 +145,18 @@ def zerofill(data, start, end, rollup):
 
 
 class SnubaLookup(object):
-    __slots__ = 'name', 'tagkey', 'columns', 'selected_columns', 'conditions', 'serializer'
+    __slots__ = 'name', 'tagkey', 'columns', 'selected_columns', 'conditions', 'serializer', 'decoder'
     __registry = {}
 
     def __init__(self, name, tagkey=None, extra=None, selected_columns=None,
-                 conditions=None, serializer=serialize_noop):
+                 conditions=None, serializer=serialize_noop, decoder=lambda v: v):
         cls = type(self)
         assert name not in cls.__registry
         self.name = name
         self.tagkey = tagkey or name
         self.columns = [self.tagkey] + list(extra or [])
         self.serializer = partial(serializer, lookup=self)
+        self.decoder = decoder
         self.conditions = conditions or [[self.tagkey, 'IS NOT NULL', None]]
         self.selected_columns = selected_columns or []
         cls.__registry[name] = self
@@ -156,7 +166,12 @@ class SnubaLookup(object):
         return cls.__registry[name]
 
 
-SnubaLookup('user', 'tags[sentry:user]', ['project_id'], serializer=serialize_eventusers)
+SnubaLookup(
+    'user',
+    'tags[sentry:user]',
+    ['project_id'],
+    serializer=serialize_eventusers,
+    decoder=decoder_eventuser)
 SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
 SnubaLookup('os.name', 'tags[os.name]')
 SnubaLookup('browser.name', 'tags[browser.name]', conditions=[])
