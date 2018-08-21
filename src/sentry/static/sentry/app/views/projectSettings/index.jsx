@@ -116,9 +116,6 @@ const ProjectSettings = createReactClass({
               {t('Environments')}
             </ListLink>
             <ListLink to={`${pathPrefix}/tags/`}>{t('Tags')}</ListLink>
-            <ListLink to={`${pathPrefix}/issue-tracking/`}>
-              {t('Issue Tracking')}
-            </ListLink>
             {access.has('project:write') && (
               <ListLink
                 to={`${pathPrefix}/release-tracking/`}
