@@ -281,7 +281,7 @@ const AssigneeSelectorComponent = createReactClass({
               return (
                 <DropdownButton {...getActorProps({})}>
                   {assignedTo ? (
-                    <ActorAvatar actor={assignedTo} className="avatar" size={20} />
+                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                   ) : (
                     <IconUser src="icon-user" />
                   )}
@@ -317,8 +317,11 @@ const getSvgStyle = () => `
 
 const IconUser = styled(InlineSvg)`
   color: ${p => p.theme.gray3};
-  height: 24px;
-  width: 24px;
+  height: 20px;
+  width: 20px;
+
+  /* We need this to center with Avatar */
+  margin-right: 2px;
 `;
 
 const IconContainer = styled.div`
