@@ -50,10 +50,11 @@ class TagValue(TagType):
 class GroupTagKey(TagType):
     __slots__ = ['group_id', 'key', 'values_seen']
 
-    def __init__(self, group_id, key, values_seen):
+    def __init__(self, group_id, key, values_seen, count=None):
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
+        self.count = count
 
 
 class GroupTagValue(TagType):

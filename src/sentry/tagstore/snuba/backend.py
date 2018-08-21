@@ -65,16 +65,20 @@ class SnubaTagStorage(TagStorage):
         if group_id is not None:
             filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
-        aggregations = [['uniq', tag, 'unique_values']]
+        aggregations = [
+            ['uniq', tag, 'unique_values'],
+            ['count()', '', 'count']
+        ]
 
         result = snuba.query(start, end, [], conditions, filters, aggregations,
                              referrer='tagstore.__get_tag_key')
-        if result == 0:
+        if result is None or result['count'] == 0:
             raise TagKeyNotFound if group_id is None else GroupTagKeyNotFound
         else:
             data = {
                 'key': key,
-                'values_seen': result,
+                'values_seen': result['unique_values'],
+                'count': result['count'],
             }
             if group_id is None:
                 return TagKey(**data)
@@ -375,7 +379,7 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
-            order_by='-last_seen'):
+                                order_by='-last_seen'):
         from sentry.api.paginator import SequencePaginator
 
         if not order_by == '-last_seen':
@@ -458,7 +462,7 @@ class SnubaTagStorage(TagStorage):
         return group_tag_values
 
     def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
-            order_by='-id'):
+                                      order_by='-id'):
         from sentry.api.paginator import SequencePaginator
 
         if order_by in ('-last_seen', '-first_seen'):
@@ -476,7 +480,8 @@ class SnubaTagStorage(TagStorage):
         desc = order_by.startswith('-')
         score_field = order_by.lstrip('-')
         return SequencePaginator(
-            [(int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv) for gtv in group_tag_values],
+            [(int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv)
+             for gtv in group_tag_values],
             reverse=desc
         )
 
