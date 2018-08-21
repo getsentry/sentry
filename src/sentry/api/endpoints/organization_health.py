@@ -62,6 +62,7 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
             # Superusers can query any projects within the organization
             project_ids = set(Project.objects.filter(
                 organization=organization,
+                status=ProjectStatus.VISIBLE,
                 id__in=project_ids,
             ).values_list('id', flat=True))
         else:
