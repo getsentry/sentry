@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
@@ -32,6 +32,8 @@ describe('ProjectSelector', function() {
     access: [],
   });
 
+  const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
+
   beforeAll(function() {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
   });
@@ -54,7 +56,7 @@ describe('ProjectSelector', function() {
         }}
         projectId=""
       />,
-      TestStubs.routerContext()
+      routerContext
     );
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
@@ -74,7 +76,7 @@ describe('ProjectSelector', function() {
         }}
         projectId=""
       />,
-      TestStubs.routerContext()
+      routerContext
     );
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
@@ -85,14 +87,17 @@ describe('ProjectSelector', function() {
   it('lists projects and has filter', function() {
     let wrapper = mount(
       <ProjectSelector organization={mockOrg} projectId="" />,
-      TestStubs.routerContext()
+      routerContext
     );
     openMenu(wrapper);
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
   it('can filter projects by project name', function() {
-    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    let wrapper = mount(
+      <ProjectSelector organization={mockOrg} projectId="" />,
+      routerContext
+    );
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
@@ -103,7 +108,10 @@ describe('ProjectSelector', function() {
   });
 
   it('does not close dropdown when input is clicked', async function() {
-    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    let wrapper = mount(
+      <ProjectSelector organization={mockOrg} projectId="" />,
+      routerContext
+    );
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('click');
@@ -113,7 +121,10 @@ describe('ProjectSelector', function() {
   });
 
   it('closes dropdown when project is selected', function() {
-    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    let wrapper = mount(
+      <ProjectSelector organization={mockOrg} projectId="" />,
+      routerContext
+    );
     openMenu(wrapper);
 
     // Select first project
@@ -125,7 +136,10 @@ describe('ProjectSelector', function() {
   });
 
   it('shows empty filter message when filtering has no results', function() {
-    let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    let wrapper = mount(
+      <ProjectSelector organization={mockOrg} projectId="" />,
+      routerContext
+    );
     openMenu(wrapper);
 
     wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
