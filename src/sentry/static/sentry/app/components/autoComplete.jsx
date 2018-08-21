@@ -42,6 +42,7 @@ class AutoComplete extends React.Component {
     onSelect: PropTypes.func,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+    onMenuOpen: PropTypes.func,
   };
 
   static defaultProps = {
@@ -143,7 +144,7 @@ class AutoComplete extends React.Component {
       e.key === 'Enter' && this.items.size && this.items.has(this.state.highlightedIndex);
 
     if (shouldSelectWithEnter) {
-      this.handleSelect(this.items.get(this.state.highlightedIndex));
+      this.handleSelect(this.items.get(this.state.highlightedIndex), e);
       e.preventDefault();
     }
 
@@ -179,10 +180,10 @@ class AutoComplete extends React.Component {
   /**
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
    */
-  handleSelect = item => {
+  handleSelect = (item, e) => {
     let {onSelect, itemToString} = this.props;
 
-    callIfFunction(onSelect, item, this.state);
+    callIfFunction(onSelect, item, this.state, e);
 
     this.closeMenu();
     this.setState({
@@ -271,11 +272,15 @@ class AutoComplete extends React.Component {
   });
 
   render() {
-    let {children} = this.props;
+    let {children, onMenuOpen} = this.props;
     let isOpen = this.getOpenState();
 
     return (
-      <DropdownMenu isOpen={isOpen} onClickOutside={this.handleClickOutside}>
+      <DropdownMenu
+        isOpen={isOpen}
+        onClickOutside={this.handleClickOutside}
+        onOpen={onMenuOpen}
+      >
         {dropdownMenuProps =>
           children({
             ...dropdownMenuProps,
