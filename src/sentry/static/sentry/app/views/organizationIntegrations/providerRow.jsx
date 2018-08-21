@@ -96,7 +96,7 @@ export default class ProviderRow extends React.Component {
             <ProviderName>{this.props.provider.name}</ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
-              <StyledLink onClick={openModal}>Learn More</StyledLink>
+              <StyledLink onClick={this.openModal}>Learn More</StyledLink>
             </ProviderDetails>
           </Box>
           <Box>{this.renderButton()}</Box>
