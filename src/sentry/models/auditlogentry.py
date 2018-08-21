@@ -25,6 +25,7 @@ class AuditLogEntryEvent(object):
     MEMBER_REMOVE = 5
     MEMBER_JOIN_TEAM = 6
     MEMBER_LEAVE_TEAM = 7
+    MEMBER_PENDING = 8
 
     ORG_ADD = 10
     ORG_EDIT = 11
@@ -103,6 +104,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.MEMBER_EDIT, 'member.edit'),
             (AuditLogEntryEvent.MEMBER_JOIN_TEAM, 'member.join-team'),
             (AuditLogEntryEvent.MEMBER_LEAVE_TEAM, 'member.leave-team'),
+            (AuditLogEntryEvent.MEMBER_PENDING, 'member.pending'),
             (AuditLogEntryEvent.TEAM_ADD, 'team.create'),
             (AuditLogEntryEvent.TEAM_EDIT, 'team.edit'),
             (AuditLogEntryEvent.TEAM_REMOVE, 'team.remove'),
@@ -208,6 +210,10 @@ class AuditLogEntry(Model):
             return 'removed %s from team %s' % (
                 self.data.get('email') or self.target_user.get_display_name(),
                 self.data['team_slug'],
+            )
+        elif self.event == AuditLogEntryEvent.MEMBER_PENDING:
+            return 'required member %s to setup 2FA' % (
+                self.data.get('email') or self.target_user.get_display_name(),
             )
 
         elif self.event == AuditLogEntryEvent.ORG_ADD:

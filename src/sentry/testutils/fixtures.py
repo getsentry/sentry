@@ -421,7 +421,7 @@ class Fixtures(object):
         return commit_file_change
 
     def create_user(self, email=None, **kwargs):
-        if not email:
+        if email is None:
             email = uuid4().hex + '@example.com'
 
         kwargs.setdefault('username', email)

@@ -7,6 +7,7 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+import logging
 import six
 
 from datetime import timedelta
@@ -26,7 +27,10 @@ from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, s
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.models import Authenticator
+from sentry.models import Authenticator, AuditLogEntryEvent
+
+
+logger = logging.getLogger('sentry')
 
 
 class OrganizationStatus(IntEnum):
@@ -363,27 +367,61 @@ class Organization(Model):
         "Returns ``True`` if ``flag`` has changed since initialization."
         return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
 
-    def send_setup_2fa_emails(self):
+    def handle_2fa_required(self, request):
+        from sentry.models import OrganizationMember
+        for member in OrganizationMember.objects.select_related('user', 'organization').filter(
+            organization=self,
+            user__isnull=False
+        ):
+            if not Authenticator.objects.user_has_2fa(member.user):
+                self._remove_2fa_non_compliant_member(request, member)
+
+    def _remove_2fa_non_compliant_member(self, request, member):
+        from sentry.utils.audit import create_audit_entry
+        user = member.user
+        org = member.organization
+
+        audit_log_data = member.get_audit_log_data()
+        logging_data = {
+            'organization_id': org.id,
+            'user_id': user.id,
+            'member_id': member.id
+        }
+
+        try:
+            member.email = member.get_email()
+            member.user = None
+            member.save()
+        except (AssertionError, IntegrityError):
+            logger.error(
+                'access.2fa-non-compliant.user-not-removed-from-org',
+                extra=logging_data
+            )
+        else:
+            create_audit_entry(
+                request=request,
+                organization=org,
+                target_object=org.id,
+                target_user=user,
+                event=AuditLogEntryEvent.MEMBER_PENDING,
+                data=audit_log_data,
+            )
+            self._send_2fa_required_email(member)
+
+    def _send_2fa_required_email(self, member):
         from sentry import options
         from sentry.utils.email import MessageBuilder
-        from sentry.models import User
 
-        for user in User.objects.filter(
-            is_active=True,
-            sentry_orgmember_set__organization=self,
-        ):
-            if not Authenticator.objects.user_has_2fa(user):
-                context = {
-                    'user': user,
-                    'url': absolute_uri(reverse('sentry-account-settings-security')),
-                    'organization': self
-                }
-                message = MessageBuilder(
-                    subject='%s %s Mandatory: Enable Two-Factor Authentication' % (
-                        options.get('mail.subject-prefix'), self.name),
-                    template='sentry/emails/setup_2fa.txt',
-                    html_template='sentry/emails/setup_2fa.html',
-                    type='user.setup_2fa',
-                    context=context,
-                )
-                message.send_async([user.email])
+        context = {
+            'url': member.get_invite_link(),
+            'organization': self
+        }
+        message = MessageBuilder(
+            subject='%s %s Mandatory: Enable Two-Factor Authentication' % (
+                options.get('mail.subject-prefix'), self.name),
+            template='sentry/emails/setup_2fa.txt',
+            html_template='sentry/emails/setup_2fa.html',
+            type='user.setup_2fa',
+            context=context,
+        )
+        message.send_async([member.email])
