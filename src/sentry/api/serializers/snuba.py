@@ -178,19 +178,19 @@ class SnubaResultSerializer(SnubaSerializer):
     def serialize(self, result):
         counts_by_value = {
             value_from_row(r, self.lookup.columns): r['count']
-            for r in result.previous
+            for r in result.previous['data']
         }
         projects = serialize_projects(
             self.organization,
-            {p for r in result.current for p in r.get('top_projects', [])},
+            {p for r in result.current['data'] for p in r.get('top_projects', [])},
             self.user,
         )
         attrs = self.get_attrs(
-            [value_from_row(r, self.lookup.columns) for r in result.current],
+            [value_from_row(r, self.lookup.columns) for r in result.current['data']],
         )
 
         data = []
-        for r in result.current:
+        for r in result.current['data']:
             value = value_from_row(r, self.lookup.columns)
             row = {
                 'count': r['count'],
@@ -204,7 +204,13 @@ class SnubaResultSerializer(SnubaSerializer):
 
             data.append(row)
 
-        return {'data': data}
+        return {
+            'data': data,
+            'totals': {
+                'count': result.current['totals']['count'],
+                'lastCount': result.previous['totals']['count'],
+            },
+        }
 
 
 class SnubaTSResultSerializer(SnubaSerializer):
@@ -212,7 +218,7 @@ class SnubaTSResultSerializer(SnubaSerializer):
     def serialize(self, result):
         data = [
             (key, list(group))
-            for key, group in itertools.groupby(result.data, key=lambda r: r['time'])
+            for key, group in itertools.groupby(result.data['data'], key=lambda r: r['time'])
         ]
         attrs = self.get_attrs([
             value_from_row(r, self.lookup.columns)
@@ -229,4 +235,7 @@ class SnubaTSResultSerializer(SnubaSerializer):
                     self.lookup.name: attrs.get(value),
                 })
             rv.append((k, row))
-        return {'data': zerofill(rv, result.start, result.end, result.rollup)}
+        return {
+            'data': zerofill(rv, result.start, result.end, result.rollup),
+            'totals': {'count': result.data['totals']['count']},
+        }

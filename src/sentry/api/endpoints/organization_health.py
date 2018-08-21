@@ -44,7 +44,8 @@ def parse_stats_period(period):
 
 def query(**kwargs):
     kwargs['referrer'] = 'health'
-    return snuba.raw_query(**kwargs)['data']
+    kwargs['totals'] = True
+    return snuba.raw_query(**kwargs)
 
 
 class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
@@ -176,12 +177,12 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             limit=limit,
         )
 
-        if not data:
+        if not data['data']:
             return self.empty()
 
         values = []
         is_null = False
-        for row in data:
+        for row in data['data']:
             value = value_from_row(row, lookup.columns)[0]
             if value is None:
                 is_null = True
