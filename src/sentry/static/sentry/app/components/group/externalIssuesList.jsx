@@ -23,13 +23,15 @@ class ExternalIssueList extends AsyncComponent {
     if (!integrations || !integrations.length) return null;
 
     integrations.forEach(integration => {
-      externalIssues.push(
-        <ExternalIssueActions
-          key={integration.id}
-          integration={integration}
-          group={group}
-        />
-      );
+      if (integration.status === 'active'){
+        externalIssues.push(
+          <ExternalIssueActions
+            key={integration.id}
+            integration={integration}
+            group={group}
+          />
+        );
+      }
     });
 
     return externalIssues;
