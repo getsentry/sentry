@@ -15,6 +15,7 @@ const EVENT_TYPES = [
   'member.edit',
   'member.join-team',
   'member.leave-team',
+  'member.pending',
   'team.create',
   'team.edit',
   'team.remove',
