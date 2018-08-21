@@ -103,6 +103,7 @@ export default class OrganizationDiscover extends React.Component {
         limit: 15,
       };
 
+      console.log("Chart Query: ", chartQuery);
       queryBuilder.fetch(chartQuery).then(
         chartData => {
           this.setState({chartData, chartQuery});

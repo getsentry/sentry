@@ -88,6 +88,7 @@ export default class Result extends React.Component {
       element => element.data.filter(({value}) => value !== null).length > 1
     );
 
+    console.log("Chart Data", chartData);
     return (
       <div>
         {renderLineChart ? <LineChart series={chartData} height={300} /> : null}
