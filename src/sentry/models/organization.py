@@ -420,9 +420,12 @@ class Organization(Model):
             'url': member.get_invite_link(),
             'organization': self
         }
+        subject = '%s %s Mandatory: Enable Two-Factor Authentication' % (
+            options.get('mail.subject-prefix'),
+            self.name.capitalize(),
+        )
         message = MessageBuilder(
-            subject='%s %s Mandatory: Enable Two-Factor Authentication' % (
-                options.get('mail.subject-prefix'), self.name),
+            subject=subject,
             template='sentry/emails/setup_2fa.txt',
             html_template='sentry/emails/setup_2fa.html',
             type='user.setup_2fa',
