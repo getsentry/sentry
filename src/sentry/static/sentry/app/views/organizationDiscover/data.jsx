@@ -19,6 +19,29 @@ const PROMOTED_TAGS = [
 ];
 
 const COLUMNS = [
+  {name: 'event_id', type: 'string'},
+  {name: 'project_id', type: 'string'},
+  {name: 'platform', type: 'string'},
+  {name: 'message', type: 'string'},
+  {name: 'primary_hash', type: 'string'},
+  {name: 'deleted', type: 'number'},
+  {name: 'retention_days', type: 'number'},
+  {name: 'timestamp', type: 'string'}, // TODO: handling datetime as string for now
+  {name: 'received', type: 'string'}, // TODO: handling datetime as string for now
+
+  {name: 'user_id', type: 'string'},
+  {name: 'username', type: 'string'},
+  {name: 'email', type: 'string'},
+  {name: 'ip_address', type: 'string'},
+
+  {name: 'sdk_name', type: 'string'},
+  {name: 'sdk_version', type: 'string'},
+  {name: 'tags_key', type: 'string'},
+  {name: 'tags_value', type: 'string'},
+  {name: 'contexts.key', type: 'string'},
+  {name: 'contexts.value', type: 'string'},
+  {name: 'http_method', type: 'string'},
+  {name: 'http_referer', type: 'string'},
   {name: 'os_build', type: 'string'},
   {name: 'os_kernel_version', type: 'string'},
   {name: 'device_name', type: 'string'},
@@ -32,27 +55,6 @@ const COLUMNS = [
   {name: 'device_simulator', type: 'string'},
   {name: 'device_online', type: 'string'},
   {name: 'device_charging', type: 'string'},
-  {name: 'event_id', type: 'string'},
-  {name: 'project_id', type: 'string'},
-  {name: 'timestamp', type: 'string'}, // TODO: handling datetime as string for now
-  {name: 'deleted', type: 'number'},
-  {name: 'retention_days', type: 'number'},
-  {name: 'platform', type: 'string'},
-  {name: 'message', type: 'string'},
-  {name: 'primary_hash', type: 'string'},
-  {name: 'received', type: 'string'}, // TODO: handling datetime as string for now
-  {name: 'user_id', type: 'string'},
-  {name: 'username', type: 'string'},
-  {name: 'email', type: 'string'},
-  {name: 'ip_address', type: 'string'},
-  {name: 'sdk_name', type: 'string'},
-  {name: 'sdk_version', type: 'string'},
-  {name: 'tags_key', type: 'string'},
-  {name: 'tags_value', type: 'string'},
-  {name: 'contexts.key', type: 'string'},
-  {name: 'contexts.value', type: 'string'},
-  {name: 'http_method', type: 'string'},
-  {name: 'http_referer', type: 'string'},
   {name: 'exception_stacks.type', type: 'string'},
   {name: 'exception_stacks.value', type: 'string'},
   {name: 'exception_stacks.mechanism_type', type: 'string'},
