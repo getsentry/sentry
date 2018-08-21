@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 import itertools
-from functools import reduce
+from functools import reduce, partial
 from operator import or_
 
 from django.db.models import Q
@@ -11,10 +11,13 @@ from sentry.models import Release, Project, ProjectStatus, EventUser
 from sentry.utils.dates import to_timestamp
 from sentry.utils.geo import geo_by_addr as _geo_by_addr
 
+HEALTH_ID_KEY = '_health_id'
 
-def serialize_releases(organization, item_list, user):
+
+def serialize_releases(organization, item_list, user, lookup):
     return {
         (r.version,): {
+            HEALTH_ID_KEY: '%s:%s' % (lookup.name, r.version),
             'id': r.id,
             'version': r.version,
             'shortVersion': r.short_version,
@@ -45,7 +48,7 @@ def geo_by_addr(ip):
     return rv
 
 
-def serialize_eventusers(organization, item_list, user):
+def serialize_eventusers(organization, item_list, user, lookup):
     # We have no reliable way to map the tag value format
     # back into real EventUser rows. EventUser is only unique
     # per-project, and this is an organization aggregate.
@@ -69,6 +72,7 @@ def serialize_eventusers(organization, item_list, user):
             attr, value = tag.split(':', 1)
             eu = EventUser(project_id=project, **{EventUser.attr_from_keyword(attr): value})
         rv[(tag, project)] = {
+            HEALTH_ID_KEY: '%s:%d:%s' % (lookup.name, eu.project_id, eu.tag_value),
             'id': six.text_type(eu.id) if eu.id else None,
             'project': projects.get(eu.project_id),
             'hash': eu.hash,
@@ -99,8 +103,14 @@ def serialize_projects(organization, item_list, user):
     }
 
 
-def serialize_noop(organization, item_list, user):
-    return {i: i[0] for i in item_list}
+def serialize_noop(organization, item_list, user, lookup):
+    return {
+        i: {
+            HEALTH_ID_KEY: '%s:%s' % (lookup.name, i[0]),
+            'value': i[0],
+        }
+        for i in item_list
+    }
 
 
 def value_from_row(row, tagkey):
@@ -136,7 +146,7 @@ class SnubaLookup(object):
         self.name = name
         self.tagkey = tagkey or name
         self.columns = [self.tagkey] + list(extra or [])
-        self.serializer = serializer
+        self.serializer = partial(serializer, lookup=self)
         self.conditions = conditions or [[self.tagkey, 'IS NOT NULL', None]]
         self.selected_columns = selected_columns or []
         cls.__registry[name] = self
