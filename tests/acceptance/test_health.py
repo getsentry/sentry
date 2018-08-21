@@ -38,3 +38,15 @@ class HealthTest(AcceptanceTestCase):
             self.browser.get('{}/'.format(self.path))
             self.browser.wait_until_not('.loading-indicator')
             self.browser.snapshot('health overview')
+
+    def test_errors(self):
+        with self.feature('organizations:health'):
+            self.browser.get('{}/errors/'.format(self.path))
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.snapshot('health errors')
+
+    def test_transactions(self):
+        with self.feature('organizations:health'):
+            self.browser.get('{}/transactions/'.format(self.path))
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.snapshot('health transactions')
