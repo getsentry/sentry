@@ -29,7 +29,7 @@ describe('Query Builder', function() {
         url: '/organizations/org-slug/discover/',
         method: 'POST',
         body: {
-          data: [{tags_key: ['tag1', 'tag2']}],
+          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
         },
       });
       const queryBuilder = createQueryBuilder(
@@ -42,7 +42,9 @@ describe('Query Builder', function() {
         '/organizations/org-slug/discover/',
         expect.objectContaining({
           data: expect.objectContaining({
-            aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
             projects: [2],
             start: '2017-07-19T02:41:20',
             end: '2017-10-17T02:41:20',

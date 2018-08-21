@@ -63,14 +63,16 @@ export default function createQueryBuilder(initial = {}, organization) {
   function load() {
     return fetch({
       projects: defaultProjects,
-      aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
+      fields: ['tags_key'],
+      aggregations: [['count()', null, 'count']],
+      orderby: '-count',
       start: moment()
         .subtract(90, 'days')
         .format(DATE_TIME_FORMAT),
       end: moment().format(DATE_TIME_FORMAT),
     })
       .then(res => {
-        tags = res.data[0].tags_key.map(tag => ({name: `tags[${tag}]`, type: 'string'}));
+        tags = res.data.map(tag => ({name: `tags[${tag.tags_key}]`, type: 'string'}));
       })
       .catch(err => {
         tags = PROMOTED_TAGS;
