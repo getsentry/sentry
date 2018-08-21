@@ -281,7 +281,7 @@ const AssigneeSelectorComponent = createReactClass({
               return (
                 <DropdownButton {...getActorProps({})}>
                   {assignedTo ? (
-                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                    <ActorAvatar actor={assignedTo} className="avatar" size={20} />
                   ) : (
                     <IconUser src="icon-user" />
                   )}
