@@ -11,7 +11,6 @@ import withProjects from 'app/utils/withProjects';
 
 class IntegrationAlertRules extends React.Component {
   static propTypes = {
-    integration: PropTypes.object.isRequired,
     projects: PropTypes.object.isRequired,
   };
 
@@ -26,7 +25,7 @@ class IntegrationAlertRules extends React.Component {
     return (
       <Panel>
         <PanelHeader disablePadding>
-          <Box pl={2}>{t('Project Rules')}</Box>
+          <Box pl={2}>{t('Project Configuration')}</Box>
         </PanelHeader>
         <PanelBody>
           {projects.length === 0 && (
@@ -44,7 +43,7 @@ class IntegrationAlertRules extends React.Component {
                   to={`/settings/${orgId}/${project.slug}/alerts/rules/new/`}
                   size="xsmall"
                 >
-                  {t('Add %s alert rule', this.props.integration.provider.name)}
+                  {t('Add Alert Rule')}
                 </Button>
               </Box>
             </PanelItem>
