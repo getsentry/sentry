@@ -774,10 +774,6 @@ class IntegrationTestCase(TestCase):
         self.pipeline.initialize()
         self.save_session()
 
-        feature = Feature('organizations:integrations-v3')
-        feature.__enter__()
-        self.addCleanup(feature.__exit__, None, None, None)
-
     def assertDialogSuccess(self, resp):
         assert 'window.opener.postMessage(' in resp.content
 
