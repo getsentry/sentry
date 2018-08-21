@@ -173,6 +173,10 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
+  if (version.length < 12) {
+    return version;
+  }
+
   let match = version.match(
     /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
   );
