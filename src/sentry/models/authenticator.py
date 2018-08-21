@@ -317,6 +317,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         if not self.is_enrolled:
             raise RuntimeError('Interface is not enrolled')
         self.config.update(self.generate_new_config())
+        self.authenticator.reset_fields(save=False)
         if save:
             self.authenticator.save()
 
@@ -609,6 +610,12 @@ class Authenticator(BaseModel):
 
     def mark_used(self, save=True):
         self.last_used_at = timezone.now()
+        if save:
+            self.save()
+
+    def reset_fields(self, save=True):
+        self.created_at = timezone.now()
+        self.last_used_at = None
         if save:
             self.save()
 
