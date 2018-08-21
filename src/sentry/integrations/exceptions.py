@@ -65,3 +65,9 @@ class UnsupportedResponseType(ApiError):
 
 class IntegrationError(Exception):
     pass
+
+
+class IntegrationFormError(IntegrationError):
+    def __init__(self, field_errors):
+        super(IntegrationFormError, self).__init__('Invalid integration action')
+        self.field_errors = field_errors

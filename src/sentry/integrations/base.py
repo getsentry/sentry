@@ -13,7 +13,8 @@ from sentry.exceptions import InvalidIdentity
 from sentry.pipeline import PipelineProvider
 
 from .exceptions import (
-    ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
+    ApiHostError, ApiError, ApiUnauthorized, IntegrationError,
+    IntegrationFormError, UnsupportedResponseType
 )
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
 from sentry.models import Identity, OrganizationIntegration
@@ -217,6 +218,16 @@ class Integration(object):
     def error_message_from_json(self, data):
         return data.get('message', 'unknown error')
 
+    def error_fields_from_json(self, data):
+        """
+        If we can determine error fields from the response JSON this should
+        format and reutrn them, allowing an IntegrationFormError to be raised.
+        Return None if no form errors are present.
+
+        Error fields should be in the format: {field: [message]}
+        """
+        return None
+
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
@@ -249,6 +260,15 @@ class Integration(object):
                 sys.exc_info()[2]
             )
         elif isinstance(exc, ApiError):
+            if exc.json:
+                error_fields = self.error_fields_from_json(exc.json)
+                if error_fields is not None:
+                    six.reraise(
+                        IntegrationFormError,
+                        IntegrationFormError(error_fields),
+                        sys.exc_info()[2]
+                    )
+
             six.reraise(
                 IntegrationError,
                 IntegrationError(self.message_from_error(exc)),
