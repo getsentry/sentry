@@ -230,4 +230,5 @@ const OrgAndUserMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 42px;
   min-width: 180px;
+  z-index: ${p => p.theme.zIndex.orgAndUserMenu};
 `;

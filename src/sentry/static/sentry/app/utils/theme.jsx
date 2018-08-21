@@ -62,6 +62,7 @@ const theme = {
   background: '#fff',
 
   zIndex: {
+    orgAndUserMenu: 1003,
     sidebar: 1002,
     header: 1000,
     dropdown: 1001,
