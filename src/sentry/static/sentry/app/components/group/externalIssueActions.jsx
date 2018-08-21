@@ -254,14 +254,18 @@ class ExternalIssueActions extends AsyncComponent {
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
           integrationName={selectedIntegration.name}
-          hoverCardHeader={`Integration: ${selectedIntegration.provider.name}`}
+          hoverCardHeader={`Linked ${selectedIntegration.provider.name} Issue`}
           hoverCardBody={
-            (issue && issue.title) ?
-            (<div>
-              <IssueTitle>{issue.title}</IssueTitle>
-              {issue.description && <IssueDescription>{issue.description}</IssueDescription>}
-            </div>) :
-            <IntegrationItem integration={selectedIntegration} compact={false} />
+            issue && issue.title ? (
+              <div>
+                <IssueTitle>{issue.title}</IssueTitle>
+                {issue.description && (
+                  <IssueDescription>{issue.description}</IssueDescription>
+                )}
+              </div>
+            ) : (
+              <IntegrationItem integration={selectedIntegration} />
+            )
           }
         />
         {selectedIntegration && (

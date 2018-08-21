@@ -1879,49 +1879,44 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   </div>
                                                 </Base>
                                               </Box>
-                                              <Labels
+                                              <labels
                                                 compact={true}
                                               >
-                                                <CompactLabels>
-                                                  <Component
-                                                    className="css-12z09fy-CompactLabels ettpo131"
+                                                <Flex
+                                                  align="center"
+                                                  direction="row"
+                                                  pl={1}
+                                                >
+                                                  <Base
+                                                    align="center"
+                                                    className="css-x3jwi"
+                                                    direction="row"
+                                                    pl={1}
                                                   >
-                                                    <Flex
-                                                      align="center"
-                                                      className="css-12z09fy-CompactLabels ettpo131"
-                                                      direction="row"
-                                                      pl={1}
+                                                    <div
+                                                      className="css-x3jwi"
+                                                      is={null}
                                                     >
-                                                      <Base
-                                                        align="center"
-                                                        className="ettpo131 css-1pegbxc-CompactLabels"
-                                                        direction="row"
-                                                        pl={1}
+                                                      <IntegrationName>
+                                                        <div
+                                                          className="css-ksmg3c-IntegrationName ettpo130"
+                                                        >
+                                                          Jira Test Integration
+                                                        </div>
+                                                      </IntegrationName>
+                                                      <DomainName
+                                                        compact={true}
                                                       >
                                                         <div
-                                                          className="ettpo131 css-1pegbxc-CompactLabels"
-                                                          is={null}
+                                                          className="css-1wocc7i-DomainName ettpo131"
                                                         >
-                                                          <IntegrationName>
-                                                            <div
-                                                              className="css-ksmg3c-IntegrationName ettpo132"
-                                                            >
-                                                              Jira Test Integration
-                                                            </div>
-                                                          </IntegrationName>
-                                                          <DomainName>
-                                                            <div
-                                                              className="css-1apzxil-DomainName ettpo133"
-                                                            >
-                                                              jira.com/test-integration
-                                                            </div>
-                                                          </DomainName>
+                                                          jira.com/test-integration
                                                         </div>
-                                                      </Base>
-                                                    </Flex>
-                                                  </Component>
-                                                </CompactLabels>
-                                              </Labels>
+                                                      </DomainName>
+                                                    </div>
+                                                  </Base>
+                                                </Flex>
+                                              </labels>
                                             </div>
                                           </Base>
                                         </Flex>

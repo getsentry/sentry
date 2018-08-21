@@ -5,15 +5,12 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
   externalIssueId={100}
   externalIssueKey="getsentry/sentry#2"
   externalIssueLink="https://github.com/MeredithAnya/testing/issues/2"
-  integrationName="Test Integration"
   hoverCardBody={
     <IntegrationItem
-      compact={false}
       integration={
         Object {
           "configData": Object {},
           "configOrganization": Array [],
-          "configProject": Array [],
           "domainName": "gtithub.com/test-integration",
           "externalIssues": Array [
             Object {
@@ -28,7 +25,6 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
           "projects": Array [],
           "provider": Object {
             "canAdd": true,
-            "canAddProject": false,
             "features": Array [],
             "key": "github",
             "name": "GitHub",
@@ -37,7 +33,8 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
       }
     />
   }
-  hoverCardHeader="Integration: GitHub"
+  hoverCardHeader="Linked GitHub Issue"
+  integrationName="Test Integration"
   integrationType="github"
   onClose={[Function]}
   onOpen={[Function]}
@@ -49,12 +46,10 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
       <Hovercard
         body={
           <IntegrationItem
-            compact={false}
             integration={
               Object {
                 "configData": Object {},
                 "configOrganization": Array [],
-                "configProject": Array [],
                 "domainName": "gtithub.com/test-integration",
                 "externalIssues": Array [
                   Object {
@@ -69,7 +64,6 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
                 "projects": Array [],
                 "provider": Object {
                   "canAdd": true,
-                  "canAddProject": false,
                   "features": Array [],
                   "key": "github",
                   "name": "GitHub",
@@ -81,7 +75,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
         className="css-17m6soy-hoverCardStyles"
         containerClassName="css-1s8b4pt-hoverCardContainer"
         displayTimeout={100}
-        header="Integration: GitHub"
+        header="Linked GitHub Issue"
       >
         <span
           className="hovercard-container css-1s8b4pt-hoverCardContainer"
@@ -224,17 +218,12 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     externalIssueId={null}
     externalIssueKey={null}
     externalIssueLink={null}
-<<<<<<< HEAD
-    integrationName="Test Integration"
-=======
     hoverCardBody={
       <IntegrationItem
-        compact={false}
         integration={
           Object {
             "configData": Object {},
             "configOrganization": Array [],
-            "configProject": Array [],
             "domainName": "gtithub.com/test-integration",
             "externalIssues": Array [],
             "icon": "http://example.com/integration_icon.png",
@@ -243,7 +232,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
             "projects": Array [],
             "provider": Object {
               "canAdd": true,
-              "canAddProject": false,
               "features": Array [],
               "key": "github",
               "name": "GitHub",
@@ -252,8 +240,8 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
         }
       />
     }
-    hoverCardHeader="Integration: GitHub"
->>>>>>> show integrationItem if nothing is linked
+    hoverCardHeader="Linked GitHub Issue"
+    integrationName="Test Integration"
     integrationType="github"
     onClose={[Function]}
     onOpen={[Function]}
@@ -265,12 +253,10 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
         <Hovercard
           body={
             <IntegrationItem
-              compact={false}
               integration={
                 Object {
                   "configData": Object {},
                   "configOrganization": Array [],
-                  "configProject": Array [],
                   "domainName": "gtithub.com/test-integration",
                   "externalIssues": Array [],
                   "icon": "http://example.com/integration_icon.png",
@@ -279,7 +265,6 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                   "projects": Array [],
                   "provider": Object {
                     "canAdd": true,
-                    "canAddProject": false,
                     "features": Array [],
                     "key": "github",
                     "name": "GitHub",
@@ -291,7 +276,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           className="css-17m6soy-hoverCardStyles"
           containerClassName="css-1s8b4pt-hoverCardContainer"
           displayTimeout={100}
-          header="Integration: GitHub"
+          header="Linked GitHub Issue"
         >
           <span
             className="hovercard-container css-1s8b4pt-hoverCardContainer"
