@@ -67,6 +67,10 @@ const theme = {
     dropdown: 1001,
     modal: 10000,
     toast: 10001,
+    dropdownAutocomplete: {
+      actor: 3, // needs to be above menu
+      menu: 2, // needs to be below actor but above other page elements (e.g. pagination)
+    },
   },
 
   alert: {

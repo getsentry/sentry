@@ -14,7 +14,8 @@ describe('Settings Breadcrumb Dropdown', function() {
 
   beforeEach(function() {
     wrapper = mount(
-      <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />
+      <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />,
+      TestStubs.routerContext()
     );
   });
 

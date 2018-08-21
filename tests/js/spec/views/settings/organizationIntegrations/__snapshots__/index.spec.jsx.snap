@@ -486,6 +486,10 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "yellowOrangeLight": "#FFC087",
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
+                                                  "dropdownAutocomplete": Object {
+                                                    "actor": 3,
+                                                    "menu": 2,
+                                                  },
                                                   "header": 1000,
                                                   "modal": 10000,
                                                   "sidebar": 1002,
@@ -700,6 +704,10 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   "yellowOrangeLight": "#FFC087",
                                                   "zIndex": Object {
                                                     "dropdown": 1001,
+                                                    "dropdownAutocomplete": Object {
+                                                      "actor": 3,
+                                                      "menu": 2,
+                                                    },
                                                     "header": 1000,
                                                     "modal": 10000,
                                                     "sidebar": 1002,
@@ -1197,6 +1205,10 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "yellowOrangeLight": "#FFC087",
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
+                                                  "dropdownAutocomplete": Object {
+                                                    "actor": 3,
+                                                    "menu": 2,
+                                                  },
                                                   "header": 1000,
                                                   "modal": 10000,
                                                   "sidebar": 1002,
@@ -1411,6 +1423,10 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   "yellowOrangeLight": "#FFC087",
                                                   "zIndex": Object {
                                                     "dropdown": 1001,
+                                                    "dropdownAutocomplete": Object {
+                                                      "actor": 3,
+                                                      "menu": 2,
+                                                    },
                                                     "header": 1000,
                                                     "modal": 10000,
                                                     "sidebar": 1002,
@@ -2612,6 +2628,10 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "yellowOrangeLight": "#FFC087",
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
+                                                  "dropdownAutocomplete": Object {
+                                                    "actor": 3,
+                                                    "menu": 2,
+                                                  },
                                                   "header": 1000,
                                                   "modal": 10000,
                                                   "sidebar": 1002,
@@ -2826,6 +2846,10 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   "yellowOrangeLight": "#FFC087",
                                                   "zIndex": Object {
                                                     "dropdown": 1001,
+                                                    "dropdownAutocomplete": Object {
+                                                      "actor": 3,
+                                                      "menu": 2,
+                                                    },
                                                     "header": 1000,
                                                     "modal": 10000,
                                                     "sidebar": 1002,
@@ -3289,6 +3313,10 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "yellowOrangeLight": "#FFC087",
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
+                                                  "dropdownAutocomplete": Object {
+                                                    "actor": 3,
+                                                    "menu": 2,
+                                                  },
                                                   "header": 1000,
                                                   "modal": 10000,
                                                   "sidebar": 1002,
@@ -3503,6 +3531,10 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   "yellowOrangeLight": "#FFC087",
                                                   "zIndex": Object {
                                                     "dropdown": 1001,
+                                                    "dropdownAutocomplete": Object {
+                                                      "actor": 3,
+                                                      "menu": 2,
+                                                    },
                                                     "header": 1000,
                                                     "modal": 10000,
                                                     "sidebar": 1002,
