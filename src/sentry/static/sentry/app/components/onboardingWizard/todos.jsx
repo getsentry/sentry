@@ -122,7 +122,7 @@ const TodoList = createReactClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/issue-tracking/',
+        location: 'settings/plugins/',
         display: false,
       },
       {
