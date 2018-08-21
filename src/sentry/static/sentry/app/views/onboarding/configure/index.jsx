@@ -7,7 +7,6 @@ import analytics from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import logExperiment from 'app/utils/logExperiment';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
@@ -133,9 +132,9 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
-
-    if (this.state.loading) return <LoadingIndicator />;
-    let {WaitingComponent} = this.state;
+    let {organization} = this.context;
+    let isExposed =
+      organization.experiments && organization.experiments.SampleEventExperiment;
 
     return (
       <div>
@@ -154,9 +153,10 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <WaitingComponent
+          <Waiting
             skip={this.submit}
             hasEvent={this.state.hasSentRealEvent}
+            isExposed={isExposed}
             params={this.props.params}
           />
         </div>

@@ -138,7 +138,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
           </ProjectContext>
         </withRouter(ProjectContext)>
       </withProjects(withRouter(ProjectContext))>
-      <HookOrDefaultComponent
+      <Waiting
         hasEvent={false}
         params={
           Object {
@@ -149,97 +149,101 @@ exports[`Configure should render correctly render() should redirect to if no mat
         }
         skip={[Function]}
       >
-        <Waiting
-          hasEvent={false}
-          params={
-            Object {
-              "orgId": "testOrg",
-              "platform": "other",
-              "projectId": "project-slug",
-            }
-          }
-          skip={[Function]}
+        <div
+          className="awaiting-event"
         >
           <div
-            className="awaiting-event"
+            className="row"
           >
             <div
-              className="pull-right"
+              className="col-sm-10"
             >
-              <Button
-                disabled={false}
-                onClick={[Function]}
-                priority="primary"
+              <div
+                className="wrap waiting-text"
               >
-                <StyledButton
-                  aria-label="All done!"
-                  disabled={false}
-                  onClick={[Function]}
-                  priority="primary"
-                  role="button"
+                <h3
+                  className="animated-ellipsis"
                 >
-                  <Component
-                    aria-label="All done!"
-                    className="css-1msljz8-StyledButton-getColors e17811v30"
+                  Waiting to receive an error
+                </h3>
+                <div
+                  className="robot"
+                >
+                  <span
+                    className="eye"
+                  />
+                </div>
+              </div>
+            </div>
+            <CenteredButtons
+              className="col-sm-2"
+            >
+              <div
+                className="col-sm-2 css-mm32tp-CenteredButtons e1p80ulz0"
+              >
+                <div
+                  className="pull-right"
+                >
+                  <Button
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
-                    role="button"
                   >
-                    <button
+                    <StyledButton
                       aria-label="All done!"
-                      className="css-1msljz8-StyledButton-getColors e17811v30"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
                       role="button"
                     >
-                      <ButtonLabel>
-                        <Component
-                          className="css-1dxlw1i-ButtonLabel e17811v31"
+                      <Component
+                        aria-label="All done!"
+                        className="css-1msljz8-StyledButton-getColors e17811v30"
+                        disabled={false}
+                        onClick={[Function]}
+                        priority="primary"
+                        role="button"
+                      >
+                        <button
+                          aria-label="All done!"
+                          className="css-1msljz8-StyledButton-getColors e17811v30"
+                          disabled={false}
+                          onClick={[Function]}
+                          priority="primary"
+                          role="button"
                         >
-                          <Flex
-                            align="center"
-                            className="css-1dxlw1i-ButtonLabel e17811v31"
-                          >
-                            <Base
-                              align="center"
-                              className="e17811v31 css-mvnt76-ButtonLabel"
+                          <ButtonLabel>
+                            <Component
+                              className="css-1dxlw1i-ButtonLabel e17811v31"
                             >
-                              <div
-                                className="e17811v31 css-mvnt76-ButtonLabel"
-                                is={null}
+                              <Flex
+                                align="center"
+                                className="css-1dxlw1i-ButtonLabel e17811v31"
                               >
-                                All done!
-                              </div>
-                            </Base>
-                          </Flex>
-                        </Component>
-                      </ButtonLabel>
-                    </button>
-                  </Component>
-                </StyledButton>
-              </Button>
-            </div>
-            <div
-              className="wrap waiting-text"
-            >
-              <h3
-                className="animated-ellipsis"
-              >
-                Waiting to receive an error
-              </h3>
-              <div
-                className="robot"
-              >
-                <span
-                  className="eye"
-                />
+                                <Base
+                                  align="center"
+                                  className="e17811v31 css-mvnt76-ButtonLabel"
+                                >
+                                  <div
+                                    className="e17811v31 css-mvnt76-ButtonLabel"
+                                    is={null}
+                                  >
+                                    All done!
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </Component>
+                          </ButtonLabel>
+                        </button>
+                      </Component>
+                    </StyledButton>
+                  </Button>
+                </div>
               </div>
-            </div>
+            </CenteredButtons>
           </div>
-        </Waiting>
-      </HookOrDefaultComponent>
+        </div>
+      </Waiting>
     </div>
   </div>
 </Configure>
@@ -688,7 +692,7 @@ exports[`Configure should render correctly render() should render platform docs 
           </ProjectContext>
         </withRouter(ProjectContext)>
       </withProjects(withRouter(ProjectContext))>
-      <HookOrDefaultComponent
+      <Waiting
         hasEvent={false}
         params={
           Object {
@@ -699,97 +703,101 @@ exports[`Configure should render correctly render() should render platform docs 
         }
         skip={[Function]}
       >
-        <Waiting
-          hasEvent={false}
-          params={
-            Object {
-              "orgId": "testOrg",
-              "platform": "node",
-              "projectId": "project-slug",
-            }
-          }
-          skip={[Function]}
+        <div
+          className="awaiting-event"
         >
           <div
-            className="awaiting-event"
+            className="row"
           >
             <div
-              className="pull-right"
+              className="col-sm-10"
             >
-              <Button
-                disabled={false}
-                onClick={[Function]}
-                priority="primary"
+              <div
+                className="wrap waiting-text"
               >
-                <StyledButton
-                  aria-label="All done!"
-                  disabled={false}
-                  onClick={[Function]}
-                  priority="primary"
-                  role="button"
+                <h3
+                  className="animated-ellipsis"
                 >
-                  <Component
-                    aria-label="All done!"
-                    className="css-1msljz8-StyledButton-getColors e17811v30"
+                  Waiting to receive an error
+                </h3>
+                <div
+                  className="robot"
+                >
+                  <span
+                    className="eye"
+                  />
+                </div>
+              </div>
+            </div>
+            <CenteredButtons
+              className="col-sm-2"
+            >
+              <div
+                className="col-sm-2 css-mm32tp-CenteredButtons e1p80ulz0"
+              >
+                <div
+                  className="pull-right"
+                >
+                  <Button
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
-                    role="button"
                   >
-                    <button
+                    <StyledButton
                       aria-label="All done!"
-                      className="css-1msljz8-StyledButton-getColors e17811v30"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
                       role="button"
                     >
-                      <ButtonLabel>
-                        <Component
-                          className="css-1dxlw1i-ButtonLabel e17811v31"
+                      <Component
+                        aria-label="All done!"
+                        className="css-1msljz8-StyledButton-getColors e17811v30"
+                        disabled={false}
+                        onClick={[Function]}
+                        priority="primary"
+                        role="button"
+                      >
+                        <button
+                          aria-label="All done!"
+                          className="css-1msljz8-StyledButton-getColors e17811v30"
+                          disabled={false}
+                          onClick={[Function]}
+                          priority="primary"
+                          role="button"
                         >
-                          <Flex
-                            align="center"
-                            className="css-1dxlw1i-ButtonLabel e17811v31"
-                          >
-                            <Base
-                              align="center"
-                              className="e17811v31 css-mvnt76-ButtonLabel"
+                          <ButtonLabel>
+                            <Component
+                              className="css-1dxlw1i-ButtonLabel e17811v31"
                             >
-                              <div
-                                className="e17811v31 css-mvnt76-ButtonLabel"
-                                is={null}
+                              <Flex
+                                align="center"
+                                className="css-1dxlw1i-ButtonLabel e17811v31"
                               >
-                                All done!
-                              </div>
-                            </Base>
-                          </Flex>
-                        </Component>
-                      </ButtonLabel>
-                    </button>
-                  </Component>
-                </StyledButton>
-              </Button>
-            </div>
-            <div
-              className="wrap waiting-text"
-            >
-              <h3
-                className="animated-ellipsis"
-              >
-                Waiting to receive an error
-              </h3>
-              <div
-                className="robot"
-              >
-                <span
-                  className="eye"
-                />
+                                <Base
+                                  align="center"
+                                  className="e17811v31 css-mvnt76-ButtonLabel"
+                                >
+                                  <div
+                                    className="e17811v31 css-mvnt76-ButtonLabel"
+                                    is={null}
+                                  >
+                                    All done!
+                                  </div>
+                                </Base>
+                              </Flex>
+                            </Component>
+                          </ButtonLabel>
+                        </button>
+                      </Component>
+                    </StyledButton>
+                  </Button>
+                </div>
               </div>
-            </div>
+            </CenteredButtons>
           </div>
-        </Waiting>
-      </HookOrDefaultComponent>
+        </div>
+      </Waiting>
     </div>
   </div>
 </Configure>
@@ -836,6 +844,17 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
         />
       </ProjectDocsContext>
     </withProjects(withRouter(ProjectContext))>
+    <Waiting
+      hasEvent={false}
+      params={
+        Object {
+          "orgId": "testOrg",
+          "platform": "node",
+          "projectId": "project-slug",
+        }
+      }
+      skip={[Function]}
+    />
   </div>
 </div>
 `;
