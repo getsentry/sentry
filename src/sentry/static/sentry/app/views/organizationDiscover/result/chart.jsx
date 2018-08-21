@@ -9,7 +9,7 @@ export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
-    maxCharsTooltip: PropTypes.object.isRequired,
+    maxCharsTooltip: PropTypes.number.isRequired,
   };
 
   // Converts a value to a string for the chart label. This could
@@ -30,7 +30,6 @@ export default class Result extends React.Component {
 
   getChartData(queryData, groupbyFields) {
     const {aggregations} = this.props.query;
-    const {maxCharsTooltip} = this.props;
     // We only chart the first aggregation for now
     const aggregate = aggregations[0][2];
     const dates = [
@@ -66,11 +65,16 @@ export default class Result extends React.Component {
         });
       }
 
-      let seriesNameValue = key;
-      if (key.length > maxCharsTooltip) {
-        seriesNameValue = key.substring(0, maxCharsTooltip) + '...';
-      }
-      result.push({seriesName: seriesNameValue, data: output[key].data});
+      result.push({seriesName: this.createSubstring(key), data: output[key].data});
+    }
+    return result;
+  }
+
+  createSubstring(seriesName) {
+    const {maxCharsTooltip} = this.props;
+    let result = seriesName;
+    if (seriesName.length > maxCharsTooltip) {
+      result = seriesName.substring(0, maxCharsTooltip) + '...';
     }
     return result;
   }
