@@ -2,10 +2,15 @@ from __future__ import absolute_import
 
 __all__ = ('PubSubAnalytics',)
 
+import logging
+
 from sentry.utils.json import dumps
+from google.auth.exceptions import GoogleAuthError
 from google.cloud import pubsub_v1
 
 from .base import Analytics
+
+logger = logging.getLogger(__name__)
 
 
 class PubSubAnalytics(Analytics):
@@ -16,11 +21,17 @@ class PubSubAnalytics(Analytics):
             max_latency=batch_max_latency,
             max_messages=batch_max_messages,
         )
-        self.publisher = pubsub_v1.PublisherClient(settings)
-        self.topic = self.publisher.topic_path(project, topic)
+        try:
+            self.publisher = pubsub_v1.PublisherClient(settings)
+        except GoogleAuthError:
+            logger.warn('Unable to initialize PubSubAnalytics, no auth found')
+            self.publisher = None
+        else:
+            self.topic = self.publisher.topic_path(project, topic)
 
     def record_event(self, event):
-        self.publisher.publish(
-            self.topic,
-            data=dumps(event.serialize()),
-        )
+        if self.publisher is not None:
+            self.publisher.publish(
+                self.topic,
+                data=dumps(event.serialize()),
+            )
