@@ -145,7 +145,6 @@ export default {
     PanelItem: require('app/components/panels/panelItem').default,
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
-    ProjectIssueTracking: require('app/views/projectIssueTracking').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
