@@ -184,6 +184,7 @@ exports[`OrganizationAuditLog renders 1`] = `
         "member.invite",
         "member.join-team",
         "member.leave-team",
+        "member.pending",
         "member.remove",
         "org.create",
         "org.edit",
