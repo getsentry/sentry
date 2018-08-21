@@ -2,8 +2,9 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
+from jsonfield import JSONField
 
-from sentry.db.models import BoundedPositiveIntegerField, EncryptedJsonField, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 
 
 class ExternalIssue(Model):
@@ -15,7 +16,7 @@ class ExternalIssue(Model):
     date_added = models.DateTimeField(default=timezone.now)
     title = models.TextField(null=True)
     description = models.TextField(null=True)
-    metadata = EncryptedJsonField(null=True)
+    metadata = JSONField(null=True)
 
     class Meta:
         app_label = 'sentry'
