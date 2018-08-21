@@ -15,13 +15,13 @@ HEALTH_ID_KEY = '_health_id'
 
 
 def make_health_id(lookup, value):
-    return '%s:%s' % (lookup.name, lookup.encoder([value]))
+    return '%s:%s' % (lookup.name, lookup.encoder(value))
 
 
 def serialize_releases(organization, item_list, user, lookup):
     return {
         (r.version,): {
-            HEALTH_ID_KEY: make_health_id(lookup, r.version),
+            HEALTH_ID_KEY: make_health_id(lookup, [r.version]),
             'id': r.id,
             'version': r.version,
             'shortVersion': r.short_version,
@@ -76,7 +76,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
             attr, value = tag.split(':', 1)
             eu = EventUser(project_id=project, **{EventUser.attr_from_keyword(attr): value})
         rv[(tag, project)] = {
-            HEALTH_ID_KEY: make_health_id(lookup, (eu.tag_value, eu.project_id)),
+            HEALTH_ID_KEY: make_health_id(lookup, [eu.tag_value, eu.project_id]),
             'id': six.text_type(eu.id) if eu.id else None,
             'project': projects.get(eu.project_id),
             'hash': eu.hash,
@@ -94,9 +94,6 @@ def serialize_eventusers(organization, item_list, user, lookup):
 
 
 def encoder_eventuser(value):
-    value = encoder_noop(value)
-    if not value:
-        return None
     tag_value, project_id = value
     return '%d:%s' % (project_id, tag_value)
 
@@ -118,7 +115,7 @@ def serialize_projects(organization, item_list, user):
 def serialize_noop(organization, item_list, user, lookup):
     return {
         i: {
-            HEALTH_ID_KEY: make_health_id(lookup, i[0]),
+            HEALTH_ID_KEY: make_health_id(lookup, [i[0]]),
             'value': i[0],
         }
         for i in item_list
@@ -184,7 +181,7 @@ SnubaLookup(
     serializer=serialize_eventusers,
     encoder=encoder_eventuser,
     filter_key=(
-        'concat', ('project_id', "':'", 'tags[sentry:user]')
+        'concat', (('toString', ('project_id',)), "':'", 'tags[sentry:user]')
     ),
 )
 SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
