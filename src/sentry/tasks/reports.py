@@ -566,15 +566,21 @@ def fetch_personal_statistics(start__stop, organization, user):
             'group_id', flat=True
         )
     )
-    return {
-        'resolved': len(resolved_issue_ids),
-        'users': tsdb.get_distinct_counts_union(
+
+    if resolved_issue_ids:
+        users = tsdb.get_distinct_counts_union(
             tsdb.models.users_affected_by_group,
             resolved_issue_ids,
             start,
             stop,
             60 * 60 * 24,
-        ),
+        )
+    else:
+        users = {}
+
+    return {
+        'resolved': len(resolved_issue_ids),
+        'users': users,
     }
 
 
@@ -770,7 +776,8 @@ def build_project_breakdown_series(reports):
         operator.itemgetter(0),
         sorted(
             reports.items(),
-            key=lambda instance__report: sum(sum(values) for timestamp, values in instance__report[1][0]),
+            key=lambda instance__report: sum(sum(values)
+                                             for timestamp, values in instance__report[1][0]),
             reverse=True,
         ),
     )[:len(colors)]
