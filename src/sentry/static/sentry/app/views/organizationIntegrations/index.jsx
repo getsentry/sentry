@@ -106,9 +106,9 @@ export default class OrganizationIntegrations extends AsyncComponent {
     let [domainName, orgName] = integration.domainName.split('/');
 
     if (integration.accountType === 'User') {
-      url = `https://${domainName}/settings/installations`;
+      url = `https://${domainName}/settings/installations/`;
     } else {
-      url = `https://${domainName}/organizations/${orgName}/settings/installations`;
+      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
     }
 
     window.open(url, '_blank');
