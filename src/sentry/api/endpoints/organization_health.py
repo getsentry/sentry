@@ -54,30 +54,33 @@ class OrganizationHealthEndpointBase(OrganizationEndpoint, EnvironmentMixin):
 
     def get_project_ids(self, request, organization):
         project_ids = set(map(int, request.GET.getlist('project')))
-        if not project_ids:
-            return
 
         before = project_ids.copy()
         if request.user.is_superuser:
             # Superusers can query any projects within the organization
-            project_ids = set(Project.objects.filter(
+            qs = Project.objects.filter(
                 organization=organization,
                 status=ProjectStatus.VISIBLE,
-                id__in=project_ids,
-            ).values_list('id', flat=True))
+            )
         else:
             # Anyone else needs membership of the project
-            project_ids = set(Project.objects.filter(
+            qs = Project.objects.filter(
                 organization=organization,
                 teams__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__user=request.user,
                     organizationmember__organization=organization,
                 ).values_list('team'),
                 status=ProjectStatus.VISIBLE,
-                id__in=project_ids,
-            ).values_list('id', flat=True))
+            )
 
-        if project_ids != before:
+        # If no project's are passed through querystring, we want to
+        # return all projects, otherwise, limit to the passed in ones
+        if project_ids:
+            qs = qs.filter(id__in=project_ids)
+
+        project_ids = set(qs.values_list('id', flat=True))
+
+        if before and project_ids != before:
             raise PermissionDenied
 
         if not project_ids:
