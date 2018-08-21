@@ -168,7 +168,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   }
 >
   <div
-    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-14uk1a6-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1596,7 +1596,7 @@ exports[`Sidebar renders without org and router 1`] = `
   org={null}
 >
   <div
-    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-14uk1a6-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
