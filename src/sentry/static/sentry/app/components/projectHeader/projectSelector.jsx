@@ -154,9 +154,11 @@ const ProjectSelector = withRouter(
                     avatarSize={16}
                     hideAvatar={!internalOnly}
                     displayName={
-                      <Link {...this.getProjectUrlProps(this.state.activeProject)}>
+                      <ProjectNameLink
+                        {...this.getProjectUrlProps(this.state.activeProject)}
+                      >
                         {this.getProjectLabel(this.state.activeProject)}
-                      </Link>
+                      </ProjectNameLink>
                     }
                   />
                 ) : (
@@ -220,6 +222,12 @@ const CreateProjectButton = styled(Button)`
   display: block;
   text-align: center;
   margin: ${space(0.5)} 0;
+`;
+
+const ProjectNameLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+  font-size: 20px;
+  font-weight: 600;
 `;
 
 export default ProjectSelector;
