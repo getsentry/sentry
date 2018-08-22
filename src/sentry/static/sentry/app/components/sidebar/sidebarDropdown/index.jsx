@@ -14,10 +14,10 @@ import IdBadge from 'app/components/idBadge';
 import ConfigStore from 'app/stores/configStore';
 
 import SwitchOrganization from './switchOrganization';
-import SidebarOrgSummary from './sidebarOrgSummary';
-import SidebarMenuItem from './sidebarMenuItem';
+import SidebarOrgSummary from '../sidebarOrgSummary';
+import SidebarMenuItem from '../sidebarMenuItem';
 import Divider from './divider.styled';
-import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
+import SidebarDropdownMenu from '../sidebarDropdownMenu.styled';
 
 class SidebarDropdown extends React.Component {
   static propTypes = {
@@ -113,12 +113,6 @@ class SidebarDropdown extends React.Component {
                         organization={org}
                         Components={{SidebarMenuItem}}
                       />
-
-                      {config.isOnPremise && (
-                        <SidebarMenuItem href="https://forum.sentry.io/">
-                          {t('Support forum')}
-                        </SidebarMenuItem>
-                      )}
 
                       {!config.singleOrganization && (
                         <SidebarMenuItem>

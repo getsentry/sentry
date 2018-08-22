@@ -8,10 +8,10 @@ import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import withOrganizations from 'app/utils/withOrganizations';
 
-import SidebarOrgSummary from './sidebarOrgSummary';
-import SidebarMenuItem from './sidebarMenuItem';
+import SidebarOrgSummary from '../sidebarOrgSummary';
+import SidebarMenuItem from '../sidebarMenuItem';
 import Divider from './divider.styled';
-import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
+import SidebarDropdownMenu from '../sidebarDropdownMenu.styled';
 
 /**
  * Switch Organization Menu Label + Sub Menu
