@@ -126,7 +126,6 @@ export default class Form extends React.Component {
   };
 
   render() {
-    let {isSaving} = this.model;
     let {
       className,
       children,
@@ -161,7 +160,7 @@ export default class Form extends React.Component {
                   priority={submitPriority}
                   disabled={
                     this.model.isError ||
-                    isSaving ||
+                    this.model.isSaving ||
                     submitDisabled ||
                     (requireChanges ? !this.model.formChanged : false)
                   }
@@ -173,9 +172,17 @@ export default class Form extends React.Component {
             </Observer>
 
             {onCancel && (
-              <Button disabled={isSaving} onClick={onCancel} style={{marginLeft: 5}}>
-                {cancelLabel}
-              </Button>
+              <Observer>
+                {() => (
+                  <Button
+                    disabled={this.model.isSaving}
+                    onClick={onCancel}
+                    style={{marginLeft: 5}}
+                  >
+                    {cancelLabel}
+                  </Button>
+                )}
+              </Observer>
             )}
             {extraButton}
           </div>

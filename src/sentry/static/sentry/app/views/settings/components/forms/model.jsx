@@ -344,6 +344,8 @@ class FormModel {
       data: this.getTransformedData(),
     });
 
+    this.formState = FormState.SAVING;
+
     request
       .then(resp => {
         // save snapshot
