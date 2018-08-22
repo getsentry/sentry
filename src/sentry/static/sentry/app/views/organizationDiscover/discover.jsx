@@ -17,8 +17,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';
 import Conditions from './conditions';
-import ResultTable from './result/table';
-import ResultChart from './result/chart';
+import Result from './result';
 import Intro from './intro';
 
 import {isValidCondition} from './conditions/utils';
@@ -273,8 +272,9 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {chartData && <ResultChart data={chartData} query={chartQuery} />}
-            {result && <ResultTable result={result} />}
+            {result && (
+              <Result data={result} chartData={chartData} chartQuery={chartQuery} />
+            )}
             {!result && <Intro />}
           </Box>
         </Flex>
