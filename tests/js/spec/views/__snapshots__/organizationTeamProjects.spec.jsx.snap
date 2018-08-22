@@ -102,6 +102,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   className="css-6v04yn-AutoCompleteRoot ejumqxq0"
                                 >
                                   <Actor
+                                    innerRef={[Function]}
                                     isOpen={false}
                                     onClick={[Function]}
                                     onMouseEnter={[Function]}
