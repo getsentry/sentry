@@ -5,6 +5,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {Flex} from 'grid-emotion';
 import Badge from 'app/components/badge';
+import Button from 'app/components/buttons/button';
 
 class AccordionButton extends React.Component {
   static propTypes = {
@@ -21,6 +22,11 @@ class AccordionButton extends React.Component {
     };
   }
 
+  handleClick(e) {
+    e.preventDefault();
+    this.setState({isOpen: !this.state.isOpen});
+  }
+
   render() {
     const {label, cutoff, children} = this.props;
 
@@ -29,10 +35,7 @@ class AccordionButton extends React.Component {
     return (
       <div>
         {children.slice(0, cutoff)}
-        <StyledButton
-          onClick={() => this.setState({isOpen: !this.state.isOpen})}
-          open={this.state.isOpen}
-        >
+        <StyledButton onClick={e => this.handleClick(e)} open={this.state.isOpen}>
           <Flex align="center" justify="space-between" w={1}>
             <Flex align="center">
               {label}
@@ -52,14 +55,12 @@ class AccordionButton extends React.Component {
   }
 }
 
-const StyledButton = styled('a')`
+const StyledButton = styled(Button)`
   display: block;
   width: 100%;
   box-shadow: ${p => (p.open ? 'inset -2px 2px rgba(0,0,0,0.04)' : null)};
   background: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.offWhite2};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(0.75)} ${space(1.5)};
   color: ${p => p.theme.gray4};
   margin: 1em 0;
 
