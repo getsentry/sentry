@@ -23,7 +23,7 @@ class SettingsSearch extends React.Component {
     return (
       <Search
         {...this.props}
-        source="settings_search"
+        entryPoint="settings_search"
         minSearch={MIN_SEARCH_LENGTH}
         maxResults={MAX_RESULTS}
         renderInput={({getInputProps}) => (
