@@ -1,20 +1,34 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`AlertLink renders 1`] = `
-<Component
-  className="css-19kzmmy-AlertLink e1fthm6j2"
+<StyledLink
   to="/settings/accounts/notifications"
 >
-  This is an external link button
-</Component>
+  <AlertLinkText>
+    This is an external link button
+  </AlertLinkText>
+  <InlineSvg
+    size="1em"
+    src="icon-chevron-right"
+  />
+</StyledLink>
 `;
 
 exports[`AlertLink renders with icon 1`] = `
-<Component
-  className="css-19kzmmy-AlertLink e1fthm6j2"
+<StyledLink
   icon="icon-mail"
   to="/settings/accounts/notifications"
 >
-  This is an external link button
-</Component>
+  <StyledInlineSvg
+    size="1.5em"
+    src="icon-mail"
+  />
+  <AlertLinkText>
+    This is an external link button
+  </AlertLinkText>
+  <InlineSvg
+    size="1em"
+    src="icon-chevron-right"
+  />
+</StyledLink>
 `;

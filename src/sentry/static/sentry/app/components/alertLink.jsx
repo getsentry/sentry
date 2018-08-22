@@ -6,21 +6,27 @@ import Link from 'app/components/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
-const AlertLinkText = styled('div')`
-  flex-grow: 1;
-`;
+export default class AlertLink extends React.Component {
+  static propTypes = {
+    to: PropTypes.string,
+    href: PropTypes.string,
+    icon: PropTypes.string,
+  };
 
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 0.75em;
-`;
+  render() {
+    let {icon, children} = this.props;
 
-const AlertLink = styled(({children, icon, ...props}) => (
-  <Link {...props}>
-    {icon && <StyledInlineSvg src={icon} size="1.5em" />}
-    <AlertLinkText>{children}</AlertLinkText>
-    <InlineSvg src="icon-chevron-right" size="1em" />
-  </Link>
-))`
+    return (
+      <StyledLink {...this.props}>
+        {icon && <StyledInlineSvg src={icon} size="1.5em" />}
+        <AlertLinkText>{children}</AlertLinkText>
+        <InlineSvg src="icon-chevron-right" size="1em" />
+      </StyledLink>
+    );
+  }
+}
+
+const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
   background-color: ${t => t.theme.yellowLightest};
@@ -36,10 +42,10 @@ const AlertLink = styled(({children, icon, ...props}) => (
   }
 `;
 
-AlertLink.propTypes = {
-  to: PropTypes.string,
-  href: PropTypes.string,
-  icon: PropTypes.string,
-};
+const AlertLinkText = styled('div')`
+  flex-grow: 1;
+`;
 
-export default AlertLink;
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-right: 0.75em;
+`;
