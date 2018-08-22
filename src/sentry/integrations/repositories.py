@@ -7,7 +7,7 @@ from sentry.models import Repository
 class RepositoryMixin(object):
     repo_search = False
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         """
         Get a list of availble repositories for an installation
 

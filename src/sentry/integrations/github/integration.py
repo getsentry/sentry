@@ -74,26 +74,23 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
         return GitHubAppsClient(integration=self.model)
 
-    def get_repositories(self):
-        data = []
-        for repo in self.get_client().get_repositories():
-            data.append({'name': repo['name'], 'identifier': repo['full_name']})
-        return data
+    def get_repositories(self, query):
+        if not query:
+            return [{
+                'name': i['name'],
+                'identifier': i['full_name']
+            } for i in self.get_client().get_repositories()]
 
-    def search_issues(self, query):
-        return self.get_client().search_issues(query)
-
-    def search_repositories(self, query):
-        if self.model.metadata['account_type'] == 'User':
-            full_query = (u'user:%s %s' % (self.model.name, query)).encode('utf-8')
-        else:
-            full_query = (u'org:%s %s' % (self.model.name, query)).encode('utf-8')
-
+        account_type = 'user' if self.model.metadata['account_type'] == 'User' else 'org'
+        full_query = (u'%s:%s %s' % (account_type, self.model.name, query)).encode('utf-8')
         response = self.get_client().search_repositories(full_query)
         return [{
             'name': i['name'],
             'identifier': i['full_name']
         } for i in response.get('items', [])]
+
+    def search_issues(self, query):
+        return self.get_client().search_issues(query)
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()

@@ -28,16 +28,10 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
         install = integration.get_installation(organization.id)
 
         if isinstance(install, RepositoryMixin):
-            if request.GET.get('search'):
-                try:
-                    repositories = install.search_repositories(request.GET.get('search'))
-                except IntegrationError as e:
-                    return self.respond({'detail': e.message}, status=400)
-            else:
-                try:
-                    repositories = install.get_repositories()
-                except IntegrationError as e:
-                    return self.respond({'detail': e.message}, status=400)
+            try:
+                repositories = install.get_repositories(request.GET.get('search'))
+            except IntegrationError as e:
+                return self.respond({'detail': e.message}, status=400)
 
             context = {'repos': repositories, 'searchable': install.repo_search}
             return self.respond(context)
