@@ -24,6 +24,9 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         has_github_apps = features.has('organizations:github-apps',
                                        organization,
                                        actor=request.user)
+        has_jira = features.has('organizations:jira-integration',
+                                organization,
+                                actor=request.user)
 
         providers = []
         for provider in integrations.all():
@@ -34,6 +37,8 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
                 internal_integrations.remove('github_enterprise')
             if has_github_apps:
                 internal_integrations.remove('github')
+            if has_jira:
+                internal_integrations.remove('jira')
             if not has_catchall and provider.key in internal_integrations:
                 continue
 

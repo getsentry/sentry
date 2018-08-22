@@ -34,7 +34,7 @@
 
   {% if login_required %}
     <div class="aui-message aui-message-info">
-        <p>Please login to your Sentry account to access the Sentry Add-on configuration</p>
+      <p>Please login to your Sentry account to access the Sentry Add-on configuration</p>
     </div>
     <div class="signin">
       <a class="aui-button aui-button-default" href="{{ login_url }}" target="_blank">
@@ -53,6 +53,10 @@
         integration for your organization.
       </p>
     </div>
+    {% else %}
+      <div class="aui-message aui-message-info">
+        <p>This feature is only available to Early Adopters. Visit your organization settings in Sentry to opt in to Early Adopter features.</p>
+      </div>
     {% endif %}
 
     <form class="aui top-label" action="" method="post">
