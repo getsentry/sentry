@@ -125,6 +125,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('github-enterprise')
         if features.has('organizations:bitbucket-integration', obj, actor=user):
             feature_list.append('bitbucket-integration')
+        if features.has('organizations:jira-integration', obj, actor=user):
+            feature_list.append('jira-integration')
         if features.has('organizations:suggested-commits', obj, actor=user):
             feature_list.append('suggested-commits')
         if features.has('organizations:new-teams', obj, actor=user):
