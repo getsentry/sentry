@@ -11,7 +11,6 @@ import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
-import MenuItem from 'app/components/menuItem';
 import space from 'app/styles/space';
 
 const ProjectSelector = withRouter(
@@ -113,7 +112,9 @@ const ProjectSelector = withRouter(
             blendCorner={false}
             filterPlaceholder={t('Filter projects')}
             onSelect={this.handleSelect}
-            style={{zIndex: 1001, marginTop: 2, maxHeight: 500}}
+            maxHeight={500}
+            zIndex={1001}
+            style={{marginTop: 6}}
             inputProps={{style: {padding: 8, paddingLeft: 14}}}
             emptyMessage={t('You have no projects')}
             noResultsMessage={t('No projects found')}
