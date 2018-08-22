@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from django.core.urlresolvers import reverse
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.integrations.exceptions import ApiError, IntegrationError
 
@@ -70,6 +71,11 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_link_issue_config(self, group, **kwargs):
         repo_choices, default_repo, issues = self.get_repo_choices(**kwargs)
 
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-bitbucket-search', args=[org.slug, self.model.id],
+        )
+
         return [{
             'name': 'repo',
             'label': 'Bitbucket Repository',
@@ -83,7 +89,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             'label': 'Issue',
             'default': '',
             'type': 'select',
-            'choices': issues,
+            'url': autocomplete_url,
 
         }, {
             'name': 'comment',
