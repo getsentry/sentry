@@ -4,7 +4,7 @@ from django import forms
 from django.core.urlresolvers import reverse
 from django.views.generic import View
 
-from sentry import roles
+from sentry import features, roles
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -55,12 +55,18 @@ class JiraConfigureView(View):
                 'login_url': absolute_uri(reverse('sentry-login')),
             })
 
-        organizations = request.user.get_orgs().filter(
+        organizations = list(request.user.get_orgs().filter(
             id__in=OrganizationMember.objects.filter(
                 role__in=[r.id for r in roles.get_all() if r.is_global],
                 user=request.user,
             ).values('organization'),
-        )
+        ))
+
+        # TODO(jess): remove after wide release
+        organizations = [
+            o for o in organizations if features.has(
+                'organizations:jira-integration', o, actor=request.user)
+        ]
         form = JiraConfigForm(organizations, request.POST)
 
         if request.method == 'GET' or not form.is_valid():
