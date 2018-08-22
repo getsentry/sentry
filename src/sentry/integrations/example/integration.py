@@ -6,6 +6,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.migrate import PluginMigrator
 from sentry.pipeline import PipelineView
 
 
@@ -72,6 +73,15 @@ class ExampleIntegration(Integration, IssueSyncMixin):
             'description': 'This is a test external issue description',
         }
 
+    def get_repositories(self):
+        return [{
+            'name': 'repo',
+            'id': 'user/repo',
+        }]
+
+    def get_unmigratable_repositories(self):
+        return []
+
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         pass
 
@@ -112,6 +122,10 @@ class ExampleIntegrationProvider(IntegrationProvider):
             'type': 'text',
             'required': True,
         }]
+
+    def post_install(self, integration, organization):
+        installation = self.get_installation(integration, organization.id)
+        PluginMigrator(installation, organization).call()
 
     def build_integration(self, state):
         return {
