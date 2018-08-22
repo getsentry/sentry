@@ -1,9 +1,9 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import ResultChart from 'app/views/organizationDiscover/result/chart';
+import Result from 'app/views/organizationDiscover/result';
 
-describe('Chart Data', function() {
+describe('Result', function() {
   const data = {
     data: [
       {
@@ -55,15 +55,18 @@ describe('Chart Data', function() {
         time: 1532070000,
       },
     ],
+    timing: {
+      duration_ms: 5,
+    },
   };
   const query = {
     aggregations: [['count()', null, 'count']],
     fields: ['platform', 'exception_stacks.type'],
   };
 
-  const wrapper = shallow(<ResultChart data={data} query={query} />);
+  const wrapper = shallow(<Result data={data} chartData={data} chartQuery={query} />);
 
-  describe('getLineChartData()', function() {
+  describe('getChartData()', function() {
     const expectedData = [
       {
         data: [
