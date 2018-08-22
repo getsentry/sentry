@@ -735,17 +735,14 @@ exports[`ProjectCard renders 1`] = `
                                           <Flex
                                             align="center"
                                             className="css-6q5v1w-ButtonLabel e17811v31"
-                                            size="xsmall"
                                           >
                                             <Base
                                               align="center"
                                               className="e17811v31 css-dqr4rq-ButtonLabel"
-                                              size="xsmall"
                                             >
                                               <div
                                                 className="e17811v31 css-dqr4rq-ButtonLabel"
                                                 is={null}
-                                                size="xsmall"
                                               >
                                                 Track deploys
                                               </div>
