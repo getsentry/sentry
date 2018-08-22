@@ -14,6 +14,9 @@ class GitHubIssueBasic(IssueBasicMixin):
         repo, issue_id = key.split('#')
         return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
 
+    def get_full_repo_name(self, repo):
+        return '{}/{}'.format(self.model.name, repo)
+
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs['data']
         client = self.get_client()
@@ -45,11 +48,12 @@ class GitHubIssueBasic(IssueBasicMixin):
         except ApiError:
             repo_choices = [(' ', ' ')]
         else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+            repo_choices = [(repo['name'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
-        assignees = self.get_allowed_assignees(default_repo)
+        full_name = self.get_full_repo_name(default_repo)
+        assignees = self.get_allowed_assignees(full_name)
 
         return [
             {
@@ -80,9 +84,10 @@ class GitHubIssueBasic(IssueBasicMixin):
         if not repo:
             raise IntegrationError('repo kwarg must be provided')
 
+        full_name = self.get_full_repo_name(repo)
         try:
             issue = client.create_issue(
-                repo=repo,
+                repo=full_name,
                 data={
                     'title': data['title'],
                     'body': data['description'],
@@ -96,7 +101,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             'title': issue['title'],
             'description': issue['body'],
             'url': issue['html_url'],
-            'repo': repo,
+            'repo': full_name,
         }
 
     def get_link_issue_config(self, group, **kwargs):
@@ -105,11 +110,12 @@ class GitHubIssueBasic(IssueBasicMixin):
         except ApiError:
             repo_choices = [(' ', ' ')]
         else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+            repo_choices = [(repo['name'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
-        issues = self.get_repo_issues(default_repo)
+        full_name = self.get_full_repo_name(default_repo)
+        issues = self.get_repo_issues(full_name)
 
         return [
             {
@@ -155,8 +161,9 @@ class GitHubIssueBasic(IssueBasicMixin):
         if not issue_num:
             raise IntegrationError('issue must be provided')
 
+        full_name = self.get_full_repo_name(repo)
         try:
-            issue = client.get_issue(repo, issue_num)
+            issue = client.get_issue(full_name, issue_num)
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
@@ -165,7 +172,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             'title': issue['title'],
             'description': issue['body'],
             'url': issue['html_url'],
-            'repo': repo,
+            'repo': full_name,
         }
 
     def get_allowed_assignees(self, repo):
