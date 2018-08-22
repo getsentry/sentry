@@ -164,17 +164,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                         <Flex
                                                           align="center"
                                                           className="css-6q5v1w-ButtonLabel e17811v31"
-                                                          size="xsmall"
                                                         >
                                                           <Base
                                                             align="center"
                                                             className="e17811v31 css-dqr4rq-ButtonLabel"
-                                                            size="xsmall"
                                                           >
                                                             <div
                                                               className="e17811v31 css-dqr4rq-ButtonLabel"
                                                               is={null}
-                                                              size="xsmall"
                                                             >
                                                               Add Project
                                                               <StyledChevronDown>
@@ -419,23 +416,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               size="small"
                             >
                               <Component
-                                className="css-19bmqb3-ButtonLabel e17811v31"
+                                className="css-o42ntg-ButtonLabel e17811v31"
                                 size="small"
                               >
                                 <Flex
                                   align="center"
-                                  className="css-19bmqb3-ButtonLabel e17811v31"
-                                  size="small"
+                                  className="css-o42ntg-ButtonLabel e17811v31"
                                 >
                                   <Base
                                     align="center"
-                                    className="e17811v31 css-1eblpyp-ButtonLabel"
-                                    size="small"
+                                    className="e17811v31 css-l5mlqc-ButtonLabel"
                                   >
                                     <div
-                                      className="e17811v31 css-1eblpyp-ButtonLabel"
+                                      className="e17811v31 css-l5mlqc-ButtonLabel"
                                       is={null}
-                                      size="small"
                                     >
                                       <RemoveIcon>
                                         <Component

@@ -189,18 +189,18 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel e17811v31"
                     >
                       <Flex
                         align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
+                          className="e17811v31 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            className="e17811v31 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -249,20 +249,23 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   priority="primary"
                   role="button"
                 >
-                  <ButtonLabel>
+                  <ButtonLabel
+                    priority="primary"
+                  >
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel e17811v31"
+                      priority="primary"
                     >
                       <Flex
                         align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
+                          className="e17811v31 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            className="e17811v31 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Bulk resolve issues
@@ -503,18 +506,18 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel e17811v31"
                     >
                       <Flex
                         align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
+                          className="e17811v31 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            className="e17811v31 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -563,20 +566,23 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   priority="primary"
                   role="button"
                 >
-                  <ButtonLabel>
+                  <ButtonLabel
+                    priority="primary"
+                  >
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel e17811v31"
+                      priority="primary"
                     >
                       <Flex
                         align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel e17811v31"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
+                          className="e17811v31 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
+                            className="e17811v31 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Bulk resolve issues

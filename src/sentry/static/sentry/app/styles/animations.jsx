@@ -9,6 +9,15 @@ export const growIn = keyframes`
   }
 `;
 
+export const growDown = height => keyframes`
+  0% {
+    height: 0;
+  }
+  100% {
+    height: ${height};
+  }
+`;
+
 export const fadeOut = keyframes`
   0% {
     opacity: 1;
@@ -63,5 +72,16 @@ export const slideInUp = keyframes`
   100% {
     transform: translateY(0);
     opacity: 1;
+  }
+`;
+
+export const highlight = color => keyframes`
+  0%,
+  100% {
+    background: rgba(255, 255, 255, 0);
+  }
+
+  25% {
+    background: ${color};
   }
 `;
