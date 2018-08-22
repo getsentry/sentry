@@ -9,6 +9,7 @@ export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
+    maxCharsTooltip: PropTypes.number.isRequired,
   };
 
   // Converts a value to a string for the chart label. This could
@@ -64,7 +65,16 @@ export default class Result extends React.Component {
         });
       }
 
-      result.push({seriesName: key, data: output[key].data});
+      result.push({seriesName: this.createSubstring(key), data: output[key].data});
+    }
+    return result;
+  }
+
+  createSubstring(seriesName) {
+    const {maxCharsTooltip} = this.props;
+    let result = seriesName;
+    if (seriesName.length > maxCharsTooltip) {
+      result = seriesName.substring(0, maxCharsTooltip) + '...';
     }
     return result;
   }
@@ -74,11 +84,16 @@ export default class Result extends React.Component {
     const {data} = this.props.data;
 
     const chartData = this.getChartData(data, fields);
+    const renderLineChart = chartData.find(
+      element => element.data.filter(({value}) => value !== null).length > 1
+    );
 
+    console.log("Chart Data", chartData);
     return (
       <div>
-        <LineChart series={chartData} style={{height: 300}} />
-        <BarChart series={chartData} stacked={true} style={{height: 300}} />
+        {renderLineChart ? <LineChart series={chartData} height={300} /> : null}
+
+        <BarChart series={chartData} stacked={true} height={300} />
       </div>
     );
   }

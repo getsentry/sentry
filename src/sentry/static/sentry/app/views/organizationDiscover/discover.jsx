@@ -89,13 +89,21 @@ export default class OrganizationDiscover extends React.Component {
 
     // If there are aggregations, get data for chart
     if (queryBuilder.getInternal().aggregations.length > 0) {
+      const field =
+        queryBuilder.getExternal().fields.length > 0
+          ? queryBuilder.getExternal().fields[0]
+          : null;
+      const groupBy = field ? [field, 'time'] : ['time'];
+
       const chartQuery = {
         ...queryBuilder.getExternal(),
-        groupby: ['time'],
+        groupby: groupBy,
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-count',
+        limit: 15,
       };
 
+      console.log("Chart Query: ", chartQuery);
       queryBuilder.fetch(chartQuery).then(
         chartData => {
           this.setState({chartData, chartQuery});
@@ -273,8 +281,10 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {chartData && <ResultChart data={chartData} query={chartQuery} />}
-            {result && <ResultTable result={result} />}
+            {chartData && (
+              <ResultChart data={chartData} query={chartQuery} maxCharsTooltip={60} />
+            )}
+            {result && <ResultTable result={result} maxCharsTooltip={60} />}
             {!result && <Intro />}
           </Box>
         </Flex>
