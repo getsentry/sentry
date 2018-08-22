@@ -6,7 +6,7 @@ from django.db.models.signals import post_syncdb
 from sentry.models import User
 
 
-def create_first_user(app, created_models, verbosity, db, **kwargs):
+def create_first_user(created_models, verbosity, db, app=None, **kwargs):
     # this is super confusing
     if app and app.__name__ != 'sentry.models':
         return
