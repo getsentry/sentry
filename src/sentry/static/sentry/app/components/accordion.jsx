@@ -9,9 +9,13 @@ import Button from 'app/components/buttons/button';
 
 class AccordionButton extends React.Component {
   static propTypes = {
-    label: PropTypes.string,
+    label: PropTypes.string.isRequired,
     cutoff: PropTypes.number,
-    children: PropTypes.arrayOf(PropTypes.node),
+    children: PropTypes.arrayOf(PropTypes.node).isRequired,
+  };
+
+  static defaultProps = {
+    cutoff: 0,
   };
 
   constructor(props, context) {
@@ -39,12 +43,7 @@ class AccordionButton extends React.Component {
           <Flex align="center" justify="space-between" w={1}>
             <Flex align="center">
               {label}
-              {cutoff && (
-                <Badge
-                  style={{marginLeft: space(0.25)}}
-                  text={children.length - cutoff}
-                />
-              )}
+              <Badge style={{marginLeft: space(0.25)}} text={children.length - cutoff} />
             </Flex>
             <StyledInlineSvg src="icon-chevron-down" open={this.state.isOpen} />
           </Flex>
@@ -59,10 +58,14 @@ const StyledButton = styled(Button)`
   display: block;
   width: 100%;
   box-shadow: ${p => (p.open ? 'inset -2px 2px rgba(0,0,0,0.04)' : null)};
-  background: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.offWhite2};
   color: ${p => p.theme.gray4};
   margin: 1em 0;
+
+  &,
+  &:focus {
+    background: ${p => p.theme.offWhite};
+  }
 
   &:hover {
     color: ${p => p.theme.gray5};

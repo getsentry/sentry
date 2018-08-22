@@ -2,18 +2,80 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import AccordionButton from 'app/components/accordionButton';
+import Accordion from 'app/components/accordion';
 
-storiesOf('Tags', module)
+storiesOf('Accordion', module)
   .add(
     'default',
-    withInfo(
-      'An accordion button. It uses an <a> tag to not interfere with form focus'
-    )(() => <AccordionButton>Show me more fields</AccordionButton>)
+    withInfo('An accordion button that will expand stuff.')(() => (
+      <Accordion label="Show me some stuff">
+        {[
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 1"
+            key="0"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 2"
+            key="1"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 3"
+            key="2"
+          />,
+        ]}
+      </Accordion>
+    ))
   )
   .add(
-    'with a counter',
-    withInfo('you can give a hint of what is inside using a counter')(() => (
-      <AccordionButton count={11}>Show me more fields</AccordionButton>
+    'with a cutoff',
+    withInfo(
+      'If you give it a cutoff, it will auto-expand the part of the array before the cutoff'
+    )(() => (
+      <Accordion label="Show me even more of these inputs" cutoff={3}>
+        {[
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 1"
+            key="0"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 2"
+            key="1"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 3"
+            key="3"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 4"
+            key="4"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 5"
+            key="5"
+          />,
+          <input
+            type="text"
+            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+            placeholder="field 6"
+            key="6"
+          />,
+        ]}
+      </Accordion>
     ))
   );
