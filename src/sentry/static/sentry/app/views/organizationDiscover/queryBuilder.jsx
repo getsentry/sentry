@@ -175,7 +175,7 @@ export default function createQueryBuilder(initial = {}, organization) {
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {
-      return Promise.reject(t('No projects selected'));
+      return Promise.reject(new Error(t('No projects selected')));
     }
 
     return api

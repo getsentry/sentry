@@ -121,7 +121,9 @@ describe('Query Builder', function() {
 
     it('handles no projects', async function() {
       const result = queryBuilder.fetch({projects: []});
-      await expect(result).rejects.toEqual('No projects selected');
+      await expect(result).rejects.toMatchObject({
+        message: 'No projects selected',
+      });
       expect(discoverMock).not.toHaveBeenCalled();
     });
   });
