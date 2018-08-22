@@ -126,8 +126,7 @@ export default class Result extends React.Component {
 
     return (
       <Summary>
-        snuba query time: {summaryData.timing.duration_ms}ms, {summaryData.data.length}{' '}
-        rows
+        query time: {summaryData.timing.duration_ms} ms, {summaryData.data.length} rows
       </Summary>
     );
   }
