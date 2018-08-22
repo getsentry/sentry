@@ -15,7 +15,7 @@ import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import AccordionButton from 'app/components/accordionButton';
+import Accordion from 'app/components/accordion';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -152,30 +152,10 @@ class ExternalIssueForm extends AsyncComponent {
         }
       : {};
 
-  addAccordionButton = (fields, cutoff) => {
-    if (fields.length < cutoff) return fields;
-
-    return [
-      ...fields.slice(0, cutoff),
-      <AccordionButton
-        key="-1"
-        count={fields.length - 3}
-        onClick={() => this.setState({showAllFields: !this.state.showAllFields})}
-        open={this.state.showAllFields}
-        style={{margin: '1em 0'}}
-      >
-        {this.state.showAllFields ? 'Show Less Fields' : 'Show More Fields'}
-      </AccordionButton>,
-      ...fields.slice(cutoff),
-    ];
-  };
-
   renderBody() {
     let {integrationDetails} = this.state;
     let {action, group, integration} = this.props;
     let config = integrationDetails[`${action}IssueConfig`];
-
-    let cutoff = 3; //number of fields to show before hiding in accordion view
 
     let initialData = {};
     config.forEach(field => {
@@ -194,20 +174,24 @@ class ExternalIssueForm extends AsyncComponent {
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
         footerClass="modal-footer"
       >
-        {this.addAccordionButton(
-          config.map((field, i) => (
+        <Accordion
+          cutoff={3}
+          onClick={() => this.setState({showAllFields: !this.state.showAllFields})}
+          open={this.state.showAllFields}
+          style={{margin: '1em 0'}}
+          label={this.state.showAllFields ? 'Show Less Fields' : 'Show More Fields'}
+        >
+          {config.map((field, i) => (
             <FieldFromConfig
               key={field.name}
               field={field}
               inline={false}
-              visible={this.state.showAllFields || i <= cutoff - 1}
               stacked
               flexibleControlStateSize
               {...this.getFieldProps(field)}
             />
-          )),
-          cutoff
-        )}
+          ))}
+        </Accordion>
       </Form>
     );
   }
