@@ -421,8 +421,12 @@ const Stream = createReactClass({
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
+        let {detail} = (err && err.responseJSON) || {};
+        let error =
+          typeof detail === 'string'
+            ? detail
+            : (detail && detail.message) || 'Unknown HTTP error';
+
         this.setState({
           error,
           dataLoading: false,
