@@ -60,8 +60,11 @@ export default class SelectField extends React.Component {
       <InputField
         {...otherProps}
         alignRight={this.props.small}
-        field={({onChange, onBlur, disabled, ...props}) => {
+        field={({onChange, onBlur, disabled, required, ...props}) => {
           let choices = getChoices(props);
+
+          // XXX: We remove the required property here since applying it to the
+          // DOM causes the native tooltip to render in strange places.
 
           return (
             <SelectControl
