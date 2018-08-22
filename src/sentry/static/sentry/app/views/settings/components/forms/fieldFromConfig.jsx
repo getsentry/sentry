@@ -92,11 +92,6 @@ export default class FieldFromConfig extends React.Component {
       case 'choice':
       case 'select':
       case 'array':
-        // the chrome required tip winds up in weird places
-        // so just make it look like it's required in field (with *),
-        // and rely on server validation
-        delete props.required;
-
         // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
         // if (props.has_autocomplete) {
         // return <SelectAsyncField {...props} />;
