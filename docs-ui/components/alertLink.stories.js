@@ -12,7 +12,7 @@ storiesOf('Links/AlertLink', module)
         Check out the notifications settings panel.
       </AlertLink>,
       <AlertLink to="/settings/account/notifications" priority="error" key="2">
-        Don't forget to read the docs ya dum dum!
+        Do not forget to read the docs ya dum dum!
       </AlertLink>,
       <AlertLink to="/settings/account/notifications" priority="info" key="3">
         Install this thing or else!
@@ -34,7 +34,7 @@ storiesOf('Links/AlertLink', module)
         priority="error"
         key="2"
       >
-        Don't forget to read the docs ya dum dum!
+        Do not forget to read the docs ya dum dum!
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
