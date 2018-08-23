@@ -3,8 +3,10 @@ import React from 'react';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import AlertLink from 'app/components/alertLink';
 import SentryTypes from 'app/sentryTypes';
 import PluginActions from 'app/components/group/pluginActions';
+import {Box} from 'grid-emotion';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
@@ -18,7 +20,12 @@ class ExternalIssueList extends AsyncComponent {
 
   renderIntegrationIssues(integrations) {
     const {group} = this.props;
-    if (!integrations || !integrations.length) return null;
+    if (!integrations || !integrations.length)
+      return (
+        <AlertLink priority="info" icon="icon-stack" to="">
+          Set up Issue Tracking
+        </AlertLink>
+      );
 
     const externalIssues = integrations
       .filter(integration => integration.status === 'active')
@@ -30,7 +37,7 @@ class ExternalIssueList extends AsyncComponent {
         />
       ));
 
-    return externalIssues;
+    return <Box mb={3}>{externalIssues}</Box>;
   }
 
   renderPluginIssues() {
@@ -59,7 +66,7 @@ class ExternalIssueList extends AsyncComponent {
 
   renderBody() {
     return (
-      <div className="m-b-2">
+      <div>
         <h6>
           <span>Linked Issues</span>
         </h6>
