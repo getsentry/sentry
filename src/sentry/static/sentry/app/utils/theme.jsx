@@ -94,7 +94,7 @@ const theme = {
       backgroundLight: '#FFFDF7',
       background: '#f9a66d',
       border: '#E1D697',
-      textDark: '#D3BE2B',
+      textDark: '#302839',
     },
     success: {
       backgroundLight: '#F8FCF7',
@@ -105,7 +105,7 @@ const theme = {
       backgroundLight: '#FDF6F5',
       border: '#E7C0BC',
       textLight: '#92635f',
-      textDark: '#5d3e3b',
+      textDark: '#302839',
     },
   },
 

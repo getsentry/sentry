@@ -11,6 +11,11 @@ export default class AlertLink extends React.Component {
     to: PropTypes.string,
     href: PropTypes.string,
     icon: PropTypes.string,
+    priority: PropTypes.string,
+  };
+
+  static defaultProps = {
+    priority: 'warning',
   };
 
   render() {
@@ -29,16 +34,16 @@ export default class AlertLink extends React.Component {
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  background-color: ${t => t.theme.yellowLightest};
-  color: ${t => t.theme.gray5};
-  border: 1px dashed ${t => t.theme.borderDark};
+  background-color: ${p => p.theme.alert[p.priority].backgroundLight};
+  color: ${p => p.theme.alert[p.priority].textDark};
+  border: 1px dashed ${p => p.theme.alert[p.priority].border};
   padding: ${space(2)};
   margin-bottom: ${space(3)};
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
   &:hover {
-    border-color: ${t => t.theme.blueLight};
+    border-color: ${p => p.theme.blueLight};
   }
 `;
 
