@@ -1,5 +1,6 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
+import {debounce} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -26,7 +27,13 @@ export default class IntegrationRepos extends AsyncComponent {
 
   constructor(props, context) {
     super(props, context);
-    this.state = {error: false, adding: false, itemList: [], errors: {}};
+    this.state = {
+      error: false,
+      adding: false,
+      itemList: [],
+      dropdownBusy: false,
+      errors: {},
+    };
   }
 
   getEndpoints() {
@@ -45,6 +52,33 @@ export default class IntegrationRepos extends AsyncComponent {
     let integrationId = this.props.integration.id;
     return this.state.itemList.filter(repo => repo.integrationId === integrationId);
   }
+
+  debouncedSearchRepositoriesRequest = debounce(
+    query => this.searchRepositoriesRequest(query),
+    200
+  );
+
+  searchRepositoriesRequest = searchQuery => {
+    let orgId = this.context.organization.slug;
+    let query = {search: searchQuery};
+    let endpoint = `/organizations/${orgId}/integrations/${this.props.integration
+      .id}/repos/`;
+    return this.api.request(endpoint, {
+      method: 'GET',
+      query,
+      success: data => {
+        this.setState({integrationRepos: data, dropdownBusy: false});
+      },
+      error: error => {
+        this.setState({dropdownBusy: false});
+      },
+    });
+  };
+
+  handleSearchRepositories = e => {
+    this.setState({dropdownBusy: true});
+    this.debouncedSearchRepositoriesRequest(e.target.value);
+  };
 
   getStatusLabel(repo) {
     switch (repo.status) {
@@ -162,11 +196,15 @@ export default class IntegrationRepos extends AsyncComponent {
     });
 
     let menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
+    let onChange = this.state.integrationRepos.searchable
+      ? this.handleSearchRepositories
+      : null;
 
     return (
       <DropdownAutoComplete
         items={items}
         onSelect={this.addRepo.bind(this)}
+        onChange={onChange}
         menuHeader={menuHeader}
         emptyMessage={t('No repositories available')}
       >

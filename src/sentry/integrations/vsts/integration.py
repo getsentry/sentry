@@ -58,7 +58,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
     def reinstall(self):
         self.reinstall_repositories()
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         try:
             repos = self.get_client().get_repos(self.instance)
         except ApiError as e:

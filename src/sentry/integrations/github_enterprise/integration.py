@@ -91,7 +91,7 @@ class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin
             app_id=self.model.metadata['installation']['id'],
         )
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         data = []
         for repo in self.get_client().get_repositories():
             data.append({'name': repo['name'], 'identifier': repo['full_name']})

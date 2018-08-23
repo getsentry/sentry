@@ -26,13 +26,14 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
             return self.respond(context)
 
         install = integration.get_installation(organization.id)
+
         if isinstance(install, RepositoryMixin):
             try:
-                repositories = install.get_repositories()
+                repositories = install.get_repositories(request.GET.get('search'))
             except IntegrationError as e:
                 return self.respond({'detail': e.message}, status=400)
 
-            context = {'repos': repositories}
+            context = {'repos': repositories, 'searchable': install.repo_search}
             return self.respond(context)
 
         return self.respond({'detail': 'Repositories not supported'}, status=400)
