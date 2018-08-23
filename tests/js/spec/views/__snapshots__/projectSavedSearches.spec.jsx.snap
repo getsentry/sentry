@@ -353,7 +353,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           priority="primary"
                                         >
                                           <Button
-                                            alignLabel="flex-start"
+                                            alignLabel="left"
                                             disabled={false}
                                             icon="icon-trash"
                                             onClick={[Function]}
@@ -689,7 +689,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           priority="primary"
                                         >
                                           <Button
-                                            alignLabel="flex-start"
+                                            alignLabel="left"
                                             disabled={false}
                                             icon="icon-trash"
                                             onClick={[Function]}

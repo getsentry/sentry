@@ -251,7 +251,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                       >
                                         Configure node
                                         <Button
-                                          alignLabel="flex-start"
+                                          alignLabel="left"
                                           disabled={false}
                                           external={true}
                                           href="https://docs.getsentry.com/hosted/clients/csharp/"

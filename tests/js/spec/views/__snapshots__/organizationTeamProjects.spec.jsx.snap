@@ -131,7 +131,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             size="xsmall"
                                           >
                                             <Button
-                                              alignLabel="flex-start"
+                                              alignLabel="left"
                                               className="css-o27a2e-StyledButton e1yghndz1"
                                               disabled={false}
                                               size="xsmall"
@@ -395,7 +395,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     title="You do not have enough permission to change project association."
                   >
                     <Button
-                      alignLabel="flex-start"
+                      alignLabel="left"
                       disabled={false}
                       onClick={[Function]}
                       size="small"

@@ -128,7 +128,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                 className="pull-right"
               >
                 <Button
-                  alignLabel="flex-start"
+                  alignLabel="left"
                   disabled={false}
                   onClick={[Function]}
                   size="small"
@@ -141,7 +141,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                   Enable Plugin
                 </Button>
                 <Button
-                  alignLabel="flex-start"
+                  alignLabel="left"
                   disabled={false}
                   onClick={[Function]}
                   size="small"
@@ -184,7 +184,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                           className="pull-right"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             disabled={false}
                             onClick={[Function]}
                             size="small"
@@ -266,7 +266,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             </StyledButton>
                           </Button>
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             disabled={false}
                             onClick={[Function]}
                             size="small"

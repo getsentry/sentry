@@ -76,7 +76,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     className="modal-footer"
   >
     <Button
-      alignLabel="flex-start"
+      alignLabel="left"
       disabled={false}
       onClick={[MockFunction]}
       size="small"

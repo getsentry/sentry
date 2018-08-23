@@ -46,7 +46,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <SettingsPageHeading
       action={
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           icon="icon-circle-add"
           priority="primary"
@@ -86,7 +86,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 </Title>
                 <div>
                   <Button
-                    alignLabel="flex-start"
+                    alignLabel="left"
                     disabled={false}
                     icon="icon-circle-add"
                     priority="primary"

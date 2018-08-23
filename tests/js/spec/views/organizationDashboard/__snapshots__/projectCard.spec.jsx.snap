@@ -679,7 +679,7 @@ exports[`ProjectCard renders 1`] = `
                             is={null}
                           >
                             <Button
-                              alignLabel="flex-start"
+                              alignLabel="left"
                               disabled={false}
                               external={true}
                               href="https://blog.sentry.io/2017/05/09/release-deploys"

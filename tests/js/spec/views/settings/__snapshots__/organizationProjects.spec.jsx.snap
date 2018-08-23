@@ -18,7 +18,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
         <SettingsPageHeading
           action={
             <Button
-              alignLabel="flex-start"
+              alignLabel="left"
               disabled={false}
               icon="icon-circle-add"
               priority="primary"
@@ -59,7 +59,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                     </Title>
                     <div>
                       <Button
-                        alignLabel="flex-start"
+                        alignLabel="left"
                         disabled={false}
                         icon="icon-circle-add"
                         priority="primary"
@@ -467,7 +467,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               is={null}
                             >
                               <Button
-                                alignLabel="flex-start"
+                                alignLabel="left"
                                 disabled={false}
                                 size="small"
                                 to="/org-slug/project-slug/"

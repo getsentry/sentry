@@ -1,7 +1,7 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
@@ -45,10 +45,10 @@ const ProjectSelector = withRouter(
     }
 
     /**
-   * Returns an object with the target project url. If
-   * the router is present, passed as the 'to' property.
-   * If not, passed as an absolute URL via the 'href' property.
-   */
+     * Returns an object with the target project url. If
+     * the router is present, passed as the 'to' property.
+     * If not, passed as an absolute URL via the 'href' property.
+     */
     getProjectUrlProps(project) {
       let org = this.props.organization;
       let path = `/${org.slug}/${project.slug}/`;
@@ -61,10 +61,8 @@ const ProjectSelector = withRouter(
     }
 
     getActiveProject() {
-      const {organization, projectId} = this.props;
-      return organization.projects
-        .filter(project => project.isMember)
-        .find(({slug}) => slug === projectId);
+      const {projectId} = this.props;
+      return this.getProjects().find(({slug}) => slug === projectId);
     }
 
     getProjects() {
@@ -101,93 +99,87 @@ const ProjectSelector = withRouter(
 
       const hasProjects = projectList && !!projectList.length;
       const hasProjectWrite = access.has('project:write');
-      // const dropdownClassNames = classNames('project-dropdown', {
-      // 'is-empty': !hasProjects,
-      // });
 
       return (
-        <div className="project-select">
-          <DropdownAutoComplete
-            alignMenu="left"
-            blendCorner={false}
-            filterPlaceholder={t('Filter projects')}
-            onSelect={this.handleSelect}
-            maxHeight={500}
-            zIndex={1001}
-            style={{marginTop: 6}}
-            inputProps={{style: {padding: 8, paddingLeft: 14}}}
-            emptyMessage={t('You have no projects')}
-            noResultsMessage={t('No projects found')}
-            menuFooter={
-              !hasProjects && hasProjectWrite ? (
-                <CreateProjectButton
-                  alignLabel="center"
-                  priority="primary"
-                  size="small"
-                  href={`${this.urlPrefix()}/projects/new/`}
+        <DropdownAutoComplete
+          alignMenu="left"
+          blendCorner={false}
+          filterPlaceholder={t('Filter projects')}
+          onSelect={this.handleSelect}
+          maxHeight={500}
+          zIndex={1001}
+          style={{marginTop: 6}}
+          inputProps={{style: {padding: 8, paddingLeft: 14}}}
+          emptyMessage={t('You have no projects')}
+          noResultsMessage={t('No projects found')}
+          menuFooter={
+            !hasProjects && hasProjectWrite ? (
+              <CreateProjectButton
+                alignLabel="center"
+                priority="primary"
+                size="small"
+                href={`${this.urlPrefix()}/projects/new/`}
+              >
+                {t('Create project')}
+              </CreateProjectButton>
+            ) : null
+          }
+          items={projectList.map(project => ({
+            value: project,
+            searchKey: project.slug,
+            label: ({inputValue}) => (
+              <ProjectRow>
+                <IdBadge
+                  project={project}
+                  avatarSize={16}
+                  displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+                  avatarProps={{consistentWidth: true}}
+                />
+                {project.isBookmarked && <BookmarkIcon />}
+              </ProjectRow>
+            ),
+          }))}
+        >
+          {({getActorProps, selectedItem}) => (
+            <DropdownLabel>
+              {this.state.activeProject ? (
+                <IdBadge
+                  project={this.state.activeProject}
+                  avatarSize={16}
+                  hideAvatar={!internalOnly}
+                  displayName={
+                    <ProjectNameLink
+                      {...this.getProjectUrlProps(this.state.activeProject)}
+                    >
+                      {this.getProjectLabel(this.state.activeProject)}
+                    </ProjectNameLink>
+                  }
+                />
+              ) : (
+                <SelectProject
+                  {...getActorProps({
+                    role: 'button',
+                  })}
                 >
-                  {t('Create project')}
-                </CreateProjectButton>
-              ) : null
-            }
-            items={projectList.map(project => ({
-              value: project,
-              searchKey: project.slug,
-              label: ({inputValue}) => (
-                <ProjectRow>
-                  <IdBadge
-                    project={project}
-                    avatarSize={16}
-                    displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-                    avatarProps={{consistentWidth: true}}
-                  />
-                  {project.isBookmarked && <BookmarkIcon />}
-                </ProjectRow>
-              ),
-            }))}
-          >
-            {({getActorProps, selectedItem}) => (
-              <DropdownLabel>
-                {this.state.activeProject ? (
-                  <IdBadge
-                    project={this.state.activeProject}
-                    avatarSize={16}
-                    hideAvatar={!internalOnly}
-                    displayName={
-                      <ProjectNameLink
-                        {...this.getProjectUrlProps(this.state.activeProject)}
-                      >
-                        {this.getProjectLabel(this.state.activeProject)}
-                      </ProjectNameLink>
-                    }
-                  />
-                ) : (
-                  <SelectProject
-                    {...getActorProps({
-                      role: 'button',
-                    })}
-                  >
-                    {t('Select a project')}
-                  </SelectProject>
-                )}
-                <DropdownIcon />
-              </DropdownLabel>
-            )}
-          </DropdownAutoComplete>
-        </div>
+                  {t('Select a project')}
+                </SelectProject>
+              )}
+              <DropdownIcon />
+            </DropdownLabel>
+          )}
+        </DropdownAutoComplete>
       );
     }
   }
 );
 
-const flexCss = css`
+const FlexY = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
 `;
 
-const ProjectRow = styled.div`
-  ${flexCss};
+const ProjectRow = styled(FlexY)`
   font-size: 14px;
   font-weight: 400;
 `;
@@ -200,8 +192,7 @@ const BookmarkIcon = styled(props => (
   font-size: 12px;
 `;
 
-const DropdownLabel = styled.div`
-  ${flexCss};
+const DropdownLabel = styled(FlexY)`
   margin-right: ${space(1)};
 `;
 

@@ -23,7 +23,7 @@ exports[`projectAlertRules renders 1`] = `
             title="You do not have permission to edit alert rules."
           >
             <Button
-              alignLabel="flex-start"
+              alignLabel="left"
               disabled={false}
               icon="icon-circle-add"
               priority="primary"
@@ -120,7 +120,7 @@ exports[`projectAlertRules renders 1`] = `
                       title="You do not have permission to edit alert rules."
                     >
                       <Button
-                        alignLabel="flex-start"
+                        alignLabel="left"
                         disabled={false}
                         icon="icon-circle-add"
                         priority="primary"
@@ -416,7 +416,7 @@ exports[`projectAlertRules renders 1`] = `
                               title="You do not have permission to edit alert rules."
                             >
                               <Button
-                                alignLabel="flex-start"
+                                alignLabel="left"
                                 data-test-id="edit-rule"
                                 disabled={false}
                                 size="small"
@@ -535,7 +535,7 @@ exports[`projectAlertRules renders 1`] = `
                                 priority="primary"
                               >
                                 <Button
-                                  alignLabel="flex-start"
+                                  alignLabel="left"
                                   disabled={false}
                                   icon="icon-trash"
                                   onClick={[Function]}

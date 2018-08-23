@@ -38,7 +38,7 @@ exports[`GuideDrawer gets dismissed 1`] = `
     >
       <div>
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -113,7 +113,7 @@ exports[`GuideDrawer renders next step 1`] = `
           Did you find this guide useful?
         </p>
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -125,7 +125,7 @@ exports[`GuideDrawer renders next step 1`] = `
           </span>
         </Button>
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"

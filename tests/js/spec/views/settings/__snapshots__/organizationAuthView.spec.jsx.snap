@@ -149,7 +149,7 @@ exports[`OrganizationAuthView renders from api 1`] = `
         className="form-actions"
       >
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="danger"

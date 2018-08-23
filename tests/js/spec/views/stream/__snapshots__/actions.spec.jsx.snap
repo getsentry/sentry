@@ -144,7 +144,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
           className="modal-footer"
         >
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             disabled={false}
             onClick={[Function]}
             style={
@@ -220,7 +220,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             </StyledButton>
           </Button>
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             autoFocus={true}
             data-test-id="confirm-modal"
             disabled={false}
@@ -472,7 +472,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
           className="modal-footer"
         >
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             disabled={false}
             onClick={[Function]}
             style={
@@ -548,7 +548,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             </StyledButton>
           </Button>
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             autoFocus={true}
             data-test-id="confirm-modal"
             disabled={false}

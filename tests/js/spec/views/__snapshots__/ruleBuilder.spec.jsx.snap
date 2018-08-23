@@ -924,7 +924,7 @@ exports[`RuleBuilder renders 1`] = `
         size="small"
       >
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           className="css-po7kq7-AddButton e1hyuoc79"
           disabled={true}
           icon="icon-circle-add"
@@ -2671,7 +2671,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         size="small"
       >
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           className="css-po7kq7-AddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"

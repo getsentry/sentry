@@ -239,7 +239,7 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-footer"
         >
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             disabled={false}
             onClick={[Function]}
             style={
@@ -315,7 +315,7 @@ exports[`ConfirmDelete renders 1`] = `
             </StyledButton>
           </Button>
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             autoFocus={true}
             data-test-id="confirm-modal"
             disabled={true}

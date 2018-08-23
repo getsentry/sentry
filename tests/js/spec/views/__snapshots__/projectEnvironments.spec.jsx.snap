@@ -478,7 +478,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           size="xsmall"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-10adnmx-EnvironmentButton ezuela50"
                             disabled={false}
                             onClick={[Function]}
@@ -602,7 +602,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           size="xsmall"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-10adnmx-EnvironmentButton ezuela50"
                             disabled={false}
                             onClick={[Function]}
@@ -671,7 +671,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           size="xsmall"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-10adnmx-EnvironmentButton ezuela50"
                             disabled={false}
                             onClick={[Function]}
@@ -827,7 +827,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           size="xsmall"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-10adnmx-EnvironmentButton ezuela50"
                             disabled={false}
                             onClick={[Function]}
@@ -1388,7 +1388,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           size="xsmall"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-10adnmx-EnvironmentButton ezuela50"
                             disabled={false}
                             onClick={[Function]}

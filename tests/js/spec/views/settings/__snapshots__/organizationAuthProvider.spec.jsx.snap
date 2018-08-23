@@ -170,7 +170,7 @@ exports[`OrganizationAuthProvider renders 1`] = `
         className="form-actions"
       >
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="danger"
@@ -253,7 +253,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
           Unlinked Members
         </h4>
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           className="pull-right"
           disabled={false}
           onClick={[Function]}
@@ -424,7 +424,7 @@ exports[`OrganizationAuthProvider renders with Unlinked members  1`] = `
         className="form-actions"
       >
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="danger"
@@ -579,7 +579,7 @@ Array [
       className="form-actions"
     >
       <Button
-        alignLabel="flex-start"
+        alignLabel="left"
         disabled={false}
         onClick={[Function]}
         priority="danger"

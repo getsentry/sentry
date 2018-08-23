@@ -321,7 +321,7 @@ exports[`FormField + model renders with Form 1`] = `
     >
       <Observer>
         <Button
-          alignLabel="flex-start"
+          alignLabel="left"
           data-test-id="form-submit"
           disabled={false}
           priority="primary"

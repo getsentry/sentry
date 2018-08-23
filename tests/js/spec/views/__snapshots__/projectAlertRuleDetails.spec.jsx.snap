@@ -670,7 +670,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       className="css-1d10zz4-RuleNodeControls e1qnqozx2"
                                     >
                                       <Button
-                                        alignLabel="flex-start"
+                                        alignLabel="left"
                                         disabled={false}
                                         icon="icon-trash"
                                         onClick={[Function]}
@@ -1456,7 +1456,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       className="css-1d10zz4-RuleNodeControls e1qnqozx2"
                                     >
                                       <Button
-                                        alignLabel="flex-start"
+                                        alignLabel="left"
                                         disabled={false}
                                         icon="icon-trash"
                                         onClick={[Function]}
@@ -2302,7 +2302,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           to="/settings/org-slug/project-slug/alerts/rules/"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-1yc33o1-CancelButton elb7f1e1"
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
@@ -2375,7 +2375,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           </Button>
                         </CancelButton>
                         <Button
-                          alignLabel="flex-start"
+                          alignLabel="left"
                           disabled={false}
                           priority="primary"
                         >
@@ -4459,7 +4459,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           to="/settings/org-slug/project-slug/alerts/rules/"
                         >
                           <Button
-                            alignLabel="flex-start"
+                            alignLabel="left"
                             className="css-1yc33o1-CancelButton elb7f1e1"
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
@@ -4532,7 +4532,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           </Button>
                         </CancelButton>
                         <Button
-                          alignLabel="flex-start"
+                          alignLabel="left"
                           disabled={false}
                           priority="primary"
                         >

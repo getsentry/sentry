@@ -229,7 +229,7 @@ exports[`ProjectTags renders 1`] = `
                                     title="Remove tag?"
                                   >
                                     <Button
-                                      alignLabel="flex-start"
+                                      alignLabel="left"
                                       data-test-id="delete"
                                       disabled={false}
                                       icon="icon-trash"
@@ -477,7 +477,7 @@ exports[`ProjectTags renders 1`] = `
                                     title="Remove tag?"
                                   >
                                     <Button
-                                      alignLabel="flex-start"
+                                      alignLabel="left"
                                       data-test-id="delete"
                                       disabled={false}
                                       icon="icon-trash"
@@ -725,7 +725,7 @@ exports[`ProjectTags renders 1`] = `
                                     title="Remove tag?"
                                   >
                                     <Button
-                                      alignLabel="flex-start"
+                                      alignLabel="left"
                                       data-test-id="delete"
                                       disabled={false}
                                       icon="icon-trash"
@@ -981,7 +981,7 @@ exports[`ProjectTags renders 1`] = `
                                         title="Remove tag?"
                                       >
                                         <Button
-                                          alignLabel="flex-start"
+                                          alignLabel="left"
                                           data-test-id="delete"
                                           disabled={false}
                                           icon="icon-trash"

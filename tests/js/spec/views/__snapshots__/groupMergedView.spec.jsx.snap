@@ -392,7 +392,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
-                          alignLabel="flex-start"
+                          alignLabel="left"
                           disabled={true}
                           onClick={[Function]}
                           size="small"
@@ -491,7 +491,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                     >
                       <div>
                         <Button
-                          alignLabel="flex-start"
+                          alignLabel="left"
                           className="toggle-collapse-all"
                           disabled={false}
                           onClick={[Function]}
@@ -1861,7 +1861,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
-                          alignLabel="flex-start"
+                          alignLabel="left"
                           disabled={true}
                           onClick={[Function]}
                           size="small"
@@ -1960,7 +1960,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                     >
                       <div>
                         <Button
-                          alignLabel="flex-start"
+                          alignLabel="left"
                           className="toggle-collapse-all"
                           disabled={false}
                           onClick={[Function]}

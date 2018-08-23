@@ -74,7 +74,7 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="flex-start"
+      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"
@@ -120,7 +120,7 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="flex-start"
+      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"
@@ -166,7 +166,7 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="flex-start"
+      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"
@@ -212,7 +212,7 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="flex-start"
+      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"

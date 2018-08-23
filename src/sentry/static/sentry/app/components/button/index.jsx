@@ -8,6 +8,12 @@ import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
+const alignToFlexMap = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+};
+
 class Button extends React.Component {
   static propTypes = {
     priority: PropTypes.oneOf(['primary', 'danger', 'link', 'success']),
@@ -45,16 +51,16 @@ class Button extends React.Component {
     label: PropTypes.string,
 
     /**
-     * flexbox justify property to use to align label
+     * Button label alignment
      */
-    alignLabel: PropTypes.string,
+    alignLabel: PropTypes.oneOf(['left', 'center', 'right']),
 
     onClick: PropTypes.func,
   };
 
   static defaultProps = {
     disabled: false,
-    alignLabel: 'flex-start',
+    alignLabel: 'left',
   };
 
   // Intercept onClick and propagate
@@ -98,6 +104,8 @@ class Button extends React.Component {
     // For `aria-label`
     let screenReaderLabel = label || typeof children === 'string' ? children : undefined;
 
+    let buttonLabelJustify = alignToFlexMap[alignLabel] || 'left';
+
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.
     // *Note* you must still handle tabindex manually.
@@ -114,7 +122,7 @@ class Button extends React.Component {
         role="button"
       >
         <ButtonLabel
-          justify={alignLabel}
+          justify={buttonLabelJustify}
           size={size}
           priority={priority}
           borderless={borderless}

@@ -721,7 +721,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
         </Panel>
       </TeamSelect>
       <Button
-        alignLabel="flex-start"
+        alignLabel="left"
         busy={false}
         className="invite-member-submit"
         disabled={false}

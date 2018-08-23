@@ -810,7 +810,7 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             className="css-po7kq7-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
@@ -1010,7 +1010,7 @@ url:http://example.com/settings/* #product"
               className="css-5zvod-SaveButton en3n9di1"
             >
               <Button
-                alignLabel="flex-start"
+                alignLabel="left"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"

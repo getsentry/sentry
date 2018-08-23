@@ -1192,7 +1192,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
         </div>
         <div>
           <Button
-            alignLabel="flex-start"
+            alignLabel="left"
             disabled={false}
             external={true}
             href="https://status.sentry.io"
