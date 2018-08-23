@@ -166,6 +166,9 @@ class Sidebar extends React.Component {
     };
     let hasOrganization = !!organization;
 
+    let hasDiscoverFeature =
+      hasOrganization && new Set(organization.features).has('discover');
+
     return (
       <StyledSidebar
         innerRef={ref => (this.sidebar = ref)}
@@ -194,6 +197,15 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
+                {hasDiscoverFeature && (
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-search" />}
+                    label={t('Discover')}
+                    to={`/organizations/${organization.slug}/discover/`}
+                  />
+                )}
               </SidebarSection>
 
               <SidebarSection>
