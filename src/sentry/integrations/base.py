@@ -221,7 +221,7 @@ class Integration(object):
     def error_fields_from_json(self, data):
         """
         If we can determine error fields from the response JSON this should
-        format and reutrn them, allowing an IntegrationFormError to be raised.
+        format and return them, allowing an IntegrationFormError to be raised.
         Return None if no form errors are present.
 
         Error fields should be in the format: {field: [message]}
