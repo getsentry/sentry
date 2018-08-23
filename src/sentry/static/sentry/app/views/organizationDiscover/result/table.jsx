@@ -137,4 +137,14 @@ const Cell = styled('div')`
   font-size: 14px;
   line-height: 30px;
   padding: 0 4px;
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  @-moz-document url-prefix() {
+    overflow: hidden;
+  }
+
+  -ms-overflow-style: -ms-autohiding-scrollbar;
 `;
