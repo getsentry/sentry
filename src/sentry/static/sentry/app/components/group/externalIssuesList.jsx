@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
@@ -11,6 +12,7 @@ import {Box} from 'grid-emotion';
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
+    orgId: PropTypes.string,
   };
 
   getEndpoints() {
@@ -22,7 +24,11 @@ class ExternalIssueList extends AsyncComponent {
     const {group} = this.props;
     if (!integrations || !integrations.length)
       return (
-        <AlertLink priority="info" icon="icon-stack" to="">
+        <AlertLink
+          priority="info"
+          icon="icon-stack"
+          to={`/settings/${this.props.orgId}/integrations`}
+        >
           Set up Issue Tracking
         </AlertLink>
       );
