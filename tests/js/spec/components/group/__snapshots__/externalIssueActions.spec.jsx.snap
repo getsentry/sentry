@@ -33,7 +33,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
       }
     />
   }
-  hoverCardHeader="Linked GitHub Issue"
+  hoverCardHeader="Linked GitHub Integration"
   integrationName="Test Integration"
   integrationType="github"
   onClose={[Function]}
@@ -75,7 +75,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
         className="css-17m6soy-hoverCardStyles"
         containerClassName="css-1s8b4pt-hoverCardContainer"
         displayTimeout={100}
-        header="Linked GitHub Issue"
+        header="Linked GitHub Integration"
       >
         <span
           className="hovercard-container css-1s8b4pt-hoverCardContainer"
@@ -240,7 +240,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
         }
       />
     }
-    hoverCardHeader="Linked GitHub Issue"
+    hoverCardHeader="Linked GitHub Integration"
     integrationName="Test Integration"
     integrationType="github"
     onClose={[Function]}
@@ -276,7 +276,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           className="css-17m6soy-hoverCardStyles"
           containerClassName="css-1s8b4pt-hoverCardContainer"
           displayTimeout={100}
-          header="Linked GitHub Issue"
+          header="Linked GitHub Integration"
         >
           <span
             className="hovercard-container css-1s8b4pt-hoverCardContainer"
