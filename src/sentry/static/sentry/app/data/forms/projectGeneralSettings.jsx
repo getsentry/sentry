@@ -1,7 +1,9 @@
 import React from 'react';
+
 import {extractMultilineFields} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
+import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/:projectId/';
@@ -58,6 +60,7 @@ export const fields = {
     label: t('Name'),
     placeholder: t('my-service-name'),
     help: t('A unique ID used to identify this project'),
+    transformInput: slugify,
 
     saveOnBlur: false,
     saveMessageAlertType: 'info',

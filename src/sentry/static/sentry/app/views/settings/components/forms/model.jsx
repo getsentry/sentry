@@ -247,15 +247,22 @@ class FormModel {
 
   @action
   setValue(id, value) {
-    this.fields.set(id, value);
+    let fieldDescriptor = this.fieldDescriptor.get(id);
+    let finalValue = value;
+
+    if (fieldDescriptor && typeof fieldDescriptor.transformInput === 'function') {
+      finalValue = fieldDescriptor.transformInput(value);
+    }
+
+    this.fields.set(id, finalValue);
 
     if (this.options.onFieldChange) {
-      this.options.onFieldChange(id, value);
+      this.options.onFieldChange(id, finalValue);
     }
 
     this.validateField(id);
-    this.updateShowSaveState(id, value);
-    this.updateShowReturnButtonState(id, value);
+    this.updateShowSaveState(id, finalValue);
+    this.updateShowReturnButtonState(id, finalValue);
   }
 
   @action
