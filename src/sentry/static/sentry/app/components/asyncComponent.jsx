@@ -264,7 +264,8 @@ class AsyncComponent extends React.Component {
     // If all error responses have status code === 0, then show erorr message but don't
     // log it to sentry
     let shouldLogSentry =
-      !!Object.values(this.state.errors).find(resp => resp.status !== 0) || disableLog;
+      !!Object.values(this.state.errors).find(resp => resp && resp.status !== 0) ||
+      disableLog;
 
     if (unauthorizedErrors) {
       return (
