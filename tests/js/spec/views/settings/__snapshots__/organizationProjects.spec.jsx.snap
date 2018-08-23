@@ -249,7 +249,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               value=""
                             >
                               <input
-                                className="search css-1m7xmcf-Input-inputStyles e1xej46s0"
+                                className="search css-ybupf9-Input-inputStyles e1xej46s0"
                                 onChange={[Function]}
                                 placeholder="Search Projects"
                                 value=""
