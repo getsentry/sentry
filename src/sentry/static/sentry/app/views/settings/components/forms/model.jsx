@@ -253,13 +253,13 @@ class FormModel {
       this.options.onFieldChange(id, value);
     }
 
-    this.updateErrorState(id);
+    this.validateField(id);
     this.updateShowSaveState(id, value);
     this.updateShowReturnButtonState(id, value);
   }
 
   @action
-  updateErrorState(id) {
+  validateField(id) {
     let validate = this.getDescriptor(id, 'validate');
     let errors = [];
 
@@ -324,7 +324,7 @@ class FormModel {
    */
   @action
   saveForm() {
-    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.updateErrorState(id));
+    this.validateForm();
 
     if (this.isError) return null;
 
@@ -418,7 +418,7 @@ class FormModel {
       return null;
 
     // Check for error first
-    this.updateErrorState(id);
+    this.validateField(id);
     if (!this.isValidField(id)) return null;
 
     // shallow clone fields
@@ -579,7 +579,9 @@ class FormModel {
 
   // TODO: More validations
   @action
-  validate() {}
+  validateForm() {
+    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+  }
 
   @action
   handleErrorResponse({responseJSON: resp} = {}) {
