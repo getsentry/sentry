@@ -143,6 +143,8 @@ class DropdownAutoCompleteMenu extends React.Component {
   autoCompleteFilter = (items, inputValue) => {
     let itemCount = 0;
 
+    if (!items) return [];
+
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
@@ -151,9 +153,9 @@ class DropdownAutoCompleteMenu extends React.Component {
           ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
         ];
       });
-    } else {
-      return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
     }
+
+    return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
   };
 
   render() {
@@ -201,10 +203,15 @@ class DropdownAutoCompleteMenu extends React.Component {
           isOpen,
           actions,
         }) => {
-          // Only filter results if menu is open
+          // Only filter results if menu is open and there are items
           let autoCompleteResults =
-            (isOpen && this.autoCompleteFilter(items, inputValue)) || [];
+            (isOpen && items && this.autoCompleteFilter(items, inputValue)) || [];
+
+          // Can't search if there are no items
           let hasItems = items && !!items.length;
+
+          // Items are loading if null
+          let itemsLoading = items === null;
           let hasResults = !!autoCompleteResults.length;
           let showNoItems = !busy && !inputValue && !hasItems;
           // Results mean there was a search (i.e. inputValue)
@@ -231,6 +238,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                     menuWithArrow,
                   })}
                 >
+                  {itemsLoading && <LoadingIndicator mini />}
                   {hasItems && (
                     <Flex>
                       <StyledInput
