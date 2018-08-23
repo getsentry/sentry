@@ -19,6 +19,7 @@ import Aggregations from './aggregations';
 import Conditions from './conditions';
 import Result from './result';
 import Intro from './intro';
+import EarlyAdopterMessage from './earlyAdopterMessage';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
@@ -190,6 +191,7 @@ export default class OrganizationDiscover extends React.Component {
 
     return (
       <Discover className="organization-home">
+        <EarlyAdopterMessage />
         <Header
           p={2}
           justify="space-between"
