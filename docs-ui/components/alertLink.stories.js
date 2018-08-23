@@ -20,6 +20,9 @@ storiesOf('Links/AlertLink', module)
       <AlertLink to="/settings/account/notifications" priority="success" key="4">
         Gj you did it. Now go here.
       </AlertLink>,
+      <AlertLink to="/settings/account/notifications" priority="default" key="5">
+        I'm saying nothing, ok?
+      </AlertLink>,
     ])
   )
   .add(
@@ -51,6 +54,14 @@ storiesOf('Links/AlertLink', module)
         key="4"
       >
         Gj you did it. Now go here.
+      </AlertLink>,
+      <AlertLink
+        to="/settings/account/notifications"
+        icon="icon-generic-box"
+        priority="default"
+        key="5"
+      >
+        I'm saying nothing, ok?
       </AlertLink>,
     ])
   );

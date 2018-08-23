@@ -81,10 +81,14 @@ const theme = {
   },
 
   alert: {
-    info: {
+    default: {
       backgroundLight: '#FAF9FB',
-      border: '#9F92FA',
-      background: '#6C5FC7',
+      background: '#BDB4C7',
+      border: '#E2DBE8',
+    },
+    info: {
+      backgroundLight: '#F5FAFE',
+      border: '#B5D6ED',
     },
     attention: {
       backgroundLight: '#ECBFA6',

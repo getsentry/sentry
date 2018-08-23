@@ -307,6 +307,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "default": Object {
+                                                    "background": "#BDB4C7",
+                                                    "backgroundLight": "#FAF9FB",
+                                                    "border": "#E2DBE8",
+                                                  },
                                                   "error": Object {
                                                     "background": "#e03e2f",
                                                     "backgroundLight": "#FDF6F5",
@@ -316,8 +321,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   },
                                                   "info": Object {
                                                     "background": "#3B6ECC",
-                                                    "backgroundLight": "#FAF9FB",
-                                                    "border": "#9F92FA",
+                                                    "backgroundLight": "#F5FAFE",
+                                                    "border": "#B5D6ED",
                                                     "iconColor": "#3B6ECC",
                                                   },
                                                   "success": Object {
@@ -547,6 +552,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
                                                           },
+                                                          "default": Object {
+                                                            "background": "#BDB4C7",
+                                                            "backgroundLight": "#FAF9FB",
+                                                            "border": "#E2DBE8",
+                                                          },
                                                           "error": Object {
                                                             "background": "#e03e2f",
                                                             "backgroundLight": "#FDF6F5",
@@ -556,8 +566,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           },
                                                           "info": Object {
                                                             "background": "#3B6ECC",
-                                                            "backgroundLight": "#FAF9FB",
-                                                            "border": "#9F92FA",
+                                                            "backgroundLight": "#F5FAFE",
+                                                            "border": "#B5D6ED",
                                                             "iconColor": "#3B6ECC",
                                                           },
                                                           "success": Object {
@@ -1065,6 +1075,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "default": Object {
+                                                    "background": "#BDB4C7",
+                                                    "backgroundLight": "#FAF9FB",
+                                                    "border": "#E2DBE8",
+                                                  },
                                                   "error": Object {
                                                     "background": "#e03e2f",
                                                     "backgroundLight": "#FDF6F5",
@@ -1074,8 +1089,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   },
                                                   "info": Object {
                                                     "background": "#3B6ECC",
-                                                    "backgroundLight": "#FAF9FB",
-                                                    "border": "#9F92FA",
+                                                    "backgroundLight": "#F5FAFE",
+                                                    "border": "#B5D6ED",
                                                     "iconColor": "#3B6ECC",
                                                   },
                                                   "success": Object {
@@ -1305,6 +1320,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
                                                           },
+                                                          "default": Object {
+                                                            "background": "#BDB4C7",
+                                                            "backgroundLight": "#FAF9FB",
+                                                            "border": "#E2DBE8",
+                                                          },
                                                           "error": Object {
                                                             "background": "#e03e2f",
                                                             "backgroundLight": "#FDF6F5",
@@ -1314,8 +1334,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           },
                                                           "info": Object {
                                                             "background": "#3B6ECC",
-                                                            "backgroundLight": "#FAF9FB",
-                                                            "border": "#9F92FA",
+                                                            "backgroundLight": "#F5FAFE",
+                                                            "border": "#B5D6ED",
                                                             "iconColor": "#3B6ECC",
                                                           },
                                                           "success": Object {
@@ -2515,6 +2535,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "default": Object {
+                                                    "background": "#BDB4C7",
+                                                    "backgroundLight": "#FAF9FB",
+                                                    "border": "#E2DBE8",
+                                                  },
                                                   "error": Object {
                                                     "background": "#e03e2f",
                                                     "backgroundLight": "#FDF6F5",
@@ -2524,8 +2549,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   },
                                                   "info": Object {
                                                     "background": "#3B6ECC",
-                                                    "backgroundLight": "#FAF9FB",
-                                                    "border": "#9F92FA",
+                                                    "backgroundLight": "#F5FAFE",
+                                                    "border": "#B5D6ED",
                                                     "iconColor": "#3B6ECC",
                                                   },
                                                   "success": Object {
@@ -2755,6 +2780,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
                                                           },
+                                                          "default": Object {
+                                                            "background": "#BDB4C7",
+                                                            "backgroundLight": "#FAF9FB",
+                                                            "border": "#E2DBE8",
+                                                          },
                                                           "error": Object {
                                                             "background": "#e03e2f",
                                                             "backgroundLight": "#FDF6F5",
@@ -2764,8 +2794,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           },
                                                           "info": Object {
                                                             "background": "#3B6ECC",
-                                                            "backgroundLight": "#FAF9FB",
-                                                            "border": "#9F92FA",
+                                                            "backgroundLight": "#F5FAFE",
+                                                            "border": "#B5D6ED",
                                                             "iconColor": "#3B6ECC",
                                                           },
                                                           "success": Object {
@@ -3239,6 +3269,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "default": Object {
+                                                    "background": "#BDB4C7",
+                                                    "backgroundLight": "#FAF9FB",
+                                                    "border": "#E2DBE8",
+                                                  },
                                                   "error": Object {
                                                     "background": "#e03e2f",
                                                     "backgroundLight": "#FDF6F5",
@@ -3248,8 +3283,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   },
                                                   "info": Object {
                                                     "background": "#3B6ECC",
-                                                    "backgroundLight": "#FAF9FB",
-                                                    "border": "#9F92FA",
+                                                    "backgroundLight": "#F5FAFE",
+                                                    "border": "#B5D6ED",
                                                     "iconColor": "#3B6ECC",
                                                   },
                                                   "success": Object {
@@ -3479,6 +3514,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
                                                           },
+                                                          "default": Object {
+                                                            "background": "#BDB4C7",
+                                                            "backgroundLight": "#FAF9FB",
+                                                            "border": "#E2DBE8",
+                                                          },
                                                           "error": Object {
                                                             "background": "#e03e2f",
                                                             "backgroundLight": "#FDF6F5",
@@ -3488,8 +3528,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           },
                                                           "info": Object {
                                                             "background": "#3B6ECC",
-                                                            "backgroundLight": "#FAF9FB",
-                                                            "border": "#9F92FA",
+                                                            "backgroundLight": "#F5FAFE",
+                                                            "border": "#B5D6ED",
                                                             "iconColor": "#3B6ECC",
                                                           },
                                                           "success": Object {

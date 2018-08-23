@@ -11,7 +11,8 @@ export default class AlertLink extends React.Component {
     to: PropTypes.string,
     href: PropTypes.string,
     icon: PropTypes.string,
-    priority: PropTypes.string,
+    priority: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'default']),
+    size: PropTypes.oneOf(['small', 'normal']),
   };
 
   static defaultProps = {
@@ -19,11 +20,11 @@ export default class AlertLink extends React.Component {
   };
 
   render() {
-    let {icon, children} = this.props;
+    let {icon, children, size} = this.props;
 
     return (
       <StyledLink {...this.props}>
-        {icon && <StyledInlineSvg src={icon} size="1.5em" />}
+        {icon && <StyledInlineSvg src={icon} size="1.5em" spacingSize={size} />}
         <AlertLinkText>{children}</AlertLinkText>
         <InlineSvg src="icon-chevron-right" size="1em" />
       </StyledLink>
@@ -37,7 +38,7 @@ const StyledLink = styled(Link)`
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
-  padding: ${space(2)};
+  padding: ${p => (p.size == 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
   margin-bottom: ${space(3)};
   border-radius: 0.25em;
   transition: 0.2s border-color;
@@ -52,5 +53,5 @@ const AlertLinkText = styled('div')`
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 0.75em;
+  margin-right: ${p => (p.spacingSize == 'small' ? space(1) : space(1.5))};
 `;

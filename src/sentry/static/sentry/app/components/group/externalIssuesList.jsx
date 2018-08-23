@@ -25,8 +25,9 @@ class ExternalIssueList extends AsyncComponent {
     if (!integrations || !integrations.length)
       return (
         <AlertLink
-          priority="info"
-          icon="icon-stack"
+          icon="icon-generic-box"
+          priority="default"
+          size="small"
           to={`/settings/${this.props.orgId}/integrations`}
         >
           Set up Issue Tracking
