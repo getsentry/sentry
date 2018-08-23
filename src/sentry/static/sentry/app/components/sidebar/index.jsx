@@ -12,6 +12,7 @@ import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
+import Feature from 'app/components/feature';
 import SentryTypes from 'app/sentryTypes';
 import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
@@ -166,9 +167,6 @@ class Sidebar extends React.Component {
     };
     let hasOrganization = !!organization;
 
-    let hasDiscoverFeature =
-      hasOrganization && new Set(organization.features).has('discover');
-
     return (
       <StyledSidebar
         innerRef={ref => (this.sidebar = ref)}
@@ -197,7 +195,7 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
-                {hasDiscoverFeature && (
+                <Feature feature={['discover']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
@@ -205,7 +203,7 @@ class Sidebar extends React.Component {
                     label={t('Discover')}
                     to={`/organizations/${organization.slug}/discover/`}
                   />
-                )}
+                </Feature>
               </SidebarSection>
 
               <SidebarSection>
