@@ -76,6 +76,7 @@ def test_consumer_start_from_partition_start():
             consumer_group='consumer-{}'.format(uuid.uuid1().hex),
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         assignments_received = []
@@ -173,6 +174,7 @@ def test_consumer_start_from_committed_offset():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         assignments_received = []
@@ -275,6 +277,7 @@ def test_consumer_rebalance_from_partition_start():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         assignments_received = defaultdict(list)
@@ -302,6 +305,7 @@ def test_consumer_rebalance_from_partition_start():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         consumer_b.subscribe([topic], on_assign=on_assign)
@@ -407,6 +411,7 @@ def test_consumer_rebalance_from_committed_offset():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         assignments_received = defaultdict(list)
@@ -434,6 +439,7 @@ def test_consumer_rebalance_from_committed_offset():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         consumer_b.subscribe([topic], on_assign=on_assign)
@@ -541,6 +547,7 @@ def test_consumer_rebalance_from_uncommitted_offset():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         assignments_received = defaultdict(list)
@@ -584,6 +591,7 @@ def test_consumer_rebalance_from_uncommitted_offset():
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset='earliest',
         )
 
         consumer_b.subscribe([topic], on_assign=on_assign)
