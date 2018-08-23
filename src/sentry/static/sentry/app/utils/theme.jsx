@@ -82,8 +82,9 @@ const theme = {
 
   alert: {
     info: {
-      backgroundLight: '#F5FAFE',
-      border: '#B5D6ED',
+      backgroundLight: '#FAF9FB',
+      border: '#9F92FA',
+      background: '#6C5FC7',
     },
     attention: {
       backgroundLight: '#ECBFA6',
@@ -94,7 +95,6 @@ const theme = {
       backgroundLight: '#FFFDF7',
       background: '#f9a66d',
       border: '#E1D697',
-      textDark: '#302839',
     },
     success: {
       backgroundLight: '#F8FCF7',
@@ -105,7 +105,6 @@ const theme = {
       backgroundLight: '#FDF6F5',
       border: '#E7C0BC',
       textLight: '#92635f',
-      textDark: '#302839',
     },
   },
 

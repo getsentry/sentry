@@ -35,7 +35,7 @@ const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
-  color: ${p => p.theme.alert[p.priority].textDark};
+  color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
   padding: ${space(2)};
   margin-bottom: ${space(3)};
