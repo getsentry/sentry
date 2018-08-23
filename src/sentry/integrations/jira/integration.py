@@ -11,7 +11,7 @@ from django.utils.translation import ugettext as _
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 )
-from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, OrganizationIntegration
 from sentry.utils.http import absolute_uri
@@ -277,6 +277,13 @@ class JiraIntegration(Integration, IssueSyncMixin):
             message += ' '.join(['%s: %s' % (k, v) for k, v in data.get('errors').items()])
         return message
 
+    def error_fields_from_json(self, data):
+        errors = data.get('errors')
+        if not errors:
+            return None
+
+        return {key: [error] for key, error in data.get('errors').items()}
+
     def build_dynamic_field(self, group, field_meta):
         """
         Builds a field based on Jira's meta field information
@@ -443,11 +450,11 @@ class JiraIntegration(Integration, IssueSyncMixin):
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
         if not data.get('issuetype'):
-            raise IntegrationError('Issue Type is required.')
+            raise IntegrationFormError({'issuetype': ['Issue type is required.']})
 
         jira_project = data.get('project')
         if not jira_project:
-            raise IntegrationError('Jira project is required.')
+            raise IntegrationFormError({'project': ['Jira project is required']})
 
         meta = client.get_create_meta_for_project(jira_project)
 
