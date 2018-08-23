@@ -180,9 +180,10 @@ const GuideStore = Reflux.createStore({
     // Logic to determine if a guide is shown:
     // 1. If any required target is missing, don't show the guide.
     // 2. If the URL ends with #assistant, show the guide.
-    // 3. If the user has seen the guide, don't show it.
-    // 4. If the guide doesn't pass custom checks, don't show it.
-    // 5. Otherwise show the guide.
+    // 3. If the user isn't in the A/B test, don't show the guide.
+    // 4. If the user has seen the guide, don't show it.
+    // 5. If the guide doesn't pass custom checks, don't show it.
+    // 6. Otherwise show the guide.
 
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
     // sort() so that we pick a guide deterministically every time this function is called.
@@ -195,7 +196,12 @@ const GuideStore = Reflux.createStore({
       });
 
     if (!this.state.forceShow) {
-      guideKeys = guideKeys.filter(key => !this.state.guides[key].seen);
+      let features = ConfigStore.get('features');
+      if (features && features.has('assistant')) {
+        guideKeys = guideKeys.filter(key => !this.state.guides[key].seen);
+      } else {
+        guideKeys = [];
+      }
     }
 
     // Pick the first guide that satisfies conditions.
