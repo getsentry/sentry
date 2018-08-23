@@ -43,7 +43,7 @@ class CommandPaletteModal extends React.Component {
       <Body>
         <Search
           {...this.props}
-          source="command_palette"
+          entryPoint="command_palette"
           minSearch={1}
           maxResults={10}
           dropdownStyle={dropdownStyle}

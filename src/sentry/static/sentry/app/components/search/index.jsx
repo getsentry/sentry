@@ -13,13 +13,19 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 import SearchSources from 'app/components/search/sources';
+import ApiSource from 'app/components/search/sources/apiSource';
+import CommandSource from 'app/components/search/sources/commandSource';
+import FormSource from 'app/components/search/sources/formSource';
+import RouteSource from 'app/components/search/sources/routeSource';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // "Omni" search
 class Search extends React.Component {
   static propTypes = {
     // For analytics
-    source: PropTypes.oneOf(['settings_search', 'command_palette']).isRequired,
+    entryPoint: PropTypes.oneOf(['settings_search', 'command_palette']).isRequired,
+
+    sources: PropTypes.array.isRequired,
 
     router: PropTypes.object,
     /**
@@ -59,16 +65,17 @@ class Search extends React.Component {
         <SearchResult highlighted={highlighted} item={item} matches={matches} />
       </SearchResultWrapper>
     ),
+    sources: [ApiSource, FormSource, RouteSource, CommandSource],
   };
 
   componentDidMount() {
-    analytics(`${this.props.source}.open`);
+    analytics(`${this.props.entryPoint}.open`);
   }
 
   handleSelect = (item, state) => {
     if (!item) return;
 
-    analytics(`${this.props.source}.select`, {query: state && state.inputValue});
+    analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
 
     let {to, action} = item;
 
@@ -89,7 +96,7 @@ class Search extends React.Component {
 
   saveQueryMetrics = debounce(query => {
     if (!query) return;
-    analytics(`${this.props.source}.query`, {query});
+    analytics(`${this.props.entryPoint}.query`, {query});
   }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
@@ -130,6 +137,7 @@ class Search extends React.Component {
       minSearch,
       maxResults,
       renderInput,
+      sources,
     } = this.props;
 
     return (
@@ -163,6 +171,7 @@ class Search extends React.Component {
                   searchOptions={searchOptions}
                   query={searchQuery}
                   params={params}
+                  sources={sources}
                 >
                   {({isLoading, results, hasAnyResults}) => (
                     <DropdownBox css={dropdownStyle}>
