@@ -25,20 +25,17 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if project_ids:
             for project in Project.objects.filter(pk__in=project_ids):
                 projects[six.text_type(project.id)] = (
-                    project, config.get_project_options(project, with_org=False))
+                    project, config.get_project_options(project))
                 orgs.add(project.organization_id)
 
-        # In the second iteration we now fetch all organization configs.
-        # This also wipes projects from the list where the relay does not
-        # have access to.
+        # In the second iteration we check if the project has access to
+        # the org at all.
         if orgs:
             orgs = {o.id: o for o in Organization.objects.filter(pk__in=orgs)}
             for (project, cfg) in list(projects.values()):
                 org = orgs.get(project.organization_id)
                 if org is None or not request.relay.has_org_access(org):
                     projects.pop(six.text_type(project.id))
-                else:
-                    cfg.update(config.get_organization_options(org))
 
         # Fill in configs that we failed the access check for or don't
         # exist.
