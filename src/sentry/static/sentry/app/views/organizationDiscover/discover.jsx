@@ -47,6 +47,12 @@ export default class OrganizationDiscover extends React.Component {
     this.forceUpdate();
   };
 
+  updateFields = query => {
+    Object.entries(query).forEach(([field, value]) => {
+      this.updateField(field, value);
+    });
+  };
+
   runQuery = () => {
     const {queryBuilder, organization} = this.props;
     // Strip any invalid conditions and aggregations
@@ -275,7 +281,7 @@ export default class OrganizationDiscover extends React.Component {
             {result && (
               <Result data={result} chartData={chartData} chartQuery={chartQuery} />
             )}
-            {!result && <Intro />}
+            {!result && <Intro updateQuery={this.updateFields} />}
           </Box>
         </Flex>
       </Discover>
