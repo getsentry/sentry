@@ -48,7 +48,7 @@ from six.moves.urllib.parse import urlencode
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
-    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
+    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME, ORG_ID as SU_ORG_ID
 )
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
@@ -148,16 +148,19 @@ class BaseTestCase(Fixtures, Exam):
         request.user = user
 
         if organization_ids is None:
-            organization_ids = []
-        if superuser and superuser_sso is None:
-            if superuser.ORG_ID:
-                organization_ids.append(superuser.ORG_ID)
+            organization_ids = set()
+        else:
+            organization_ids = set(organization_ids)
+        if superuser and superuser_sso is not False:
+            if SU_ORG_ID:
+                organization_ids.add(SU_ORG_ID)
         if organization_id:
-            organization_ids.append(organization_id)
+            organization_ids.add(organization_id)
 
+        # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
             request.session[SSO_SESSION_KEY] = ','.join(
-                six.text_type(o) for o in set(organization_ids))
+                six.text_type(o) for o in organization_ids)
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing

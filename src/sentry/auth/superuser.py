@@ -88,18 +88,21 @@ class Superuser(object):
         return self._is_active
 
     def is_privileged_request(self):
+        """
+        Returns ``(bool is_privileged, str reason)``
+        """
         allowed_ips = self.allowed_ips
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
-            return False
+            return False, 'incomplete-sso'
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
-            return True
+            return True, None
         ip = ipaddress.ip_address(six.text_type(self.request.META['REMOTE_ADDR']))
         if not any(ip in addr for addr in allowed_ips):
-            return False
-        return True
+            return False, 'invalid-ip'
+        return True, None
 
     def get_session_data(self, current_datetime=None):
         """
@@ -221,10 +224,16 @@ class Superuser(object):
             )
 
             if not self.is_active:
-                logger.warn('superuser.invalid-ip', extra={
-                    'ip_address': request.META['REMOTE_ADDR'],
-                    'user_id': request.user.id,
-                })
+                if self._inactive_reason:
+                    logger.warn('superuser.{}'.format(self._inactive_reason), extra={
+                        'ip_address': request.META['REMOTE_ADDR'],
+                        'user_id': request.user.id,
+                    })
+                else:
+                    logger.warn('superuser.inactive-unknown-reason', extra={
+                        'ip_address': request.META['REMOTE_ADDR'],
+                        'user_id': request.user.id,
+                    })
 
     def _set_logged_in(self, expires, token, user, current_datetime=None):
         # we bind uid here, as if you change users in the same request
@@ -240,7 +249,7 @@ class Superuser(object):
         # do we have a valid superuser session?
         self.is_valid = True
         # is the session active? (it could be valid, but inactive)
-        self._is_active = self.is_privileged_request()
+        self._is_active, self._inactive_reason = self.is_privileged_request()
         self.request.session[SESSION_KEY] = {
             'exp': self.expires.strftime('%s'),
             'idl': (current_datetime + IDLE_MAX_AGE).strftime('%s'),
@@ -254,6 +263,7 @@ class Superuser(object):
         self.expires = None
         self.token = None
         self._is_active = False
+        self._inactive_reason = None
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
