@@ -14,7 +14,7 @@ class HealthRequestWithParams extends React.Component {
     /**
      * API client instance
      */
-    api: PropTypes.object,
+    api: PropTypes.object.isRequired,
 
     organization: SentryTypes.Organization.isRequired,
 
@@ -110,25 +110,21 @@ class HealthRequestWithParams extends React.Component {
     const timestampMap = new Map();
 
     data.forEach(([timestamp, resultsForTimestamp]) => {
-      if (!resultsForTimestamp.length) {
-        return;
-      }
-
-      resultsForTimestamp.forEach(({count, [tag]: name}) => {
-        categorySet.add(getCategory(name));
-        timestampMap.set(`${timestamp}-${getCategory(name)}`, count);
-      });
+      resultsForTimestamp &&
+        !!resultsForTimestamp.length &&
+        resultsForTimestamp.forEach(({count, [tag]: name}) => {
+          categorySet.add(getCategory(name));
+          timestampMap.set(`${timestamp}-${getCategory(name)}`, count);
+        });
     });
 
     return Array.from(categorySet).map(seriesName => {
       return {
         seriesName,
-        data: data.map(([timestamp]) => {
-          return {
-            name: timestamp * 1000,
-            value: timestampMap.get(`${timestamp}-${seriesName}`) || 0,
-          };
-        }),
+        data: data.map(([timestamp]) => ({
+          name: timestamp * 1000,
+          value: timestampMap.get(`${timestamp}-${seriesName}`) || 0,
+        })),
       };
     });
   };
