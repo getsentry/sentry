@@ -74,7 +74,7 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
         return GitHubAppsClient(integration=self.model)
 
-    def get_repositories(self, query):
+    def get_repositories(self, query=None):
         if not query:
             return [{
                 'name': i['name'],
