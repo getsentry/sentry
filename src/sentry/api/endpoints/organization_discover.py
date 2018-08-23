@@ -10,6 +10,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
 from sentry import roles
+from sentry import features
 
 
 class OrganizationDiscoverPermission(OrganizationPermission):
@@ -122,6 +123,10 @@ class OrganizationDiscoverEndpoint(OrganizationEndpoint):
         return snuba_results
 
     def post(self, request, organization):
+
+        if not features.has('organizations:discover', organization, actor=request.user):
+            return self.respond(status=404)
+
         serializer = DiscoverSerializer(
             data=request.DATA, context={
                 'organization': organization, 'user': request.user})
