@@ -22,7 +22,12 @@ class ExternalIssueList extends AsyncComponent {
 
   renderIntegrationIssues(integrations) {
     const {group} = this.props;
-    if (!integrations || !integrations.length)
+    //chriss todo before review: make this better
+    if (
+      !integrations ||
+      !integrations.length ||
+      !integrations.filter(integration => integration.status === 'active').length
+    )
       return (
         <AlertLink
           icon="icon-generic-box"

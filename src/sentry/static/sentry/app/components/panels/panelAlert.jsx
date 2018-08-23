@@ -15,6 +15,7 @@ const DEFAULT_ICONS = {
 const PanelAlert = styled(({type, icon, ...props}) => (
   <Alert {...props} icon={icon || DEFAULT_ICONS[type]} type={type} />
 ))`
+  margin-bottom: ${p => p.mb || 0};
   border-radius: 0;
 `;
 
