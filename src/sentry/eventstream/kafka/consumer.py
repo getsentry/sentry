@@ -5,6 +5,7 @@ import logging
 import threading
 import uuid
 
+from concurrent.futures import TimeoutError
 from confluent_kafka import Consumer, OFFSET_BEGINNING, TopicPartition
 
 from sentry.eventstream.kafka.state import SynchronizedPartitionState, SynchronizedPartitionStateManager
@@ -22,7 +23,9 @@ def get_commit_data(message):
 
 
 def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
-                            partition_state_manager, synchronize_commit_group, stop_request_event):
+                            partition_state_manager, synchronize_commit_group, start_event, stop_request_event):
+    start_event.set()
+
     logging.debug('Starting commit log consumer...')
 
     positions = {}
@@ -156,12 +159,13 @@ class SynchronizedConsumer(object):
 
         self.__consumer = Consumer(consumer_configuration)
 
-    def __start_commit_log_consumer(self):
+    def __start_commit_log_consumer(self, timeout=None):
         """
         Starts running the commit log consumer.
         """
         stop_request_event = threading.Event()
-        return execute(
+        start_event = threading.Event()
+        result = execute(
             functools.partial(
                 run_commit_log_consumer,
                 bootstrap_servers=self.bootstrap_servers,
@@ -169,9 +173,21 @@ class SynchronizedConsumer(object):
                 commit_log_topic=self.commit_log_topic,
                 synchronize_commit_group=self.synchronize_commit_group,
                 partition_state_manager=self.__partition_state_manager,
+                start_event=start_event,
                 stop_request_event=stop_request_event,
             ),
-        ), stop_request_event
+        )
+        start_event.wait(timeout)
+        return result, stop_request_event
+
+    def __check_commit_log_consumer_running(self):
+        if not self.__commit_log_consumer.running():
+            try:
+                result = self.__commit_log_consumer.result(timeout=0)  # noqa
+            except TimeoutError:
+                pass  # not helpful
+
+            raise Exception('Commit log consumer unexpectedly exit!')
 
     def __on_partition_state_change(
             self, topic, partition, previous_state_and_offsets, current_state_and_offsets):
@@ -204,6 +220,8 @@ class SynchronizedConsumer(object):
         """
         Subscribe to a topic.
         """
+        self.__check_commit_log_consumer_running()
+
         def assignment_callback(consumer, assignment):
             # Since ``auto.offset.reset`` is set to ``error`` to force human
             # interaction on an offset reset, we have to explicitly specify the
@@ -245,9 +263,7 @@ class SynchronizedConsumer(object):
             on_revoke=revocation_callback)
 
     def poll(self, timeout):
-        if not self.__commit_log_consumer.running():
-            result = self.__commit_log_consumer.result(timeout=0)  # noqa
-            raise Exception('Commit log consumer unexpectedly exit!')
+        self.__check_commit_log_consumer_running()
 
         message = self.__consumer.poll(timeout)
         if message is None:
@@ -265,9 +281,13 @@ class SynchronizedConsumer(object):
         return message
 
     def commit(self, *args, **kwargs):
+        self.__check_commit_log_consumer_running()
+
         return self.__consumer.commit(*args, **kwargs)
 
     def close(self):
+        self.__check_commit_log_consumer_running()
+
         self.__commit_log_consumer_stop_request.set()
         try:
             self.__consumer.close()
