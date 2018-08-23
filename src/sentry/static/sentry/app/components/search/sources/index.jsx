@@ -45,6 +45,9 @@ class SearchSources extends React.Component {
     return (
       <Source {...this.props}>
         {args => {
+          // Mutate the array instead of pushing because we don't know how often
+          // this child function will be called and pushing will cause duplicate
+          // results to be pushed for all calls down the chain.
           results[idx] = args;
           return this.renderSources(sources, results, idx + 1);
         }}
