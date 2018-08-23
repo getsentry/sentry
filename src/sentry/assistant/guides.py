@@ -20,6 +20,12 @@ from django.utils.translation import ugettext_lazy as _
 #                          otherwise the anchor will be pinged and scrolled to. If you'd like
 #                          your step to show always or have a step is not tied to a specific
 #                          element but you'd still like it to be shown, set this as None.
+# guide_type (text, optional): "guide" or "tip" (defaults to guide). If it's a tip, the cue won't
+#     be shown, and you should also specify the fields "cta_text" and "cta_link", which would
+#     replace the "Was this guide useful" message at the end with the CTA and a dismiss button.
+# cta_text (text, conditional): CTA button text on the last step of a tip. Must be present if
+#     guide_type = tip.
+# cta_link (text, conditional): Where the CTA button points to. Must be present if guide_type = tip.
 
 GUIDES = {
     'issue': {
@@ -151,34 +157,6 @@ GUIDES = {
             },
         ]
     },
-    'members': {
-        'id': 4,
-        'cue': _('Tips for inviting your team'),
-        'required_targets': ['member_add'],
-        'steps': [
-            {
-                'title': _('Fix issues faster, together'),
-                'message': _('Sentry isn\'t logs. It\'s about shipping faster by immediately '
-                             'alerting, triaging, and assigning issues to the right engineer.'),
-                'target': 'member_add',
-            },
-            {
-                'title': _('Status'),
-                'message': _('You can enforce <a href="/settings/${orgSlug}/#require2FA">2-factor auth</a> or '
-                             '<a href="/settings/${orgSlug}/auth/">SSO</a> across your organization. Status lets you see '
-                             'which members haven\'t configured them yet.'),
-                'target': 'member_status',
-            },
-            {
-                'title': _('Roles'),
-                'message': _('Consider having two owners, in case one person\'s out, and you '
-                             'need to adjust billing or a new hire.<br><br>'
-                             'Add finance as a billing member. They\'ll get access to '
-                             'invoices, so they won\'t email you for receipts.'),
-                'target': 'member_role',
-            },
-        ]
-    },
     # Ideally, this would only be sent if the organization has never
     # customized alert rules (as per FeatureAdoption)
     'alert_rules': {
@@ -187,40 +165,44 @@ GUIDES = {
         'required_targets': ['alert_conditions'],
         'steps': [
             {
-                'title': _('Reduce inbox noise'),
-                'message': _('Sentry, by default, alerts on every <i>new</i> issue via email. '
-                             'If that\'s too noisy, sending the new issue alerts to '
-                             'a service like Slack help reduce inbox noise.<br><br> Enabling '
-                             '<a href="https://sentry.io/settings/account/notifications/#weeklyReports" target="_blank">'
+                'title': _('Reduce Inbox Noise'),
+                'message': _('Sentry, by default, alerts on every new issue via email. '
+                             'If that\'s too noisy, send the alerts to a service like Slack to '
+                             'reduce inbox noise.<br><br> Enabling <a href="https://sentry.io/settings/account/notifications/#weeklyReports" target="_blank">'
                              'weekly reports</a> can also help you stay on top of issues without '
                              'getting overwhelmed.'),
                 'target': 'alert_conditions',
             },
             {
-                'title': _('Define priority alerts'),
-                'message': _('Not all alerts are created equal. Create rules for frequently occuring errors or specific '
-                             'tags to escalate critical issues by alerting you via email or PagerDuty.<br><br>'
-                             '<a href="https://blog.sentry.io/2017/10/12/proactive-alert-rules" target="_blank">Learn more</a> '
-                             'about wrangling alerts.'),
+                'title': _('Prioritize Alerts'),
+                'message': _('Not all alerts are equally important. Send the important ones to a '
+                             'service like PagerDuty. <a href="https://blog.sentry.io/2017/10/12/proactive-alert-rules" target="_blank">Learn more</a> '
+                             'about prioritizing alerts.'),
                 'target': 'alert_actions',
             },
             {
-                'title': _('Fine-tune your personal settings'),
-                'message': _('You can control alerts at the project <em>and</em> the user level. '
-                             'If you\'d like to customize your <i>personal</i> alert settings, '
-                             'go to <a href="/account/settings/notifications/" target="_blank">Account Notifications</a>. '
-                             'There, you can choose which project\'s alert or workflow notifications you\'d like to receive.'),
-                'target': None,
-            },
-            {
-                'title': _('What are legacy integrations?'),
-                'message': _('You can see what integrations are legacy or not in '
-                             '<a href="/settings/${orgSlug}/${projectSlug}/plugins/" target="_blank">integration settings</a>. '
-                             'If you want an alert rule to trigger both legacy and global '
-                             'integrations, you need to add both as actions. '
-                             '<a href="https://help.sentry.io/hc/en-us/articles/360003063454" target="_blank">Learn more</a>.'),
+                'title': _('Fine-tune notifications'),
+                'message': _('You can control alerts both at the project and the user level. '
+                             'Go to <a href="/account/settings/notifications/" target="_blank">Account Notifications</a> '
+                             'to choose which project\'s alert or workflow notifications you\'d like to receive.'),
                 'target': None,
             },
         ],
+    },
+    'alert_reminder_1': {
+        'id': 6,
+        'guide_type': 'tip',
+        'required_targets': ['project_details'],
+        'steps': [
+            {
+                'title': _('Alert Rules'),
+                'message': _('This project received ${numEvents} events in the last 30 days but doesn\'t have '
+                             'custom alerts. Customizing alerts gives you more control over how you get '
+                             'notified of issues. Learn more <a href="https://sentry.io/_/resources/customer-success/alert-rules/?referrer=assistant" target="_blank">here</a>.'),
+                'target': 'project_details',
+            },
+        ],
+        'cta_text': _('Customize Alerts'),
+        'cta_link': '/settings/${orgSlug}/${projectSlug}/alerts/rules/',
     },
 }

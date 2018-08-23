@@ -9,6 +9,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import ProjectHeader from 'app/components/projectHeader';
 import ProjectState from 'app/mixins/projectState';
 import withEnvironment from 'app/utils/withEnvironment';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 const ProjectDetailsLayout = createReactClass({
   displayName: 'ProjectDetailsLayout',
@@ -49,6 +50,7 @@ const ProjectDetailsLayout = createReactClass({
 
     return (
       <React.Fragment>
+        <GuideAnchor target="project_details" type="invisible" />
         <ProjectHeader
           activeSection={this.state.projectNavSection}
           project={this.context.project}

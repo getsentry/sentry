@@ -117,8 +117,10 @@ exports[`GuideDrawer renders next step 1`] = `
           priority="success"
           size="small"
         >
-          Yes
-             ✔
+          <span>
+            Yes
+               ✔
+          </span>
         </Button>
         <Button
           disabled={false}
@@ -131,8 +133,69 @@ exports[`GuideDrawer renders next step 1`] = `
             }
           }
         >
-          No
-             ✖
+          <span>
+            No
+               ✖
+          </span>
+        </Button>
+      </div>
+    </div>
+  </StyledContent>
+</GuideContainer>
+`;
+
+exports[`GuideDrawer renders tip 1`] = `
+<GuideContainer>
+  <GuideInputRow>
+    <CueIcon
+      hasGuide={true}
+    />
+    <StyledTitle>
+      1. Title 1
+    </StyledTitle>
+  </GuideInputRow>
+  <StyledContent>
+    <div
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "Message 1 56",
+        }
+      }
+    />
+    <div
+      style={
+        Object {
+          "marginTop": "1em",
+        }
+      }
+    >
+      <div
+        style={
+          Object {
+            "textAlign": "center",
+          }
+        }
+      >
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          priority="success"
+          size="small"
+        >
+          cta_text
+        </Button>
+        <Button
+          disabled={false}
+          onClick={[Function]}
+          priority="success"
+          size="small"
+          style={
+            Object {
+              "marginLeft": "0.25em",
+            }
+          }
+        >
+          Dismiss
         </Button>
       </div>
     </div>
