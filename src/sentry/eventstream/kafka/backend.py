@@ -85,12 +85,13 @@ class KafkaEventStream(EventStream):
             raise
 
     def relay(self, consumer_group, commit_log_topic,
-              synchronize_commit_group, commit_batch_size=100):
+              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
         consumer = SynchronizedConsumer(
             bootstrap_servers=self.producer_configuration['bootstrap.servers'],
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset=initial_offset_reset,
         )
 
         consumer.subscribe([self.publish_topic])

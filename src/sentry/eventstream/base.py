@@ -38,5 +38,5 @@ class EventStream(Service):
             )
 
     def relay(self, consumer_group, commit_log_topic,
-              synchronize_commit_group, commit_batch_size=100):
+              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
         raise RelayNotRequired

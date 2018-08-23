@@ -83,6 +83,16 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
         partition_state_manager.set_remote_offset(topic, partition, offset)
 
 
+def get_earliest_offset(consumer, topic, partition):
+    low, high = consumer.get_watermark_offsets(TopicPartition(topic, partition))
+    return low
+
+
+def get_latest_offset(consumer, topic, partition):
+    low, high = consumer.get_watermark_offsets(TopicPartition(topic, partition))
+    return high
+
+
 class SynchronizedConsumer(object):
     """
     This class implements the framework for a consumer that is intended to only
@@ -109,13 +119,18 @@ class SynchronizedConsumer(object):
     implementation here tries to pause consuming from the partition as soon as
     possible, but this makes no explicit guarantees about that behavior.)
     """
+    initial_offset_reset_strategies = {
+        'earliest': get_earliest_offset,
+        'latest': get_latest_offset,
+    }
 
     def __init__(self, bootstrap_servers, consumer_group, commit_log_topic,
-                 synchronize_commit_group, on_commit=None):
+                 synchronize_commit_group, initial_offset_reset, on_commit=None):
         self.bootstrap_servers = bootstrap_servers
         self.consumer_group = consumer_group
         self.commit_log_topic = commit_log_topic
         self.synchronize_commit_group = synchronize_commit_group
+        self.initial_offset_reset = self.initial_offset_reset_strategies[initial_offset_reset]
 
         self.__partition_state_manager = SynchronizedPartitionStateManager(
             self.__on_partition_state_change)
@@ -185,10 +200,6 @@ class SynchronizedConsumer(object):
         else:
             raise NotImplementedError('Unexpected partition state: %s' % (current_state,))
 
-    def __get_initial_offset(self, topic, partition):
-        low, high = self.__consumer.get_watermark_offsets(TopicPartition(topic, partition))
-        return low
-
     def subscribe(self, topics, on_assign=None, on_revoke=None):
         """
         Subscribe to a topic.
@@ -208,7 +219,7 @@ class SynchronizedConsumer(object):
                 if i.offset > -1:
                     assignment[k] = i.offset
                 else:
-                    assignment[k] = self.__get_initial_offset(i.topic, i.partition)
+                    assignment[k] = self.initial_offset_reset(consumer, i.topic, i.partition)
 
             self.__consumer.assign([TopicPartition(topic, partition, offset)
                                     for (topic, partition), offset in assignment.items()])

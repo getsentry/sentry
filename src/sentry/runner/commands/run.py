@@ -262,6 +262,8 @@ def cron(**options):
               help='Consumer group that the Snuba writer is committing its offset as.')
 @click.option('--commit-batch-size', default=1000, type=int,
               help='How many messages to process (may or may not result in an enqueued task) before committing offsets.')
+@click.option('--initial-offset-reset', default='latest', type=click.Choice(['earliest', 'latest']),
+              help='Position in the commit log topic to begin reading from when no prior offset has been recorded.')
 @log_options()
 @configuration
 def relay(**options):
@@ -273,6 +275,7 @@ def relay(**options):
             commit_log_topic=options['commit_log_topic'],
             synchronize_commit_group=options['synchronize_commit_group'],
             commit_batch_size=options['commit_batch_size'],
+            initial_offset_reset=options['initial_offset_reset'],
         )
     except RelayNotRequired:
         sys.stdout.write(
