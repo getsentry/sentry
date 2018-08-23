@@ -130,7 +130,7 @@ describe('OrganizationIntegrations', function() {
     describe('with matching plugins installed', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/`,
-        body: [githubIntegration, jiraIntegration],
+        body: [githubIntegration],
       });
       Client.addMockResponse({
         url: `/organizations/${org.slug}/config/integrations/`,
@@ -141,6 +141,10 @@ describe('OrganizationIntegrations', function() {
         body: [
           {
             slug: 'github',
+            enabled: true,
+          },
+          {
+            slug: 'jira',
             enabled: true,
           },
         ],
@@ -163,6 +167,28 @@ describe('OrganizationIntegrations', function() {
       it('fetches unmigratable repositories', function() {
         expect(wrapper.instance().state.unmigratableRepos).toHaveLength(1);
         expect(wrapper.instance().state.unmigratableRepos[0].name).toBe('Test-Org/foo');
+      });
+
+      it('displays an Upgrade button instead of Install', function() {
+        expect(
+          wrapper
+            .find('ProviderRow')
+            .filterWhere(n => n.key() === 'github')
+            .find('Button')
+            .first()
+            .text()
+        ).toBe('Upgrade');
+      });
+
+      it('display an Install button when its not an upgradable Integration', () => {
+        expect(
+          wrapper
+            .find('ProviderRow')
+            .filterWhere(n => n.key() === 'jira')
+            .find('Button')
+            .first()
+            .text()
+        ).toBe('Install');
       });
 
       it('displays a warning for each Org with unmigratable repos', () => {

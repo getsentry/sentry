@@ -36,6 +36,8 @@ export default class ProviderRow extends React.Component {
     enabledPlugins: [],
   };
 
+  static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
+
   // State
 
   get integrations() {
@@ -50,6 +52,10 @@ export default class ProviderRow extends React.Component {
     return this.props.enabledPlugins.includes(this.props.provider.key);
   }
 
+  get isUpgradable() {
+    return ProviderRow.upgradableIntegrations.includes(this.props.provider.key);
+  }
+
   // Actions
 
   openModal = () => {
@@ -62,7 +68,8 @@ export default class ProviderRow extends React.Component {
 
   get buttonText() {
     let buttonText = this.isEnabled > 0 ? t('Add Another') : t('Install');
-    return this.isEnabledPlugin ? t('Upgrade') : buttonText;
+
+    return this.isEnabledPlugin && this.isUpgradable ? t('Upgrade') : buttonText;
   }
 
   renderButton() {
