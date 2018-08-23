@@ -69,8 +69,12 @@ const theme = {
     modal: 10000,
     toast: 10001,
     dropdownAutocomplete: {
-      actor: 3, // needs to be above menu
-      menu: 2, // needs to be below actor but above other page elements (e.g. pagination)
+      // needs to be above menu
+      actor: 8,
+
+      // needs to be below actor but above other page elements (e.g. pagination)
+      // (e.g. Issue Details "seen" dots on chart is 2)
+      menu: 7,
     },
   },
 
