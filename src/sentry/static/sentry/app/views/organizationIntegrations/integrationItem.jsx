@@ -14,18 +14,6 @@ export default class IntegrationItem extends React.Component {
     compact: PropTypes.bool,
   };
 
-  labels({children, compact}) {
-    return compact ? (
-      <Flex align="center" direction="row" pl={1}>
-        {children}
-      </Flex>
-    ) : (
-      <Flex direction="column" pl={1}>
-        {children}
-      </Flex>
-    );
-  }
-
   render() {
     const {integration, compact} = this.props;
 
@@ -34,7 +22,7 @@ export default class IntegrationItem extends React.Component {
         <Box>
           <IntegrationIcon size={compact ? 26 : 32} integration={integration} />
         </Box>
-        <this.labels compact={compact}>
+        <Labels compact={compact}>
           <IntegrationName>
             {integration.name}
             {integration.status === 'disabled' && (
@@ -48,11 +36,21 @@ export default class IntegrationItem extends React.Component {
             )}
           </IntegrationName>
           <DomainName compact={compact}>{integration.domainName}</DomainName>
-        </this.labels>
+        </Labels>
       </Flex>
     );
   }
 }
+
+const Labels = p => {
+  const {compact, ...props} = p;
+
+  return compact ? (
+    <Flex align="center" direction="row" pl={1} {...props} />
+  ) : (
+    <Flex direction="column" pl={1} {...props} />
+  );
+};
 
 const IntegrationName = styled('div')`
   font-size: 1.6rem;

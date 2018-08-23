@@ -1879,7 +1879,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   </div>
                                                 </Base>
                                               </Box>
-                                              <labels
+                                              <Labels
                                                 compact={true}
                                               >
                                                 <Flex
@@ -1916,7 +1916,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     </div>
                                                   </Base>
                                                 </Flex>
-                                              </labels>
+                                              </Labels>
                                             </div>
                                           </Base>
                                         </Flex>
