@@ -5,6 +5,8 @@ from sentry.models import Repository
 
 
 class RepositoryMixin(object):
+    # whether or not integration has the ability to search through Repositories
+    # dynamically given a search query
     repo_search = False
 
     def get_repositories(self, query=None):
