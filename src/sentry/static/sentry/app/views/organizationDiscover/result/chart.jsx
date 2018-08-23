@@ -1,6 +1,7 @@
 import React from 'react';
 import moment from 'moment';
 import PropTypes from 'prop-types';
+import _ from 'lodash';
 
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
@@ -10,6 +11,11 @@ export default class Result extends React.Component {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     maxCharsTooltip: PropTypes.number.isRequired,
+    maxDataCharted: PropTypes.number,
+  };
+
+  static defaultProps = {
+    maxDataCharted: 45,
   };
 
   // Converts a value to a string for the chart label. This could
@@ -32,11 +38,16 @@ export default class Result extends React.Component {
     const {aggregations} = this.props.query;
     // We only chart the first aggregation for now
     const aggregate = aggregations[0][2];
+    let sortedQueryData = _.sortBy(queryData, element => element.time);
+
     const dates = [
-      ...new Set(queryData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
+      ...new Set(
+        sortedQueryData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))
+      ),
     ];
+
     const output = {};
-    queryData.forEach(data => {
+    sortedQueryData.forEach(data => {
       const key = groupbyFields.length
         ? groupbyFields.map(field => this.getLabel(data[field])).join(',')
         : aggregate;
@@ -48,7 +59,10 @@ export default class Result extends React.Component {
       } else {
         output[key] = {
           data: [
-            {value: data[aggregate], name: moment.utc(data.time * 1000).format('MMM Do')},
+            {
+              value: data[aggregate],
+              name: moment.utc(data.time * 1000).format('MMM Do'),
+            },
           ],
         };
       }
@@ -67,6 +81,7 @@ export default class Result extends React.Component {
 
       result.push({seriesName: this.createSubstring(key), data: output[key].data});
     }
+
     return result;
   }
 
@@ -74,21 +89,36 @@ export default class Result extends React.Component {
     const {maxCharsTooltip} = this.props;
     let result = seriesName;
     if (seriesName.length > maxCharsTooltip) {
-      result = seriesName.substring(0, maxCharsTooltip) + '...';
+      result = seriesName.substring(0, maxCharsTooltip) + '…';
     }
     return result;
+  }
+
+  truncateChartData(chartData) {
+    const {maxDataCharted} = this.props;
+    return _.sortBy(chartData, element => element.data.length).slice(
+      0,
+      maxDataCharted + 1
+    );
   }
 
   render() {
     const {fields} = this.props.query;
     const {data} = this.props.data;
+    const {maxDataCharted} = this.props;
 
-    const chartData = this.getChartData(data, fields);
+    let chartData = this.getChartData(data, fields);
     const renderLineChart = chartData.find(
       element => element.data.filter(({value}) => value !== null).length > 1
     );
 
-    console.log("Chart Data", chartData);
+    console.log('query data', data);
+    console.log('Chart Data', chartData);
+
+    if (chartData.length > maxDataCharted) {
+      chartData = this.truncateChartData();
+    }
+
     return (
       <div>
         {renderLineChart ? <LineChart series={chartData} height={300} /> : null}

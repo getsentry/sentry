@@ -96,7 +96,6 @@ describe('Discover', function() {
         groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: '-count',
-        limit: 15,
       });
     });
   });

@@ -100,10 +100,9 @@ export default class OrganizationDiscover extends React.Component {
         groupby: groupBy,
         rollup: 60 * 60 * 24,
         orderby: '-count',
-        limit: 15,
       };
 
-      console.log("Chart Query: ", chartQuery);
+      console.log('Chart Query: ', chartQuery);
       queryBuilder.fetch(chartQuery).then(
         chartData => {
           this.setState({chartData, chartQuery});
@@ -282,7 +281,12 @@ export default class OrganizationDiscover extends React.Component {
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
             {chartData && (
-              <ResultChart data={chartData} query={chartQuery} maxCharsTooltip={60} />
+              <ResultChart
+                data={chartData}
+                query={chartQuery}
+                maxCharsTooltip={60}
+                maxDataCharted={45}
+              />
             )}
             {result && <ResultTable result={result} maxCharsTooltip={60} />}
             {!result && <Intro />}
