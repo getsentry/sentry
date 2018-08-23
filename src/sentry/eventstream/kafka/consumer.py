@@ -125,7 +125,7 @@ class SynchronizedConsumer(object):
     }
 
     def __init__(self, bootstrap_servers, consumer_group, commit_log_topic,
-                 synchronize_commit_group, initial_offset_reset, on_commit=None):
+                 synchronize_commit_group, initial_offset_reset='latest', on_commit=None):
         self.bootstrap_servers = bootstrap_servers
         self.consumer_group = consumer_group
         self.commit_log_topic = commit_log_topic
