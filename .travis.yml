@@ -166,7 +166,7 @@ matrix:
 
     # snuba in testing - allowed to fail
     - python: 2.7
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=zookeeper:2181 SENTRY_KAFKA_HOSTS=localhost:9092
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
       services:
         - docker
         - memcached
@@ -209,7 +209,7 @@ matrix:
     - python: 2.7
       env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
     - python: 2.7
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=zookeeper:2181 SENTRY_KAFKA_HOSTS=localhost:9092
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
     - language: node_js
       env: STORYBOOK_BUILD=1
 
