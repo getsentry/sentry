@@ -100,7 +100,12 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   getOptions = (field, input) => {
-    if (!input) return Promise.resolve([]);
+    if (!input && field.default && field.defaultLabel) {
+      return Promise.resolve({options: [{value: field.default, label: field.defaultLabel}]});
+    }
+    if (!input) {
+      return Promise.resolve([]);
+    }
 
     let query = queryString.stringify({
       ...this.state.dynamicFieldValues,
@@ -130,7 +135,7 @@ class ExternalIssueForm extends AsyncComponent {
           onSelectResetsInput: false,
           onCloseResetsInput: false,
           onBlurResetsInput: false,
-          autoload: false,
+          autoload: true,
         }
       : {};
 

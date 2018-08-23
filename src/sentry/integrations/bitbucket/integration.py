@@ -51,7 +51,7 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
     def username(self):
         return self.model.name
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         repos = self.get_client().get_repos(self.username)['values']
         data = []
         for repo in repos:
