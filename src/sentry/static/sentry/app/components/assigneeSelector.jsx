@@ -354,10 +354,7 @@ const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
     `};
 `;
 
-const ClearAssignee = styled(MenuItemWrapper)`
-  background: rgba(52, 60, 69, 0.03);
-  border-bottom: 1px solid rgba(52, 60, 69, 0.06);
-`;
+const ClearAssignee = styled(MenuItemWrapper)``;
 
 const InviteMemberLink = styled(Link)`
   color: ${p => p.theme.textColor};
