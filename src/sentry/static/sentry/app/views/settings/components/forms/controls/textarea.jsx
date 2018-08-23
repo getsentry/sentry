@@ -26,6 +26,8 @@ class TextareaOrAutosize extends React.Component {
       rows,
       innerRef,
       highlighted, // eslint-disable-line
+      stacked, // eslint-disable-line
+      inline, // eslint-disable-line
       field, // eslint-disable-line
       multiline, // eslint-disable-line
       getValue, // eslint-disable-line
