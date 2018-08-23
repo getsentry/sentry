@@ -84,6 +84,9 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     def should_resolve(self, data):
         return data['status']['category'] == 'done'
 
+    def get_issue_display_name(self, external_issue):
+        return 'display name: %s' % external_issue.key
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """

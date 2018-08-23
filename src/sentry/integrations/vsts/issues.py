@@ -31,8 +31,9 @@ class VstsIssueSync(IssueSyncMixin):
         project_choices = []
         initial_project = ('', '')
         for project in projects:
-            project_choices.append(('%s#%s' % (project['id'], project['name']), project['name']))
-            if project['id'] == self.default_project:
+            project_id_and_name = '%s#%s' % (project['id'], project['name'])
+            project_choices.append((project_id_and_name, project['name']))
+            if project_id_and_name == self.default_project:
                 initial_project = project['name']
         return [
             {
