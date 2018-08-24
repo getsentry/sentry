@@ -1,22 +1,23 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
 
-import SentryTypes from 'app/sentryTypes';
+import {Panel, PanelBody} from 'app/components/panels';
+import {getQueryEnvironment, getQueryStringWithEnvironment} from 'app/utils/queryString';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EnvironmentStore from 'app/stores/environmentStore';
+import EventsTable from 'app/components/eventsTable/eventsTable';
 import GroupState from 'app/mixins/groupState';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
-import EventsTable from 'app/components/eventsTable/eventsTable';
-import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import parseApiError from 'app/utils/parseApiError';
 import withEnvironment from 'app/utils/withEnvironment';
-import {getQueryEnvironment, getQueryStringWithEnvironment} from 'app/utils/queryString';
-import EnvironmentStore from 'app/stores/environmentStore';
-import {setActiveEnvironment} from 'app/actionCreators/environments';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel, PanelBody} from 'app/components/panels';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
@@ -122,10 +123,8 @@ const GroupEvents = createReactClass({
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
         this.setState({
-          error,
+          error: parseApiError(err),
           loading: false,
         });
       },
