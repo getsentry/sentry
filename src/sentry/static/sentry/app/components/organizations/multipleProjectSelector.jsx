@@ -67,9 +67,9 @@ export default class MultipleProjectSelector extends React.Component {
         >
           <Box p={2}>
             <Box mb={1}>
+              <Box mb={1}>{t('Searched project list')}</Box>
               <MultiSelectField
                 name="projects"
-                label={t('Searched projects')}
                 value={value}
                 options={options}
                 onChange={onChange}
