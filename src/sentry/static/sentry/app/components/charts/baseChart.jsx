@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
-import SentryTypes from 'app/sentryTypes';
 
 import theme from 'app/utils/theme';
 
@@ -22,7 +21,10 @@ const getDimensionValue = dimension => {
 
 class BaseChart extends React.Component {
   static propTypes = {
-    series: SentryTypes.Series,
+    // TODO: Pull out props from generic `options` object
+    // so that we can better document them in prop types
+    // e.g:
+    // series: SentryTypes.Series,
 
     // see: https://ecomfe.github.io/echarts-doc/public/en/option.html
     options: PropTypes.object,
@@ -65,7 +67,6 @@ class BaseChart extends React.Component {
     renderer: 'svg',
     notMerge: true,
     lazyUpdate: false,
-    colors: theme.charts.colors,
     options: {},
     onChartReady: () => {},
   };
@@ -73,6 +74,19 @@ class BaseChart extends React.Component {
   handleChartReady = (...args) => {
     let {onChartReady} = this.props;
     onChartReady(...args);
+  };
+
+  getColorPalette = () => {
+    // This is kind of gross, but we need to find the number of data points available
+    // so that we can scale our palette
+    //
+    // get length of `data` in the first series
+    let {series} = this.props.options;
+    let [firstSeries] = series || [];
+    let {data} = firstSeries || {};
+    return data && data.length
+      ? theme.charts.getColorPalette(data.length)
+      : theme.charts.colors;
   };
 
   render() {
@@ -94,7 +108,7 @@ class BaseChart extends React.Component {
         ref={e => (this.chart = e)}
         echarts={echarts}
         option={{
-          color: colors,
+          color: colors || this.getColorPalette(),
           grid: Grid(),
           tooltip: Tooltip(),
           ...options,

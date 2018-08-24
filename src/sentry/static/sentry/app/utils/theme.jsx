@@ -1,3 +1,5 @@
+import CHART_PALETTE from 'app/constants/chartPalette';
+
 const theme = {
   breakpoints: ['768px', '992px', '1200px'],
 
@@ -217,7 +219,11 @@ theme.button = {
 };
 
 theme.charts = {
-  colors: ['#4C416B', '#7A5195', '#BC5090', '#EF5675', '#FF764A', '#FFA600'],
+  colors: CHART_PALETTE[CHART_PALETTE.length - 1],
+
+  // We have an array that maps `number + 1` --> list of `number` colors
+  getColorPalette: length => CHART_PALETTE[length + 1],
+
   previousPeriod: theme.gray1,
 };
 
