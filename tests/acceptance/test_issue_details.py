@@ -54,6 +54,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
+        self.browser.wait_until('[data-test-id="loaded-device-name"]')
         self.browser.snapshot('issue details cocoa')
 
     def test_javascript_specific_event(self):
@@ -62,7 +63,8 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/events/{}/'.format(self.org.slug, self.project.slug, event.group.id, event.id)
+            '/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
+                                                 self.project.slug, event.group.id, event.id)
         )
         self.browser.wait_until('.event-details-container')
         self.browser.wait_until_not('.loading-indicator')
