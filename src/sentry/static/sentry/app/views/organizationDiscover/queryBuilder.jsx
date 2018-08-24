@@ -178,6 +178,12 @@ export default function createQueryBuilder(initial = {}, organization) {
       return Promise.reject(new Error(t('No projects selected')));
     }
 
+    if (typeof data.limit === 'number') {
+      if (data.limit < 1 || data.limit > 1000) {
+        return Promise.reject(new Error(t('Invalid limit parameter')));
+      }
+    }
+
     return api
       .requestPromise(endpoint, {
         method: 'POST',
