@@ -36,6 +36,7 @@ scopes = (
     'repository:admin',
     'team',
     'webhook',
+    'pullrequest',
 )
 
 

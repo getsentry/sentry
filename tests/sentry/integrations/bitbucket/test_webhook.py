@@ -4,10 +4,10 @@ from datetime import datetime
 from django.utils import timezone
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase, TestCase
-
+from sentry.utils.http import absolute_uri
 
 from sentry.integrations.bitbucket.webhook import parse_raw_user_email, parse_raw_user_name, PROVIDER_NAME
-from .testutils import PUSH_EVENT_EXAMPLE
+from .testutils import PUSH_EVENT_EXAMPLE, PULL_EVENT_EXAMPLE
 
 BAD_IP = '109.111.111.10'
 BITBUCKET_IP_IN_RANGE = '104.192.143.10'
@@ -141,6 +141,50 @@ class PushEventWebhookTest(APITestCase):
         )
 
         # should be skipping the #skipsentry commit
+        assert len(commit_list) == 1
+
+        commit = commit_list[0]
+
+        assert commit.key == 'e0e377d186e4f0e937bdb487a23384fe002df649'
+        assert commit.message == u'README.md edited online with Bitbucket'
+        assert commit.author.name == u'Max Bittker'
+        assert commit.author.email == 'max@getsentry.com'
+        assert commit.author.external_id is None
+        assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
+
+
+class PullEventWebhookTest(APITestCase):
+    def setUp(self):
+        super(PullEventWebhookTest, self).setUp()
+        project = self.project  # force creation
+        self.url = absolute_uri(
+            '/extensions/bitbucket/organizations/%s/webhook/' %
+            project.organization.id)
+
+    def test_simple(self):
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id='{2a47ac11-098a-4054-8496-193754cae14b}',
+            provider=PROVIDER_NAME,
+            name='laurynsentry/helloworld',
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=PULL_EVENT_EXAMPLE,
+            content_type='application/json',
+            HTTP_X_EVENT_KEY='pullrequest:fulfilled',
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+
+        commit_list = list(
+            Commit.objects.filter(
+                organization_id=self.project.organization_id,
+            ).select_related('author').order_by('-date_added')
+        )
+
         assert len(commit_list) == 1
 
         commit = commit_list[0]

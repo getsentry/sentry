@@ -111,9 +111,13 @@ class PushEventWebhook(Webhook):
 class PullEventWebhook(Webhook):
     def __call__(self, organization, event):
         repo = self.repo_from_event(organization, event)
-        # TODO(lb): Cannot seem to find a way to get the user's email without another api call.
-        # I will trigger the event to ensure this is the case. :/
+        # TODO(lb): The email is not included in this event. Not sure how to get it.
         author = event['actor']['uuid']
+        # author = CommitAuthor.objects.get_or_create(
+        #     organization_id=organization.id,
+        #     email=author_email,
+        #     defaults={'name': commit['author']['raw'].split('<')[0].strip()}
+        # )[0]
         pull_request = event['pullrequest']
 
         try:
@@ -135,6 +139,7 @@ class PullEventWebhook(Webhook):
 class BitbucketWebhookEndpoint(View):
     _handlers = {
         'repo:push': PushEventWebhook,
+        'pullrequest:fulfilled': PullEventWebhook,
     }
 
     def get_handler(self, event_type):
