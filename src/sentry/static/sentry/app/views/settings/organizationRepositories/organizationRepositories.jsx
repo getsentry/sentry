@@ -4,9 +4,11 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
+import Feature from 'app/components/feature';
 import MenuItem from 'app/components/menuItem';
 import SpreadLayout from 'app/components/spreadLayout';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -61,31 +63,45 @@ export default class OrganizationRepositories extends React.Component {
 
     return (
       <div>
-        <SettingsPageHeader
-          title={t('Repositories')}
-          action={
-            <DropdownLink
-              anchorRight
-              className="btn btn-primary btn-sm"
-              title={t('Add Repository')}
-            >
-              {repoConfig &&
-                repoConfig.providers &&
-                repoConfig.providers.map(provider => {
-                  return (
-                    <MenuItem noAnchor={true} key={provider.id}>
-                      <AddRepositoryLink
-                        provider={provider}
-                        orgId={orgId}
-                        onSuccess={onAddRepo}
-                      />
-                    </MenuItem>
-                  );
-                })}
-            </DropdownLink>
-          }
-        />
-
+        <Feature
+          feature={['bitbucket-integration', 'github-enterprise']}
+          requireAll={false}
+        >
+          {({hasFeature}) => {
+            return hasFeature ? (
+              <AlertLink to={`/settings/${orgId}/integrations/`}>
+                {t(
+                  'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+                )}
+              </AlertLink>
+            ) : (
+              <SettingsPageHeader
+                title={t('Repositories')}
+                action={
+                  <DropdownLink
+                    anchorRight
+                    className="btn btn-primary btn-sm"
+                    title={t('Add Repository')}
+                  >
+                    {repoConfig &&
+                      repoConfig.providers &&
+                      repoConfig.providers.map(provider => {
+                        return (
+                          <MenuItem noAnchor={true} key={provider.id}>
+                            <AddRepositoryLink
+                              provider={provider}
+                              orgId={orgId}
+                              onSuccess={onAddRepo}
+                            />
+                          </MenuItem>
+                        );
+                      })}
+                  </DropdownLink>
+                }
+              />
+            );
+          }}
+        </Feature>
         {!hasItemList && (
           <div className="m-b-2">
             <TextBlock>
