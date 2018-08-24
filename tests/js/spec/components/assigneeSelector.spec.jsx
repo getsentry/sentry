@@ -283,11 +283,8 @@ describe('AssigneeSelector', function() {
     assigneeSelector.unmount();
     assigneeSelector = mount(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
-      TestStubs.routerContext()
+      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );
-    assigneeSelector.setContext({
-      organization: {id: '1', access: []},
-    });
     openMenu();
     assigneeSelector.update();
     expect(

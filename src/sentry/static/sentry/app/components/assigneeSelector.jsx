@@ -12,7 +12,6 @@ import ActorAvatar from 'app/components/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import Feature from 'app/components/feature';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
@@ -226,8 +225,10 @@ const AssigneeSelectorComponent = createReactClass({
 
   render() {
     let {className} = this.props;
+    let {organization} = this.context;
     let {loading, assignedTo, memberList} = this.state;
     let canInvite = ConfigStore.get('invitesEnabled');
+    let hasOrgWrite = organization.access.includes('org:write');
 
     return (
       <div className={className}>
@@ -266,22 +267,21 @@ const AssigneeSelectorComponent = createReactClass({
               )
             }
             menuFooter={
-              canInvite && (
-                <Feature access={['org:write']}>
-                  <InviteMemberLink
-                    data-test-id="invite-member"
-                    disabled={loading}
-                    to={`/settings/${this.context.organization
-                      .slug}/members/new/?referrer=assignee_selector`}
-                  >
-                    <MenuItemWrapper>
-                      <IconContainer>
-                        <InviteMemberIcon />
-                      </IconContainer>
-                      <Label>{t('Invite Member')}</Label>
-                    </MenuItemWrapper>
-                  </InviteMemberLink>
-                </Feature>
+              canInvite &&
+              hasOrgWrite && (
+                <InviteMemberLink
+                  data-test-id="invite-member"
+                  disabled={loading}
+                  to={`/settings/${this.context.organization
+                    .slug}/members/new/?referrer=assignee_selector`}
+                >
+                  <MenuItemWrapper>
+                    <IconContainer>
+                      <InviteMemberIcon />
+                    </IconContainer>
+                    <Label>{t('Invite Member')}</Label>
+                  </MenuItemWrapper>
+                </InviteMemberLink>
               )
             }
           >
