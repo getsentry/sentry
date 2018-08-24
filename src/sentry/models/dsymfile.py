@@ -319,8 +319,10 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
                 with transaction.atomic():
                     rv = ProjectDSymFile.objects.create(**kwargs)
             except IntegrityError:
-                file.delete()
                 rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+                oldfile = rv.file
+                rv.update(**kwargs)
+                oldfile.delete()
         else:
             oldfile = rv.file
             rv.update(**kwargs)
