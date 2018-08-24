@@ -124,7 +124,7 @@ class IntegrationPipeline(Pipeline):
                 # identities and recreate it, except in the case of Github
                 # where we need to be more careful because users may be using
                 # those identities to log in.
-                if idp.type == 'github':
+                if idp.type in ('github', 'vsts'):
                     try:
                         other_identity = Identity.objects.get(
                             idp=idp,
@@ -138,11 +138,12 @@ class IntegrationPipeline(Pipeline):
                         # The external_id is linked to a different user. If that user doesn't
                         # have a password, we don't delete the link as it may lock them out.
                         if not other_identity.user.has_usable_password():
+                            proper_name = 'GitHub' if idp.type == 'github' else 'VSTS'
                             return self._dialog_response({
                                 'error': _(
-                                    'The provided Github account is linked to a different user. '
-                                    'Please try again with a different Github account.'
-                                )},
+                                    'The provided %s account is linked to a different user. '
+                                    'Please try again with a different %s account.'
+                                ) % (proper_name, proper_name)},
                                 False,
                             )
                 identity_model = Identity.reattach(
