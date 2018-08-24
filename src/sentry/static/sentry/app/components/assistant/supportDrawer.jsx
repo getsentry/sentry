@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import analytics from 'app/utils/analytics';
 import ExternalLink from 'app/components/externalLink';
 import HookStore from 'app/stores/hookStore';
+import ConfigStore from 'app/stores/configStore';
 import {
   AssistantContainer,
   CloseIcon,
@@ -96,6 +97,10 @@ const SupportDrawer = createReactClass({
   },
 
   render() {
+    if (!(ConfigStore.get('features') || new Set()).has('assistant')) {
+      return null;
+    }
+
     let docsResults = this.renderDocsResults();
     let helpcenterResults = this.renderHelpCenterResults();
     let results = helpcenterResults.concat(docsResults);

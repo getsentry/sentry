@@ -8,13 +8,14 @@ describe('GuideStore', function() {
   let anchor1 = <GuideAnchor target="target 1" type="text" />;
   let anchor2 = <GuideAnchor target="target 2" type="text" />;
   let data;
-  ConfigStore.config = {
-    user: {
-      isSuperuser: true,
-    },
-  };
 
   beforeEach(function() {
+    ConfigStore.config = {
+      user: {
+        isSuperuser: true,
+      },
+      features: new Set(['assistant']),
+    };
     GuideStore.init();
     sandbox = sinon.sandbox.create();
     data = {
@@ -75,6 +76,12 @@ describe('GuideStore', function() {
     guide = GuideStore.state.currentGuide;
     // We don't have the alert reminder guide's data yet, so we can't show it.
     expect(guide).toEqual(null);
+  });
+
+  it('should not show a guide if the user is not in the experiment', function() {
+    ConfigStore.get('features').delete('assistant');
+    GuideStore.onFetchSucceeded(data);
+    expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
   it('should force show a guide', function() {

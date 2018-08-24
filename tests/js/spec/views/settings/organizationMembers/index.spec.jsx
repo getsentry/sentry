@@ -29,13 +29,17 @@ describe('OrganizationMembers', function() {
   let organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin'],
   });
+  let getStub;
 
   beforeAll(function() {
-    sinon.stub(ConfigStore, 'get', () => currentUser);
+    getStub = sinon
+      .stub(ConfigStore, 'get')
+      .withArgs('user')
+      .returns(currentUser);
   });
 
   afterAll(function() {
-    ConfigStore.get.restore();
+    getStub.restore();
   });
 
   beforeEach(function() {
