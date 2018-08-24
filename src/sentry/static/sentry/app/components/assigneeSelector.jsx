@@ -253,7 +253,7 @@ const AssigneeSelectorComponent = createReactClass({
             menuWithArrow
             menuHeader={
               assignedTo && (
-                <ClearAssignee
+                <MenuItemWrapper
                   data-test-id="clear-assignee"
                   disabled={!loading}
                   onClick={this.clearAssignTo}
@@ -263,7 +263,7 @@ const AssigneeSelectorComponent = createReactClass({
                     <ClearAssigneeIcon />
                   </IconContainer>
                   <Label>{t('Clear Assignee')}</Label>
-                </ClearAssignee>
+                </MenuItemWrapper>
               )
             }
             menuFooter={
@@ -353,8 +353,6 @@ const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
       padding-bottom: ${props.py};
     `};
 `;
-
-const ClearAssignee = styled(MenuItemWrapper)``;
 
 const InviteMemberLink = styled(Link)`
   color: ${p => p.theme.textColor};

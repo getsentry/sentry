@@ -232,7 +232,7 @@ describe('AssigneeSelector', function() {
 
     openMenu();
     assigneeSelector
-      .find('ClearAssignee[data-test-id="clear-assignee"]')
+      .find('MenuItemWrapper[data-test-id="clear-assignee"]')
       .simulate('click');
 
     // api was called with empty string, clearing assignment
