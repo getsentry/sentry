@@ -24,6 +24,7 @@ class BitbucketAPIPath(object):
     username - username or UUID
     """
 
+    emails = u'/2.0/user/emails'
     issue = u'/2.0/repositories/{repo}/issues/{issue_id}'
     issues = u'/2.0/repositories/{repo}/issues'
     issue_comments = u'/2.0/repositories/{repo}/issues/{issue_id}/comments'
@@ -93,6 +94,14 @@ class BitbucketApiClient(ApiClient):
             params={'q': query},
         )
 
+    def get_commit(self, repo, sha):
+        return self.get(
+            BitbucketAPIPath.repository_commits.format(
+                repo=repo,
+                revision=sha,
+            )
+        )
+
     def create_comment(self, repo, issue_id, data):
         # Call the method as below:
         # client.create_comment('repo', '1', {"content": {"raw": "Whatever you're commenting."}})
@@ -104,6 +113,11 @@ class BitbucketApiClient(ApiClient):
             ),
             data=data,
         )
+
+    def get_user_emails(self):
+        # https://developer.atlassian.com/bitbucket/api/2/reference/resource/user/emails
+        # Returns all the authenticated user's email addresses. Both confirmed and unconfirmed.
+        return self.get(BitbucketAPIPath.emails)
 
     def get_repo(self, repo):
         return self.get(BitbucketAPIPath.repository.format(

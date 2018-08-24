@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
-from sentry.models import (Commit, CommitAuthor, Organization, PullRequest, Repository)
+from sentry.models import (Commit, CommitAuthor, Integration, Organization, PullRequest, Repository)
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 
@@ -76,49 +76,66 @@ class PushEventWebhook(Webhook):
                 if IntegrationRepositoryProvider.should_ignore_commit(commit['message']):
                     continue
 
-                    author_email = parse_raw_user_email(commit['author']['raw'])
+                author_email = parse_raw_user_email(commit['author']['raw'])
 
-                    # TODO(dcramer): we need to deal with bad values here, but since
-                    # its optional, lets just throw it out for now
-                    if author_email is None or len(author_email) > 75:
-                        author = None
-                    elif author_email not in authors:
-                        authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                # TODO(dcramer): we need to deal with bad values here, but since
+                # its optional, lets just throw it out for now
+                if author_email is None or len(author_email) > 75:
+                    author = None
+                elif author_email not in authors:
+                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                        organization_id=organization.id,
+                        email=author_email,
+                        defaults={'name': commit['author']['raw'].split('<')[0].strip()}
+                    )[0]
+                else:
+                    author = authors[author_email]
+                try:
+                    with transaction.atomic():
+
+                        Commit.objects.create(
+                            repository_id=repo.id,
                             organization_id=organization.id,
-                            email=author_email,
-                            defaults={'name': commit['author']['raw'].split('<')[0].strip()}
-                        )[0]
-                    else:
-                        author = authors[author_email]
-                    try:
-                        with transaction.atomic():
+                            key=commit['hash'],
+                            message=commit['message'],
+                            author=author,
+                            date_added=dateutil.parser.parse(
+                                commit['date'],
+                            ).astimezone(timezone.utc),
+                        )
 
-                            Commit.objects.create(
-                                repository_id=repo.id,
-                                organization_id=organization.id,
-                                key=commit['hash'],
-                                message=commit['message'],
-                                author=author,
-                                date_added=dateutil.parser.parse(
-                                    commit['date'],
-                                ).astimezone(timezone.utc),
-                            )
-
-                    except IntegrityError:
-                        pass
+                except IntegrityError:
+                    pass
 
 
 class PullEventWebhook(Webhook):
     def __call__(self, organization, event):
         repo = self.repo_from_event(organization, event)
-        # TODO(lb): The email is not included in this event. Not sure how to get it.
-        author = event['actor']['uuid']
-        # author = CommitAuthor.objects.get_or_create(
-        #     organization_id=organization.id,
-        #     email=author_email,
-        #     defaults={'name': commit['author']['raw'].split('<')[0].strip()}
-        # )[0]
         pull_request = event['pullrequest']
+
+        integration = Integration.objects.get(
+            id=repo.integration_id,
+        )
+        installation = integration.get_installation(organization_id=organization.id)
+        emails = installation.get_client().get_user_emails()['values']
+        try:
+            commit_author = CommitAuthor.objects.filter(
+                organization_id=organization.id,
+                email__in=[email['email'] for email in emails if email['is_confirmed']],
+            )[0]
+        except IndexError:
+            primary_email = None
+            for email in emails:
+                if email['is_primary']:
+                    primary_email = email['email']
+                    break
+
+            commit_author = CommitAuthor.objects.create(
+                organization_id=organization.id,
+                email=primary_email,
+                name=pull_request['author']['display_name'],
+                external_id=pull_request['author']['uuid'],
+            )
 
         try:
             PullRequest.objects.create_or_update(
@@ -127,9 +144,9 @@ class PullEventWebhook(Webhook):
                 values={
                     'organization_id': organization.id,
                     'title': pull_request['title'],
-                    'author': author,
+                    'author': commit_author,
                     'message': pull_request['description'],
-                    'merge_commit_sha': pull_request['merge_commit'],
+                    'merge_commit_sha': pull_request['merge_commit']['hash'],
                 },
             )
         except IntegrityError:

@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 from datetime import datetime
 from django.utils import timezone
-from sentry.models import Commit, CommitAuthor, Repository
+from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.testutils import APITestCase, TestCase
 from sentry.utils.http import absolute_uri
 
 from sentry.integrations.bitbucket.webhook import parse_raw_user_email, parse_raw_user_name, PROVIDER_NAME
-from .testutils import PUSH_EVENT_EXAMPLE, PULL_EVENT_EXAMPLE
+from .testutils import PUSH_EVENT_EXAMPLE, PULL_EVENT_EXAMPLE, USER_EMAIL_RESPONSE
+
+import responses
 
 BAD_IP = '109.111.111.10'
 BITBUCKET_IP_IN_RANGE = '104.192.143.10'
@@ -160,13 +162,30 @@ class PullEventWebhookTest(APITestCase):
         self.url = absolute_uri(
             '/extensions/bitbucket/organizations/%s/webhook/' %
             project.organization.id)
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/user/emails',
+            json=USER_EMAIL_RESPONSE,
+        )
 
+    @responses.activate
     def test_simple(self):
-        Repository.objects.create(
+        integration = Integration.objects.create(
+            provider='bitbucket',
+            external_id='client123',
+            name='laurynsentry',
+            metadata={
+                'base_url': 'https://api.bitbucket.org',
+                'shared_secret': '1234567890',
+                'subject': 'client123',
+            }
+        )
+        repo = Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id='{2a47ac11-098a-4054-8496-193754cae14b}',
             provider=PROVIDER_NAME,
             name='laurynsentry/helloworld',
+            integration_id=integration.id,
         )
 
         response = self.client.post(
@@ -179,19 +198,14 @@ class PullEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-        commit_list = list(
-            Commit.objects.filter(
-                organization_id=self.project.organization_id,
-            ).select_related('author').order_by('-date_added')
+        pull_request = PullRequest.objects.get(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key='4',
         )
 
-        assert len(commit_list) == 1
-
-        commit = commit_list[0]
-
-        assert commit.key == 'e0e377d186e4f0e937bdb487a23384fe002df649'
-        assert commit.message == u'README.md edited online with Bitbucket'
-        assert commit.author.name == u'Max Bittker'
-        assert commit.author.email == 'max@getsentry.com'
-        assert commit.author.external_id is None
-        assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
+        assert pull_request.message == 'Fixes INTERNAL-7S'
+        assert pull_request.author.name == 'Lauryn Brown'
+        assert pull_request.author.email == 'lauryn@sentry.io'
+        assert pull_request.merge_commit_sha == 'f2d58bef61d5'
+        assert pull_request.title == 'PR Title'

@@ -397,7 +397,7 @@ PULL_EVENT_EXAMPLE = b"""{
             "href":"https://api.bitbucket.org/2.0/repositories/laurynsentry/helloworld/pullrequests/4/statuses"
          }
       },
-      "title":"trying still",
+      "title":"PR Title",
       "close_source_branch":false,
       "reviewers":[
 
@@ -581,3 +581,22 @@ PULL_EVENT_EXAMPLE = b"""{
       "uuid":"{2a47ac11-098a-4054-8496-193754cae14b}"
    }
 }"""
+USER_EMAIL_RESPONSE = {
+    u'pagelen': 10,
+    u'values': [
+        OrderedDict([
+            (u'is_primary', True),
+            (u'is_confirmed', True),
+            (u'type', u'email'),
+            (u'email', u'lauryn@sentry.io'),
+            (u'links', OrderedDict([(
+                u'self', OrderedDict([(
+                    u'href',
+                    u'https://api.bitbucket.org/2.0/user/emails/lauryn@sentry.io')]
+                )
+            )]))
+        ])
+    ],
+    u'page': 1,
+    u'size': 1
+}
