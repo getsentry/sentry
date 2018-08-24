@@ -61,8 +61,9 @@ export default class MultipleProjectSelector extends React.Component {
           title={summary}
           anchorRight={true}
           isOpen={this.state.isOpen}
+          keepMenuOpen={true}
           onOpen={() => this.setState({isOpen: true})}
-          onClickOutside={() => this.setState({isOpen: false})}
+          onClose={() => this.setState({isOpen: false})}
         >
           <Box p={2}>
             <Box mb={1}>
