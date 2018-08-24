@@ -170,7 +170,6 @@ class AccountNotificationsByOrganization extends React.Component {
 
     return (
       <React.Fragment>
-        <PanelHeader>{t('Organizations')}</PanelHeader>
         {orgFields.map(field => {
           return (
             <PanelBodyLineItem key={field.name}>
@@ -269,7 +268,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
         >
           <Panel>
             <PanelBody>
-              <PanelHeader hasButtons>
+              <PanelHeader hasButtons={isProject}>
                 <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
                 <Box>
                   {isProject &&
