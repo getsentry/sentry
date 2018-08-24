@@ -86,7 +86,7 @@ SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS = """
 """
 
 
-class JiraSearchEndpointTest(APITestCase):
+class JiraWebhooksTest(APITestCase):
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
     def test_simple_assign(self, mock_sync_group_assignee_inbound):
         org = self.organization
