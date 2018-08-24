@@ -552,8 +552,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
                                                   "dropdownAutocomplete": Object {
-                                                    "actor": 8,
-                                                    "menu": 7,
+                                                    "actor": 1008,
+                                                    "menu": 1007,
                                                   },
                                                   "header": 1000,
                                                   "modal": 10000,
@@ -797,8 +797,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         "zIndex": Object {
                                                           "dropdown": 1001,
                                                           "dropdownAutocomplete": Object {
-                                                            "actor": 8,
-                                                            "menu": 7,
+                                                            "actor": 1008,
+                                                            "menu": 1007,
                                                           },
                                                           "header": 1000,
                                                           "modal": 10000,
@@ -1894,8 +1894,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
                                                   "dropdownAutocomplete": Object {
-                                                    "actor": 8,
-                                                    "menu": 7,
+                                                    "actor": 1008,
+                                                    "menu": 1007,
                                                   },
                                                   "header": 1000,
                                                   "modal": 10000,
@@ -2139,8 +2139,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         "zIndex": Object {
                                                           "dropdown": 1001,
                                                           "dropdownAutocomplete": Object {
-                                                            "actor": 8,
-                                                            "menu": 7,
+                                                            "actor": 1008,
+                                                            "menu": 1007,
                                                           },
                                                           "header": 1000,
                                                           "modal": 10000,
@@ -3364,8 +3364,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
                                                   "dropdownAutocomplete": Object {
-                                                    "actor": 8,
-                                                    "menu": 7,
+                                                    "actor": 1008,
+                                                    "menu": 1007,
                                                   },
                                                   "header": 1000,
                                                   "modal": 10000,
@@ -3609,8 +3609,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                         "zIndex": Object {
                                                           "dropdown": 1001,
                                                           "dropdownAutocomplete": Object {
-                                                            "actor": 8,
-                                                            "menu": 7,
+                                                            "actor": 1008,
+                                                            "menu": 1007,
                                                           },
                                                           "header": 1000,
                                                           "modal": 10000,
@@ -4103,8 +4103,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "zIndex": Object {
                                                   "dropdown": 1001,
                                                   "dropdownAutocomplete": Object {
-                                                    "actor": 8,
-                                                    "menu": 7,
+                                                    "actor": 1008,
+                                                    "menu": 1007,
                                                   },
                                                   "header": 1000,
                                                   "modal": 10000,
@@ -4348,8 +4348,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                         "zIndex": Object {
                                                           "dropdown": 1001,
                                                           "dropdownAutocomplete": Object {
-                                                            "actor": 8,
-                                                            "menu": 7,
+                                                            "actor": 1008,
+                                                            "menu": 1007,
                                                           },
                                                           "header": 1000,
                                                           "modal": 10000,
