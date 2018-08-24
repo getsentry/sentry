@@ -99,8 +99,8 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     menuWithArrow: PropTypes.bool,
 
-    menuFooter: PropTypes.element,
-    menuHeader: PropTypes.element,
+    menuFooter: PropTypes.node,
+    menuHeader: PropTypes.node,
 
     /**
      * Props to pass to menu component
