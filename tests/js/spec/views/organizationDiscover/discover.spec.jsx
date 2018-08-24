@@ -99,4 +99,48 @@ describe('Discover', function() {
       });
     });
   });
+
+  describe('reset', function() {
+    let wrapper, queryBuilder;
+    beforeEach(function() {
+      const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+      queryBuilder = createQueryBuilder({}, organization);
+      queryBuilder.fetch = jest.fn(() => Promise.resolve());
+
+      wrapper = mount(
+        <Discover queryBuilder={queryBuilder} organization={organization} />,
+        TestStubs.routerContext()
+      );
+
+      wrapper.instance().updateField('fields', ['message']);
+      wrapper.instance().updateField('orderby', 'event_id');
+      wrapper.instance().updateField('limit', 5);
+
+      wrapper.instance().runQuery();
+      wrapper.update();
+    });
+
+    it('resets "fields"', function() {
+      const fields = wrapper.find('SelectControl[name="fields"]');
+      expect(fields.text()).toContain('message');
+      wrapper.instance().reset();
+      expect(fields.text()).toContain('No fields selected');
+    });
+
+    it('resets "orderby"', function() {
+      expect(wrapper.find('SelectField[name="orderby"]').prop('value')).toBe('event_id');
+      wrapper.instance().reset();
+      wrapper.update();
+      expect(wrapper.find('SelectField[name="orderby"]').prop('value')).toBe(
+        '-timestamp'
+      );
+    });
+
+    it('resets "limit"', function() {
+      expect(wrapper.find('NumberField[name="limit"]').prop('value')).toBe(5);
+      wrapper.instance().reset();
+      wrapper.update();
+      expect(wrapper.find('NumberField[name="limit"]').prop('value')).toBe(1000);
+    });
+  });
 });

@@ -8,9 +8,9 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
-import MultiSelectField from 'app/components/forms/multiSelectField';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import NumberField from 'app/components/forms/numberField';
+import SelectControl from 'app/components/forms/selectControl';
 import SelectField from 'app/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
@@ -225,13 +225,16 @@ export default class OrganizationDiscover extends React.Component {
         <Flex px={2}>
           <Box w={[1 / 3, 1 / 3, 1 / 3, 1 / 4]}>
             <Fieldset>
-              <MultiSelectField
+              <label htmlFor="fields" className="control-label">
+                {t('Summarize')}
+              </label>
+              <SelectControl
                 name="fields"
-                label={t('Summarize')}
+                multiple={true}
                 placeholder={this.getSummarizePlaceholder()}
                 options={fieldOptions}
                 value={query.fields}
-                onChange={val => this.updateField('fields', val)}
+                onChange={val => this.updateField('fields', val.map(({value}) => value))}
               />
             </Fieldset>
             <Fieldset>
