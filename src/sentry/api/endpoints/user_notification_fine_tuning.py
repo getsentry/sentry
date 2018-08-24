@@ -90,7 +90,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         if notification_type == 'reports':
             (user_option, created) = UserOption.objects.get_or_create(**filter_args)
 
-            value = user_option.value or []
+            value = set(user_option.value or [])
 
             # set of org ids that user is a member of
             org_ids = self.get_org_ids(user)
@@ -103,12 +103,15 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 if org_id not in org_ids:
                     return Response(status=status.HTTP_403_FORBIDDEN)
 
-                if enabled:
+                # list contains org ids that should have reports DISABLED
+                # so if enabled need to check if org_id exists in list (because by default
+                # they will have reports enabled)
+                if enabled and org_id in value:
                     value.remove(org_id)
-                else:
-                    value.insert(0, org_id)
+                elif not enabled:
+                    value.add(org_id)
 
-            user_option.update(value=value)
+            user_option.update(value=list(value))
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         if notification_type in ['alerts', 'workflow', 'email']:
