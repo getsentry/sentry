@@ -22,9 +22,11 @@ def serialize_releases(organization, item_list, user, lookup):
     return {
         (r.version,): {
             HEALTH_ID_KEY: make_health_id(lookup, [r.version]),
-            'id': r.id,
-            'version': r.version,
-            'shortVersion': r.short_version,
+            'value': {
+                'id': r.id,
+                'version': r.version,
+                'shortVersion': r.short_version,
+            },
         }
         for r in Release.objects.filter(
             organization=organization,
@@ -77,18 +79,20 @@ def serialize_eventusers(organization, item_list, user, lookup):
             eu = EventUser(project_id=project, **{EventUser.attr_from_keyword(attr): value})
         rv[(tag, project)] = {
             HEALTH_ID_KEY: make_health_id(lookup, [eu.tag_value, eu.project_id]),
-            'id': six.text_type(eu.id) if eu.id else None,
-            'project': projects.get(eu.project_id),
-            'hash': eu.hash,
-            'tagValue': eu.tag_value,
-            'identifier': eu.ident,
-            'username': eu.username,
-            'email': eu.email,
-            'ipAddress': eu.ip_address,
-            'dateCreated': eu.date_added,
-            'label': eu.get_label(),
-            'name': eu.get_display_name(),
-            'geo': geo_by_addr(eu.ip_address),
+            'value': {
+                'id': six.text_type(eu.id) if eu.id else None,
+                'project': projects.get(eu.project_id),
+                'hash': eu.hash,
+                'tagValue': eu.tag_value,
+                'identifier': eu.ident,
+                'username': eu.username,
+                'email': eu.email,
+                'ipAddress': eu.ip_address,
+                'dateCreated': eu.date_added,
+                'label': eu.get_label(),
+                'name': eu.get_display_name(),
+                'geo': geo_by_addr(eu.ip_address),
+            },
         }
     return rv
 
