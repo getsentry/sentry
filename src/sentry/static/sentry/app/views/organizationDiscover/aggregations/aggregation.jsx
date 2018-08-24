@@ -5,7 +5,6 @@ import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
 
 import {getInternal, getExternal} from './utils';
-import {TOPK_COUNTS} from '../data';
 import {PlaceholderText} from '../styles';
 
 export default class Aggregation extends React.Component {
@@ -34,7 +33,6 @@ export default class Aggregation extends React.Component {
     let optionList = [
       {value: 'count', label: 'count'},
       {value: 'uniq', label: 'uniq(...)'},
-      {value: 'topK', label: 'topK(...)'},
       {value: 'avg', label: 'avg(...)'},
     ];
 
@@ -54,24 +52,6 @@ export default class Aggregation extends React.Component {
         }));
     }
 
-    if (input.startsWith('topK')) {
-      optionList = TOPK_COUNTS.map(num => ({
-        value: `topK(${num})`,
-        label: `topK(${num})(...)`,
-      }));
-    }
-
-    const topKValueMatch = input.match(/^topK\((\d+)\)/);
-
-    if (topKValueMatch) {
-      const count = topKValueMatch[1];
-
-      optionList = this.props.columns.map(({name}) => ({
-        value: `topK(${count})(${name})`,
-        label: `topK(${count})(${name})`,
-      }));
-    }
-
     return optionList.filter(({label}) => label.includes(input));
   };
 
@@ -80,17 +60,8 @@ export default class Aggregation extends React.Component {
   }
 
   handleChange = option => {
-    const topKValues = new Set([...TOPK_COUNTS.map(num => `topK(${num})`)]);
-
-    if (option.value === 'uniq' || option.value === 'avg' || option.value === 'topK') {
+    if (option.value === 'uniq' || option.value === 'avg') {
       this.setState({inputValue: option.value}, this.focus);
-    } else if (topKValues.has(option.value)) {
-      this.setState(
-        {
-          inputValue: option.value,
-        },
-        this.focus
-      );
     } else {
       this.setState({inputValue: option.value});
       this.props.onChange(getExternal(option.value));
