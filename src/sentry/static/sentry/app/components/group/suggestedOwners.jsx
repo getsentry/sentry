@@ -200,7 +200,8 @@ const SuggestedOwners = createReactClass({
 
     let showCreateRule = access.has('project:write');
 
-    let showSuggestedAssignees = committers.length > 0 || owners.length > 0;
+    let showSuggestedAssignees =
+      (committers && committers.length > 0) || (owners && owners.length > 0);
 
     return (
       <React.Fragment>
