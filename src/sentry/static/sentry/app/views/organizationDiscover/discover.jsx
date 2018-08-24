@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -75,6 +75,8 @@ export default class OrganizationDiscover extends React.Component {
     }
 
     this.setState({isFetchingQuery: true});
+
+    clearIndicators();
 
     queryBuilder.fetch().then(
       result => {
