@@ -58,6 +58,10 @@ export default class DeviceName extends React.Component {
     // If library has not loaded yet, then just render the raw model string, better than empty
     if (!iOSDeviceList) return children;
 
-    return deviceNameMapper(children, iOSDeviceList);
+    return (
+      <span data-test-id="loaded-device-name">
+        {deviceNameMapper(children, iOSDeviceList)}
+      </span>
+    );
   }
 }
