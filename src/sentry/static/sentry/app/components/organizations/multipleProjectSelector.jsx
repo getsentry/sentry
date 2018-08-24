@@ -18,12 +18,26 @@ export default class MultipleProjectSelector extends React.Component {
     onUpdate: PropTypes.func,
   };
 
+  constructor() {
+    super();
+    this.state = {
+      isOpen: false,
+    };
+  }
+
   formatDate(date) {
     return moment(date).format('MMMM D, h:mm a');
   }
 
+  onUpdate = () => {
+    this.props.onUpdate();
+    this.setState({
+      isOpen: false,
+    });
+  };
+
   render() {
-    const {className, value, projects, onChange, onUpdate} = this.props;
+    const {className, value, projects, onChange} = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -43,16 +57,24 @@ export default class MultipleProjectSelector extends React.Component {
 
     return (
       <HeaderItem className={className} label={t('Projects')}>
-        <DropdownLink title={summary} keepMenuOpen={true} anchorRight={true}>
+        <DropdownLink
+          title={summary}
+          anchorRight={true}
+          isOpen={this.state.isOpen}
+          onOpen={() => this.setState({isOpen: true})}
+          onClickOutside={() => this.setState({isOpen: false})}
+        >
           <Box p={2}>
-            searched project list
-            <MultiSelectField
-              name="projects"
-              value={value}
-              options={options}
-              onChange={onChange}
-            />
-            <Button onClick={onUpdate}>{t('Update')}</Button>
+            <Box mb={1}>
+              <MultiSelectField
+                name="projects"
+                label={t('Searched projects')}
+                value={value}
+                options={options}
+                onChange={onChange}
+              />
+            </Box>
+            <Button onClick={this.onUpdate}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
       </HeaderItem>
