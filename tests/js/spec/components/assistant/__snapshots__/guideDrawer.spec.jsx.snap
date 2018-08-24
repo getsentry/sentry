@@ -180,6 +180,7 @@ exports[`GuideDrawer renders tip 1`] = `
         }
       >
         <Button
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -188,6 +189,7 @@ exports[`GuideDrawer renders tip 1`] = `
           cta_text
         </Button>
         <Button
+          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
