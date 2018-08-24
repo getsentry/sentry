@@ -12,7 +12,6 @@ import ActorAvatar from 'app/components/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import Feature from 'app/components/feature';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
@@ -226,8 +225,10 @@ const AssigneeSelectorComponent = createReactClass({
 
   render() {
     let {className} = this.props;
+    let {organization} = this.context;
     let {loading, assignedTo, memberList} = this.state;
     let canInvite = ConfigStore.get('invitesEnabled');
+    let hasOrgWrite = organization.access.includes('org:write');
 
     return (
       <div className={className}>
@@ -252,7 +253,7 @@ const AssigneeSelectorComponent = createReactClass({
             menuWithArrow
             menuHeader={
               assignedTo && (
-                <ClearAssignee
+                <MenuItemWrapper
                   data-test-id="clear-assignee"
                   disabled={!loading}
                   onClick={this.clearAssignTo}
@@ -262,26 +263,25 @@ const AssigneeSelectorComponent = createReactClass({
                     <ClearAssigneeIcon />
                   </IconContainer>
                   <Label>{t('Clear Assignee')}</Label>
-                </ClearAssignee>
+                </MenuItemWrapper>
               )
             }
             menuFooter={
-              canInvite && (
-                <Feature access={['org:write']}>
-                  <InviteMemberLink
-                    data-test-id="invite-member"
-                    disabled={loading}
-                    to={`/settings/${this.context.organization
-                      .slug}/members/new/?referrer=assignee_selector`}
-                  >
-                    <MenuItemWrapper>
-                      <IconContainer>
-                        <InviteMemberIcon />
-                      </IconContainer>
-                      <Label>{t('Invite Member')}</Label>
-                    </MenuItemWrapper>
-                  </InviteMemberLink>
-                </Feature>
+              canInvite &&
+              hasOrgWrite && (
+                <InviteMemberLink
+                  data-test-id="invite-member"
+                  disabled={loading}
+                  to={`/settings/${this.context.organization
+                    .slug}/members/new/?referrer=assignee_selector`}
+                >
+                  <MenuItemWrapper>
+                    <IconContainer>
+                      <InviteMemberIcon />
+                    </IconContainer>
+                    <Label>{t('Invite Member')}</Label>
+                  </MenuItemWrapper>
+                </InviteMemberLink>
               )
             }
           >
@@ -352,11 +352,6 @@ const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
       padding-top: ${props.py};
       padding-bottom: ${props.py};
     `};
-`;
-
-const ClearAssignee = styled(MenuItemWrapper)`
-  background: rgba(52, 60, 69, 0.03);
-  border-bottom: 1px solid rgba(52, 60, 69, 0.06);
 `;
 
 const InviteMemberLink = styled(Link)`
