@@ -94,14 +94,6 @@ class BitbucketApiClient(ApiClient):
             params={'q': query},
         )
 
-    def get_commit(self, repo, sha):
-        return self.get(
-            BitbucketAPIPath.repository_commits.format(
-                repo=repo,
-                revision=sha,
-            )
-        )
-
     def create_comment(self, repo, issue_id, data):
         # Call the method as below:
         # client.create_comment('repo', '1', {"content": {"raw": "Whatever you're commenting."}})
