@@ -181,7 +181,7 @@ export const fields = {
     help: t(
       'Store native crash reports such as Minidumps for improved processing and download in issue details'
     ),
-    visible: ({features}) => features.includes('event-attachments'),
+    visible: ({features}) => features.has('event-attachments'),
   },
 
   allowedDomains: {

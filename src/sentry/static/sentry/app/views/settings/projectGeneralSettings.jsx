@@ -223,6 +223,7 @@ class ProjectGeneralSettings extends AsyncView {
     let endpoint = `/projects/${orgId}/${projectId}/`;
     let jsonFormProps = {
       additionalFieldProps: {organization},
+      features: new Set(organization.features),
       access: new Set(organization.access),
     };
 
@@ -268,7 +269,6 @@ class ProjectGeneralSettings extends AsyncView {
           <JsonForm
             {...jsonFormProps}
             title={t('Data Privacy')}
-            features={organization.features}
             fields={[
               fields.dataScrubber,
               fields.dataScrubberDefaults,
