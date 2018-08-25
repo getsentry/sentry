@@ -154,7 +154,9 @@ change certain things, such as the database connection:
     # ~/.sentry/sentry.conf.py
 
     # for more information on DATABASES, see the Django configuration at:
-    # https://docs.djangoproject.com/en/1.6/ref/databases/
+    # https://docs.djangoproject.com/en/stable/ref/databases/
+    # note that this may refer to a different Django version than what
+    # Sentry uses, so there may be some discrepancies 
     DATABASES = {
         'default': {
             'ENGINE': 'sentry.db.postgres',
