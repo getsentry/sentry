@@ -63,6 +63,7 @@ The following plugins are available and maintained by members of the Sentry comm
 * `sentry-fogbugz <https://github.com/glasslion/sentry-fogbugz>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
+* `sentry-ldap <https://github.com/Banno/getsentry-ldap-auth>`_
 * `sentry-lighthouse <https://github.com/gthb/sentry-lighthouse>`_
 * `sentry-msteams <https://github.com/Neko-Design/sentry-msteams>`_
 * `sentry-notifico <https://github.com/lukegb/sentry-notifico>`_
