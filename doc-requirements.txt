@@ -1,5 +1,0 @@
-docutils>=0.7
-Jinja2>=2.3
-markupsafe
-Pygments>=1.2
-Sphinx>=1.3
