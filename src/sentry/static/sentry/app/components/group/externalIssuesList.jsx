@@ -23,11 +23,7 @@ class ExternalIssueList extends AsyncComponent {
   renderIntegrationIssues(integrations) {
     const {group} = this.props;
     //chriss todo before review: make this better
-    if (
-      !integrations ||
-      !integrations.length ||
-      !integrations.filter(integration => integration.status === 'active').length
-    )
+    if (!integrations || !integrations.length)
       return (
         <AlertLink
           icon="icon-generic-box"
@@ -39,15 +35,29 @@ class ExternalIssueList extends AsyncComponent {
         </AlertLink>
       );
 
-    const externalIssues = integrations
-      .filter(integration => integration.status === 'active')
-      .map(integration => (
-        <ExternalIssueActions
-          key={integration.id}
-          integration={integration}
-          group={group}
-        />
-      ));
+    const activeIntegrations = integrations.filter(
+      integration => integration.status === 'active'
+    );
+
+    if (!activeIntegrations.length)
+      return (
+        <AlertLink
+          icon="icon-generic-box"
+          priority="default"
+          size="small"
+          to={`/settings/${this.props.orgId}/integrations`}
+        >
+          Enable Issue Tracking
+        </AlertLink>
+      );
+
+    const externalIssues = activeIntegrations.map(integration => (
+      <ExternalIssueActions
+        key={integration.id}
+        integration={integration}
+        group={group}
+      />
+    ));
 
     return <Box mb={3}>{externalIssues}</Box>;
   }
