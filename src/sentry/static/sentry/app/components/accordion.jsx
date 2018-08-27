@@ -32,9 +32,10 @@ class AccordionButton extends React.Component {
   }
 
   render() {
-    const {label, cutoff, children} = this.props;
+    const {label, cutoff} = this.props;
+    const children = React.Children.toArray(this.props.children);
 
-    if (children.length <= cutoff + 1) return children;
+    if (React.Children.count(children) <= cutoff + 1) return children;
 
     return (
       <div>
