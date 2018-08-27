@@ -1,8 +1,36 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import SearchBar from 'app/views/stream/searchBar';
+import SearchBar, {addSpace, removeSpace} from 'app/views/stream/searchBar';
 import TagStore from 'app/stores/tagStore';
+
+describe('addSpace()', function() {
+  it('should add a space when there is no trailing space', function() {
+    expect(addSpace('one')).toEqual('one ');
+  });
+
+  it('should not add another space when there is already one', function() {
+    expect(addSpace('one ')).toEqual('one ');
+  });
+
+  it('should leave the empty string alone', function() {
+    expect(addSpace('')).toEqual('');
+  });
+});
+
+describe('removeSpace()', function() {
+  it('should remove a trailing space', function() {
+    expect(removeSpace('one ')).toEqual('one');
+  });
+
+  it('should not remove the last character if it is not a space', function() {
+    expect(removeSpace('one')).toEqual('one');
+  });
+
+  it('should leave the empty string alone', function() {
+    expect(removeSpace('')).toEqual('');
+  });
+});
 
 describe('SearchBar', function() {
   let sandbox;
@@ -36,12 +64,18 @@ describe('SearchBar', function() {
   });
 
   describe('componentWillReceiveProps()', function() {
+    it('should add a space when setting state.query', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+
+      expect(searchBar.state().query).toEqual('one ');
+    });
+
     it('should update state.query if props.query is updated from outside', function() {
       let searchBar = shallow(<SearchBar query="one" />, options);
 
       searchBar.setProps({query: 'two'});
 
-      expect(searchBar.state().query).toEqual('two');
+      expect(searchBar.state().query).toEqual('two ');
     });
 
     it('should not reset user input if a noop props change happens', function() {
@@ -59,7 +93,7 @@ describe('SearchBar', function() {
 
       searchBar.setProps({query: 'three'});
 
-      expect(searchBar.state().query).toEqual('three');
+      expect(searchBar.state().query).toEqual('three ');
     });
   });
 
@@ -178,7 +212,12 @@ describe('SearchBar', function() {
     it('invokes onSearch() when submitting the form', function() {
       let stubbedOnSearch = sandbox.spy();
       let wrapper = mount(
-        <SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456" />,
+        <SearchBar
+          onSearch={stubbedOnSearch}
+          orgId="123"
+          projectId="456"
+          query="is:unresolved"
+        />,
         options
       );
 
@@ -186,7 +225,7 @@ describe('SearchBar', function() {
         preventDefault() {},
       });
 
-      expect(stubbedOnSearch.called).toBe(true);
+      expect(stubbedOnSearch.calledWith('is:unresolved')).toBe(true);
     });
 
     it('invokes onSearch() when search is cleared', function(done) {
