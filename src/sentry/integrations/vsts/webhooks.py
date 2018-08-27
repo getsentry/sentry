@@ -1,17 +1,13 @@
 from __future__ import absolute_import
 from .client import VstsApiClient
 
-from sentry.models import Commit, CommitAuthor, Identity, Integration, OrganizationIntegration, PullRequest, Repository, sync_group_assignee_inbound
+from sentry.models import CommitAuthor, Identity, Integration, OrganizationIntegration, PullRequest, Repository, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError, transaction
-from django.utils import timezone
-from django.http import Http404
 
-
-import dateutil
 import re
 import six
 
@@ -78,74 +74,70 @@ class WorkItemWebhook(Webhook):
 
 class PullRequestWebhook(Webhook):
     def __call__(self, data, integration):
-        organization_id = None  # TODO(lb): where is this supposed to come from???? :(((())))
-        repo = self.get_or_create_repo(data, integration, organization_id)
-        author_email = self.get_or_create_author(data, integration)
-        self.create_commit_and_pull_request(data, repo, integration, author_email)
+        organization_ids = OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+        ).values_list('organization_id', flat=True)
+        for organization_id in organization_ids:
+            installation = integration.get_installation(organization_id)
+            repo = self.get_or_create_repo(data, installation, organization_id)
+            author = self.get_or_create_author(data, installation, organization_id)
+            self.create_pull_request(data, repo, author)
 
-    def get_or_create_repo(self, data, integration, organization_id):
+    def get_or_create_repo(self, data, installation, organization_id):
         try:
             repo = Repository.objects.get(
                 organization_id=organization_id,
                 provider=PROVIDER_NAME,
                 external_id=six.text_type(data['resource']['repository']['id']),
             )
-        except Repository.DoesNotExist:
-            raise Http404()
-        # TODO(lb): double check that we store ProjectName/RepoName in the database
-        # if repo.config.get('name') != event['repository']['full_name']:
-        #     repo.config['name'] = event['repository']['full_name']
-        #     repo.save()
+        except Repository.DoesNotExist as e:
+            installation.logger.error(
+                e,
+                extra={
+                    'integration_id': installation.model.id,
+                    'organization_id': organization_id,
+                }
+            )
         return repo
 
-    def get_or_create_author(self, data, integration, commit_author, organization_id):
+    def get_or_create_author(self, data, installation, organization_id):
         author_email = data['createdBy']['uniqueName']
-        user_id = data['createdBy']['id']
+        author_id = data['createdBy']['id']
+        author_name = data['createdBy']['displayName']
         try:
             commit_author = CommitAuthor.objects.get(
-                external_id=user_id,
-                # TODO(lb): WHHHHHHHYYYYY?????!?!?!??!
+                external_id=author_id,
                 organization_id=organization_id,
+                email=author_email,
             )
-            author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
             try:
                 identity = Identity.objects.get(
-                    external_id=user_id,
+                    external_id=author_id,
                     idp__type=self.provider,
                     idp__external_id=data['account']['id'],
                 )
             except Identity.DoesNotExist:
-                # TODO(lb): shouldn't I be creating the commit author if there is both no commit author and no idenity?
-                # TODO(lb): race condition, vulnerable should maybe use atomic?
-                commit_author = CommitAuthor.objects.create(
-                    external_id=user_id,
-                    # TODO(lb): WHHHHHHHYYYYY?????!?!?!??!
-                    organization_id=organization_id,
-                )
+                with transaction.atomic():
+                    commit_author = CommitAuthor.objects.create(
+                        external_id=author_id,
+                        organization_id=organization_id,
+                        email=author_email,
+                        name=author_name,
+                    )
             else:
-                author_email = identity.user.email
+                with transaction.atomic():
+                    commit_author = CommitAuthor.objects.create(
+                        external_id=author_id,
+                        organization_id=organization_id,
+                        email=identity.user.email,
+                        name=author_name,
+                    )
 
-        return author_email
+        return commit_author
 
-    def create_commit_and_pull_request(self, data, repo, author, organization_id):
+    def create_pull_request(self, data, repo, author, organization_id):
         merge_commit_sha = data['lastMergeCommit']['commitId']
-        try:
-            with transaction.atomic():
-                Commit.objects.create(
-                    repository_id=repo.id,
-                    organization_id=organization_id,
-                    key=merge_commit_sha,
-                    message=data['message']['html'],
-                    author=author,
-                    date_added=dateutil.parser.parse(
-                        data['createdDate'],
-                    ).astimezone(timezone.utc),
-                )
-
-        except IntegrityError:
-            pass
-
         try:
             PullRequest.objects.create_or_update(
                 repository_id=repo.id,

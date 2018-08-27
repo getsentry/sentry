@@ -191,3 +191,11 @@ class VstsWebhookWorkItemTest(APITestCase):
                 id__in=group_ids,
                 status=GroupStatus.UNRESOLVED)) == num_groups
         assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+
+
+class VstsWebhookPullRequestTest(APITestCase):
+    def setUp(self):
+        pass
+
+    def test_simple(self):
+        pass
