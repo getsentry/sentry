@@ -2,9 +2,38 @@
 
 exports[`ExternalIssueActions with an external issue linked renders 1`] = `
 <IssueSyncElement
-  externalIssueId="100"
+  externalIssueId={100}
   externalIssueKey="getsentry/sentry#2"
   externalIssueLink="https://github.com/MeredithAnya/testing/issues/2"
+  hoverCardBody={
+    <IntegrationItem
+      integration={
+        Object {
+          "configData": Object {},
+          "configOrganization": Array [],
+          "domainName": "gtithub.com/test-integration",
+          "externalIssues": Array [
+            Object {
+              "id": 100,
+              "key": "getsentry/sentry#2",
+              "url": "https://github.com/MeredithAnya/testing/issues/2",
+            },
+          ],
+          "icon": "http://example.com/integration_icon.png",
+          "id": "1",
+          "name": "Test Integration",
+          "projects": Array [],
+          "provider": Object {
+            "canAdd": true,
+            "features": Array [],
+            "key": "github",
+            "name": "GitHub",
+          },
+        }
+      }
+    />
+  }
+  hoverCardHeader="Linked GitHub Integration"
   integrationName="Test Integration"
   integrationType="github"
   onClose={[Function]}
@@ -12,62 +41,101 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
 >
   <IssueSyncListElementContainer>
     <div
-      className="css-43gy94-IssueSyncListElementContainer e1vaar1z0"
+      className="css-lh3vnw-IssueSyncListElementContainer e1vaar1z0"
     >
-      <div>
-        <IntegrationIcon
-          src="icon-github"
+      <Hovercard
+        body={
+          <IntegrationItem
+            integration={
+              Object {
+                "configData": Object {},
+                "configOrganization": Array [],
+                "domainName": "gtithub.com/test-integration",
+                "externalIssues": Array [
+                  Object {
+                    "id": 100,
+                    "key": "getsentry/sentry#2",
+                    "url": "https://github.com/MeredithAnya/testing/issues/2",
+                  },
+                ],
+                "icon": "http://example.com/integration_icon.png",
+                "id": "1",
+                "name": "Test Integration",
+                "projects": Array [],
+                "provider": Object {
+                  "canAdd": true,
+                  "features": Array [],
+                  "key": "github",
+                  "name": "GitHub",
+                },
+              }
+            }
+          />
+        }
+        className="css-17m6soy-hoverCardStyles"
+        containerClassName="css-1s8b4pt-hoverCardContainer"
+        displayTimeout={100}
+        header="Linked GitHub Integration"
+      >
+        <span
+          className="hovercard-container css-1s8b4pt-hoverCardContainer"
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
         >
-          <InlineSvg
-            className="css-qf3g6n-IntegrationIcon e1vaar1z1"
+          <IntegrationIcon
             src="icon-github"
           >
-            <StyledSvg
+            <InlineSvg
               className="css-qf3g6n-IntegrationIcon e1vaar1z1"
-              height="1em"
-              viewBox={Object {}}
-              width="1em"
+              src="icon-github"
             >
-              <svg
-                className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+              <StyledSvg
+                className="css-qf3g6n-IntegrationIcon e1vaar1z1"
                 height="1em"
                 viewBox={Object {}}
                 width="1em"
               >
-                <use
-                  href="#test"
-                  xlinkHref="#test"
-                />
-              </svg>
-            </StyledSvg>
-          </InlineSvg>
-        </IntegrationIcon>
-        <IntegrationLink
-          href="https://github.com/MeredithAnya/testing/issues/2"
-        >
-          <a
-            className="css-1ado49n-IntegrationLink e1vaar1z2"
+                <svg
+                  className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                  height="1em"
+                  viewBox={Object {}}
+                  width="1em"
+                >
+                  <use
+                    href="#test"
+                    xlinkHref="#test"
+                  />
+                </svg>
+              </StyledSvg>
+            </InlineSvg>
+          </IntegrationIcon>
+          <IntegrationLink
             href="https://github.com/MeredithAnya/testing/issues/2"
           >
-            getsentry/sentry#2
-          </a>
-        </IntegrationLink>
-      </div>
+            <a
+              className="css-oytllg-IntegrationLink e1vaar1z2"
+              href="https://github.com/MeredithAnya/testing/issues/2"
+            >
+              getsentry/sentry#2
+            </a>
+          </IntegrationLink>
+        </span>
+      </Hovercard>
       <OpenCloseIcon
-        isLinked="100"
+        isLinked={100}
         onClick={[Function]}
         src="icon-close"
       >
         <InlineSvg
           className="css-92xk5s-OpenCloseIcon e1vaar1z3"
-          isLinked="100"
+          isLinked={100}
           onClick={[Function]}
           src="icon-close"
         >
           <StyledSvg
             className="css-92xk5s-OpenCloseIcon e1vaar1z3"
             height="1em"
-            isLinked="100"
+            isLinked={100}
             onClick={[Function]}
             viewBox={Object {}}
             width="1em"
@@ -150,6 +218,29 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     externalIssueId={null}
     externalIssueKey={null}
     externalIssueLink={null}
+    hoverCardBody={
+      <IntegrationItem
+        integration={
+          Object {
+            "configData": Object {},
+            "configOrganization": Array [],
+            "domainName": "gtithub.com/test-integration",
+            "externalIssues": Array [],
+            "icon": "http://example.com/integration_icon.png",
+            "id": "1",
+            "name": "Test Integration",
+            "projects": Array [],
+            "provider": Object {
+              "canAdd": true,
+              "features": Array [],
+              "key": "github",
+              "name": "GitHub",
+            },
+          }
+        }
+      />
+    }
+    hoverCardHeader="Linked GitHub Integration"
     integrationName="Test Integration"
     integrationType="github"
     onClose={[Function]}
@@ -157,49 +248,82 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   >
     <IssueSyncListElementContainer>
       <div
-        className="css-43gy94-IssueSyncListElementContainer e1vaar1z0"
+        className="css-lh3vnw-IssueSyncListElementContainer e1vaar1z0"
       >
-        <div>
-          <IntegrationIcon
-            src="icon-github"
+        <Hovercard
+          body={
+            <IntegrationItem
+              integration={
+                Object {
+                  "configData": Object {},
+                  "configOrganization": Array [],
+                  "domainName": "gtithub.com/test-integration",
+                  "externalIssues": Array [],
+                  "icon": "http://example.com/integration_icon.png",
+                  "id": "1",
+                  "name": "Test Integration",
+                  "projects": Array [],
+                  "provider": Object {
+                    "canAdd": true,
+                    "features": Array [],
+                    "key": "github",
+                    "name": "GitHub",
+                  },
+                }
+              }
+            />
+          }
+          className="css-17m6soy-hoverCardStyles"
+          containerClassName="css-1s8b4pt-hoverCardContainer"
+          displayTimeout={100}
+          header="Linked GitHub Integration"
+        >
+          <span
+            className="hovercard-container css-1s8b4pt-hoverCardContainer"
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
           >
-            <InlineSvg
-              className="css-qf3g6n-IntegrationIcon e1vaar1z1"
+            <IntegrationIcon
               src="icon-github"
             >
-              <StyledSvg
+              <InlineSvg
                 className="css-qf3g6n-IntegrationIcon e1vaar1z1"
-                height="1em"
-                viewBox={Object {}}
-                width="1em"
+                src="icon-github"
               >
-                <svg
-                  className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                <StyledSvg
+                  className="css-qf3g6n-IntegrationIcon e1vaar1z1"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
                 >
-                  <use
-                    href="#test"
-                    xlinkHref="#test"
-                  />
-                </svg>
-              </StyledSvg>
-            </InlineSvg>
-          </IntegrationIcon>
-          <IntegrationLink
-            href={null}
-            onClick={[Function]}
-          >
-            <a
-              className="css-1ado49n-IntegrationLink e1vaar1z2"
+                  <svg
+                    className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                    height="1em"
+                    viewBox={Object {}}
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                      xlinkHref="#test"
+                    />
+                  </svg>
+                </StyledSvg>
+              </InlineSvg>
+            </IntegrationIcon>
+            <IntegrationLink
               href={null}
               onClick={[Function]}
             >
-              Link GitHub Issue
-            </a>
-          </IntegrationLink>
-        </div>
+              <a
+                className="css-oytllg-IntegrationLink e1vaar1z2"
+                href={null}
+                onClick={[Function]}
+              >
+                Link GitHub Issue
+              </a>
+            </IntegrationLink>
+          </span>
+        </Hovercard>
         <OpenCloseIcon
           isLinked={null}
           onClick={[Function]}

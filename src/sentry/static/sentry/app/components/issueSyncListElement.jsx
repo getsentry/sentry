@@ -1,19 +1,32 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {capitalize} from 'lodash';
+import Hovercard from 'app/components/hovercard';
+
+const hoverCardContainer = css`
+  display: flex;
+  align-items: center;
+`;
+
+const hoverCardStyles = css`
+  min-height: 0;
+  bottom: ${28 + 10}px; /* 28px is the current bottom value called in hovercard.less */
+`;
 
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
-    externalIssueId: PropTypes.string,
+    externalIssueId: PropTypes.number,
     externalIssueKey: PropTypes.string,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
     integrationName: PropTypes.string,
+    hoverCardHeader: PropTypes.node,
+    hoverCardBody: PropTypes.node,
   };
 
   isLinked() {
@@ -81,10 +94,15 @@ class IssueSyncElement extends React.Component {
   render() {
     return (
       <IssueSyncListElementContainer>
-        <div>
+        <Hovercard
+          containerClassName={hoverCardContainer}
+          header={this.props.hoverCardHeader}
+          body={this.props.hoverCardBody}
+          className={hoverCardStyles}
+        >
           {this.getIcon()}
           {this.getLink()}
-        </div>
+        </Hovercard>
         {this.props.onOpen &&
           this.props.onClose && (
             <OpenCloseIcon
@@ -103,8 +121,9 @@ const IssueSyncListElementContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   &:not(:last-child) {
-    padding-bottom: ${space(2)};
+    margin-bottom: ${space(2)};
   }
 `;
 
@@ -122,6 +141,7 @@ const IntegrationLink = styled('a')`
   color: ${p => p.theme.gray4};
   border-bottom: 1px solid ${p => p.theme.gray4};
   cursor: pointer;
+  line-height: 1;
 
   &,
   &:hover {
