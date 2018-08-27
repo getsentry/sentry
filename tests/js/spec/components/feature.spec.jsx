@@ -38,6 +38,39 @@ describe('Feature', function() {
       });
     });
 
+    it('has feature when requireAll is false', function() {
+      mount(
+        <Feature feature={['org-foo', 'project-foo', 'apple']} requireAll={false}>
+          {childrenMock}
+        </Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasFeature: true,
+        hasAccess: true,
+        hasSuperuser: true,
+      });
+    });
+
+    it('has access when requireAll is false', function() {
+      mount(
+        <Feature
+          access={['project:write', 'project:read', 'org:read']}
+          requireAll={false}
+        >
+          {childrenMock}
+        </Feature>,
+        routerContext
+      );
+
+      expect(childrenMock).toHaveBeenCalledWith({
+        hasFeature: true,
+        hasAccess: true,
+        hasSuperuser: true,
+      });
+    });
+
     it('has accesss (has feature because optional)', function() {
       mount(
         <Feature access={['project:write', 'project:read']}>{childrenMock}</Feature>,
