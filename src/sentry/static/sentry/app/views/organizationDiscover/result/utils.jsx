@@ -3,7 +3,6 @@
 import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
-import _ from 'lodash';
 
 /**
  * Returns data formatted for basic line and bar charts, with each aggregation
@@ -41,13 +40,11 @@ export function getChartDataByDay(data, query) {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
-  let sortedData = _.sortBy(data, element => element.time);
-
   const dates = [
-    ...new Set(sortedData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
+    ...new Set(data.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
   ];
   const output = {};
-  sortedData.forEach(res => {
+  data.forEach(res => {
     const key = fields.length
       ? fields.map(field => getLabel(res[field])).join(',')
       : aggregate;
@@ -64,7 +61,7 @@ export function getChartDataByDay(data, query) {
       };
     }
   });
-  let result = [];
+  const result = [];
   for (let key in output) {
     const addDates = dates.filter(
       date => !output[key].data.map(entry => entry.name).includes(date)
