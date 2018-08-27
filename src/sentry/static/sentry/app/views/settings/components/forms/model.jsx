@@ -228,21 +228,7 @@ class FormModel {
   }
 
   isValidField(id) {
-    let validate = this.getDescriptor(id, 'validate');
-    let errors = [];
-
-    if (typeof validate === 'function') {
-      // Returns "tuples" of [id, error string]
-      errors = validate({model: this, id, form: this.getData()}) || [];
-    }
-
-    errors
-      .filter(([, errorMessage]) => !!errorMessage)
-      .forEach(([field, errorMessage]) => {
-        this.setError(field, errorMessage);
-      });
-
-    return !errors.length && this.isValidRequiredField(id);
+    return (this.getError(id) || []).length === 0;
   }
 
   doApiRequest({apiEndpoint, apiMethod, data}) {
@@ -267,19 +253,32 @@ class FormModel {
       this.options.onFieldChange(id, value);
     }
 
-    this.updateErrorState(id);
+    this.validateField(id);
     this.updateShowSaveState(id, value);
     this.updateShowReturnButtonState(id, value);
   }
-  @action
-  updateErrorState(id) {
-    let fieldIsRequiredMessage = t('Field is required');
-    let isValid = this.isValidRequiredField(id);
-    // specifically check for empty string, 0 should be allowed
-    if (isValid && !this.errors.get(id)) return;
-    if (!isValid && this.errors.get(id) === fieldIsRequiredMessage) return;
 
-    this.setError(id, isValid ? false : fieldIsRequiredMessage);
+  @action
+  validateField(id) {
+    let validate = this.getDescriptor(id, 'validate');
+    let errors = [];
+
+    if (typeof validate === 'function') {
+      // Returns "tuples" of [id, error string]
+      errors = validate({model: this, id, form: this.getData()}) || [];
+    }
+
+    let fieldIsRequiredMessage = t('Field is required');
+
+    if (!this.isValidRequiredField(id)) {
+      errors.push([id, fieldIsRequiredMessage]);
+    }
+
+    errors
+      .filter(([, errorMessage]) => !!errorMessage)
+      .forEach(([field, errorMessage]) => {
+        this.setError(field, errorMessage);
+      });
   }
 
   @action
@@ -325,18 +324,9 @@ class FormModel {
    */
   @action
   saveForm() {
-    // Represents state of current form
-    let form = this.getData();
+    this.validateForm();
 
-    let errors = [
-      // This only validates fields with values
-      ...(Object.keys(form).filter(id => !this.isValidField(id)) || []),
-      // Validate required fields
-      ...(Array.from(this.fieldDescriptor.keys()).filter(id => !this.isValidField(id)) ||
-        []),
-    ];
-
-    if (errors.length > 0) return null;
+    if (this.isError) return null;
 
     let saveSnapshot = this.createSnapshot();
 
@@ -428,6 +418,7 @@ class FormModel {
       return null;
 
     // Check for error first
+    this.validateField(id);
     if (!this.isValidField(id)) return null;
 
     // shallow clone fields
@@ -586,9 +577,10 @@ class FormModel {
     this.setFieldState(id, FormState.SAVING, false);
   }
 
-  // TODO: More validations
   @action
-  validate() {}
+  validateForm() {
+    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+  }
 
   @action
   handleErrorResponse({responseJSON: resp} = {}) {
