@@ -22,7 +22,6 @@ sentry-package.json
 /tmp
 /node_modules/
 /docs-ui/node_modules/
-/docs/_build
 example/db.sqlite
 /src/sentry/assets.json
 /src/sentry/static/version
