@@ -51,8 +51,15 @@ class IntegrationProvider(PipelineProvider):
     it provides (such as extensions provided).
     """
 
-    # a unique identifier (e.g. 'slack')
+    # a unique identifier (e.g. 'slack').
+    # Used to lookup sibling classes and the ``key`` used when creating
+    # Integration objects.
     key = None
+
+    # a unique identifier to use when creating the ``Integration`` object.
+    # Only needed when you want to create the above object with something other
+    # than ``key``. See: VstsExtensionIntegrationProvider.
+    _integration_key = None
 
     # a human readable name (e.g. 'Slack')
     name = None
@@ -89,6 +96,10 @@ class IntegrationProvider(PipelineProvider):
             raise NotImplementedError
 
         return cls.integration_cls(model, organization_id, **kwargs)
+
+    @property
+    def integration_key(self):
+        return self._integration_key or self.key
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))

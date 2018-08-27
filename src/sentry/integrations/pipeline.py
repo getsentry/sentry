@@ -64,7 +64,7 @@ class IntegrationPipeline(Pipeline):
     def _finish_pipeline(self, data):
         if 'reinstall_id' in data:
             self.integration = Integration.objects.get(
-                provider=self.provider.key,
+                provider=self.provider.integration_key,
                 id=data['reinstall_id'],
             )
             self.integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
@@ -72,11 +72,14 @@ class IntegrationPipeline(Pipeline):
 
         elif 'expect_exists' in data:
             self.integration = Integration.objects.get(
-                provider=self.provider.key,
+                provider=self.provider.integration_key,
                 external_id=data['external_id'],
             )
         else:
-            self.integration = ensure_integration(self.provider.key, data)
+            self.integration = ensure_integration(
+                self.provider.integration_key,
+                data,
+            )
 
         # Does this integration provide a user identity for the user setting up
         # the integration?

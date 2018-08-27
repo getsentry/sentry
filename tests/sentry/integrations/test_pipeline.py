@@ -1,25 +1,33 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from sentry.models import Identity, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
-from sentry.integrations.example import ExampleIntegrationProvider
+from sentry.integrations.example import (
+    ExampleIntegrationProvider,
+    AliasedIntegrationProvider,
+)
 
 
+def naive_build_integration(data):
+    return data
+
+
+@patch('sentry.integrations.example.ExampleIntegrationProvider.build_integration',
+       side_effect=naive_build_integration)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
     def setUp(self):
         super(FinishPipelineTestCase, self).setUp()
-        self.original_build_integration = self.provider.build_integration
-        self.provider.build_integration = lambda self, data: data
         self.external_id = 'dummy_id-123'
         self.provider.needs_default_identity = False
 
     def tearDown(self):
-        self.provider.build_integration = self.original_build_integration
-        self.provider.needs_default_identity = False
+        super(FinishPipelineTestCase, self).tearDown()
 
-    def test_with_data(self):
+    def test_with_data(self, *args):
         data = {
             'external_id': self.external_id,
             'name': 'Name',
@@ -41,7 +49,27 @@ class FinishPipelineTestCase(IntegrationTestCase):
             integration_id=integration.id,
         ).exists()
 
-    def test_with_expect_exists(self):
+    def test_aliased_integration_key(self, *args):
+        self.provider = AliasedIntegrationProvider
+        self.setUp()
+
+        data = {
+            'external_id': self.external_id,
+            'name': 'Name',
+            'metadata': {'url': 'https://example.com'},
+        }
+        self.pipeline.state.data = data
+        resp = self.pipeline.finish_pipeline()
+
+        self.assertDialogSuccess(resp)
+
+        # Creates the Integration using ``integration_key`` instead of ``key``
+        assert Integration.objects.filter(
+            provider=self.provider.integration_key,
+            external_id=self.external_id,
+        ).exists()
+
+    def test_with_expect_exists(self, *args):
         old_integration = Integration.objects.create(
             provider=self.provider.key,
             external_id=self.external_id,
@@ -64,7 +92,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             integration_id=integration.id,
         ).exists()
 
-    def test_expect_exists_does_not_update(self):
+    def test_expect_exists_does_not_update(self, *args):
         old_integration = Integration.objects.create(
             provider=self.provider.key,
             external_id=self.external_id,
@@ -91,7 +119,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             integration_id=integration.id,
         ).exists()
 
-    def test_with_default_id(self):
+    def test_with_default_id(self, *args):
         self.provider.needs_default_identity = True
         data = {
             'external_id': self.external_id,
@@ -125,7 +153,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert org_integration.default_auth_id is not None
         assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
-    def test_default_identity_does_not_update(self):
+    def test_default_identity_does_not_update(self, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
         integration = Integration.objects.create(

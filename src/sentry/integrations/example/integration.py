@@ -122,3 +122,13 @@ class ExampleIntegrationProvider(IntegrationProvider):
         >>> def setup(self):
         >>>     bindings.add('repository.provider', GitHubRepositoryProvider, key='github')
         """
+
+
+class AliasedIntegration(ExampleIntegration):
+    pass
+
+
+class AliasedIntegrationProvider(ExampleIntegrationProvider):
+    key = 'aliased'
+    integration_key = 'example'
+    name = 'Integration Key Example'
