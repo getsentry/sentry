@@ -577,7 +577,6 @@ class FormModel {
     this.setFieldState(id, FormState.SAVING, false);
   }
 
-  // TODO: More validations
   @action
   validateForm() {
     Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
