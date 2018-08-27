@@ -601,7 +601,7 @@ def test_consumer_rebalance_from_uncommitted_offset():
         # Wait until *both* consumers have received updated assignments.
         for consumer in [consumer_a, consumer_b]:
             for i in xrange(10):  # this takes a while
-                assert consumer.poll(1) is None or consumer.error() is KafkaError._PARTITION_EOF
+                assert consumer.poll(1) is None or message.error() is KafkaError._PARTITION_EOF
                 if assignments_received[consumer]:
                     break
 
