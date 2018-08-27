@@ -247,7 +247,7 @@ class OrganizationSerializer(serializers.Serializer):
                 filename='{}.png'.format(org.slug),
             )
         if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
-            org.send_setup_2fa_emails()
+            org.handle_2fa_required(self.context['request'])
         return org, changed_data
 
 
@@ -314,7 +314,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         serializer = serializer_cls(
             data=request.DATA,
             partial=True,
-            context={'organization': organization, 'user': request.user},
+            context={
+                'organization': organization,
+                'user': request.user,
+                'request': request,
+            },
         )
         if serializer.is_valid():
             organization, changed_data = serializer.save()

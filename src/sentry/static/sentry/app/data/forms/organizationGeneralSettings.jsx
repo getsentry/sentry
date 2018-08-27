@@ -83,8 +83,9 @@ const formGroups = [
         help: t('Require two-factor authentication for all members'),
         confirm: {
           true: t(
-            'This will immediately force all users to enable two-factor authentication.' +
-              ' It will also send an email reminder to setup two-factor authentication. Do you want to continue?'
+            'This will remove all members without two-factor authentication' +
+              ' from your organization. It will also send them an email to setup 2FA' +
+              ' and reinstate their access and settings. Do you want to continue?'
           ),
           false: t(
             'Are you sure you want to allow users to access your organization without having two-factor authentication enabled?'
