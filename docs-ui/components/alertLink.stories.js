@@ -21,7 +21,7 @@ storiesOf('Links/AlertLink', module)
         Gj you did it. Now go here.
       </AlertLink>,
       <AlertLink to="/settings/account/notifications" priority="default" key="5">
-        I'm saying nothing, ok?
+        I am saying nothing, ok?
       </AlertLink>,
     ])
   )
@@ -61,7 +61,7 @@ storiesOf('Links/AlertLink', module)
         priority="default"
         key="5"
       >
-        I'm saying nothing, ok?
+        I am saying nothing, ok?
       </AlertLink>,
     ])
   );
