@@ -7,15 +7,16 @@ import {t} from 'app/locale';
 import Button from 'app/components/buttons/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
 
 class IntegrationAlertRules extends React.Component {
   static propTypes = {
-    projects: PropTypes.object.isRequired,
+    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
   };
 
   static contextTypes = {
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
   };
 
   render() {
