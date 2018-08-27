@@ -3,17 +3,18 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import styled from 'react-emotion';
 import {Box, Flex} from 'grid-emotion';
-import moment from 'moment';
 
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 
 import Table from './table';
+import {getChartData, getChartDataByDay} from './utils';
 
 export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object,
+    query: PropTypes.object,
     chartData: PropTypes.object,
     chartQuery: PropTypes.object,
   };
@@ -26,76 +27,34 @@ export default class Result extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!nextProps.chartData && this.state.view !== 'table') {
+    if (!nextProps.chartData && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
+      this.setState({
+        view: 'table',
+      });
+    }
+
+    if (
+      !nextProps.query.aggregations.length &&
+      ['line', 'bar'].includes(this.state.view)
+    ) {
       this.setState({
         view: 'table',
       });
     }
   }
 
-  // Converts a value to a string for the chart label. This could
-  // potentially cause incorrect grouping, e.g. if the value null and string
-  // 'null' are both present in the same series they will be merged into 1 value
-  getLabel(value) {
-    if (typeof value === 'object') {
-      try {
-        value = JSON.stringify(value);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(err);
-      }
-    }
-
-    return value;
-  }
-
-  getChartData(queryData, groupbyFields) {
-    const {aggregations} = this.props.chartQuery;
-    // We only chart the first aggregation for now
-    const aggregate = aggregations[0][2];
-    const dates = [
-      ...new Set(queryData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
-    ];
-    const output = {};
-    queryData.forEach(data => {
-      const key = groupbyFields.length
-        ? groupbyFields.map(field => this.getLabel(data[field])).join(',')
-        : aggregate;
-      if (key in output) {
-        output[key].data.push({
-          value: data[aggregate],
-          name: moment.utc(data.time * 1000).format('MMM Do'),
-        });
-      } else {
-        output[key] = {
-          data: [
-            {value: data[aggregate], name: moment.utc(data.time * 1000).format('MMM Do')},
-          ],
-        };
-      }
-    });
-    const result = [];
-    for (let key in output) {
-      const addDates = dates.filter(
-        date => !output[key].data.map(entry => entry.name).includes(date)
-      );
-      for (let i = 0; i < addDates.length; i++) {
-        output[key].data.push({
-          value: null,
-          name: addDates[i],
-        });
-      }
-
-      result.push({seriesName: key, data: output[key].data});
-    }
-    return result;
-  }
-
   renderToggle() {
     const options = [{id: 'table', name: t('Table')}];
 
-    if (this.props.chartData) {
+    if (this.props.query.aggregations.length) {
       options.push({id: 'line', name: t('Line')}, {id: 'bar', name: t('Bar')});
+    }
+
+    if (this.props.chartData) {
+      options.push(
+        {id: 'line-by-day', name: t('Line by Day')},
+        {id: 'bar-by-day', name: t('Bar by Day')}
+      );
     }
 
     return (
@@ -122,7 +81,8 @@ export default class Result extends React.Component {
 
   renderSummary() {
     const {data, chartData} = this.props;
-    const summaryData = this.state.view === 'table' ? data : chartData;
+    const baseViews = ['table', 'line', 'bar'];
+    const summaryData = baseViews.includes(this.state.view) ? data : chartData;
 
     return (
       <Summary>
@@ -132,23 +92,27 @@ export default class Result extends React.Component {
   }
 
   render() {
-    const {data, chartQuery, chartData} = this.props;
+    const {data, query, chartQuery, chartData} = this.props;
     const {view} = this.state;
+
+    const basicChartData = getChartData(data.data, query);
 
     return (
       <div>
         {this.renderToggle()}
 
         {view === 'table' && <Table data={data} />}
-        {view === 'line' && (
+        {view === 'line' && <LineChart series={basicChartData} height={300} />}
+        {view === 'bar' && <BarChart series={basicChartData} height={300} />}
+        {view === 'line-by-day' && (
           <LineChart
-            series={this.getChartData(chartData.data, chartQuery.fields)}
+            series={getChartDataByDay(chartData.data, chartQuery)}
             height={300}
           />
         )}
-        {view === 'bar' && (
+        {view === 'bar-by-day' && (
           <BarChart
-            series={this.getChartData(chartData.data, chartQuery.fields)}
+            series={getChartDataByDay(chartData.data, chartQuery)}
             stacked={true}
             height={300}
           />

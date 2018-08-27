@@ -66,7 +66,7 @@ describe('Discover', function() {
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith();
-      expect(wrapper.state().result).toEqual(mockResponse);
+      expect(wrapper.state().data).toEqual(mockResponse);
     });
 
     it('removes incomplete conditions', async function() {
