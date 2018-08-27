@@ -35,6 +35,10 @@ const inputStyles = props => {
     &::placeholder {
       color: ${props.theme.gray2};
     }
+
+    &[disabled] {
+      background: ${props.theme.whiteDark};
+    }
   `;
 };
 
