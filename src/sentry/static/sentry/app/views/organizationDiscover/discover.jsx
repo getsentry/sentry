@@ -36,7 +36,8 @@ export default class OrganizationDiscover extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      result: null,
+      data: null,
+      query: null,
       chartData: null,
       chartQuery: null,
       isFetchingQuery: false,
@@ -79,9 +80,10 @@ export default class OrganizationDiscover extends React.Component {
     clearIndicators();
 
     queryBuilder.fetch().then(
-      result => {
+      data => {
         const query = queryBuilder.getInternal();
-        this.setState({result, isFetchingQuery: false});
+        const queryCopy = {...query};
+        this.setState({data, query: queryCopy, isFetchingQuery: false});
 
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
@@ -91,7 +93,7 @@ export default class OrganizationDiscover extends React.Component {
       },
       err => {
         addErrorMessage(err.message);
-        this.setState({result: null, isFetchingQuery: false});
+        this.setState({data: null, query: null, isFetchingQuery: false});
       }
     );
 
@@ -175,7 +177,7 @@ export default class OrganizationDiscover extends React.Component {
 
     queryBuilder.reset();
     this.setState({
-      result: null,
+      data: null,
       chartData: null,
       chartQuery: null,
     });
@@ -184,10 +186,10 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
   render() {
-    const {result, chartData, chartQuery, isFetchingQuery} = this.state;
+    const {data, query, chartData, chartQuery, isFetchingQuery} = this.state;
     const {queryBuilder} = this.props;
 
-    const query = queryBuilder.getInternal();
+    const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
     // Do not allow conditions on projectID field
     const columnsForConditions = columns.filter(({name}) => name !== 'project_id');
@@ -210,15 +212,15 @@ export default class OrganizationDiscover extends React.Component {
           <strong>{t('Discover')}</strong>
           <Flex>
             <MultipleProjectSelector
-              value={query.projects}
+              value={currentQuery.projects}
               projects={this.props.organization.projects}
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
             />
             <HeaderSeparator />
             <TimeRangeSelector
-              start={query.start}
-              end={query.end}
+              start={currentQuery.start}
+              end={currentQuery.end}
               onChange={(name, val) => this.updateField(name, val)}
               onUpdate={this.runQuery}
             />
@@ -235,20 +237,20 @@ export default class OrganizationDiscover extends React.Component {
                 multiple={true}
                 placeholder={this.getSummarizePlaceholder()}
                 options={fieldOptions}
-                value={query.fields}
+                value={currentQuery.fields}
                 onChange={val => this.updateField('fields', val.map(({value}) => value))}
               />
             </Fieldset>
             <Fieldset>
               <Aggregations
-                value={query.aggregations}
+                value={currentQuery.aggregations}
                 columns={columns}
                 onChange={val => this.updateField('aggregations', val)}
               />
             </Fieldset>
             <Fieldset>
               <Conditions
-                value={query.conditions}
+                value={currentQuery.conditions}
                 columns={columnsForConditions}
                 onChange={val => this.updateField('conditions', val)}
               />
@@ -259,7 +261,7 @@ export default class OrganizationDiscover extends React.Component {
                 label={t('Order By')}
                 placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
                 options={this.getOrderbyOptions()}
-                value={query.orderby}
+                value={currentQuery.orderby}
                 onChange={val => this.updateField('orderby', val)}
               />
             </Fieldset>
@@ -268,7 +270,7 @@ export default class OrganizationDiscover extends React.Component {
                 name="limit"
                 label={t('Limit')}
                 placeholder="#"
-                value={query.limit}
+                value={currentQuery.limit}
                 onChange={val =>
                   this.updateField('limit', typeof val === 'number' ? val : null)}
               />
@@ -285,10 +287,15 @@ export default class OrganizationDiscover extends React.Component {
             </Flex>
           </Box>
           <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
-            {result && (
-              <Result data={result} chartData={chartData} chartQuery={chartQuery} />
+            {data && (
+              <Result
+                data={data}
+                query={query}
+                chartData={chartData}
+                chartQuery={chartQuery}
+              />
             )}
-            {!result && <Intro updateQuery={this.updateFields} />}
+            {!data && <Intro updateQuery={this.updateFields} />}
           </Box>
         </Flex>
       </Discover>

@@ -1,11 +1,48 @@
-import React from 'react';
-import {shallow} from 'enzyme';
+import {
+  getChartData,
+  getChartDataByDay,
+} from 'app/views/organizationDiscover/result/utils';
 
-import Result from 'app/views/organizationDiscover/result';
+describe('Utils', function() {
+  it('getChartData()', function() {
+    const raw = [
+      {count: 2, uniq_event_id: 1, project_id: 5, 'tags[environment]': null},
+      {count: 2, uniq_event_id: 3, project_id: 5, 'tags[environment]': 'staging'},
+      {count: 2, uniq_event_id: 4, project_id: 5, 'tags[environment]': 'alpha'},
+      {count: 6, uniq_event_id: 10, project_id: 5, 'tags[environment]': 'production'},
+    ];
 
-describe('Result', function() {
-  const data = {
-    data: [
+    const query = {
+      aggregations: [['count()', null, 'count'], ['uniq', 'event_id', 'uniq_event_id']],
+      fields: ['project_id', 'tags[environment]'],
+    };
+
+    const expected = [
+      {
+        seriesName: 'count',
+        data: [
+          {value: 2, name: 'project_id 5 tags[environment] null'},
+          {value: 2, name: 'project_id 5 tags[environment] staging'},
+          {value: 2, name: 'project_id 5 tags[environment] alpha'},
+          {value: 6, name: 'project_id 5 tags[environment] production'},
+        ],
+      },
+      {
+        seriesName: 'uniq_event_id',
+        data: [
+          {value: 1, name: 'project_id 5 tags[environment] null'},
+          {value: 3, name: 'project_id 5 tags[environment] staging'},
+          {value: 4, name: 'project_id 5 tags[environment] alpha'},
+          {value: 10, name: 'project_id 5 tags[environment] production'},
+        ],
+      },
+    ];
+
+    expect(getChartData(raw, query)).toEqual(expected);
+  });
+
+  it('getChartDataByDay()', function() {
+    const raw = [
       {
         'exception_stacks.type': 'ZeroDivisionError',
         platform: 'python',
@@ -54,20 +91,14 @@ describe('Result', function() {
         count: 30,
         time: 1532070000,
       },
-    ],
-    timing: {
-      duration_ms: 5,
-    },
-  };
-  const query = {
-    aggregations: [['count()', null, 'count']],
-    fields: ['platform', 'exception_stacks.type'],
-  };
+    ];
 
-  const wrapper = shallow(<Result data={data} chartData={data} chartQuery={query} />);
+    const query = {
+      aggregations: [['count()', null, 'count']],
+      fields: ['platform', 'exception_stacks.type'],
+    };
 
-  describe('getChartData()', function() {
-    const expectedData = [
+    const expected = [
       {
         data: [
           {name: 'Jul 9th', value: 6},
@@ -102,10 +133,6 @@ describe('Result', function() {
       },
     ];
 
-    it('Gets line chart data correctly', function() {
-      expect(wrapper.instance().getChartData(data.data, query.fields)).toEqual(
-        expectedData
-      );
-    });
+    expect(getChartDataByDay(raw, query)).toEqual(expected);
   });
 });
