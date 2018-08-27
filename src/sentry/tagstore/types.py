@@ -30,10 +30,12 @@ class TagType(object):
 class TagKey(TagType):
     __slots__ = ['key', 'values_seen', 'status']
 
-    def __init__(self, key, values_seen, status=TagKeyStatus.VISIBLE):
+    def __init__(self, key, values_seen, status=TagKeyStatus.VISIBLE, count=None, top_values=None):
         self.key = key
         self.values_seen = values_seen
         self.status = status
+        self.count = count
+        self.top_values = top_values
 
 
 class TagValue(TagType):
@@ -50,11 +52,12 @@ class TagValue(TagType):
 class GroupTagKey(TagType):
     __slots__ = ['group_id', 'key', 'values_seen']
 
-    def __init__(self, group_id, key, values_seen, count=None):
+    def __init__(self, group_id, key, values_seen, count=None, top_values=None):
         self.group_id = group_id
         self.key = key
         self.values_seen = values_seen
         self.count = count
+        self.top_values = top_values
 
 
 class GroupTagValue(TagType):

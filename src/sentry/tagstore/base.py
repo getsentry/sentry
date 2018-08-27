@@ -297,7 +297,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_tag_value_paginator(self, project_id, environment_id, key, query=None, order_by='-last_seen'):
+    def get_tag_value_paginator(self, project_id, environment_id, key,
+                                query=None, order_by='-last_seen'):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
         """
@@ -309,7 +310,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key, order_by='-id'):
+    def get_group_tag_value_paginator(self, project_id, group_id,
+                                      environment_id, key, order_by='-id'):
         """
         >>> get_group_tag_value_paginator(1, 2, 3, 'environment')
         """
@@ -400,8 +402,9 @@ class TagStorage(Service):
         tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id)
 
         return [dict(
-            totalValues=self.get_group_tag_value_count(
-                project_id, group_id, environment_id, tk.key),
+            totalValues=(self.get_group_tag_value_count(
+                project_id, group_id, environment_id, tk.key)
+                if tk.count is None else tk.count),
             topValues=serialize(self.get_top_group_tag_values(
                 project_id, group_id, environment_id, tk.key, limit=10)),
             **serialize([tk])[0]

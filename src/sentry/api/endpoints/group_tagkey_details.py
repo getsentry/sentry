@@ -56,8 +56,12 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group.project_id, group.id, environment_id, lookup_key)
         else:
             total_values = group_tag_key.count
-        top_values = tagstore.get_top_group_tag_values(
-            group.project_id, group.id, environment_id, lookup_key, limit=9)
+
+        if group_tag_key.top_values is None:
+            top_values = tagstore.get_top_group_tag_values(
+                group.project_id, group.id, environment_id, lookup_key, limit=9)
+        else:
+            top_values = group_tag_key.top_values
 
         data = {
             'key': key,

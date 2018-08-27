@@ -56,7 +56,8 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-              having=None, referrer=None, is_grouprelease=False, selected_columns=None,):
+              having=None, referrer=None, is_grouprelease=False, selected_columns=None,
+              totals=None):
     """
     Sends a query to snuba.
 
@@ -138,6 +139,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'conditions': conditions,
         'having': having,
         'groupby': groupby,
+        'totals': totals,
         'project': project_ids,
         'aggregations': aggregations,
         'granularity': rollup,
@@ -177,7 +179,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None, referrer=None, is_grouprelease=False, selected_columns=None):
+          having=None, referrer=None, is_grouprelease=False, selected_columns=None,
+          totals=None):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
@@ -188,7 +191,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             selected_columns=selected_columns, aggregations=aggregations, rollup=rollup,
             arrayjoin=arrayjoin, limit=limit, orderby=orderby, having=having,
-            referrer=referrer, is_grouprelease=is_grouprelease
+            referrer=referrer, is_grouprelease=is_grouprelease, totals=totals
         )
     except EntireQueryOutsideRetentionError:
         # this exception could also bubble up to the caller instead
@@ -202,7 +205,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
     assert expected_cols == got_cols
 
     with timer('process_result'):
-        return nest_groups(body['data'], groupby, aggregate_cols)
+        if totals:
+            return nest_groups(body['data'], groupby, aggregate_cols), body['totals']
+        else:
+            return nest_groups(body['data'], groupby, aggregate_cols)
 
 
 def nest_groups(data, groups, aggregate_cols):
