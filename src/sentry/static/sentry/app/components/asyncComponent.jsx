@@ -11,7 +11,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 
-class AsyncComponent extends React.Component {
+export default class AsyncComponent extends React.Component {
   static propTypes = {
     location: PropTypes.object,
   };
@@ -19,6 +19,22 @@ class AsyncComponent extends React.Component {
   static contextTypes = {
     router: PropTypes.object,
   };
+
+  static errorHandler(component, fn) {
+    return (...args) => {
+      try {
+        return fn(...args);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        setTimeout(() => {
+          throw error;
+        });
+        component.setState({error});
+        return null;
+      }
+    };
+  }
 
   // Override this flag to have the component reload it's state when the window
   // becomes visible again. This will set the loading and reloading state, but
@@ -299,23 +315,3 @@ class AsyncComponent extends React.Component {
     return this.renderComponent();
   }
 }
-
-AsyncComponent.errorHandler = (component, fn) => {
-  return function(...args) {
-    try {
-      return fn(...args);
-    } catch (err) {
-      /*eslint no-console:0*/
-      console.error(err);
-      setTimeout(() => {
-        throw err;
-      });
-      component.setState({
-        error: err,
-      });
-      return null;
-    }
-  };
-};
-
-export default AsyncComponent;
