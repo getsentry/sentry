@@ -81,6 +81,7 @@ exports[`ProjectPluginRow renders 1`] = `
         }
       }
       renderNoFeatureMessage={false}
+      requireAll={true}
     >
       <Flex
         align="center"
