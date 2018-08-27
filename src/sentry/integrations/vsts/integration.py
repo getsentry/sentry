@@ -257,7 +257,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         identity_pipeline_view = NestedPipelineView(
             bind_key='identity',
-            provider_key='vsts',
+            provider_key=self.key,
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
