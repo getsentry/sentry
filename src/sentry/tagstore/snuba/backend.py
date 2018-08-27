@@ -209,7 +209,7 @@ class SnubaTagStorage(TagStorage):
     def get_tag_values(self, project_id, environment_id, key):
         key = self.__get_tag_key_and_top_values(project_id, None, environment_id, key,
                                                 limit=None, raise_on_empty=False)
-        return key.top_values
+        return set(key.top_values)
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
         return self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key)
@@ -223,7 +223,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
         key = self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key,
                                                 limit=None, raise_on_empty=False)
-        return key.top_values
+        return set(key.top_values)
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
         start, end = self.get_time_range()
