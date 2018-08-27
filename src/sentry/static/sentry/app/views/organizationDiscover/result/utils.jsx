@@ -3,6 +3,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
+import _ from 'lodash';
 
 /**
  * Returns data formatted for basic line and bar charts, with each aggregation
@@ -40,11 +41,13 @@ export function getChartDataByDay(data, query) {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
+  let sortedData = _.sortBy(data, element => element.time);
+
   const dates = [
-    ...new Set(data.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
+    ...new Set(sortedData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
   ];
   const output = {};
-  data.forEach(res => {
+  sortedData.forEach(res => {
     const key = fields.length
       ? fields.map(field => getLabel(res[field])).join(',')
       : aggregate;
@@ -61,7 +64,7 @@ export function getChartDataByDay(data, query) {
       };
     }
   });
-  const result = [];
+  let result = [];
   for (let key in output) {
     const addDates = dates.filter(
       date => !output[key].data.map(entry => entry.name).includes(date)
@@ -73,7 +76,16 @@ export function getChartDataByDay(data, query) {
       });
     }
 
-    result.push({seriesName: key, data: output[key].data});
+    result.push({seriesName: createSubstring(key), data: output[key].data});
+  }
+
+  return result;
+}
+
+function createSubstring(seriesName) {
+  let result = seriesName;
+  if (seriesName.length > 45) {
+    result = seriesName.substring(0, 45) + '…';
   }
   return result;
 }
