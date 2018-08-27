@@ -117,7 +117,12 @@ export default class IntegrationRepos extends AsyncComponent {
           })
         );
       },
-      error: () => IndicatorStore.addError(t('Unable to add repository.')),
+      error: data => {
+        let text = data.responseJSON.errors
+          ? data.responseJSON.errors.__all__
+          : t('Unable to add repository.');
+        IndicatorStore.addError(text);
+      },
       complete: () => {
         IndicatorStore.remove(saveIndicator);
         this.setState({adding: false});
