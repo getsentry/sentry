@@ -21,7 +21,9 @@ export function getChartData(data, query) {
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
-          name: fields.map(field => `${field} ${res[field]}`).join(' '),
+          name: truncateSeriesName(
+            fields.map(field => `${field} ${res[field]}`).join(' ')
+          ),
         };
       }),
     };
@@ -73,13 +75,13 @@ export function getChartDataByDay(data, query) {
       });
     }
 
-    result.push({seriesName: createSubstring(key), data: output[key].data});
+    result.push({seriesName: truncateSeriesName(key), data: output[key].data});
   }
 
   return result;
 }
 
-function createSubstring(seriesName) {
+function truncateSeriesName(seriesName) {
   let result = seriesName;
   if (seriesName.length > 45) {
     result = seriesName.substring(0, 45) + '…';
