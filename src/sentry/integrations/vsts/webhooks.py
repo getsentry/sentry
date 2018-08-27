@@ -8,18 +8,29 @@ from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError, transaction
 
+import logging
 import re
 import six
 
 UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
 EMAIL_PARSER = re.compile(r'<(.*)>')
-PROVIDER_NAME = 'vsts'
+PROVIDER_NAME = 'integrations:vsts'
+
+
+def create_subscription(instance, identity_data, oauth_redirect_url, external_id):
+    client = VstsApiClient(Identity(data=identity_data), oauth_redirect_url)
+    # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
+    shared_secret = uuid4().hex + uuid4().hex
+    return client.create_subscription(instance, external_id, shared_secret), shared_secret
 
 
 class Webhook(object):
     def __call__(self, data, integration):
         raise NotImplementedError
+
+    def parse_email(self, email):
+        return EMAIL_PARSER.search(email).group(1)
 
 
 class WorkItemWebhook(Webhook):
@@ -79,31 +90,29 @@ class PullRequestWebhook(Webhook):
         ).values_list('organization_id', flat=True)
         for organization_id in organization_ids:
             installation = integration.get_installation(organization_id)
-            repo = self.get_or_create_repo(data, installation, organization_id)
+            try:
+                repo = Repository.objects.get(
+                    organization_id=organization_id,
+                    provider=PROVIDER_NAME,
+                    external_id=six.text_type(data['resource']['repository']['id']),
+                )
+            except Repository.DoesNotExist as e:
+                installation.logger.error(
+                    e,
+                    extra={
+                        'integration_id': installation.model.id,
+                        'organization_id': organization_id,
+                    }
+                )
+                continue
             author = self.get_or_create_author(data, installation, organization_id)
-            self.create_pull_request(data, repo, author)
-
-    def get_or_create_repo(self, data, installation, organization_id):
-        try:
-            repo = Repository.objects.get(
-                organization_id=organization_id,
-                provider=PROVIDER_NAME,
-                external_id=six.text_type(data['resource']['repository']['id']),
-            )
-        except Repository.DoesNotExist as e:
-            installation.logger.error(
-                e,
-                extra={
-                    'integration_id': installation.model.id,
-                    'organization_id': organization_id,
-                }
-            )
-        return repo
+            self.create_pull_request(data, repo, author, organization_id)
 
     def get_or_create_author(self, data, installation, organization_id):
-        author_email = data['createdBy']['uniqueName']
-        author_id = data['createdBy']['id']
-        author_name = data['createdBy']['displayName']
+        author = data['resource']['createdBy']
+        author_email = author['uniqueName']
+        author_id = author['id']
+        author_name = author['displayName']
         try:
             commit_author = CommitAuthor.objects.get(
                 external_id=author_id,
@@ -114,8 +123,8 @@ class PullRequestWebhook(Webhook):
             try:
                 identity = Identity.objects.get(
                     external_id=author_id,
-                    idp__type=self.provider,
-                    idp__external_id=data['account']['id'],
+                    idp__type=PROVIDER_NAME,
+                    idp__external_id=data['resourceContainers']['account']['id'],
                 )
             except Identity.DoesNotExist:
                 with transaction.atomic():
@@ -137,16 +146,16 @@ class PullRequestWebhook(Webhook):
         return commit_author
 
     def create_pull_request(self, data, repo, author, organization_id):
-        merge_commit_sha = data['lastMergeCommit']['commitId']
+        merge_commit_sha = data['resource']['lastMergeCommit']['commitId']
         try:
             PullRequest.objects.create_or_update(
                 repository_id=repo.id,
                 key=data['id'],
                 values={
                     'organization_id': organization_id,
-                    'title': data['title'],
+                    'title': data['resource']['title'],
                     'author': author,
-                    'message': data['message']['html'],
+                    'message': data['resource']['description'],
                     'merge_commit_sha': merge_commit_sha,
                 },
             )
@@ -155,15 +164,16 @@ class PullRequestWebhook(Webhook):
 
 
 class WebhookEndpoint(Endpoint):
+    logger = logging.getLogger('sentry.integrations')
     authentication_classes = ()
     permission_classes = ()
-    handlers = {
+    _handlers = {
         'workitem.updated': WorkItemWebhook,
         'git.pullrequest.merged': PullRequestWebhook,
     }
 
     def get_client(self, identity, oauth_redirect_url):
-        return VstsApiClient(identity, oauth_redirect_url)
+        return
 
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -179,9 +189,9 @@ class WebhookEndpoint(Endpoint):
         data = request.DATA
         integration = Integration.objects.get(
             provider='vsts',
-            external_id=data['resourceContainers']['collection']['id'],
+            external_id=data['resourceContainers']['account']['id'],
         )
-        if self.is_secret_valid(request, integration):
+        if not self.is_secret_valid(request, integration):
             self.logger.info(
                 'vsts.invalid-subscription-secret',
                 extra={
@@ -191,19 +201,6 @@ class WebhookEndpoint(Endpoint):
             )
             return self.respond(status=401)
 
-        handler = self.get_handler('eventType')
+        handler = self.get_handler(data['eventType'])
         handler()(data, integration)
         return self.respond()
-
-    def create_webhook_secret(self):
-        # following this example
-        # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
-        return uuid4().hex + uuid4().hex
-
-    def parse_email(self, email):
-        return EMAIL_PARSER.search(email).group(1)
-
-    def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
-        client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
-        shared_secret = self.create_webhook_secret()
-        return client.create_subscription(instance, external_id, shared_secret), shared_secret

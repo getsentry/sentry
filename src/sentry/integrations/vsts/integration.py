@@ -21,7 +21,7 @@ from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
-from .webhooks import WorkItemWebhook
+from .webhooks import create_subscription
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
@@ -314,9 +314,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         return integration
 
     def create_subscription(self, instance, account_id, oauth_data):
-        webhook = WorkItemWebhook()
         try:
-            subscription, shared_secret = webhook.create_subscription(
+            subscription, shared_secret = create_subscription(
                 instance, oauth_data, self.oauth_redirect_url, account_id)
         except ApiError as e:
             if e.code != 400 or 'permission' not in e.message:
