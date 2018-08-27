@@ -8,7 +8,7 @@ storiesOf('Accordion', module)
   .add(
     'default',
     withInfo('An accordion button that will expand stuff.')(() => (
-      <Accordion label="Show me some stuff">
+      <Accordion labelClosed="Show/Hide some stuff">
         {[
           <input
             type="text"
@@ -37,7 +37,11 @@ storiesOf('Accordion', module)
     withInfo(
       'If you give it a cutoff, it will auto-expand the part of the array before the cutoff'
     )(() => (
-      <Accordion label="Show me even more of these inputs" cutoff={3}>
+      <Accordion
+        labelClosed="Show me even more of these inputs"
+        labelOpen="Show me considerably less of these inputs"
+        cutoff={3}
+      >
         {[
           <input
             type="text"

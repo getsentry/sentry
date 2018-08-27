@@ -114,7 +114,9 @@ class ExternalIssueForm extends AsyncComponent {
 
   getOptions = (field, input) => {
     if (!input && field.default && field.defaultLabel) {
-      return Promise.resolve({options: [{value: field.default, label: field.defaultLabel}]});
+      return Promise.resolve({
+        options: [{value: field.default, label: field.defaultLabel}],
+      });
     }
     if (!input) {
       return Promise.resolve([]);
@@ -176,10 +178,10 @@ class ExternalIssueForm extends AsyncComponent {
       >
         <Accordion
           cutoff={3}
-          onClick={() => this.setState({showAllFields: !this.state.showAllFields})}
           open={this.state.showAllFields}
           style={{margin: '1em 0'}}
-          label={this.state.showAllFields ? 'Show Less Fields' : 'Show More Fields'}
+          labelClosed="Show More Fields"
+          labelOpen="Show Less Fields"
         >
           {config.map((field, i) => (
             <FieldFromConfig

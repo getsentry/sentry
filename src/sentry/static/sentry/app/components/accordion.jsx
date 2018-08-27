@@ -9,7 +9,8 @@ import Button from 'app/components/buttons/button';
 
 class AccordionButton extends React.Component {
   static propTypes = {
-    label: PropTypes.string.isRequired,
+    labelClosed: PropTypes.string.isRequired,
+    labelOpen: PropTypes.string,
     cutoff: PropTypes.number,
     children: PropTypes.arrayOf(PropTypes.node).isRequired,
   };
@@ -26,13 +27,13 @@ class AccordionButton extends React.Component {
     };
   }
 
-  handleClick(e) {
+  handleClick = e => {
     e.preventDefault();
     this.setState({isOpen: !this.state.isOpen});
-  }
+  };
 
   render() {
-    const {label, cutoff} = this.props;
+    const {labelOpen, labelClosed, cutoff} = this.props;
     const children = React.Children.toArray(this.props.children);
 
     if (React.Children.count(children) <= cutoff + 1) return children;
@@ -40,10 +41,10 @@ class AccordionButton extends React.Component {
     return (
       <div>
         {children.slice(0, cutoff)}
-        <StyledButton onClick={e => this.handleClick(e)} open={this.state.isOpen}>
+        <StyledButton onClick={this.handleClick} open={this.state.isOpen}>
           <Flex align="center" justify="space-between" w={1}>
             <Flex align="center">
-              {label}
+              {this.state.isOpen ? labelOpen || labelClosed : labelClosed}
               <Badge style={{marginLeft: space(0.25)}} text={children.length - cutoff} />
             </Flex>
             <StyledInlineSvg src="icon-chevron-down" open={this.state.isOpen} />
