@@ -77,15 +77,10 @@ class BaseChart extends React.Component {
   };
 
   getColorPalette = () => {
-    // This is kind of gross, but we need to find the number of data points available
-    // so that we can scale our palette
-    //
-    // get length of `data` in the first series
     let {series} = this.props.options;
-    let [firstSeries] = series || [];
-    let {data} = firstSeries || {};
-    return data && data.length
-      ? theme.charts.getColorPalette(data.length)
+
+    return series && series.length
+      ? theme.charts.getColorPalette(series.length)
       : theme.charts.colors;
   };
 
