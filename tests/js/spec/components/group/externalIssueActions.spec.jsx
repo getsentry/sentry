@@ -50,7 +50,7 @@ describe('ExternalIssueActions', function() {
   describe('with an external issue linked', function() {
     let externalIssues = [
       {
-        id: '100',
+        id: 100,
         url: 'https://github.com/MeredithAnya/testing/issues/2',
         key: 'getsentry/sentry#2',
       },
