@@ -46,6 +46,11 @@ class Feature extends React.Component {
     access: PropTypes.arrayOf(PropTypes.string),
 
     /**
+     * Should the feature require all feature tags/access levels or just one or more.
+     */
+    requireAll: PropTypes.bool,
+
+    /**
      * Requires superuser
      */
     isSuperuser: PropTypes.bool,
@@ -71,6 +76,7 @@ class Feature extends React.Component {
 
   static defaultProps = {
     renderNoFeatureMessage: false,
+    requireAll: true,
   };
 
   getAllFeatures = () => {
@@ -114,12 +120,14 @@ class Feature extends React.Component {
       configUser,
       isSuperuser,
       renderNoFeatureMessage,
+      requireAll,
     } = this.props;
     let {access: orgAccess} = organization || {access: []};
     let allFeatures = this.getAllFeatures();
+    let method = requireAll ? 'every' : 'some';
     let hasFeature =
-      !feature || feature.every(feat => this.hasFeature(feat, allFeatures));
-    let hasAccess = !access || access.every(acc => orgAccess.includes(acc));
+      !feature || feature[method](feat => this.hasFeature(feat, allFeatures));
+    let hasAccess = !access || access[method](acc => orgAccess.includes(acc));
     let hasSuperuser = !isSuperuser || configUser.isSuperuser;
     let renderProps = {
       hasFeature,
