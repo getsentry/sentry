@@ -38,7 +38,7 @@ def post_comment(external_issue_id, data, **kwargs):
     default_retry_delay=20,
     max_retries=5
 )
-@retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist))
+@retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
 def sync_metadata(integration_id, **kwargs):
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(None)
