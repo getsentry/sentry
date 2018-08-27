@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import logging
+import six
+
 from six.moves.urllib.parse import quote_plus
 
 from django.core.urlresolvers import reverse
@@ -9,7 +11,7 @@ from django.utils.translation import ugettext as _
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 )
-from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, OrganizationIntegration
 from sentry.utils.http import absolute_uri
@@ -55,6 +57,13 @@ metadata = IntegrationMetadata(
         'externalInstall': external_install,
     },
 )
+
+# hide sprint, epic link, parent and linked issues fields because they don't work
+# since sprint and epic link are "custom" we need to search for them by name
+HIDDEN_ISSUE_FIELDS = {
+    'keys': ['parent', 'issuelinks'],
+    'names': ['Sprint', 'Epic Link'],
+}
 
 # A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -219,7 +228,10 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
     def get_group_description(self, group, event, **kwargs):
         output = [
-            absolute_uri(group.get_absolute_url()),
+            u'Sentry Issue: [{}|{}]'.format(
+                group.qualified_short_id,
+                absolute_uri(group.get_absolute_url()),
+            )
         ]
         body = self.get_group_body(group, event)
         if body:
@@ -264,6 +276,13 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 message += ' '
             message += ' '.join(['%s: %s' % (k, v) for k, v in data.get('errors').items()])
         return message
+
+    def error_fields_from_json(self, data):
+        errors = data.get('errors')
+        if not errors:
+            return None
+
+        return {key: [error] for key, error in data.get('errors').items()}
 
     def build_dynamic_field(self, group, field_meta):
         """
@@ -391,13 +410,16 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         # TODO(jess): are we going to allow ignored fields?
         # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
-        ignored_fields = set()
+        ignored_fields = set(
+            k for k, v in six.iteritems(issue_type_meta['fields']) if v['name'] in HIDDEN_ISSUE_FIELDS['names']
+        )
+        ignored_fields.update(HIDDEN_ISSUE_FIELDS['keys'])
 
         # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
-        dynamic_fields = issue_type_meta.get('fields').keys()
+        dynamic_fields = issue_type_meta['fields'].keys()
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
@@ -428,11 +450,11 @@ class JiraIntegration(Integration, IssueSyncMixin):
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
         if not data.get('issuetype'):
-            raise IntegrationError('Issue Type is required.')
+            raise IntegrationFormError({'issuetype': ['Issue type is required.']})
 
         jira_project = data.get('project')
         if not jira_project:
-            raise IntegrationError('Jira project is required.')
+            raise IntegrationFormError({'project': ['Jira project is required']})
 
         meta = client.get_create_meta_for_project(jira_project)
 
@@ -636,7 +658,6 @@ class JiraIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.ISSUE_SYNC])
 
     can_add = False
-    can_add_project = False
 
     def get_pipeline_views(self):
         return []

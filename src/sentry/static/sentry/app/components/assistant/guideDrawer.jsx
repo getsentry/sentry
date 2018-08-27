@@ -1,4 +1,6 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+import {withRouter} from 'react-router';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
@@ -23,15 +25,16 @@ import {
 /* GuideDrawer is what slides up when the user clicks on a guide cue. */
 const GuideDrawer = createReactClass({
   displayName: 'GuideDrawer',
-
+  propTypes: {
+    router: PropTypes.object,
+  },
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
 
   getInitialState() {
     return {
-      currentGuide: null,
-      currentStep: 0,
-      currentOrgSlug: null,
-      currentProjectSlug: null,
+      guide: null,
+      step: 0,
+      messageVariables: {},
     };
   },
 
@@ -41,26 +44,36 @@ const GuideDrawer = createReactClass({
 
   onGuideStateChange(data) {
     this.setState({
-      currentGuide: data.currentGuide,
-      currentStep: data.currentStep,
-      currentOrgSlug: data.currentOrg ? data.currentOrg.slug : null,
-      currentProjectSlug: data.currentProject ? data.currentProject.slug : null,
+      guide: data.currentGuide,
+      step: data.currentStep,
+      messageVariables: {
+        orgSlug: data.org && data.org.slug,
+        projectSlug: data.project && data.project.slug,
+        numEvents: data.project && data.projectStats[parseInt(data.project.id, 10)],
+      },
     });
   },
 
   /* Terminology:
-   - A guide can be FINISHED by answering whether or not is was useful in the last step.
-   - A guide can be DISMISSED by x-ing out of it at any time (including when it's cued).
+   - A guide can be FINISHED by clicking one of the buttons in the last step.
+   - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x).
    - In both cases we consider it CLOSED.
   */
   handleFinish(useful) {
-    recordFinish(this.state.currentGuide.id, useful);
+    recordFinish(this.state.guide.id, useful);
     closeGuide();
+    // This is a bit racy. Technically the correct thing to do would be to wait until closeGuide
+    // has updated the guide store and triggered a component state change. But it doesn't seem
+    // to cause any issues in practice.
+    if (useful && this.state.guide.cta_link) {
+      let link = this.interpolate(this.state.guide.cta_link, this.state.messageVariables);
+      this.props.router.push(link);
+    }
   },
 
   handleDismiss(e) {
     e.stopPropagation();
-    recordDismiss(this.state.currentGuide.id, this.state.currentStep);
+    recordDismiss(this.state.guide.id, this.state.step);
     closeGuide();
   },
 
@@ -72,17 +85,17 @@ const GuideDrawer = createReactClass({
   },
 
   render() {
-    let {currentGuide, currentStep} = this.state;
+    let {guide, step, messageVariables} = this.state;
 
-    if (!currentGuide) {
+    if (!guide) {
       return null;
     }
 
-    if (currentStep === 0) {
+    if (step === 0) {
       return (
         <StyledCueContainer onClick={nextStep} className="assistant-cue">
           {<CueIcon hasGuide={true} />}
-          <StyledCueText>{currentGuide.cue}</StyledCueText>
+          <StyledCueText>{guide.cue}</StyledCueText>
           <div style={{display: 'flex'}} onClick={this.handleDismiss}>
             <CloseIcon />
           </div>
@@ -90,17 +103,14 @@ const GuideDrawer = createReactClass({
       );
     }
 
-    let messageVariables = {
-      orgSlug: this.state.currentOrgSlug,
-      projectSlug: this.state.currentProjectSlug,
-    };
+    let isTip = guide.guide_type === 'tip';
 
     return (
       <GuideContainer>
         <GuideInputRow>
           <CueIcon hasGuide={true} />
-          <StyledTitle>{currentGuide.steps[currentStep - 1].title}</StyledTitle>
-          {currentStep < currentGuide.steps.length && (
+          <StyledTitle>{guide.steps[step - 1].title}</StyledTitle>
+          {step < guide.steps.length && (
             <div
               className="close-button"
               style={{display: 'flex'}}
@@ -113,14 +123,11 @@ const GuideDrawer = createReactClass({
         <StyledContent>
           <div
             dangerouslySetInnerHTML={{
-              __html: this.interpolate(
-                currentGuide.steps[currentStep - 1].message,
-                messageVariables
-              ),
+              __html: this.interpolate(guide.steps[step - 1].message, messageVariables),
             }}
           />
           <div style={{marginTop: '1em'}}>
-            {currentStep < currentGuide.steps.length ? (
+            {step < guide.steps.length ? (
               <div>
                 <Button priority="success" size="small" onClick={nextStep}>
                   {t('Next')} &rarr;
@@ -128,13 +135,13 @@ const GuideDrawer = createReactClass({
               </div>
             ) : (
               <div style={{textAlign: 'center'}}>
-                <p>{t('Did you find this guide useful?')}</p>
+                {!isTip && <p>{t('Did you find this guide useful?')}</p>}
                 <Button
                   priority="success"
                   size="small"
                   onClick={() => this.handleFinish(true)}
                 >
-                  {t('Yes')} &nbsp; &#x2714;
+                  {isTip ? guide.cta_text : <span>{t('Yes')} &nbsp; &#x2714;</span>}
                 </Button>
                 <Button
                   priority="success"
@@ -142,7 +149,7 @@ const GuideDrawer = createReactClass({
                   style={{marginLeft: '0.25em'}}
                   onClick={() => this.handleFinish(false)}
                 >
-                  {t('No')} &nbsp; &#x2716;
+                  {isTip ? t('Dismiss') : <span>{t('No')} &nbsp; &#x2716;</span>}
                 </Button>
               </div>
             )}
@@ -196,4 +203,5 @@ const StyledContent = styled('div')`
   }
 `;
 
-export default GuideDrawer;
+export {GuideDrawer};
+export default withRouter(GuideDrawer);

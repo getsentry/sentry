@@ -46,6 +46,8 @@ class OrganizationIntegration(Model):
         unique_together = (('organization', 'integration'),)
 
 
+# TODO(epurkhiser): This is deprecated and will be removed soon. Do not use
+# Project Integrations.
 class ProjectIntegration(Model):
     __core__ = False
 
@@ -120,32 +122,3 @@ class Integration(Model):
                 id=self.id,
                 organization_id=organization_id,
             )
-
-    def add_project(self, project_id, config=None):
-        """
-        Add a project to this integration. Requires that a
-        OrganizationIntegration must exist before the project can be added.
-
-        Returns False iff the ProjectIntegration was not created
-        """
-        from sentry.models import Project
-        org_id_queryset = Project.objects \
-            .filter(id=project_id) \
-            .values_list('organization_id', flat=True)
-        org_integration = OrganizationIntegration.objects.filter(
-            organization_id=org_id_queryset,
-            integration=self,
-        )
-
-        if not org_integration.exists():
-            return False
-
-        try:
-            with transaction.atomic():
-                return ProjectIntegration.objects.create(
-                    project_id=project_id,
-                    integration_id=self.id,
-                    config=config or {},
-                )
-        except IntegrityError:
-            return False

@@ -12,6 +12,7 @@ export default class CreateTeamForm extends React.Component {
     organization: SentryTypes.Organization.isRequired,
     onSuccess: PropTypes.func.isRequired,
     onSubmit: PropTypes.func,
+    formProps: PropTypes.object,
   };
 
   handleCreateTeamSuccess = data => {
@@ -37,6 +38,7 @@ export default class CreateTeamForm extends React.Component {
           onSubmit={this.props.onSubmit}
           onSubmitSuccess={this.handleCreateTeamSuccess}
           requireChanges
+          {...this.props.formProps}
         >
           <TextField
             name="slug"
@@ -44,9 +46,9 @@ export default class CreateTeamForm extends React.Component {
             placeholder={t('e.g. operations, web-frontend, desktop')}
             help={t('May contain lowercase letters, numbers, dashes and underscores.')}
             required
+            stacked
             flexibleControlStateSize
             inline={false}
-            stacked={true}
           />
         </Form>
       </React.Fragment>

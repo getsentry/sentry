@@ -53,11 +53,8 @@ class VstsIssueSycnTest(TestCase):
             'sync_forward_assignment': True,
             'sync_reverse_assignment': True,
         }
-        model.add_project(self.project.id, self.config)
         self.integration = VstsIntegration(model, self.organization.id)
         self.issue_id = 309
-        self.project_name = 'Fabrikam-Fiber-Git'
-        self.full_issue_id = '%s#%s' % (self.project_name, self.issue_id)
 
     @responses.activate
     def test_create_issue(self):
@@ -76,7 +73,6 @@ class VstsIssueSycnTest(TestCase):
         }
         assert self.integration.create_issue(form_data) == {
             'key': self.issue_id,
-            'project': self.project_name,
             'description': 'Fix this.',
             'title': 'Hello',
         }
@@ -119,10 +115,8 @@ class VstsIssueSycnTest(TestCase):
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
-
         assert self.integration.get_issue(self.issue_id) == {
             'key': self.issue_id,
-            'project': self.project_name,
             'description': 'Fix this.',
             'title': 'Hello',
         }
@@ -131,10 +125,10 @@ class VstsIssueSycnTest(TestCase):
 
     @responses.activate
     def test_sync_assignee_outbound(self):
-        vsts_work_item_id = '%s#%d' % (self.project_name, 5)
+        vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/5',
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -157,15 +151,15 @@ class VstsIssueSycnTest(TestCase):
         assert len(responses.calls) == 2
         assert responses.calls[0].request.url == 'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users'
         assert responses.calls[0].response.status_code == 200
-        assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/5'
+        assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id
         assert responses.calls[1].response.status_code == 200
 
     @responses.activate
     def test_sync_status_outbound(self):
-        vsts_work_item_id = '%s#%d' % (self.project_name, 5)
+        vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/5',
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -177,7 +171,7 @@ class VstsIssueSycnTest(TestCase):
         )
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/5',
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -205,11 +199,11 @@ class VstsIssueSycnTest(TestCase):
         self.integration.sync_status_outbound(external_issue, True, self.project.id)
         assert len(responses.calls) == 3
         req = responses.calls[2].request
-        assert req.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/5'
+        assert req.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id
         assert req.body == '[{"path": "/fields/System.State", "value": "Resolved", "op": "replace"}]'
         assert responses.calls[2].response.status_code == 200
 
     def test_get_issue_url(self):
-        work_id = '%s#%d' % (self.project_name, 345)
+        work_id = 345
         url = self.integration.get_issue_url(work_id)
         assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'

@@ -15,7 +15,11 @@ from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
 
 DESCRIPTION = """
-Bitbucket for Sentry.io
+With the Bitbucket integration, you can:
+ * Track commits and releases (learn more [here](https://docs.sentry.io/learn/releases/))
+ * Create Bitbucket issues from Sentry
+ * Link Sentry issues to existing Bitbucket issues
+ * Resolve Sentry issues via Bitbucket commits and pull requests by including `Fixes PROJ-ID` in the message
 """
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -47,7 +51,7 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
     def username(self):
         return self.model.name
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         repos = self.get_client().get_repos(self.username)['values']
         data = []
         for repo in repos:

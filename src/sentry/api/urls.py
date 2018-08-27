@@ -74,6 +74,7 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -99,7 +100,6 @@ from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
-from .endpoints.project_integration_details import ProjectIntegrationDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
@@ -530,6 +530,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-repository-commits'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/plugins/$',
+        OrganizationPluginsEndpoint.as_view(),
+        name='sentry-api-0-organization-plugins'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/$',
         OrganizationReleasesEndpoint.as_view(),
         name='sentry-api-0-organization-releases'
@@ -659,11 +664,6 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/environments/(?P<environment>[^/]+)/$',
         ProjectEnvironmentDetailsEndpoint.as_view(),
         name='sentry-api-0-project-environment-details'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/integrations/(?P<integration_id>[^/]+)/$',
-        ProjectIntegrationDetailsEndpoint.as_view(),
-        name='sentry-api-0-project-integration-details'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/platforms/$',

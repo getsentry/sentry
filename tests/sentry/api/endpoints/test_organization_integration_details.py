@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Integration, OrganizationIntegration, ProjectIntegration
+from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
 
@@ -29,27 +29,16 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         assert response.data['configData'] == {'setting': 'value'}
 
     def test_removal(self):
-        team = self.create_team(organization=self.org, name='Mariachi Band')
-        project1 = self.create_project(teams=[team], name='project-1')
-        project2 = self.create_project(teams=[team], name='project-2')
-
-        # Setup projects to ensure the projects are removed along with the organization integration
-        assert self.integration.add_project(project1.id)
-        assert self.integration.add_project(project2.id)
-
         with self.tasks():
             response = self.client.delete(self.path, format='json')
 
             assert response.status_code == 204, response.content
             assert Integration.objects.filter(id=self.integration.id).exists()
 
-            # Ensure both Organization *and* Project integrations are removed
+            # Ensure Organization integrations are removed
             assert not OrganizationIntegration.objects.filter(
                 integration=self.integration,
                 organization=self.org,
-            ).exists()
-            assert not ProjectIntegration.objects.filter(
-                project__organization=self.org
             ).exists()
 
     def test_update_config(self):

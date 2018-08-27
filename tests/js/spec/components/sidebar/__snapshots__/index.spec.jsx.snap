@@ -168,7 +168,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   }
 >
   <div
-    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-14uk1a6-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -295,7 +295,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     }
                   >
                     <span
-                      className="avatar css-1m7k3tg-StyledBaseAvatar e1z0ohzl0"
+                      className="avatar css-1muke4e-StyledBaseAvatar e1z0ohzl0"
                       style={
                         Object {
                           "height": "36px",
@@ -742,6 +742,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     >
                                       <StyledBaseAvatar
                                         className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                        round={true}
                                         style={
                                           Object {
                                             "height": "32px",
@@ -750,7 +751,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-1dbvbxh-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-l5crk4-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -1123,23 +1124,20 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                       size="small"
                     >
                       <Component
-                        className="css-19bmqb3-ButtonLabel e17811v31"
+                        className="css-o42ntg-ButtonLabel e17811v31"
                         size="small"
                       >
                         <Flex
                           align="center"
-                          className="css-19bmqb3-ButtonLabel e17811v31"
-                          size="small"
+                          className="css-o42ntg-ButtonLabel e17811v31"
                         >
                           <Base
                             align="center"
-                            className="e17811v31 css-1eblpyp-ButtonLabel"
-                            size="small"
+                            className="e17811v31 css-l5mlqc-ButtonLabel"
                           >
                             <div
-                              className="e17811v31 css-1eblpyp-ButtonLabel"
+                              className="e17811v31 css-l5mlqc-ButtonLabel"
                               is={null}
-                              size="small"
                             >
                               Learn more
                             </div>
@@ -1596,7 +1594,7 @@ exports[`Sidebar renders without org and router 1`] = `
   org={null}
 >
   <div
-    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-14uk1a6-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1801,6 +1799,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     >
                                       <StyledBaseAvatar
                                         className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                        round={true}
                                         style={
                                           Object {
                                             "height": "32px",
@@ -1809,7 +1808,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-1dbvbxh-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-l5crk4-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                                           style={
                                             Object {
                                               "height": "32px",

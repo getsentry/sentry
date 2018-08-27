@@ -9,7 +9,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.exceptions import IntegrationError
+from sentry.integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.models import ExternalIssue, GroupLink, Integration
 
 
@@ -24,7 +24,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # TODO(jess): should this eventually check ProjectIntegration?
             integration = Integration.objects.get(
                 id=integration_id,
                 organizations=organization_id,
@@ -55,7 +54,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         organization_id = group.project.organization_id
         try:
-            # TODO(jess): should this eventually check ProjectIntegration?
             integration = Integration.objects.get(
                 id=integration_id,
                 organizations=organization_id,
@@ -125,7 +123,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def post(self, request, group, integration_id):
         organization_id = group.project.organization_id
         try:
-            # TODO(jess): should this eventually check ProjectIntegration?
             integration = Integration.objects.get(
                 id=integration_id,
                 organizations=organization_id,
@@ -141,6 +138,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         installation = integration.get_installation(organization_id)
         try:
             data = installation.create_issue(request.DATA)
+        except IntegrationFormError as exc:
+            return Response(exc.field_errors, status=400)
         except IntegrationError as exc:
             return Response({'non_field_errors': exc.message}, status=400)
 

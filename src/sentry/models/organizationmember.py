@@ -224,7 +224,7 @@ class OrganizationMember(Model):
         return self.email or self.id
 
     def get_email(self):
-        if self.user_id:
+        if self.user_id and self.user.email:
             return self.user.email
         return self.email
 
@@ -245,7 +245,7 @@ class OrganizationMember(Model):
 
         return {
             'email':
-            self.email,
+            self.get_email(),
             'user':
             self.user_id,
             'teams': [t['id'] for t in teams],

@@ -29,7 +29,7 @@ describe('Query Builder', function() {
         url: '/organizations/org-slug/discover/',
         method: 'POST',
         body: {
-          data: [{tags_key: ['tag1', 'tag2']}],
+          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
         },
       });
       const queryBuilder = createQueryBuilder(
@@ -42,7 +42,9 @@ describe('Query Builder', function() {
         '/organizations/org-slug/discover/',
         expect.objectContaining({
           data: expect.objectContaining({
-            aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
             projects: [2],
             start: '2017-07-19T02:41:20',
             end: '2017-10-17T02:41:20',
@@ -85,6 +87,44 @@ describe('Query Builder', function() {
         name: 'tags[tag1]',
         type: 'string',
       });
+    });
+  });
+
+  describe('fetch()', function() {
+    let queryBuilder, discoverMock;
+
+    beforeEach(function() {
+      queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+      discoverMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/',
+        method: 'POST',
+      });
+    });
+
+    afterEach(function() {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('makes request', async function() {
+      const data = {projects: [1], fields: ['event_id']};
+      await queryBuilder.fetch(data);
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/',
+        expect.objectContaining({
+          data,
+        })
+      );
+    });
+
+    it('handles no projects', async function() {
+      const result = queryBuilder.fetch({projects: []});
+      await expect(result).rejects.toMatchObject({
+        message: 'No projects selected',
+      });
+      expect(discoverMock).not.toHaveBeenCalled();
     });
   });
 

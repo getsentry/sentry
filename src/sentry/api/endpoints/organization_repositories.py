@@ -8,7 +8,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.plugins import bindings
 
 
@@ -51,6 +51,29 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             queryset = queryset.exclude(
                 status=ObjectStatus.VISIBLE,
             )
+        # TODO(mn): Remove once old Plugins are removed or everyone migrates to
+        # the new Integrations. Hopefully someday?
+        elif status == 'unmigratable':
+            repos = []
+
+            org_integrations = OrganizationIntegration.objects.filter(
+                organization_id=organization.id,
+            )
+
+            integrations = Integration.objects.filter(
+                id__in=org_integrations,
+                provider__in=('bitbucket', 'github', 'vsts'),
+            )
+
+            repos = [
+                repo
+                for i in integrations
+                for repo in i.get_installation(organization.id)
+                             .get_unmigratable_repositories()
+            ]
+
+            return Response(serialize(repos, request.user))
+
         elif status:
             queryset = queryset.none()
 
@@ -75,8 +98,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         provider_id = request.DATA.get('provider')
         has_ghe = provider_id == 'integrations:github_enterprise' and features.has(
             'organizations:github-enterprise', organization, actor=request.user)
+        has_bb = provider_id == 'integrations:bitbucket' and features.has(
+            'organizations:bitbucket-integration', organization, actor=request.user)
+
         if features.has('organizations:internal-catchall', organization,
-                        actor=request.user) or has_ghe:
+                        actor=request.user) or has_ghe or has_bb:
             if provider_id is not None and provider_id.startswith('integrations:'):
                 try:
                     provider_cls = bindings.get('integration-repository.provider').get(provider_id)

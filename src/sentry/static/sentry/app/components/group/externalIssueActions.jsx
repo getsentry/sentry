@@ -3,14 +3,18 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import queryString from 'query-string';
+import styled from 'react-emotion';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -100,7 +104,12 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   getOptions = (field, input) => {
-    if (!input) return Promise.resolve([]);
+    if (!input && field.default && field.defaultLabel) {
+      return Promise.resolve({options: [{value: field.default, label: field.defaultLabel}]});
+    }
+    if (!input) {
+      return Promise.resolve([]);
+    }
 
     let query = queryString.stringify({
       ...this.state.dynamicFieldValues,
@@ -130,7 +139,7 @@ class ExternalIssueForm extends AsyncComponent {
           onSelectResetsInput: false,
           onCloseResetsInput: false,
           onBlurResetsInput: false,
-          autoload: false,
+          autoload: true,
         }
       : {};
 
@@ -249,6 +258,20 @@ class ExternalIssueActions extends AsyncComponent {
           externalIssueKey={issue ? issue.key : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
+          integrationName={selectedIntegration.name}
+          hoverCardHeader={t('Linked %s Integration', selectedIntegration.provider.name)}
+          hoverCardBody={
+            issue && issue.title ? (
+              <div>
+                <IssueTitle>{issue.title}</IssueTitle>
+                {issue.description && (
+                  <IssueDescription>{issue.description}</IssueDescription>
+                )}
+              </div>
+            ) : (
+              <IntegrationItem integration={selectedIntegration} />
+            )
+          }
         />
         {selectedIntegration && (
           <Modal
@@ -290,5 +313,16 @@ class ExternalIssueActions extends AsyncComponent {
     );
   }
 }
+
+const IssueTitle = styled('div')`
+  font-size: 1.1em;
+  font-weight: 600;
+  ${overflowEllipsis};
+`;
+
+const IssueDescription = styled('div')`
+  margin-top: ${space(1)};
+  ${overflowEllipsis};
+`;
 
 export default ExternalIssueActions;

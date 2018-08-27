@@ -1,15 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import DropdownLink from 'app/components/dropdownLink';
 import Button from 'app/components/buttons/button';
 import MultiSelectField from 'app/components/forms/multiSelectField';
 import {t} from 'app/locale';
 
-class MultipleProjectSelector extends React.Component {
+import HeaderItem from './headerItem';
+
+export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
     value: PropTypes.array,
     projects: PropTypes.array,
@@ -17,12 +18,26 @@ class MultipleProjectSelector extends React.Component {
     onUpdate: PropTypes.func,
   };
 
+  constructor() {
+    super();
+    this.state = {
+      isOpen: false,
+    };
+  }
+
   formatDate(date) {
     return moment(date).format('MMMM D, h:mm a');
   }
 
+  onUpdate = () => {
+    this.props.onUpdate();
+    this.setState({
+      isOpen: false,
+    });
+  };
+
   render() {
-    const {className, value, projects, onChange, onUpdate} = this.props;
+    const {className, value, projects, onChange} = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -41,36 +56,29 @@ class MultipleProjectSelector extends React.Component {
     });
 
     return (
-      <Flex direction="column" justify="center" className={className}>
-        <label>{t('Projects')}</label>
-        <DropdownLink title={summary} keepMenuOpen={true} anchorRight={true}>
+      <HeaderItem className={className} label={t('Projects')}>
+        <DropdownLink
+          title={summary}
+          anchorRight={true}
+          isOpen={this.state.isOpen}
+          keepMenuOpen={true}
+          onOpen={() => this.setState({isOpen: true})}
+          onClose={() => this.setState({isOpen: false})}
+        >
           <Box p={2}>
-            searched project list
-            <MultiSelectField
-              name="projects"
-              value={value}
-              options={options}
-              onChange={onChange}
-            />
-            <Button onClick={onUpdate}>{t('Update')}</Button>
+            <Box mb={1}>
+              <Box mb={1}>{t('Searched project list')}</Box>
+              <MultiSelectField
+                name="projects"
+                value={value}
+                options={options}
+                onChange={onChange}
+              />
+            </Box>
+            <Button onClick={this.onUpdate}>{t('Update')}</Button>
           </Box>
         </DropdownLink>
-      </Flex>
+      </HeaderItem>
     );
   }
 }
-
-export default styled(MultipleProjectSelector)`
-  text-align: right;
-  label {
-    font-weight: 400;
-    font-size: 13px;
-    color: ${p => p.theme.gray6};
-    margin-bottom: 12px;
-  }
-  .dropdown-actor-title {
-    font-size: 15px;
-    height: auto;
-    color: ${p => p.theme.button.default.colorActive};
-  }
-`;

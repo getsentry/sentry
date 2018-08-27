@@ -1,4 +1,5 @@
 import {Box, Flex} from 'grid-emotion';
+import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -12,10 +13,14 @@ import Tooltip from 'app/components/tooltip';
 
 const CONFIGURABLE_FEATURES = ['commits'];
 
+const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+`;
+
 const removeButton = (
-  <Button borderless size="xsmall" icon="icon-trash">
+  <StyledButton borderless icon="icon-trash">
     Remove
-  </Button>
+  </StyledButton>
 );
 
 export default class InstalledIntegration extends React.Component {
@@ -33,7 +38,6 @@ export default class InstalledIntegration extends React.Component {
    * met:
    *
    * - The Integration has organization-specific configuration options.
-   * - The Integration can be enabled for projects.
    * - The Integration has configurable features
    */
   hasConfiguration() {
@@ -41,7 +45,6 @@ export default class InstalledIntegration extends React.Component {
 
     return (
       integration.configOrganization.length > 0 ||
-      provider.canAddProject ||
       provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
     );
   }
@@ -123,7 +126,7 @@ export default class InstalledIntegration extends React.Component {
         <Box flex={1}>
           <IntegrationItem compact integration={integration} />
         </Box>
-        <Box mr={1}>
+        <Box>
           {integration.status === 'disabled' && (
             <AddIntegrationButton
               size="xsmall"
@@ -141,15 +144,14 @@ export default class InstalledIntegration extends React.Component {
               title="Integration not configurable"
             >
               <span>
-                <Button
+                <StyledButton
                   borderless
-                  size="xsmall"
                   icon="icon-settings"
                   disabled={!this.hasConfiguration()}
                   to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
                 >
                   Configure
-                </Button>
+                </StyledButton>
               </span>
             </Tooltip>
           )}

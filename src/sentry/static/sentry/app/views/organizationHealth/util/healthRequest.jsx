@@ -12,18 +12,21 @@ import HealthContext from './healthContext';
 class HealthRequestWithParams extends React.Component {
   static propTypes = {
     /**
+     * API client instance
+     */
+    api: PropTypes.object.isRequired,
+
+    organization: SentryTypes.Organization.isRequired,
+
+    /**
      * Health tag (this will use a BASE_URL defined in health actionCreators
      */
     tag: PropTypes.string.isRequired,
 
-    organization: SentryTypes.Organization.isRequired,
-
-    api: PropTypes.object,
-
     /**
      * List of project ids to query
      */
-    projects: PropTypes.arrayOf(PropTypes.number),
+    projects: PropTypes.arrayOf(PropTypes.string),
 
     /**
      * List of environments to query
@@ -36,6 +39,13 @@ class HealthRequestWithParams extends React.Component {
      * e.g. 24h, 7d, 30d
      */
     period: PropTypes.string,
+
+    /**
+     * Interval to group results in
+     *
+     * e.g. 1d, 1h, 1m, 1s
+     */
+    interval: PropTypes.string,
 
     /**
      * Include data for previous period
@@ -51,12 +61,19 @@ class HealthRequestWithParams extends React.Component {
      * topK value
      */
     topk: PropTypes.number,
+
+    /**
+     * Callback function to process category
+     */
+    getCategory: PropTypes.func,
   };
 
   static defaultProps = {
     period: '7d',
     includePrevious: true,
     timeseries: true,
+    interval: '1d',
+    getCategory: i => i,
   };
 
   constructor(props) {
@@ -85,13 +102,52 @@ class HealthRequestWithParams extends React.Component {
     });
   }
 
+  transformTimeseriesData = () => {
+    let {tag, getCategory} = this.props;
+    let {data} = this.state;
+
+    const categorySet = new Set();
+    const timestampMap = new Map();
+
+    data.forEach(([timestamp, resultsForTimestamp]) => {
+      resultsForTimestamp &&
+        !!resultsForTimestamp.length &&
+        resultsForTimestamp.forEach(({count, [tag]: name}) => {
+          categorySet.add(getCategory(name));
+          timestampMap.set(`${timestamp}-${getCategory(name)}`, count);
+        });
+    });
+
+    return Array.from(categorySet).map(seriesName => {
+      return {
+        seriesName,
+        data: data.map(([timestamp]) => ({
+          name: timestamp * 1000,
+          value: timestampMap.get(`${timestamp}-${seriesName}`) || 0,
+        })),
+      };
+    });
+  };
+
+  transformData = () => {
+    let {timeseries, tag} = this.props;
+    let {data} = this.state;
+    if (!data) return null;
+
+    return timeseries
+      ? this.transformTimeseriesData()
+      : data.map(({[tag]: name, count}) => [name, count]);
+  };
+
   render() {
     let {children} = this.props;
     let {data} = this.state;
+
     return children({
       // Loading if data is null
       loading: data === null,
-      data,
+      data: this.transformData(data),
+      originalData: data,
     });
   }
 }

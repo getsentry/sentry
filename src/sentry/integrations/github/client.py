@@ -55,11 +55,23 @@ class GitHubClientMixin(ApiClient):
         )
         return repositories['repositories']
 
+    def search_repositories(self, query):
+        return self.get(
+            '/search/repositories',
+            params={'q': query},
+        )
+
     def get_assignees(self, repo):
         return self.get('/repos/{}/assignees'.format(repo))
 
     def get_issues(self, repo):
         return self.get('/repos/{}/issues'.format(repo))
+
+    def search_issues(self, query):
+        return self.get(
+            '/search/issues',
+            params={'q': query},
+        )
 
     def get_issue(self, repo, number):
         return self.get('/repos/{}/issues/{}'.format(repo, number))

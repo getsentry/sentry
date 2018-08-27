@@ -77,10 +77,10 @@ class Release(Model):
     owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
 
     # materialized stats
-    commit_count = BoundedPositiveIntegerField(null=True)
+    commit_count = BoundedPositiveIntegerField(null=True, default=0)
     last_commit_id = BoundedPositiveIntegerField(null=True)
     authors = ArrayField(null=True)
-    total_deploys = BoundedPositiveIntegerField(null=True)
+    total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:

@@ -46,24 +46,26 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tag_key = tagstore.get_tag_key(group.project_id, environment_id, lookup_key)
-        except tagstore.TagKeyNotFound:
-            raise ResourceDoesNotExist
-
-        try:
             group_tag_key = tagstore.get_group_tag_key(
                 group.project_id, group.id, environment_id, lookup_key)
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
-        total_values = tagstore.get_group_tag_value_count(
-            group.project_id, group.id, environment_id, lookup_key)
-        top_values = tagstore.get_top_group_tag_values(
-            group.project_id, group.id, environment_id, lookup_key, limit=9)
+        if group_tag_key.count is None:
+            total_values = tagstore.get_group_tag_value_count(
+                group.project_id, group.id, environment_id, lookup_key)
+        else:
+            total_values = group_tag_key.count
+
+        if group_tag_key.top_values is None:
+            top_values = tagstore.get_top_group_tag_values(
+                group.project_id, group.id, environment_id, lookup_key, limit=9)
+        else:
+            top_values = group_tag_key.top_values
 
         data = {
             'key': key,
-            'name': tagstore.get_tag_key_label(tag_key.key),
+            'name': tagstore.get_tag_key_label(group_tag_key.key),
             'uniqueValues': group_tag_key.values_seen,
             'totalValues': total_values,
             'topValues': serialize(top_values, request.user),

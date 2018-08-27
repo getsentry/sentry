@@ -12,6 +12,9 @@ from django.conf import settings
 
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
+        has_bb = features.has('organizations:bitbucket-integration',
+                              organization,
+                              actor=request.user)
         has_ghe = features.has('organizations:github-enterprise',
                                organization,
                                actor=request.user)
@@ -21,14 +24,21 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         has_github_apps = features.has('organizations:github-apps',
                                        organization,
                                        actor=request.user)
+        has_jira = features.has('organizations:jira-integration',
+                                organization,
+                                actor=request.user)
 
         providers = []
         for provider in integrations.all():
             internal_integrations = {i for i in settings.SENTRY_INTERNAL_INTEGRATIONS}
+            if has_bb:
+                internal_integrations.remove('bitbucket')
             if has_ghe:
                 internal_integrations.remove('github_enterprise')
             if has_github_apps:
                 internal_integrations.remove('github')
+            if has_jira:
+                internal_integrations.remove('jira')
             if not has_catchall and provider.key in internal_integrations:
                 continue
 

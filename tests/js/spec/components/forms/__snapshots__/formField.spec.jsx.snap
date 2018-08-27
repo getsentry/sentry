@@ -85,8 +85,6 @@ exports[`FormField + model renders with Form 1`] = `
               >
                 <Component
                   className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
-                  hasControlState={true}
-                  inline={true}
                 >
                   <Flex
                     className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
@@ -197,7 +195,7 @@ exports[`FormField + model renders with Form 1`] = `
                                                         is={null}
                                                       >
                                                         <Observer>
-                                                          <Component
+                                                          <Input
                                                             disabled={false}
                                                             error={false}
                                                             field={[Function]}
@@ -211,33 +209,18 @@ exports[`FormField + model renders with Form 1`] = `
                                                             type="text"
                                                             value=""
                                                           >
-                                                            <Input
+                                                            <input
+                                                              className="css-1m7xmcf-Input-inputStyles e1xej46s0"
                                                               disabled={false}
-                                                              error={false}
-                                                              field={[Function]}
                                                               id="fieldName"
-                                                              initialData={Object {}}
-                                                              innerRef={[Function]}
                                                               name="fieldName"
                                                               onBlur={[Function]}
                                                               onChange={[Function]}
                                                               onKeyDown={[Function]}
                                                               type="text"
                                                               value=""
-                                                            >
-                                                              <input
-                                                                className="css-1m7xmcf-Input-inputStyles e1xej46s0"
-                                                                disabled={false}
-                                                                id="fieldName"
-                                                                name="fieldName"
-                                                                onBlur={[Function]}
-                                                                onChange={[Function]}
-                                                                onKeyDown={[Function]}
-                                                                type="text"
-                                                                value=""
-                                                              />
-                                                            </Input>
-                                                          </Component>
+                                                            />
+                                                          </Input>
                                                         </Observer>
                                                       </div>
                                                     </Base>
@@ -372,20 +355,23 @@ exports[`FormField + model renders with Form 1`] = `
                 role="button"
                 type="submit"
               >
-                <ButtonLabel>
+                <ButtonLabel
+                  priority="primary"
+                >
                   <Component
-                    className="css-1dxlw1i-ButtonLabel e17811v31"
+                    className="css-1emshjx-ButtonLabel e17811v31"
+                    priority="primary"
                   >
                     <Flex
                       align="center"
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel e17811v31"
                     >
                       <Base
                         align="center"
-                        className="e17811v31 css-mvnt76-ButtonLabel"
+                        className="e17811v31 css-1nhrbny-ButtonLabel"
                       >
                         <div
-                          className="e17811v31 css-mvnt76-ButtonLabel"
+                          className="e17811v31 css-1nhrbny-ButtonLabel"
                           is={null}
                         >
                           Save Changes

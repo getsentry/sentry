@@ -23,3 +23,7 @@ class EventAttachment(Model):
         unique_together = (('project_id', 'event_id', 'file'),)
 
     __repr__ = sane_repr('event_id', 'name', 'file_id')
+
+    def delete(self, *args, **kwargs):
+        super(EventAttachment, self).delete(*args, **kwargs)
+        self.file.delete()

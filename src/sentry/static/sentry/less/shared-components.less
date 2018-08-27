@@ -1640,95 +1640,6 @@ ul.faces {
 }
 
 /**
-* Assignee Selector
-* ============================================================================
-*/
-
-.assignee-selector {
-  display: flex;
-  justify-content: flex-end;
-
-  .icon-arrow-down {
-    position: static;
-    top: 0;
-  }
-
-  .dropdown-toggle {
-    color: inherit;
-  }
-
-  .dropdown-menu {
-    right: -14px !important;
-    min-width: 180px;
-    max-width: 250px;
-    padding: 0;
-    font-size: 13px;
-
-    .form-control {
-      border: 0;
-      border-bottom: 1px solid #e9ebec;
-      padding-bottom: 8px;
-      box-shadow: none;
-      border-radius: 0;
-      font-size: 13px;
-
-      &:focus {
-        box-shadow: none;
-      }
-    }
-
-    ul {
-      .list-unstyled();
-      max-height: 500px;
-      overflow-y: auto;
-    }
-
-    li {
-      &.not-found span {
-        padding: 5px 8px;
-        display: block;
-        font-style: italic;
-        text-align: center;
-      }
-
-      strong {
-        font-weight: normal;
-        background: lighten(@yellow, 15);
-      }
-
-      a {
-        padding: 0;
-      }
-    }
-  }
-
-  &.unassigned {
-    .icon-user {
-      display: block;
-      margin-right: 3px;
-      font-size: 20px;
-    }
-  }
-
-  .invite-member a {
-    .icon-plus {
-      font-size: 16px;
-      opacity: 0.3;
-      margin-right: 5px;
-    }
-  }
-
-  .clear-assignee a {
-    background: rgba(52, 60, 69, 0.03);
-    border-bottom: 1px solid rgba(52, 60, 69, 0.06);
-  }
-
-  .list-loading-container {
-    padding: 15px 0 10px 0;
-  }
-}
-
-/**
 * Box
 * ============================================================================
 */
@@ -2671,7 +2582,6 @@ ul.radio-inputs {
     box-shadow: 0 15px 40px 0 rgba(67, 62, 75, 0.3), 0 1px 15px 0 rgba(67, 61, 74, 0.15);
     border-radius: 7px;
     border: 0;
-    overflow: hidden;
   }
 
   .modal-header {
@@ -2743,12 +2653,6 @@ ul.radio-inputs {
   }
 }
 
-.custom-resolution-modal {
-  .modal-content {
-    overflow: visible;
-  }
-}
-
 // Sudo Modal
 .sudo-modal.modal {
   .modal-header {
@@ -2769,7 +2673,6 @@ ul.radio-inputs {
 .command-palette.modal {
   .modal-content {
     padding: 0;
-    overflow: visible;
   }
 }
 
@@ -2782,12 +2685,6 @@ ul.radio-inputs {
   }
   .modal-content {
     overflow: initial;
-  }
-}
-
-.context-picker-modal.modal {
-  .modal-content {
-    overflow: visible;
   }
 }
 

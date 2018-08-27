@@ -1,8 +1,15 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 import SupportDrawer from 'app/components/assistant/supportDrawer';
+import ConfigStore from 'app/stores/configStore';
 
 describe('SupportDrawer', function() {
+  beforeEach(function() {
+    ConfigStore.config = {
+      features: new Set(['assistant']),
+    };
+  });
+
   it('renders cue', function() {
     let wrapper = shallow(<SupportDrawer />, TestStubs.routerContext());
     expect(wrapper).toMatchSnapshot();

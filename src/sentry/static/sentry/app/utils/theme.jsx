@@ -1,3 +1,5 @@
+import CHART_PALETTE from 'app/constants/chartPalette';
+
 const theme = {
   breakpoints: ['768px', '992px', '1200px'],
 
@@ -62,11 +64,20 @@ const theme = {
   background: '#fff',
 
   zIndex: {
+    orgAndUserMenu: 1003,
     sidebar: 1002,
     header: 1000,
     dropdown: 1001,
     modal: 10000,
     toast: 10001,
+    dropdownAutocomplete: {
+      // needs to be above menu
+      actor: 8,
+
+      // needs to be below actor but above other page elements (e.g. pagination)
+      // (e.g. Issue Details "seen" dots on chart is 2)
+      menu: 7,
+    },
   },
 
   alert: {
@@ -208,7 +219,11 @@ theme.button = {
 };
 
 theme.charts = {
-  colors: ['#4C416B', '#7A5195', '#BC5090', '#EF5675', '#FF764A', '#FFA600'],
+  colors: CHART_PALETTE[CHART_PALETTE.length - 1],
+
+  // We have an array that maps `number + 1` --> list of `number` colors
+  getColorPalette: length => CHART_PALETTE[length + 1],
+
   previousPeriod: theme.gray1,
 };
 

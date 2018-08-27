@@ -78,7 +78,9 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             },
                           ]
                         }
+                        maxHeight={300}
                         onSelect={[Function]}
+                        searchPlaceholder="Filter search"
                       >
                         <AutoComplete
                           disabled={false}
@@ -99,116 +101,123 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 <div
                                   className="css-6v04yn-AutoCompleteRoot ejumqxq0"
                                 >
-                                  <div
+                                  <Actor
+                                    innerRef={[Function]}
+                                    isOpen={false}
                                     onClick={[Function]}
                                     onMouseEnter={[Function]}
                                     onMouseLeave={[Function]}
                                     role="button"
                                   >
-                                    <DropdownButton
-                                      isOpen={false}
-                                      size="xsmall"
+                                    <div
+                                      className="css-dy1pax-Actor e53us8t0"
+                                      onClick={[Function]}
+                                      onMouseEnter={[Function]}
+                                      onMouseLeave={[Function]}
+                                      role="button"
                                     >
-                                      <StyledButton
+                                      <DropdownButton
                                         isOpen={false}
                                         size="xsmall"
                                       >
-                                        <Component
-                                          className="css-o27a2e-StyledButton e1yghndz1"
+                                        <StyledButton
                                           isOpen={false}
                                           size="xsmall"
                                         >
-                                          <Button
+                                          <Component
                                             className="css-o27a2e-StyledButton e1yghndz1"
-                                            disabled={false}
+                                            isOpen={false}
                                             size="xsmall"
                                           >
-                                            <StyledButton
+                                            <Button
                                               className="css-o27a2e-StyledButton e1yghndz1"
                                               disabled={false}
-                                              onClick={[Function]}
-                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
-                                                className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
+                                              <StyledButton
+                                                className="css-o27a2e-StyledButton e1yghndz1"
                                                 disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
                                               >
-                                                <button
+                                                <Component
                                                   className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
-                                                  <ButtonLabel
+                                                  <button
+                                                    className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
+                                                    disabled={false}
+                                                    onClick={[Function]}
+                                                    role="button"
                                                     size="xsmall"
                                                   >
-                                                    <Component
-                                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                                    <ButtonLabel
                                                       size="xsmall"
                                                     >
-                                                      <Flex
-                                                        align="center"
+                                                      <Component
                                                         className="css-6q5v1w-ButtonLabel e17811v31"
                                                         size="xsmall"
                                                       >
-                                                        <Base
+                                                        <Flex
                                                           align="center"
-                                                          className="e17811v31 css-dqr4rq-ButtonLabel"
-                                                          size="xsmall"
+                                                          className="css-6q5v1w-ButtonLabel e17811v31"
                                                         >
-                                                          <div
+                                                          <Base
+                                                            align="center"
                                                             className="e17811v31 css-dqr4rq-ButtonLabel"
-                                                            is={null}
-                                                            size="xsmall"
                                                           >
-                                                            Add Project
-                                                            <StyledChevronDown>
-                                                              <Component
-                                                                className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                              >
-                                                                <InlineSvg
+                                                            <div
+                                                              className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                              is={null}
+                                                            >
+                                                              Add Project
+                                                              <StyledChevronDown>
+                                                                <Component
                                                                   className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                                  src="icon-chevron-down"
                                                                 >
-                                                                  <StyledSvg
+                                                                  <InlineSvg
                                                                     className="css-17v3tc-StyledChevronDown e1yghndz0"
-                                                                    height="1em"
-                                                                    viewBox={Object {}}
-                                                                    width="1em"
+                                                                    src="icon-chevron-down"
                                                                   >
-                                                                    <svg
-                                                                      className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                    <StyledSvg
+                                                                      className="css-17v3tc-StyledChevronDown e1yghndz0"
                                                                       height="1em"
                                                                       viewBox={Object {}}
                                                                       width="1em"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </Component>
-                                                            </StyledChevronDown>
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </Component>
-                                            </StyledButton>
-                                          </Button>
-                                        </Component>
-                                      </StyledButton>
-                                    </DropdownButton>
-                                  </div>
+                                                                      <svg
+                                                                        className="e1yghndz0 css-1gdv3x4-StyledSvg-StyledChevronDown e2idor0"
+                                                                        height="1em"
+                                                                        viewBox={Object {}}
+                                                                        width="1em"
+                                                                      >
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </Component>
+                                                              </StyledChevronDown>
+                                                            </div>
+                                                          </Base>
+                                                        </Flex>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
+                                                </Component>
+                                              </StyledButton>
+                                            </Button>
+                                          </Component>
+                                        </StyledButton>
+                                      </DropdownButton>
+                                    </div>
+                                  </Actor>
                                 </div>
                               </Component>
                             </AutoCompleteRoot>
@@ -408,23 +417,20 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               size="small"
                             >
                               <Component
-                                className="css-19bmqb3-ButtonLabel e17811v31"
+                                className="css-o42ntg-ButtonLabel e17811v31"
                                 size="small"
                               >
                                 <Flex
                                   align="center"
-                                  className="css-19bmqb3-ButtonLabel e17811v31"
-                                  size="small"
+                                  className="css-o42ntg-ButtonLabel e17811v31"
                                 >
                                   <Base
                                     align="center"
-                                    className="e17811v31 css-1eblpyp-ButtonLabel"
-                                    size="small"
+                                    className="e17811v31 css-l5mlqc-ButtonLabel"
                                   >
                                     <div
-                                      className="e17811v31 css-1eblpyp-ButtonLabel"
+                                      className="e17811v31 css-l5mlqc-ButtonLabel"
                                       is={null}
-                                      size="small"
                                     >
                                       <RemoveIcon>
                                         <Component

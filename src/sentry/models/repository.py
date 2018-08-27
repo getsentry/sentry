@@ -65,6 +65,10 @@ class Repository(Model):
 
 
 def on_delete(instance, actor=None, **kwargs):
+    # If there is no provider, we don't have any webhooks, etc to delete
+    if not instance.provider:
+        return
+
     # TODO(lb): I'm assuming that this is used by integrations... is it?
     def handle_exception(exc):
         from sentry.exceptions import InvalidIdentity, PluginError

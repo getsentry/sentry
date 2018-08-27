@@ -223,11 +223,12 @@ const StyledAvatar = styled(Avatar)`
   margin-bottom: 2px;
   margin-right: ${p => (p.collapsed ? '0' : '12px')};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
+  border-radius: 6px; /* Fixes background bleeding on corners */
 `;
 
 const OrgAndUserMenu = styled('div')`
   ${SidebarDropdownMenu};
   top: 42px;
   min-width: 180px;
+  z-index: ${p => p.theme.zIndex.orgAndUserMenu};
 `;

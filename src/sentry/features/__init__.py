@@ -20,16 +20,18 @@ default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
 default_manager.add('organizations:github-apps', OrganizationFeature)  # NOQA
 default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-settings', OrganizationFeature)  # NOQA
-default_manager.add('organizations:integrations-v3', OrganizationFeature)  # NOQA
 default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-issue-ui', OrganizationFeature)  # NOQA
 default_manager.add('organizations:github-enterprise', OrganizationFeature)  # NOQA
+default_manager.add('organizations:bitbucket-integration', OrganizationFeature)  # NOQA
+default_manager.add('organizations:jira-integration', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('organizations:health', OrganizationFeature)  # NOQA
+default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
@@ -43,7 +45,6 @@ default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
 default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('user:assistant')
-default_manager.add('user:install-experiment')
 
 # expose public api
 add = default_manager.add

@@ -49,7 +49,7 @@ const OrganizationDiscoverContainer = createReactClass({
 
   render() {
     const {isLoading} = this.state;
-    const hasFeature = this.getFeatures().has('internal-catchall');
+    const hasFeature = this.getFeatures().has('discover');
 
     if (!hasFeature) return this.renderComingSoon();
 

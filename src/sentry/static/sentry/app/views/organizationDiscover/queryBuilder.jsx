@@ -3,6 +3,7 @@
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {COLUMNS, PROMOTED_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
@@ -62,14 +63,16 @@ export default function createQueryBuilder(initial = {}, organization) {
   function load() {
     return fetch({
       projects: defaultProjects,
-      aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
+      fields: ['tags_key'],
+      aggregations: [['count()', null, 'count']],
+      orderby: '-count',
       start: moment()
         .subtract(90, 'days')
         .format(DATE_TIME_FORMAT),
       end: moment().format(DATE_TIME_FORMAT),
     })
       .then(res => {
-        tags = res.data[0].tags_key.map(tag => ({name: `tags[${tag}]`, type: 'string'}));
+        tags = res.data.map(tag => ({name: `tags[${tag.tags_key}]`, type: 'string'}));
       })
       .catch(err => {
         tags = PROMOTED_TAGS;
@@ -168,10 +171,27 @@ export default function createQueryBuilder(initial = {}, organization) {
     const api = new Client();
     const endpoint = `/organizations/${organization.slug}/discover/`;
 
-    return api.requestPromise(endpoint, {
-      method: 'POST',
-      data: data || getExternal(),
-    });
+    data = data || getExternal();
+
+    // Reject immediately if no projects are available
+    if (!data.projects.length) {
+      return Promise.reject(new Error(t('No projects selected')));
+    }
+
+    if (typeof data.limit === 'number') {
+      if (data.limit < 1 || data.limit > 1000) {
+        return Promise.reject(new Error(t('Invalid limit parameter')));
+      }
+    }
+
+    return api
+      .requestPromise(endpoint, {
+        method: 'POST',
+        data,
+      })
+      .catch(() => {
+        throw new Error(t('An error occurred'));
+      });
   }
 
   /**

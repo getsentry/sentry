@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.testutils import TestCase
 from sentry.api.fields.actor import Actor
 from sentry.models import ProjectOwnership, User, Team
+from sentry.models.projectownership import resolve_actors
 from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 
 
@@ -93,3 +94,77 @@ class ProjectOwnershipTestCase(TestCase):
                 }
             }
         ) == ([], None)
+
+
+class ResolveActorsTestCase(TestCase):
+    def test_no_actors(self):
+        assert resolve_actors([], self.project.id) == {}
+
+    def test_basic(self):
+        owners = [
+            Owner('user', self.user.email),
+            Owner('team', self.team.slug),
+        ]
+        assert resolve_actors(owners, self.project.id) == {
+            owners[0]: Actor(self.user.id, User),
+            owners[1]: Actor(self.team.id, Team),
+        }
+
+    def test_teams(self):
+        # Normal team
+        owner1 = Owner('team', self.team.slug)
+        actor1 = Actor(self.team.id, Team)
+
+        # Team that doesn't exist
+        owner2 = Owner('team', 'nope')
+        actor2 = None
+
+        # A team that's not ours
+        otherteam = Team.objects.exclude(projectteam__project_id=self.project.id)[0]
+        owner3 = Owner('team', otherteam.slug)
+        actor3 = None
+
+        assert resolve_actors([owner1, owner2, owner3], self.project.id) == {
+            owner1: actor1,
+            owner2: actor2,
+            owner3: actor3,
+        }
+
+    def test_users(self):
+        # Normal user
+        owner1 = Owner('user', self.user.email)
+        actor1 = Actor(self.user.id, User)
+
+        # An extra secondary email
+        email1 = self.create_useremail(self.user, None, is_verified=True).email
+        owner2 = Owner('user', email1)
+        actor2 = actor1  # They map to the same user since it's just a secondary email
+
+        # Another secondary email, that isn't verified
+        email2 = self.create_useremail(self.user, None, is_verified=False).email
+        owner3 = Owner('user', email2)
+        # Intentionally allow unverified emails
+        # actor3 = None
+        actor3 = actor1
+
+        # An entirely unknown user
+        owner4 = Owner('user', 'nope')
+        actor4 = None
+
+        # A user that doesn't belong with us
+        otheruser = self.create_user()
+        owner5 = Owner('user', otheruser.email)
+        actor5 = None
+
+        # Case-insensitive for user
+        owner6 = Owner('user', self.user.email.upper())
+        actor6 = actor1
+
+        assert resolve_actors([owner1, owner2, owner3, owner4, owner5, owner6], self.project.id) == {
+            owner1: actor1,
+            owner2: actor2,
+            owner3: actor3,
+            owner4: actor4,
+            owner5: actor5,
+            owner6: actor6,
+        }

@@ -20,7 +20,13 @@ exports[`ProjectPlugins renders 1`] = `
       mb={0}
       type="warning"
     >
-      Legacy Integrations must be configured per-project. It's recommended to prefer organization-integrations over the legacy project integrations when available, as features will be more robust and flexible.
+      <FeatureContainer
+        access={
+          Array [
+            "org:integrations",
+          ]
+        }
+      />
     </PanelAlert>
     <PanelItem
       key="amazon-sqs"

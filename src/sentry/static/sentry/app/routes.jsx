@@ -42,7 +42,6 @@ import ProjectEvents from 'app/views/projectEvents';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
-import ProjectIssueTracking from 'app/views/projectIssueTracking';
 import ProjectReleases from 'app/views/projectReleases';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
@@ -277,11 +276,7 @@ function routes() {
         component={errorHandler(ProjectEnvironments)}
       />
       <Route name="Tags" path="tags/" component={errorHandler(ProjectTags)} />
-      <Route
-        path="issue-tracking/"
-        name="Issue Tracking"
-        component={errorHandler(ProjectIssueTracking)}
-      />
+      <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
       <Route
         path="release-tracking/"
         name="Release Tracking"
@@ -408,13 +403,6 @@ function routes() {
           component={errorHandler(ProjectPluginDetails)}
         />
       </Route>
-      <Route
-        path="integrations/:providerKey/:integrationId/"
-        name="Integration Configuration"
-        componentPromise={() =>
-          import(/* webpackChunkName: "ProjectIntegration" */ './views/settings/project/projectIntegration')}
-        component={errorHandler(LazyLoad)}
-      />
       <Route
         path="install/"
         name="Configuration"
@@ -751,6 +739,19 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(/*webpackChunkName: HealthOverview*/ './views/organizationHealth/overview')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="errors"
+              componentPromise={() =>
+                import(/*webpackChunkName: HealthErrors*/ './views/organizationHealth/errors')}
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="transactions"
+              componentPromise={() =>
+                import(/*webpackChunkName: HealthTransactions*/ './views/organizationHealth/transactions')}
               component={errorHandler(LazyLoad)}
             />
           </Route>

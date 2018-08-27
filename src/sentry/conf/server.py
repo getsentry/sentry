@@ -768,7 +768,6 @@ SENTRY_FEATURES = {
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
     'organizations:github-apps': False,
-    'organizations:integrations-v3': False,
     'organizations:invite-members': True,
     'organizations:new-settings': True,
     'organizations:require-2fa': False,
@@ -776,11 +775,14 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     'organizations:new-issue-ui': False,
     'organizations:github-enterprise': False,
+    'organizations:bitbucket-integration': False,
+    'organizations:jira-integration': False,
     'organizations:new-teams': True,
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
     'organizations:relay': False,
     'organizations:health': False,
+    'organizations:discover': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -1070,7 +1072,6 @@ SENTRY_SCOPES = set(
         'project:write',
         'project:admin',
         'project:releases',
-        'project:integrations',
         'event:read',
         'event:write',
         'event:admin',
@@ -1084,7 +1085,6 @@ SENTRY_SCOPE_SETS = (
         ('org:read', 'Read access to organization details.'),
     ), (
         ('org:integrations', 'Read, write, and admin access to organization integrations.'),
-        ('project:integrations', 'Read, write, and admin access to project integrations.'),
     ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
@@ -1143,7 +1143,6 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1167,7 +1166,6 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1197,7 +1195,6 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations',
                 'event:read',
                 'event:write',
                 'event:admin',
@@ -1264,6 +1261,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
+    'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
@@ -1272,6 +1270,7 @@ SENTRY_INTERNAL_INTEGRATIONS = (
     'github_enterprise',
     'jira',
     'vsts',
+    'vsts-extension',
 )
 
 

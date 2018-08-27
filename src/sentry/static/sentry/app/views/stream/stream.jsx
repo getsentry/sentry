@@ -31,6 +31,7 @@ import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
 import TimeSince from 'app/components/timeSince';
 import analytics from 'app/utils/analytics';
+import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import queryString from 'app/utils/queryString';
 import utils from 'app/utils';
@@ -421,10 +422,8 @@ const Stream = createReactClass({
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
         this.setState({
-          error,
+          error: parseApiError(err),
           dataLoading: false,
         });
       },
