@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
-from sentry.utils.http import absolute_uri
 
 UNSET = object()
 
@@ -240,23 +239,12 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def create_subscription(self, instance, external_id, shared_secret):
+    def create_subscription(self, instance, external_id, shared_secret, data):
         return self.post(
             VstsApiPath.subscriptions.format(
                 account_name=instance
             ),
-            data={
-                'publisherId': 'tfs',
-                'eventType': 'workitem.updated',
-                'resourceVersion': '1.0',
-                'consumerId': 'webHooks',
-                'consumerActionId': 'httpRequest',
-                'consumerInputs': {
-                    'url': absolute_uri('/extensions/vsts/issue-updated/'),
-                    'resourceDetailsToSend': 'all',
-                    'httpHeaders': 'shared-secret:%s' % shared_secret,
-                }
-            },
+            data=data,
         )
 
     def delete_subscription(self, instance, subscription_id):

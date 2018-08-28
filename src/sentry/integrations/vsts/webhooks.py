@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from .client import VstsApiClient
 
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import CommitAuthor, Identity, Integration, OrganizationIntegration, PullRequest, Repository, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 
@@ -18,11 +19,24 @@ EMAIL_PARSER = re.compile(r'<(.*)>')
 PROVIDER_NAME = 'integrations:vsts'
 
 
-def create_subscription(instance, identity_data, oauth_redirect_url, external_id):
+def create_subscription(instance, identity_data, oauth_redirect_url,
+                        external_id, shared_secret, data):
     client = VstsApiClient(Identity(data=identity_data), oauth_redirect_url)
-    # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
-    shared_secret = uuid4().hex + uuid4().hex
-    return client.create_subscription(instance, external_id, shared_secret), shared_secret
+    try:
+        subscription = client.create_subscription(instance, external_id, shared_secret, data)
+    except ApiError as e:
+        if e.code != 400 or 'permission' not in e.message:
+            raise e
+        raise IntegrationError(
+            'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
+        )
+
+    subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
+    return subscription_id
+
+
+def create_subscription_secret():
+    return uuid4().hex + uuid4().hex
 
 
 class Webhook(object):

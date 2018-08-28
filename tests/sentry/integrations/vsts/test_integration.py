@@ -22,8 +22,9 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         metadata = integration.metadata
         assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
-        assert metadata['subscription']['id'] == \
-            CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
+        for subscription in metadata['subscription']['subscriptions']:
+            if subscription['type'] == 'workitem.updated':
+                assert subscription['id'] == CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
         assert metadata['domain_name'] == '{}.visualstudio.com'.format(
             self.vsts_account_name
         )
@@ -138,7 +139,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         })
         assert external_id == data['external_id']
         subscription = data['metadata']['subscription']
-        assert subscription['id'] is not None and subscription['secret'] is not None
+        assert subscription['subscriptions'] is not None and subscription['secret'] is not None
 
 
 class VstsIntegrationTest(VstsIntegrationTestCase):

@@ -21,7 +21,7 @@ from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
-from .webhooks import create_subscription
+from .webhooks import create_subscription, create_subscription_secret
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
@@ -304,28 +304,60 @@ class VstsIntegrationProvider(IntegrationProvider):
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError):
-            subscription_id, subscription_secret = self.create_subscription(
-                instance, account['AccountId'], oauth_data)
+            shared_secret = create_subscription_secret()
+            work_item_subscription_id = create_subscription(
+                instance=instance,
+                external_id=account['AccountId'],
+                identity_data=oauth_data,
+                oauth_redirect_url=self.oauth_redirect_url,
+                shared_secret=shared_secret,
+                data={
+                    'publisherId': 'tfs',
+                    'eventType': 'workitem.updated',
+                    'resourceVersion': '1.0',
+                    'consumerId': 'webHooks',
+                    'consumerActionId': 'httpRequest',
+                    'consumerInputs': {
+                        'url': absolute_uri('/extensions/vsts/issue-updated/'),
+                        'resourceDetailsToSend': 'all',
+                        'httpHeaders': 'shared-secret:%s' % shared_secret,
+                    }
+                },
+            )
+            pr_merged_subscription_id = create_subscription(
+                instance=instance,
+                external_id=account['AccountId'],
+                identity_data=oauth_data,
+                oauth_redirect_url=self.oauth_redirect_url,
+                shared_secret=shared_secret,
+                data={
+                    'publisherId': 'tfs',
+                    'eventType': 'git.pullrequest.merged',
+                    'resourceVersion': '1.0',
+                    'consumerId': 'webHooks',
+                    'consumerActionId': 'httpRequest',
+                    'consumerInputs': {
+                        'url': absolute_uri('/extensions/vsts/issue-updated/'),
+                        'resourceDetailsToSend': 'all',
+                        'httpHeaders': 'shared-secret:%s' % shared_secret,
+                    }
+                }
+            )
             integration['metadata']['subscription'] = {
-                'id': subscription_id,
-                'secret': subscription_secret,
+                'subscriptions': [
+                    {
+                        'id': work_item_subscription_id,
+                        'type': 'workitem.updated'
+                    },
+                    {
+                        'id': pr_merged_subscription_id,
+                        'type': 'git.pullrequest.merged',
+                    }
+                ],
+                'secret': shared_secret,
             }
 
         return integration
-
-    def create_subscription(self, instance, account_id, oauth_data):
-        try:
-            subscription, shared_secret = create_subscription(
-                instance, oauth_data, self.oauth_redirect_url, account_id)
-        except ApiError as e:
-            if e.code != 400 or 'permission' not in e.message:
-                raise e
-            raise IntegrationError(
-                'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
-            )
-
-        subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
-        return subscription_id, shared_secret
 
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}
