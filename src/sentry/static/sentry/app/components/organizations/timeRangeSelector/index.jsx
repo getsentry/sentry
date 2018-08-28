@@ -60,9 +60,26 @@ class TimeRangeSelector extends React.Component {
     showRelative: false,
   };
 
+  constructor() {
+    super();
+    this.state = {
+      isOpen: false,
+    };
+  }
+
   formatDate(date) {
     return moment(date).format('MMMM D, h:mm a');
   }
+
+  handleUpdate = () => {
+    const {onUpdate} = this.props;
+    if (typeof onUpdate === 'function') {
+      onUpdate();
+    }
+    this.setState({
+      isOpen: false,
+    });
+  };
 
   render() {
     const {
@@ -73,7 +90,6 @@ class TimeRangeSelector extends React.Component {
       showAbsolute,
       showRelative,
       onChange,
-      onUpdate,
     } = this.props;
     // Currently we will only show either absolute or relative selector, with "absolute" taking precedence
     // Maybe an ideal selector would allow the user to choose between the two if both types of dates were allowed
@@ -88,10 +104,13 @@ class TimeRangeSelector extends React.Component {
       <HeaderItem className={className} label={t('Time Range')}>
         <DropdownLink
           title={<DynamicWrapper value={summary} fixed="start to end" />}
-          keepMenuOpen={true}
           anchorRight={true}
+          keepMenuOpen={true}
+          isOpen={this.state.isOpen}
+          onOpen={() => this.setState({isOpen: true})}
+          onClose={() => this.setState({isOpen: false})}
         >
-          <Flex direction="column">
+          <Flex direction="column" p={2}>
             {shouldShowAbsolute && (
               <AbsoluteSelector onChange={onChange} start={start} end={end} />
             )}
@@ -104,7 +123,7 @@ class TimeRangeSelector extends React.Component {
             )}
 
             <div>
-              <Button onClick={onUpdate}>{t('Update')}</Button>
+              <Button onClick={this.handleUpdate}>{t('Update')}</Button>
             </div>
           </Flex>
         </DropdownLink>
