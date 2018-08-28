@@ -1,5 +1,15 @@
 const BASE_URL = org => `/organizations/${org.slug}/health/`;
 
+// Gets the period to query with if we need to double the initial period in order
+// to get data for the previous period
+const getPeriod = (originalPeriod, shouldDoublePeriod) => {
+  if (!shouldDoublePeriod) return originalPeriod;
+
+  const [, periodNumber, periodLength] = originalPeriod.match(/([0-9]+)([mhdw])/);
+
+  return `${parseInt(periodNumber, 10) * 2}${periodLength}`;
+};
+
 /**
  * Make requests to `health` endpoint
  *
@@ -32,11 +42,14 @@ export const doHealthRequest = (
   if (!api) return Promise.reject(new Error('API client not available'));
 
   const path = timeseries ? 'graph/' : 'top/';
+  const shouldDoublePeriod = timeseries && includePrevious;
+  const totalPeriod = getPeriod(period, shouldDoublePeriod);
+
   const query = {
     tag,
     includePrevious,
     interval,
-    statsPeriod: period,
+    statsPeriod: totalPeriod,
     project: projects,
     environment: environments,
     ...(topk ? {topk} : {}),

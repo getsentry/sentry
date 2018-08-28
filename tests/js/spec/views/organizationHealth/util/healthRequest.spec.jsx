@@ -4,13 +4,17 @@ import React from 'react';
 import {doHealthRequest} from 'app/actionCreators/health';
 import {HealthRequestWithParams} from 'app/views/organizationHealth/util/healthRequest';
 
+const COUNT_OBJ = {
+  count: 123,
+  release: {
+    _health_id: 'release:release-slug',
+    value: {slug: 'release-slug'},
+  },
+};
+
 jest.mock('app/actionCreators/health', () => {
   return {
-    doHealthRequest: jest.fn(() =>
-      Promise.resolve({
-        data: [[new Date(), [{count: 123, release: {slug: 'release-slug'}}]]],
-      })
-    ),
+    doHealthRequest: jest.fn(),
   };
 });
 
@@ -24,7 +28,7 @@ describe('HealthRequest', function() {
     beforeAll(function() {
       doHealthRequest.mockImplementation(() =>
         Promise.resolve({
-          data: [[new Date(), [{count: 123, release: 'release-name'}]]],
+          data: [[new Date(), [COUNT_OBJ]]],
         })
       );
       wrapper = mount(
@@ -33,6 +37,7 @@ describe('HealthRequest', function() {
           projects={[project.id]}
           environments={[]}
           period="24h"
+          includePrevious={false}
           organization={organization}
           tag="release"
         >
@@ -42,23 +47,31 @@ describe('HealthRequest', function() {
     });
 
     it('makes requests', async function() {
-      expect(mock).toHaveBeenCalledWith({loading: true, data: null, originalData: null});
+      expect(mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          loading: true,
+          data: null,
+          originalData: null,
+        })
+      );
 
-      expect(mock).toHaveBeenLastCalledWith({
-        loading: false,
-        data: [
-          {
-            seriesName: 'release-name',
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 123,
-              }),
-            ],
-          },
-        ],
-        originalData: [[expect.anything(), expect.anything()]],
-      });
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          data: [
+            {
+              seriesName: expect.anything(),
+              data: [
+                expect.objectContaining({
+                  name: expect.any(Number),
+                  value: 123,
+                }),
+              ],
+            },
+          ],
+          originalData: [[expect.anything(), expect.anything()]],
+        })
+      );
 
       expect(doHealthRequest).toHaveBeenCalled();
     });
@@ -115,7 +128,7 @@ describe('HealthRequest', function() {
   it('defines a category name getter', async function() {
     doHealthRequest.mockImplementation(() =>
       Promise.resolve({
-        data: [[new Date(), [{count: 123, release: {slug: 'release-slug'}}]]],
+        data: [[new Date(), [COUNT_OBJ]]],
       })
     );
     wrapper = mount(
@@ -133,27 +146,91 @@ describe('HealthRequest', function() {
     );
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenLastCalledWith({
+    expect(mock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        loading: false,
+        data: [
+          {
+            seriesName: 'release-slug',
+            data: [
+              expect.objectContaining({
+                name: expect.anything(),
+                value: 123,
+              }),
+            ],
+          },
+        ],
+        originalData: [[expect.anything(), expect.anything()]],
+      })
+    );
+  });
+
+  it('expands period in query if `includePrevious` and `timeseries`', async function() {
+    // doHealthRequest.mockClear();
+    doHealthRequest.mockImplementation(() =>
+      Promise.resolve({
+        data: [[new Date(), [{...COUNT_OBJ, count: 321}]], [new Date(), [COUNT_OBJ]]],
+      })
+    );
+    wrapper = mount(
+      <HealthRequestWithParams
+        api={{}}
+        projects={[project.id]}
+        environments={[]}
+        period="24h"
+        organization={organization}
+        tag="release"
+        timeseries={true}
+        includePrevious={true}
+        getCategory={({slug} = {}) => slug}
+      >
+        {mock}
+      </HealthRequestWithParams>
+    );
+
+    // actionCreator handles expanding the period when calling the API
+    expect(doHealthRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        period: '24h',
+      })
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect.objectContaining({
       loading: false,
       data: [
         {
-          seriesName: 'release-slug',
+          seriesName: expect.anything(),
           data: [
             expect.objectContaining({
-              name: expect.anything(),
+              name: expect.any(Number),
               value: 123,
             }),
           ],
         },
       ],
       originalData: [[expect.anything(), expect.anything()]],
+      previousPeriod: [
+        {
+          seriesName: expect.anything(),
+          data: [
+            expect.objectContaining({
+              name: expect.any(Number),
+              value: 321,
+            }),
+          ],
+        },
+      ],
     });
   });
 
   it('transforms data for non-timeseries response', async function() {
     doHealthRequest.mockImplementation(() =>
       Promise.resolve({
-        data: [{count: 123, release: 'release-name'}],
+        data: [COUNT_OBJ],
       })
     );
     wrapper = mount(
@@ -165,16 +242,24 @@ describe('HealthRequest', function() {
         organization={organization}
         tag="release"
         timeseries={false}
+        getCategory={({slug} = {}) => slug}
       >
         {mock}
       </HealthRequestWithParams>
     );
     await tick();
     wrapper.update();
-    expect(mock).toHaveBeenLastCalledWith({
-      loading: false,
-      data: [['release-name', 123]],
-      originalData: [{count: 123, release: 'release-name'}],
-    });
+    expect(mock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        loading: false,
+        data: [['release-slug', 123]],
+        originalData: [
+          {
+            count: 123,
+            release: {value: {slug: 'release-slug'}, _health_id: 'release:release-slug'},
+          },
+        ],
+      })
+    );
   });
 });
