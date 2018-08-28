@@ -176,13 +176,7 @@ class ExternalIssueForm extends AsyncComponent {
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
         footerClass="modal-footer"
       >
-        <Accordion
-          cutoff={3}
-          open={this.state.showAllFields}
-          style={{margin: '1em 0'}}
-          labelClosed="Show More Fields"
-          labelOpen="Show Less Fields"
-        >
+        <Accordion cutoff={3} labelClosed="Show More Fields" labelOpen="Show Less Fields">
           {config.map((field, i) => (
             <FieldFromConfig
               key={field.name}

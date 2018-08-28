@@ -62,7 +62,7 @@ const StyledButton = styled(Button)`
   box-shadow: ${p => (p.open ? 'inset -2px 2px rgba(0,0,0,0.04)' : null)};
   border: 1px solid ${p => p.theme.offWhite2};
   color: ${p => p.theme.gray4};
-  margin: 1em 0;
+  margin: ${space(2)} 0;
 
   &,
   &:focus {
