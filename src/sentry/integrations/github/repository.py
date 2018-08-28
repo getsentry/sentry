@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
 from sentry.plugins import providers
 
@@ -22,9 +23,9 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         try:
             # make sure installation has access to this specific repo
-            client.get_commits(repo)
-        except Exception as e:
-            installation.raise_error(e)
+            client.repo_hooks(repo)
+        except ApiError as e:
+            raise IntegrationError('You must grant Sentry access to {}'.format(repo))
 
         return repo_data
 
