@@ -77,6 +77,7 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
+  transition: 0.2s transform;
   transform: rotate(${p => (p.open ? '180deg' : null)});
 `;
 
