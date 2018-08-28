@@ -37,4 +37,12 @@ class BitbucketSearchEndpoint(OrganizationEndpoint):
                 'value': i['id']
             } for i in resp.get('values', [])])
 
+        if field == 'repo':
+            full_query = (u'full_name~"%s"' % (query)).encode('utf-8')
+            resp = installation.get_client().search_repositories(installation.username, full_query)
+            return Response([{
+                'label': i['full_name'],
+                'value': i['full_name']
+            } for i in resp.get('values', [])])
+
         return Response(status=400)
