@@ -31,20 +31,24 @@ export default class AbsoluteSelector extends React.Component {
     const {className, start, end, onChange} = this.props;
 
     return (
-      <Box p={2} className={className}>
-        update time range (UTC)
-        <DateTimeField
-          name="start"
-          label={t('From')}
-          value={start}
-          onChange={val => onChange('start', val)}
-        />
-        <DateTimeField
-          name="end"
-          label={t('To')}
-          value={end}
-          onChange={val => onChange('end', val)}
-        />
+      <Box className={className}>
+        <Box mb={1}>{t('Update time range (UTC)')}</Box>
+        <Box mb={1}>
+          <DateTimeField
+            name="start"
+            label={t('From')}
+            value={start}
+            onChange={val => onChange('start', val)}
+          />
+        </Box>
+        <Box mb={1}>
+          <DateTimeField
+            name="end"
+            label={t('To')}
+            value={end}
+            onChange={val => onChange('end', val)}
+          />
+        </Box>
       </Box>
     );
   }

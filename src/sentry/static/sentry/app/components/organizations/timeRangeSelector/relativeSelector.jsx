@@ -33,7 +33,7 @@ export default class RelativeSelector extends React.Component {
     const {className, choices, value} = this.props;
 
     return (
-      <Box p={2} className={className}>
+      <Box mb={1} className={className}>
         <SelectControl value={value} choices={choices} onChange={this.handleChange} />
       </Box>
     );
