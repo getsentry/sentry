@@ -12,10 +12,15 @@ import HeaderItem from './headerItem';
 
 export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
+    anchorRight: PropTypes.bool,
     value: PropTypes.array,
     projects: PropTypes.array,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
+  };
+
+  static defaultProps = {
+    anchorRight: true,
   };
 
   constructor() {
@@ -37,7 +42,7 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   render() {
-    const {className, value, projects, onChange} = this.props;
+    const {className, anchorRight, value, projects, onChange} = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -59,7 +64,7 @@ export default class MultipleProjectSelector extends React.Component {
       <HeaderItem className={className} label={t('Projects')}>
         <DropdownLink
           title={summary}
-          anchorRight={true}
+          anchorRight={anchorRight}
           isOpen={this.state.isOpen}
           keepMenuOpen={true}
           onOpen={() => this.setState({isOpen: true})}
