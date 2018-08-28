@@ -39,7 +39,7 @@ class AccordionButton extends React.Component {
     if (React.Children.count(children) <= cutoff + 1) return children;
 
     return (
-      <div>
+      <React.Fragment>
         {children.slice(0, cutoff)}
         <StyledButton onClick={this.handleClick} open={this.state.isOpen}>
           <Flex align="center" justify="space-between" w={1}>
@@ -51,7 +51,7 @@ class AccordionButton extends React.Component {
           </Flex>
         </StyledButton>
         {this.state.isOpen && children.slice(cutoff)}
-      </div>
+      </React.Fragment>
     );
   }
 }
