@@ -203,6 +203,14 @@ export const ProjectDetail = PropTypes.shape({
   status: PropTypes.string,
 });
 
+export const Release = PropTypes.shape({
+  version: PropTypes.string.isRequired,
+  ref: PropTypes.string,
+  url: PropTypes.string,
+  dateReleased: PropTypes.string,
+  owner: User,
+});
+
 export const NavigationObject = PropTypes.shape({
   name: PropTypes.string,
   items: PropTypes.arrayOf(
@@ -338,6 +346,7 @@ let SentryTypes = {
   PluginShape,
   PluginsStore,
   ProjectKey,
+  Release,
   User,
 };
 

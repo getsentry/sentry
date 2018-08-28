@@ -2,11 +2,15 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import Count from 'app/components/count';
 import ExternalLink from 'app/components/externalLink';
+import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -17,6 +21,54 @@ import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+class ReleaseDetailsActions extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    release: SentryTypes.Release,
+  };
+
+  handleDelete = () => {
+    let {orgId, projectId, release, api} = this.props;
+    let version = encodeURIComponent(release.version);
+    let path = `/organizations/${orgId}/releases/${version}/`;
+    let redirectPath = `/${orgId}/${projectId}/releases/`;
+    addLoadingMessage(t('Deleting Release...'));
+
+    api.request(path, {
+      method: 'DELETE',
+      success: () => {
+        browserHistory.push(redirectPath);
+      },
+      error: () => {
+        addErrorMessage(
+          t('This release is referenced by active issues and cannot be removed.')
+        );
+      },
+    });
+  };
+
+  render() {
+    return (
+      <div className="m-b-1">
+        <div className="btn-group">
+          <Confirm
+            onConfirm={this.handleDelete}
+            message={t(
+              'Deleting this release is permanent. Are you sure you wish to continue?'
+            )}
+          >
+            <Button size="small" icon="icon-trash">
+              {t('Delete')}
+            </Button>
+          </Confirm>
+        </div>
+      </div>
+    );
+  }
+}
 
 const ReleaseDetails = createReactClass({
   displayName: 'ReleaseDetails',
@@ -99,7 +151,7 @@ const ReleaseDetails = createReactClass({
     let projectId = params.projectId;
     let version = encodeURIComponent(params.version);
 
-    return `/projects/${orgId}/${projectId}/releases/${version}/`
+    return `/projects/${orgId}/${projectId}/releases/${version}/`;
   },
 
   render() {
@@ -108,7 +160,9 @@ const ReleaseDetails = createReactClass({
 
     let release = this.state.release;
     let {orgId, projectId} = this.props.params;
-    let releasePath = `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}`
+    let releasePath = `/${orgId}/${projectId}/releases/${encodeURIComponent(
+      release.version
+    )}`;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -175,6 +229,12 @@ const ReleaseDetails = createReactClass({
                 </div>
               </div>
             </div>
+            <ReleaseDetailsActions
+              api={this.api}
+              orgId={orgId}
+              projectId={projectId}
+              release={release}
+            />
             <ul className="nav nav-tabs">
               <ListLink
                 to={`${releasePath}/`}
@@ -186,18 +246,10 @@ const ReleaseDetails = createReactClass({
               >
                 {t('Overview')}
               </ListLink>
-              <ListLink to={`${releasePath}/new-events/`}>
-                {t('New Issues')}
-              </ListLink>
-              <ListLink to={`${releasePath}/all-events/`}>
-                {t('All Issues')}
-              </ListLink>
-              <ListLink to={`${releasePath}/artifacts/`}>
-                {t('Artifacts')}
-              </ListLink>
-              <ListLink to={`${releasePath}/commits/`}>
-                {t('Commits')}
-              </ListLink>
+              <ListLink to={`${releasePath}/new-events/`}>{t('New Issues')}</ListLink>
+              <ListLink to={`${releasePath}/all-events/`}>{t('All Issues')}</ListLink>
+              <ListLink to={`${releasePath}/artifacts/`}>{t('Artifacts')}</ListLink>
+              <ListLink to={`${releasePath}/commits/`}>{t('Commits')}</ListLink>
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
