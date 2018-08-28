@@ -97,17 +97,9 @@ const ReleaseDetails = createReactClass({
     let params = this.props.params;
     let orgId = params.orgId;
     let projectId = params.projectId;
-    let version = params.version;
+    let version = encodeURIComponent(params.version);
 
-    return (
-      '/projects/' +
-      orgId +
-      '/' +
-      projectId +
-      '/releases/' +
-      encodeURIComponent(version) +
-      '/'
-    );
+    return `/projects/${orgId}/${projectId}/releases/${version}/`
   },
 
   render() {
@@ -116,6 +108,8 @@ const ReleaseDetails = createReactClass({
 
     let release = this.state.release;
     let {orgId, projectId} = this.props.params;
+    let releasePath = `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}`
+
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="ref-release-details">
@@ -183,9 +177,7 @@ const ReleaseDetails = createReactClass({
             </div>
             <ul className="nav nav-tabs">
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/`}
+                to={`${releasePath}/`}
                 isActive={loc => {
                   // react-router isActive will return true for any route that is part of the active route
                   // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
@@ -194,32 +186,16 @@ const ReleaseDetails = createReactClass({
               >
                 {t('Overview')}
               </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/new-events/`}
-              >
+              <ListLink to={`${releasePath}/new-events/`}>
                 {t('New Issues')}
               </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/all-events/`}
-              >
+              <ListLink to={`${releasePath}/all-events/`}>
                 {t('All Issues')}
               </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/artifacts/`}
-              >
+              <ListLink to={`${releasePath}/artifacts/`}>
                 {t('Artifacts')}
               </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/commits/`}
-              >
+              <ListLink to={`${releasePath}/commits/`}>
                 {t('Commits')}
               </ListLink>
             </ul>
