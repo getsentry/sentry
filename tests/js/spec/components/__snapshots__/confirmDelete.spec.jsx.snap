@@ -37,22 +37,28 @@ exports[`ConfirmDelete renders 1`] = `
               className="ref-error"
               type="error"
             >
-              <div
-                className="ref-error css-1gmjigt-AlertWrapper e1xb5l7j1"
+              <Base
+                className="ref-error css-1segpdr-AlertWrapper e1xb5l7j1"
                 type="error"
               >
-                <StyledTextBlock>
-                  <Component
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                  >
-                    <div
+                <div
+                  className="ref-error css-1segpdr-AlertWrapper e1xb5l7j1"
+                  is={null}
+                  type="error"
+                >
+                  <StyledTextBlock>
+                    <Component
                       className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                     >
-                      Are you sure?
-                    </div>
-                  </Component>
-                </StyledTextBlock>
-              </div>
+                      <div
+                        className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                      >
+                        Are you sure?
+                      </div>
+                    </Component>
+                  </StyledTextBlock>
+                </div>
+              </Base>
             </AlertWrapper>
           </Alert>
           <Field

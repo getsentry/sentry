@@ -231,7 +231,7 @@ const GroupSidebar = createReactClass({
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
         <Feature feature={['new-issue-ui']}>
-          <ExternalIssueList group={this.props.group} />
+          <ExternalIssueList group={this.props.group} orgId={orgId} />
         </Feature>
 
         {this.renderPluginIssue()}
