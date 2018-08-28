@@ -8,6 +8,7 @@ import AlertLink from 'app/components/alertLink';
 import SentryTypes from 'app/sentryTypes';
 import PluginActions from 'app/components/group/pluginActions';
 import {Box} from 'grid-emotion';
+import {t} from 'app/locale';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
@@ -20,26 +21,14 @@ class ExternalIssueList extends AsyncComponent {
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }
 
-  renderIntegrationIssues(integrations) {
+  renderIntegrationIssues(integrations = []) {
     const {group} = this.props;
-
-    if (!integrations || !integrations.length)
-      return (
-        <AlertLink
-          icon="icon-generic-box"
-          priority="default"
-          size="small"
-          to={`/settings/${this.props.orgId}/integrations`}
-        >
-          Set up Issue Tracking
-        </AlertLink>
-      );
 
     const activeIntegrations = integrations.filter(
       integration => integration.status === 'active'
     );
 
-    if (!activeIntegrations.length)
+    if (!integrations.length || !activeIntegrations.length)
       return (
         <AlertLink
           icon="icon-generic-box"
@@ -47,7 +36,7 @@ class ExternalIssueList extends AsyncComponent {
           size="small"
           to={`/settings/${this.props.orgId}/integrations`}
         >
-          Enable Issue Tracking
+          {t('Set up Issue Tracking')}
         </AlertLink>
       );
 
