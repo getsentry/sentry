@@ -261,7 +261,7 @@ const getIconMargin = ({size, hasChildren}) => {
     return '0';
   }
 
-  return size === 'small' ? '6px' : '8px';
+  return size && size.endsWith('small') ? '6px' : '8px';
 };
 
 const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
