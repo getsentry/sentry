@@ -94,7 +94,7 @@ class ExternalIssueForm extends AsyncComponent {
       this.setState(
         {
           dynamicFieldValues,
-          loading: true,
+          reloading: true,
           error: false,
           remainingRequests: 1,
         },
@@ -105,7 +105,9 @@ class ExternalIssueForm extends AsyncComponent {
 
   getOptions = (field, input) => {
     if (!input && field.default && field.defaultLabel) {
-      return Promise.resolve({options: [{value: field.default, label: field.defaultLabel}]});
+      return Promise.resolve({
+        options: [{value: field.default, label: field.defaultLabel}],
+      });
     }
     if (!input) {
       return Promise.resolve([]);
@@ -163,6 +165,7 @@ class ExternalIssueForm extends AsyncComponent {
         initialData={initialData}
         onFieldChange={this.onFieldChange}
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+        submitDisabled={this.state.reloading}
         footerClass="modal-footer"
       >
         {config.map(field => (
@@ -172,6 +175,7 @@ class ExternalIssueForm extends AsyncComponent {
             inline={false}
             stacked
             flexibleControlStateSize
+            disabled={this.state.reloading}
             {...this.getFieldProps(field)}
           />
         ))}
