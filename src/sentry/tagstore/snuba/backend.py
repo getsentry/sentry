@@ -105,7 +105,8 @@ class SnubaTagStorage(TagStorage):
 
         result, totals = snuba.query(
             start, end, [tag], conditions, filters, aggregations,
-            limit=limit, totals=True, referrer='tagstore.__get_tag_key_and_top_values'
+            orderby='-count', limit=limit, totals=True,
+            referrer='tagstore.__get_tag_key_and_top_values'
         )
         if raise_on_empty and (result is None or totals['count'] == 0):
             raise TagKeyNotFound if group_id is None else GroupTagKeyNotFound
@@ -182,7 +183,8 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        data = snuba.query(start, end, [], conditions, filters, aggregations)
+        data = snuba.query(start, end, [], conditions, filters, aggregations,
+                           referrer='tagstore.__get_tag_value')
         if not data['times_seen'] > 0:
             raise TagValueNotFound if group_id is None else GroupTagValueNotFound
         else:
@@ -212,7 +214,7 @@ class SnubaTagStorage(TagStorage):
         return set(key.top_values)
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
-        return self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key)
+        return self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key, limit=9)
 
     def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
         return self.__get_tag_keys(project_id, group_id, environment_id, limit=limit)
@@ -421,6 +423,7 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
+            referrer='tagstore.get_tag_value_paginator',
         )
 
         tag_values = [
@@ -458,6 +461,7 @@ class SnubaTagStorage(TagStorage):
             orderby='-first_seen',  # Closest thing to pre-existing `-id` order
             # TODO: This means they can't actually iterate all GroupTagValues.
             limit=1000,
+            referrer='tagstore.get_group_tag_value_iter',
         )
 
         group_tag_values = [
