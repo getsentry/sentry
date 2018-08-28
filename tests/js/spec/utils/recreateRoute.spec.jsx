@@ -50,6 +50,10 @@ describe('recreateRoute', function() {
     );
   });
 
+  it('stepBack needs to be less than 0', function() {
+    expect(() => recreateRoute('', {routes, location, params, stepBack: 0})).toThrow();
+  });
+
   it('switches to new org but keeps current route', function() {
     expect(recreateRoute(routes[4], {routes, location, params: {orgId: 'new-org'}})).toBe(
       '/settings/new-org/api-keys/'
