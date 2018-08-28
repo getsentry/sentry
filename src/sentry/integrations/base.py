@@ -62,6 +62,10 @@ class IntegrationProvider(PipelineProvider):
     # than ``key``. See: VstsExtensionIntegrationProvider.
     _integration_key = None
 
+    # Whether this integration should show up in the list on the Organization
+    # Integrations page.
+    visible = True
+
     # a human readable name (e.g. 'Slack')
     name = None
 
