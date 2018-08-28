@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
+import {flatMap} from 'lodash';
 
 import {t} from 'app/locale';
 import Search from 'app/components/search';
 import DocsSource from 'app/components/search/sources/docsSource';
-import FAQSource from 'app/components/search/sources/faqSource';
+import FaqSource from 'app/components/search/sources/faqSource';
 
 const dropdownStyle = css`
   list-style: none;
@@ -28,7 +29,7 @@ class DocsSearchModal extends React.Component {
       <Body className="support-search">
         <Search
           {...this.props}
-          sources={[DocsSource, FAQSource]}
+          sources={[DocsSource, FaqSource]}
           entryPoint="sidebar_help"
           minSearch={3}
           maxResults={10}
@@ -50,15 +51,19 @@ class DocsSearchModal extends React.Component {
             let {result, type} = item;
             if (type === 'docs') {
               let link = `https://docs.sentry.io/${result.path}/`;
-              let path = result.path.replace(
-                /[#\/]/g,
-                '<span class="divider"> &gt;&gt; </span>'
-              );
+              let path = flatMap(result.path.split(/[#\/]/), part => [
+                part,
+                <span className="divider" key={part}>
+                  {' '}
+                  &gt;&gt;{' '}
+                </span>,
+              ]);
+              path.pop();
               return (
                 <a href={link}>
                   <SearchResultWrapper className="search-tag search-tag-docs search-autocomplete-item">
                     <span className="title">{result.title}</span>
-                    <p dangerouslySetInnerHTML={{__html: path}} />
+                    <p>{path}</p>
                   </SearchResultWrapper>
                 </a>
               );

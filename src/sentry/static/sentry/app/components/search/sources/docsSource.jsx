@@ -47,6 +47,7 @@ class DocsSource extends React.Component {
                 type: 'docs',
               },
               matches: null,
+              score: 1, // Should be lower than FaqSource
             })),
           });
         }

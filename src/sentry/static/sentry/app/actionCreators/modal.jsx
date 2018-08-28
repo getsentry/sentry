@@ -110,7 +110,7 @@ export function redirectToProject(newProjectSlug) {
 }
 
 export function openDocsSearchModal() {
-  import(/* webpackChunkName: "DocsSearchModal" */ '../components/modals/docsSearchModal')
+  import(/* webpackChunkName: "DocsSearchModal" */ 'app/components/modals/docsSearchModal')
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} />, {

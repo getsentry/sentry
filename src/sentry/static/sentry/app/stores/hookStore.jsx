@@ -2,7 +2,6 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 
 let validHookNames = new Set([
-  'sidebar:contact-support',
   'component:org-members-view',
   'component:org-auth-view',
   'footer',
@@ -22,6 +21,7 @@ let validHookNames = new Set([
   'analytics:event',
   'analytics:log-experiment',
   'sidebar:organization-dropdown-menu',
+  'sidebar:help-menu',
 ]);
 
 const HookStore = Reflux.createStore({

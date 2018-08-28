@@ -5,7 +5,7 @@ import React from 'react';
 
 import withLatestContext from 'app/utils/withLatestContext';
 
-class FAQSource extends React.Component {
+class FaqSource extends React.Component {
   static propTypes = {
     // search term
     query: PropTypes.string,
@@ -47,6 +47,7 @@ class FAQSource extends React.Component {
                 type: 'faq',
               },
               matches: null,
+              score: 10, // Should be higher than DocsSource
             })),
           });
         }
@@ -68,5 +69,5 @@ class FAQSource extends React.Component {
   }
 }
 
-export {FAQSource};
-export default withLatestContext(withRouter(FAQSource));
+export {FaqSource};
+export default withLatestContext(withRouter(FaqSource));

@@ -12,12 +12,12 @@ import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import IdBadge from 'app/components/idBadge';
 import ConfigStore from 'app/stores/configStore';
+import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
+import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
+import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
 
 import SwitchOrganization from './switchOrganization';
-import SidebarOrgSummary from '../sidebarOrgSummary';
-import SidebarMenuItem from '../sidebarMenuItem';
 import Divider from './divider.styled';
-import SidebarDropdownMenu from '../sidebarDropdownMenu.styled';
 
 class SidebarDropdown extends React.Component {
   static propTypes = {

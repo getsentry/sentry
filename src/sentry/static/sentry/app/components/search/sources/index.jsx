@@ -26,7 +26,7 @@ class SearchSources extends React.Component {
     let foundResults = isLoading
       ? []
       : flatten(allSources.map(({results}) => results || [])).sort(
-          (a, b) => a.score - b.score
+          (a, b) => b.score - a.score
         );
     let hasAnyResults = !!foundResults.length;
 

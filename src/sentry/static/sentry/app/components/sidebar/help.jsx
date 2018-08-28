@@ -29,15 +29,11 @@ class SidebarHelp extends React.Component {
   }
 
   componentDidMount() {
-    if (this.props.organization) {
-      HookStore.get('sidebar:contact-support').map(cb =>
-        cb(
-          this.props.organization,
-          <SidebarMenuItem>{t('Contact Support')}</SidebarMenuItem>,
-          this.handleSupportHookUpdate
-        )
-      );
-    }
+    if (!this.props.organization) return;
+
+    HookStore.get('sidebar:help-menu').map(cb =>
+      cb(this.props.organization, {SidebarMenuItem}, this.handleSupportHookUpdate)
+    );
   }
 
   handleSupportHookUpdate = menuItem => {
@@ -74,18 +70,16 @@ class SidebarHelp extends React.Component {
 
               {isOpen && (
                 <HelpMenu {...getMenuProps({isStyled: true})}>
-                  <React.Fragment>
-                    {this.state.supportMenuItem}
-                    <SidebarMenuItem onClick={this.handleSearchClick}>
-                      {t('Search Docs and FAQs')}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem href="https://forum.sentry.io/" target="_blank">
-                      {t('Community Discussions')}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem href="https://status.sentry.io/" target="_blank">
-                      {t('Service Status')}
-                    </SidebarMenuItem>
-                  </React.Fragment>
+                  {this.state.supportMenuItem}
+                  <SidebarMenuItem onClick={this.handleSearchClick}>
+                    {t('Search Docs and FAQs')}
+                  </SidebarMenuItem>
+                  <SidebarMenuItem href="https://forum.sentry.io/" target="_blank">
+                    {t('Community Discussions')}
+                  </SidebarMenuItem>
+                  <SidebarMenuItem href="https://status.sentry.io/" target="_blank">
+                    {t('Service Status')}
+                  </SidebarMenuItem>
                 </HelpMenu>
               )}
             </HelpRoot>
@@ -102,6 +96,9 @@ const HelpRoot = styled('div')`
   position: relative;
 `;
 
+// This exists to provide a styled actor for the dropdown. Making the actor a regular,
+// non-styled react component causes some issues with toggling correctly because of
+// how refs are handled.
 const HelpActor = styled('div')``;
 
 const HelpMenu = styled('div')`
