@@ -22,7 +22,7 @@ class ExternalIssueList extends AsyncComponent {
 
   renderIntegrationIssues(integrations) {
     const {group} = this.props;
-    //chriss todo before review: make this better
+
     if (!integrations || !integrations.length)
       return (
         <AlertLink
