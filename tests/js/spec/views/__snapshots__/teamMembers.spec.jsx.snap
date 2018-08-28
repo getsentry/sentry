@@ -33,7 +33,9 @@ exports[`TeamMembers renders 1`] = `
         onChange={[Function]}
         onClose={[Function]}
         onSelect={[Function]}
-      />
+      >
+        <Component />
+      </DropdownAutoComplete>
     </div>
   </PanelHeader>
   <StyledMemberContainer

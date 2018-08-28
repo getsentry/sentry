@@ -62,7 +62,9 @@ exports[`ProjectTeams renders 1`] = `
               </StyledTeamsLabel>
             }
             onSelect={[Function]}
-          />
+          >
+            <Component />
+          </DropdownAutoComplete>
         </div>
       </PanelHeader>
       <PanelBody
