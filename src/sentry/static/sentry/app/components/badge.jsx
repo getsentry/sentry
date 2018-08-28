@@ -4,7 +4,7 @@ import {cx} from 'react-emotion';
 
 class Badge extends React.Component {
   static propTypes = {
-    text: PropTypes.oneOf([PropTypes.string, PropTypes.number]),
+    text: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
   };
 
