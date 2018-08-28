@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {cx} from 'emotion';
+import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import InlineSvg from 'app/components/inlineSvg';
@@ -46,9 +47,9 @@ const getSystemAlertColorStyles = ({background}) => `
   }
 `;
 
-const AlertWrapper = styled.div`
+const AlertWrapper = styled(Box)`
   margin: 0 0 ${space(3)};
-  padding: ${p => p.theme.grid * 2}px;
+  padding: ${space(2)};
   font-size: 15px;
   box-shadow: ${p => p.theme.dropShadowLight};
   display: flex;

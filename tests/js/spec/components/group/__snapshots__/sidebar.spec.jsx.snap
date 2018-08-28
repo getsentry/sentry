@@ -186,6 +186,7 @@ exports[`GroupSidebar renders with tags renders 1`] = `
           ],
         }
       }
+      orgId="org-slug"
     />
   </FeatureContainer>
   <h6>

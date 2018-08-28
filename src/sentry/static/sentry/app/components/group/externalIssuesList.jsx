@@ -1,14 +1,19 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import AlertLink from 'app/components/alertLink';
 import SentryTypes from 'app/sentryTypes';
 import PluginActions from 'app/components/group/pluginActions';
+import {Box} from 'grid-emotion';
+import {t} from 'app/locale';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
+    orgId: PropTypes.string,
   };
 
   getEndpoints() {
@@ -16,21 +21,34 @@ class ExternalIssueList extends AsyncComponent {
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }
 
-  renderIntegrationIssues(integrations) {
+  renderIntegrationIssues(integrations = []) {
     const {group} = this.props;
-    if (!integrations || !integrations.length) return null;
 
-    const externalIssues = integrations
-      .filter(integration => integration.status === 'active')
-      .map(integration => (
-        <ExternalIssueActions
-          key={integration.id}
-          integration={integration}
-          group={group}
-        />
-      ));
+    const activeIntegrations = integrations.filter(
+      integration => integration.status === 'active'
+    );
 
-    return externalIssues;
+    if (!activeIntegrations.length)
+      return (
+        <AlertLink
+          icon="icon-generic-box"
+          priority="default"
+          size="small"
+          to={`/settings/${this.props.orgId}/integrations`}
+        >
+          {t('Set up Issue Tracking')}
+        </AlertLink>
+      );
+
+    const externalIssues = activeIntegrations.map(integration => (
+      <ExternalIssueActions
+        key={integration.id}
+        integration={integration}
+        group={group}
+      />
+    ));
+
+    return <Box mb={3}>{externalIssues}</Box>;
   }
 
   renderPluginIssues() {
@@ -59,7 +77,7 @@ class ExternalIssueList extends AsyncComponent {
 
   renderBody() {
     return (
-      <div className="m-b-2">
+      <div>
         <h6>
           <span>Linked Issues</span>
         </h6>

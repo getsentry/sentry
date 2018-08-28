@@ -81,6 +81,11 @@ const theme = {
   },
 
   alert: {
+    default: {
+      backgroundLight: '#FAF9FB',
+      background: '#BDB4C7',
+      border: '#E2DBE8',
+    },
     info: {
       backgroundLight: '#F5FAFE',
       border: '#B5D6ED',
@@ -94,7 +99,6 @@ const theme = {
       backgroundLight: '#FFFDF7',
       background: '#f9a66d',
       border: '#E1D697',
-      textDark: '#D3BE2B',
     },
     success: {
       backgroundLight: '#F8FCF7',
@@ -105,7 +109,6 @@ const theme = {
       backgroundLight: '#FDF6F5',
       border: '#E7C0BC',
       textLight: '#92635f',
-      textDark: '#5d3e3b',
     },
   },
 

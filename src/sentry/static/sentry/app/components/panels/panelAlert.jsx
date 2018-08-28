@@ -15,30 +15,13 @@ const DEFAULT_ICONS = {
 const PanelAlert = styled(({type, icon, ...props}) => (
   <Alert {...props} icon={icon || DEFAULT_ICONS[type]} type={type} />
 ))`
-  ${p =>
-    typeof p.m !== 'undefined'
-      ? `margin: -${p.m * p.theme.grid + 1}px -${p.m * p.theme.grid + 1}px;`
-      : ''};
-  ${p => (typeof p.mb !== 'undefined' ? `margin-bottom: ${p.mb * p.theme.grid};` : '')};
+  margin-bottom: ${p => p.mb || 0};
   border-radius: 0;
 `;
 
 PanelAlert.propTypes = {
-  /**
-   * Number of grid units to use for component's negative margin.
-   */
-  m: PropTypes.number,
-  /**
-   * margin-bottom
-   */
-  mb: PropTypes.number,
-  type: PropTypes.oneOf(['info', 'warning', 'success', 'error']),
+  type: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'default']),
   icon: PropTypes.string,
-};
-
-PanelAlert.defaultProps = {
-  m: 0,
-  mb: 0,
 };
 
 export default PanelAlert;

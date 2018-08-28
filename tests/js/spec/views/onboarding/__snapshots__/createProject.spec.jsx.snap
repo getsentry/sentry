@@ -6,8 +6,6 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
     body={
       <React.Fragment>
         <PanelAlert
-          m={0}
-          mb={0}
           type="error"
         >
           You cannot create a new project because there are no teams to assign it to.
