@@ -143,7 +143,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         response = self.client.post(path, data={})
         assert response.status_code == 400
-        assert response.data['non_field_errors'] == 'Assignee is required'
+        assert response.data['non_field_errors'] == ['Assignee is required']
 
         response = self.client.post(path, data={'assignee': 'foo@sentry.io'})
         assert response.status_code == 201
