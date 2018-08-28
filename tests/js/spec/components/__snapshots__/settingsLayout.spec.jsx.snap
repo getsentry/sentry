@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`SettingsLayout renders 1`] = `
-<React.Fragment>
+<Fragment>
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
@@ -33,5 +33,5 @@ exports[`SettingsLayout renders 1`] = `
     </Container>
   </ContentContainerWrapper>
   <Footer />
-</React.Fragment>
+</Fragment>
 `;

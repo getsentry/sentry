@@ -15,15 +15,13 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
     align="center"
     mr={2}
   >
-    <React.Fragment>
-      <GroupExtraIcon
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </React.Fragment>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
     <span
       className="hidden-xs hidden-sm"
     >
@@ -116,15 +114,13 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
     align="center"
     mr={2}
   >
-    <React.Fragment>
-      <GroupExtraIcon
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </React.Fragment>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
     <span
       className="hidden-xs hidden-sm"
     >
@@ -213,15 +209,13 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
     align="center"
     mr={2}
   >
-    <React.Fragment>
-      <GroupExtraIcon
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </React.Fragment>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
     <span
       className="hidden-xs hidden-sm"
     >
@@ -319,15 +313,13 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
     align="center"
     mr={2}
   >
-    <React.Fragment>
-      <GroupExtraIcon
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </React.Fragment>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
     <span
       className="hidden-xs hidden-sm"
     >
@@ -369,15 +361,13 @@ exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
     align="center"
     mr={2}
   >
-    <React.Fragment>
-      <GroupExtraIcon
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </React.Fragment>
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
   </Flex>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>

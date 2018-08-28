@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`IntegrationDetailsModal renders simple integration 1`] = `
-<React.Fragment>
+<Fragment>
   <Flex
     align="center"
     mb={2}
@@ -119,5 +119,5 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       size="small"
     />
   </div>
-</React.Fragment>
+</Fragment>
 `;

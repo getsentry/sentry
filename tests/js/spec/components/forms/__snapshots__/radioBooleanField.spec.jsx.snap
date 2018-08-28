@@ -10,54 +10,52 @@ exports[`RadioBooleanField render() renders with form context 1`] = `
     <div
       className="control-group radio-boolean"
     >
-      <React.Fragment>
-        <div
-          className="radio"
-          key="yes"
-        >
-          <label
-            style={
-              Object {
-                "fontWeight": "normal",
-              }
+      <div
+        className="radio"
+        key="yes"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
             }
-          >
-            <input
-              checked={true}
-              disabled={false}
-              name="fieldName"
-              onChange={[Function]}
-              type="radio"
-              value="true"
-            />
-             
-            Yes
-          </label>
-        </div>
-        <div
-          className="radio"
-          key="no"
+          }
         >
-          <label
-            style={
-              Object {
-                "fontWeight": "normal",
-              }
+          <input
+            checked={true}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="true"
+          />
+           
+          Yes
+        </label>
+      </div>
+      <div
+        className="radio"
+        key="no"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
             }
-          >
-            <input
-              checked={false}
-              disabled={false}
-              name="fieldName"
-              onChange={[Function]}
-              type="radio"
-              value="false"
-            />
-             
-            No
-          </label>
-        </div>
-      </React.Fragment>
+          }
+        >
+          <input
+            checked={false}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="false"
+          />
+           
+          No
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -73,54 +71,52 @@ exports[`RadioBooleanField render() renders without form context 1`] = `
     <div
       className="control-group radio-boolean"
     >
-      <React.Fragment>
-        <div
-          className="radio"
-          key="yes"
-        >
-          <label
-            style={
-              Object {
-                "fontWeight": "normal",
-              }
+      <div
+        className="radio"
+        key="yes"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
             }
-          >
-            <input
-              checked={false}
-              disabled={false}
-              name="fieldName"
-              onChange={[Function]}
-              type="radio"
-              value="true"
-            />
-             
-            Yes
-          </label>
-        </div>
-        <div
-          className="radio"
-          key="no"
+          }
         >
-          <label
-            style={
-              Object {
-                "fontWeight": "normal",
-              }
+          <input
+            checked={false}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="true"
+          />
+           
+          Yes
+        </label>
+      </div>
+      <div
+        className="radio"
+        key="no"
+      >
+        <label
+          style={
+            Object {
+              "fontWeight": "normal",
             }
-          >
-            <input
-              checked={false}
-              disabled={false}
-              name="fieldName"
-              onChange={[Function]}
-              type="radio"
-              value="false"
-            />
-             
-            No
-          </label>
-        </div>
-      </React.Fragment>
+          }
+        >
+          <input
+            checked={false}
+            disabled={false}
+            name="fieldName"
+            onChange={[Function]}
+            type="radio"
+            value="false"
+          />
+           
+          No
+        </label>
+      </div>
     </div>
   </div>
 </div>
