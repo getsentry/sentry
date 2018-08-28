@@ -36,7 +36,7 @@ class AccordionButton extends React.Component {
     const {labelOpen, labelClosed, cutoff} = this.props;
     const children = React.Children.toArray(this.props.children);
 
-    if (React.Children.count(children) <= cutoff + 1) return children;
+    if (children.length <= cutoff + 1) return children;
 
     return (
       <React.Fragment>
