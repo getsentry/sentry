@@ -14,6 +14,10 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
     key = 'vsts-extension'
     integration_key = 'vsts'
 
+    # This is only to enable the VSTS -> Sentry installation flow, so we don't
+    # want it to actually appear of the Integrations page.
+    visible = False
+
     def get_pipeline_views(self):
         views = super(VstsExtensionIntegrationProvider, self).get_pipeline_views()
         views = [view for view in views if not isinstance(view, AccountConfigView)]
