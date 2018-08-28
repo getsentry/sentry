@@ -35,14 +35,6 @@ class ExternalIssueForm extends AsyncComponent {
     onSubmitSuccess: PropTypes.func.isRequired,
   };
 
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = {
-      showAllFields: false,
-    };
-  }
-
   getEndpoints() {
     let {action, group, integration} = this.props;
     return [
