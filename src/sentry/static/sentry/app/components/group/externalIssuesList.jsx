@@ -28,7 +28,7 @@ class ExternalIssueList extends AsyncComponent {
       integration => integration.status === 'active'
     );
 
-    if (!integrations.length || !activeIntegrations.length)
+    if (!activeIntegrations.length)
       return (
         <AlertLink
           icon="icon-generic-box"
