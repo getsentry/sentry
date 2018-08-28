@@ -9,26 +9,24 @@ storiesOf('Accordion', module)
     'default',
     withInfo('An accordion button that will expand stuff.')(() => (
       <Accordion labelClosed="Show/Hide some stuff">
-        {[
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 1"
-            key="0"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 2"
-            key="1"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 3"
-            key="2"
-          />,
-        ]}
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 1"
+          key="0"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 2"
+          key="1"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 3"
+          key="2"
+        />
       </Accordion>
     ))
   )
@@ -42,44 +40,42 @@ storiesOf('Accordion', module)
         labelOpen="Show me considerably less of these inputs"
         cutoff={3}
       >
-        {[
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 1"
-            key="0"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 2"
-            key="1"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 3"
-            key="3"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 4"
-            key="4"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 5"
-            key="5"
-          />,
-          <input
-            type="text"
-            style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
-            placeholder="field 6"
-            key="6"
-          />,
-        ]}
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 1"
+          key="0"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 2"
+          key="1"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 3"
+          key="3"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 4"
+          key="4"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 5"
+          key="5"
+        />
+        <input
+          type="text"
+          style={{width: '100%', padding: '0.5em', margin: '0.5em 0'}}
+          placeholder="field 6"
+          key="6"
+        />
       </Accordion>
     ))
   );
