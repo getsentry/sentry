@@ -4,7 +4,7 @@ import functools
 import os
 import subprocess
 import uuid
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from contextlib import contextmanager
 
 import pytest
@@ -502,6 +502,35 @@ def test_consumer_rebalance_from_committed_offset():
             assert consumer.poll(1) is None
 
 
+def consume_until_constraints_met(consumer, constraints, iterations, timeout=1):
+    constraints = set(constraints)
+
+    for i in xrange(iterations):
+        message = consumer.poll(timeout)
+        for constraint in list(constraints):
+            if constraint(message):
+                constraints.remove(constraint)
+
+        if not constraints:
+            break
+
+    if constraints:
+        raise AssertionError(
+            'Completed {} iterations with {} unmet constraints: {!r}'.format(
+                iterations, len(constraints), constraints))
+
+
+def collect_messages_recieved(count):
+    messages = []
+
+    def messages_recieved_constraint(message):
+        if message is not None:
+            messages.append(message)
+            if len(messages) == count:
+                return True
+    return messages_recieved_constraint
+
+
 @requires_kafka_client
 def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
@@ -557,34 +586,20 @@ def test_consumer_rebalance_from_uncommitted_offset():
 
         consumer_a.subscribe([topic], on_assign=on_assign)
 
-        # Wait until the first consumer has received its assignments.
-        for i in xrange(10):  # this takes a while
-            assert consumer_a.poll(1) is None
-            if assignments_received[consumer_a]:
-                break
+        consume_until_constraints_met(consumer_a, [
+            lambda message: assignments_received[consumer_a],
+            collect_messages_recieved(4),
+        ], 10)
 
         assert len(assignments_received[consumer_a]
                    ) == 1, 'expected to receive partition assignment'
         assert set((i.topic, i.partition)
                    for i in assignments_received[consumer_a][0]) == set([(topic, 0), (topic, 1)])
-
         assignments_received[consumer_a].pop()
 
-        messages_received = defaultdict(OrderedDict)
-
-        # Consume all of the available messages.
-        for i in xrange(10):
-            if len(messages_received[consumer_a]) == 4:
-                break
-
-            message = consumer_a.poll(1)
-            if message is None or message.error() is not None:
-                continue
-
-            messages_received[consumer_a][(
-                message.topic(), message.partition(), message.offset())] = message
-
-        assert len(messages_received[consumer_a]) == 4
+        message = consumer_a.poll(1)
+        assert message is None or message.error(
+        ) is KafkaError._PARTITION_EOF, 'there should be no more messages to recieve'
 
         consumer_b = SynchronizedConsumer(
             bootstrap_servers=os.environ['SENTRY_KAFKA_HOSTS'],
@@ -596,49 +611,22 @@ def test_consumer_rebalance_from_uncommitted_offset():
 
         consumer_b.subscribe([topic], on_assign=on_assign)
 
-        assignments = {}
+        consume_until_constraints_met(consumer_a, [
+            lambda message: assignments_received[consumer_a],
+        ], 10)
 
-        # Wait until *both* consumers have received updated assignments.
+        consume_until_constraints_met(consumer_b, [
+            lambda message: assignments_received[consumer_b],
+            collect_messages_recieved(2),
+        ], 10)
+
         for consumer in [consumer_a, consumer_b]:
-            for i in xrange(10):  # this takes a while
-                assert consumer.poll(1) is None or message.error() is KafkaError._PARTITION_EOF
-                if assignments_received[consumer]:
-                    break
+            assert len(assignments_received[consumer][0]) == 1
 
-            assert len(assignments_received[consumer]
-                       ) == 1, 'expected to receive partition assignment'
-            assert len(assignments_received[consumer][0]
-                       ) == 1, 'expected to have a single partition assignment'
+        message = consumer_a.poll(1)
+        assert message is None or message.error(
+        ) is KafkaError._PARTITION_EOF, 'there should be no more messages to recieve'
 
-            i = assignments_received[consumer][0][0]
-            assignments[(i.topic, i.partition)] = consumer
-
-        assert set(assignments.keys()) == set([(topic, 0), (topic, 1)])
-
-        # Consumer B should receive two messages.
-        for i in xrange(10):
-            if len(messages_received[consumer_b]) > 2:
-                break
-
-            message = consumer_b.poll(1)
-            if message is None or message.error() is not None:
-                continue
-
-            messages_received[consumer_b][(
-                message.topic(), message.partition(), message.offset())] = message
-
-        # Consumer A should not receive any new messages.
-        for i in xrange(10):
-            message = consumer_a.poll(1)
-            if message is None:
-                continue
-
-            if message.error() is KafkaError._PARTITION_EOF:
-                assert assignments[(message.topic(), message.partition())] is consumer_a
-                break
-            else:
-                k = (message.topic(), message.partition(), message.offset())
-                assert k not in messages_received[consumer_a], 'received unexpected message: {!r}'.format(
-                    k)
-
-        assert len(messages_received[consumer_a]) == 4
+        message = consumer_b.poll(1)
+        assert message is None or message.error(
+        ) is KafkaError._PARTITION_EOF, 'there should be no more messages to recieve'
