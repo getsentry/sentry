@@ -116,10 +116,12 @@ class BitbucketApiClient(ApiClient):
         ))
 
     def search_repositories(self, username, query):
-        return self.get(BitbucketAPIPath.repositories.format(
-            username=username,
+        return self.get(
+            path=BitbucketAPIPath.repositories.format(
+                username=username,
+            ),
             params={'q': query},
-        ))
+        )
 
     def create_hook(self, repo, data):
         return self.post(

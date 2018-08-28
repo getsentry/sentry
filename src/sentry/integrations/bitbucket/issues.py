@@ -54,6 +54,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                 'label': 'Bitbucket Repository',
                 'type': 'select',
                 'default': default_repo,
+                'defaultLabel': default_repo,
                 'url': autocomplete_url,
                 'required': True,
             }
@@ -86,6 +87,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             'label': 'Bitbucket Repository',
             'type': 'select',
             'default': default_repo,
+            'defaultLabel': default_repo,
             'url': autocomplete_url,
             'required': True,
             'updatesForm': True,
