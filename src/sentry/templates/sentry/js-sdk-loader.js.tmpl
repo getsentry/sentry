@@ -1,12 +1,10 @@
 {% load sentry_helpers %}// Sentry Loader
-(function(_window, _document, _script, _onerror, _onunhandledrejection) {
+(function(_window, _document, _script, _onerror, _onunhandledrejection, _namespace) {
   var lazy = true;
 
   for (var i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf('{{ publicKey|safe }}') > -1) {
-      if (document.scripts[i].dataset.lazy === 'no') {
-        lazy = false;
-      }
+      lazy = !(document.scripts[i].dataset.lazy === 'no');
       break;
     }
   }
@@ -21,9 +19,9 @@
     // content.p = promise rejection
     // content.f = function call the Sentry
     if (
-      (content.e || content.p ||
-      (content.f && content.f.indexOf('capture') > -1)) &&
-      lazy) {
+      (content.e || content.p || (content.f && content.f.indexOf('capture') > -1)) &&
+      lazy
+    ) {
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
@@ -57,7 +55,7 @@
         _window[_onerror] = _oldOnerror;
         _window[_onunhandledrejection] = _oldOnunhandledrejection;
 
-        var SDK = _window.Sentry;
+        var SDK = _window[_namespace];
 
         var oldInit = SDK.init;
 
@@ -70,7 +68,7 @@
             }
           }
           oldInit(target);
-        }
+        };
 
         sdkLoaded(callback, SDK);
       } catch (o_O) {
@@ -108,7 +106,7 @@
 
   // We don't want to _window.Sentry = _window.Sentry || { ... } since we want to make sure
   // that the first Sentry "instance" is our with onLoad
-  _window.Sentry = {
+  _window[_namespace] = {
     onLoad: function(callback) {
       if (lazy) {
         onLoadCallback = callback;
@@ -116,22 +114,19 @@
         injectSdk(callback);
       }
     },
-    addBreadcrumb: function() {
-      queue({ f: 'addBreadcrumb', a: arguments });
-    },
-    captureMessage: function() {
-      queue({ f: 'captureMessage', a: arguments });
-    },
-    captureException: function() {
-      queue({ f: 'captureException', a: arguments });
-    },
-    captureEvent: function() {
-      queue({ f: 'captureEvent', a: arguments });
-    },
-    configureScope: function() {
-      queue({ f: 'configureScope', a: arguments });
-    }
   };
+
+  [
+    'addBreadcrumb',
+    'captureMessage',
+    'captureException',
+    'captureEvent',
+    'configureScope',
+  ].forEach(function(f) {
+    _window[_namespace][f] = function() {
+      queue({f: f, a: arguments});
+    };
+  });
 
   // Store reference to the old `onerror` handler and override it with our own function
   // that will just push exceptions to the queue and call through old handler if we found one
@@ -139,7 +134,7 @@
   _window[_onerror] = function(message, source, lineno, colno, exception) {
     // Use keys as "data type" to save some characters"
     queue({
-      e: [].slice.call(arguments)
+      e: [].slice.call(arguments),
     });
 
     if (_oldOnerror) _oldOnerror.apply(_window, arguments);
@@ -149,9 +144,8 @@
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
   _window[_onunhandledrejection] = function(exception) {
     queue({
-      p: exception.reason
+      p: exception.reason,
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
-
-})(window, document, 'script', 'onerror', 'onunhandledrejection');
+})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry');
