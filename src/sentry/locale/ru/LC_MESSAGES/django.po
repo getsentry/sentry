@@ -6598,7 +6598,7 @@ msgstr ""
 
 #: static/sentry/app/views/organizationContext.jsx:158
 msgid "Loading data for your organization."
-msgstr "Загрузка данны вашей организации."
+msgstr "Загрузка данных вашей организации."
 
 #: static/sentry/app/views/organizationContext.jsx:167
 msgid "The organization you were looking for was not found."
