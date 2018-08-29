@@ -75,18 +75,18 @@ class EventsTableChart extends React.Component {
         ])}
         renderRow={({items}) => (
           <React.Fragment>
-            <NameAndEventsContainer flex={1} justify="space-between" align="center">
-              <div>{items[0]}</div>
+            <NameAndEventsContainer justify="space-between" align="center">
+              {items[0]}
               <div>{items[1]}</div>
             </NameAndEventsContainer>
-            <Flex flex={3} justify="space-between" align="center">
+            <PercentageContainer justify="space-between" align="center">
               <Flex w={[3 / 4]} align="center" key="bar">
                 {items[2]}
               </Flex>
               <Flex w={[1 / 4]} justify="flex-end" key="last-event">
                 {items[3]}
               </Flex>
-            </Flex>
+            </PercentageContainer>
           </React.Fragment>
         )}
       />
@@ -101,6 +101,11 @@ const StyledEventsTableChart = styled(EventsTableChart)`
 const NameAndEventsContainer = styled(Flex)`
   flex-shrink: 0;
   margin-right: ${space(2)};
+  width: 50%;
+`;
+
+const PercentageContainer = styled(Flex)`
+  width: 50%;
 `;
 
 const BarWrapper = styled('div')`
