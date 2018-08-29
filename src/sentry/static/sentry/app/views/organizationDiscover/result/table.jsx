@@ -59,13 +59,10 @@ export default class ResultTable extends React.Component {
       const colName = meta[index].name;
       const sizes = [this.measureText(colName, true)];
 
-      if (data.length > 0) {
-        sizes.push(this.measureText(getDisplayText(data[0][colName]), false));
-      }
-
-      if (data.length > 1) {
-        sizes.push(this.measureText(getDisplayText(data[1][colName]), false));
-      }
+      // Check the first 3 rows to set column width
+      data.slice(0, 3).forEach(row => {
+        sizes.push(this.measureText(getDisplayText(row[colName]), false));
+      });
 
       // Ensure size is within max and min bounds, add 8px for cell padding
       return Math.max(Math.min(Math.max(...sizes) + 8, MAX_COL_WIDTH), MIN_COL_WIDTH);
