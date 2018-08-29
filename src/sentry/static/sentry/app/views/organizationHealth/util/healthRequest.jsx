@@ -58,6 +58,11 @@ class HealthRequestWithParams extends React.Component {
     timeseries: PropTypes.bool,
 
     /**
+     * number of rows to return
+     */
+    limit: PropTypes.number,
+
+    /**
      * topK value
      */
     topk: PropTypes.number,
@@ -66,6 +71,24 @@ class HealthRequestWithParams extends React.Component {
      * Callback function to process category
      */
     getCategory: PropTypes.func,
+
+    /**
+     * Transform the response data to be something ingestible by charts
+     */
+    includeTransformedData: PropTypes.bool,
+
+    /**
+     * Include a dataset transform that will aggregate count values for each timestamp.
+     * Note this expects a string for the series name to be used for the aggregated series.
+     */
+    includeTimeAggregation: PropTypes.string,
+
+    /**
+     * Include a map of series name -> percentage integers
+     *
+     * This is only valid for non-timeseries data
+     */
+    includePercentages: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -73,7 +96,9 @@ class HealthRequestWithParams extends React.Component {
     includePrevious: true,
     timeseries: true,
     interval: '1d',
+    limit: 15,
     getCategory: i => i,
+    includeTransformedData: true,
   };
 
   constructor(props) {
@@ -108,36 +133,83 @@ class HealthRequestWithParams extends React.Component {
     return this.props.getCategory(value);
   };
 
-  getPreviousPeriod = () => {
+  /**
+   * Retrieves data set for the current period (since data can potentially contain previous period's data), as
+   * well as the previous period if possible.
+   *
+   * Returns `null` if data does not exist
+   */
+  getData = () => {
     const {timeseries, includePrevious} = this.props;
     const {data} = this.state;
-    if (!data) return null;
-    if (!timeseries || !includePrevious) return [];
+    if (!data) {
+      return {
+        previous: null,
+        current: null,
+      };
+    }
 
-    const previousPeriodData = data.slice(0, data.length / 2);
-
-    // Need the current period data array so we can take the timestamp
-    // so we can be sure the data lines up
-    const currentPeriodData = data.slice(data.length / 2);
+    const hasPreviousPeriod = timeseries && includePrevious;
+    const dataMiddleIndex = data.length / 2;
 
     return {
-      seriesName: 'Previous Period',
-      data: previousPeriodData.map(([timestamp, countArray], i) => ({
-        name: currentPeriodData[i][0] * 1000,
-        value: countArray.reduce((acc, {count}) => acc + count, 0),
-      })),
+      previous: hasPreviousPeriod ? data.slice(0, dataMiddleIndex) : null,
+      current: hasPreviousPeriod ? data.slice(dataMiddleIndex) : data,
     };
   };
 
-  transformTimeseriesData = () => {
-    const {includePrevious, tag} = this.props;
-    let {data} = this.state;
+  // This aggregates all values per `timestamp`
+  calculateTotalsPerTimestamp = (data, getName = timestamp => timestamp * 1000) => {
+    return data.map(([timestamp, countArray], i) => ({
+      name: getName(timestamp, countArray, i),
+      value: countArray.reduce((acc, {count}) => acc + count, 0),
+    }));
+  };
 
+  transformSeriesPercentageMap = (transformedData, total) => {
+    return new Map(
+      transformedData.map(([name, value]) => [
+        name,
+        Math.round(value / total * 10000) / 100,
+      ])
+    );
+  };
+
+  /**
+   * Get previous period data, but transform timestampts so that data fits unto the current period's data axis
+   */
+  transformPreviousPeriodData = (current, previous) => {
+    // Need the current period data array so we can take the timestamp
+    // so we can be sure the data lines up
+    if (!previous) return [];
+
+    return {
+      seriesName: 'Previous Period',
+      data: this.calculateTotalsPerTimestamp(
+        previous,
+        (timestamp, countArray, i) => current[i][0] * 1000
+      ),
+    };
+  };
+
+  /**
+   * Aggregate all counts for each time stamp
+   */
+  transformAggregatedTimeseries = (data, name) => {
+    if (!data) return null;
+
+    return {
+      seriesName: name,
+      data: this.calculateTotalsPerTimestamp(data),
+    };
+  };
+
+  /**
+   * Transforms query response into timeseries data to be used in a chart
+   */
+  transformTimeseriesData = (data, tag) => {
     const categorySet = new Set();
     const timestampMap = new Map();
-
-    // If include previous we need to split data into 2 sets of arrays
-    data = includePrevious ? data.slice(data.length / 2) : data;
 
     data.forEach(([timestamp, resultsForTimestamp]) => {
       resultsForTimestamp &&
@@ -159,29 +231,97 @@ class HealthRequestWithParams extends React.Component {
     });
   };
 
-  transformData = () => {
+  /**
+   * Transforms query response into a non-timeseries data to be used in a chart
+   */
+  transformNonTimeSeriesData = (data, tag) =>
+    data.map(({[tag]: tagObject, count}) => [this.getCategory(tagObject), count]);
+
+  transformData = data => {
     const {timeseries, tag} = this.props;
-    const {data} = this.state;
     if (!data) return null;
 
     return timeseries
-      ? this.transformTimeseriesData()
-      : data.map(({[tag]: tagObject, count}) => [this.getCategory(tagObject), count]);
+      ? this.transformTimeseriesData(data, tag)
+      : this.transformNonTimeSeriesData(data, tag);
   };
 
   render() {
-    const {children, ...props} = this.props;
+    const {
+      children,
+      includeTimeAggregation,
+      includeTransformedData,
+      includePercentages,
+      tag,
+      timeseries,
+      ...props
+    } = this.props;
     const {data, totals} = this.state;
+    const {current, previous} = this.getData();
+    const shouldIncludePercentages = includePercentages && !timeseries;
+    const transformedData =
+      includeTransformedData || shouldIncludePercentages
+        ? this.transformData(current)
+        : null;
+
+    const percentageMap =
+      shouldIncludePercentages &&
+      totals &&
+      this.transformSeriesPercentageMap(transformedData, totals.count);
+
+    const dataWithPercentages =
+      shouldIncludePercentages && current
+        ? current.map(({count, lastCount, [tag]: tagObject}) => {
+            const name = this.getCategory(tagObject);
+
+            return {
+              count,
+              lastCount,
+              name,
+              percentage: percentageMap.get(name),
+            };
+          })
+        : null;
 
     return children({
-      // Loading if data is null
+      // Is "loading" if data is null
       loading: data === null,
-      data: this.transformData(),
-      totals,
-      originalData: data,
-      previousPeriod: this.getPreviousPeriod(),
 
-      // sometimes we want to reference props that was given to HealthRequest
+      // Current period, transformed data
+      data: transformedData,
+
+      dataWithPercentages,
+
+      // Previous period, transformed and aggregated data
+      previousData: includeTransformedData
+        ? this.transformPreviousPeriodData(current, previous)
+        : null,
+
+      // Current period data aggregated by time
+      timeAggregatedData: includeTimeAggregation
+        ? this.transformAggregatedTimeseries(current, includeTimeAggregation)
+        : null,
+
+      // All data
+      allData: data,
+
+      // Current period data before any transforms
+      originalData: current,
+
+      // Previous period data before any transforms
+      originalPreviousData: previous,
+
+      // Totals for current period
+      // TODO: this currently isn't accurate because of previous period
+      totals,
+
+      // Total counts for previous period
+      // TODO: this currently doesn't work
+      previousTotals: null,
+
+      // sometimes we want to reference props that were given to HealthRequest
+      tag,
+      timeseries,
       ...props,
     });
   }
