@@ -33,7 +33,7 @@ class GroupIntegrationsTest(APITestCase):
 
         path = '/api/0/issues/{}/integrations/'.format(group.id)
 
-        with self.feature('organizations:integration:issue_basic'):
+        with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
             provider = integration.get_provider()
 

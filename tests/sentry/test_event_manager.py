@@ -582,7 +582,7 @@ class EventManagerTest(TransactionTestCase):
 
         with self.tasks():
             with self.feature({
-                'organizations:integration:issue_sync': True,
+                'organizations:integrations-issue-sync': True,
                 'organizations:internal-catchall': True,
             }):
                 event = manager.save(1)

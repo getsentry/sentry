@@ -20,7 +20,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = '/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
 
-        with self.feature('organizations:integration:issue_basic'):
+        with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
             provider = integration.get_provider()
 
@@ -60,7 +60,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = '/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
-        with self.feature('organizations:integration:issue_basic'):
+        with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
             provider = integration.get_provider()
 
@@ -130,7 +130,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
-        with self.feature('organizations:integration:issue_basic'):
+        with self.feature('organizations:integrations-issue-basic'):
             response = self.client.put(path, data={
                 'externalIssue': 'APP-123'
             })
@@ -179,7 +179,7 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
-        with self.feature('organizations:integration:issue_basic'):
+        with self.feature('organizations:integrations-issue-basic'):
             response = self.client.post(path, data={})
             assert response.status_code == 400
             assert response.data['non_field_errors'] == ['Assignee is required']
@@ -245,7 +245,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             group.id, integration.id, external_issue.id,
         )
 
-        with self.feature('organizations:integration:issue_basic'):
+        with self.feature('organizations:integrations-issue-basic'):
             response = self.client.delete(path)
 
             assert response.status_code == 204

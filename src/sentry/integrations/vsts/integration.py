@@ -169,7 +169,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         ]
 
         organization = Organization.objects.get(id=self.organization_id)
-        has_issue_sync = features.has('organizations:integration:issue_sync',
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
                                       organization)
         if not has_issue_sync:
             for field in fields:

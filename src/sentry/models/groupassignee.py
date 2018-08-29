@@ -57,7 +57,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
 
     orgs_with_sync_enabled = []
     for org in integration.organizations.all():
-        has_issue_sync = features.has('organizations:integration:issue_sync',
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
                                       org)
         if not has_issue_sync:
             continue

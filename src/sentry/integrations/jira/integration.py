@@ -147,7 +147,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 'Unable to communicate with the Jira instance. You may need to reinstall the addon.')
 
         organization = Organization.objects.get(id=self.organization_id)
-        has_issue_sync = features.has('organizations:integration:issue_sync',
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
                                       organization)
         if not has_issue_sync:
             for field in configuration:

@@ -17,11 +17,11 @@ MISSING_FEATURE_MESSAGE = 'Your organization does not have access to this featur
 
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     def _has_issue_feature(self, organization, user):
-        has_issue_basic = features.has('organizations:integration:issue_basic',
+        has_issue_basic = features.has('organizations:integrations-issue-basic',
                                        organization,
                                        actor=user)
 
-        has_issue_sync = features.has('organizations:integration:issue_sync',
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
                                       organization,
                                       actor=user)
 

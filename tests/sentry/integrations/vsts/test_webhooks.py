@@ -142,7 +142,7 @@ class VstsWebhookWorkItemTest(APITestCase):
                 self.project,
                 GroupStatus.UNRESOLVED) for _ in range(num_groups)]
 
-        with self.feature('organizations:integration:issue_sync'):
+        with self.feature('organizations:integrations-issue-sync'):
             resp = self.client.post(
                 absolute_uri('/extensions/vsts/issue-updated/'),
                 data=WORK_ITEM_UPDATED_STATUS,
@@ -181,7 +181,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         state['oldValue'] = 'Resolved'
         state['newValue'] = 'Active'
 
-        with self.feature('organizations:integration:issue_sync'):
+        with self.feature('organizations:integrations-issue-sync'):
             resp = self.client.post(
                 absolute_uri('/extensions/vsts/issue-updated/'),
                 data=WORK_ITEM_UPDATED_STATUS,

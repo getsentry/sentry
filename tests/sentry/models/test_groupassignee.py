@@ -142,7 +142,7 @@ class GroupAssigneeTestCase(TestCase):
         )
 
         with self.feature({
-            'organizations:integration:issue_sync': True,
+            'organizations:integrations-issue-sync': True,
             'organizations:internal-catchall': True,
         }):
             with self.tasks():
@@ -207,7 +207,7 @@ class GroupAssigneeTestCase(TestCase):
         GroupAssignee.objects.assign(self.group, self.user)
 
         with self.feature({
-            'organizations:integration:issue_sync': True,
+            'organizations:integrations-issue-sync': True,
             'organizations:internal-catchall': True,
         }):
             with self.tasks():
@@ -264,7 +264,7 @@ class GroupAssigneeTestCase(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        with self.feature('organizations:integration:issue_sync'):
+        with self.feature('organizations:integrations-issue-sync'):
             # no permissions
             groups_updated = sync_group_assignee_inbound(
                 integration, user_no_access.email, 'APP-123'
@@ -322,7 +322,7 @@ class GroupAssigneeTestCase(TestCase):
 
         GroupAssignee.objects.assign(group, self.user)
 
-        with self.feature('organizations:integration:issue_sync'):
+        with self.feature('organizations:integrations-issue-sync'):
             groups_updated = sync_group_assignee_inbound(
                 integration, self.user.email, 'APP-123', assign=False,
             )

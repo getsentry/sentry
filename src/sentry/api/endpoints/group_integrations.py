@@ -11,11 +11,11 @@ from sentry.models import Integration
 
 class GroupIntegrationsEndpoint(GroupEndpoint):
     def get(self, request, group):
-        has_issue_basic = features.has('organizations:integration:issue_basic',
+        has_issue_basic = features.has('organizations:integrations-issue-basic',
                                        group.organization,
                                        actor=request.user)
 
-        has_issue_sync = features.has('organizations:integration:issue_sync',
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
                                       group.organization,
                                       actor=request.user)
 

@@ -21,7 +21,7 @@ def post_comment(external_issue_id, data, **kwargs):
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
     organization = Organization.objects.get(id=external_issue.organization_id)
-    has_issue_sync = features.has('organizations:integration:issue_sync',
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
                                   organization)
     if not has_issue_sync:
         return
@@ -67,7 +67,7 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
     organization = Organization.objects.get(id=external_issue.organization_id)
-    has_issue_sync = features.has('organizations:integration:issue_sync',
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
                                   organization)
 
     if not has_issue_sync:
@@ -109,7 +109,7 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
     except IndexError:
         return
 
-    has_issue_sync = features.has('organizations:integration:issue_sync',
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
                                   group.organization)
     if not has_issue_sync:
         return
