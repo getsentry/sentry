@@ -3,6 +3,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
+import {orderBy} from 'lodash';
 
 /**
  * Returns data formatted for basic line and bar charts, with each aggregation
@@ -43,11 +44,29 @@ export function getChartDataByDay(data, query) {
   const dates = [
     ...new Set(data.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
   ];
+
+  const series = createSeries(data, aggregate, fields);
+  let result = addNullValues(series, dates);
+
+  if (result.length > 10) {
+    const truncatedData = truncateChartData(data);
+    result = addNullValues(createSeries(truncatedData, aggregate, fields), dates);
+  }
+
+  return result;
+}
+
+//Input: Array of values with a property named "key" corresponding to the aggregation
+//Output: Object where its keys are from the inputs' property and its values are its
+//total corresponding datapoints
+function createSeries(data, aggregate, fields) {
   const output = {};
   data.forEach(res => {
     const key = fields.length
       ? fields.map(field => getLabel(res[field])).join(',')
       : aggregate;
+    res.key = key;
+
     if (key in output) {
       output[key].data.push({
         value: res[aggregate],
@@ -61,22 +80,42 @@ export function getChartDataByDay(data, query) {
       };
     }
   });
-  const result = [];
-  for (let key in output) {
+  return output;
+}
+
+//Add null values where there is no event for a given date
+function addNullValues(chartData, dates) {
+  let result = [];
+  for (let key in chartData) {
     const addDates = dates.filter(
-      date => !output[key].data.map(entry => entry.name).includes(date)
+      date => !chartData[key].data.map(entry => entry.name).includes(date)
     );
     for (let i = 0; i < addDates.length; i++) {
-      output[key].data.push({
+      chartData[key].data.push({
         value: null,
         name: addDates[i],
       });
     }
 
-    result.push({seriesName: key, data: output[key].data});
+    result.push({seriesName: key, data: chartData[key].data});
   }
-
   return result;
+}
+
+// Input is ordered by time, then count.
+// Get the most recent and highest count keys, and filter out of data.
+function truncateChartData(chartData) {
+  const allData = orderBy(chartData, ['time', 'count'], ['desc', 'desc']);
+
+  const top10Keys = new Set([...new Set(allData.map(({key}) => key))].slice(0, 10));
+
+  return orderBy(
+    allData.filter(row => {
+      return top10Keys.has(row.key);
+    }),
+    ['time'],
+    ['asc']
+  );
 }
 
 export function formatTooltip(seriesParams) {
@@ -90,6 +129,7 @@ export function formatTooltip(seriesParams) {
   ].join('');
 }
 
+// Truncates labels for tooltip
 function truncateLabel(seriesName) {
   let result = seriesName;
   if (seriesName.length > 80) {
