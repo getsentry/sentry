@@ -78,8 +78,6 @@ export default class OrganizationIntegrations extends AsyncComponent {
       i => i.name
     );
     this.setState({integrations});
-
-    // TODO: Find unmigratable repos and display warning
   };
 
   onRemove = integration => {
