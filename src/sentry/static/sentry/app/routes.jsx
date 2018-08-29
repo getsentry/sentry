@@ -584,6 +584,14 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
+      <Route
+        path="/extensions/vsts/link/"
+        getComponent={(loc, cb) =>
+          import(/*webpackChunkName: "VSTSOrganizationLink" */ './views/vstsOrganizationLink').then(
+            lazyLoad(cb)
+          )}
+      />
+
       <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
           getComponent={(loc, cb) =>

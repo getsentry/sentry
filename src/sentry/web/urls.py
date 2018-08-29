@@ -55,6 +55,8 @@ from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
+from sentry.web.frontend.vsts_extension_configuration import \
+    VstsExtensionConfigurationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 
 
@@ -198,8 +200,10 @@ urlpatterns += patterns(
         name='sentry-account-confirm-email-send'
     ),
     url(r'^account/authorizations/$',
-        RedirectView.as_view(pattern_name="sentry-account-settings-authorizations", permanent=False),
-    ),
+        RedirectView.as_view(
+            pattern_name="sentry-account-settings-authorizations",
+            permanent=False),
+        ),
     url(
         r'^account/confirm-email/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$',
         accounts.confirm_email,
@@ -218,7 +222,7 @@ urlpatterns += patterns(
     ),
     url(r'^account/settings/$',
         RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
-    ),
+        ),
     url(
         r'^account/settings/2fa/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
@@ -255,7 +259,7 @@ urlpatterns += patterns(
     ),
     url(r'^account/settings/emails/$',
         RedirectView.as_view(pattern_name="sentry-account-settings-emails", permanent=False),
-    ),
+        ),
 
     # Project Wizard
     url(
@@ -334,14 +338,14 @@ urlpatterns += patterns(
     ),
     url(r'^api/$',
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
-    ),
+        ),
     url(r'^api/applications/$',
         RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False)),
     url(r'^api/new-token/$',
         RedirectView.as_view(pattern_name="sentry-api-new-auth-token", permanent=False)),
     url(r'^api/[^0]+/',
         RedirectView.as_view(pattern_name="sentry-api-details", permanent=False),
-    ),
+        ),
     url(r'^out/$', OutView.as_view()),
 
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
@@ -349,16 +353,23 @@ urlpatterns += patterns(
     # acting on behalf of an organization should use react_page_view
     url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings"),
     url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings-appearance"),
-    url(r'^settings/account/authorizations/$', generic_react_page_view, name="sentry-account-settings-authorizations"),
-    url(r'^settings/account/security/', generic_react_page_view, name='sentry-account-settings-security'),
+    url(r'^settings/account/authorizations/$', generic_react_page_view,
+        name="sentry-account-settings-authorizations"),
+    url(r'^settings/account/security/', generic_react_page_view,
+        name='sentry-account-settings-security'),
     url(r'^settings/account/avatar/$', generic_react_page_view, name='sentry-account-settings-avatar'),
-    url(r'^settings/account/identities/$', generic_react_page_view, name='sentry-account-settings-identities'),
-    url(r'^settings/account/subscriptions/$', generic_react_page_view, name='sentry-account-settings-subscriptions'),
-    url(r'^settings/account/notifications/', generic_react_page_view, name='sentry-account-settings-notifications'),
+    url(r'^settings/account/identities/$', generic_react_page_view,
+        name='sentry-account-settings-identities'),
+    url(r'^settings/account/subscriptions/$', generic_react_page_view,
+        name='sentry-account-settings-subscriptions'),
+    url(r'^settings/account/notifications/', generic_react_page_view,
+        name='sentry-account-settings-notifications'),
     url(r'^settings/account/emails/$', generic_react_page_view, name='sentry-account-settings-emails'),
     url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
-    url(r'^settings/account/api/applications/$', generic_react_page_view, name='sentry-api-applications'),
-    url(r'^settings/account/api/auth-tokens/new-token/$', generic_react_page_view, name='sentry-api-new-auth-token'),
+    url(r'^settings/account/api/applications/$',
+        generic_react_page_view, name='sentry-api-applications'),
+    url(r'^settings/account/api/auth-tokens/new-token/$',
+        generic_react_page_view, name='sentry-api-new-auth-token'),
     url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
     url(r'^settings/account/close-account/$', generic_react_page_view, name='sentry-remove-account'),
     url(r'^settings/account/', generic_react_page_view),
@@ -490,6 +501,13 @@ urlpatterns += patterns(
         r'^team-avatar/(?P<avatar_id>[^\/]+)/$',
         TeamAvatarPhotoView.as_view(),
         name='sentry-team-avatar-url'
+    ),
+
+    # VSTS Marketplace extension install flow
+    url(
+        r'^extensions/vsts/configure/$',
+        VstsExtensionConfigurationView.as_view(),
+        name='vsts-extension-configuration',
     ),
 
     # Generic

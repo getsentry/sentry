@@ -69,6 +69,10 @@ class IntegrationProvider(PipelineProvider):
     # a human readable name (e.g. 'Slack')
     name = None
 
+    # Whether the Integration should show up in the list of Providers on the
+    # Organization Integration settings page
+    visible = True
+
     # an IntegrationMetadata object, used to provide extra details in the
     # configuration interface of the integration.
     metadata = None

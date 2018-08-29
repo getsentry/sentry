@@ -1,18 +1,20 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
 from mock import patch
+from six.moves.urllib.parse import urlparse, parse_qs
 
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.integrations.vsts_extension import (
     VstsExtensionIntegrationProvider,
     VstsExtensionFinishedView,
 )
-from sentry.testutils import TestCase
+from sentry.models import Integration
+from tests.sentry.integrations.vsts.testutils import VstsIntegrationTestCase
 
 
-class VstsExtensionIntegrationProviderTest(TestCase):
-    def setUp(self):
-        self.provider = VstsExtensionIntegrationProvider()
+class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
+    provider = VstsExtensionIntegrationProvider()
 
     def test_get_pipeline_views(self):
         # Should be same as the VSTS integration, but with a different last
@@ -34,14 +36,38 @@ class VstsExtensionIntegrationProviderTest(TestCase):
                 'AccountId': '123',
                 'AccountName': 'test',
             },
+            'instance': 'test.visualstudio.com',
             'identity': {
                 'data': {
                     'access_token': '123',
-                    'expires_in': '3600',
-                    'refresh_token': '321',
+                    'expires_in': 3000,
                 },
             },
         })
 
         assert integration['external_id'] == '123'
         assert integration['name'] == 'test'
+
+    def test_builds_integration_with_vsts_key(self):
+        self._stub_vsts()
+
+        # Emulate the request from VSTS to us
+        resp = self.make_init_request(
+            path=reverse('vsts-extension-configuration'),
+            body={
+                'targetId': self.vsts_account_id,
+                'targetName': self.vsts_account_name,
+                'targetUri': self.vsts_account_uri,
+            },
+        )
+
+        self.assert_vsts_oauth_redirect(urlparse(resp['Location']))
+
+        # We redirect the user to OAuth with VSTS, so emulate the response from
+        # VSTS to us.
+        self.make_oauth_redirect_request(
+            state=parse_qs(urlparse(resp['Location']).query)['state'][0]
+        )
+
+        # Should have create the Integration using the ``vsts`` key
+        assert Integration.objects.filter(provider='vsts').exists()
