@@ -65,7 +65,9 @@ class TestMediator(TestCase):
         with patch.object(self.logger, 'info') as mock:
             self.mediator.call()
 
-        mock.assert_any_call(None, extra={'at': 'finish', 'elapsed': 0})
+        call = mock.mock_calls[-1][-1]
+        assert call['extra']['at'] == 'finish'
+        assert 'elapsed' in call['extra']
 
     def test_log_exception(self):
         def call(self):
@@ -80,7 +82,9 @@ class TestMediator(TestCase):
             except Exception:
                 pass
 
-        mock.assert_called_with(None, extra={'at': 'exception', 'elapsed': 0})
+        call = mock.mock_calls[-1][-1]
+        assert call['extra']['at'] == 'exception'
+        assert 'elapsed' in call['extra']
 
     def test_automatic_transaction(self):
         class TransactionMediator(Mediator):
