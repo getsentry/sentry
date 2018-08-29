@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import LanguageNav from 'app/views/projectInstall/languageNav';
 import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';

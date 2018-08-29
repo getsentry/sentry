@@ -5,7 +5,7 @@ import {Flex, Box} from 'grid-emotion';
 import moment from 'moment-timezone';
 
 import SentryTypes from 'app/sentryTypes';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Link from 'app/components/link';
 import {t} from 'app/locale';
 import TextOverflow from 'app/components/textOverflow';

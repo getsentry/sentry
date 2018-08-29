@@ -13,7 +13,7 @@ import styled from 'react-emotion';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import DateTime from 'app/components/dateTime';
 import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';

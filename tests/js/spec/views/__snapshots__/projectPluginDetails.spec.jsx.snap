@@ -205,7 +205,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Enable Plugin"
-                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -218,7 +218,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Enable Plugin"
-                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -233,19 +233,19 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                       size="small"
                                     >
                                       <Flex
                                         align="center"
-                                        className="css-o42ntg-ButtonLabel e17811v31"
+                                        className="css-o42ntg-ButtonLabel eqrebog1"
                                       >
                                         <Base
                                           align="center"
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                         >
                                           <div
-                                            className="e17811v31 css-l5mlqc-ButtonLabel"
+                                            className="eqrebog1 css-l5mlqc-ButtonLabel"
                                             is={null}
                                           >
                                             Enable Plugin
@@ -272,7 +272,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Reset Configuration"
-                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -280,7 +280,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Reset Configuration"
-                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -290,19 +290,19 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                       size="small"
                                     >
                                       <Flex
                                         align="center"
-                                        className="css-o42ntg-ButtonLabel e17811v31"
+                                        className="css-o42ntg-ButtonLabel eqrebog1"
                                       >
                                         <Base
                                           align="center"
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                         >
                                           <div
-                                            className="e17811v31 css-l5mlqc-ButtonLabel"
+                                            className="eqrebog1 css-l5mlqc-ButtonLabel"
                                             is={null}
                                           >
                                             Reset Configuration

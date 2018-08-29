@@ -7,7 +7,7 @@ import Tooltip from 'app/components/tooltip';
 import ApiMixin from 'app/mixins/apiMixin';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import space from 'app/styles/space';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';

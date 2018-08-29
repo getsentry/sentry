@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';

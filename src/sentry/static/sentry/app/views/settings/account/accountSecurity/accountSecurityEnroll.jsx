@@ -12,7 +12,7 @@ import {
 import {t} from 'app/locale';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';

@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';

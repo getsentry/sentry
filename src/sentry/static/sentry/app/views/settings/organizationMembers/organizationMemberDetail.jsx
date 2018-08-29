@@ -4,7 +4,7 @@ import React from 'react';
 import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';

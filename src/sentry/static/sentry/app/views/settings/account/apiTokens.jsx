@@ -4,7 +4,7 @@ import React from 'react';
 import {t, tct} from 'app/locale';
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';

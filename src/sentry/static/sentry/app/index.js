@@ -107,7 +107,7 @@ export default {
     AlertActions: require('app/actions/alertActions').default,
     AsyncComponent: require('app/components/asyncComponent').default,
     AsyncView: require('app/views/asyncView').default,
-    Button: require('app/components/buttons/button').default,
+    Button: require('app/components/button').default,
     mixins: {
       ApiMixin: require('app/mixins/apiMixin').default,
       TooltipMixin: require('app/mixins/tooltip').default,

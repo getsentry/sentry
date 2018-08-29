@@ -136,7 +136,7 @@ exports[`projectAlertRules renders 1`] = `
                         >
                           <Component
                             aria-label="New Alert Rule"
-                            className="css-zvpqlo-StyledButton-getColors e17811v30"
+                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -146,7 +146,7 @@ exports[`projectAlertRules renders 1`] = `
                           >
                             <Link
                               aria-label="New Alert Rule"
-                              className="css-zvpqlo-StyledButton-getColors e17811v30"
+                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
@@ -158,7 +158,7 @@ exports[`projectAlertRules renders 1`] = `
                             >
                               <a
                                 aria-label="New Alert Rule"
-                                className="css-zvpqlo-StyledButton-getColors e17811v30"
+                                className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -171,20 +171,20 @@ exports[`projectAlertRules renders 1`] = `
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                     priority="primary"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                           is={null}
                                         >
                                           <Icon
@@ -192,20 +192,20 @@ exports[`projectAlertRules renders 1`] = `
                                             size="small"
                                           >
                                             <Component
-                                              className="css-1vdnsie-Icon e17811v32"
+                                              className="css-1vdnsie-Icon eqrebog2"
                                               hasChildren={true}
                                               size="small"
                                             >
                                               <Box
-                                                className="css-1vdnsie-Icon e17811v32"
+                                                className="css-1vdnsie-Icon eqrebog2"
                                                 size="small"
                                               >
                                                 <Base
-                                                  className="e17811v32 css-nk081r-Icon"
+                                                  className="eqrebog2 css-nk081r-Icon"
                                                   size="small"
                                                 >
                                                   <div
-                                                    className="e17811v32 css-nk081r-Icon"
+                                                    className="eqrebog2 css-nk081r-Icon"
                                                     is={null}
                                                     size="small"
                                                   >
@@ -214,18 +214,18 @@ exports[`projectAlertRules renders 1`] = `
                                                       src="icon-circle-add"
                                                     >
                                                       <InlineSvg
-                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                         size="12px"
                                                         src="icon-circle-add"
                                                       >
                                                         <StyledSvg
-                                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                           height="12px"
                                                           viewBox={Object {}}
                                                           width="12px"
                                                         >
                                                           <svg
-                                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                             height="12px"
                                                             viewBox={Object {}}
                                                             width="12px"
@@ -436,7 +436,7 @@ exports[`projectAlertRules renders 1`] = `
                                 >
                                   <Component
                                     aria-label="Edit Rule"
-                                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
                                     data-test-id="edit-rule"
                                     disabled={false}
                                     onClick={[Function]}
@@ -451,7 +451,7 @@ exports[`projectAlertRules renders 1`] = `
                                   >
                                     <Link
                                       aria-label="Edit Rule"
-                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
                                       data-test-id="edit-rule"
                                       disabled={false}
                                       onClick={[Function]}
@@ -467,7 +467,7 @@ exports[`projectAlertRules renders 1`] = `
                                     >
                                       <a
                                         aria-label="Edit Rule"
-                                        className="css-dkprmi-StyledButton-getColors e17811v30"
+                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
                                         data-test-id="edit-rule"
                                         disabled={false}
                                         onClick={[Function]}
@@ -483,19 +483,19 @@ exports[`projectAlertRules renders 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-o42ntg-ButtonLabel e17811v31"
+                                            className="css-o42ntg-ButtonLabel eqrebog1"
                                             size="small"
                                           >
                                             <Flex
                                               align="center"
-                                              className="css-o42ntg-ButtonLabel e17811v31"
+                                              className="css-o42ntg-ButtonLabel eqrebog1"
                                             >
                                               <Base
                                                 align="center"
-                                                className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                className="eqrebog1 css-l5mlqc-ButtonLabel"
                                               >
                                                 <div
-                                                  className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                  className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                   is={null}
                                                 >
                                                   Edit Rule
@@ -536,14 +536,14 @@ exports[`projectAlertRules renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
                                       <button
-                                        className="css-dkprmi-StyledButton-getColors e17811v30"
+                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -553,19 +553,19 @@ exports[`projectAlertRules renders 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-o42ntg-ButtonLabel e17811v31"
+                                            className="css-o42ntg-ButtonLabel eqrebog1"
                                             size="small"
                                           >
                                             <Flex
                                               align="center"
-                                              className="css-o42ntg-ButtonLabel e17811v31"
+                                              className="css-o42ntg-ButtonLabel eqrebog1"
                                             >
                                               <Base
                                                 align="center"
-                                                className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                className="eqrebog1 css-l5mlqc-ButtonLabel"
                                               >
                                                 <div
-                                                  className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                  className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                   is={null}
                                                 >
                                                   <Icon
@@ -573,20 +573,20 @@ exports[`projectAlertRules renders 1`] = `
                                                     size="small"
                                                   >
                                                     <Component
-                                                      className="css-ljhpxy-Icon e17811v32"
+                                                      className="css-ljhpxy-Icon eqrebog2"
                                                       hasChildren={false}
                                                       size="small"
                                                     >
                                                       <Box
-                                                        className="css-ljhpxy-Icon e17811v32"
+                                                        className="css-ljhpxy-Icon eqrebog2"
                                                         size="small"
                                                       >
                                                         <Base
-                                                          className="e17811v32 css-7mohvl-Icon"
+                                                          className="eqrebog2 css-7mohvl-Icon"
                                                           size="small"
                                                         >
                                                           <div
-                                                            className="e17811v32 css-7mohvl-Icon"
+                                                            className="eqrebog2 css-7mohvl-Icon"
                                                             is={null}
                                                             size="small"
                                                           >
@@ -595,18 +595,18 @@ exports[`projectAlertRules renders 1`] = `
                                                               src="icon-trash"
                                                             >
                                                               <InlineSvg
-                                                                className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                 size="12px"
                                                                 src="icon-trash"
                                                               >
                                                                 <StyledSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                   height="12px"
                                                                   viewBox={Object {}}
                                                                   width="12px"
                                                                 >
                                                                   <svg
-                                                                    className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"

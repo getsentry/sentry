@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import ApiMixin from 'app/mixins/apiMixin';
 import IdBadge from 'app/components/idBadge';
 import Avatar from 'app/components/avatar';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Link from 'app/components/link';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';

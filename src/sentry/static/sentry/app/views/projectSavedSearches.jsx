@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IndicatorStore from 'app/stores/indicatorStore';

@@ -12,7 +12,7 @@ import OrganizationState from 'app/mixins/organizationState';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
 

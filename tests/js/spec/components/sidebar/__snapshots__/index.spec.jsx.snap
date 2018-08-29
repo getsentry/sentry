@@ -1090,7 +1090,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
             >
               <Component
                 aria-label="Learn more"
-                className="css-dkprmi-StyledButton-getColors e17811v30"
+                className="css-dkprmi-StyledButton-getColors eqrebog0"
                 disabled={false}
                 external={true}
                 href="https://status.sentry.io"
@@ -1100,7 +1100,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               >
                 <ExternalLink
                   aria-label="Learn more"
-                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                   disabled={false}
                   href="https://status.sentry.io"
                   onClick={[Function]}
@@ -1111,7 +1111,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 >
                   <a
                     aria-label="Learn more"
-                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                    className="css-dkprmi-StyledButton-getColors eqrebog0"
                     disabled={false}
                     href="https://status.sentry.io"
                     onClick={[Function]}
@@ -1124,19 +1124,19 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                       size="small"
                     >
                       <Component
-                        className="css-o42ntg-ButtonLabel e17811v31"
+                        className="css-o42ntg-ButtonLabel eqrebog1"
                         size="small"
                       >
                         <Flex
                           align="center"
-                          className="css-o42ntg-ButtonLabel e17811v31"
+                          className="css-o42ntg-ButtonLabel eqrebog1"
                         >
                           <Base
                             align="center"
-                            className="e17811v31 css-l5mlqc-ButtonLabel"
+                            className="eqrebog1 css-l5mlqc-ButtonLabel"
                           >
                             <div
-                              className="e17811v31 css-l5mlqc-ButtonLabel"
+                              className="eqrebog1 css-l5mlqc-ButtonLabel"
                               is={null}
                             >
                               Learn more

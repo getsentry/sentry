@@ -9,7 +9,7 @@ import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';
-import Button from './buttons/button';
+import Button from './button';
 import ExternalLink from './externalLink';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';

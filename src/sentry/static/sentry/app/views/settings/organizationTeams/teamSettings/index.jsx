@@ -7,7 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';

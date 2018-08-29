@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AsyncView from 'app/views/asyncView';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Field from 'app/views/settings/components/forms/field';

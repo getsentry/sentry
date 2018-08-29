@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import {selectText} from 'app/utils/selectText';
 import {t} from 'app/locale';
 import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';

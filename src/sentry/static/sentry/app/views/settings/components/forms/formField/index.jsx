@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {defined} from 'app/utils';
 import {pulse, fadeOut, slideInUp} from 'app/styles/animations';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FormState from 'app/components/forms/state';

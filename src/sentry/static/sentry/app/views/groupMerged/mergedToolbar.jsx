@@ -7,7 +7,7 @@ import _ from 'lodash';
 import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import {openDiffModal} from 'app/actionCreators/modal';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import Toolbar from 'app/components/toolbar';
 import SpreadLayout from 'app/components/spreadLayout';

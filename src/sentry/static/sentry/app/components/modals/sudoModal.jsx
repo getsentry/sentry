@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Form from 'app/views/settings/components/forms/form';
 import InputField from 'app/views/settings/components/forms/inputField';

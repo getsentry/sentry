@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 

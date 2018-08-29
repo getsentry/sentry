@@ -3,7 +3,7 @@ import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import img from '../../../images/dashboard/hair-on-fire.svg';

@@ -142,14 +142,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 size="xsmall"
                                               >
                                                 <Component
-                                                  className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
+                                                  className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton eqrebog0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="xsmall"
                                                 >
                                                   <button
-                                                    className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton e17811v30"
+                                                    className="e1yghndz1 css-108zzii-StyledButton-getColors-StyledButton eqrebog0"
                                                     disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
@@ -159,19 +159,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                       size="xsmall"
                                                     >
                                                       <Component
-                                                        className="css-6q5v1w-ButtonLabel e17811v31"
+                                                        className="css-6q5v1w-ButtonLabel eqrebog1"
                                                         size="xsmall"
                                                       >
                                                         <Flex
                                                           align="center"
-                                                          className="css-6q5v1w-ButtonLabel e17811v31"
+                                                          className="css-6q5v1w-ButtonLabel eqrebog1"
                                                         >
                                                           <Base
                                                             align="center"
-                                                            className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                            className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                           >
                                                             <div
-                                                              className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                              className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                               is={null}
                                                             >
                                                               Add Project
@@ -400,14 +400,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         size="small"
                       >
                         <Component
-                          className="css-dkprmi-StyledButton-getColors e17811v30"
+                          className="css-dkprmi-StyledButton-getColors eqrebog0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
                           size="small"
                         >
                           <button
-                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                            className="css-dkprmi-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
@@ -417,19 +417,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               size="small"
                             >
                               <Component
-                                className="css-o42ntg-ButtonLabel e17811v31"
+                                className="css-o42ntg-ButtonLabel eqrebog1"
                                 size="small"
                               >
                                 <Flex
                                   align="center"
-                                  className="css-o42ntg-ButtonLabel e17811v31"
+                                  className="css-o42ntg-ButtonLabel eqrebog1"
                                 >
                                   <Base
                                     align="center"
-                                    className="e17811v31 css-l5mlqc-ButtonLabel"
+                                    className="eqrebog1 css-l5mlqc-ButtonLabel"
                                   >
                                     <div
-                                      className="e17811v31 css-l5mlqc-ButtonLabel"
+                                      className="eqrebog1 css-l5mlqc-ButtonLabel"
                                       is={null}
                                     >
                                       <RemoveIcon>

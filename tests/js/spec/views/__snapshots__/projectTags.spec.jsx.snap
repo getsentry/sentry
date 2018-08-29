@@ -242,7 +242,7 @@ exports[`ProjectTags renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-dkprmi-StyledButton-getColors e17811v30"
+                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
                                           data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
@@ -250,7 +250,7 @@ exports[`ProjectTags renders 1`] = `
                                           size="xsmall"
                                         >
                                           <button
-                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
                                             data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
@@ -261,19 +261,19 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-6q5v1w-ButtonLabel e17811v31"
+                                                className="css-6q5v1w-ButtonLabel eqrebog1"
                                                 size="xsmall"
                                               >
                                                 <Flex
                                                   align="center"
-                                                  className="css-6q5v1w-ButtonLabel e17811v31"
+                                                  className="css-6q5v1w-ButtonLabel eqrebog1"
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                    className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                   >
                                                     <div
-                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                      className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                       is={null}
                                                     >
                                                       <Icon
@@ -281,20 +281,20 @@ exports[`ProjectTags renders 1`] = `
                                                         size="xsmall"
                                                       >
                                                         <Component
-                                                          className="css-ljhpxy-Icon e17811v32"
+                                                          className="css-ljhpxy-Icon eqrebog2"
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Box
-                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon eqrebog2"
                                                             size="xsmall"
                                                           >
                                                             <Base
-                                                              className="e17811v32 css-7mohvl-Icon"
+                                                              className="eqrebog2 css-7mohvl-Icon"
                                                               size="xsmall"
                                                             >
                                                               <div
-                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                className="eqrebog2 css-7mohvl-Icon"
                                                                 is={null}
                                                                 size="xsmall"
                                                               >
@@ -303,18 +303,18 @@ exports[`ProjectTags renders 1`] = `
                                                                   src="icon-trash"
                                                                 >
                                                                   <InlineSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                     size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <StyledSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
                                                                       <svg
-                                                                        className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
@@ -485,7 +485,7 @@ exports[`ProjectTags renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-dkprmi-StyledButton-getColors e17811v30"
+                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
                                           data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
@@ -493,7 +493,7 @@ exports[`ProjectTags renders 1`] = `
                                           size="xsmall"
                                         >
                                           <button
-                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
                                             data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
@@ -504,19 +504,19 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-6q5v1w-ButtonLabel e17811v31"
+                                                className="css-6q5v1w-ButtonLabel eqrebog1"
                                                 size="xsmall"
                                               >
                                                 <Flex
                                                   align="center"
-                                                  className="css-6q5v1w-ButtonLabel e17811v31"
+                                                  className="css-6q5v1w-ButtonLabel eqrebog1"
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                    className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                   >
                                                     <div
-                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                      className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                       is={null}
                                                     >
                                                       <Icon
@@ -524,20 +524,20 @@ exports[`ProjectTags renders 1`] = `
                                                         size="xsmall"
                                                       >
                                                         <Component
-                                                          className="css-ljhpxy-Icon e17811v32"
+                                                          className="css-ljhpxy-Icon eqrebog2"
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Box
-                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon eqrebog2"
                                                             size="xsmall"
                                                           >
                                                             <Base
-                                                              className="e17811v32 css-7mohvl-Icon"
+                                                              className="eqrebog2 css-7mohvl-Icon"
                                                               size="xsmall"
                                                             >
                                                               <div
-                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                className="eqrebog2 css-7mohvl-Icon"
                                                                 is={null}
                                                                 size="xsmall"
                                                               >
@@ -546,18 +546,18 @@ exports[`ProjectTags renders 1`] = `
                                                                   src="icon-trash"
                                                                 >
                                                                   <InlineSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                     size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <StyledSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
                                                                       <svg
-                                                                        className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
@@ -728,7 +728,7 @@ exports[`ProjectTags renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-dkprmi-StyledButton-getColors e17811v30"
+                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
                                           data-test-id="delete"
                                           disabled={false}
                                           onClick={[Function]}
@@ -736,7 +736,7 @@ exports[`ProjectTags renders 1`] = `
                                           size="xsmall"
                                         >
                                           <button
-                                            className="css-dkprmi-StyledButton-getColors e17811v30"
+                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
                                             data-test-id="delete"
                                             disabled={false}
                                             onClick={[Function]}
@@ -747,19 +747,19 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <Component
-                                                className="css-6q5v1w-ButtonLabel e17811v31"
+                                                className="css-6q5v1w-ButtonLabel eqrebog1"
                                                 size="xsmall"
                                               >
                                                 <Flex
                                                   align="center"
-                                                  className="css-6q5v1w-ButtonLabel e17811v31"
+                                                  className="css-6q5v1w-ButtonLabel eqrebog1"
                                                 >
                                                   <Base
                                                     align="center"
-                                                    className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                    className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                   >
                                                     <div
-                                                      className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                      className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                       is={null}
                                                     >
                                                       <Icon
@@ -767,20 +767,20 @@ exports[`ProjectTags renders 1`] = `
                                                         size="xsmall"
                                                       >
                                                         <Component
-                                                          className="css-ljhpxy-Icon e17811v32"
+                                                          className="css-ljhpxy-Icon eqrebog2"
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Box
-                                                            className="css-ljhpxy-Icon e17811v32"
+                                                            className="css-ljhpxy-Icon eqrebog2"
                                                             size="xsmall"
                                                           >
                                                             <Base
-                                                              className="e17811v32 css-7mohvl-Icon"
+                                                              className="eqrebog2 css-7mohvl-Icon"
                                                               size="xsmall"
                                                             >
                                                               <div
-                                                                className="e17811v32 css-7mohvl-Icon"
+                                                                className="eqrebog2 css-7mohvl-Icon"
                                                                 is={null}
                                                                 size="xsmall"
                                                               >
@@ -789,18 +789,18 @@ exports[`ProjectTags renders 1`] = `
                                                                   src="icon-trash"
                                                                 >
                                                                   <InlineSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                     size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <StyledSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
                                                                       <svg
-                                                                        className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
@@ -979,7 +979,7 @@ exports[`ProjectTags renders 1`] = `
                                             size="xsmall"
                                           >
                                             <Component
-                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
                                               data-test-id="delete"
                                               disabled={false}
                                               onClick={[Function]}
@@ -987,7 +987,7 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                             >
                                               <button
-                                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -998,19 +998,19 @@ exports[`ProjectTags renders 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <Component
-                                                    className="css-6q5v1w-ButtonLabel e17811v31"
+                                                    className="css-6q5v1w-ButtonLabel eqrebog1"
                                                     size="xsmall"
                                                   >
                                                     <Flex
                                                       align="center"
-                                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                                      className="css-6q5v1w-ButtonLabel eqrebog1"
                                                     >
                                                       <Base
                                                         align="center"
-                                                        className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                        className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                       >
                                                         <div
-                                                          className="e17811v31 css-dqr4rq-ButtonLabel"
+                                                          className="eqrebog1 css-dqr4rq-ButtonLabel"
                                                           is={null}
                                                         >
                                                           <Icon
@@ -1018,20 +1018,20 @@ exports[`ProjectTags renders 1`] = `
                                                             size="xsmall"
                                                           >
                                                             <Component
-                                                              className="css-ljhpxy-Icon e17811v32"
+                                                              className="css-ljhpxy-Icon eqrebog2"
                                                               hasChildren={false}
                                                               size="xsmall"
                                                             >
                                                               <Box
-                                                                className="css-ljhpxy-Icon e17811v32"
+                                                                className="css-ljhpxy-Icon eqrebog2"
                                                                 size="xsmall"
                                                               >
                                                                 <Base
-                                                                  className="e17811v32 css-7mohvl-Icon"
+                                                                  className="eqrebog2 css-7mohvl-Icon"
                                                                   size="xsmall"
                                                                 >
                                                                   <div
-                                                                    className="e17811v32 css-7mohvl-Icon"
+                                                                    className="eqrebog2 css-7mohvl-Icon"
                                                                     is={null}
                                                                     size="xsmall"
                                                                   >
@@ -1040,18 +1040,18 @@ exports[`ProjectTags renders 1`] = `
                                                                       src="icon-trash"
                                                                     >
                                                                       <InlineSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                         size="12px"
                                                                         src="icon-trash"
                                                                       >
                                                                         <StyledSvg
-                                                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                           height="12px"
                                                                           viewBox={Object {}}
                                                                           width="12px"
                                                                         >
                                                                           <svg
-                                                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                             height="12px"
                                                                             viewBox={Object {}}
                                                                             width="12px"

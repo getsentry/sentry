@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';

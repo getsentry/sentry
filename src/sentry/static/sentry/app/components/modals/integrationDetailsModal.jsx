@@ -7,7 +7,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ExternalLink from 'app/components/externalLink';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import Tag from 'app/views/settings/components/tag.jsx';

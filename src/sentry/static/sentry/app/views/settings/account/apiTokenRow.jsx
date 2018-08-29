@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';

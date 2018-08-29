@@ -3,7 +3,7 @@ import React from 'react';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 storiesOf('EmptyMessage', module)
