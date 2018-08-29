@@ -234,7 +234,7 @@ def nest_groups(data, groups, aggregate_cols):
 
 
 def is_condition(cond_or_list):
-    return len(cond_or_list) == 3 and isinstance(cond_or_list[0], six.string_types)
+    return len(cond_or_list) == 3 and isinstance(cond_or_list[0], (six.string_types, list, tuple))
 
 
 def flat_conditions(conditions):
