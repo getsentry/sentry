@@ -153,7 +153,7 @@ class IssueBasicMixin(object):
         This is not required but helpful for integrations whose external issue key
         does not match the disired display name.
         """
-        return None
+        return ''
 
 
 class IssueSyncMixin(IssueBasicMixin):
