@@ -28,6 +28,7 @@ export default class BarChart extends React.Component {
               data: s.data.map(({value, name}) => [name, value]),
             });
           }),
+          ...this.props.options,
         }}
       />
     );
