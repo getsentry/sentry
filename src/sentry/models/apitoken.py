@@ -2,21 +2,20 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from bitfield import BitField
 from datetime import timedelta
 from django.db import models, transaction
 from django.utils import timezone
 from uuid import uuid4
 
-from sentry.models.apiscopes import ApiScopes
+from sentry.models.apiscopes import HasApiScopes
 from sentry.db.models import (
-    ArrayField, Model, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
 
-class ApiToken(Model):
+class ApiToken(Model, HasApiScopes):
     __core__ = True
 
     # users can generate tokens without being application-bound
@@ -36,8 +35,6 @@ class ApiToken(Model):
     expires_at = models.DateTimeField(
         null=True, default=lambda: timezone.now() + DEFAULT_EXPIRATION
     )
-    scopes = BitField(flags=ApiScopes().to_bitfield())
-    scope_list = ArrayField(of=models.TextField)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=('token', ))
@@ -74,14 +71,6 @@ class ApiToken(Model):
         return {
             'scopes': self.get_scopes(),
         }
-
-    def get_scopes(self):
-        if self.scope_list:
-            return self.scope_list
-        return [k for k, v in six.iteritems(self.scopes) if v]
-
-    def has_scope(self, scope):
-        return scope in self.get_scopes()
 
     def get_allowed_origins(self):
         if self.application:
