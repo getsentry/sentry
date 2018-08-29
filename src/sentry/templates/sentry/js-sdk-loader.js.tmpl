@@ -1,6 +1,7 @@
 {% load sentry_helpers %}// Sentry Loader
 (function(_window, _document, _script, _onerror, _onunhandledrejection, _namespace) {
   var lazy = true;
+  var forceLoad = false;
 
   for (var i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf('{{ publicKey|safe }}') > -1) {
@@ -108,10 +109,18 @@
   // that the first Sentry "instance" is our with onLoad
   _window[_namespace] = {
     onLoad: function(callback) {
-      if (lazy) {
+      if (lazy && !forceLoad) {
         onLoadCallback = callback;
       } else {
         injectSdk(callback);
+      }
+    },
+    forceLoad: function() {
+      forceLoad = true;
+      if (lazy) {
+        setTimeout(function() {
+          injectSdk(onLoadCallback);
+        });
       }
     },
   };
