@@ -140,9 +140,9 @@ class PullEventWebhook(Webhook):
         try:
             PullRequest.objects.create_or_update(
                 repository_id=repo.id,
+                organization_id=organization.id,
                 key=pull_request['id'],
                 values={
-                    'organization_id': organization.id,
                     'title': pull_request['title'],
                     'author': commit_author,
                     'message': pull_request['description'],
