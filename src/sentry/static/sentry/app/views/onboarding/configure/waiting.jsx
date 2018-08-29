@@ -4,21 +4,16 @@ import {t} from 'app/locale';
 import styled from 'react-emotion';
 
 import Button from 'app/components/buttons/button';
-import HookStore from 'app/stores/hookStore';
 
 class Waiting extends React.Component {
   static propTypes = {
     skip: PropTypes.func,
     hasEvent: PropTypes.bool.isRequired,
-    isExposed: PropTypes.number,
+    renderActions: PropTypes.func,
     params: PropTypes.object,
   };
 
   render() {
-    let Hook = HookStore.get('experiment:sample-event').length
-      ? HookStore.get('experiment:sample-event')[0]()
-      : undefined;
-
     return (
       <div className="awaiting-event">
         <div className="row">
@@ -39,7 +34,7 @@ class Waiting extends React.Component {
               <Button priority="primary" onClick={this.props.skip}>
                 {t('All done!')}
               </Button>
-              {this.props.isExposed && Hook && <Hook params={this.props.params} />}
+              {this.props.renderActions && this.props.renderActions()}
             </div>
           </CenteredButtons>
         </div>

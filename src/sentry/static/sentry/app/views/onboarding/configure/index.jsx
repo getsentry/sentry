@@ -7,7 +7,6 @@ import analytics from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
-import logExperiment from 'app/utils/logExperiment';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -44,7 +43,6 @@ const Configure = createReactClass({
 
   componentDidMount() {
     this.getWaitingComponent();
-    this.logExperiment();
   },
 
   componentWillUpdate(nextProps, nextState) {
@@ -65,6 +63,7 @@ const Configure = createReactClass({
     let WaitingComponent = HookOrDefault({
       hookName: 'experiment:sample-event',
       defaultComponent: Waiting,
+      organization: this.context.organization,
     });
     this.setState({WaitingComponent, loading: false});
   },
@@ -105,18 +104,6 @@ const Configure = createReactClass({
     });
   },
 
-  logExperiment() {
-    let {organization} = this.context;
-    if (!organization.experiments) return;
-
-    //Experiment exposure is already assigned - this logs the exposure i.e. when the user gets to the settings page
-    logExperiment('SampleEventExperiment', organization.experiments, {
-      unit_name: 'org_id',
-      unit_id: organization.id,
-      params: 'exposed',
-    });
-  },
-
   submit() {
     HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
     analytics('onboarding.complete', {project: this.props.params.projectId});
@@ -132,9 +119,7 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
-    let {organization} = this.context;
-    let isExposed =
-      organization.experiments && organization.experiments.SampleEventExperiment;
+    let {WaitingComponent} = this.state;
 
     return (
       <div>
@@ -153,12 +138,13 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting
-            skip={this.submit}
-            hasEvent={this.state.hasSentRealEvent}
-            isExposed={isExposed}
-            params={this.props.params}
-          />
+          {WaitingComponent && (
+            <WaitingComponent
+              skip={this.submit}
+              hasEvent={this.state.hasSentRealEvent}
+              params={this.props.params}
+            />
+          )}
         </div>
       </div>
     );

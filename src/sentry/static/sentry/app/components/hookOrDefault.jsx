@@ -24,7 +24,7 @@ import HookStore from 'app/stores/hookStore';
  *
  */
 
-function HookOrDefault({hookName, defaultComponent}) {
+function HookOrDefault({hookName, defaultComponent, organization}) {
   const HookOrDefaultComponent = createReactClass({
     displayName: 'HookOrDefaultComponent',
     mixins: [Reflux.listenTo(HookStore, 'handleHooks')],
@@ -49,7 +49,13 @@ function HookOrDefault({hookName, defaultComponent}) {
         this.state.hooks && this.state.hooks.length > 0
           ? this.state.hooks[0]()
           : defaultComponent;
-      return <HookComponent {...this.props} />;
+      return (
+        <HookComponent
+          {...this.props}
+          defaultComponent={defaultComponent}
+          organization={organization}
+        />
+      );
     },
   });
   return HookOrDefaultComponent;
