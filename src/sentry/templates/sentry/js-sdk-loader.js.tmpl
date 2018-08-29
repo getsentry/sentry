@@ -1,30 +1,120 @@
 {% load sentry_helpers %}// Sentry Loader
 (function(_window, _document, _script, _onerror, _onunhandledrejection) {
-  var sentryCallQueue = [];
-  _window.Sentry = {
-    addBreadcrumb: function() {
-      sentryCallQueue.push({ f: 'addBreadcrumb', a: arguments });
-    },
-    captureMessage: function() {
-      sentryCallQueue.push({ f: 'captureMessage', a: arguments });
-    },
-    captureException: function() {
-      sentryCallQueue.push({ f: 'captureException', a: arguments });
-    },
-    captureEvent: function() {
-      sentryCallQueue.push({ f: 'captureEvent', a: arguments });
-    },
-    configureScope: function() {
-      sentryCallQueue.push({ f: 'configureScope', a: arguments });
-    }
-  };
+  var lazy = 'no';
+  var injected = false;
+  var onLoadCallback;
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
-  var queue = function(exception) {
-    queue.data.push(exception);
+  var queue = function(content) {
+    if (
+      (content.e || content.p ||
+      (content.f && content.f.indexOf('capture') > -1)) &&
+      lazy !== 'no') {
+      // We only want to lazy inject/load the sdk bundle if
+      // an error or promise rejection occured
+      // OR someone called `capture...` on the SDK
+      injectSdk(onLoadCallback);
+    }
+    queue.data.push(content);
   };
   queue.data = [];
+
+  function injectSdk(callback) {
+    if (injected) {
+      return;
+    }
+    injected = true;
+
+    // Create a `script` tag with provided SDK `url` and attach it just before the first, already existing `script` tag
+    // Scripts that are dynamically created and added to the document are async by default,
+    // they don't block rendering and execute as soon as they download, meaning they could
+    // come out in the wrong order. Because of that we don't need async=1 as GA does.
+    // it was probably(?) a legacy behavior that they left to not modify few years old snippet
+    // https://www.html5rocks.com/en/tutorials/speed/script-loading/
+    var _currentScriptTag = _document.getElementsByTagName(_script)[0];
+    var _newScriptTag = _document.createElement(_script);
+    _newScriptTag.src = '{{ jsSdkUrl|safe }}';
+    _newScriptTag.crossorigin = 'anonymous';
+
+    // Once our SDK is loaded
+    _newScriptTag.addEventListener('load', function() {
+      try {
+        // Restore onerror/onunhandledrejection handlers
+        _window[_onerror] = _oldOnerror;
+        _window[_onunhandledrejection] = _oldOnunhandledrejection;
+
+        var SDK = _window.Sentry;
+
+        var oldInit = SDK.init;
+
+        // Configure it using provided DSN and config object
+        SDK.init = function(options) {
+          oldInit(Object.assign({{ config|to_json|safe }}, options));
+        }
+
+        sdkLoaded(callback, SDK);
+      } catch (o_O) {
+        console.error(o_O);
+      }
+    });
+
+    _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+  }
+
+  function sdkLoaded(callback, SDK) {
+    try {
+      callback();
+      var data = queue.data;
+
+      // Because we installed the SDK, at this point we have an access to TraceKit's handler,
+      // which can take care of browser differences (eg. missing exception argument in onerror)
+      var tracekitErrorHandler = _window[_onerror];
+
+      // And capture all previously caught exceptions
+      if (data.length) {
+        for (var i = 0; i < data.length; i++) {
+          if (data[i].e) {
+            tracekitErrorHandler.apply(_window, data[i].e);
+          } else if (data[i].p) {
+            SDK.captureException(data[i].p);
+          } else if (data[i].f) {
+            var call = data[i];
+            SDK[call.f].apply(SDK, call.a);
+          }
+        }
+      }
+    } catch (o_O) {
+      console.error(o_O);
+    }
+  }
+
+  // We don't want to _window.Sentry = _window.Sentry || { ... } since we want to make sure
+  // that the first Sentry "instance" is our with onLoad
+  _window.Sentry = {
+    onLoad: function(callback) {
+      if (lazy == 'no') {
+        injectSdk(callback);
+      } else {
+        onLoadCallback = callback;
+      }
+    },
+    addBreadcrumb: function() {
+      queue({ f: 'addBreadcrumb', a: arguments });
+    },
+    captureMessage: function() {
+      queue({ f: 'captureMessage', a: arguments });
+    },
+    captureException: function() {
+      queue({ f: 'captureException', a: arguments });
+    },
+    captureEvent: function() {
+      queue({ f: 'captureEvent', a: arguments });
+    },
+    configureScope: function() {
+      queue({ f: 'configureScope', a: arguments });
+    }
+  };
 
   // Store reference to the old `onerror` handler and override it with our own function
   // that will just push exceptions to the queue and call through old handler if we found one
@@ -47,63 +137,16 @@
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
 
-  // Create a `script` tag with provided SDK `url` and attach it just before the first, already existing `script` tag
-  // Scripts that are dynamically created and added to the document are async by default,
-  // they don't block rendering and execute as soon as they download, meaning they could
-  // come out in the wrong order. Because of that we don't need async=1 as GA does.
-  // it was probably(?) a legacy behavior that they left to not modify few years old snippet
-  // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-  var _currentScriptTag = _document.getElementsByTagName(_script)[0];
-  var _newScriptTag = _document.createElement(_script);
-  _newScriptTag.src = '{{ jsSdkUrl|safe }}';
-  _newScriptTag.crossorigin = 'anonymous';
+  var attributes = Array.prototype.slice.apply(document.scripts).filter(function(script) {
+      return script.src.indexOf('{{ publicKey|safe }}') > -1;
+  })[0].attributes;
 
-  // Once our SDK is loaded
-  _newScriptTag.addEventListener('load', function() {
-    try {
-      // Restore onerror/onunhandledrejection handlers
-      _window[_onerror] = _oldOnerror;
-      _window[_onunhandledrejection] = _oldOnunhandledrejection;
-
-      var data = queue.data;
-      var SDK = _window.Sentry;
-
-      // Configure it using provided DSN and config object
-      var options = {{ config|to_json|safe }};
-      for (var key in window.SENTRY_OPTIONS) {
-        options[key] = SENTRY_OPTIONS[key];
+  for (var i = 0; i < attributes.length; i++) {
+    if (attributes[i].name === 'data-lazy') {
+      if (attributes[i].value === 'yes') {
+        lazy = 'yes';
       }
-      SDK.init(options);
-
-      var event = document.createEvent('HTMLEvents');
-      event.initEvent('sentryLoaded', true, true);
-      document.dispatchEvent(event);
-
-      // Flush calls to Sentry that the user could have made
-      if (sentryCallQueue.length) {
-        for (var i = 0; i < sentryCallQueue.length; i++) {
-          var call = sentryCallQueue[i];
-          SDK[call.f].apply(_window, call.a);
-        }
-      }
-      // Because we installed the SDK, at this point we have an access to TraceKit's handler,
-      // which can take care of browser differences (eg. missing exception argument in onerror)
-      var tracekitErrorHandler = _window[_onerror];
-
-      // And capture all previously caught exceptions
-      if (data.length) {
-        for (var i = 0; i < data.length; i++) {
-          if (data[i].e) {
-            tracekitErrorHandler.apply(_window, data[i].e);
-          } else if (data[i].p) {
-            SDK.captureException(data[i].p);
-          }
-        }
-      }
-    } catch (o_O) {
-      console.error(o_O);
     }
-  });
+  }
 
-  _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
 })(window, document, 'script', 'onerror', 'onunhandledrejection');
