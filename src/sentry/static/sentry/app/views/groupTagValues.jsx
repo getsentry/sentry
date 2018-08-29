@@ -96,7 +96,7 @@ const GroupTagValues = createReactClass({
   },
 
   getUserDisplayName(item) {
-    return item.email || item.username || item.identifier || item.ipAddress || item.value;
+    return item.username || item.email || item.identifier || item.ipAddress || item.value;
   },
 
   render() {
