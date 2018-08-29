@@ -54,13 +54,17 @@ class EventUser(Model):
         return KEYWORD_MAP.get_key(keyword)
 
     @classmethod
+    def hash_from_tag(cls, value):
+        return md5_text(value.split(':', 1)[-1]).hexdigest()
+
+    @classmethod
     def for_tags(cls, project_id, values):
         """
         Finds matching EventUser objects from a list of tag values.
 
         Return a dictionary of {tag_value: event_user}.
         """
-        hashes = [md5_text(v.split(':', 1)[-1]).hexdigest() for v in values]
+        hashes = [cls.hash_from_tag(v) for v in values]
         return {e.tag_value: e for e in cls.objects.filter(
             project_id=project_id,
             hash__in=hashes,
