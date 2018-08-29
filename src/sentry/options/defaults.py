@@ -72,7 +72,7 @@ register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOS
 register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register('mail.timeout', default=None, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('mail.timeout', default=10, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # SMS
 register('sms.twilio-account', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
