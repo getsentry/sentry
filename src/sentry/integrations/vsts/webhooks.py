@@ -134,28 +134,13 @@ class PullRequestWebhook(Webhook):
                 email=author_email,
             )
         except CommitAuthor.DoesNotExist:
-            try:
-                identity = Identity.objects.get(
+            with transaction.atomic():
+                commit_author = CommitAuthor.objects.create(
                     external_id=author_id,
-                    idp__type=PROVIDER_NAME,
-                    idp__external_id=data['resourceContainers']['account']['id'],
+                    organization_id=organization_id,
+                    email=author_email,
+                    name=author_name,
                 )
-            except Identity.DoesNotExist:
-                with transaction.atomic():
-                    commit_author = CommitAuthor.objects.create(
-                        external_id=author_id,
-                        organization_id=organization_id,
-                        email=author_email,
-                        name=author_name,
-                    )
-            else:
-                with transaction.atomic():
-                    commit_author = CommitAuthor.objects.create(
-                        external_id=author_id,
-                        organization_id=organization_id,
-                        email=identity.user.email,
-                        name=author_name,
-                    )
 
         return commit_author
 
@@ -203,7 +188,7 @@ class WebhookEndpoint(Endpoint):
         data = request.DATA
         integration = Integration.objects.get(
             provider='vsts',
-            external_id=data['resourceContainers']['account']['id'],
+            external_id=data['resourceContainers']['collection']['id'],
         )
         if not self.is_secret_valid(request, integration):
             self.logger.info(

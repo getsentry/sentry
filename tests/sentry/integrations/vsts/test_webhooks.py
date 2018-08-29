@@ -23,7 +23,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.access_token = '1234567890'
-        self.account_id = u'90e9a854-eb98-4c56-ae1a-035a0f331dd6'
+        self.account_id = u'80ded3e8-3cd3-43b1-9f96-52032624aa3a'
         self.instance = 'instance.visualstudio.com'
         self.shared_secret = '1234567890'
         self.model = Integration.objects.create(
@@ -200,7 +200,7 @@ class VstsWebhookPullRequestTest(APITestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.access_token = '1234567890'
-        self.account_id = 'f844ec47-a9db-4511-8281-8b63f4eaf94e'
+        self.account_id = 'c12d0eb8-e382-443b-9f9c-c52cba5014c2'
         self.instance = 'instance.visualstudio.com'
         self.shared_secret = '1234567890'
         self.model = Integration.objects.create(
