@@ -185,7 +185,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     }
 
     if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
-      return Promise.reject(new Error('Invalid date range'));
+      return Promise.reject(new Error('Start date cannot be after end date'));
     }
 
     return api
