@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 
 import Confirm from 'app/components/confirm';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
 storiesOf('Confirm/Confirm', module).add(
   'default',

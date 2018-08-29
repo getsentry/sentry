@@ -5,7 +5,7 @@ import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 

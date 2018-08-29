@@ -6,7 +6,7 @@ import idx from 'idx';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';

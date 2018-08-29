@@ -4,7 +4,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 

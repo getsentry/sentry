@@ -267,7 +267,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                           >
                                             <Component
                                               aria-label="Full Documentation"
-                                              className="css-dkprmi-StyledButton-getColors e17811v30"
+                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
                                               disabled={false}
                                               external={true}
                                               href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -277,7 +277,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                             >
                                               <ExternalLink
                                                 aria-label="Full Documentation"
-                                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                 disabled={false}
                                                 href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                 onClick={[Function]}
@@ -288,7 +288,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                               >
                                                 <a
                                                   aria-label="Full Documentation"
-                                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                   disabled={false}
                                                   href="https://docs.getsentry.com/hosted/clients/csharp/"
                                                   onClick={[Function]}
@@ -301,19 +301,19 @@ exports[`Configure should render correctly render() should render platform docs 
                                                     size="small"
                                                   >
                                                     <Component
-                                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                                       size="small"
                                                     >
                                                       <Flex
                                                         align="center"
-                                                        className="css-o42ntg-ButtonLabel e17811v31"
+                                                        className="css-o42ntg-ButtonLabel eqrebog1"
                                                       >
                                                         <Base
                                                           align="center"
-                                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                         >
                                                           <div
-                                                            className="e17811v31 css-l5mlqc-ButtonLabel"
+                                                            className="eqrebog1 css-l5mlqc-ButtonLabel"
                                                             is={null}
                                                           >
                                                             Full Documentation

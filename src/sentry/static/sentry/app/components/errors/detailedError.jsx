@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
 class DetailedError extends React.Component {
   static propTypes = {

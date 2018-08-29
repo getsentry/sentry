@@ -7,7 +7,7 @@ import styled from 'react-emotion';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
 import Link from 'app/components/link';

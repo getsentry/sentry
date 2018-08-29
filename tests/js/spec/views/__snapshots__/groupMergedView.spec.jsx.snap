@@ -417,7 +417,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Component
                               aria-label="Compare"
-                              className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                              className="css-1rcxqx1-StyledButton-getColors eqrebog0"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -432,7 +432,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <button
                                 aria-label="Compare"
-                                className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                                className="css-1rcxqx1-StyledButton-getColors eqrebog0"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
@@ -449,19 +449,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                           is={null}
                                         >
                                           Compare
@@ -501,7 +501,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           >
                             <Component
                               aria-label="Collapse All"
-                              className="toggle-collapse-all css-dkprmi-StyledButton-getColors e17811v30"
+                              className="toggle-collapse-all css-dkprmi-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
@@ -509,7 +509,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             >
                               <button
                                 aria-label="Collapse All"
-                                className="toggle-collapse-all css-dkprmi-StyledButton-getColors e17811v30"
+                                className="toggle-collapse-all css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -519,19 +519,19 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                           is={null}
                                         >
                                           Collapse All
@@ -1876,7 +1876,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Component
                               aria-label="Compare"
-                              className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                              className="css-1rcxqx1-StyledButton-getColors eqrebog0"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -1891,7 +1891,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <button
                                 aria-label="Compare"
-                                className="css-1rcxqx1-StyledButton-getColors e17811v30"
+                                className="css-1rcxqx1-StyledButton-getColors eqrebog0"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
@@ -1908,19 +1908,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                           is={null}
                                         >
                                           Compare
@@ -1960,7 +1960,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           >
                             <Component
                               aria-label="Collapse All"
-                              className="toggle-collapse-all css-dkprmi-StyledButton-getColors e17811v30"
+                              className="toggle-collapse-all css-dkprmi-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
@@ -1968,7 +1968,7 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                             >
                               <button
                                 aria-label="Collapse All"
-                                className="toggle-collapse-all css-dkprmi-StyledButton-getColors e17811v30"
+                                className="toggle-collapse-all css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -1978,19 +1978,19 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel e17811v31"
+                                    className="css-o42ntg-ButtonLabel eqrebog1"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
-                                      className="css-o42ntg-ButtonLabel e17811v31"
+                                      className="css-o42ntg-ButtonLabel eqrebog1"
                                     >
                                       <Base
                                         align="center"
-                                        className="e17811v31 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
                                       >
                                         <div
-                                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                                           is={null}
                                         >
                                           Collapse All

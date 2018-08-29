@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import recreateRoute from 'app/utils/recreateRoute';
 import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';

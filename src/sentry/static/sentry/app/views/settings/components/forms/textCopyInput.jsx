@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 
 import {inputStyles} from 'app/styles/input';
 import {selectText} from 'app/utils/selectText';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
 

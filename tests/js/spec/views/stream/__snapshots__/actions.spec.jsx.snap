@@ -165,7 +165,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors e17811v30"
+                className="css-cmo08-StyledButton-getColors eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -177,7 +177,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors e17811v30"
+                  className="css-cmo08-StyledButton-getColors eqrebog0"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -189,18 +189,18 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                     >
                       <Flex
                         align="center"
-                        className="css-1emshjx-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -232,7 +232,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <Component
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-1msljz8-StyledButton-getColors e17811v30"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -242,7 +242,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <button
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-1msljz8-StyledButton-getColors e17811v30"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
@@ -253,19 +253,19 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     priority="primary"
                   >
                     <Component
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                       priority="primary"
                     >
                       <Flex
                         align="center"
-                        className="css-1emshjx-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Bulk resolve issues
@@ -482,7 +482,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors e17811v30"
+                className="css-cmo08-StyledButton-getColors eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -494,7 +494,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors e17811v30"
+                  className="css-cmo08-StyledButton-getColors eqrebog0"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -506,18 +506,18 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                     >
                       <Flex
                         align="center"
-                        className="css-1emshjx-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -549,7 +549,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <Component
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-1msljz8-StyledButton-getColors e17811v30"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -559,7 +559,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <button
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-1msljz8-StyledButton-getColors e17811v30"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
@@ -570,19 +570,19 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     priority="primary"
                   >
                     <Component
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                       priority="primary"
                     >
                       <Flex
                         align="center"
-                        className="css-1emshjx-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Bulk resolve issues
