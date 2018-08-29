@@ -60,6 +60,28 @@ class OrganizationRepositoriesListTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data[0]['name'] == unmigratable_repo.name
 
+    def test_status_unmigratable_missing_org_integration(self):
+        self.url = self.url + '?status=unmigratable'
+
+        Integration.objects.create(
+            provider='github',
+        )
+
+        unmigratable_repo = Repository.objects.create(
+            name='NotConnected/foo',
+            organization_id=self.org.id,
+        )
+
+        with patch('sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories') as f:
+            f.return_value = [unmigratable_repo]
+
+            response = self.client.get(self.url, format='json')
+
+            # Doesn't return anything when the OrganizatioIntegration doesn't
+            # exist (the Integration has been disabled)
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 0
+
 
 class OrganizationRepositoriesCreateTest(APITestCase):
     def test_simple(self):

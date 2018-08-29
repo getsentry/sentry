@@ -61,7 +61,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             )
 
             integrations = Integration.objects.filter(
-                id__in=org_integrations,
+                id__in=org_integrations.values('integration_id'),
                 provider__in=('bitbucket', 'github', 'vsts'),
             )
 
