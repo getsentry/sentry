@@ -1,0 +1,148 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Docs Search Modal can open docs search modal and search 1`] = `
+<DropdownBox
+  className="css-rrcdsm-dropdownStyle"
+>
+  <div
+    className="css-1k2nl5d-DropdownBox-dropdownStyle ed7560h0"
+  >
+    <a
+      href="https://help.sentry.io/100"
+      key="undefined-0"
+      onClick={[Function]}
+    >
+      <SearchResultWrapper
+        className="search-tag search-tag-qa search-autocomplete-item"
+      >
+        <li
+          className="search-tag search-tag-qa search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+        >
+          <span
+            className="title"
+          >
+            100
+          </span>
+        </li>
+      </SearchResultWrapper>
+    </a>
+    <a
+      href="https://help.sentry.io/200"
+      key="undefined-1"
+      onClick={[Function]}
+    >
+      <SearchResultWrapper
+        className="search-tag search-tag-qa search-autocomplete-item"
+      >
+        <li
+          className="search-tag search-tag-qa search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+        >
+          <span
+            className="title"
+          >
+            200
+          </span>
+        </li>
+      </SearchResultWrapper>
+    </a>
+    <a
+      href="https://docs.sentry.io/clients/node#sourcemaps/"
+      key="undefined-2"
+      onClick={[Function]}
+    >
+      <SearchResultWrapper
+        className="search-tag search-tag-docs search-autocomplete-item"
+      >
+        <li
+          className="search-tag search-tag-docs search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+        >
+          <span
+            className="title"
+          >
+            Source Maps
+          </span>
+          <p>
+            clients
+            <span
+              className="divider"
+              key="clients"
+            >
+               
+              &gt;&gt;
+               
+            </span>
+            node
+            <span
+              className="divider"
+              key="node"
+            >
+               
+              &gt;&gt;
+               
+            </span>
+            sourcemaps
+          </p>
+        </li>
+      </SearchResultWrapper>
+    </a>
+    <a
+      href="https://docs.sentry.io/clients/java/modules/logback#usage/"
+      key="undefined-3"
+      onClick={[Function]}
+    >
+      <SearchResultWrapper
+        className="search-tag search-tag-docs search-autocomplete-item"
+      >
+        <li
+          className="search-tag search-tag-docs search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+        >
+          <span
+            className="title"
+          >
+            Usage
+          </span>
+          <p>
+            clients
+            <span
+              className="divider"
+              key="clients"
+            >
+               
+              &gt;&gt;
+               
+            </span>
+            java
+            <span
+              className="divider"
+              key="java"
+            >
+               
+              &gt;&gt;
+               
+            </span>
+            modules
+            <span
+              className="divider"
+              key="modules"
+            >
+               
+              &gt;&gt;
+               
+            </span>
+            logback
+            <span
+              className="divider"
+              key="logback"
+            >
+               
+              &gt;&gt;
+               
+            </span>
+            usage
+          </p>
+        </li>
+      </SearchResultWrapper>
+    </a>
+  </div>
+</DropdownBox>
+`;

@@ -25,7 +25,10 @@ class FaqSource extends React.Component {
       loading: false,
       results: null,
     };
-    if (typeof props.query !== 'undefined') this.doSearch(props.query);
+  }
+
+  componentDidMount() {
+    if (typeof this.props.query !== 'undefined') this.doSearch(this.props.query);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -47,7 +50,7 @@ class FaqSource extends React.Component {
                 type: 'faq',
               },
               matches: null,
-              score: 10, // Should be higher than DocsSource
+              score: 1, // Should be smaller than DocsSource
             })),
           });
         }

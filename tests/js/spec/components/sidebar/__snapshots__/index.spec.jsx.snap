@@ -962,6 +962,124 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
 </OrgAndUserMenu>
 `;
 
+exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
+<HelpMenu
+  innerRef={[Function]}
+  onClick={[Function]}
+  onMouseEnter={[Function]}
+  onMouseLeave={[Function]}
+>
+  <div
+    className="css-10k5q9j-HelpMenu-SidebarDropdownMenu e1q2bb9t2"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+  >
+    <SidebarMenuItem
+      onClick={[Function]}
+    >
+      <MenuItemLink
+        onClick={[Function]}
+      >
+        <Component
+          className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+          onClick={[Function]}
+        >
+          <div
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            onClick={[Function]}
+          >
+            <MenuItemLabel
+              hasMenu={true}
+            >
+              <span
+                className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+              >
+                Search Docs and FAQs
+              </span>
+            </MenuItemLabel>
+          </div>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
+    <SidebarMenuItem
+      href="https://forum.sentry.io/"
+      target="_blank"
+    >
+      <MenuItemLink
+        href="https://forum.sentry.io/"
+        target="_blank"
+      >
+        <Component
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+          href="https://forum.sentry.io/"
+          target="_blank"
+        >
+          <Link
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+            href="https://forum.sentry.io/"
+            target="_blank"
+          >
+            <a
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+              href="https://forum.sentry.io/"
+              target="_blank"
+            >
+              <MenuItemLabel
+                hasMenu={false}
+              >
+                <span
+                  className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                >
+                  Community Discussions
+                </span>
+              </MenuItemLabel>
+            </a>
+          </Link>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
+    <SidebarMenuItem
+      href="https://status.sentry.io/"
+      target="_blank"
+    >
+      <MenuItemLink
+        href="https://status.sentry.io/"
+        target="_blank"
+      >
+        <Component
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+          href="https://status.sentry.io/"
+          target="_blank"
+        >
+          <Link
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+            href="https://status.sentry.io/"
+            target="_blank"
+          >
+            <a
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+              href="https://status.sentry.io/"
+              target="_blank"
+            >
+              <MenuItemLabel
+                hasMenu={false}
+              >
+                <span
+                  className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                >
+                  Service Status
+                </span>
+              </MenuItemLabel>
+            </a>
+          </Link>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
+  </div>
+</HelpMenu>
+`;
+
 exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] = `
 <SidebarPanelItem
   hasSeen={false}

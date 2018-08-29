@@ -25,7 +25,10 @@ class DocsSource extends React.Component {
       loading: false,
       docResults: null,
     };
-    if (typeof props.query !== 'undefined') this.doSearch(props.query);
+  }
+
+  componentDidMount() {
+    if (typeof this.props.query !== 'undefined') this.doSearch(this.props.query);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -47,7 +50,7 @@ class DocsSource extends React.Component {
                 type: 'docs',
               },
               matches: null,
-              score: 1, // Should be lower than FaqSource
+              score: 10, // Should be larger than FaqSource
             })),
           });
         }
