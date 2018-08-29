@@ -174,6 +174,9 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         if not has_issue_sync:
             for field in fields:
                 field['disabled'] = True
+                field['disabledReason'] = _(
+                    'Your organization does not have access to this feature'
+                )
 
         return fields
 

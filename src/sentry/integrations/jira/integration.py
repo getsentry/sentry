@@ -152,6 +152,9 @@ class JiraIntegration(Integration, IssueSyncMixin):
         if not has_issue_sync:
             for field in configuration:
                 field['disabled'] = True
+                field['disabledReason'] = _(
+                    'Your organization does not have access to this feature'
+                )
 
         return configuration
 
