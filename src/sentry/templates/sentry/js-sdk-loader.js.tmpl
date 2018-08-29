@@ -1,16 +1,29 @@
 {% load sentry_helpers %}// Sentry Loader
 (function(_window, _document, _script, _onerror, _onunhandledrejection) {
-  var lazy = 'no';
+  var lazy = true;
+
+  for (var i = 0; i < document.scripts.length; i++) {
+    if (document.scripts[i].src.indexOf('{{ publicKey|safe }}') > -1) {
+      if (document.scripts[i].dataset.lazy === 'no') {
+        lazy = false;
+      }
+      break;
+    }
+  }
+
   var injected = false;
   var onLoadCallback;
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
   var queue = function(content) {
+    // content.e = error
+    // content.p = promise rejection
+    // content.f = function call the Sentry
     if (
       (content.e || content.p ||
       (content.f && content.f.indexOf('capture') > -1)) &&
-      lazy !== 'no') {
+      lazy) {
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
@@ -50,7 +63,13 @@
 
         // Configure it using provided DSN and config object
         SDK.init = function(options) {
-          oldInit(Object.assign({{ config|to_json|safe }}, options));
+          var target = {{ config|to_json|safe }};
+          for (var key in options) {
+            if (Object.prototype.hasOwnProperty.call(options, key)) {
+              target[key] = nextSource[key];
+            }
+          }
+          oldInit(target);
         }
 
         sdkLoaded(callback, SDK);
@@ -72,16 +91,14 @@
       var tracekitErrorHandler = _window[_onerror];
 
       // And capture all previously caught exceptions
-      if (data.length) {
-        for (var i = 0; i < data.length; i++) {
-          if (data[i].e) {
-            tracekitErrorHandler.apply(_window, data[i].e);
-          } else if (data[i].p) {
-            SDK.captureException(data[i].p);
-          } else if (data[i].f) {
-            var call = data[i];
-            SDK[call.f].apply(SDK, call.a);
-          }
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].e) {
+          tracekitErrorHandler.apply(_window, data[i].e);
+        } else if (data[i].p) {
+          SDK.captureException(data[i].p);
+        } else if (data[i].f) {
+          var call = data[i];
+          SDK[call.f].apply(SDK, call.a);
         }
       }
     } catch (o_O) {
@@ -93,10 +110,10 @@
   // that the first Sentry "instance" is our with onLoad
   _window.Sentry = {
     onLoad: function(callback) {
-      if (lazy == 'no') {
-        injectSdk(callback);
-      } else {
+      if (lazy) {
         onLoadCallback = callback;
+      } else {
+        injectSdk(callback);
       }
     },
     addBreadcrumb: function() {
@@ -136,17 +153,5 @@
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
-
-  var attributes = Array.prototype.slice.apply(document.scripts).filter(function(script) {
-      return script.src.indexOf('{{ publicKey|safe }}') > -1;
-  })[0].attributes;
-
-  for (var i = 0; i < attributes.length; i++) {
-    if (attributes[i].name === 'data-lazy') {
-      if (attributes[i].value === 'yes') {
-        lazy = 'yes';
-      }
-    }
-  }
 
 })(window, document, 'script', 'onerror', 'onunhandledrejection');
