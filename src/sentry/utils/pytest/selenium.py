@@ -182,13 +182,16 @@ class Browser(object):
         self.percy.snapshot(name=name)
         return self
 
-    def save_cookie(self, name, value, path='/', expires='Tue, 20 Jun 2025 19:07:44 GMT'):
+    def save_cookie(self, name, value, domain=None, path='/',
+                    expires='Tue, 20 Jun 2025 19:07:44 GMT', max_age=None, secure=None):
         cookie = {
             'name': name,
             'value': value,
             'expires': expires,
             'path': path,
-            'domain': self.domain,
+            'domain': domain or self.domain,
+            'max-age': max_age,
+            'secure': secure,
         }
 
         # XXX(dcramer): the cookie store must be initialized via a URL
@@ -206,7 +209,7 @@ class Browser(object):
         })
         if isinstance(self.driver, webdriver.PhantomJS):
             self.driver.execute_script(
-                "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".format(
+                "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}'; max-age={max_age}\n".format(
                     **cookie)
             )
         else:

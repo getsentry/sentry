@@ -48,7 +48,8 @@ from six.moves.urllib.parse import urlencode
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
-    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME, ORG_ID as SU_ORG_ID
+    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME, ORG_ID as SU_ORG_ID,
+    COOKIE_SECURE as SU_COOKIE_SECURE, COOKIE_DOMAIN as SU_COOKIE_DOMAIN, COOKIE_PATH as SU_COOKIE_PATH
 )
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
@@ -109,18 +110,22 @@ class BaseTestCase(Fixtures, Exam):
 
     def save_session(self):
         self.session.save()
+        self.save_cookie(
+            name=settings.SESSION_COOKIE_NAME,
+            value=self.session.session_key,
+            max_age=None,
+            path='/',
+            domain=settings.SESSION_COOKIE_DOMAIN,
+            secure=settings.SESSION_COOKIE_SECURE or None,
+            expires=None
+        )
 
-        cookie_data = {
-            'max-age': None,
-            'path': '/',
-            'domain': settings.SESSION_COOKIE_DOMAIN,
-            'secure': settings.SESSION_COOKIE_SECURE or None,
-            'expires': None,
-        }
-
-        session_cookie = settings.SESSION_COOKIE_NAME
-        self.client.cookies[session_cookie] = self.session.session_key
-        self.client.cookies[session_cookie].update(cookie_data)
+    def save_cookie(self, name, value, **params):
+        self.client.cookies[name] = value
+        self.client.cookies[name].update({
+            k.replace('_', '-'): v
+            for k, v in six.iteritems(params)
+        })
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
@@ -172,9 +177,17 @@ class BaseTestCase(Fixtures, Exam):
             request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate
             # the Superuser object are successful
-            self.client.cookies[SU_COOKIE_NAME] = signing.get_cookie_signer(
-                salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
-            ).sign(request.superuser.token)
+            self.save_cookie(
+                name=SU_COOKIE_NAME,
+                value=signing.get_cookie_signer(
+                    salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
+                ).sign(request.superuser.token),
+                max_age=None,
+                path=SU_COOKIE_PATH,
+                domain=SU_COOKIE_DOMAIN,
+                secure=SU_COOKIE_SECURE or None,
+                expires=None,
+            )
         # Save the session values.
         self.save_session()
 
@@ -739,9 +752,16 @@ class AcceptanceTestCase(TransactionTestCase):
         self.addCleanup(patcher.stop)
         super(AcceptanceTestCase, self).setUp()
 
+    def save_cookie(self, name, value, **params):
+        self.browser.save_cookie(
+            name=name,
+            value=value,
+            **params
+        )
+
     def save_session(self):
         self.session.save()
-        self.browser.save_cookie(
+        self.save_cookie(
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
         )
