@@ -5,9 +5,12 @@ import logging
 from django import forms
 from django.utils.translation import ugettext as _
 
-from sentry import http
+from sentry import http, features
 from sentry.constants import ObjectStatus
-from sentry.models import Integration as IntegrationModel, IntegrationExternalProject, OrganizationIntegration
+from sentry.models import (
+    Integration as IntegrationModel, IntegrationExternalProject, Organization,
+    OrganizationIntegration,
+)
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
@@ -114,7 +117,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
             all_states = []
             disabled = True
 
-        return [
+        fields = [
             {
                 'name': self.outbound_status_key,
                 'type': 'choice_mapper',
@@ -164,6 +167,15 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'help': _('When a work item is assigned in VSTS, assign its linked Sentry issue to the same user.'),
             },
         ]
+
+        organization = Organization.objects.get(id=self.organization_id)
+        has_issue_sync = features.has('organizations:integration:issue_sync',
+                                      organization)
+        if not has_issue_sync:
+            for field in fields:
+                field['disabled'] = True
+
+        return fields
 
     def update_organization_config(self, data):
         if 'sync_status_forward' in data:

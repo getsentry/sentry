@@ -26,6 +26,8 @@ default_manager.add('organizations:new-issue-ui', OrganizationFeature)  # NOQA
 default_manager.add('organizations:github-enterprise', OrganizationFeature)  # NOQA
 default_manager.add('organizations:bitbucket-integration', OrganizationFeature)  # NOQA
 default_manager.add('organizations:jira-integration', OrganizationFeature)  # NOQA
+default_manager.add('organizations:integration:issue_basic', OrganizationFeature)  # NOQA
+default_manager.add('organizations:integration:issue_sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('organizations:environments', OrganizationFeature)  # NOQA

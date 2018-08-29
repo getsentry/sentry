@@ -215,7 +215,10 @@ class GroupNoteCreateTest(APITestCase):
 
         url = '/api/0/issues/{}/comments/'.format(group.id)
 
-        with self.feature('organizations:internal-catchall'):
+        with self.feature({
+            'organizations:integration:issue_sync': True,
+            'organizations:internal-catchall': True,
+        }):
             with self.tasks():
                 response = self.client.post(
                     url, format='json', data={

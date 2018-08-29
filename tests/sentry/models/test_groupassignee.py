@@ -141,7 +141,10 @@ class GroupAssigneeTestCase(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        with self.feature('organizations:internal-catchall'):
+        with self.feature({
+            'organizations:integration:issue_sync': True,
+            'organizations:internal-catchall': True,
+        }):
             with self.tasks():
                 GroupAssignee.objects.assign(self.group, self.user)
 
@@ -203,7 +206,10 @@ class GroupAssigneeTestCase(TestCase):
 
         GroupAssignee.objects.assign(self.group, self.user)
 
-        with self.feature('organizations:internal-catchall'):
+        with self.feature({
+            'organizations:integration:issue_sync': True,
+            'organizations:internal-catchall': True,
+        }):
             with self.tasks():
                 GroupAssignee.objects.deassign(self.group)
                 mock_sync_assignee_outbound.assert_called_with(external_issue, None, assign=False)
@@ -258,25 +264,26 @@ class GroupAssigneeTestCase(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        # no permissions
-        groups_updated = sync_group_assignee_inbound(
-            integration, user_no_access.email, 'APP-123'
-        )
+        with self.feature('organizations:integration:issue_sync'):
+            # no permissions
+            groups_updated = sync_group_assignee_inbound(
+                integration, user_no_access.email, 'APP-123'
+            )
 
-        assert not groups_updated
+            assert not groups_updated
 
-        # w permissions
-        groups_updated = sync_group_assignee_inbound(
-            integration, user_w_access.email, 'APP-123'
-        )
+            # w permissions
+            groups_updated = sync_group_assignee_inbound(
+                integration, user_w_access.email, 'APP-123'
+            )
 
-        assert groups_updated[0] == group
-        assert GroupAssignee.objects.filter(
-            project=group.project,
-            group=group,
-            user=user_w_access,
-            team__isnull=True,
-        ).exists()
+            assert groups_updated[0] == group
+            assert GroupAssignee.objects.filter(
+                project=group.project,
+                group=group,
+                user=user_w_access,
+                team__isnull=True,
+            ).exists()
 
     def test_assignee_sync_inbound_deassign(self):
         group = self.group
@@ -315,14 +322,15 @@ class GroupAssigneeTestCase(TestCase):
 
         GroupAssignee.objects.assign(group, self.user)
 
-        groups_updated = sync_group_assignee_inbound(
-            integration, self.user.email, 'APP-123', assign=False,
-        )
+        with self.feature('organizations:integration:issue_sync'):
+            groups_updated = sync_group_assignee_inbound(
+                integration, self.user.email, 'APP-123', assign=False,
+            )
 
-        assert groups_updated[0] == group
-        assert not GroupAssignee.objects.filter(
-            project=group.project,
-            group=group,
-            user=self.user,
-            team__isnull=True,
-        ).exists()
+            assert groups_updated[0] == group
+            assert not GroupAssignee.objects.filter(
+                project=group.project,
+                group=group,
+                user=self.user,
+                team__isnull=True,
+            ).exists()

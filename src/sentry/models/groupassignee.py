@@ -50,15 +50,21 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
     assign linked groups to matching users. Checks project membership.
     Returns a list of groups that were successfully assigned.
     """
+    from sentry import features
     from sentry.models import Group, UserEmail, User
 
     logger = logging.getLogger('sentry.integrations.%s' % integration.provider)
 
     orgs_with_sync_enabled = []
-    for org_id in integration.organizations.values_list('id', flat=True):
-        installation = integration.get_installation(org_id)
+    for org in integration.organizations.all():
+        has_issue_sync = features.has('organizations:integration:issue_sync',
+                                      org)
+        if not has_issue_sync:
+            continue
+
+        installation = integration.get_installation(org.id)
         if installation.should_sync('inbound_assignee'):
-            orgs_with_sync_enabled.append(org_id)
+            orgs_with_sync_enabled.append(org.id)
 
     affected_groups = list(
         Group.objects.get_groups_by_external_issue(

@@ -4,7 +4,7 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
@@ -12,9 +12,26 @@ from sentry.integrations import IntegrationFeatures
 from sentry.integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.models import ExternalIssue, GroupLink, Integration
 
+MISSING_FEATURE_MESSAGE = 'Your organization does not have access to this feature.'
+
 
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    def _has_issue_feature(self, organization, user):
+        has_issue_basic = features.has('organizations:integration:issue_basic',
+                                       organization,
+                                       actor=user)
+
+        has_issue_sync = features.has('organizations:integration:issue_sync',
+                                      organization,
+                                      actor=user)
+
+        return has_issue_sync or has_issue_basic
+
     def get(self, request, group, integration_id):
+        if not self._has_issue_feature(group.organization, request.user):
+            return Response(
+                {'detail': MISSING_FEATURE_MESSAGE}, status=400)
+
         # Keep link/create separate since create will likely require
         # many external API calls that aren't necessary if the user is
         # just linking
@@ -48,6 +65,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
     # was thinking put for link an existing issue, post for create new issue?
     def put(self, request, group, integration_id):
+        if not self._has_issue_feature(group.organization, request.user):
+            return Response(
+                {'detail': MISSING_FEATURE_MESSAGE}, status=400)
+
         external_issue_id = request.DATA.get('externalIssue')
         if not external_issue_id:
             return Response({'detail': 'External ID required'}, status=400)
@@ -123,6 +144,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(context, status=201)
 
     def post(self, request, group, integration_id):
+        if not self._has_issue_feature(group.organization, request.user):
+            return Response(
+                {'detail': MISSING_FEATURE_MESSAGE}, status=400)
+
         organization_id = group.project.organization_id
         try:
             integration = Integration.objects.get(
@@ -189,6 +214,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(context, status=201)
 
     def delete(self, request, group, integration_id):
+        if not self._has_issue_feature(group.organization, request.user):
+            return Response(
+                {'detail': MISSING_FEATURE_MESSAGE}, status=400)
+
         # note here externalIssue refers to `ExternalIssue.id` wheras above
         # it refers to the id from the provider
         external_issue_id = request.GET.get('externalIssue')

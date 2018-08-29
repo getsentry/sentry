@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
-from sentry import analytics
-from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Integration, User
+from sentry import analytics, features
+from sentry.models import (
+    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization, User
+)
 from sentry.integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task, retry
 
@@ -17,6 +19,13 @@ from sentry.tasks.base import instrumented_task, retry
 def post_comment(external_issue_id, data, **kwargs):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
+
+    organization = Organization.objects.get(id=external_issue.organization_id)
+    has_issue_sync = features.has('organizations:integration:issue_sync',
+                                  organization)
+    if not has_issue_sync:
+        return
+
     integration = Integration.objects.get(id=external_issue.integration_id)
     installation = integration.get_installation(
         organization_id=external_issue.organization_id,
@@ -51,10 +60,19 @@ def sync_metadata(integration_id, **kwargs):
     default_retry_delay=60 * 5,
     max_retries=5
 )
-@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist, User.DoesNotExist))
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist,
+                User.DoesNotExist, Organization.DoesNotExist))
 def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     # sync Sentry assignee to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
+
+    organization = Organization.objects.get(id=external_issue.organization_id)
+    has_issue_sync = features.has('organizations:integration:issue_sync',
+                                  organization)
+
+    if not has_issue_sync:
+        return
+
     integration = Integration.objects.get(id=external_issue.integration_id)
     # assume unassign if None
     if user_id is None:
@@ -89,6 +107,11 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
             status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED],
         )[0]
     except IndexError:
+        return
+
+    has_issue_sync = features.has('organizations:integration:issue_sync',
+                                  group.organization)
+    if not has_issue_sync:
         return
 
     external_issue = ExternalIssue.objects.get(id=external_issue_id)

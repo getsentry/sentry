@@ -777,6 +777,8 @@ SENTRY_FEATURES = {
     'organizations:github-enterprise': False,
     'organizations:bitbucket-integration': False,
     'organizations:jira-integration': False,
+    'organizations:integration:issue_basic': False,
+    'organizations:integration:issue_sync': False,
     'organizations:new-teams': True,
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
