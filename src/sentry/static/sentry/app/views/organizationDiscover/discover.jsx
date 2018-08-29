@@ -104,6 +104,7 @@ export default class OrganizationDiscover extends React.Component {
         groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: 'time',
+        limit: 1000,
       };
 
       queryBuilder.fetch(chartQuery).then(
