@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from hashlib import md5
 from sentry.testutils import TestCase
 from sentry.models import EventUser
 
@@ -36,3 +37,15 @@ class EventUserTestCase(TestCase):
         ]
         for keyword, attr in cases:
             assert EventUser.attr_from_keyword(keyword) == attr
+
+    def test_hash_from_tag(self):
+        assert EventUser.hash_from_tag('foo:bar:baz') == md5('bar:baz').hexdigest()
+
+    def test_for_tags(self):
+        eu = EventUser.objects.create(
+            project_id=1,
+            ident='matt',
+        )
+        assert EventUser.for_tags(1, ['id:matt']) == {'id:matt': eu}
+        assert EventUser.for_tags(1, ['id:doesnotexist']) == {}
+        assert EventUser.for_tags(1, ['id:matt', 'id:doesnotexist']) == {'id:matt': eu}
