@@ -165,7 +165,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    * if this is not provided and returns the result wrapped in a promise
    *
    * @param {Object} [data] Optional field to provide data to fetch
-   * @returns {Promise<Object>}
+   * @returns {Promise<Object|Error>}
    */
   function fetch(data) {
     const api = new Client();
@@ -182,6 +182,10 @@ export default function createQueryBuilder(initial = {}, organization) {
       if (data.limit < 1 || data.limit > 1000) {
         return Promise.reject(new Error(t('Invalid limit parameter')));
       }
+    }
+
+    if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
+      return Promise.reject(new Error('Start date cannot be after end date'));
     }
 
     return api
