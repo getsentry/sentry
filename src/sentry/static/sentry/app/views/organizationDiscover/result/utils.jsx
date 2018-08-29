@@ -5,6 +5,8 @@ import styled from 'react-emotion';
 import moment from 'moment';
 import {orderBy} from 'lodash';
 
+const CHART_KEY = '__CHART_KEY__';
+
 /**
  * Returns data formatted for basic line and bar charts, with each aggregation
  * representing a series.
@@ -37,61 +39,87 @@ export function getChartData(data, query) {
  * @param {Object} query Query state corresponding to data
  * @returns {Array}
  */
-export function getChartDataByDay(data, query) {
+export function getChartDataByDay(rawData, query) {
+  // We only chart the first aggregation for now
+  const aggregate = query.aggregations[0][2];
+
+  const data = getDataWithKeys(rawData, query);
+
+  // We only want to show the top 10 series
+  const top10Series = getTopSeries(data, aggregate);
+
+  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))];
+
+  // Temporarily store series as object with series names as keys
+  const seriesHash = getEmptySeriesHash(top10Series, dates);
+
+  // Insert data into series if it's in a top 10 series
+  data.forEach(row => {
+    const key = row[CHART_KEY];
+
+    const dateIdx = dates.indexOf(formatDate(row.time));
+
+    if (top10Series.has(key)) {
+      seriesHash[key][dateIdx].value = row[aggregate];
+    }
+  });
+
+  // Format for echarts
+  return Object.entries(seriesHash).map(([seriesName, series]) => {
+    return {
+      seriesName,
+      data: series,
+    };
+  });
+}
+
+// Return placeholder empty series object with all series and dates listed and
+// all values set to null
+function getEmptySeriesHash(seriesSet, dates) {
+  const output = {};
+
+  [...seriesSet].forEach(series => {
+    output[series] = getEmptySeries(dates);
+  });
+
+  return output;
+}
+
+function getEmptySeries(dates) {
+  return dates.map(date => {
+    return {
+      value: null,
+      name: date,
+    };
+  });
+}
+
+// Get the top series ranked by latest time / largest aggregate
+function getTopSeries(data, aggregate, count = 10) {
+  const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
+
+  return new Set([...new Set(allData.map(row => row[CHART_KEY]))].slice(0, count));
+}
+
+function getDataWithKeys(data, query) {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
-  const dates = [
-    ...new Set(data.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
-  ];
-  const output = {};
 
-  data.forEach(res => {
+  return data.map(row => {
     const key = fields.length
-      ? fields.map(field => getLabel(res[field])).join(',')
+      ? fields.map(field => getLabel(row[field])).join(',')
       : aggregate;
-    res.key = key;
 
-    if (key in output) {
-      output[key].data.push({
-        value: res[aggregate],
-        name: moment.utc(res.time * 1000).format('MMM Do'),
-      });
-    } else {
-      output[key] = {
-        data: [
-          {value: res[aggregate], name: moment.utc(res.time * 1000).format('MMM Do')},
-        ],
-      };
-    }
+    return {
+      ...row,
+      [CHART_KEY]: key,
+    };
   });
-  console.log('output', output);
-
-  const result = addNullValues(output, dates);
-
-  if (result.length > 10) {
-    console.log('truncated data', truncateChartData(data));
-  }
-
-  return result;
 }
 
-function addNullValues(chartData, dates) {
-  let result = [];
-  for (let key in chartData) {
-    const addDates = dates.filter(
-      date => !chartData[key].data.map(entry => entry.name).includes(date)
-    );
-    for (let i = 0; i < addDates.length; i++) {
-      chartData[key].data.push({
-        value: null,
-        name: addDates[i],
-      });
-    }
-
-    result.push({seriesName: key, data: chartData[key].data});
-  }
-  return result;
+function formatDate(datetime) {
+  return moment.utc(datetime * 1000).format('MMM Do');
 }
 
 export function formatTooltip(seriesParams) {
@@ -103,61 +131,6 @@ export function formatTooltip(seriesParams) {
       .map(s => `<div>${s.marker} ${truncateLabel(s.seriesName)}:  ${s.data[1]}</div>`)
       .join(''),
   ].join('');
-}
-
-// Input is ordered by time, then count.
-// Get the most recent and highest count keys, and filter out of data.
-function truncateChartData(chartData) {
-  const allData = orderBy(chartData, ['time', 'count'], ['desc', 'desc']);
-
-  const top10Keys = new Set([...new Set(allData.map(({key}) => key))].slice(0, 10));
-
-  return orderBy(
-    allData.filter(row => {
-      return top10Keys.has(row.key);
-    }),
-    ['time'],
-    ['asc']
-  );
-
-  //   while (seriesNames.size < 10) {
-  //   // debugger;
-  //   for (let i = Object.keys(data).length - 1; i >= 0; i--) {
-  //     const key = Object.keys(data)[i];
-  //     data
-  //       .sort(function(a, b) {
-  //         return a.count < b.count ? 1 : b.count < a.count ? -1 : 0; //increasing count
-  //       })
-  //       .sort(function(a, b) {
-  //         return a.time < b.time ? 1 : b.time < a.time ? -1 : 0;
-  //       });
-  //
-  //     for (let j = 0; j < data[key].length; j++) {
-  //       console.log('data[key][j]', data[key][j]);
-  //       console.log('data[key][j][field]', data[key][j][field]);
-  //       if (data[key][j]) {
-  //         const seriesName = data[key][j][field];
-  //         if (!seriesNames.has(seriesName)) {
-  //           console.log('Series Names', seriesNames);
-  //           seriesNames.add(seriesName);
-  //         }
-  //       }
-  //
-  //       // seriesNames.push(data[key][j].)
-  //     }
-  //
-  //     // console.log("data[key", data[key]);
-  //     // console.log("in loop", moment.utc(Object.keys(data)[i])*1000);
-  //   }
-  // }
-  // console.log("length", Object.keys(data).length);
-
-  //
-  // let data = chartData.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))
-  // data = _.sortBy(chartData, function(o) {
-  //   return new moment(o.time);
-  // });
-  // return data;
 }
 
 // Truncates labels for tooltip
