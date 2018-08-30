@@ -86,7 +86,7 @@ class PieChart extends React.Component {
         onChartReady={this.handleChartReady}
         onEvents={{
           // when legend highlights it does NOT pass dataIndex :(
-          highlight: ({name, ...args}) => {
+          highlight: ({name}) => {
             if (
               !this.isInitialSelected ||
               !name ||
@@ -101,7 +101,7 @@ class PieChart extends React.Component {
             this.isInitialSelected = false;
           },
 
-          mouseover: ({dataIndex, ...args}) => {
+          mouseover: ({dataIndex}) => {
             if (!this.isInitialSelected) return;
             if (dataIndex === this.selected) return;
             this.downplay(this.selected);
@@ -130,10 +130,8 @@ class PieChart extends React.Component {
               avoidLabelOverlap: false,
               label: {
                 normal: {
-                  formatter: ({name, percent, dataIndex, ...args}) => {
-                    // Need newline here
-                    return `${name}
-                    ${percent}%`;
+                  formatter: ({name, percent, dataIndex}) => {
+                    return `${name}\n${percent}%`;
                   },
                   show: false,
                   position: 'center',
