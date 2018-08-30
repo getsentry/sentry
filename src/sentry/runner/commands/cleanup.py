@@ -113,14 +113,7 @@ def multiprocess_worker(task_queue):
     type=int,
     default=1,
     show_default=True,
-    help='The total number of concurrent threads to run across processes.'
-)
-@click.option(
-    '--max_procs',
-    type=int,
-    default=8,
-    show_default=True,
-    help='The maximum number of processes to fork off for concurrency.'
+    help='The total number of concurrent worker processes to run.'
 )
 @click.option(
     '--silent', '-q', default=False, is_flag=True, help='Run quietly. No output on success.'
@@ -135,7 +128,7 @@ def multiprocess_worker(task_queue):
     help='Send the duration of this command to internal metrics.'
 )
 @log_options()
-def cleanup(days, project, concurrency, max_procs, silent, model, router, timed):
+def cleanup(days, project, concurrency, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
 
     All data that is older than `--days` will be deleted.  The default for
@@ -149,7 +142,7 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
         raise click.Abort()
 
     # Make sure we fork off multiprocessing pool
-    # before we import or configure out app
+    # before we import or configure the app
     from multiprocessing import Process, JoinableQueue as Queue
 
     pool = []
