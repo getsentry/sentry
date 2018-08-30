@@ -55,11 +55,11 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
 
     def get_repositories(self, query=None):
         if not query:
-            repos = self.get_client().get_repos(self.username)['values']
+            resp = self.get_client().get_repos(self.username)
             return [{
                 'identifier': repo['full_name'],
                 'name': repo['full_name'],
-            } for repo in repos]
+            } for repo in resp.get('values', [])]
 
         full_query = (u'name~"%s"' % (query)).encode('utf-8')
         resp = self.get_client().search_repositories(self.username, full_query)
