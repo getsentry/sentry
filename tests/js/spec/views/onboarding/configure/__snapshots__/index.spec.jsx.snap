@@ -251,6 +251,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                       >
                                         Configure node
                                         <Button
+                                          alignLabel="left"
                                           disabled={false}
                                           external={true}
                                           href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -298,22 +299,26 @@ exports[`Configure should render correctly render() should render platform docs 
                                                   target="_blank"
                                                 >
                                                   <ButtonLabel
+                                                    justify="flex-start"
                                                     size="small"
                                                   >
                                                     <Component
                                                       className="css-o42ntg-ButtonLabel eqrebog1"
+                                                      justify="flex-start"
                                                       size="small"
                                                     >
                                                       <Flex
                                                         align="center"
                                                         className="css-o42ntg-ButtonLabel eqrebog1"
+                                                        justify="flex-start"
                                                       >
                                                         <Base
                                                           align="center"
-                                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                          className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                          justify="flex-start"
                                                         >
                                                           <div
-                                                            className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                            className="eqrebog1 css-gzxb22-ButtonLabel"
                                                             is={null}
                                                           >
                                                             Full Documentation

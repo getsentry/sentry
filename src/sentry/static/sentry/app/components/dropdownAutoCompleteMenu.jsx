@@ -10,33 +10,30 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
+const ItemObjectPropType = {
+  value: PropTypes.any,
+  searchKey: PropTypes.string,
+  label: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+};
+const ItemShapePropType = PropTypes.shape(ItemObjectPropType);
+
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {
     items: PropTypes.oneOfType([
       // flat item array
-      PropTypes.arrayOf(
-        PropTypes.shape({
-          value: PropTypes.string,
-          label: PropTypes.node,
-        })
-      ),
+      PropTypes.arrayOf(ItemShapePropType),
+
       // grouped item array
       PropTypes.arrayOf(
         PropTypes.shape({
-          value: PropTypes.string,
-          label: PropTypes.node,
-          items: PropTypes.arrayOf(
-            PropTypes.shape({
-              value: PropTypes.string,
-              label: PropTypes.node,
-              searchKey: PropTypes.string,
-            })
-          ),
+          ...ItemObjectPropType,
+          items: PropTypes.arrayOf(ItemShapePropType),
           // Should hide group label
           hideGroupLabel: PropTypes.bool,
         })
       ),
     ]),
+
     isOpen: PropTypes.bool,
 
     /**
@@ -107,6 +104,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     menuProps: PropTypes.object,
 
+    /**
+     * Props to pass to input/filter component
+     */
+    inputProps: PropTypes.object,
+
     css: PropTypes.object,
     style: PropTypes.object,
   };
@@ -141,6 +143,8 @@ class DropdownAutoCompleteMenu extends React.Component {
   autoCompleteFilter = (items, inputValue) => {
     let itemCount = 0;
 
+    if (!items) return [];
+
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
@@ -149,9 +153,9 @@ class DropdownAutoCompleteMenu extends React.Component {
           ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
         ];
       });
-    } else {
-      return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
     }
+
+    return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
   };
 
   render() {
@@ -162,6 +166,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       children,
       items,
       menuProps,
+      inputProps,
       alignMenu,
       blendCorner,
       maxHeight,
@@ -198,10 +203,15 @@ class DropdownAutoCompleteMenu extends React.Component {
           isOpen,
           actions,
         }) => {
-          // Only filter results if menu is open
+          // Only filter results if menu is open and there are items
           let autoCompleteResults =
-            (isOpen && this.autoCompleteFilter(items, inputValue)) || [];
+            (isOpen && items && this.autoCompleteFilter(items, inputValue)) || [];
+
+          // Can't search if there are no items
           let hasItems = items && !!items.length;
+
+          // Items are loading if null
+          let itemsLoading = items === null;
           let hasResults = !!autoCompleteResults.length;
           let showNoItems = !busy && !inputValue && !hasItems;
           // Results mean there was a search (i.e. inputValue)
@@ -228,16 +238,19 @@ class DropdownAutoCompleteMenu extends React.Component {
                     menuWithArrow,
                   })}
                 >
-                  <Flex>
-                    <StyledInput
-                      autoFocus
-                      placeholder={searchPlaceholder}
-                      {...getInputProps({onChange})}
-                    />
-                    <InputLoadingWrapper>
-                      {busy && <LoadingIndicator size={16} mini />}
-                    </InputLoadingWrapper>
-                  </Flex>
+                  {itemsLoading && <LoadingIndicator mini />}
+                  {hasItems && (
+                    <Flex>
+                      <StyledInput
+                        autoFocus
+                        placeholder={searchPlaceholder}
+                        {...getInputProps({...inputProps, onChange})}
+                      />
+                      <InputLoadingWrapper>
+                        {busy && <LoadingIndicator size={16} mini />}
+                      </InputLoadingWrapper>
+                    </Flex>
+                  )}
                   <div>
                     {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
 

@@ -94,6 +94,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
               priority="primary"
             >
               <Button
+                alignLabel="left"
                 disabled={false}
                 icon="icon-trash"
                 size="xsmall"

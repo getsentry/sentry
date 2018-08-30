@@ -108,7 +108,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
                 role="button"
               >
                 <div
-                  class="eqrebog1 css-1nhrbny-ButtonLabel"
+                  class="eqrebog1 css-11rqwwm-ButtonLabel"
                 >
                   Restore Organization
                 </div>

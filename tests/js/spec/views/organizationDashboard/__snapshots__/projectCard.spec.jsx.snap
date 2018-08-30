@@ -679,6 +679,7 @@ exports[`ProjectCard renders 1`] = `
                             is={null}
                           >
                             <Button
+                              alignLabel="left"
                               disabled={false}
                               external={true}
                               href="https://blog.sentry.io/2017/05/09/release-deploys"
@@ -726,22 +727,26 @@ exports[`ProjectCard renders 1`] = `
                                       target="_blank"
                                     >
                                       <ButtonLabel
+                                        justify="flex-start"
                                         size="xsmall"
                                       >
                                         <Component
                                           className="css-6q5v1w-ButtonLabel eqrebog1"
+                                          justify="flex-start"
                                           size="xsmall"
                                         >
                                           <Flex
                                             align="center"
                                             className="css-6q5v1w-ButtonLabel eqrebog1"
+                                            justify="flex-start"
                                           >
                                             <Base
                                               align="center"
-                                              className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                              className="eqrebog1 css-v6dd0e-ButtonLabel"
+                                              justify="flex-start"
                                             >
                                               <div
-                                                className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                className="eqrebog1 css-v6dd0e-ButtonLabel"
                                                 is={null}
                                               >
                                                 Track deploys

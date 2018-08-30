@@ -670,6 +670,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       className="css-1d10zz4-RuleNodeControls e1qnqozx2"
                                     >
                                       <Button
+                                        alignLabel="left"
                                         disabled={false}
                                         icon="icon-trash"
                                         onClick={[Function]}
@@ -704,22 +705,26 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                               type="button"
                                             >
                                               <ButtonLabel
+                                                justify="flex-start"
                                                 size="small"
                                               >
                                                 <Component
                                                   className="css-o42ntg-ButtonLabel eqrebog1"
+                                                  justify="flex-start"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
                                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                                    justify="flex-start"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                      className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                      justify="flex-start"
                                                     >
                                                       <div
-                                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                        className="eqrebog1 css-gzxb22-ButtonLabel"
                                                         is={null}
                                                       >
                                                         <Icon
@@ -1451,6 +1456,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                       className="css-1d10zz4-RuleNodeControls e1qnqozx2"
                                     >
                                       <Button
+                                        alignLabel="left"
                                         disabled={false}
                                         icon="icon-trash"
                                         onClick={[Function]}
@@ -1485,22 +1491,26 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                               type="button"
                                             >
                                               <ButtonLabel
+                                                justify="flex-start"
                                                 size="small"
                                               >
                                                 <Component
                                                   className="css-o42ntg-ButtonLabel eqrebog1"
+                                                  justify="flex-start"
                                                   size="small"
                                                 >
                                                   <Flex
                                                     align="center"
                                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                                    justify="flex-start"
                                                   >
                                                     <Base
                                                       align="center"
-                                                      className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                      className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                      justify="flex-start"
                                                     >
                                                       <div
-                                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                        className="eqrebog1 css-gzxb22-ButtonLabel"
                                                         is={null}
                                                       >
                                                         <Icon
@@ -2292,6 +2302,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           to="/settings/org-slug/project-slug/alerts/rules/"
                         >
                           <Button
+                            alignLabel="left"
                             className="css-1yc33o1-CancelButton elb7f1e1"
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
@@ -2330,20 +2341,25 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                     role="button"
                                     style={Object {}}
                                   >
-                                    <ButtonLabel>
+                                    <ButtonLabel
+                                      justify="flex-start"
+                                    >
                                       <Component
                                         className="css-1emshjx-ButtonLabel eqrebog1"
+                                        justify="flex-start"
                                       >
                                         <Flex
                                           align="center"
                                           className="css-1emshjx-ButtonLabel eqrebog1"
+                                          justify="flex-start"
                                         >
                                           <Base
                                             align="center"
-                                            className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                            className="eqrebog1 css-11rqwwm-ButtonLabel"
+                                            justify="flex-start"
                                           >
                                             <div
-                                              className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                              className="eqrebog1 css-11rqwwm-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -2359,6 +2375,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                           </Button>
                         </CancelButton>
                         <Button
+                          alignLabel="left"
                           disabled={false}
                           priority="primary"
                         >
@@ -2386,22 +2403,26 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                                 role="button"
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   priority="primary"
                                 >
                                   <Component
                                     className="css-1emshjx-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     priority="primary"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-1emshjx-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                        className="eqrebog1 css-11rqwwm-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                          className="eqrebog1 css-11rqwwm-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule
@@ -4438,6 +4459,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           to="/settings/org-slug/project-slug/alerts/rules/"
                         >
                           <Button
+                            alignLabel="left"
                             className="css-1yc33o1-CancelButton elb7f1e1"
                             disabled={false}
                             to="/settings/org-slug/project-slug/alerts/rules/"
@@ -4476,20 +4498,25 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                     role="button"
                                     style={Object {}}
                                   >
-                                    <ButtonLabel>
+                                    <ButtonLabel
+                                      justify="flex-start"
+                                    >
                                       <Component
                                         className="css-1emshjx-ButtonLabel eqrebog1"
+                                        justify="flex-start"
                                       >
                                         <Flex
                                           align="center"
                                           className="css-1emshjx-ButtonLabel eqrebog1"
+                                          justify="flex-start"
                                         >
                                           <Base
                                             align="center"
-                                            className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                            className="eqrebog1 css-11rqwwm-ButtonLabel"
+                                            justify="flex-start"
                                           >
                                             <div
-                                              className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                              className="eqrebog1 css-11rqwwm-ButtonLabel"
                                               is={null}
                                             >
                                               Cancel
@@ -4505,6 +4532,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                           </Button>
                         </CancelButton>
                         <Button
+                          alignLabel="left"
                           disabled={false}
                           priority="primary"
                         >
@@ -4532,22 +4560,26 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                                 role="button"
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   priority="primary"
                                 >
                                   <Component
                                     className="css-1emshjx-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     priority="primary"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-1emshjx-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                        className="eqrebog1 css-11rqwwm-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-1nhrbny-ButtonLabel"
+                                          className="eqrebog1 css-11rqwwm-ButtonLabel"
                                           is={null}
                                         >
                                           Save Rule

@@ -721,6 +721,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
         </Panel>
       </TeamSelect>
       <Button
+        alignLabel="left"
         busy={false}
         className="invite-member-submit"
         disabled={false}
@@ -754,22 +755,26 @@ exports[`CreateProject should render roles when available and allowed, and handl
               role="button"
             >
               <ButtonLabel
+                justify="flex-start"
                 priority="primary"
               >
                 <Component
                   className="css-1emshjx-ButtonLabel eqrebog1"
+                  justify="flex-start"
                   priority="primary"
                 >
                   <Flex
                     align="center"
                     className="css-1emshjx-ButtonLabel eqrebog1"
+                    justify="flex-start"
                   >
                     <Base
                       align="center"
-                      className="eqrebog1 css-1nhrbny-ButtonLabel"
+                      className="eqrebog1 css-11rqwwm-ButtonLabel"
+                      justify="flex-start"
                     >
                       <div
-                        className="eqrebog1 css-1nhrbny-ButtonLabel"
+                        className="eqrebog1 css-11rqwwm-ButtonLabel"
                         is={null}
                       >
                         Add Member

@@ -11,6 +11,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
         title="You do not have permission to edit alert rules."
       >
         <Button
+          alignLabel="left"
           disabled={false}
           icon="icon-circle-add"
           priority="primary"
