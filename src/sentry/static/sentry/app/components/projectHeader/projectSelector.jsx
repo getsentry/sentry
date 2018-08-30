@@ -189,6 +189,7 @@ const BookmarkIcon = styled(props => (
     <span className="icon-star-solid bookmark" />
   </div>
 ))`
+  display: flex;
   font-size: 12px;
 `;
 
