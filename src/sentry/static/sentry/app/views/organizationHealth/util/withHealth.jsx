@@ -5,7 +5,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import HealthContext from './healthContext';
 
 /**
- * HoC that provides component with propertiers from `HealthContext`
+ * HoC that provides component with properties from `HealthContext`
  */
 const withHealth = WrappedComponent => {
   class WithHealth extends React.Component {
