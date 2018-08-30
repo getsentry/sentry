@@ -25,8 +25,6 @@ const COLUMNS = [
   {name: 'platform', type: 'string'},
   {name: 'message', type: 'string'},
   {name: 'primary_hash', type: 'string'},
-  {name: 'deleted', type: 'number'},
-  {name: 'retention_days', type: 'number'},
   {name: 'timestamp', type: 'string'}, // TODO: handling datetime as string for now
   {name: 'received', type: 'string'}, // TODO: handling datetime as string for now
 

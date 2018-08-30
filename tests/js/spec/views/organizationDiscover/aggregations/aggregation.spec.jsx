@@ -14,8 +14,8 @@ describe('Aggregation', function() {
           expectedTextValue: 'uniq(environment)',
         },
         {
-          value: ['avg', 'retention_days', 'avg_retention_days'],
-          expectedTextValue: 'avg(retention_days)',
+          value: ['avg', 'device_battery_level', 'avg_device_battery_level'],
+          expectedTextValue: 'avg(device_battery_level)',
         },
         {
           value: ['uniq', 'tags[message]', 'uniq_tags_message'],
