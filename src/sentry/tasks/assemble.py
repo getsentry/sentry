@@ -67,6 +67,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                         detail=error)
                     indicate_success = False
+                    dsym.delete()
 
             if indicate_success:
                 set_assemble_status(project, checksum, ChunkFileState.OK)
