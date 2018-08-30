@@ -135,253 +135,322 @@ describe('HealthRequest', function() {
     });
   });
 
-  it('defines a category name getter', async function() {
-    doHealthRequest.mockImplementation(() =>
-      Promise.resolve({
-        data: [[new Date(), [COUNT_OBJ]]],
-      })
-    );
-    wrapper = mount(
-      <HealthRequestWithParams
-        {...DEFAULTS}
-        getCategory={release => release && release.slug}
-      >
-        {mock}
-      </HealthRequestWithParams>
-    );
-    await tick();
-    wrapper.update();
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        loading: false,
-        timeseriesData: [
-          {
-            seriesName: 'release-slug',
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 123,
-              }),
-            ],
-          },
-        ],
-        originalTimeseriesData: [[expect.anything(), expect.anything()]],
-      })
-    );
-  });
+  describe('transforms', function() {
+    beforeEach(function() {
+      doHealthRequest.mockClear();
+    });
 
-  it('expands period in query if `includePrevious` and `timeseries`', async function() {
-    // doHealthRequest.mockClear();
-    doHealthRequest.mockImplementation(() =>
-      Promise.resolve({
-        data: [
-          [new Date(), [{...COUNT_OBJ, count: 321}, {...COUNT_OBJ, count: 79}]],
-          [new Date(), [COUNT_OBJ]],
-        ],
-      })
-    );
-    wrapper = mount(
-      <HealthRequestWithParams
-        {...DEFAULTS}
-        includeTimeseries={true}
-        includePrevious={true}
-        getCategory={({slug} = {}) => slug}
-      >
-        {mock}
-      </HealthRequestWithParams>
-    );
-
-    // actionCreator handles expanding the period when calling the API
-    expect(doHealthRequest).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        period: '24h',
-      })
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        loading: false,
-        allTimeseriesData: [
-          [
-            expect.anything(),
-            [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
+    it('defines a category name getter', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ]]],
+        })
+      );
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          getCategory={release => release && release.slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
+      await tick();
+      wrapper.update();
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          timeseriesData: [
+            {
+              seriesName: 'release-slug',
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 123,
+                }),
+              ],
+            },
           ],
-          [expect.anything(), [expect.objectContaining({count: 123})]],
-        ],
-        timeseriesData: [
-          {
-            seriesName: expect.anything(),
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 123,
-              }),
-            ],
-          },
-        ],
-        previousTimeseriesData: {
-          seriesName: 'Previous Period',
+          originalTimeseriesData: [[expect.anything(), expect.anything()]],
+        })
+      );
+    });
+
+    it('expands period in query if `includePrevious` and `timeseries`', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
           data: [
-            expect.objectContaining({
-              name: expect.anything(),
-              value: 400,
-            }),
+            [new Date(), [{...COUNT_OBJ, count: 321}, {...COUNT_OBJ, count: 79}]],
+            [new Date(), [COUNT_OBJ]],
           ],
-        },
+        })
+      );
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTimeseries={true}
+          includePrevious={true}
+          getCategory={({slug} = {}) => slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
 
-        originalTimeseriesData: [
-          [expect.anything(), [expect.objectContaining({count: 123})]],
-        ],
+      await tick();
+      wrapper.update();
 
-        originalPreviousTimeseriesData: [
-          [
-            expect.anything(),
-            [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
+      // actionCreator handles expanding the period when calling the API
+      expect(doHealthRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          period: '24h',
+        })
+      );
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          allTimeseriesData: [
+            [
+              expect.anything(),
+              [
+                expect.objectContaining({count: 321}),
+                expect.objectContaining({count: 79}),
+              ],
+            ],
+            [expect.anything(), [expect.objectContaining({count: 123})]],
           ],
-        ],
-      })
-    );
-  });
-
-  it('transforms data for non-timeseries response', async function() {
-    doHealthRequest.mockImplementation(() =>
-      Promise.resolve({
-        data: [COUNT_OBJ],
-      })
-    );
-    wrapper = mount(
-      <HealthRequestWithParams
-        {...DEFAULTS}
-        includeTimeseries={false}
-        includeTop={true}
-        getCategory={({slug} = {}) => slug}
-      >
-        {mock}
-      </HealthRequestWithParams>
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        loading: false,
-        tagData: [['release-slug', 123]],
-        originalTagData: [
-          {
-            count: 123,
-            release: {value: {slug: 'release-slug'}, _health_id: 'release:release-slug'},
+          timeseriesData: [
+            {
+              seriesName: expect.anything(),
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 123,
+                }),
+              ],
+            },
+          ],
+          previousTimeseriesData: {
+            seriesName: 'Previous Period',
+            data: [
+              expect.objectContaining({
+                name: expect.anything(),
+                value: 400,
+              }),
+            ],
           },
-        ],
-      })
-    );
-  });
 
-  it('transforms data with percentages only when `includPercentages` prop is true', async function() {
-    doHealthRequest.mockImplementation(() =>
-      Promise.resolve({
-        data: [
-          {...COUNT_OBJ, count: 100, lastCount: 50},
-          {
-            count: 80,
-            lastCount: 100,
-            release: {
-              value: {
-                slug: 'new-release',
+          originalTimeseriesData: [
+            [expect.anything(), [expect.objectContaining({count: 123})]],
+          ],
+
+          originalPreviousTimeseriesData: [
+            [
+              expect.anything(),
+              [
+                expect.objectContaining({count: 321}),
+                expect.objectContaining({count: 79}),
+              ],
+            ],
+          ],
+        })
+      );
+    });
+
+    it('transforms data for non-timeseries response', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [COUNT_OBJ],
+        })
+      );
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTimeseries={false}
+          includeTop={true}
+          getCategory={({slug} = {}) => slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          tagData: [['release-slug', 123]],
+          originalTagData: [
+            {
+              count: 123,
+              release: {
+                value: {slug: 'release-slug'},
+                _health_id: 'release:release-slug',
               },
             },
+          ],
+        })
+      );
+    });
+
+    it('transforms data with percentages only when `includPercentages` prop is true', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [
+            {...COUNT_OBJ, count: 100, lastCount: 50},
+            {
+              count: 80,
+              lastCount: 100,
+              release: {
+                value: {
+                  slug: 'new-release',
+                },
+              },
+            },
+          ],
+          totals: {
+            count: 180,
           },
-        ],
-        totals: {
-          count: 180,
-        },
-      })
-    );
+        })
+      );
 
-    wrapper = mount(
-      <HealthRequestWithParams
-        {...DEFAULTS}
-        includeTimeseries={false}
-        includeTop={true}
-        includePercentages={false}
-        getCategory={({slug} = {}) => slug}
-      >
-        {mock}
-      </HealthRequestWithParams>
-    );
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTimeseries={false}
+          includeTop={true}
+          includePercentages={false}
+          getCategory={({slug} = {}) => slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
 
-    await tick();
-    wrapper.update();
+      await tick();
+      wrapper.update();
 
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        tagDataWithPercentages: null,
-      })
-    );
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          tagDataWithPercentages: null,
+        })
+      );
 
-    wrapper.setProps({includePercentages: true});
-    await tick();
-    wrapper.update();
+      wrapper.setProps({includePercentages: true});
+      await tick();
+      wrapper.update();
 
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        tagDataWithPercentages: [
-          expect.objectContaining({
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          tagDataWithPercentages: [
+            expect.objectContaining({
+              count: 100,
+              lastCount: 50,
+              percentage: 55.56,
+            }),
+            expect.objectContaining({
+              count: 80,
+              lastCount: 100,
+              percentage: 44.44,
+            }),
+          ],
+        })
+      );
+    });
+
+    it('aggreates counts per timestamp only when `includeTimeAggregation` prop is true', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+        })
+      );
+
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTimeseries={true}
+          getCategory={({slug} = {}) => slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: null,
+        })
+      );
+
+      wrapper.setProps({includeTimeAggregation: 'aggregated series'});
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: {
+            seriesName: 'aggregated series',
+            data: [{name: expect.anything(), value: 223}],
+          },
+        })
+      );
+    });
+
+    it('transparently queries for top tags and then queries for timeseries data using only those top tags', async function() {
+      doHealthRequest.mockClear();
+      doHealthRequest.mockImplementation((api, props) => {
+        if (props.timeseries) {
+          return Promise.resolve({
+            data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+          });
+        }
+
+        return Promise.resolve({
+          data: [{...COUNT_OBJ, count: 100}],
+          totals: {
             count: 100,
             lastCount: 50,
-            percentage: 55.56,
-          }),
-          expect.objectContaining({
-            count: 80,
-            lastCount: 100,
-            percentage: 44.44,
-          }),
-        ],
-      })
-    );
-  });
+          },
+        });
+      });
 
-  it('aggreates counts per timestamp only when `includeTimeAggregation` prop is true', async function() {
-    doHealthRequest.mockImplementation(() =>
-      Promise.resolve({
-        data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
-      })
-    );
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTop
+          includeTimeseries
+          includePercentages
+          includeTimeAggregation="Aggregated"
+          includePrevious
+          getCategory={({slug} = {}) => slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
 
-    wrapper = mount(
-      <HealthRequestWithParams
-        {...DEFAULTS}
-        includeTimeseries={true}
-        getCategory={({slug} = {}) => slug}
-      >
-        {mock}
-      </HealthRequestWithParams>
-    );
+      await tick();
+      wrapper.update();
 
-    await tick();
-    wrapper.update();
+      expect(doHealthRequest).toHaveBeenCalledTimes(2);
+      expect(doHealthRequest).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          timeseries: true,
+          specifiers: ['release:release-slug'],
+        })
+      );
 
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        timeAggregatedData: null,
-      })
-    );
-
-    wrapper.setProps({includeTimeAggregation: 'aggregated series'});
-    await tick();
-    wrapper.update();
-
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        timeAggregatedData: {
-          seriesName: 'aggregated series',
-          data: [{name: expect.anything(), value: 223}],
-        },
-      })
-    );
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: {
+            seriesName: 'Aggregated',
+            data: [{name: expect.anything(), value: 223}],
+          },
+        })
+      );
+    });
   });
 });

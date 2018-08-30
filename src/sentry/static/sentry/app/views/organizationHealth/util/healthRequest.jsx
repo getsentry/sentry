@@ -131,7 +131,9 @@ class HealthRequestWithParams extends React.Component {
     const tagSpecifiers =
       (tagData &&
         tagData.data &&
-        tagData.data.map(({[tag]: tagObject}) => tagObject && tagObject._health_id)) ||
+        tagData.data
+          .map(({[tag]: tagObject}) => tagObject && tagObject._health_id)
+          .filter(id => !!id)) ||
       null;
 
     const timeseriesData = await this.fetchTimeseriesData({

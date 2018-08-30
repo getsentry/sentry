@@ -38,7 +38,7 @@ export const doHealthRequest = (
     timeseries,
     includePrevious,
     topk,
-    filters,
+    specifiers,
     limit,
   }
 ) => {
@@ -55,7 +55,7 @@ export const doHealthRequest = (
     statsPeriod: totalPeriod,
     project: projects,
     environment: environments,
-    q: filters,
+    q: specifiers,
     limit,
     ...(topk ? {topk} : {}),
   };
