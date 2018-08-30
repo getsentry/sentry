@@ -120,7 +120,7 @@ class BulkDeleteQuery(object):
         for chunk in g:
             yield chunk
 
-    def iterator_postgres(self, chunk_size):
+    def iterator_postgres(self, chunk_size, batch_size=1000000):
         dbc = connections[self.using]
         quote_name = dbc.ops.quote_name
 
@@ -133,6 +133,7 @@ class BulkDeleteQuery(object):
                     self.days,
                 )
             )
+
         if self.project_id:
             where.append("project_id = {}".format(self.project_id))
 
@@ -160,27 +161,39 @@ class BulkDeleteQuery(object):
             from {table}
             {where}
             {order}
+            limit {batch_size}
         """.format(
             table=self.model._meta.db_table,
             where=where_clause,
             order=order_clause,
+            batch_size=batch_size,
         )
 
-        # Explicitly use a named cursor so we can read rows
-        # from postgres incrementally without pulling them all
-        # into memory and we can iterate one big query for
-        # all rows instead of a bunch of smaller ones
         with dbc.get_new_connection(dbc.get_connection_params()) as conn:
-            with conn.cursor(uuid4().hex) as cursor:
-                cursor.execute(query)
-                chunk = []
-                for row in cursor:
-                    chunk.append(row[0])
-                    if len(chunk) == chunk_size:
-                        yield tuple(chunk)
-                        chunk = []
-                if chunk:
-                    yield tuple(chunk)
+            chunk = []
+
+            completed = False
+            while not completed:
+                # We explicitly use a named cursor here so that we can read a
+                # large quantity of rows from postgres incrementally, without
+                # having to pull all rows into memory at once.
+                with conn.cursor(uuid4().hex) as cursor:
+                    cursor.execute(query)
+
+                    for i, row in enumerate(cursor, 1):
+                        chunk.append(row[0])
+                        if len(chunk) == chunk_size:
+                            yield tuple(chunk)
+                            chunk = []
+
+                    # If we retrieved less rows than the batch size, there are
+                    # no more rows remaining to delete and we can exit the
+                    # loop.
+                    if i < batch_size:
+                        completed = True
+
+            if chunk:
+                yield tuple(chunk)
 
     def iterator_generic(self, chunk_size):
         from sentry.utils.query import RangeQuerySetWrapper
