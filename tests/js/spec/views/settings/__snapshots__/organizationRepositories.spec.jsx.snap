@@ -4,42 +4,31 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
 <div>
   <SettingsPageHeading
     action={
-      <DropdownLink
-        alwaysRenderMenu={true}
-        anchorRight={true}
-        caret={true}
-        className="btn btn-primary btn-sm"
-        disabled={false}
-        title="Add Repository"
+      <FeatureContainer
+        feature={
+          Array [
+            "bitbucket-integration",
+            "github-enterprise",
+          ]
+        }
+        requireAll={false}
       >
-        <MenuItem
-          noAnchor={true}
-        >
-          <AddRepositoryLink
-            orgId="org-slug"
-            provider={
-              Object {
-                "config": Array [
-                  Object {
-                    "help": "Enter your repository name, including the owner.",
-                    "label": "Repository Name",
-                    "name": "name",
-                    "placeholder": "e.g. getsentry/sentry",
-                    "required": true,
-                    "type": "text",
-                  },
-                ],
-                "id": "github",
-                "key": "github",
-                "name": "GitHub",
-              }
-            }
-          />
-        </MenuItem>
-      </DropdownLink>
+        [Function]
+      </FeatureContainer>
     }
     title="Repositories"
   />
+  <FeatureContainer
+    feature={
+      Array [
+        "bitbucket-integration",
+        "github-enterprise",
+      ]
+    }
+    requireAll={false}
+  >
+    <Component />
+  </FeatureContainer>
   <Panel>
     <PanelHeader
       disablePadding={true}
@@ -122,42 +111,31 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
 <div>
   <SettingsPageHeading
     action={
-      <DropdownLink
-        alwaysRenderMenu={true}
-        anchorRight={true}
-        caret={true}
-        className="btn btn-primary btn-sm"
-        disabled={false}
-        title="Add Repository"
+      <FeatureContainer
+        feature={
+          Array [
+            "bitbucket-integration",
+            "github-enterprise",
+          ]
+        }
+        requireAll={false}
       >
-        <MenuItem
-          noAnchor={true}
-        >
-          <AddRepositoryLink
-            orgId="org-slug"
-            provider={
-              Object {
-                "config": Array [
-                  Object {
-                    "help": "Enter your repository name, including the owner.",
-                    "label": "Repository Name",
-                    "name": "name",
-                    "placeholder": "e.g. getsentry/sentry",
-                    "required": true,
-                    "type": "text",
-                  },
-                ],
-                "id": "github",
-                "key": "github",
-                "name": "GitHub",
-              }
-            }
-          />
-        </MenuItem>
-      </DropdownLink>
+        [Function]
+      </FeatureContainer>
     }
     title="Repositories"
   />
+  <FeatureContainer
+    feature={
+      Array [
+        "bitbucket-integration",
+        "github-enterprise",
+      ]
+    }
+    requireAll={false}
+  >
+    <Component />
+  </FeatureContainer>
   <div
     className="m-b-2"
   >
@@ -220,17 +198,31 @@ exports[`OrganizationRepositories renders without providers 1`] = `
 <div>
   <SettingsPageHeading
     action={
-      <DropdownLink
-        alwaysRenderMenu={true}
-        anchorRight={true}
-        caret={true}
-        className="btn btn-primary btn-sm"
-        disabled={false}
-        title="Add Repository"
-      />
+      <FeatureContainer
+        feature={
+          Array [
+            "bitbucket-integration",
+            "github-enterprise",
+          ]
+        }
+        requireAll={false}
+      >
+        [Function]
+      </FeatureContainer>
     }
     title="Repositories"
   />
+  <FeatureContainer
+    feature={
+      Array [
+        "bitbucket-integration",
+        "github-enterprise",
+      ]
+    }
+    requireAll={false}
+  >
+    <Component />
+  </FeatureContainer>
   <div
     className="m-b-2"
   >
