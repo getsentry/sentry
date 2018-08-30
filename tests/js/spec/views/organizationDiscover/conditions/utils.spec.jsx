@@ -20,12 +20,12 @@ const conditionList = [
     external: ['message', 'IS NOT NULL', null],
   },
   {
-    internal: 'retention_days = 3',
-    external: ['retention_days', '=', 3],
+    internal: 'device_battery_level = 3',
+    external: ['device_battery_level', '=', 3],
   },
   {
-    internal: 'retention_days >= 0',
-    external: ['retention_days', '>=', 0],
+    internal: 'device_battery_level >= 0',
+    external: ['device_battery_level', '>=', 0],
   },
   {
     internal: 'message NOT LIKE something%',
