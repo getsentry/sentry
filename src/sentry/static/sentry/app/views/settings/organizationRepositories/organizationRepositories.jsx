@@ -63,42 +63,54 @@ export default class OrganizationRepositories extends React.Component {
 
     return (
       <div>
+        <SettingsPageHeader
+          title={t('Repositories')}
+          action={
+            <Feature
+              feature={['bitbucket-integration', 'github-enterprise']}
+              requireAll={false}
+            >
+              {({hasFeature}) => {
+                return (
+                  !hasFeature && (
+                    <DropdownLink
+                      anchorRight
+                      className="btn btn-primary btn-sm"
+                      title={t('Add Repository')}
+                    >
+                      {repoConfig &&
+                        repoConfig.providers &&
+                        repoConfig.providers.map(provider => {
+                          return (
+                            <MenuItem noAnchor={true} key={provider.id}>
+                              <AddRepositoryLink
+                                provider={provider}
+                                orgId={orgId}
+                                onSuccess={onAddRepo}
+                              />
+                            </MenuItem>
+                          );
+                        })}
+                    </DropdownLink>
+                  )
+                );
+              }}
+            </Feature>
+          }
+        />
         <Feature
           feature={['bitbucket-integration', 'github-enterprise']}
           requireAll={false}
         >
           {({hasFeature}) => {
-            return hasFeature ? (
-              <AlertLink to={`/settings/${orgId}/integrations/`}>
-                {t(
-                  'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
-                )}
-              </AlertLink>
-            ) : (
-              <SettingsPageHeader
-                title={t('Repositories')}
-                action={
-                  <DropdownLink
-                    anchorRight
-                    className="btn btn-primary btn-sm"
-                    title={t('Add Repository')}
-                  >
-                    {repoConfig &&
-                      repoConfig.providers &&
-                      repoConfig.providers.map(provider => {
-                        return (
-                          <MenuItem noAnchor={true} key={provider.id}>
-                            <AddRepositoryLink
-                              provider={provider}
-                              orgId={orgId}
-                              onSuccess={onAddRepo}
-                            />
-                          </MenuItem>
-                        );
-                      })}
-                  </DropdownLink>
-                }
-              />
+            return (
+              hasFeature && (
+                <AlertLink to={`/settings/${orgId}/integrations/`}>
+                  {t(
+                    'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+                  )}
+                </AlertLink>
+              )
             );
           }}
         </Feature>
