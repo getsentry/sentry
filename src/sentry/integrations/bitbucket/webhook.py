@@ -133,7 +133,7 @@ class PullEventWebhook(Webhook):
             commit_author = CommitAuthor.objects.create(
                 organization_id=organization.id,
                 email=primary_email,
-                name=pull_request['author']['display_name'],
+                name=pull_request['author']['display_name'] or pull_request['author']['username'],
                 external_id=pull_request['author']['uuid'],
             )
 
