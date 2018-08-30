@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
