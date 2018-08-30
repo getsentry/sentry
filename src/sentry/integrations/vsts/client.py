@@ -23,7 +23,7 @@ class VstsApiPath(object):
     projects = u'{instance}DefaultCollection/_apis/projects'
     repository = u'{instance}DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     repositories = u'{instance}{project}_apis/git/repositories'
-    subscription = '{instance}_apis/hooks/subscriptions/{subscription_id}'
+    subscription = u'{instance}_apis/hooks/subscriptions/{subscription_id}'
     subscriptions = u'{instance}_apis/hooks/subscriptions'
     work_items = u'{instance}DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'{instance}{project}/_apis/wit/workitems/${type}'
