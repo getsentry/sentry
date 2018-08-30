@@ -34,9 +34,11 @@ class JavaScriptSdkLoader(BaseView):
             tmpl = 'sentry/js-sdk-loader.js.tmpl'
 
         config = Config(key.project)
+
         context = {
             'config': config.get_project_key_config(key),
-            'jsSdkUrl': sdk_url
+            'jsSdkUrl': sdk_url,
+            'publicKey': public_key
         }
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
