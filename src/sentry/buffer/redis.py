@@ -140,6 +140,11 @@ class RedisBuffer(Buffer):
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
 
+        metrics.incr('buffer.incr', skip_internal=True, tags={
+            'module': model.__module__,
+            'model': model.__name__,
+        })
+
     def process_pending(self, partition=None):
         if partition is None and self.pending_partitions > 1:
             # If we're using partitions, this one task fans out into
