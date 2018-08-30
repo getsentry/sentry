@@ -82,22 +82,30 @@
 
   function sdkLoaded(callback, SDK) {
     try {
-      callback();
+      if (callback) {
+        callback();
+      }
       var data = queue.data;
+
+      // We want to replay all calls to Sentry first to make sure init is called before
+      // we call all our internal error handlers
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].f) {
+          var call = data[i];
+          SDK[call.f].apply(SDK, call.a);
+        }
+      }
 
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
 
-      // And capture all previously caught exceptions
+      // And now capture all previously caught exceptions
       for (var i = 0; i < data.length; i++) {
         if (data[i].e) {
           tracekitErrorHandler.apply(_window, data[i].e);
         } else if (data[i].p) {
           SDK.captureException(data[i].p);
-        } else if (data[i].f) {
-          var call = data[i];
-          SDK[call.f].apply(SDK, call.a);
         }
       }
     } catch (o_O) {
@@ -126,6 +134,7 @@
   };
 
   [
+    'init',
     'addBreadcrumb',
     'captureMessage',
     'captureException',
@@ -157,4 +166,4 @@
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
-})(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }});
+})(window, document, "script", "onerror", "onunhandledrejection", "Sentry", "{{ publicKey|safe }}", "{{ jsSdkUrl|safe }}", {{ config|to_json|safe }});
