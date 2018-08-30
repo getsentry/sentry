@@ -166,6 +166,7 @@ var appConfig = {
       collections: true,
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true, // used by a dependency of react-mentions
+      shorthands: true,
     }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']), // 'vendor' must be last entry

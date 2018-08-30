@@ -101,35 +101,35 @@ describe('Utils', function() {
     const expected = [
       {
         data: [
-          {name: 'Jul 9th', value: 6},
-          {name: 'Jul 10th', value: 20},
-          {name: 'Jul 20th', value: null},
+          {name: 'Jul 9th', value: 14},
+          {name: 'Jul 10th', value: null},
+          {name: 'Jul 20th', value: 30},
         ],
-        seriesName: 'python,ZeroDivisionError',
+        seriesName: 'python,SnubaError',
       },
       {
         data: [
           {name: 'Jul 9th', value: 6},
-          {name: 'Jul 20th', value: 5},
           {name: 'Jul 10th', value: null},
+          {name: 'Jul 20th', value: 8},
+        ],
+        seriesName: 'php,Exception',
+      },
+      {
+        data: [
+          {name: 'Jul 9th', value: 6},
+          {name: 'Jul 10th', value: null},
+          {name: 'Jul 20th', value: 5},
         ],
         seriesName: 'javascript,Type Error',
       },
       {
         data: [
           {name: 'Jul 9th', value: 6},
-          {name: 'Jul 20th', value: 8},
-          {name: 'Jul 10th', value: null},
+          {name: 'Jul 10th', value: 20},
+          {name: 'Jul 20th', value: null},
         ],
-        seriesName: 'php,Exception',
-      },
-      {
-        data: [
-          {name: 'Jul 9th', value: 14},
-          {name: 'Jul 20th', value: 30},
-          {name: 'Jul 10th', value: null},
-        ],
-        seriesName: 'python,SnubaError',
+        seriesName: 'python,ZeroDivisionError',
       },
     ];
 
