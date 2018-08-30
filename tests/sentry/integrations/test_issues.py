@@ -46,15 +46,16 @@ class IssueSyncIntegration(TestCase):
 
         installation = integration.get_installation(group.organization.id)
 
-        installation.sync_status_inbound(external_issue.key, {
-            'project_id': 'APP',
-            'status': {
-                'id': '12345',
-                'category': 'done',
-            },
-        })
+        with self.feature('organizations:integrations-issue-sync'):
+            installation.sync_status_inbound(external_issue.key, {
+                'project_id': 'APP',
+                'status': {
+                    'id': '12345',
+                    'category': 'done',
+                },
+            })
 
-        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
     def test_status_sync_inbound_unresolve(self):
         group = self.group
@@ -97,12 +98,13 @@ class IssueSyncIntegration(TestCase):
 
         installation = integration.get_installation(group.organization.id)
 
-        installation.sync_status_inbound(external_issue.key, {
-            'project_id': 'APP',
-            'status': {
-                'id': '12345',
-                'category': 'in_progress',
-            },
-        })
+        with self.feature('organizations:integrations-issue-sync'):
+            installation.sync_status_inbound(external_issue.key, {
+                'project_id': 'APP',
+                'status': {
+                    'id': '12345',
+                    'category': 'in_progress',
+                },
+            })
 
-        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+            assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
