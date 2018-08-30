@@ -30,6 +30,9 @@ class BitbucketSearchEndpoint(OrganizationEndpoint):
 
         if field == 'externalIssue':
             repo = request.GET.get('repo')
+            if not repo:
+                return Response({'detail': 'repo is a required parameter'}, status=400)
+
             full_query = (u'title~"%s"' % (query)).encode('utf-8')
             resp = installation.get_client().search_issues(repo, full_query)
             return Response([{
@@ -38,7 +41,7 @@ class BitbucketSearchEndpoint(OrganizationEndpoint):
             } for i in resp.get('values', [])])
 
         if field == 'repo':
-            full_query = (u'full_name~"%s"' % (query)).encode('utf-8')
+            full_query = (u'name~"%s"' % (query)).encode('utf-8')
             resp = installation.get_client().search_repositories(installation.username, full_query)
             return Response([{
                 'label': i['full_name'],
