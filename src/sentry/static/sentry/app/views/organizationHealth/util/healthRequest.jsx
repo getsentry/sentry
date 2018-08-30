@@ -123,7 +123,7 @@ class HealthRequestWithParams extends React.Component {
   }
 
   fetchData = async () => {
-    let {tag} = this.props;
+    const {tag} = this.props;
 
     // If this is defined and > 0, we need to fetch the top tags ordered by count
     // And then if we need timeseries, we'll
@@ -151,7 +151,7 @@ class HealthRequestWithParams extends React.Component {
   };
 
   fetchTopTag = otherProps => {
-    let {api, includeTop, ...props} = this.props;
+    const {api, includeTop, ...props} = this.props;
 
     if (!includeTop) return Promise.resolve({});
 
@@ -159,7 +159,7 @@ class HealthRequestWithParams extends React.Component {
   };
 
   fetchTimeseriesData = otherProps => {
-    let {api, includeTimeseries, ...props} = this.props;
+    const {api, includeTimeseries, ...props} = this.props;
     if (!includeTimeseries) return Promise.resolve({});
     return doHealthRequest(api, {...props, ...otherProps, timeseries: true});
   };
