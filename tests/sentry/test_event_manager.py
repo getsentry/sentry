@@ -581,7 +581,10 @@ class EventManagerTest(TransactionTestCase):
         )
 
         with self.tasks():
-            with self.feature('organizations:internal-catchall'):
+            with self.feature({
+                'organizations:integrations-issue-sync': True,
+                'organizations:internal-catchall': True,
+            }):
                 event = manager.save(1)
                 assert event.group_id == group.id
 

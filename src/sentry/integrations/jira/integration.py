@@ -8,12 +8,13 @@ from six.moves.urllib.parse import quote_plus
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
+from sentry import features
 from sentry.integrations import (
     Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, OrganizationIntegration
+from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration
 from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient
@@ -144,6 +145,16 @@ class JiraIntegration(Integration, IssueSyncMixin):
             configuration[0]['disabled'] = True
             configuration[0]['disabledReason'] = _(
                 'Unable to communicate with the Jira instance. You may need to reinstall the addon.')
+
+        organization = Organization.objects.get(id=self.organization_id)
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                      organization)
+        if not has_issue_sync:
+            for field in configuration:
+                field['disabled'] = True
+                field['disabledReason'] = _(
+                    'Your organization does not have access to this feature'
+                )
 
         return configuration
 
