@@ -200,7 +200,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-search" />}
+                    icon={<InlineSvg src="icon-discover" />}
                     label={t('Discover')}
                     to={`/organizations/${organization.slug}/discover/`}
                   />
