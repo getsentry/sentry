@@ -1,25 +1,14 @@
 import React from 'react';
 
 import {mount} from 'enzyme';
-import {openCommandPalette} from 'app/actionCreators/modal';
+import {openDocsSearchModal} from 'app/actionCreators/modal';
 import App from 'app/views/app';
-import FormSearchStore from 'app/stores/formSearchStore';
 
-import {navigateTo} from 'app/actionCreators/navigation';
-
-jest.mock('jquery');
-jest.mock('app/actionCreators/formSearch');
-jest.mock('app/actionCreators/navigation');
-
-describe('Command Palette Modal', function() {
-  let orgsMock;
-
+describe('Docs Search Modal', function() {
   beforeEach(function() {
-    FormSearchStore.onLoadSearchMap([]);
-
     MockApiClient.clearMockResponses();
 
-    orgsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
     });
@@ -51,7 +40,7 @@ describe('Command Palette Modal', function() {
     });
   });
 
-  it('can open command palette modal and search', async function() {
+  it('can open docs search modal and search', async function() {
     let wrapper = mount(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext([
@@ -66,52 +55,40 @@ describe('Command Palette Modal', function() {
     // No Modal
     expect(wrapper.find('ModalDialog')).toHaveLength(0);
 
-    openCommandPalette({params: {orgId: 'org-slug'}});
+    openDocsSearchModal();
     await tick();
     await tick();
     wrapper.update();
 
     // Should have Modal + input
     expect(wrapper.find('ModalDialog')).toHaveLength(1);
-    wrapper.find('ModalDialog input').simulate('change', {target: {value: 'bil'}});
+
+    let stub = sinon.stub($, 'get', (url, cb) => {
+      if (url.includes('rigidsearch')) {
+        cb({
+          items: [
+            {path: 'clients/node#sourcemaps', title: 'Source Maps'},
+            {path: 'clients/java/modules/logback#usage', title: 'Usage'},
+          ],
+        });
+      } else {
+        cb({
+          results: [
+            {html_url: 'https://help.sentry.io/100', title: '100'},
+            {html_url: 'https://help.sentry.io/200', title: '200'},
+          ],
+        });
+      }
+    });
+
+    wrapper.find('ModalDialog input').simulate('change', {target: {value: 'dummy'}});
 
     await tick();
     wrapper.update();
 
-    expect(orgsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        // This nested 'query' is correct
-        query: {query: 'bil'},
-      })
-    );
+    expect(wrapper.find('SearchResultWrapper')).toHaveLength(4);
+    expect(wrapper.find('SearchSources DropdownBox')).toMatchSnapshot();
 
-    expect(
-      wrapper
-        .find('SearchResult [data-test-id="badge-display-name"]')
-        .first()
-        .text()
-    ).toBe('billy-org Dashboard');
-
-    expect(
-      wrapper
-        .find('ModalDialog CommandPaletteSearchResultWrapper')
-        .first()
-        .prop('highlighted')
-    ).toBe(true);
-
-    expect(
-      wrapper
-        .find('ModalDialog CommandPaletteSearchResultWrapper')
-        .at(1)
-        .prop('highlighted')
-    ).toBe(false);
-
-    wrapper
-      .find('SearchResult [data-test-id="badge-display-name"]')
-      .first()
-      .simulate('click');
-
-    expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything());
+    stub.restore();
   });
 });
