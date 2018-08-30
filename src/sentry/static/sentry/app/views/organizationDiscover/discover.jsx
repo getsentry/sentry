@@ -201,7 +201,6 @@ export default class OrganizationDiscover extends React.Component {
 
     return (
       <Discover className="organization-home">
-        <EarlyAdopterMessage />
         <Header
           p={2}
           justify="space-between"
@@ -289,7 +288,7 @@ export default class OrganizationDiscover extends React.Component {
               <Button onClick={this.reset}>{t('Reset')}</Button>
             </Flex>
           </Box>
-          <Box w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2}>
+          <Flex w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2} style={{flexDirection: 'column'}}>
             {data && (
               <Result
                 data={data}
@@ -299,7 +298,8 @@ export default class OrganizationDiscover extends React.Component {
               />
             )}
             {!data && <Intro updateQuery={this.updateFields} />}
-          </Box>
+            <EarlyAdopterMessage />
+          </Flex>
         </Flex>
       </Discover>
     );
