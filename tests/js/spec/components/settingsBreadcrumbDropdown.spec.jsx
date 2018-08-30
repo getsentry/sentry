@@ -3,6 +3,15 @@ import {mount} from 'enzyme';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
+// Need to mock AutoSizer:/
+//
+const ActualReactVirtualized = require.requireActual('react-virtualized');
+jest.mock('react-virtualized', () => ({
+  ...ActualReactVirtualized,
+  AutoSizer: ({children}) => {
+    return children({width: 100, height: 100});
+  },
+}));
 jest.useFakeTimers();
 
 const CLOSE_DELAY = 0;
