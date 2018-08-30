@@ -118,7 +118,7 @@ const ProjectSelector = withRouter(
                 alignLabel="center"
                 priority="primary"
                 size="small"
-                href={`${this.urlPrefix()}/projects/new/`}
+                to={`${this.urlPrefix()}/projects/new/`}
               >
                 {t('Create project')}
               </CreateProjectButton>
