@@ -31,13 +31,21 @@ export default class ResultTable extends React.Component {
     const {meta, data} = this.props.data;
     const colName = meta[columnIndex].name;
 
-    return (
-      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1}>
-        {rowIndex === 0 ? (
+    if (rowIndex === 0) {
+      return (
+        <Cell key={key} style={style}>
           <strong>{colName}</strong>
-        ) : (
-          <AutoSelectText>{getDisplayValue(data[rowIndex - 1][colName])}</AutoSelectText>
-        )}
+        </Cell>
+      );
+    }
+
+    const value = data[rowIndex - 1][colName];
+
+    const isNumber = typeof value === 'number';
+
+    return (
+      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} isNumber={isNumber}>
+        <AutoSelectText>{getDisplayValue(value)}</AutoSelectText>
       </Cell>
     );
   };
@@ -130,7 +138,8 @@ const GridContainer = styled('div')`
 `;
 
 const Cell = styled('div')`
-  ${p => p.isOddRow && `background-color: ${p.theme.borderLighter};`} overflow: scroll;
+  ${p => p.isOddRow && `background-color: ${p.theme.borderLighter};`} ${p =>
+      p.isNumber && 'text-align: right;'} overflow: scroll;
   font-size: 14px;
   line-height: 30px;
   padding: 0 4px;
