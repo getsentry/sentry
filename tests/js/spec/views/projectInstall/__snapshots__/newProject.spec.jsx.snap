@@ -10,7 +10,7 @@ exports[`NewProjectPlatform render() should render 1`] = `
     <div
       className="p-t-1 p-b-1"
     >
-      <ProjectSelector
+      <withRouter(ProjectSelector)
         organization={
           Object {
             "id": "1337",
@@ -22,7 +22,6 @@ exports[`NewProjectPlatform render() should render 1`] = `
             ],
           }
         }
-        projectId={null}
       />
     </div>
   </div>

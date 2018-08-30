@@ -70,7 +70,7 @@ describe('AssigneeSelector', function() {
       },
     });
 
-    MemberListStore.items = [];
+    MemberListStore.items = null;
     MemberListStore.loaded = false;
 
     assigneeSelector = mount(

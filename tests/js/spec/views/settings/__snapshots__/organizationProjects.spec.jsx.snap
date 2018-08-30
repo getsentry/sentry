@@ -18,6 +18,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
         <SettingsPageHeading
           action={
             <Button
+              alignLabel="left"
               disabled={false}
               icon="icon-circle-add"
               priority="primary"
@@ -58,6 +59,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                     </Title>
                     <div>
                       <Button
+                        alignLabel="left"
                         disabled={false}
                         icon="icon-circle-add"
                         priority="primary"
@@ -106,24 +108,28 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 style={Object {}}
                               >
                                 <ButtonLabel
+                                  justify="flex-start"
                                   priority="primary"
                                   size="small"
                                 >
                                   <Component
                                     className="css-o42ntg-ButtonLabel eqrebog1"
+                                    justify="flex-start"
                                     priority="primary"
                                     size="small"
                                   >
                                     <Flex
                                       align="center"
                                       className="css-o42ntg-ButtonLabel eqrebog1"
+                                      justify="flex-start"
                                     >
                                       <Base
                                         align="center"
-                                        className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                        className="eqrebog1 css-gzxb22-ButtonLabel"
+                                        justify="flex-start"
                                       >
                                         <div
-                                          className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                          className="eqrebog1 css-gzxb22-ButtonLabel"
                                           is={null}
                                         >
                                           <Icon
@@ -461,6 +467,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               is={null}
                             >
                               <Button
+                                alignLabel="left"
                                 disabled={false}
                                 size="small"
                                 to="/org-slug/project-slug/"
@@ -503,22 +510,26 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         style={Object {}}
                                       >
                                         <ButtonLabel
+                                          justify="flex-start"
                                           size="small"
                                         >
                                           <Component
                                             className="css-o42ntg-ButtonLabel eqrebog1"
+                                            justify="flex-start"
                                             size="small"
                                           >
                                             <Flex
                                               align="center"
                                               className="css-o42ntg-ButtonLabel eqrebog1"
+                                              justify="flex-start"
                                             >
                                               <Base
                                                 align="center"
-                                                className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                justify="flex-start"
                                               >
                                                 <div
-                                                  className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                                  className="eqrebog1 css-gzxb22-ButtonLabel"
                                                   is={null}
                                                 >
                                                   View Issues

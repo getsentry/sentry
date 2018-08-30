@@ -245,7 +245,7 @@ const AssigneeSelectorComponent = createReactClass({
               e.stopPropagation();
             }}
             busy={memberList === null}
-            items={memberList !== null ? this.renderNewDropdownItems() : []}
+            items={memberList !== null ? this.renderNewDropdownItems() : null}
             alignMenu="right"
             onSelect={this.handleAssign}
             itemSize="small"

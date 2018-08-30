@@ -72,11 +72,12 @@ const theme = {
     toast: 10001,
     dropdownAutocomplete: {
       // needs to be above menu
-      actor: 8,
+      actor: 1008,
 
       // needs to be below actor but above other page elements (e.g. pagination)
       // (e.g. Issue Details "seen" dots on chart is 2)
-      menu: 7,
+      // stream header is 1000
+      menu: 1007,
     },
   },
 
