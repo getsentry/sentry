@@ -16,6 +16,7 @@ const PROMOTED_TAGS = [
   {name: 'tags[os]', type: 'string'},
   {name: 'tags[os_name]', type: 'string'},
   {name: 'tags[os_rooted]', type: 'number'},
+  {name: 'tags[sentry:release]', type: 'string'},
 ];
 
 const COLUMNS = [
