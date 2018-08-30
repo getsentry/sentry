@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import AlertActions from 'app/actions/alertActions';
 import ErrorBoundary from 'app/components/errorBoundary';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {Client} from 'app/api';
 import OrganizationContext from 'app/views/organizationContext';
 import NarrowLayout from 'app/components/narrowLayout';

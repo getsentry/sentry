@@ -7,9 +7,10 @@ import {Box, Flex} from 'grid-emotion';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
+import Tooltip from 'app/components/charts/components/tooltip';
 
 import Table from './table';
-import {getChartData, getChartDataByDay} from './utils';
+import {getChartData, getChartDataByDay, formatTooltip} from './utils';
 
 export default class Result extends React.Component {
   static propTypes = {
@@ -103,7 +104,17 @@ export default class Result extends React.Component {
 
         {view === 'table' && <Table data={data} />}
         {view === 'line' && <LineChart series={basicChartData} height={300} />}
-        {view === 'bar' && <BarChart series={basicChartData} height={300} />}
+        {view === 'bar' && (
+          <BarChart
+            series={basicChartData}
+            height={300}
+            options={{
+              tooltip: Tooltip({
+                formatter: formatTooltip,
+              }),
+            }}
+          />
+        )}
         {view === 'line-by-day' && (
           <LineChart
             series={getChartDataByDay(chartData.data, chartQuery)}
@@ -115,6 +126,11 @@ export default class Result extends React.Component {
             series={getChartDataByDay(chartData.data, chartQuery)}
             stacked={true}
             height={300}
+            options={{
+              tooltip: Tooltip({
+                formatter: formatTooltip,
+              }),
+            }}
           />
         )}
         {this.renderSummary()}

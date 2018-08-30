@@ -16,8 +16,6 @@ exports[`ProjectPlugins renders 1`] = `
     flex={false}
   >
     <PanelAlert
-      m={0}
-      mb={0}
       type="warning"
     >
       <FeatureContainer
@@ -26,7 +24,9 @@ exports[`ProjectPlugins renders 1`] = `
             "org:integrations",
           ]
         }
-      />
+      >
+        <Component />
+      </FeatureContainer>
     </PanelAlert>
     <PanelItem
       key="amazon-sqs"

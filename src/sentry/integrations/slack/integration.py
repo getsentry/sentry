@@ -47,6 +47,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     features = frozenset([
         IntegrationFeatures.NOTIFICATION,
         IntegrationFeatures.CHAT_UNFURL,
+        IntegrationFeatures.ALERT_RULE,
     ])
 
     identity_oauth_scopes = frozenset([

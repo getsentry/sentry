@@ -75,6 +75,26 @@ export function getChartDataByDay(data, query) {
 
     result.push({seriesName: key, data: output[key].data});
   }
+
+  return result;
+}
+
+export function formatTooltip(seriesParams) {
+  const label = seriesParams.length && seriesParams[0].axisValueLabel;
+  return [
+    `<div>${truncateLabel(label)}</div>`,
+    seriesParams
+      .filter(s => s.data[1] !== null)
+      .map(s => `<div>${s.marker} ${truncateLabel(s.seriesName)}:  ${s.data[1]}</div>`)
+      .join(''),
+  ].join('');
+}
+
+function truncateLabel(seriesName) {
+  let result = seriesName;
+  if (seriesName.length > 80) {
+    result = seriesName.substring(0, 80) + '…';
+  }
   return result;
 }
 

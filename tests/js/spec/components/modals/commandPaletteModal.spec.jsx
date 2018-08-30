@@ -108,7 +108,7 @@ describe('Command Palette Modal', function() {
     ).toBe(false);
 
     wrapper
-      .find('ModalDialog SearchResult')
+      .find('SearchResult [data-test-id="badge-display-name"]')
       .first()
       .simulate('click');
 

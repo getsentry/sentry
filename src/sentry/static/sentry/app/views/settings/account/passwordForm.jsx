@@ -3,7 +3,7 @@ import React from 'react';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {PanelItem} from 'app/components/panels';

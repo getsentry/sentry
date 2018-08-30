@@ -10,7 +10,7 @@ import {getPlatformName} from 'app/views/onboarding/utils';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import OnboardingProject from 'app/views/onboarding/project';
 import OrganizationState from 'app/mixins/organizationState';
 import PanelAlert from 'app/components/panels/panelAlert';

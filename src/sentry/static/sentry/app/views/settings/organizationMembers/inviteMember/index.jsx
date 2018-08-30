@@ -8,7 +8,7 @@ import sdk from 'app/utils/sdk';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';

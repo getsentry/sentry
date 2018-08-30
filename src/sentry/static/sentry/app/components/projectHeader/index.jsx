@@ -9,7 +9,7 @@ import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import BookmarkToggle from 'app/components/projects/bookmarkToggle';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
 import {t} from 'app/locale';
 

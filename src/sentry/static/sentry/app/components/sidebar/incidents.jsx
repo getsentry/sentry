@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import IncidentStore from 'app/stores/incidentStore';
 import InlineSvg from 'app/components/inlineSvg';
 

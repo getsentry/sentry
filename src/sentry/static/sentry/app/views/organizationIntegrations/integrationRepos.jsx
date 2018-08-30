@@ -5,7 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -117,7 +117,12 @@ export default class IntegrationRepos extends AsyncComponent {
           })
         );
       },
-      error: () => IndicatorStore.addError(t('Unable to add repository.')),
+      error: data => {
+        let text = data.responseJSON.errors
+          ? data.responseJSON.errors.__all__
+          : t('Unable to add repository.');
+        IndicatorStore.addError(text);
+      },
       complete: () => {
         IndicatorStore.remove(saveIndicator);
         this.setState({adding: false});

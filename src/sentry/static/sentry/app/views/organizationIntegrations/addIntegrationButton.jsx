@@ -3,7 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 
 export default class AddIntegrationButton extends React.Component {
@@ -15,11 +15,16 @@ export default class AddIntegrationButton extends React.Component {
   };
 
   render() {
-    // eslint-disable-next-line no-unused-vars
-    const {provider, buttonText, onAddIntegration, reinstall, ...buttonProps} = this.props;
+    const {
+      provider,
+      buttonText,
+      onAddIntegration,
+      reinstall,
+      ...buttonProps
+    } = this.props;
 
-    const label = buttonText ||
-      t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
+    const label =
+      buttonText || t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
 
     return (
       <Tooltip
@@ -27,7 +32,7 @@ export default class AddIntegrationButton extends React.Component {
         title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
       >
         <span>
-          <AddIntegration provider={provider} onInstall={this.props.onAddIntegration}>
+          <AddIntegration provider={provider} onInstall={onAddIntegration}>
             {onClick => (
               <Button {...buttonProps} disabled={!provider.canAdd} onClick={onClick}>
                 {label}

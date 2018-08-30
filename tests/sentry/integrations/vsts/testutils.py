@@ -143,29 +143,44 @@ class VstsIntegrationTestCase(IntegrationTestCase):
             }
         )
 
-    def assert_installation(self):
-        # Initial request to the installation URL for VSTS
-        resp = self.client.get(self.init_path)
+    def make_init_request(self, path=None, body=None):
+        return self.client.get(
+            path or self.init_path,
+            body or {},
+        )
 
-        redirect = urlparse(resp['Location'])
-        query = parse_qs(redirect.query)
+    def make_oauth_redirect_request(self, state):
+        return self.client.get('{}?{}'.format(
+            self.setup_path,
+            urlencode({
+                'code': 'oauth-code',
+                'state': state,
+            }),
+        ))
 
-        assert resp.status_code == 302
+    def assert_vsts_oauth_redirect(self, redirect):
         assert redirect.scheme == 'https'
         assert redirect.netloc == 'app.vssps.visualstudio.com'
         assert redirect.path == '/oauth2/authorize'
 
-        # OAuth redirect back to Sentry (identity_pipeline_view)
-        resp = self.client.get('{}?{}'.format(
-            self.setup_path,
-            urlencode({
-                'code': 'oauth-code',
-                'state': query['state'][0],
-            }),
-        ))
+    def assert_account_selection(self, response, account_id=None):
+        account_id = account_id or self.vsts_account_id
+        assert response.status_code == 200
+        assert '<option value="{}"'.format(account_id) in response.content
 
-        assert resp.status_code == 200
-        assert '<option value="{}"'.format(self.vsts_account_id) in resp.content
+    def assert_installation(self):
+        # Initial request to the installation URL for VSTS
+        resp = self.make_init_request()
+        redirect = urlparse(resp['Location'])
+
+        assert resp.status_code == 302
+        self.assert_vsts_oauth_redirect(redirect)
+
+        query = parse_qs(redirect.query)
+
+        # OAuth redirect back to Sentry (identity_pipeline_view)
+        resp = self.make_oauth_redirect_request(query['state'][0])
+        self.assert_account_selection(resp)
 
         # User choosing which VSTS Account to use (AccountConfigView)
         # Final step.

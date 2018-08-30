@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
 
 class Confirm extends React.PureComponent {

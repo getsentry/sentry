@@ -4,7 +4,7 @@ import React from 'react';
 import {t, tct} from 'app/locale';
 import ApiForm from 'app/components/forms/apiForm';
 import BooleanField from 'app/components/forms/booleanField';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 
 const ROLES = [

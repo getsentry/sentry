@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
 
 export default class ProviderItem extends React.PureComponent {

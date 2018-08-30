@@ -22,6 +22,7 @@ import withLatestContext from 'app/utils/withLatestContext';
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
 import SidebarDropdown from './sidebarDropdown';
+import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
 import OnboardingStatus from './onboardingStatus';
 
@@ -253,6 +254,12 @@ class Sidebar extends React.Component {
         {hasOrganization && (
           <SidebarSectionGroup>
             <SidebarSection>
+              <SidebarHelp
+                orientation={orientation}
+                collapsed={collapsed}
+                hidePanel={this.hidePanel}
+                organization={organization}
+              />
               <Broadcasts
                 orientation={orientation}
                 collapsed={collapsed}

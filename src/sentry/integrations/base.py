@@ -35,6 +35,7 @@ class IntegrationFeatures(Enum):
     ISSUE_SYNC = 'issue_sync'
     COMMITS = 'commits'
     CHAT_UNFURL = 'chat_unfurl'
+    ALERT_RULE = 'alert_rule'
 
 
 class IntegrationProvider(PipelineProvider):
@@ -61,8 +62,16 @@ class IntegrationProvider(PipelineProvider):
     # than ``key``. See: VstsExtensionIntegrationProvider.
     _integration_key = None
 
+    # Whether this integration should show up in the list on the Organization
+    # Integrations page.
+    visible = True
+
     # a human readable name (e.g. 'Slack')
     name = None
+
+    # Whether the Integration should show up in the list of Providers on the
+    # Organization Integration settings page
+    visible = True
 
     # an IntegrationMetadata object, used to provide extra details in the
     # configuration interface of the integration.

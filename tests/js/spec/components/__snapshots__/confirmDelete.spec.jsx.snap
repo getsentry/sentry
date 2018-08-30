@@ -37,22 +37,28 @@ exports[`ConfirmDelete renders 1`] = `
               className="ref-error"
               type="error"
             >
-              <div
-                className="ref-error css-1gmjigt-AlertWrapper e1xb5l7j1"
+              <Base
+                className="ref-error css-1segpdr-AlertWrapper e1xb5l7j1"
                 type="error"
               >
-                <StyledTextBlock>
-                  <Component
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
-                  >
-                    <div
+                <div
+                  className="ref-error css-1segpdr-AlertWrapper e1xb5l7j1"
+                  is={null}
+                  type="error"
+                >
+                  <StyledTextBlock>
+                    <Component
                       className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                     >
-                      Are you sure?
-                    </div>
-                  </Component>
-                </StyledTextBlock>
-              </div>
+                      <div
+                        className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                      >
+                        Are you sure?
+                      </div>
+                    </Component>
+                  </StyledTextBlock>
+                </div>
+              </Base>
             </AlertWrapper>
           </Alert>
           <Field
@@ -178,7 +184,7 @@ exports[`ConfirmDelete renders 1`] = `
                                                         value=""
                                                       >
                                                         <input
-                                                          className="css-1m7xmcf-Input-inputStyles e1xej46s0"
+                                                          className="css-ybupf9-Input-inputStyles e1xej46s0"
                                                           onChange={[Function]}
                                                           placeholder="CoolOrg"
                                                           type="text"
@@ -254,7 +260,7 @@ exports[`ConfirmDelete renders 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors e17811v30"
+                className="css-cmo08-StyledButton-getColors eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -266,7 +272,7 @@ exports[`ConfirmDelete renders 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors e17811v30"
+                  className="css-cmo08-StyledButton-getColors eqrebog0"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -278,18 +284,18 @@ exports[`ConfirmDelete renders 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                     >
                       <Flex
                         align="center"
-                        className="css-1emshjx-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Cancel
@@ -323,7 +329,7 @@ exports[`ConfirmDelete renders 1`] = `
               <Component
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-fn4jle-StyledButton-getColors e17811v30"
+                className="css-fn4jle-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={true}
                 href={null}
@@ -335,7 +341,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-fn4jle-StyledButton-getColors e17811v30"
+                  className="css-fn4jle-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={true}
                   href={null}
@@ -348,19 +354,19 @@ exports[`ConfirmDelete renders 1`] = `
                     priority="primary"
                   >
                     <Component
-                      className="css-1emshjx-ButtonLabel e17811v31"
+                      className="css-1emshjx-ButtonLabel eqrebog1"
                       priority="primary"
                     >
                       <Flex
                         align="center"
-                        className="css-1emshjx-ButtonLabel e17811v31"
+                        className="css-1emshjx-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-1nhrbny-ButtonLabel"
+                          className="eqrebog1 css-1nhrbny-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-1nhrbny-ButtonLabel"
+                            className="eqrebog1 css-1nhrbny-ButtonLabel"
                             is={null}
                           >
                             Confirm

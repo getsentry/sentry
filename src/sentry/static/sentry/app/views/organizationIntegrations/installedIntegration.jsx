@@ -6,12 +6,12 @@ import React from 'react';
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits'];
+const CONFIGURABLE_FEATURES = ['commits', 'alert_rule'];
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};

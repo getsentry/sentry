@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';

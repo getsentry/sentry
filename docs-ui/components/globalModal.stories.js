@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import GlobalModal from 'app/components/globalModal';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {openModal} from 'app/actionCreators/modal';
 
 storiesOf('GlobalModal', module).add(

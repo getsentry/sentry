@@ -5,7 +5,7 @@ import {Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import InlineSvg from 'app/components/inlineSvg';

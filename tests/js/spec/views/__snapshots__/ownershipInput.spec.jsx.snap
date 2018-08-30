@@ -454,7 +454,7 @@ exports[`Project Ownership Input renders 1`] = `
           value=""
         >
           <input
-            className="css-1xtn8xn-Input-inputStyles-BuilderInput e1hyuoc77"
+            className="css-1h4gu9a-Input-inputStyles-BuilderInput e1hyuoc77"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -828,7 +828,7 @@ exports[`Project Ownership Input renders 1`] = `
               to={null}
             >
               <Component
-                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
+                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
@@ -838,7 +838,7 @@ exports[`Project Ownership Input renders 1`] = `
                 to={null}
               >
                 <button
-                  className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton e17811v30"
+                  className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
                   disabled={true}
                   href={null}
                   onClick={[Function]}
@@ -852,20 +852,20 @@ exports[`Project Ownership Input renders 1`] = `
                     size="small"
                   >
                     <Component
-                      className="css-o42ntg-ButtonLabel e17811v31"
+                      className="css-o42ntg-ButtonLabel eqrebog1"
                       priority="primary"
                       size="small"
                     >
                       <Flex
                         align="center"
-                        className="css-o42ntg-ButtonLabel e17811v31"
+                        className="css-o42ntg-ButtonLabel eqrebog1"
                       >
                         <Base
                           align="center"
-                          className="e17811v31 css-l5mlqc-ButtonLabel"
+                          className="eqrebog1 css-l5mlqc-ButtonLabel"
                         >
                           <div
-                            className="e17811v31 css-l5mlqc-ButtonLabel"
+                            className="eqrebog1 css-l5mlqc-ButtonLabel"
                             is={null}
                           >
                             <Icon
@@ -873,20 +873,20 @@ exports[`Project Ownership Input renders 1`] = `
                               size="small"
                             >
                               <Component
-                                className="css-ljhpxy-Icon e17811v32"
+                                className="css-ljhpxy-Icon eqrebog2"
                                 hasChildren={false}
                                 size="small"
                               >
                                 <Box
-                                  className="css-ljhpxy-Icon e17811v32"
+                                  className="css-ljhpxy-Icon eqrebog2"
                                   size="small"
                                 >
                                   <Base
-                                    className="e17811v32 css-7mohvl-Icon"
+                                    className="eqrebog2 css-7mohvl-Icon"
                                     size="small"
                                   >
                                     <div
-                                      className="e17811v32 css-7mohvl-Icon"
+                                      className="eqrebog2 css-7mohvl-Icon"
                                       is={null}
                                       size="small"
                                     >
@@ -895,18 +895,18 @@ exports[`Project Ownership Input renders 1`] = `
                                         src="icon-circle-add"
                                       >
                                         <InlineSvg
-                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                           size="12px"
                                           src="icon-circle-add"
                                         >
                                           <StyledSvg
-                                            className="css-1ov3rcq-StyledInlineSvg e17811v33"
+                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                             height="12px"
                                             viewBox={Object {}}
                                             width="12px"
                                           >
                                             <svg
-                                              className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
@@ -961,7 +961,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-18yzq2g-StyledTextArea-inputStyles en3n9di2"
+        className="css-biid8w-StyledTextArea-inputStyles en3n9di2"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -975,7 +975,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-18yzq2g-StyledTextArea-inputStyles en3n9di2"
+          className="css-biid8w-StyledTextArea-inputStyles en3n9di2"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1020,7 +1020,7 @@ url:http://example.com/settings/* #product"
                 >
                   <Component
                     aria-label="Save Changes"
-                    className="css-zvpqlo-StyledButton-getColors e17811v30"
+                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
@@ -1029,7 +1029,7 @@ url:http://example.com/settings/* #product"
                   >
                     <button
                       aria-label="Save Changes"
-                      className="css-zvpqlo-StyledButton-getColors e17811v30"
+                      className="css-zvpqlo-StyledButton-getColors eqrebog0"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
@@ -1041,20 +1041,20 @@ url:http://example.com/settings/* #product"
                         size="small"
                       >
                         <Component
-                          className="css-o42ntg-ButtonLabel e17811v31"
+                          className="css-o42ntg-ButtonLabel eqrebog1"
                           priority="primary"
                           size="small"
                         >
                           <Flex
                             align="center"
-                            className="css-o42ntg-ButtonLabel e17811v31"
+                            className="css-o42ntg-ButtonLabel eqrebog1"
                           >
                             <Base
                               align="center"
-                              className="e17811v31 css-l5mlqc-ButtonLabel"
+                              className="eqrebog1 css-l5mlqc-ButtonLabel"
                             >
                               <div
-                                className="e17811v31 css-l5mlqc-ButtonLabel"
+                                className="eqrebog1 css-l5mlqc-ButtonLabel"
                                 is={null}
                               >
                                 Save Changes

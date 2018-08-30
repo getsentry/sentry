@@ -7,7 +7,7 @@ import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Field from 'app/views/settings/components/forms/field';

@@ -108,3 +108,13 @@ export function redirectToProject(newProjectSlug) {
       openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
     });
 }
+
+export function openDocsSearchModal() {
+  import(/* webpackChunkName: "DocsSearchModal" */ 'app/components/modals/docsSearchModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} />, {
+        modalClassName: 'docs-search-modal',
+      });
+    });
+}

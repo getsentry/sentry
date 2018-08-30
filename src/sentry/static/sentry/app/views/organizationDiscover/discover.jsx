@@ -6,7 +6,7 @@ import {browserHistory} from 'react-router';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import NumberField from 'app/components/forms/numberField';
