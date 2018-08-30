@@ -148,7 +148,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     // If orderby value becomes invalid, update it to the first valid aggregation
     if (hasInvalidOrderbyField) {
       if (validAggregations.length > 0) {
-        query.orderby = validAggregations[0][2];
+        query.orderby = `-${validAggregations[0][2]}`;
       } else {
         query.orderby = '-timestamp';
       }
