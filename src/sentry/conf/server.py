@@ -891,6 +891,8 @@ SENTRY_ANALYTICS_ALIASES = {
     'noop': 'sentry.analytics.Analytics',
     'pubsub': 'sentry.analytics.pubsub.PubSubAnalytics',
 }
+SENTRY_RELEASEFILE_CACHE = (
+    os.environ.get('SENTRY_RELEASEFILE_CACHE') or '1') == '1'
 
 # set of backends that do not support needing SMTP mail.* settings
 # This list is a bit fragile and hardcoded, but it's unlikely that

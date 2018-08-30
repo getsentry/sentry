@@ -255,7 +255,8 @@ def fetch_release_file(filename, release, dist=None):
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
             result = http.UrlResult(filename, headers, body, 200, encoding)
-            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+            if settings.SENTRY_RELEASEFILE_CACHE:
+                cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
     elif result == -1:
         # We cached an error, so normalize
