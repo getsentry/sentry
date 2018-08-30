@@ -32,7 +32,9 @@ class DocsSource extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    this.doSearch(nextProps.query);
+    if (nextProps.query !== this.props.query) {
+      this.doSearch(nextProps.query);
+    }
   }
 
   // Debounced method to handle querying all API endpoints (when necessary)
@@ -61,7 +63,7 @@ class DocsSource extends React.Component {
         docResults: [],
       });
     }
-  }, 150);
+  }, 300);
 
   render() {
     return this.props.children({

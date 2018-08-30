@@ -13,10 +13,11 @@ exports[`Docs Search Modal can open docs search modal and search 1`] = `
       onClick={[Function]}
     >
       <SearchResultWrapper
-        className="search-tag search-tag-qa search-autocomplete-item"
+        type="faq"
       >
         <li
-          className="search-tag search-tag-qa search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+          className="css-pxf2zs-SearchResultWrapper er3di120"
+          type="faq"
         >
           <span
             className="title"
@@ -32,10 +33,11 @@ exports[`Docs Search Modal can open docs search modal and search 1`] = `
       onClick={[Function]}
     >
       <SearchResultWrapper
-        className="search-tag search-tag-qa search-autocomplete-item"
+        type="faq"
       >
         <li
-          className="search-tag search-tag-qa search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+          className="css-pxf2zs-SearchResultWrapper er3di120"
+          type="faq"
         >
           <span
             className="title"
@@ -51,10 +53,11 @@ exports[`Docs Search Modal can open docs search modal and search 1`] = `
       onClick={[Function]}
     >
       <SearchResultWrapper
-        className="search-tag search-tag-docs search-autocomplete-item"
+        type="docs"
       >
         <li
-          className="search-tag search-tag-docs search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+          className="css-x4fi4r-SearchResultWrapper er3di120"
+          type="docs"
         >
           <span
             className="title"
@@ -91,10 +94,11 @@ exports[`Docs Search Modal can open docs search modal and search 1`] = `
       onClick={[Function]}
     >
       <SearchResultWrapper
-        className="search-tag search-tag-docs search-autocomplete-item"
+        type="docs"
       >
         <li
-          className="search-tag search-tag-docs search-autocomplete-item css-azuqo3-SearchResultWrapper er3di120"
+          className="css-x4fi4r-SearchResultWrapper er3di120"
+          type="docs"
         >
           <span
             className="title"

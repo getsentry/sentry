@@ -26,7 +26,7 @@ class DocsSearchModal extends React.Component {
     let {Body} = this.props;
 
     return (
-      <Body className="support-search">
+      <Body>
         <Search
           {...this.props}
           sources={[DocsSource, FaqSource]}
@@ -61,7 +61,7 @@ class DocsSearchModal extends React.Component {
               path.pop();
               return (
                 <a href={link}>
-                  <SearchResultWrapper className="search-tag search-tag-docs search-autocomplete-item">
+                  <SearchResultWrapper type={type}>
                     <span className="title">{result.title}</span>
                     <p>{path}</p>
                   </SearchResultWrapper>
@@ -70,7 +70,7 @@ class DocsSearchModal extends React.Component {
             }
             return (
               <a href={result.html_url}>
-                <SearchResultWrapper className="search-tag search-tag-qa search-autocomplete-item">
+                <SearchResultWrapper type={type}>
                   <span className="title">{result.title}</span>
                 </SearchResultWrapper>
               </a>
@@ -86,14 +86,44 @@ export default DocsSearchModal;
 
 const SearchResultWrapper = styled('li')`
   position: relative;
-  padding: 8px 14px 8px 40px;
+  padding: 8px 14px 8px 70px;
   cursor: pointer;
+
+  &:before {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px;
+    color: darkgrey;
+    width: 40px;
+    height: 20px;
+    background: 0 0;
+    border: 1px solid;
+    border-radius: 9px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1;
+    content: ${p => (p.type == 'docs' ? "'Docs'" : "'Q&A'")};
+  }
 
   p {
     margin: 2px 0 0;
     font-size: 13px;
     color: @gray-light;
     line-height: 1;
+  }
+
+  .title {
+    font-weight: bold;
+  }
+
+  a {
+    color: black;
+  }
+
+  .divider {
+    opacity: 0.45 !important;
   }
 `;
 
