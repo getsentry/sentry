@@ -75,9 +75,14 @@ class HealthRequestWithParams extends React.Component {
 
     /**
      * Include a dataset transform that will aggregate count values for each timestamp.
-     * Note this expects a string for the series name to be used for the aggregated series.
+     * Be sure to supply a name to `timeAggregationSeriesName`
      */
-    includeTimeAggregation: PropTypes.string,
+    includeTimeAggregation: PropTypes.bool,
+
+    /**
+     * Name of series of aggregated timeseries
+     */
+    timeAggregationSeriesName: PropTypes.string,
 
     /**
      * Include a map of series name -> percentage integers
@@ -232,11 +237,11 @@ class HealthRequestWithParams extends React.Component {
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries = (data, name) => {
+  transformAggregatedTimeseries = (data, seriesName) => {
     if (!data) return null;
 
     return {
-      seriesName: name,
+      seriesName,
       data: this.calculateTotalsPerTimestamp(data),
     };
   };
@@ -290,6 +295,7 @@ class HealthRequestWithParams extends React.Component {
       includePercentages,
       includeTimeAggregation,
       includeTop,
+      timeAggregationSeriesName,
     } = this.props;
     const shouldIncludePercentages = includePercentages && includeTop && !isTimeseries;
     const {current, previous} = this.getData(data, isTimeseries);
@@ -324,7 +330,7 @@ class HealthRequestWithParams extends React.Component {
 
     const timeAggregatedData =
       isTimeseries && includeTimeAggregation
-        ? this.transformAggregatedTimeseries(current, includeTimeAggregation)
+        ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName)
         : null;
 
     return {

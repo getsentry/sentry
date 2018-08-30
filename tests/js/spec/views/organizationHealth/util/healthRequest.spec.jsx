@@ -358,7 +358,7 @@ describe('HealthRequest', function() {
       );
     });
 
-    it('aggreates counts per timestamp only when `includeTimeAggregation` prop is true', async function() {
+    it('aggregates counts per timestamp only when `includeTimeAggregation` prop is true', async function() {
       doHealthRequest.mockImplementation(() =>
         Promise.resolve({
           data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
@@ -384,7 +384,10 @@ describe('HealthRequest', function() {
         })
       );
 
-      wrapper.setProps({includeTimeAggregation: 'aggregated series'});
+      wrapper.setProps({
+        includeTimeAggregation: true,
+        timeAggregationSeriesName: 'aggregated series',
+      });
       await tick();
       wrapper.update();
 
@@ -422,8 +425,9 @@ describe('HealthRequest', function() {
           includeTop
           includeTimeseries
           includePercentages
-          includeTimeAggregation="Aggregated"
+          includeTimeAggregation
           includePrevious
+          timeAggregationSeriesName="Aggregated"
           getCategory={({slug} = {}) => slug}
         >
           {mock}
