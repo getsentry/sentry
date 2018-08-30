@@ -8,6 +8,7 @@ import withApi from 'app/utils/withApi';
 import withLatestContext from 'app/utils/withLatestContext';
 
 import HealthContext from './healthContext';
+import LoadingIndicator from '../../../components/loadingIndicator';
 
 class HealthRequestWithParams extends React.Component {
   static propTypes = {
@@ -53,17 +54,12 @@ class HealthRequestWithParams extends React.Component {
     includePrevious: PropTypes.bool,
 
     /**
-     * Should we query for timeseries data
-     */
-    timeseries: PropTypes.bool,
-
-    /**
      * number of rows to return
      */
     limit: PropTypes.number,
 
     /**
-     * topK value
+     * topK value, currently only hardcoded for topk projects
      */
     topk: PropTypes.number,
 
@@ -89,22 +85,30 @@ class HealthRequestWithParams extends React.Component {
      * This is only valid for non-timeseries data
      */
     includePercentages: PropTypes.bool,
+
+    includeTimeseries: PropTypes.bool,
+
+    includeTop: PropTypes.bool,
+
+    showLoading: PropTypes.bool,
   };
 
   static defaultProps = {
     period: '7d',
-    includePrevious: true,
-    timeseries: true,
     interval: '1d',
     limit: 15,
     getCategory: i => i,
+
+    includeTimeseries: true,
+    includePrevious: true,
     includeTransformedData: true,
   };
 
   constructor(props) {
     super(props);
     this.state = {
-      data: null,
+      tagData: null,
+      timeseriesData: null,
     };
   }
 
@@ -118,15 +122,45 @@ class HealthRequestWithParams extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
-    let {api, ...props} = this.props;
-    doHealthRequest(api, props).then(({data, totals}) => {
-      this.setState({
-        data,
-        totals,
-      });
+  fetchData = async () => {
+    let {tag} = this.props;
+
+    // If this is defined and > 0, we need to fetch the top tags ordered by count
+    // And then if we need timeseries, we'll
+    const tagData = await this.fetchTopTag();
+    const tagSpecifiers =
+      (tagData &&
+        tagData.data &&
+        tagData.data.map(({[tag]: tagObject}) => tagObject && tagObject._health_id)) ||
+      null;
+
+    const timeseriesData = await this.fetchTimeseriesData({
+      ...(tagSpecifiers && tagSpecifiers.length
+        ? {
+            specifiers: tagSpecifiers,
+          }
+        : {}),
     });
-  }
+
+    this.setState({
+      tagData,
+      timeseriesData,
+    });
+  };
+
+  fetchTopTag = otherProps => {
+    let {api, includeTop, ...props} = this.props;
+
+    if (!includeTop) return Promise.resolve({});
+
+    return doHealthRequest(api, {...props, ...otherProps, timeseries: false});
+  };
+
+  fetchTimeseriesData = otherProps => {
+    let {api, includeTimeseries, ...props} = this.props;
+    if (!includeTimeseries) return Promise.resolve({});
+    return doHealthRequest(api, {...props, ...otherProps, timeseries: true});
+  };
 
   // Is going to be called with an object with `value` and `_health_id`
   getCategory = ({value} = {}) => {
@@ -139,9 +173,9 @@ class HealthRequestWithParams extends React.Component {
    *
    * Returns `null` if data does not exist
    */
-  getData = () => {
-    const {timeseries, includePrevious} = this.props;
-    const {data} = this.state;
+  getData = (data, isTimeseries) => {
+    const {includePrevious} = this.props;
+
     if (!data) {
       return {
         previous: null,
@@ -149,7 +183,7 @@ class HealthRequestWithParams extends React.Component {
       };
     }
 
-    const hasPreviousPeriod = timeseries && includePrevious;
+    const hasPreviousPeriod = isTimeseries && includePrevious;
     const dataMiddleIndex = data.length / 2;
 
     return {
@@ -237,31 +271,28 @@ class HealthRequestWithParams extends React.Component {
   transformNonTimeSeriesData = (data, tag) =>
     data.map(({[tag]: tagObject, count}) => [this.getCategory(tagObject), count]);
 
-  transformData = data => {
-    const {timeseries, tag} = this.props;
+  transformData = (data, isTimeseries) => {
+    const {tag} = this.props;
     if (!data) return null;
 
-    return timeseries
+    return isTimeseries
       ? this.transformTimeseriesData(data, tag)
       : this.transformNonTimeSeriesData(data, tag);
   };
 
-  render() {
+  processData({data, totals} = {}, isTimeseries) {
     const {
-      children,
-      includeTimeAggregation,
+      tag,
       includeTransformedData,
       includePercentages,
-      tag,
-      timeseries,
-      ...props
+      includeTimeAggregation,
+      includeTop,
     } = this.props;
-    const {data, totals} = this.state;
-    const {current, previous} = this.getData();
-    const shouldIncludePercentages = includePercentages && !timeseries;
+    const shouldIncludePercentages = includePercentages && includeTop && !isTimeseries;
+    const {current, previous} = this.getData(data, isTimeseries);
     const transformedData =
       includeTransformedData || shouldIncludePercentages
-        ? this.transformData(current)
+        ? this.transformData(current, isTimeseries)
         : null;
 
     const percentageMap =
@@ -283,45 +314,81 @@ class HealthRequestWithParams extends React.Component {
           })
         : null;
 
-    return children({
-      // Is "loading" if data is null
-      loading: data === null,
-
-      // Current period, transformed data
-      data: transformedData,
-
-      dataWithPercentages,
-
-      // Previous period, transformed and aggregated data
-      previousData: includeTransformedData
+    const previousData =
+      isTimeseries && includeTransformedData
         ? this.transformPreviousPeriodData(current, previous)
-        : null,
+        : null;
 
-      // Current period data aggregated by time
-      timeAggregatedData: includeTimeAggregation
+    const timeAggregatedData =
+      isTimeseries && includeTimeAggregation
         ? this.transformAggregatedTimeseries(current, includeTimeAggregation)
-        : null,
+        : null;
 
-      // All data
+    return {
+      data: transformedData,
       allData: data,
-
-      // Current period data before any transforms
       originalData: current,
-
-      // Previous period data before any transforms
-      originalPreviousData: previous,
-
-      // Totals for current period
-      // TODO: this currently isn't accurate because of previous period
       totals,
+      originalPreviousData: previous,
+      previousData,
+      timeAggregatedData,
+      dataWithPercentages,
+    };
+  }
 
-      // Total counts for previous period
-      // TODO: this currently doesn't work
-      previousTotals: null,
+  render() {
+    const {children, tag, showLoading, ...props} = this.props;
+
+    const {tagData, timeseriesData} = this.state;
+
+    // Is "loading" if data is null
+    const loading = tagData === null && timeseriesData === null;
+
+    if (showLoading && loading) {
+      return <LoadingIndicator />;
+    }
+
+    const {
+      data: transformedTagData,
+      allData: allTagData,
+      originalData: originalTagData,
+      totals: tagTotals,
+      dataWithPercentages: tagDataWithPercentages,
+    } =
+      (tagData && this.processData(tagData)) || {};
+
+    const {
+      data: transformedTimeseriesData,
+      allData: allTimeseriesData,
+      originalData: originalTimeseriesData,
+      totals: timeseriesTotals,
+      originalPreviousData: originalPreviousTimeseriesData,
+      previousData: previousTimeseriesData,
+      timeAggregatedData,
+    } =
+      (timeseriesData && this.processData(timeseriesData, true)) || {};
+
+    return children({
+      loading,
+
+      // tg data
+      tagData: transformedTagData,
+      allTagData,
+      originalTagData,
+      tagTotals,
+      tagDataWithPercentages,
+
+      // timeseries data
+      timeseriesData: transformedTimeseriesData,
+      allTimeseriesData,
+      originalTimeseriesData,
+      timeseriesTotals,
+      originalPreviousTimeseriesData,
+      previousTimeseriesData,
+      timeAggregatedData,
 
       // sometimes we want to reference props that were given to HealthRequest
       tag,
-      timeseries,
       ...props,
     });
   }

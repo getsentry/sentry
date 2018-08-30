@@ -27,9 +27,10 @@ describe('HealthRequest', function() {
     projects: [project.id],
     environments: [],
     period: '24h',
-    includePrevious: false,
     organization,
     tag: 'release',
+    includePrevious: false,
+    includeTimeseries: true,
   };
 
   let wrapper;
@@ -47,18 +48,17 @@ describe('HealthRequest', function() {
     });
 
     it('makes requests', async function() {
-      expect(mock).toHaveBeenCalledWith(
+      expect(mock).toHaveBeenNthCalledWith(
+        1,
         expect.objectContaining({
           loading: true,
-          data: null,
-          originalData: null,
         })
       );
 
       expect(mock).toHaveBeenLastCalledWith(
         expect.objectContaining({
           loading: false,
-          data: [
+          timeseriesData: [
             {
               seriesName: expect.anything(),
               data: [
@@ -69,7 +69,9 @@ describe('HealthRequest', function() {
               ],
             },
           ],
-          originalData: [[expect.anything(), expect.anything()]],
+          originalTimeseriesData: [[expect.anything(), expect.anything()]],
+          tagData: null,
+          originalTagData: null,
         })
       );
 
@@ -80,6 +82,8 @@ describe('HealthRequest', function() {
       doHealthRequest.mockClear();
 
       wrapper.setProps({projects: ['123']});
+      await tick();
+      wrapper.update();
       expect(doHealthRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -92,6 +96,8 @@ describe('HealthRequest', function() {
       doHealthRequest.mockClear();
 
       wrapper.setProps({environments: ['dev']});
+      await tick();
+      wrapper.update();
       expect(doHealthRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -104,6 +110,8 @@ describe('HealthRequest', function() {
       doHealthRequest.mockClear();
 
       wrapper.setProps({period: '7d'});
+      await tick();
+      wrapper.update();
       expect(doHealthRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -112,10 +120,12 @@ describe('HealthRequest', function() {
       );
     });
 
-    it('makes a new request if timeseries prop changes', async function() {
+    it('makes a new request if includeTimeseries prop changes', async function() {
       doHealthRequest.mockClear();
 
-      wrapper.setProps({timeseries: false});
+      wrapper.setProps({includeTimeseries: false, includeTop: true});
+      await tick();
+      wrapper.update();
       expect(doHealthRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -144,7 +154,7 @@ describe('HealthRequest', function() {
     expect(mock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         loading: false,
-        data: [
+        timeseriesData: [
           {
             seriesName: 'release-slug',
             data: [
@@ -155,7 +165,7 @@ describe('HealthRequest', function() {
             ],
           },
         ],
-        originalData: [[expect.anything(), expect.anything()]],
+        originalTimeseriesData: [[expect.anything(), expect.anything()]],
       })
     );
   });
@@ -173,7 +183,7 @@ describe('HealthRequest', function() {
     wrapper = mount(
       <HealthRequestWithParams
         {...DEFAULTS}
-        timeseries={true}
+        includeTimeseries={true}
         includePrevious={true}
         getCategory={({slug} = {}) => slug}
       >
@@ -195,14 +205,14 @@ describe('HealthRequest', function() {
     expect(mock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         loading: false,
-        allData: [
+        allTimeseriesData: [
           [
             expect.anything(),
             [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
           ],
           [expect.anything(), [expect.objectContaining({count: 123})]],
         ],
-        data: [
+        timeseriesData: [
           {
             seriesName: expect.anything(),
             data: [
@@ -213,7 +223,7 @@ describe('HealthRequest', function() {
             ],
           },
         ],
-        previousData: {
+        previousTimeseriesData: {
           seriesName: 'Previous Period',
           data: [
             expect.objectContaining({
@@ -223,9 +233,11 @@ describe('HealthRequest', function() {
           ],
         },
 
-        originalData: [[expect.anything(), [expect.objectContaining({count: 123})]]],
+        originalTimeseriesData: [
+          [expect.anything(), [expect.objectContaining({count: 123})]],
+        ],
 
-        originalPreviousData: [
+        originalPreviousTimeseriesData: [
           [
             expect.anything(),
             [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
@@ -244,19 +256,22 @@ describe('HealthRequest', function() {
     wrapper = mount(
       <HealthRequestWithParams
         {...DEFAULTS}
-        timeseries={false}
+        includeTimeseries={false}
+        includeTop={true}
         getCategory={({slug} = {}) => slug}
       >
         {mock}
       </HealthRequestWithParams>
     );
+
     await tick();
     wrapper.update();
+
     expect(mock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         loading: false,
-        data: [['release-slug', 123]],
-        originalData: [
+        tagData: [['release-slug', 123]],
+        originalTagData: [
           {
             count: 123,
             release: {value: {slug: 'release-slug'}, _health_id: 'release:release-slug'},
@@ -290,7 +305,8 @@ describe('HealthRequest', function() {
     wrapper = mount(
       <HealthRequestWithParams
         {...DEFAULTS}
-        timeseries={false}
+        includeTimeseries={false}
+        includeTop={true}
         includePercentages={false}
         getCategory={({slug} = {}) => slug}
       >
@@ -303,7 +319,7 @@ describe('HealthRequest', function() {
 
     expect(mock).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        dataWithPercentages: null,
+        tagDataWithPercentages: null,
       })
     );
 
@@ -313,7 +329,7 @@ describe('HealthRequest', function() {
 
     expect(mock).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        dataWithPercentages: [
+        tagDataWithPercentages: [
           expect.objectContaining({
             count: 100,
             lastCount: 50,
@@ -339,7 +355,7 @@ describe('HealthRequest', function() {
     wrapper = mount(
       <HealthRequestWithParams
         {...DEFAULTS}
-        timeseries
+        includeTimeseries={true}
         getCategory={({slug} = {}) => slug}
       >
         {mock}
