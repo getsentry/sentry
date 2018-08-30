@@ -54,7 +54,7 @@ class VstsIssueSycnTest(TestCase):
             'sync_reverse_assignment': True,
         }
         self.integration = VstsIntegration(model, self.organization.id)
-        self.issue_id = 309
+        self.issue_id = '309'
 
     @responses.activate
     def test_create_issue(self):
@@ -70,11 +70,15 @@ class VstsIssueSycnTest(TestCase):
         form_data = {
             'title': 'Hello',
             'description': 'Fix this.',
+            'project': '0987654321#Fabrikam-Fiber-Git',
         }
         assert self.integration.create_issue(form_data) == {
             'key': self.issue_id,
             'description': 'Fix this.',
             'title': 'Hello',
+            'metadata': {
+                'display_name': u'Fabrikam-Fiber-Git#309'
+            }
         }
         request = responses.calls[-1].request
         assert request.headers['Content-Type'] == 'application/json-patch+json'
@@ -111,7 +115,7 @@ class VstsIssueSycnTest(TestCase):
     def test_get_issue(self):
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % self.issue_id,
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%s' % self.issue_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -119,6 +123,9 @@ class VstsIssueSycnTest(TestCase):
             'key': self.issue_id,
             'description': 'Fix this.',
             'title': 'Hello',
+            'metadata': {
+                'display_name': u'Fabrikam-Fiber-Git#309'
+            },
         }
         request = responses.calls[-1].request
         assert request.headers['Content-Type'] == 'application/json'

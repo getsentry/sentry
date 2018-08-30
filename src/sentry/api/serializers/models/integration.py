@@ -152,12 +152,15 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         ints_by_id = {i.id: i for i in item_list}
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
+            installation = ints_by_id[ei.integration_id].get_installation(
+                self.group.organization.id)
             issues_by_integration[ei.integration_id].append({
                 'id': six.text_type(ei.id),
                 'key': ei.key,
-                'url': ints_by_id[ei.integration_id].get_installation(self.group.organization.id).get_issue_url(ei.key),
+                'url': installation.get_issue_url(ei.key),
                 'title': ei.title,
                 'description': ei.description,
+                'displayName': installation.get_issue_display_name(ei),
             })
 
         return {
