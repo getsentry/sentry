@@ -140,7 +140,7 @@ class RedisBuffer(Buffer):
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
 
-        metrics.incr('buffer.incr', tags={
+        metrics.incr('buffer.incr', skip_internal=True, tags={
             'module': model.__module__,
             'model': model.__name__,
         })
