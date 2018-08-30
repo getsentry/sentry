@@ -69,7 +69,9 @@ export default class ProviderRow extends React.Component {
   get buttonText() {
     let buttonText = this.isEnabled > 0 ? t('Add Another') : t('Install');
 
-    return this.isEnabledPlugin && this.isUpgradable ? t('Upgrade') : buttonText;
+    return !this.isEnabled && this.isEnabledPlugin && this.isUpgradable
+      ? t('Upgrade')
+      : buttonText;
   }
 
   renderButton() {

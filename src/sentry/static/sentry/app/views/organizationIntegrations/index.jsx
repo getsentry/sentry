@@ -56,7 +56,12 @@ export default class OrganizationIntegrations extends AsyncComponent {
         i => i.provider.key == provider.key
       );
       const isInstalled = integrations.length > 0;
-      return Object.assign({integrations, isInstalled}, provider);
+
+      return {
+        ...provider,
+        integrations,
+        isInstalled,
+      };
     });
   }
 

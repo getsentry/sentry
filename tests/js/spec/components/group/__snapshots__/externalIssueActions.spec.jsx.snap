@@ -11,7 +11,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
         Object {
           "configData": Object {},
           "configOrganization": Array [],
-          "domainName": "gtithub.com/test-integration",
+          "domainName": "github.com/test-integration",
           "externalIssues": Array [
             Object {
               "id": 100,
@@ -50,7 +50,7 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
               Object {
                 "configData": Object {},
                 "configOrganization": Array [],
-                "domainName": "gtithub.com/test-integration",
+                "domainName": "github.com/test-integration",
                 "externalIssues": Array [
                   Object {
                     "id": 100,
@@ -199,7 +199,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
     Object {
       "configData": Object {},
       "configOrganization": Array [],
-      "domainName": "gtithub.com/test-integration",
+      "domainName": "github.com/test-integration",
       "externalIssues": Array [],
       "icon": "http://example.com/integration_icon.png",
       "id": "1",
@@ -224,7 +224,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           Object {
             "configData": Object {},
             "configOrganization": Array [],
-            "domainName": "gtithub.com/test-integration",
+            "domainName": "github.com/test-integration",
             "externalIssues": Array [],
             "icon": "http://example.com/integration_icon.png",
             "id": "1",
@@ -257,7 +257,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                 Object {
                   "configData": Object {},
                   "configOrganization": Array [],
-                  "domainName": "gtithub.com/test-integration",
+                  "domainName": "github.com/test-integration",
                   "externalIssues": Array [],
                   "icon": "http://example.com/integration_icon.png",
                   "id": "1",
