@@ -6,7 +6,6 @@ import {Box, Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
 import Tooltip from 'app/components/charts/components/tooltip';
 
 import Table from './table';
@@ -28,16 +27,13 @@ export default class Result extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!nextProps.chartData && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
+    if (!nextProps.chartData && this.state.view === 'bar-by-day') {
       this.setState({
         view: 'table',
       });
     }
 
-    if (
-      !nextProps.query.aggregations.length &&
-      ['line', 'bar'].includes(this.state.view)
-    ) {
+    if (!nextProps.query.aggregations.length && this.state.view === 'bar') {
       this.setState({
         view: 'table',
       });
@@ -48,14 +44,11 @@ export default class Result extends React.Component {
     const options = [{id: 'table', name: t('Table')}];
 
     if (this.props.query.aggregations.length) {
-      options.push({id: 'line', name: t('Line')}, {id: 'bar', name: t('Bar')});
+      options.push({id: 'bar', name: t('Bar')});
     }
 
     if (this.props.chartData) {
-      options.push(
-        {id: 'line-by-day', name: t('Line by Day')},
-        {id: 'bar-by-day', name: t('Bar by Day')}
-      );
+      options.push({id: 'bar-by-day', name: t('Bar by Day')});
     }
 
     return (
@@ -82,7 +75,7 @@ export default class Result extends React.Component {
 
   renderSummary() {
     const {data, chartData} = this.props;
-    const baseViews = ['table', 'line', 'bar'];
+    const baseViews = ['table', 'bar'];
     const summaryData = baseViews.includes(this.state.view) ? data : chartData;
 
     return (
@@ -103,7 +96,6 @@ export default class Result extends React.Component {
         {this.renderToggle()}
 
         {view === 'table' && <Table data={data} />}
-        {view === 'line' && <LineChart series={basicChartData} height={300} />}
         {view === 'bar' && (
           <BarChart
             series={basicChartData}
@@ -113,12 +105,6 @@ export default class Result extends React.Component {
                 formatter: formatTooltip,
               }),
             }}
-          />
-        )}
-        {view === 'line-by-day' && (
-          <LineChart
-            series={getChartDataByDay(chartData.data, chartQuery)}
-            height={300}
           />
         )}
         {view === 'bar-by-day' && (

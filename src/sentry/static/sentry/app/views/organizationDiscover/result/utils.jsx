@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import moment from 'moment';
 
 /**
- * Returns data formatted for basic line and bar charts, with each aggregation
+ * Returns data formatted for basic distibution chart, with each aggregation
  * representing a series.
  *
  * @param {Array} data Data returned from Snuba
