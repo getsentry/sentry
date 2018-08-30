@@ -15,6 +15,8 @@ import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
 import space from 'app/styles/space';
 
+const ROUTE_PATH_EXCEPTIONS = new Set([':ruleId/', ':keyId/', ':hookId/', ':pluginId/']);
+
 class ProjectCrumb extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -24,13 +26,27 @@ class ProjectCrumb extends React.Component {
     route: PropTypes.object,
   };
 
+  handleSelect = item => {
+    let {routes, params} = this.props;
+
+    let lastRoute = routes[routes.length - 1];
+    // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
+    // Since these models are project specific, we need to traverse up a route when switching projects
+    let stepBack = ROUTE_PATH_EXCEPTIONS.has(lastRoute.path) ? -1 : undefined;
+    browserHistory.push(
+      recreateRoute('', {
+        routes,
+        params: {...params, projectId: item.value},
+        stepBack,
+      })
+    );
+  };
+
   render() {
     let {
       organization: latestOrganization,
       project: latestProject,
       projects,
-      params,
-      routes,
       route,
       ...props
     } = this.props;
@@ -60,19 +76,7 @@ class ProjectCrumb extends React.Component {
             )}
           </ProjectName>
         }
-        onSelect={item => {
-          let lastRoute = routes[routes.length - 1];
-          // We have to make an exception for "Project Alerts Rule Edit" route
-          // Since these models are project specific, we need to traverse up a route when switching projects
-          let stepBack = lastRoute.path === ':ruleId/' ? -1 : undefined;
-          browserHistory.push(
-            recreateRoute('', {
-              routes,
-              params: {...params, projectId: item.value},
-              stepBack,
-            })
-          );
-        }}
+        onSelect={this.handleSelect}
         items={projects.map(project => ({
           value: project.slug,
           label: (
