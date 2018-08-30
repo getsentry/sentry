@@ -2,6 +2,7 @@ import React from 'react';
 
 import {extractMultilineFields} from 'app/utils';
 import {t, tct} from 'app/locale';
+import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
@@ -17,6 +18,7 @@ const formGroups = [
         required: true,
         label: t('Name'),
         help: t('A unique ID used to identify this organization'),
+        transformInput: slugify,
 
         saveOnBlur: false,
         saveMessageAlertType: 'info',

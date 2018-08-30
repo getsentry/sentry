@@ -1,6 +1,6 @@
 import React from 'react';
-
 import {mount} from 'enzyme';
+
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import OrganizationSettingsForm from 'app/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
@@ -83,5 +83,41 @@ describe('OrganizationSettingsForm', function() {
         done(err);
       }
     });
+  });
+
+  it('can change slug', function() {
+    putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      method: 'PUT',
+    });
+
+    let wrapper = mount(
+      <OrganizationSettingsForm
+        location={TestStubs.location()}
+        orgId={organization.slug}
+        access={new Set('org:admin')}
+        initialData={TestStubs.Organization()}
+        onSave={onSave}
+      />,
+      TestStubs.routerContext()
+    );
+
+    wrapper
+      .find('input[name="slug"]')
+      .simulate('change', {target: {value: 'NEW SLUG'}})
+      .simulate('blur');
+
+    expect(putMock).not.toHaveBeenCalled();
+
+    wrapper.find('SaveButton').simulate('click');
+
+    expect(putMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/',
+      expect.objectContaining({
+        data: {
+          slug: 'new-slug',
+        },
+      })
+    );
   });
 });
