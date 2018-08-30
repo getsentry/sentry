@@ -11,6 +11,7 @@ import Tooltip from 'app/components/charts/components/tooltip';
 
 import Table from './table';
 import {getChartData, getChartDataByDay, formatTooltip} from './utils';
+import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
   static propTypes = {
@@ -93,7 +94,7 @@ export default class Result extends React.Component {
   }
 
   renderNote() {
-    return <Note>{t('Displaying up to 10 results')}</Note>;
+    return <Note>{t(`Displaying up to ${NUMBER_OF_SERIES_BY_DAY} results`)}</Note>;
   }
 
   render() {

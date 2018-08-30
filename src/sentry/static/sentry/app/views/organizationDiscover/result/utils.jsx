@@ -5,6 +5,8 @@ import styled from 'react-emotion';
 import moment from 'moment';
 import {orderBy} from 'lodash';
 
+import {NUMBER_OF_SERIES_BY_DAY} from '../data';
+
 const CHART_KEY = '__CHART_KEY__';
 
 /**
@@ -95,10 +97,12 @@ function getEmptySeries(dates) {
 }
 
 // Get the top series ranked by latest time / largest aggregate
-function getTopSeries(data, aggregate, count = 10) {
+function getTopSeries(data, aggregate) {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
-  return new Set([...new Set(allData.map(row => row[CHART_KEY]))].slice(0, count));
+  return new Set(
+    [...new Set(allData.map(row => row[CHART_KEY]))].slice(0, NUMBER_OF_SERIES_BY_DAY)
+  );
 }
 
 function getDataWithKeys(data, query) {
