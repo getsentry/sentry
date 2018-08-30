@@ -21,6 +21,7 @@ class IssueSyncElement extends React.Component {
     externalIssueLink: PropTypes.string,
     externalIssueId: PropTypes.number,
     externalIssueKey: PropTypes.string,
+    externalIssueDisplayName: PropTypes.string,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
@@ -81,10 +82,10 @@ class IssueSyncElement extends React.Component {
     if (this.props.children) {
       return this.props.children;
     }
+    if (this.props.externalIssueDisplayName) {
+      return this.props.externalIssueDisplayName;
+    }
     if (this.props.externalIssueKey) {
-      if (this.props.integrationType === 'vsts' && this.props.integrationName) {
-        return `${this.props.integrationName}#${this.props.externalIssueKey}`;
-      }
       return this.props.externalIssueKey;
     }
 

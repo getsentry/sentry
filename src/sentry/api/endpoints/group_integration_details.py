@@ -75,6 +75,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         defaults = {
             'title': data.get('title'),
             'description': data.get('description'),
+            'metadata': data.get('metadata'),
         }
 
         external_issue_key = installation.make_external_key(data)
@@ -117,6 +118,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             'key': external_issue.key,
             'url': url,
             'integrationId': external_issue.integration_id,
+            'displayName': installation.get_issue_display_name(external_issue),
         }
         return Response(context, status=201)
 
@@ -151,6 +153,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             defaults={
                 'title': data.get('title'),
                 'description': data.get('description'),
+                'metadata': data.get('metadata'),
             }
         )
 
@@ -181,7 +184,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             'key': external_issue.key,
             'url': url,
             'integrationId': external_issue.integration_id,
-
+            'displayName': installation.get_issue_display_name(external_issue),
         }
         return Response(context, status=201)
 

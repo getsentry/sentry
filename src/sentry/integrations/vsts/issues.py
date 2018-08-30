@@ -31,14 +31,15 @@ class VstsIssueSync(IssueSyncMixin):
         project_choices = []
         initial_project = ('', '')
         for project in projects:
-            project_choices.append((project['id'], project['name']))
-            if project['id'] == self.default_project:
+            project_id_and_name = '%s#%s' % (project['id'], project['name'])
+            project_choices.append((project_id_and_name, project['name']))
+            # TODO(lb): Properly handle default project after it has been implemented.
+            if project_id_and_name == self.default_project:
                 initial_project = project['name']
         return [
             {
                 'name': 'project',
                 'required': True,
-                'name': 'project',
                 'type': 'choice',
                 'choices': project_choices,
                 'defaultValue': initial_project,
@@ -69,48 +70,48 @@ class VstsIssueSync(IssueSyncMixin):
         project = data.get('project') or self.default_project
         if project is None:
             raise ValueError('VSTS expects project')
+        project_id, project_name = project.split('#')
         client = self.get_client()
 
         title = data['title']
         description = data['description']
-        # TODO(LB): Why was group removed from method?
-        # link = absolute_uri(group.get_absolute_url())
+
         try:
             created_item = client.create_work_item(
                 instance=self.instance,
-                project=project,
+                project=project_id,
                 title=title,
                 # Decriptions cannot easily be seen. So, a comment will be added as well.
                 description=markdown(description),
                 comment=markdown(description)
-                # link=link,
             )
         except Exception as e:
             self.raise_error(e)
 
         return {
-            'key': created_item['id'],
-            # 'url': created_item['_links']['html']['href'],
+            'key': six.text_type(created_item['id']),
             'title': title,
             'description': description,
+            'metadata': {
+                'display_name': '%s#%s' % (project_name, created_item['id']),
+            }
         }
 
     def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
-            'key': work_item['id'],
+            'key': six.text_type(work_item['id']),
             'title': work_item['fields']['System.Title'],
-            'description': work_item['fields'].get('System.Description')
+            'description': work_item['fields'].get('System.Description'),
+            'metadata': {
+                'display_name': '%s#%s' % (work_item['fields']['System.AreaPath'], work_item['id']),
+            }
         }
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         client = self.get_client()
         assignee = None
-
-        # TODO(LB): What's the scope here? is this correct?
-        # Get a list of all users in a given scope. How do we define scope?
-        # https://docs.microsoft.com/en-us/rest/api/vsts/graph/users/list?view=vsts-rest-4.1
 
         if assign is True:
             vsts_users = client.get_users(self.model.name)
@@ -215,3 +216,6 @@ class VstsIssueSync(IssueSyncMixin):
             state['name'] for state in all_states if state['category'] in self.done_categories
         ]
         return done_states
+
+    def get_issue_display_name(self, external_issue):
+        return external_issue.metadata['display_name']

@@ -56,6 +56,7 @@ class GroupIntegrationsTest(APITestCase):
                 'id': six.text_type(external_issue.id),
                 'url': 'https://example/issues/APP-123',
                 'key': 'APP-123',
-                'title': 'this is an example title'
+                'title': 'this is an example title',
+                'displayName': 'display name: APP-123',
             }],
         }
