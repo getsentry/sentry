@@ -212,7 +212,7 @@ describe('projectGeneralSettings', function() {
     // Change slug to new-slug
     wrapper
       .find('input[name="slug"]')
-      .simulate('change', {target: {value: 'new-project'}})
+      .simulate('change', {target: {value: 'NEW PROJECT'}})
       .simulate('blur');
 
     // Slug does not save on blur
