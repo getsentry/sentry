@@ -125,8 +125,9 @@ class HealthRequestWithParams extends React.Component {
   fetchData = async () => {
     const {tag} = this.props;
 
-    // If this is defined and > 0, we need to fetch the top tags ordered by count
-    // And then if we need timeseries, we'll
+    // If `includeTop` is defined and > 0, we need to fetch the top tags ordered by count
+    // And then if we need timeseries, we'll pass the specific tag values into the timeseries query
+    // to fetch only the counts for those tag values.
     const tagData = await this.fetchTopTag();
     const tagSpecifiers =
       (tagData &&
