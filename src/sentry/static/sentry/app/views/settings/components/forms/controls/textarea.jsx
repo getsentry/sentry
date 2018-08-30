@@ -7,9 +7,9 @@ import isPropValid from '@emotion/is-prop-valid';
 import {inputStyles} from 'app/styles/input';
 
 const TextAreaControl = React.forwardRef(
-  ({autosize, ...p}, ref) =>
+  ({autosize, rows, ...p}, ref) =>
     autosize ? (
-      <TextareaAutosize async innerRef={ref} rows={p.rows ? p.rows : 2} {...p} />
+      <TextareaAutosize async innerRef={ref} rows={rows ? rows : 2} {...p} />
     ) : (
       <textarea ref={ref} {...p} />
     )
