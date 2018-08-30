@@ -3,6 +3,11 @@
 import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
+import {orderBy} from 'lodash';
+
+import {NUMBER_OF_SERIES_BY_DAY} from '../data';
+
+const CHART_KEY = '__CHART_KEY__';
 
 /**
  * Returns data formatted for basic line and bar charts, with each aggregation
@@ -36,47 +41,89 @@ export function getChartData(data, query) {
  * @param {Object} query Query state corresponding to data
  * @returns {Array}
  */
-export function getChartDataByDay(data, query) {
+export function getChartDataByDay(rawData, query) {
+  // We only chart the first aggregation for now
+  const aggregate = query.aggregations[0][2];
+
+  const data = getDataWithKeys(rawData, query);
+
+  // We only want to show the top 10 series
+  const top10Series = getTopSeries(data, aggregate);
+
+  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))];
+
+  // Temporarily store series as object with series names as keys
+  const seriesHash = getEmptySeriesHash(top10Series, dates);
+
+  // Insert data into series if it's in a top 10 series
+  data.forEach(row => {
+    const key = row[CHART_KEY];
+
+    const dateIdx = dates.indexOf(formatDate(row.time));
+
+    if (top10Series.has(key)) {
+      seriesHash[key][dateIdx].value = row[aggregate];
+    }
+  });
+
+  // Format for echarts
+  return Object.entries(seriesHash).map(([seriesName, series]) => {
+    return {
+      seriesName,
+      data: series,
+    };
+  });
+}
+
+// Return placeholder empty series object with all series and dates listed and
+// all values set to null
+function getEmptySeriesHash(seriesSet, dates) {
+  const output = {};
+
+  [...seriesSet].forEach(series => {
+    output[series] = getEmptySeries(dates);
+  });
+
+  return output;
+}
+
+function getEmptySeries(dates) {
+  return dates.map(date => {
+    return {
+      value: null,
+      name: date,
+    };
+  });
+}
+
+// Get the top series ranked by latest time / largest aggregate
+function getTopSeries(data, aggregate) {
+  const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
+
+  return new Set(
+    [...new Set(allData.map(row => row[CHART_KEY]))].slice(0, NUMBER_OF_SERIES_BY_DAY)
+  );
+}
+
+function getDataWithKeys(data, query) {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
-  const dates = [
-    ...new Set(data.map(entry => moment.utc(entry.time * 1000).format('MMM Do'))),
-  ];
-  const output = {};
-  data.forEach(res => {
+
+  return data.map(row => {
     const key = fields.length
-      ? fields.map(field => getLabel(res[field])).join(',')
+      ? fields.map(field => getLabel(row[field])).join(',')
       : aggregate;
-    if (key in output) {
-      output[key].data.push({
-        value: res[aggregate],
-        name: moment.utc(res.time * 1000).format('MMM Do'),
-      });
-    } else {
-      output[key] = {
-        data: [
-          {value: res[aggregate], name: moment.utc(res.time * 1000).format('MMM Do')},
-        ],
-      };
-    }
+
+    return {
+      ...row,
+      [CHART_KEY]: key,
+    };
   });
-  const result = [];
-  for (let key in output) {
-    const addDates = dates.filter(
-      date => !output[key].data.map(entry => entry.name).includes(date)
-    );
-    for (let i = 0; i < addDates.length; i++) {
-      output[key].data.push({
-        value: null,
-        name: addDates[i],
-      });
-    }
+}
 
-    result.push({seriesName: key, data: output[key].data});
-  }
-
-  return result;
+function formatDate(datetime) {
+  return moment.utc(datetime * 1000).format('MMM Do');
 }
 
 export function formatTooltip(seriesParams) {
@@ -90,6 +137,7 @@ export function formatTooltip(seriesParams) {
   ].join('');
 }
 
+// Truncates labels for tooltip
 function truncateLabel(seriesName) {
   let result = seriesName;
   if (seriesName.length > 80) {
