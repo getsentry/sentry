@@ -3,8 +3,11 @@ import {MultiGrid, AutoSizer} from 'react-virtualized';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import AutoSelectText from 'app/components/autoSelectText';
+import Link from 'app/components/link';
+import InlineSvg from 'app/components/inlineSvg';
 import {getDisplayValue, getDisplayText} from './utils';
 
 /**
@@ -14,6 +17,11 @@ import {getDisplayValue, getDisplayText} from './utils';
 export default class ResultTable extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
+    query: PropTypes.object.isRequired,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   componentDidMount() {
@@ -28,8 +36,12 @@ export default class ResultTable extends React.Component {
   }
 
   cellRenderer = ({key, rowIndex, columnIndex, style}) => {
-    const {meta, data} = this.props.data;
-    const colName = meta[columnIndex].name;
+    const {data} = this.props.data;
+    const cols = this.getColumnList();
+
+    const isLinkCol = typeof cols[columnIndex] === 'undefined';
+
+    const colName = isLinkCol ? null : cols[columnIndex].name;
 
     if (rowIndex === 0) {
       return (
@@ -39,32 +51,56 @@ export default class ResultTable extends React.Component {
       );
     }
 
-    const value = data[rowIndex - 1][colName];
+    const value = isLinkCol
+      ? this.getLink(data[rowIndex - 1])
+      : getDisplayValue(data[rowIndex - 1][colName]);
 
     const isNumber = typeof value === 'number';
 
+    const align = isNumber ? 'right' : isLinkCol ? 'center' : 'left';
+
     return (
-      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} isNumber={isNumber}>
-        <AutoSelectText>{getDisplayValue(value)}</AutoSelectText>
+      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
+        <AutoSelectText>{value}</AutoSelectText>
       </Cell>
+    );
+  };
+
+  getLink = event => {
+    const {slug, projects} = this.context.organization;
+    const projectSlug = projects.find(project => project.id === `${event.project_id}`)
+      .slug;
+
+    return (
+      <Link
+        to={`/${slug}/${projectSlug}/issues/?query=${event.event_id}`}
+        target="_blank"
+      >
+        <InlineSvg src="icon-exit" size="1em" />
+      </Link>
     );
   };
 
   // Estimates the column width based on the header row and the first two rows
   // of data. Since this might be expensive, we'll only do this if there are
   // less than 20 columns of data to check
-  getColumnWidth = ({index}, tableWidth) => {
+  getColumnWidth = ({index}) => {
     const MIN_COL_WIDTH = 100;
     const MAX_COL_WIDTH = 400;
+    const LINK_COL_WIDTH = 40;
 
-    const {meta, data} = this.props.data;
+    const {data} = this.props.data;
 
-    if (meta.length === 1) {
-      return tableWidth;
+    const cols = this.getColumnList();
+
+    const isLinkCol = typeof cols[index] === 'undefined';
+
+    if (isLinkCol) {
+      return LINK_COL_WIDTH;
     }
 
-    if (meta.length < 20) {
-      const colName = meta[index].name;
+    if (cols.length < 20) {
+      const colName = cols[index].name;
       const sizes = [this.measureText(colName, true)];
 
       // Check the first 3 rows to set column width
@@ -79,6 +115,16 @@ export default class ResultTable extends React.Component {
     return MIN_COL_WIDTH;
   };
 
+  getColumnList = () => {
+    const {query, data: {meta}} = this.props;
+
+    const fields = new Set(query.fields);
+
+    return !query.aggregations.length && query.fields.length
+      ? meta.filter(({name}) => fields.has(name))
+      : meta;
+  };
+
   measureText = (text, isHeader) => {
     const context = this.canvas.getContext('2d');
     context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
@@ -86,7 +132,11 @@ export default class ResultTable extends React.Component {
   };
 
   renderTable() {
-    const {meta, data} = this.props.data;
+    const {query, data: {data}} = this.props;
+
+    const cols = this.getColumnList();
+
+    const showEventLinks = !query.aggregations.length;
 
     const maxVisibleResults = Math.min(data.length, 15);
 
@@ -99,7 +149,7 @@ export default class ResultTable extends React.Component {
               width={width}
               height={height}
               rowCount={data.length + 1} // Add 1 for header row
-              columnCount={meta.length}
+              columnCount={cols.length + (showEventLinks ? 1 : 0)}
               fixedRowCount={1}
               rowHeight={30}
               columnWidth={opts => this.getColumnWidth(opts, width)}
@@ -139,7 +189,7 @@ const GridContainer = styled('div')`
 
 const Cell = styled('div')`
   ${p => p.isOddRow && `background-color: ${p.theme.borderLighter};`} ${p =>
-      p.isNumber && 'text-align: right;'} overflow: scroll;
+      `text-align: ${p.align};`} overflow: scroll;
   font-size: 14px;
   line-height: 30px;
   padding: 0 4px;

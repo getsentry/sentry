@@ -61,11 +61,24 @@ describe('Discover', function() {
       );
     });
 
-    it('runs query', async function() {
+    it('runs basic query', async function() {
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
-      expect(queryBuilder.fetch).toHaveBeenCalledWith();
+      expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
+      expect(wrapper.state().data).toEqual(mockResponse);
+    });
+
+    it('always requests event_id and project_id for basic queries', async function() {
+      queryBuilder.updateField('fields', ['message']);
+      wrapper.instance().runQuery();
+      await tick();
+      expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
+      expect(queryBuilder.fetch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fields: ['message', 'event_id', 'project_id'],
+        })
+      );
       expect(wrapper.state().data).toEqual(mockResponse);
     });
 
@@ -90,7 +103,7 @@ describe('Discover', function() {
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(2);
-      expect(queryBuilder.fetch).toHaveBeenNthCalledWith(1);
+      expect(queryBuilder.fetch).toHaveBeenNthCalledWith(1, queryBuilder.getExternal());
       expect(queryBuilder.fetch).toHaveBeenNthCalledWith(2, {
         ...queryBuilder.getExternal(),
         groupby: ['time'],
