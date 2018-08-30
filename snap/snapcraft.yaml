@@ -1,0 +1,53 @@
+name: sentry
+version: '8.16.0'
+summary: Sentry is a modern error logging and aggregation platform
+description: |
+  Sentry’s real-time error tracking gives you insight
+  into production deployments and information to reproduce
+  and fix crashes.
+grade: stable
+confinement: strict
+
+apps:
+  sentry:
+    command: sentry
+    plugs:
+      - home
+      - network
+      - network-bind
+  web:
+    command: sentry run web
+    daemon: simple
+    plugs:
+      - home
+      - network
+      - network-bind
+  worker:
+    command: sentry run worker
+    daemon: simple
+    environment:
+      C_FORCE_ROOT: 1
+    plugs:
+      - home
+      - network
+      - network-bind
+  cron:
+    command: sentry run cron
+    daemon: simple
+    plugs:
+      - home
+      - network
+      - network-bind
+
+parts:
+  sentry:
+    plugin: python
+    python-version: python2
+    python-packages:
+      - sentry==8.16.0
+    build-packages:
+      - libssl-dev
+      - libffi-dev
+      - libjpeg-dev
+      - libpq-dev
+      - python-dev
