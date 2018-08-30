@@ -242,7 +242,6 @@ class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
     name = 'Visual Studio Team Services'
     metadata = metadata
-    domain = '.visualstudio.com'
     api_version = '4.1'
     oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
@@ -292,15 +291,14 @@ class VstsIntegrationProvider(IntegrationProvider):
         data = state['identity']['data']
         oauth_data = self.get_oauth_data(data)
         account = state['account']
-        instance = state['instance']
         user = get_user_info(data['access_token'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
 
         integration = {
-            'name': account['AccountName'],
-            'external_id': account['AccountId'],
+            'name': account['accountName'],
+            'external_id': account['accountId'],
             'metadata': {
-                'domain_name': instance,
+                'domain_name': state['base_url'],
                 'scopes': scopes,
             },
             'user_identity': {
@@ -314,7 +312,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         try:
             integration_model = IntegrationModel.objects.get(
                 provider='vsts',
-                external_id=account['AccountId'],
+                external_id=account['accountId'],
                 status=ObjectStatus.VISIBLE,
             )
             assert 'subscription' in integration_model.metadata
@@ -326,7 +324,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
-                instance, account['AccountId'], oauth_data)
+                state['base_url'], account['accountId'], oauth_data)
             integration['metadata']['subscription'] = {
                 'id': subscription_id,
                 'secret': subscription_secret,
@@ -377,12 +375,18 @@ class AccountConfigView(PipelineView):
             accounts = pipeline.fetch_state(key='accounts')
             account = self.get_account_from_id(account_id, accounts)
             if account is not None:
+                state = pipeline.fetch_state(key='identity')
+                access_token = state['data']['access_token']
+                base_url = self.get_base_url(access_token, account['accountId'])['locationUrl']
                 pipeline.bind_state('account', account)
-                pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
+                pipeline.bind_state('base_url', base_url)
                 return pipeline.next_step()
 
-        access_token = pipeline.fetch_state(key='identity')['data']['access_token']
-        accounts = self.get_accounts(access_token)
+        state = pipeline.fetch_state(key='identity')
+        access_token = state['data']['access_token']
+        user = get_user_info(access_token)
+
+        accounts = self.get_accounts(access_token, user['publicAlias'])['value']
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
@@ -395,13 +399,27 @@ class AccountConfigView(PipelineView):
 
     def get_account_from_id(self, account_id, accounts):
         for account in accounts:
-            if account['AccountId'] == account_id:
+            if account['accountId'] == account_id:
                 return account
         return None
 
-    def get_accounts(self, access_token):
+    def get_base_url(self, access_token, organization_id):
         session = http.build_session()
-        url = 'https://app.vssps.visualstudio.com/_apis/accounts'
+        url = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % organization_id
+        response = session.get(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            },
+        )
+        if response.status_code == 200:
+            return response.json()
+        return None
+
+    def get_accounts(self, access_token, user_id):
+        session = http.build_session()
+        url = 'https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1' % user_id
         response = session.get(
             url,
             headers={
@@ -418,7 +436,7 @@ class AccountForm(forms.Form):
     def __init__(self, accounts, *args, **kwargs):
         super(AccountForm, self).__init__(*args, **kwargs)
         self.fields['account'] = forms.ChoiceField(
-            choices=[(acct['AccountId'], acct['AccountName']) for acct in accounts],
+            choices=[(acct['accountId'], acct['accountName']) for acct in accounts],
             label='Account',
             help_text='VS Team Services account (account.visualstudio.com).',
         )
