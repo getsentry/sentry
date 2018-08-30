@@ -23,6 +23,9 @@ const HealthNavigationMenu = styled(
               <NavItem to={`/organizations/${organization.slug}/health/`}>
                 {t('Overview')}
               </NavItem>
+              <NavItem to={`/organizations/${organization.slug}/health/transactions/`}>
+                {t('Transaction')}
+              </NavItem>
             </NavigationGroup>
           </div>
         );
