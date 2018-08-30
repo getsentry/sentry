@@ -100,7 +100,7 @@ describe('Discover', function() {
     });
   });
 
-  describe('reset', function() {
+  describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
@@ -128,12 +128,10 @@ describe('Discover', function() {
     });
 
     it('resets "orderby"', function() {
-      expect(wrapper.find('SelectField[name="orderby"]').prop('value')).toBe('event_id');
+      expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('event_id asc');
       wrapper.instance().reset();
       wrapper.update();
-      expect(wrapper.find('SelectField[name="orderby"]').prop('value')).toBe(
-        '-timestamp'
-      );
+      expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('timestamp desc');
     });
 
     it('resets "limit"', function() {

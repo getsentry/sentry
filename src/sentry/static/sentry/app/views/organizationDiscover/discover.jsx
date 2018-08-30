@@ -11,7 +11,6 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
-import SelectField from 'app/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
@@ -256,13 +255,16 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
             <Fieldset>
-              <SelectField
+              <label htmlFor="orderby" className="control-label">
+                {t('Order by')}
+              </label>
+              <SelectControl
                 name="orderby"
                 label={t('Order By')}
                 placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
                 options={this.getOrderbyOptions()}
                 value={currentQuery.orderby}
-                onChange={val => this.updateField('orderby', val)}
+                onChange={val => this.updateField('orderby', val.value)}
               />
             </Fieldset>
             <Fieldset>
