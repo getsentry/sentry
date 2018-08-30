@@ -43,12 +43,14 @@ class AutoComplete extends React.Component {
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     onMenuOpen: PropTypes.func,
+    closeOnSelect: PropTypes.bool,
   };
 
   static defaultProps = {
     itemToString: i => i,
     inputIsActor: true,
     disabled: false,
+    closeOnSelect: true,
   };
 
   constructor(props) {
@@ -181,15 +183,20 @@ class AutoComplete extends React.Component {
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
    */
   handleSelect = (item, e) => {
-    let {onSelect, itemToString} = this.props;
+    let {onSelect, itemToString, closeOnSelect} = this.props;
 
     callIfFunction(onSelect, item, this.state, e);
 
-    this.closeMenu();
-    this.setState({
+    let newState = {
       selectedItem: item,
-      inputValue: itemToString(item),
-    });
+    };
+
+    if (closeOnSelect) {
+      this.closeMenu();
+      newState.inputValue = itemToString(item);
+    }
+
+    this.setState(newState);
   };
 
   moveHighlightedIndex = (step, e) => {

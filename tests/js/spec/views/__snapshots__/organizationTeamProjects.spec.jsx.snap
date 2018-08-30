@@ -83,6 +83,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         searchPlaceholder="Filter search"
                       >
                         <AutoComplete
+                          closeOnSelect={true}
                           disabled={false}
                           inputIsActor={false}
                           itemToString={[Function]}

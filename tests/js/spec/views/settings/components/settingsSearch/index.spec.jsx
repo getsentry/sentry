@@ -117,7 +117,7 @@ describe('SettingsSearch', function() {
     ).toBe(false);
 
     wrapper
-      .find('SearchResult')
+      .find('SearchResult [data-test-id="badge-display-name"]')
       .first()
       .simulate('click');
 

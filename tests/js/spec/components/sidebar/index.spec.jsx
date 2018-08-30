@@ -91,6 +91,19 @@ describe('Sidebar', function() {
     expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
   });
 
+  describe('SidebarHelp', function() {
+    it('can toggle help menu', function() {
+      wrapper = createWrapper();
+      wrapper.find('HelpActor').simulate('click');
+      let menu = wrapper.find('HelpMenu');
+      expect(menu).toHaveLength(1);
+      expect(menu).toMatchSnapshot();
+      expect(menu.find('SidebarMenuItem')).toHaveLength(3);
+      wrapper.find('HelpActor').simulate('click');
+      expect(wrapper.find('HelpMenu')).toHaveLength(0);
+    });
+  });
+
   describe('SidebarDropdown', function() {
     it('can open Sidebar org/name dropdown menu', function() {
       wrapper = createWrapper();

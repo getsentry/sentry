@@ -3,13 +3,24 @@ import React from 'react';
 import styled, {css} from 'react-emotion';
 
 import Link from 'app/components/link';
+import ExternalLink from 'app/components/externalLink';
 
 import {OrgSummary} from './sidebarOrgSummary';
 
 class SidebarMenuItem extends React.Component {
   static propTypes = {
+    /**
+     * Use this prop if button is a react-router link
+     */
     to: PropTypes.string,
+    /**
+     * Use this prop if button should use a normal (non-react-router) link
+     */
     href: PropTypes.string,
+    /**
+     * Is an external link? (Will open in new tab; Only applicable if `href` is used)
+     */
+    external: PropTypes.bool,
   };
   render() {
     let {children, to, href, ...props} = this.props;
@@ -37,9 +48,14 @@ const MenuItemLabel = styled('span')`
         `};
 `;
 
-const MenuItemLink = styled(({to, href, ...props}) => {
-  if (to || href) {
+const MenuItemLink = styled(({to, href, external, ...props}) => {
+  if (to) {
     return <Link to={to} href={href} {...props} />;
+  }
+
+  if (href) {
+    let Component = external ? ExternalLink : Link;
+    return <Component href={href} {...props} />;
   }
 
   return <div {...props} />;

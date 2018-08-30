@@ -23,7 +23,8 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 class Search extends React.Component {
   static propTypes = {
     // For analytics
-    entryPoint: PropTypes.oneOf(['settings_search', 'command_palette']).isRequired,
+    entryPoint: PropTypes.oneOf(['settings_search', 'command_palette', 'sidebar_help'])
+      .isRequired,
 
     sources: PropTypes.array.isRequired,
 
@@ -56,6 +57,8 @@ class Search extends React.Component {
     renderItem: PropTypes.func,
     dropdownStyle: PropTypes.string,
     searchOptions: PropTypes.object,
+    // Passed to the underlying AutoComplete component
+    closeOnSelect: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -66,6 +69,7 @@ class Search extends React.Component {
       </SearchResultWrapper>
     ),
     sources: [ApiSource, FormSource, RouteSource, CommandSource],
+    closeOnSelect: true,
   };
 
   componentDidMount() {
@@ -138,6 +142,7 @@ class Search extends React.Component {
       maxResults,
       renderInput,
       sources,
+      closeOnSelect,
     } = this.props;
 
     return (
@@ -145,6 +150,7 @@ class Search extends React.Component {
         defaultHighlightedIndex={0}
         itemToString={() => ''}
         onSelect={this.handleSelect}
+        closeOnSelect={closeOnSelect}
       >
         {({
           getInputProps,
