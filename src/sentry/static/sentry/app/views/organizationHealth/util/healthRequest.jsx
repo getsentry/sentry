@@ -192,7 +192,8 @@ class HealthRequestWithParams extends React.Component {
     }
 
     const hasPreviousPeriod = isTimeseries && includePrevious;
-    const dataMiddleIndex = data.length / 2;
+    // Take the floor just in case, but data should always be divisible by 2
+    const dataMiddleIndex = Math.floor(data.length / 2);
 
     return {
       previous: hasPreviousPeriod ? data.slice(0, dataMiddleIndex) : null,
