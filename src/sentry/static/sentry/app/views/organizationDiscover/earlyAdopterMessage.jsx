@@ -8,7 +8,7 @@ import {tct} from 'app/locale';
 export default class EarlyAdopterMessage extends React.Component {
   render() {
     return (
-      <StyledAlert type="info" icon="icon-circle-exclamation" system={false}>
+      <StyledAlert type="info" icon="icon-circle-exclamation">
         {tct(
           'This is an alpha release and may change in the future. Please email any feedback to [email:feedback-discover@sentry.io]. Thanks for being an early adopter!',
           {
