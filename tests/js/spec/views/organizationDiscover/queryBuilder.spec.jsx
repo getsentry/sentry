@@ -149,12 +149,12 @@ describe('Query Builder', function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.orderby).toBe('count');
+      expect(query.orderby).toBe('-count');
     });
 
     it('updates orderby if there is no aggregation and value is not a valid field', function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
-      expect(queryBuilder.getInternal().orderby).toBe('count');
+      expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);
       expect(queryBuilder.getInternal().orderby).toBe('-timestamp');
     });
