@@ -103,12 +103,24 @@ export default class Result extends React.Component {
 
     const basicChartData = getChartData(data.data, query);
 
+    const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
+
     return (
       <div>
         {this.renderToggle()}
 
         {view === 'table' && <Table data={data} />}
-        {view === 'line' && <LineChart series={basicChartData} height={300} />}
+        {view === 'line' && (
+          <LineChart
+            series={basicChartData}
+            height={300}
+            options={{
+              tooltip: Tooltip({
+                formatter: formatTooltip,
+              }),
+            }}
+          />
+        )}
         {view === 'bar' && (
           <BarChart
             series={basicChartData}
@@ -123,8 +135,13 @@ export default class Result extends React.Component {
         {view === 'line-by-day' && (
           <React.Fragment>
             <LineChart
-              series={getChartDataByDay(chartData.data, chartQuery)}
+              series={byDayChartData}
               height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
             />
             {this.renderNote()}
           </React.Fragment>
@@ -132,7 +149,7 @@ export default class Result extends React.Component {
         {view === 'bar-by-day' && (
           <React.Fragment>
             <BarChart
-              series={getChartDataByDay(chartData.data, chartQuery)}
+              series={byDayChartData}
               stacked={true}
               height={300}
               options={{
