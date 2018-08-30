@@ -180,6 +180,7 @@ class BulkDeleteQuery(object):
                 with conn.cursor(uuid4().hex) as cursor:
                     cursor.execute(query)
 
+                    i = 0
                     for i, row in enumerate(cursor, 1):
                         chunk.append(row[0])
                         if len(chunk) == chunk_size:
