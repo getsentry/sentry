@@ -19,7 +19,7 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
                                       group.organization,
                                       actor=request.user)
 
-        if not has_issue_basic or has_issue_sync:
+        if not (has_issue_basic or has_issue_sync):
             return self.respond([])
 
         providers = [
