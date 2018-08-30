@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {doHealthRequest} from 'app/actionCreators/health';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withLatestContext from 'app/utils/withLatestContext';
 
 import HealthContext from './healthContext';
-import LoadingIndicator from '../../../components/loadingIndicator';
 
 class HealthRequestWithParams extends React.Component {
   static propTypes = {
