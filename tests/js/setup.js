@@ -564,7 +564,7 @@ window.TestStubs = {
 
   GitHubIntegration: params => {
     return {
-      domainName: 'gtithub.com/test-integration',
+      domainName: 'github.com/test-integration',
       icon: 'http://example.com/integration_icon.png',
       id: '1',
       name: 'Test Integration',
@@ -596,6 +596,25 @@ window.TestStubs = {
       projects: [],
       configOrganization: [],
       configData: {},
+      ...params,
+    };
+  },
+
+  VstsIntegrationProvider: params => {
+    return {
+      key: 'vsts',
+      name: 'VSTS',
+      canAdd: true,
+      config: [],
+      features: [],
+      metadata: {
+        description: '*markdown* formatted VSTS _description_',
+        author: 'Frank',
+        noun: 'Instance',
+        issue_url: 'http://example.com/vsts_issue_url',
+        source_url: 'http://example.com/vsts_source_url',
+        aspects: {},
+      },
       ...params,
     };
   },

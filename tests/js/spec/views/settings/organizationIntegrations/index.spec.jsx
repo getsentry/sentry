@@ -23,6 +23,7 @@ describe('OrganizationIntegrations', function() {
       isInstalled: false,
     });
     const jiraProvider = TestStubs.JiraIntegrationProvider();
+    const vstsProvider = TestStubs.VstsIntegrationProvider();
 
     const githubIntegration = TestStubs.GitHubIntegration();
     const jiraIntegration = TestStubs.JiraIntegration();
@@ -134,13 +135,17 @@ describe('OrganizationIntegrations', function() {
       });
       Client.addMockResponse({
         url: `/organizations/${org.slug}/config/integrations/`,
-        body: {providers: [githubProvider, jiraProvider]},
+        body: {providers: [githubProvider, jiraProvider, vstsProvider]},
       });
       Client.addMockResponse({
         url: `/organizations/${org.slug}/plugins/`,
         body: [
           {
             slug: 'github',
+            enabled: true,
+          },
+          {
+            slug: 'vsts',
             enabled: true,
           },
           {
@@ -169,7 +174,18 @@ describe('OrganizationIntegrations', function() {
         expect(wrapper.instance().state.unmigratableRepos[0].name).toBe('Test-Org/foo');
       });
 
-      it('displays an Upgrade button instead of Install', function() {
+      it('displays an Upgrade when the Plugin is enabled but a new Integration is not', function() {
+        expect(
+          wrapper
+            .find('ProviderRow')
+            .filterWhere(n => n.key() === 'vsts')
+            .find('Button')
+            .first()
+            .text()
+        ).toBe('Upgrade');
+      });
+
+      it('displays Add Another button when both Integration and Plugin are enabled', () => {
         expect(
           wrapper
             .find('ProviderRow')
@@ -177,7 +193,7 @@ describe('OrganizationIntegrations', function() {
             .find('Button')
             .first()
             .text()
-        ).toBe('Upgrade');
+        ).toBe('Add Another');
       });
 
       it('display an Install button when its not an upgradable Integration', () => {
