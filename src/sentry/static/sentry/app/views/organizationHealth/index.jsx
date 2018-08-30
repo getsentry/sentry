@@ -25,12 +25,12 @@ class OrganizationHealth extends React.Component {
     this.state = {
       actions: {
         updateParams: this.updateParams,
-        setFilter: this.setFilter,
+        setSpecifier: this.setSpecifier,
       },
       projects: [],
       environments: [],
       period: '7d',
-      filters: [],
+      specifiers: [],
     };
   }
 
@@ -41,10 +41,10 @@ class OrganizationHealth extends React.Component {
     }));
   };
 
-  setFilter = (tag, value) => {
+  setSpecifier = (tag, value) => {
     this.setState(state => ({
       ...state,
-      filters: [`${tag}:${value}`],
+      specifiers: [`${tag}:${value}`],
     }));
   };
 
