@@ -41,9 +41,7 @@ integration for this Organization.
 """
 
 external_install = {
-    # TODO(jess): update this when we have our app listed on the
-    # atlassian marketplace
-    'url': 'https://marketplace.atlassian.com/',
+    'url': 'https://marketplace.atlassian.com/apps/1219432/sentry-for-jira',
     'buttonText': _('Jira Marketplace'),
     'noticeText': _(INSTALL_NOTICE_TEXt.strip()),
 }
