@@ -169,7 +169,7 @@ function getLabel(value) {
  *
  * @param {*} val Value to display in table cell
  * @param {Number} idx Index if part of array
- * @returns {Object|Number} Formatted cell contents
+ * @returns {Object} Formatted cell contents
  */
 export function getDisplayValue(val, idx) {
   if (typeof val === 'string') {
