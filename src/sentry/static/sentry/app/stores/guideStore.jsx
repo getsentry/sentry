@@ -213,7 +213,6 @@ const GuideStore = Reflux.createStore({
           // Wait for the required data.
           break;
         } else {
-          // Only show this to superusers for now.
           let projectId = parseInt(this.state.project.id, 10);
           if (
             this.state.projectStats[projectId] > 1000 &&
