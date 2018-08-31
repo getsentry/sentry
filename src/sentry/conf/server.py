@@ -1357,8 +1357,13 @@ SENTRY_MINIDUMP_CACHE = False
 SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 
 # Relay
-# List of PKs whitelisted by Sentry
+# List of PKs whitelisted by Sentry.  All relays here are always
+# registered as internal relays.
 SENTRY_RELAY_WHITELIST_PK = []
+
+# When open registration is not permitted then only relays in the
+# whitelist can register.
+SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/

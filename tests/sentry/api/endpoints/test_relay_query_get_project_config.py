@@ -26,6 +26,7 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         self.relay = Relay.objects.create(
             relay_id=self.relay_id,
             public_key=six.binary_type(self.public_key),
+            is_internal=True
         )
 
         self.project = self.create_project()

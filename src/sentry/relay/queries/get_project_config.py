@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers
 
 from sentry.models import Project
-from sentry.relay.config import Config
+from sentry.relay import config
 from sentry.relay.queries.base import BaseQuery, InvalidQuery
 
 
@@ -30,5 +30,6 @@ class GetProjectConfig(BaseQuery):
         self.project = project
 
     def execute(self):
-        config = Config(self.project)
-        return config.get_project_options()
+        if not self.relay.has_org_access(self.project.organization):
+            return None
+        return config.get_project_options(self.project)
