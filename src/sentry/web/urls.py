@@ -47,7 +47,6 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView
-from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
@@ -437,13 +436,6 @@ urlpatterns += patterns(
         r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$',
         react_page_view,
         name='sentry-organization-stats'
-    ),
-
-    # TODO REMOVEME #NEW-SETTINGS, redirect to team settings?
-    url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$',
-        RemoveTeamView.as_view(),
-        name='sentry-remove-team'
     ),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
