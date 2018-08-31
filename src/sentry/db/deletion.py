@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import itertools
 from uuid import uuid4
 
 from datetime import timedelta
@@ -121,53 +122,14 @@ class BulkDeleteQuery(object):
             yield chunk
 
     def iterator_postgres(self, chunk_size, batch_size=1000000):
+        assert self.days is not None
+        assert self.dtfield is not None and self.dtfield == self.order_by
+
         dbc = connections[self.using]
         quote_name = dbc.ops.quote_name
 
-        where = []
-        if self.dtfield and self.days is not None:
-            where.append(
-                "{} < '{}'::timestamptz".format(
-                    quote_name(self.dtfield),
-                    (timezone.now() - timedelta(days=self.days)).isoformat(),
-                    self.days,
-                )
-            )
-
-        if self.project_id:
-            where.append("project_id = {}".format(self.project_id))
-
-        if where:
-            where_clause = 'where {}'.format(' and '.join(where))
-        else:
-            where_clause = ''
-
-        if self.order_by:
-            if self.order_by[0] == '-':
-                direction = 'desc'
-                order_field = self.order_by[1:]
-            else:
-                direction = 'asc'
-                order_field = self.order_by
-            order_clause = 'order by {} {}'.format(
-                quote_name(order_field),
-                direction,
-            )
-        else:
-            order_clause = ''
-
-        query = """
-            select id
-            from {table}
-            {where}
-            {order}
-            limit {batch_size}
-        """.format(
-            table=self.model._meta.db_table,
-            where=where_clause,
-            order=order_clause,
-            batch_size=batch_size,
-        )
+        position = None
+        cutoff = timezone.now() - timedelta(days=self.days)
 
         with dbc.get_new_connection(dbc.get_connection_params()) as conn:
             chunk = []
@@ -178,11 +140,57 @@ class BulkDeleteQuery(object):
                 # large quantity of rows from postgres incrementally, without
                 # having to pull all rows into memory at once.
                 with conn.cursor(uuid4().hex) as cursor:
-                    cursor.execute(query)
+                    where = [(
+                        "{} < %s".format(quote_name(self.dtfield)),
+                        [cutoff],
+                    )]
+
+                    if self.project_id:
+                        where.append((
+                            "project_id = %s",
+                            [self.project_id],
+                        ))
+
+                    if self.order_by[0] == '-':
+                        direction = 'desc'
+                        order_field = self.order_by[1:]
+                        if position is not None:
+                            where.append((
+                                '{} <= %s'.format(quote_name(order_field)),
+                                [position],
+                            ))
+                    else:
+                        direction = 'asc'
+                        order_field = self.order_by
+                        if position is not None:
+                            where.append((
+                                '{} >= %s'.format(quote_name(order_field)),
+                                [position],
+                            ))
+
+                    conditions, parameters = zip(*where)
+                    parameters = list(itertools.chain.from_iterable(parameters))
+
+                    query = """
+                        select id, {order_field}
+                        from {table}
+                        where {conditions}
+                        order by {order_field} {direction}
+                        limit {batch_size}
+                    """.format(
+                        table=self.model._meta.db_table,
+                        conditions=' and '.join(conditions),
+                        order_field=quote_name(order_field),
+                        direction=direction,
+                        batch_size=batch_size,
+                    )
+
+                    cursor.execute(query, parameters)
 
                     i = 0
                     for i, row in enumerate(cursor, 1):
-                        chunk.append(row[0])
+                        key, position = row
+                        chunk.append(key)
                         if len(chunk) == chunk_size:
                             yield tuple(chunk)
                             chunk = []

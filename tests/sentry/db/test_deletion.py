@@ -55,6 +55,9 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
         iterator = BulkDeleteQuery(
             model=Group,
             project_id=target_project.id,
+            dtfield='last_seen',
+            order_by='last_seen',
+            days=0,
         ).iterator(1)
 
         results = set()
