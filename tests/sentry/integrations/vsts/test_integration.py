@@ -28,16 +28,14 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
         assert metadata['subscription']['id'] == \
             CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
-        assert metadata['domain_name'] == '{}.visualstudio.com'.format(
-            self.vsts_account_name
-        )
+        assert metadata['domain_name'] == self.vsts_base_url
 
     def test_migrate_repositories(self):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url='https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
-                self.vsts_account_name,
+            url='{}/DefaultCollection/_git/{}'.format(
+                self.vsts_base_url,
                 self.repo_name,
             ),
             provider='visualstudio',
@@ -125,10 +123,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     def test_build_integration(self):
         state = {
             'account': {
-                'AccountName': self.vsts_account_name,
-                'AccountId': self.vsts_account_id,
+                'accountName': self.vsts_account_name,
+                'accountId': self.vsts_account_id,
             },
-            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'base_url': self.vsts_base_url,
+            'instance': self.vsts_base_url,
             'identity': {
                 'data': {
                     'access_token': self.access_token,
@@ -144,8 +143,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         assert integration_dict['name'] == self.vsts_account_name
         assert integration_dict['external_id'] == self.vsts_account_id
-        assert integration_dict['metadata']['domain_name'] == \
-            '{}.visualstudio.com'.format(self.vsts_account_name)
+        assert integration_dict['metadata']['domain_name'] == self.vsts_base_url
 
         assert integration_dict['user_identity']['type'] == 'vsts'
         assert integration_dict['user_identity']['external_id'] == \
@@ -158,10 +156,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         state = {
             'account': {
-                'AccountName': self.vsts_account_name,
-                'AccountId': self.vsts_account_id,
+                'accountName': self.vsts_account_name,
+                'accountId': self.vsts_account_id,
             },
-            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'base_url': self.vsts_base_url,
+            'instance': self.vsts_base_url,
             'identity': {
                 'data': {
                     'access_token': self.access_token,
@@ -186,10 +185,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         )
         data = VstsIntegrationProvider().build_integration({
             'account': {
-                'AccountName': self.vsts_account_name,
-                'AccountId': external_id,
+                'accountName': self.vsts_account_name,
+                'accountId': external_id,
             },
-            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'base_url': self.vsts_base_url,
+            'instance': self.vsts_base_url,
             'identity': {
                 'data': {
                     'access_token': self.access_token,
