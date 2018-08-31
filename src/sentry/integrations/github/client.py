@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-from sentry.integrations.github.utils import get_jwt
+from sentry.constants import ObjectStatus
 from sentry.integrations.client import ApiClient
+from sentry.integrations.exceptions import ApiError
+from sentry.integrations.github.utils import get_jwt
 
 
 class GitHubClientMixin(ApiClient):
@@ -112,7 +114,18 @@ class GitHubClientMixin(ApiClient):
             expires_at = datetime.strptime(expires_at, '%Y-%m-%dT%H:%M:%S')
 
         if not token or expires_at < datetime.utcnow():
-            res = self.create_token()
+            try:
+                res = self.create_token()
+            except ApiError:
+                # The token could not be refreshed. This likely indicates the
+                # installation was removed but failed to be disabled through
+                # the uninstall webhook. disable the integration now.
+                #
+                # TODO(epurkhiser): When we have some kind of logging mechanism
+                # for the user to inspect for integrations, log something here.
+                self.integration.update(status=ObjectStatus.DISABLED)
+                return None
+
             token = res['token']
             expires_at = datetime.strptime(
                 res['expires_at'],
