@@ -13,7 +13,6 @@ export default class EarlyAdopterMessage extends React.Component {
         <Flex justify="space-between">
           {t('Sentry Discover is alpha software. Thanks for being an early adopter.')}
           <Link href="mailto:feedback-discover@sentry.io">
-            {' '}
             {t('feedback-discover@sentry.io')}{' '}
           </Link>
         </Flex>
@@ -25,5 +24,5 @@ export default class EarlyAdopterMessage extends React.Component {
 const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
   margin: 0;
-  border-radius: 0;
+  border-radius: ${p => p.theme.borderRadius};
 `;
