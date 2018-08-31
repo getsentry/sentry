@@ -3,7 +3,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import HookStore from 'app/stores/hookStore';
 
 class Waiting extends React.Component {

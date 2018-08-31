@@ -185,6 +185,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
                   className="pull-right"
                 >
                   <Button
+                    alignLabel="left"
                     data-test-id="configure-done"
                     disabled={false}
                     onClick={[Function]}
@@ -200,7 +201,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
                     >
                       <Component
                         aria-label="All done!"
-                        className="css-1msljz8-StyledButton-getColors e17811v30"
+                        className="css-1msljz8-StyledButton-getColors eqrebog0"
                         data-test-id="configure-done"
                         disabled={false}
                         onClick={[Function]}
@@ -209,27 +210,34 @@ exports[`Configure should render correctly render() should redirect to if no mat
                       >
                         <button
                           aria-label="All done!"
-                          className="css-1msljz8-StyledButton-getColors e17811v30"
+                          className="css-1msljz8-StyledButton-getColors eqrebog0"
                           data-test-id="configure-done"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
                           role="button"
                         >
-                          <ButtonLabel>
+                          <ButtonLabel
+                            justify="flex-start"
+                            priority="primary"
+                          >
                             <Component
-                              className="css-1dxlw1i-ButtonLabel e17811v31"
+                              className="css-1emshjx-ButtonLabel eqrebog1"
+                              justify="flex-start"
+                              priority="primary"
                             >
                               <Flex
                                 align="center"
-                                className="css-1dxlw1i-ButtonLabel e17811v31"
+                                className="css-1emshjx-ButtonLabel eqrebog1"
+                                justify="flex-start"
                               >
                                 <Base
                                   align="center"
-                                  className="e17811v31 css-mvnt76-ButtonLabel"
+                                  className="eqrebog1 css-11rqwwm-ButtonLabel"
+                                  justify="flex-start"
                                 >
                                   <div
-                                    className="e17811v31 css-mvnt76-ButtonLabel"
+                                    className="eqrebog1 css-11rqwwm-ButtonLabel"
                                     is={null}
                                   >
                                     All done!
@@ -743,6 +751,7 @@ exports[`Configure should render correctly render() should render platform docs 
                   className="pull-right"
                 >
                   <Button
+                    alignLabel="left"
                     data-test-id="configure-done"
                     disabled={false}
                     onClick={[Function]}
@@ -758,7 +767,7 @@ exports[`Configure should render correctly render() should render platform docs 
                     >
                       <Component
                         aria-label="All done!"
-                        className="css-1msljz8-StyledButton-getColors e17811v30"
+                        className="css-1msljz8-StyledButton-getColors eqrebog0"
                         data-test-id="configure-done"
                         disabled={false}
                         onClick={[Function]}
@@ -767,27 +776,34 @@ exports[`Configure should render correctly render() should render platform docs 
                       >
                         <button
                           aria-label="All done!"
-                          className="css-1msljz8-StyledButton-getColors e17811v30"
+                          className="css-1msljz8-StyledButton-getColors eqrebog0"
                           data-test-id="configure-done"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
                           role="button"
                         >
-                          <ButtonLabel>
+                          <ButtonLabel
+                            justify="flex-start"
+                            priority="primary"
+                          >
                             <Component
-                              className="css-1dxlw1i-ButtonLabel e17811v31"
+                              className="css-1emshjx-ButtonLabel eqrebog1"
+                              justify="flex-start"
+                              priority="primary"
                             >
                               <Flex
                                 align="center"
-                                className="css-1dxlw1i-ButtonLabel e17811v31"
+                                className="css-1emshjx-ButtonLabel eqrebog1"
+                                justify="flex-start"
                               >
                                 <Base
                                   align="center"
-                                  className="e17811v31 css-mvnt76-ButtonLabel"
+                                  className="eqrebog1 css-11rqwwm-ButtonLabel"
+                                  justify="flex-start"
                                 >
                                   <div
-                                    className="e17811v31 css-mvnt76-ButtonLabel"
+                                    className="eqrebog1 css-11rqwwm-ButtonLabel"
                                     is={null}
                                   >
                                     All done!
