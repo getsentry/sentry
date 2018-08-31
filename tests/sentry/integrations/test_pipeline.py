@@ -8,6 +8,16 @@ from sentry.integrations.example import (
     ExampleIntegrationProvider,
     AliasedIntegrationProvider,
 )
+from sentry.models import Repository
+from sentry.plugins import plugins
+from sentry.plugins.bases.issue2 import IssuePlugin2
+
+
+class ExamplePlugin(IssuePlugin2):
+    slug = 'example'
+
+
+plugins.register(ExamplePlugin)
 
 
 def naive_build_integration(data):
@@ -199,3 +209,23 @@ class FinishPipelineTestCase(IntegrationTestCase):
         )
         assert org_integration.default_auth_id == old_identity_id
         assert Identity.objects.filter(external_id='AccountId').exists()
+
+    @patch('sentry.integrations.migrate.PluginMigrator.call')
+    def test_disabled_plugin_when_fully_migrated(self, call, *args):
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='user/repo',
+            url='https://example.org/user/repo',
+            provider=self.provider.key,
+            external_id=self.external_id,
+        )
+
+        self.pipeline.state.data = {
+            'external_id': self.external_id,
+            'name': 'Name',
+            'metadata': {'url': 'https://example.com'},
+        }
+
+        self.pipeline.finish_pipeline()
+
+        assert call.called

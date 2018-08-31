@@ -13,6 +13,7 @@ from sentry.models import (
 )
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
@@ -60,6 +61,9 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
 
     def reinstall(self):
         self.reinstall_repositories()
+
+    def all_repos_migrated(self):
+        return not self.get_unmigratable_repositories()
 
     def get_repositories(self, query=None):
         try:
@@ -251,9 +255,9 @@ class VstsIntegrationProvider(IntegrationProvider):
     }
 
     def post_install(self, integration, organization):
-        unmigratable_repos = self \
-            .get_installation(integration, organization.id) \
-            .get_unmigratable_repositories()
+        installation = self.get_installation(integration, organization.id)
+
+        unmigratable_repos = installation.get_unmigratable_repositories()
 
         repos = Repository.objects.filter(
             organization_id=organization.id,
@@ -264,6 +268,8 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         for repo in repos:
             repo.update(integration_id=integration.id)
+
+        PluginMigrator(installation, organization).call()
 
     def get_pipeline_views(self):
         identity_pipeline_config = {

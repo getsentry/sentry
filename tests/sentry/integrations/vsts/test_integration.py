@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
+
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
-    Integration, IntegrationExternalProject, OrganizationIntegration, Repository
+    Integration, IntegrationExternalProject, OrganizationIntegration, Repository,
+    Project
 )
+from sentry.plugins import plugins
+from tests.sentry.plugins.testutils import VstsPlugin  # NOQA
 from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
 
 
@@ -58,6 +62,65 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert Repository.objects.get(
             id=inaccessible_repo.id,
         ).integration_id is None
+
+    def setupPluginTest(self):
+        self.project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        self.plugin = plugins.get('vsts')
+        self.plugin.enable(self.project)
+
+    def test_disabled_plugin_when_fully_migrated(self):
+        self.setupPluginTest()
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.project_a['name'],
+            url='https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+                self.vsts_account_name,
+                self.repo_name,
+            ),
+            provider='visualstudio',
+            external_id=self.repo_id,
+        )
+
+        # Enabled before Integration installation
+        assert 'vsts' in [p.slug for p in plugins.for_project(self.project)]
+
+        self.assert_installation()
+
+        # Disabled
+        assert 'vsts' not in [p.slug for p in plugins.for_project(self.project)]
+
+    def test_doesnt_disable_plugin_when_partially_migrated(self):
+        self.setupPluginTest()
+
+        # Repo accessible by new Integration
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.project_a['name'],
+            url='https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+                self.vsts_account_name,
+                self.repo_name,
+            ),
+            provider='visualstudio',
+            external_id=self.repo_id,
+        )
+
+        # Inaccessible Repo - causes plugin to stay enabled
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='NotReachable',
+            url='https://randoaccount.visualstudio.com/Product/_git/NotReachable',
+            provider='visualstudio',
+            external_id='123456789',
+        )
+
+        self.assert_installation()
+
+        # Still enabled
+        assert 'vsts' in [p.slug for p in plugins.for_project(self.project)]
 
     def test_build_integration(self):
         state = {

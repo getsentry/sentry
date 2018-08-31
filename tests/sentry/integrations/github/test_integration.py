@@ -11,9 +11,11 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider
 from sentry.models import (
     Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration,
-    Repository,
+    Repository, Project
 )
+from sentry.plugins import plugins
 from sentry.testutils import IntegrationTestCase
+from tests.sentry.plugins.testutils import GitHubPlugin  # NOQA
 
 
 class GitHubIntegrationTest(IntegrationTestCase):
@@ -195,6 +197,30 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).integration_id is None
 
     @responses.activate
+    def test_disables_plugin_when_fully_migrated(self):
+        project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        plugin = plugins.get('github')
+        plugin.enable(project)
+
+        # Accessible to new Integration
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='Test-Organization/foo',
+            url='https://github.com/Test-Organization/foo',
+            provider='github',
+            external_id=123,
+        )
+
+        assert 'github' in [p.slug for p in plugins.for_project(project)]
+
+        self.assert_setup_flow()
+
+        assert 'github' not in [p.slug for p in plugins.for_project(project)]
+
+    @responses.activate
     def test_basic_flow(self):
         self.assert_setup_flow()
 
@@ -321,3 +347,31 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.status == ObjectStatus.VISIBLE
         assert integration.external_id == self.installation_id
+
+    @responses.activate
+    def test_disable_plugin_when_fully_migrated(self):
+        self._stub_github()
+
+        project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        plugin = plugins.get('github')
+        plugin.enable(project)
+
+        # Accessible to new Integration - mocked in _stub_github
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='Test-Organization/foo',
+            url='https://github.com/Test-Organization/foo',
+            provider='github',
+            external_id='123',
+        )
+
+        # Enabled before
+        assert 'github' in [p.slug for p in plugins.for_project(project)]
+
+        self.assert_setup_flow()
+
+        # Disabled after Integration installed
+        assert 'github' not in [p.slug for p in plugins.for_project(project)]

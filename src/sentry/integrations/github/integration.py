@@ -9,6 +9,7 @@ from sentry.integrations import Integration, IntegrationFeatures, IntegrationPro
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.migrate import PluginMigrator
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
@@ -153,6 +154,8 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
         for repo in filter(lambda r: r not in unmigratable_repos, repos):
             repo.update(integration_id=integration.id)
+
+        PluginMigrator(integration, organization).call()
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
