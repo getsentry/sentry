@@ -100,9 +100,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             'organizations:github-enterprise', organization, actor=request.user)
         has_bb = provider_id == 'integrations:bitbucket' and features.has(
             'organizations:bitbucket-integration', organization, actor=request.user)
+        has_vsts = provider_id == 'integrations:vsts' and features.has(
+            'organizations:vsts-integration', organization, actor=request.user)
 
         if features.has('organizations:internal-catchall', organization,
-                        actor=request.user) or has_ghe or has_bb:
+                        actor=request.user) or has_ghe or has_bb or has_vsts:
             if provider_id is not None and provider_id.startswith('integrations:'):
                 try:
                     provider_cls = bindings.get('integration-repository.provider').get(provider_id)
