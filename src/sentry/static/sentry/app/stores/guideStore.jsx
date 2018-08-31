@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 import $ from 'jquery';
 import GuideActions from 'app/actions/guideActions';
@@ -44,8 +45,8 @@ const GuideStore = Reflux.createStore({
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeOrgSlug);
 
-    window.addEventListener('hashchange', this.onURLChange, false);
     window.addEventListener('load', this.onURLChange, false);
+    browserHistory.listen(() => this.onURLChange());
   },
 
   onURLChange() {

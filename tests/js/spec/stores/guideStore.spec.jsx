@@ -87,7 +87,7 @@ describe('GuideStore', function() {
   it('should force show a guide', function() {
     GuideStore.onFetchSucceeded(data);
     window.location.hash = '#assistant';
-    window.dispatchEvent(new Event('hashchange'));
+    GuideStore.onURLChange();
     expect(GuideStore.state.currentGuide.id).toEqual(1);
     // Should prune steps that don't have anchors.
     expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
