@@ -179,10 +179,10 @@ const GuideStore = Reflux.createStore({
   updateCurrentGuide() {
     // Logic to determine if a guide is shown:
     // 1. If any required target is missing, don't show the guide.
-    // 2. If the URL ends with #assistant, show the guide.
-    // 3. If the user isn't in the A/B test, don't show the guide.
-    // 4. If the user has seen the guide, don't show it.
-    // 5. If the guide doesn't pass custom checks, don't show it.
+    // 2. If custom checks fail, don't show the guide.
+    // 3. If the URL ends with #assistant, show the guide.
+    // 4. If the user isn't in the A/B test, don't show the guide.
+    // 5. If the user has seen the guide, don't show it.
     // 6. Otherwise show the guide.
 
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
@@ -212,7 +212,7 @@ const GuideStore = Reflux.createStore({
         if (!this.checkAlertTipData()) {
           // Wait for the required data.
           break;
-        } else if (user.isSuperuser) {
+        } else {
           // Only show this to superusers for now.
           let projectId = parseInt(this.state.project.id, 10);
           if (
