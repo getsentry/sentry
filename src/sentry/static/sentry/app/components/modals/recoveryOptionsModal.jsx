@@ -40,8 +40,6 @@ class RecoveryOptionsModal extends AsyncComponent {
       obj[item.id] = item;
       return obj;
     }, {});
-
-    let smsEnrolled = sms && sms.isEnrolled;
     let recoveryEnrolled = recovery && recovery.isEnrolled;
 
     return (
@@ -58,7 +56,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             {t('You should now set up recovery options to secure your account.')}
           </TextBlock>
 
-          {!skipSms && !smsEnrolled ? (
+          {sms && !sms.isEnrolled && !skipSms ? (
             // set up backup phone number
             <Alert type="warning">
               {t('We recommend adding a phone number as a backup 2FA method.')}
@@ -74,7 +72,7 @@ class RecoveryOptionsModal extends AsyncComponent {
           )}
         </Body>
 
-        {!skipSms && !smsEnrolled ? (
+        {sms && !sms.isEnrolled && !skipSms ? (
           // set up backup phone number
           <div className="modal-footer">
             <Button onClick={this.handleSkipSms} name="skipStep" autoFocus>
