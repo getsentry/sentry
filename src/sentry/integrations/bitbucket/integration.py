@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -114,6 +115,8 @@ class BitbucketIntegrationProvider(IntegrationProvider):
 
         for repo in filter(lambda r: r not in unmigrateable_repos, repos):
             repo.update(integration_id=integration.id)
+
+        PluginMigrator(integration, organization).call()
 
     def build_integration(self, state):
         if state.get('publicKey'):

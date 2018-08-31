@@ -5,7 +5,9 @@ import responses
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import scopes, BitbucketIntegrationProvider
-from sentry.models import Integration, Repository
+from sentry.models import Integration, Repository, Project
+from sentry.plugins import plugins
+from tests.sentry.plugins.testutils import BitbucketPlugin  # NOQA
 
 
 class BitbucketInstalledEndpointTest(APITestCase):
@@ -133,6 +135,53 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert Repository.objects.get(
             id=inaccessible_repo.id
         ).integration_id is None
+
+    @responses.activate
+    def test_disable_plugin_when_fully_migrated(self):
+        project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        plugin = plugins.get('bitbucket')
+        plugin.enable(project)
+
+        # Accessible to new Integration
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='sentryuser/repo',
+            url='https://bitbucket.org/sentryuser/repo',
+            provider='bitbucket',
+            external_id='123456',
+        )
+
+        self.client.post(
+            self.path,
+            data=self.data_from_bitbucket,
+        )
+
+        integration = Integration.objects.get(
+            provider=self.provider,
+            external_id=self.client_key,
+        )
+
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
+            json={
+                'values': [{
+                    'full_name': 'sentryuser/repo',
+                }],
+            },
+        )
+
+        assert 'bitbucket' in [p.slug for p in plugins.for_project(project)]
+
+        BitbucketIntegrationProvider().post_install(
+            integration,
+            self.organization,
+        )
+
+        assert 'bitbucket' not in [p.slug for p in plugins.for_project(project)]
 
     def test_installed_without_public_key(self):
         integration = Integration.objects.get_or_create(
