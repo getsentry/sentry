@@ -17,17 +17,19 @@ describe('utils/logExperiment', function() {
 
   it('logs experiment for those with assignment', function() {
     let experiments = {testExperimentName: 0};
-    let data = {unit_name: 'org_id', unit_id: 1, params: 'exposed'};
-    logExperiment('testExperimentName', experiments, data);
-    data.experiment_name = 'testExperimentName';
-    data.params = '{exposed: 0}';
-    expect(myMockFn).toHaveBeenCalledWith(data);
+    logExperiment(experiments, 'testExperimentName', 'org_id', 1, 'exposed');
+    expect(myMockFn).toHaveBeenCalledWith({
+      experiment_name: 'testExperimentName',
+      unit_name: 'org_id',
+      unit_id: 1,
+      params: {
+        exposed: 0,
+      },
+    });
   });
 
   it('does not log experiment without assignment', function() {
-    let experiments = {testExperimentName: null};
-    let data = {unit_name: 'org_id', unit_id: 1, params: 'exposed'};
-    logExperiment('testExperimentName', experiments, data);
+    logExperiment({}, 'testExperimentName', 'org_id', 1, 'exposed');
     expect(myMockFn).toHaveBeenCalledTimes(0);
   });
 });

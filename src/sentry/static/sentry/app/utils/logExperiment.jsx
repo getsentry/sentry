@@ -1,18 +1,26 @@
 import HookStore from 'app/stores/hookStore';
 
 /**
- * @param {String} experimentName Name of the experiment
- * @param {Object} experiments Config
- * @param {Object} data Experiment data to be recorded: {unit_name, unit_id, params}
- * 					note that params need to be string
+ * @param {Object} experiments: Config
+ * @param {String} param: assignment parameter, e.g. "color"
  */
-export default function logExperiment(experimentName, experiments, data) {
+export default function logExperiment(
+  experiments,
+  experimentName,
+  unitName,
+  unitId,
+  param
+) {
   let assignment = experiments[experimentName];
-  let param = data.params;
+  if (assignment === null || assignment === undefined) return;
 
-  if (assignment === null) return;
-
-  data.experiment_name = experimentName;
-  data.params = `{${param}: ${assignment}}`;
+  let data = {
+    experiment_name: experimentName,
+    unit_name: unitName,
+    unit_id: unitId,
+    params: {
+      [param]: assignment,
+    },
+  };
   HookStore.get('analytics:log-experiment').forEach(cb => cb(data));
 }
