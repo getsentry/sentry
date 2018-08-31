@@ -131,6 +131,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             size="xsmall"
                                           >
                                             <Button
+                                              alignLabel="left"
                                               className="css-o27a2e-StyledButton e1yghndz1"
                                               disabled={false}
                                               size="xsmall"
@@ -157,22 +158,26 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <ButtonLabel
+                                                      justify="flex-start"
                                                       size="xsmall"
                                                     >
                                                       <Component
                                                         className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                        justify="flex-start"
                                                         size="xsmall"
                                                       >
                                                         <Flex
                                                           align="center"
                                                           className="css-6q5v1w-ButtonLabel eqrebog1"
+                                                          justify="flex-start"
                                                         >
                                                           <Base
                                                             align="center"
-                                                            className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                            className="eqrebog1 css-v6dd0e-ButtonLabel"
+                                                            justify="flex-start"
                                                           >
                                                             <div
-                                                              className="eqrebog1 css-dqr4rq-ButtonLabel"
+                                                              className="eqrebog1 css-v6dd0e-ButtonLabel"
                                                               is={null}
                                                             >
                                                               Add Project
@@ -390,6 +395,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     title="You do not have enough permission to change project association."
                   >
                     <Button
+                      alignLabel="left"
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -415,22 +421,26 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             size="small"
                           >
                             <ButtonLabel
+                              justify="flex-start"
                               size="small"
                             >
                               <Component
                                 className="css-o42ntg-ButtonLabel eqrebog1"
+                                justify="flex-start"
                                 size="small"
                               >
                                 <Flex
                                   align="center"
                                   className="css-o42ntg-ButtonLabel eqrebog1"
+                                  justify="flex-start"
                                 >
                                   <Base
                                     align="center"
-                                    className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                    className="eqrebog1 css-gzxb22-ButtonLabel"
+                                    justify="flex-start"
                                   >
                                     <div
-                                      className="eqrebog1 css-l5mlqc-ButtonLabel"
+                                      className="eqrebog1 css-gzxb22-ButtonLabel"
                                       is={null}
                                     >
                                       <RemoveIcon>

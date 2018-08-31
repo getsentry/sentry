@@ -19,7 +19,9 @@ export default function recreateRoute(to, {routes, params, location, stepBack}) 
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
 
-  if (typeof stepBack !== 'undefined') {
+  if (stepBack >= 0) {
+    throw new Error('`stepBack` needs to be < 0');
+  } else if (typeof stepBack !== 'undefined') {
     baseRoute = baseRoute.slice(0, stepBack);
   }
 

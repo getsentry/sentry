@@ -11,7 +11,7 @@ describe('Query Builder', function() {
 
       expect(external.projects).toEqual([2]);
       expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-      expect(external.fields).toHaveLength(47);
+      expect(external.fields).toHaveLength(45);
       expect(external.conditions).toHaveLength(0);
       expect(external.aggregations).toHaveLength(0);
       expect(external.orderby).toBe('-timestamp');
@@ -149,12 +149,12 @@ describe('Query Builder', function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.orderby).toBe('count');
+      expect(query.orderby).toBe('-count');
     });
 
     it('updates orderby if there is no aggregation and value is not a valid field', function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
-      expect(queryBuilder.getInternal().orderby).toBe('count');
+      expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);
       expect(queryBuilder.getInternal().orderby).toBe('-timestamp');
     });

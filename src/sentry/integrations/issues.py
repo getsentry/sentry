@@ -3,7 +3,8 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry.models import Activity, Event, Group, GroupStatus
+from sentry import features
+from sentry.models import Activity, Event, Group, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -237,6 +238,14 @@ class IssueSyncMixin(IssueBasicMixin):
     def sync_status_inbound(self, issue_key, data):
         if not self.should_sync('inbound_status'):
             return
+
+        organization = Organization.objects.get(id=self.organization_id)
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                      organization)
+
+        if not has_issue_sync:
+            return
+
         affected_groups = list(
             Group.objects.get_groups_by_external_issue(
                 self.model, issue_key,

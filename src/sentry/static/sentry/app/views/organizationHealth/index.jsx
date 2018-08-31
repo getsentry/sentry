@@ -23,21 +23,28 @@ class OrganizationHealth extends React.Component {
     super(props);
 
     this.state = {
-      params: {
-        projects: [],
-        environments: [],
-        period: '7d',
+      actions: {
+        updateParams: this.updateParams,
+        setSpecifier: this.setSpecifier,
       },
+      projects: [],
+      environments: [],
+      period: '7d',
+      specifiers: [],
     };
   }
 
   updateParams = obj => {
     this.setState(state => ({
       ...state,
-      params: {
-        ...state.params,
-        ...obj,
-      },
+      ...obj,
+    }));
+  };
+
+  setSpecifier = (tag, value) => {
+    this.setState(state => ({
+      ...state,
+      specifiers: [`${tag}:${value}`],
     }));
   };
 
@@ -62,7 +69,7 @@ class OrganizationHealth extends React.Component {
 
     return (
       <Feature feature={['health']} renderNoFeatureMessage>
-        <HealthContext.Provider value={this.state.params}>
+        <HealthContext.Provider value={this.state}>
           <HealthWrapper>
             <HealthNavigationMenu />
             <Content>
@@ -70,20 +77,20 @@ class OrganizationHealth extends React.Component {
                 <MultipleProjectSelector
                   anchorRight={false}
                   projects={projects}
-                  value={this.state.params.projects}
+                  value={this.state.projects}
                   onChange={this.handleChangeProjects}
                 />
                 <HeaderSeparator />
                 <MultipleEnvironmentSelector
                   organization={organization}
-                  value={this.state.params.environments}
+                  value={this.state.environments}
                   onChange={this.handleChangeEnvironments}
                 />
                 <HeaderSeparator />
                 <TimeRangeSelector
                   showAbsolute={false}
                   showRelative
-                  relative={this.state.params.period}
+                  relative={this.state.period}
                   onChange={this.handleChangeTime}
                 />
               </Header>

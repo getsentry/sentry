@@ -16,6 +16,7 @@ const PROMOTED_TAGS = [
   {name: 'tags[os]', type: 'string'},
   {name: 'tags[os_name]', type: 'string'},
   {name: 'tags[os_rooted]', type: 'number'},
+  {name: 'tags[sentry:release]', type: 'string'},
 ];
 
 const COLUMNS = [
@@ -24,8 +25,6 @@ const COLUMNS = [
   {name: 'platform', type: 'string'},
   {name: 'message', type: 'string'},
   {name: 'primary_hash', type: 'string'},
-  {name: 'deleted', type: 'number'},
-  {name: 'retention_days', type: 'number'},
   {name: 'timestamp', type: 'string'}, // TODO: handling datetime as string for now
   {name: 'received', type: 'string'}, // TODO: handling datetime as string for now
 
@@ -84,4 +83,6 @@ const CONDITION_OPERATORS = [
   'NOT LIKE',
 ];
 
-export {COLUMNS, PROMOTED_TAGS, CONDITION_OPERATORS};
+const NUMBER_OF_SERIES_BY_DAY = 10;
+
+export {COLUMNS, PROMOTED_TAGS, CONDITION_OPERATORS, NUMBER_OF_SERIES_BY_DAY};

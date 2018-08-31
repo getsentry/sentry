@@ -16,8 +16,8 @@ const aggregationList = [
     external: ['uniq', 'message', 'uniq_message'],
   },
   {
-    internal: 'avg(retention_days)',
-    external: ['avg', 'retention_days', 'avg_retention_days'],
+    internal: 'avg(device_battery_level)',
+    external: ['avg', 'device_battery_level', 'avg_device_battery_level'],
   },
   {
     internal: 'uniq(tags[server_name])',

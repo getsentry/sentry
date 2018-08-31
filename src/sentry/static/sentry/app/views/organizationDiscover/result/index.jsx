@@ -11,6 +11,7 @@ import Tooltip from 'app/components/charts/components/tooltip';
 
 import Table from './table';
 import {getChartData, getChartDataByDay, formatTooltip} from './utils';
+import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
   static propTypes = {
@@ -92,18 +93,34 @@ export default class Result extends React.Component {
     );
   }
 
+  renderNote() {
+    return <Note>{t(`Displaying up to ${NUMBER_OF_SERIES_BY_DAY} results`)}</Note>;
+  }
+
   render() {
     const {data, query, chartQuery, chartData} = this.props;
     const {view} = this.state;
 
     const basicChartData = getChartData(data.data, query);
 
+    const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
+
     return (
       <div>
         {this.renderToggle()}
 
         {view === 'table' && <Table data={data} />}
-        {view === 'line' && <LineChart series={basicChartData} height={300} />}
+        {view === 'line' && (
+          <LineChart
+            series={basicChartData}
+            height={300}
+            options={{
+              tooltip: Tooltip({
+                formatter: formatTooltip,
+              }),
+            }}
+          />
+        )}
         {view === 'bar' && (
           <BarChart
             series={basicChartData}
@@ -116,22 +133,33 @@ export default class Result extends React.Component {
           />
         )}
         {view === 'line-by-day' && (
-          <LineChart
-            series={getChartDataByDay(chartData.data, chartQuery)}
-            height={300}
-          />
+          <React.Fragment>
+            <LineChart
+              series={byDayChartData}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+            {this.renderNote()}
+          </React.Fragment>
         )}
         {view === 'bar-by-day' && (
-          <BarChart
-            series={getChartDataByDay(chartData.data, chartQuery)}
-            stacked={true}
-            height={300}
-            options={{
-              tooltip: Tooltip({
-                formatter: formatTooltip,
-              }),
-            }}
-          />
+          <React.Fragment>
+            <BarChart
+              series={byDayChartData}
+              stacked={true}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+            {this.renderNote()}
+          </React.Fragment>
         )}
         {this.renderSummary()}
       </div>
@@ -142,4 +170,8 @@ export default class Result extends React.Component {
 const Summary = styled(Box)`
   color: ${p => p.theme.gray6};
   font-size: 12px;
+`;
+
+const Note = styled(Box)`
+  text-align: center;
 `;

@@ -501,7 +501,10 @@ class GroupUpdateTest(APITestCase):
         assert len(response.data) == 1
 
         with self.tasks():
-            with self.feature('organizations:internal-catchall'):
+            with self.feature({
+                'organizations:integrations-issue-sync': True,
+                'organizations:internal-catchall': True,
+            }):
                 response = self.client.put(
                     '{}?status=unresolved'.format(self.path),
                     data={
@@ -576,7 +579,10 @@ class GroupUpdateTest(APITestCase):
         )
 
         with self.tasks():
-            with self.feature('organizations:internal-catchall'):
+            with self.feature({
+                'organizations:integrations-issue-sync': True,
+                'organizations:internal-catchall': True,
+            }):
                 response = self.client.put(
                     url, data={
                         'status': 'unresolved',
