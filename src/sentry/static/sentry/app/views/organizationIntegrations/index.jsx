@@ -26,11 +26,12 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
   getEndpoints() {
     let {orgId} = this.props.params;
+    const query = {plugins: ['vsts', 'github', 'bitbucket']};
 
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
-      ['plugins', `/organizations/${orgId}/plugins/`],
+      ['plugins', `/organizations/${orgId}/plugins/`, {query}],
       ['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`],
     ];
   }

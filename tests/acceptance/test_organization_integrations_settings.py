@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins, unregister_mock_plugins
+)
 
 
 class OrganizationIntegrationSettingsTest(AcceptanceTestCase):
@@ -35,7 +38,11 @@ class OrganizationIntegrationSettingsTest(AcceptanceTestCase):
 
         self.org_integration = self.model.add_organization(self.org.id)
 
+        register_mock_plugins()
         self.login_as(self.user)
+
+    def tearDown(self):
+        unregister_mock_plugins()
 
     def test_all_integrations_list(self):
         path = u'/settings/{}/integrations/'.format(self.org.slug)

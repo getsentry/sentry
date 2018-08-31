@@ -7,6 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.app import raven
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Repository
 from sentry.plugins import bindings
@@ -54,8 +55,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == 'unmigratable':
-            repos = []
-
             integrations = Integration.objects.filter(
                 organizationintegration__organization=organization,
                 organizationintegration__status=ObjectStatus.ACTIVE,
@@ -63,12 +62,17 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
                 status=ObjectStatus.ACTIVE,
             )
 
-            repos = [
-                repo
-                for i in integrations
-                for repo in i.get_installation(organization.id)
-                             .get_unmigratable_repositories()
-            ]
+            repos = []
+
+            for i in integrations:
+                try:
+                    repos.extend(i.get_installation(organization.id)
+                                  .get_unmigratable_repositories())
+                except Exception:
+                    raven.captureException()
+                    # Don't rely on the Integration's API being available. If
+                    # it's not, the page should still render.
+                    continue
 
             return Response(serialize(repos, request.user))
 

@@ -128,7 +128,8 @@ class ApiClient(object):
         return path
 
     def _request(self, method, path, headers=None, data=None, params=None,
-                 auth=None, json=True, allow_text=None, allow_redirects=None):
+                 auth=None, json=True, allow_text=None, allow_redirects=None,
+                 timeout=None):
 
         if allow_text is None:
             allow_text = self.allow_text
@@ -138,6 +139,9 @@ class ApiClient(object):
 
         if allow_redirects is None:  # is still None
             allow_redirects = method.upper() == 'GET'
+
+        if timeout is None:
+            timeout = 30
 
         full_url = self.build_url(path)
         session = build_session()
@@ -151,6 +155,7 @@ class ApiClient(object):
                 auth=auth,
                 verify=self.verify_ssl,
                 allow_redirects=allow_redirects,
+                timeout=timeout,
             )
             resp.raise_for_status()
         except ConnectionError as e:
