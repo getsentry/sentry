@@ -31,7 +31,7 @@ class Waiting extends React.Component {
           </div>
           <CenteredButtons className="col-sm-2">
             <div className="pull-right">
-              <Button priority="primary" onClick={this.props.skip}>
+              <Button priority="primary" data-test-id="configure-done" onClick={this.props.skip}>
                 {t('All done!')}
               </Button>
               {HookStore.get('experiment:sample-event').length

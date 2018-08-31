@@ -185,12 +185,14 @@ exports[`Configure should render correctly render() should redirect to if no mat
                   className="pull-right"
                 >
                   <Button
+                    data-test-id="configure-done"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
                   >
                     <StyledButton
                       aria-label="All done!"
+                      data-test-id="configure-done"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
@@ -199,6 +201,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
                       <Component
                         aria-label="All done!"
                         className="css-1msljz8-StyledButton-getColors e17811v30"
+                        data-test-id="configure-done"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -207,6 +210,7 @@ exports[`Configure should render correctly render() should redirect to if no mat
                         <button
                           aria-label="All done!"
                           className="css-1msljz8-StyledButton-getColors e17811v30"
+                          data-test-id="configure-done"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -739,12 +743,14 @@ exports[`Configure should render correctly render() should render platform docs 
                   className="pull-right"
                 >
                   <Button
+                    data-test-id="configure-done"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
                   >
                     <StyledButton
                       aria-label="All done!"
+                      data-test-id="configure-done"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
@@ -753,6 +759,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       <Component
                         aria-label="All done!"
                         className="css-1msljz8-StyledButton-getColors e17811v30"
+                        data-test-id="configure-done"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -761,6 +768,7 @@ exports[`Configure should render correctly render() should render platform docs 
                         <button
                           aria-label="All done!"
                           className="css-1msljz8-StyledButton-getColors e17811v30"
+                          data-test-id="configure-done"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
