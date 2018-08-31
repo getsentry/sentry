@@ -45,8 +45,6 @@ from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
-from sentry.web.frontend.remove_project import RemoveProjectView
-from sentry.web.frontend.transfer_project import TransferProjectView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView
 from sentry.web.frontend.remove_team import RemoveTeamView
@@ -469,18 +467,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
         react_page_view,
         name='sentry-manage-project'
-    ),
-    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',
-        RemoveProjectView.as_view(),
-        name='sentry-remove-project'
-    ),
-    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
-        TransferProjectView.as_view(),
-        name='sentry-transfer-project'
     ),
     url(
         r'^avatar/(?P<avatar_id>[^\/]+)/$',
