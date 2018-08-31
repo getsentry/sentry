@@ -68,17 +68,6 @@ class EventManagerTest(TransactionTestCase):
 
         assert event1.group_id != event2.group_id
 
-    def test_transaction_over_culprit(self):
-        manager = EventManager(self.make_event(
-            culprit='foo',
-            transaction='bar'
-        ))
-        manager.normalize()
-        event1 = manager.save(1)
-
-        assert event1.transaction == 'bar'
-        assert event1.culprit == 'bar'
-
     @mock.patch('sentry.event_manager.should_sample')
     def test_saves_event_mapping_when_sampled(self, should_sample):
         should_sample.return_value = True
@@ -675,6 +664,34 @@ class EventManagerTest(TransactionTestCase):
         ))
         data = manager.normalize()
         assert len(data['transaction']) == MAX_CULPRIT_LENGTH
+
+    def test_transaction_as_culprit(self):
+        manager = EventManager(self.make_event(
+            transaction='foobar',
+        ))
+        manager.normalize()
+        event = manager.save(1)
+        assert event.transaction == 'foobar'
+        assert event.culprit == 'foobar'
+
+    def test_culprit_is_not_transaction(self):
+        manager = EventManager(self.make_event(
+            culprit='foobar',
+        ))
+        manager.normalize()
+        event1 = manager.save(1)
+        assert event1.transaction is None
+        assert event1.culprit == 'foobar'
+
+    def test_transaction_and_culprit(self):
+        manager = EventManager(self.make_event(
+            transaction='foobar',
+            culprit='baz',
+        ))
+        manager.normalize()
+        event1 = manager.save(1)
+        assert event1.transaction == 'foobar'
+        assert event1.culprit == 'baz'
 
     def test_long_message(self):
         manager = EventManager(

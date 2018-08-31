@@ -551,9 +551,8 @@ class EventManager(object):
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         level = data.pop('level')
-        culprit = data.pop('transaction', None)
-        if not culprit:
-            culprit = data.pop('culprit', None)
+        transaction_name = data.pop('transaction', None)
+        culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
@@ -569,14 +568,14 @@ class EventManager(object):
         message = data.pop('message', '')
 
         if not culprit:
-            # if we generate an implicit culprit, lets not call it a
-            # transaction
-            transaction_name = None
-            culprit = generate_culprit(data, platform=platform)
-        else:
-            transaction_name = culprit
+            if transaction_name:
+                culprit = transaction_name
+            else:
+                culprit = generate_culprit(data, platform=platform)
 
         culprit = force_text(culprit)
+        if transaction_name:
+            transaction_name = force_text(transaction_name)
 
         recorded_timestamp = data.pop('timestamp')
         date = datetime.fromtimestamp(recorded_timestamp)
