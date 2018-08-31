@@ -27,10 +27,10 @@ class VstsApiPath(object):
     subscriptions = u'{instance}_apis/hooks/subscriptions'
     work_items = u'{instance}DefaultCollection/_apis/wit/workitems/{id}'
     work_items_create = u'{instance}{project}/_apis/wit/workitems/${type}'
-    # TODO(lb): how do I fix this?
+    # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     work_item_search = u'https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults'
     work_item_states = u'{instance}{project}/_apis/wit/workitemtypes/{type}/states'
-    # TODO(lb): how do I fix this one?
+    # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
 
