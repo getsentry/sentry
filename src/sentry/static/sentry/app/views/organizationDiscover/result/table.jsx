@@ -152,7 +152,7 @@ export default class ResultTable extends React.Component {
               columnCount={cols.length + (showEventLinks ? 1 : 0)}
               fixedRowCount={1}
               rowHeight={30}
-              columnWidth={opts => this.getColumnWidth(opts, width)}
+              columnWidth={this.getColumnWidth}
               cellRenderer={this.cellRenderer}
               styleBottomRightGrid={{
                 border: `1px solid ${theme.borderDark}`,
