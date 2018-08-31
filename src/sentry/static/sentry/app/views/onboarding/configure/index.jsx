@@ -5,7 +5,6 @@ import {browserHistory} from 'react-router';
 import sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
-import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
@@ -25,7 +24,6 @@ const Configure = createReactClass({
       isFirstTimePolling: true,
       hasSentRealEvent: false,
       loading: true,
-      WaitingComponent: null,
     };
   },
 
@@ -41,10 +39,6 @@ const Configure = createReactClass({
     }, 2000);
   },
 
-  componentDidMount() {
-    this.getWaitingComponent();
-  },
-
   componentWillUpdate(nextProps, nextState) {
     if (
       !this.state.isFirstTimePolling &&
@@ -57,15 +51,6 @@ const Configure = createReactClass({
 
   componentWillUnmount() {
     clearInterval(this.timer);
-  },
-
-  getWaitingComponent() {
-    let WaitingComponent = HookOrDefault({
-      hookName: 'experiment:sample-event',
-      defaultComponent: Waiting,
-      organization: this.context.organization,
-    });
-    this.setState({WaitingComponent, loading: false});
   },
 
   sentRealEvent(data) {
@@ -119,7 +104,6 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
-    let {WaitingComponent} = this.state;
 
     return (
       <div>
@@ -138,13 +122,11 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          {WaitingComponent && (
-            <WaitingComponent
-              skip={this.submit}
-              hasEvent={this.state.hasSentRealEvent}
-              params={this.props.params}
-            />
-          )}
+          <Waiting
+                skip={this.submit}
+                hasEvent={this.state.hasSentRealEvent}
+                params={this.props.params}
+          />
         </div>
       </div>
     );
