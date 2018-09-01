@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from sentry.utils.db import is_mysql
 
 
 class Migration(SchemaMigration):
@@ -11,13 +12,13 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_groupedmessage', ['project_id', 'checksum'])
 
         # Deleting field 'Group.checksum'
-        db.delete_column('sentry_groupedmessage', 'checksum')
+        if not is_mysql():
+            db.delete_column('sentry_groupedmessage', 'checksum')
 
         # Deleting field 'Event.checksum'
         db.delete_column('sentry_message', 'checksum')
 
     def backwards(self, orm):
-
         # User chose to not deal with backwards NULL issues for 'Group.checksum'
         raise RuntimeError(
             "Cannot reverse this migration. 'Group.checksum' and its values cannot be restored."
