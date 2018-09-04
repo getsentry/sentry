@@ -103,6 +103,7 @@ def create_deletion_task(days, project_id, model, dtfield, order_by):
         models.Group,
         models.GroupEmailThread,
         models.GroupRuleStatus,
+        models.GroupHashTombstone,
         # Handled by TTL
         similarity.features,
     ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
