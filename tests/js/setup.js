@@ -12,6 +12,7 @@ import theme from 'app/utils/theme';
 import RoleList from './fixtures/roleList';
 import Release from './fixtures/release';
 import {AsanaPlugin, AsanaCreate, AsanaAutocomplete} from './fixtures/asana';
+import {Graph, Top} from './fixtures/health';
 import {
   PhabricatorPlugin,
   PhabricatorCreate,
@@ -536,6 +537,9 @@ window.TestStubs = {
       ...params,
     };
   },
+
+  HealthGraph: Graph,
+  HealthTop: Top,
 
   JiraIntegrationProvider: params => {
     return {

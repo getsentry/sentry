@@ -406,7 +406,7 @@ class HealthRequestWithParams extends React.Component {
 
 const HealthRequest = withLatestContext(
   withApi(
-    class extends React.Component {
+    class HealthRequest extends React.Component {
       render() {
         return (
           <HealthContext.Consumer>

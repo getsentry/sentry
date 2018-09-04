@@ -45,8 +45,9 @@ class HealthTest(AcceptanceTestCase):
             self.browser.wait_until_not('.loading-indicator')
             self.browser.snapshot('health errors')
 
-    def test_transactions(self):
-        with self.feature('organizations:health'):
-            self.browser.get('{}/transactions/'.format(self.path))
-            self.browser.wait_until_not('.loading-indicator')
-            self.browser.snapshot('health transactions')
+    # TODO(billyvg): Skipping until API endpoints are ready
+    #  def test_transactions(self):
+        #  with self.feature('organizations:health'):
+            #  self.browser.get('{}/transactions/'.format(self.path))
+            #  self.browser.wait_until_not('.loading-indicator')
+            #  self.browser.snapshot('health transactions')
