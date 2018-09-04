@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models import Group, Project
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 
 
 class BulkDeleteQueryTest(TestCase):
@@ -41,3 +41,27 @@ class BulkDeleteQueryTest(TestCase):
         assert not Group.objects.filter(id=group1_1.id).exists()
         assert not Group.objects.filter(id=group1_2.id).exists()
         assert Group.objects.filter(id=group1_3.id).exists()
+
+
+class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
+    def test_iteration(self):
+        target_project = self.project
+        expected_group_ids = set([self.create_group().id for i in xrange(2)])
+
+        other_project = self.create_project()
+        self.create_group(other_project)
+        self.create_group(other_project)
+
+        iterator = BulkDeleteQuery(
+            model=Group,
+            project_id=target_project.id,
+            dtfield='last_seen',
+            order_by='last_seen',
+            days=0,
+        ).iterator(1)
+
+        results = set()
+        for chunk in iterator:
+            results.update(chunk)
+
+        assert results == expected_group_ids

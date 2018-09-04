@@ -56,7 +56,6 @@ list(
         lambda cmd: cli.add_command(import_string(cmd)), (
             'sentry.runner.commands.backup.export', 'sentry.runner.commands.backup.import_',
             'sentry.runner.commands.cleanup.cleanup', 'sentry.runner.commands.config.config',
-            'sentry.runner.commands.cleanup.cleanup_chunk', 'sentry.runner.commands.config.config',
             'sentry.runner.commands.createuser.createuser',
             'sentry.runner.commands.devserver.devserver', 'sentry.runner.commands.django.django',
             'sentry.runner.commands.exec.exec_', 'sentry.runner.commands.files.files',
