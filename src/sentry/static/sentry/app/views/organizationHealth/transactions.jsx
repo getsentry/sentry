@@ -1,23 +1,19 @@
 import {Flex} from 'grid-emotion';
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AreaChart from 'app/components/charts/areaChart';
 import LineChart from 'app/components/charts/lineChart';
-import PanelChart from 'app/components/charts/panelChart';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 
+import {HealthContextActions} from './propTypes';
+import HealthPanelChart from './styles/healthPanelChart';
 import EventsTableChart from './eventsTableChart';
 import HealthRequest from './util/healthRequest';
 import withHealth from './util/withHealth';
 
 class OrganizationHealthTransactions extends React.Component {
   static propTypes = {
-    actions: PropTypes.object,
-    organization: SentryTypes.Organization,
+    actions: HealthContextActions,
   };
 
   render() {
@@ -28,20 +24,21 @@ class OrganizationHealthTransactions extends React.Component {
           tag="transaction"
           showLoading
           includeTimeseries
-          includeTimeAggregation="Transactions"
+          includeTimeAggregation
+          timeAggregationSeriesName="Transactions"
           includePrevious
         >
           {({timeseriesData, timeAggregatedData, previousTimeseriesData}) => {
             return (
               <Flex>
-                <StyledPanelChart
+                <HealthPanelChart
                   showLegend={false}
                   height={400}
                   title={t('Transactions')}
                   previousPeriod={previousTimeseriesData}
                 >
                   {props => <LineChart {...props} series={[timeAggregatedData]} />}
-                </StyledPanelChart>
+                </HealthPanelChart>
               </Flex>
             );
           }}
@@ -52,7 +49,8 @@ class OrganizationHealthTransactions extends React.Component {
           showLoading
           includeTop
           includeTimeseries
-          includeTimeAggregation="Transactions"
+          includeTimeAggregation
+          timeAggregationSeriesName="Transactions"
           includePercentages
           includePrevious
           limit={10}
@@ -66,7 +64,7 @@ class OrganizationHealthTransactions extends React.Component {
             return (
               <React.Fragment>
                 <Flex>
-                  <StyledPanelChart
+                  <HealthPanelChart
                     showLegend={false}
                     height={400}
                     title={t('Transactions')}
@@ -74,7 +72,7 @@ class OrganizationHealthTransactions extends React.Component {
                     previousPeriod={previousTimeseriesData}
                   >
                     {props => <AreaChart {...props} />}
-                  </StyledPanelChart>
+                  </HealthPanelChart>
                 </Flex>
                 <Flex>
                   <EventsTableChart
@@ -98,16 +96,3 @@ class OrganizationHealthTransactions extends React.Component {
 
 export default withHealth(OrganizationHealthTransactions);
 export {OrganizationHealthTransactions};
-
-const getChartMargin = () => `
-  margin-right: ${space(2)};
-  &:last-child {
-    margin-right: 0;
-  }
-`;
-
-const StyledPanelChart = styled(PanelChart)`
-  ${getChartMargin};
-  flex-shrink: 0;
-  overflow: hidden;
-`;
