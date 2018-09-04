@@ -17,6 +17,7 @@ from .testutils import (
 class VisualStudioRepositoryProviderTest(TestCase):
     def setUp(self):
         self.base_url = 'https://visualstudio.com/'
+        self.vsts_external_id = '654321'
 
     @fixture
     def provider(self):
@@ -37,8 +38,11 @@ class VisualStudioRepositoryProviderTest(TestCase):
         )
         integration = Integration.objects.create(
             provider='vsts',
-            external_id='vsts_external_id',
+            external_id=self.vsts_external_id,
             name='Hello world',
+            metadata={
+                'domain_name': self.base_url,
+            }
         )
         default_auth = Identity.objects.create(
             idp=IdentityProvider.objects.create(
@@ -84,8 +88,11 @@ class VisualStudioRepositoryProviderTest(TestCase):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='vsts',
-            external_id='vsts_external_id',
+            external_id=self.vsts_external_id,
             name='Hello world',
+            metadata={
+                'domain_name': self.base_url,
+            }
         )
         data = {
             'name': 'MyFirstProject',
@@ -99,7 +106,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         assert data == {
             'name': 'MyFirstProject',
-            'external_id': '654321',
+            'external_id': self.vsts_external_id,
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
 
             'config': {

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from time import time
 import logging
+import re
 
 from django import forms
 from django.utils.translation import ugettext as _
@@ -90,10 +91,18 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
+        self.check_domain_name()
         return VstsApiClient(
             self.default_identity,
             VstsIntegrationProvider.oauth_redirect_url,
         )
+
+    def check_domain_name(self):
+        if re.match('^https://.+/$', self.model.metadata['domain_name']):
+            return
+        base_url = VstsIntegrationProvider.get_base_url(
+            self.default_identity.data['access_token'], self.model.external_id)
+        self.model.metadata['domain_name'] = base_url
 
     def get_organization_config(self):
         client = self.get_client()
@@ -362,9 +371,10 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return data
 
-    def get_base_url(self, access_token, account_id):
+    @classmethod
+    def get_base_url(cls, access_token, account_id):
         session = http.build_session()
-        url = self.VSTS_ACCOUNT_LOOKUP_URL % account_id
+        url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
         response = session.get(
             url,
             headers={
