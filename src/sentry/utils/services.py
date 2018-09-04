@@ -57,14 +57,12 @@ class LazyServiceWrapper(LazyObject):
 
     def __init__(self, backend_base, backend_path, options, dangerous=()):
         super(LazyServiceWrapper, self).__init__()
-        self.__dict__.update(
-            {
-                '_backend': backend_path,
-                '_options': options,
-                '_base': backend_base,
-                '_dangerous': dangerous,
-            }
-        )
+        self.__dict__.update({
+            '_backend': backend_path,
+            '_options': options,
+            '_base': backend_base,
+            '_dangerous': dangerous,
+        })
 
     def __getattr__(self, name):
         if self._wrapped is empty:
@@ -91,6 +89,44 @@ class LazyServiceWrapper(LazyObject):
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
                 context[key] = getattr(base, key)
+
+    def replace(self, instance=None, backend_path=None, options=None):
+        """
+        Replace this service with a new instance.
+
+        This is primarily useful for testing when you want to inject a different
+        backend.
+
+        Return a tuple of (``instance``, ``options``) for the replaced service.
+
+        >>> from sentry import servicename
+        >>> mockedservice = service.MockedService()
+        >>> original = servicename.replace(mockedservice)
+        >>> try:
+        >>>     # ...
+        >>> finally:
+        >>>     servicename.restore(*original)
+        """
+        rv = (self._wrapped, self._backend, self._options)
+        if backend_path and not instance:
+            self._wrapped = empty
+            self.__dict__.update({
+                '_backend': backend_path,
+                '_options': options or {},
+            })
+        else:
+            self._wrapped = instance
+            self.__dict__.update({
+                '_backend': '{}.{}'.format(instance.__class__.__module__, instance.__class__.__name__),
+                '_options': options or {},
+            })
+        return rv
+
+    def restore(self, original):
+        """
+        Restore a service using the result given in a ``replace`` call.
+        """
+        return self.replace(*original)
 
 
 def resolve_callable(value):
