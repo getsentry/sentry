@@ -32,7 +32,9 @@ metadata = IntegrationMetadata(
 )
 scopes = (
     'account',
+    'email',
     'issue:write',
+    'pullrequest',
     'repository',
     'repository:admin',
     'team',
