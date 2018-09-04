@@ -293,7 +293,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         account = state['account']
         user = get_user_info(data['access_token'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
-        base_url = self.get_base_url(data['access_token'], account['accountId'])['locationUrl']
+        base_url = self.get_base_url(data['access_token'], account['accountId'])
 
         integration = {
             'name': account['accountName'],
@@ -371,7 +371,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         )
         if response.status_code == 200:
-            return response.json()
+            return response.json()['locationUrl']
         return None
 
     def setup(self):
