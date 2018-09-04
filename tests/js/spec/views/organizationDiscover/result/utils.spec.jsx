@@ -1,6 +1,10 @@
+import {mount} from 'enzyme';
+
 import {
   getChartData,
   getChartDataByDay,
+  getDisplayValue,
+  getDisplayText,
 } from 'app/views/organizationDiscover/result/utils';
 
 describe('Utils', function() {
@@ -134,5 +138,49 @@ describe('Utils', function() {
     ];
 
     expect(getChartDataByDay(raw, query)).toEqual(expected);
+  });
+
+  it('getDisplayValue()', function() {
+    const testData = [
+      {input: null, expectedText: 'null'},
+      {
+        input: 'some thing',
+        expectedText: '"some thing"',
+      },
+      {
+        input: 12,
+        expectedText: '12',
+      },
+      {
+        input: ['one', 'two', 'three'],
+        expectedText: '["one","two","three"]',
+      },
+    ];
+
+    testData.forEach(({input, expectedText}) => {
+      expect(mount(getDisplayValue(input)).text()).toBe(expectedText);
+    });
+  });
+
+  it('getTextValue()', function() {
+    const testData = [
+      {input: null, expectedText: 'null'},
+      {
+        input: 'some thing',
+        expectedText: '"some thing"',
+      },
+      {
+        input: 12,
+        expectedText: '12',
+      },
+      {
+        input: ['one', 'two', 'three'],
+        expectedText: '["one","two","three"]',
+      },
+    ];
+
+    testData.forEach(({input, expectedText}) => {
+      expect(getDisplayText(input)).toBe(expectedText);
+    });
   });
 });
