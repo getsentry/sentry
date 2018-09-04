@@ -90,8 +90,7 @@ class Environment(Model):
     def add_project(self, project):
         cache_key = 'envproj:c:%s:%s' % (self.id, project.id)
 
-        envproj = cache.get(cache_key)
-        if envproj is None:
+        if cache.get(cache_key) is None:
             try:
                 with transaction.atomic():
                     EnvironmentProject.objects.create(project=project, environment=self)
