@@ -127,7 +127,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 'accountId': self.vsts_account_id,
             },
             'base_url': self.vsts_base_url,
-            'instance': self.vsts_base_url,
             'identity': {
                 'data': {
                     'access_token': self.access_token,
@@ -160,7 +159,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 'accountId': self.vsts_account_id,
             },
             'base_url': self.vsts_base_url,
-            'instance': self.vsts_base_url,
             'identity': {
                 'data': {
                     'access_token': self.access_token,
@@ -189,7 +187,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 'accountId': external_id,
             },
             'base_url': self.vsts_base_url,
-            'instance': self.vsts_base_url,
             'identity': {
                 'data': {
                     'access_token': self.access_token,
