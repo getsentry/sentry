@@ -14,7 +14,7 @@ class EventAttachment(Model):
     event_id = models.CharField(max_length=32)
     file = FlexibleForeignKey('sentry.File')
     name = models.TextField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
