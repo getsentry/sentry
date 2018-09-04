@@ -46,7 +46,7 @@ class JiraSearchEndpointTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-search', args=[org.slug, integration.id])
 

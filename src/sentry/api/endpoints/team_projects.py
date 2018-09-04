@@ -161,7 +161,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 data=project.get_audit_log_data(),
             )
 
-            project_created.send(project=project, user=request.user, sender=self)
+            project_created.send_robust(project=project, user=request.user, sender=self)
 
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

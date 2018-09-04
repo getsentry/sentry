@@ -28,7 +28,8 @@ class IntegrationTestCase(TestCase):
                 'access_token': '11234567'
             }
         )
-        self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
+        self.org_integration = self.model.add_organization(
+            self.organization, self.user, self.identity.id)
 
     def test_no_context(self):
         integration = Integration(self.model, self.organization.id)

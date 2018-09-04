@@ -20,6 +20,7 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
     OrganizationMemberTeam, User, UserEmail
 )
+from sentry.signals import sso_enabled
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.redis import clusters
@@ -782,6 +783,12 @@ class AuthHelper(object):
         )
 
         auth.mark_sso_complete(request, self.organization.id)
+
+        sso_enabled.send_robust(
+            organization=self.organization,
+            user=request.user,
+            provider=self.provider.key,
+            sender=self.__class__)
 
         AuditLogEntry.objects.create(
             organization=self.organization,

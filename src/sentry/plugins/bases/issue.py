@@ -261,7 +261,7 @@ class IssueTrackingPlugin(Plugin):
                     data=issue_information,
                 )
 
-                issue_tracker_used.send(
+                issue_tracker_used.send_robust(
                     plugin=self,
                     project=group.project,
                     user=request.user,

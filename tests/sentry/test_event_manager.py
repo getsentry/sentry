@@ -518,7 +518,7 @@ class EventManagerTest(TransactionTestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
             organization_id=group.organization.id,

@@ -14,7 +14,6 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus)
-from sentry.signals import sso_enabled
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
 
@@ -167,8 +166,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             else:
                 # TODO(dcramer): proper error message
                 return Response({'detail': ERR_UNINVITABLE}, status=400)
-        if auth_provider:
-            sso_enabled.send(organization=organization, sender=request.user)
 
         if result.get('teams'):
             # dupe code from member_index

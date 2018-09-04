@@ -4,13 +4,14 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.signals import integration_issue_created, integration_issue_linked
 
 MISSING_FEATURE_MESSAGE = 'Your organization does not have access to this feature.'
 
@@ -110,11 +111,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         )
 
         if created:
-            analytics.record(
-                'integration.issue.linked',
-                provider=integration.provider,
-                id=integration.id,
-                organization_id=organization_id,
+            integration_issue_linked.send_robust(
+                integration=integration,
+                organization=group.project.organization,
+                user=request.user,
+                sender=self.__class__,
             )
         else:
             external_issue.update(**defaults)
@@ -202,11 +203,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({'detail': 'That issue is already linked'}, status=400)
 
         if created:
-            analytics.record(
-                'integration.issue.created',
-                provider=integration.provider,
-                id=integration.id,
-                organization_id=organization_id,
+            integration_issue_created.send_robust(
+                integration=integration,
+                organization=group.project.organization,
+                user=request.user,
+                sender=self.__class__,
             )
 
         # TODO(jess): return serialized issue
