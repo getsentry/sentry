@@ -214,14 +214,7 @@ export default class OrganizationDiscover extends React.Component {
 
     return (
       <Discover>
-        <Header
-          px={space(4)}
-          py={2}
-          justify="space-between"
-          align="center"
-          className="sub-header"
-          style={{marginBottom: 0}}
-        >
+        <Header px={space(4)} py={2} className="sub-header">
           <strong>{t('Discover')}</strong>
           <Flex>
             <MultipleProjectSelector
@@ -315,7 +308,7 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
           </Sidebar>
-          <Flex direction="column" px={space(4)} py={space(3)}>
+          <Flex flex="1" direction="column" px={3} py={3}>
             {data && (
               <Result
                 data={data}
@@ -350,6 +343,7 @@ const DiscoverBody = styled(Flex)`
 
 const Sidebar = styled(Box)`
   border-right: 1px solid ${p => p.theme.borderDark}; /* eventually make a react component to handle drag event */
+  min-width: 320px;
 `;
 
 const Discover = styled('div')`
@@ -360,4 +354,7 @@ const Discover = styled('div')`
 
 const Header = styled(Flex)`
   font-size: 18px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0 !important;
 `;
