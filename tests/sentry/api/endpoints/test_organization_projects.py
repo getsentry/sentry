@@ -19,6 +19,7 @@ class OrganizationProjectsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(project.id)
+        assert self.client.session['activeorg'] == org.slug
 
     def test_with_stats(self):
         self.login_as(user=self.user)
