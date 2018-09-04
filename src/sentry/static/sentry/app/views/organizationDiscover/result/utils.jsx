@@ -163,9 +163,13 @@ function getLabel(value) {
 }
 
 /**
- * Takes any value and returns a display version of that value for
- * rendering in the "discover" result table. Handles only the 3 types
- * that we would expect to be present in Snuba data - string, null and array
+ * Takes any value and returns a display version of that value for rendering in
+ * the "discover" result table. Only expected to handle the 4 types that we
+ * would expect to be present in Snuba data - string, number, null and array
+ *
+ * @param {*} val Value to display in table cell
+ * @param {Number} idx Index if part of array
+ * @returns {Object} Formatted cell contents
  */
 export function getDisplayValue(val, idx) {
   if (typeof val === 'string') {
@@ -191,9 +195,19 @@ export function getDisplayValue(val, idx) {
     );
   }
 
-  return val;
+  return <span>{val}</span>;
 }
 
+/**
+ * Takes any value and returns the text-only version of that value that will be
+ * rendered in the table. Only expected to handle the 4 types that we would
+ * expect to be present in Snuba data - string, number, null and array. This
+ * function is required for dynamically calculating column width based on cell
+ * contents.
+ *
+ * @param {*} val Value to display in table cell
+ * @returns {String} Cell contents as string
+ */
 export function getDisplayText(val) {
   if (typeof val === 'string') {
     return `"${val}"`;
@@ -204,17 +218,10 @@ export function getDisplayText(val) {
   }
 
   if (Array.isArray(val)) {
-    return `[
-        ${val.map(getDisplayValue).reduce((acc, curr, arrayIdx) => {
-          if (arrayIdx !== 0) {
-            return [...acc, ',', curr];
-          }
-          return [...acc, curr];
-        }, [])}
-        ]`;
+    return `[${val.map(getDisplayText)}]`;
   }
 
-  return val;
+  return `${val}`;
 }
 
 const LightGray = styled.span`
