@@ -24,5 +24,4 @@ export default class EarlyAdopterMessage extends React.Component {
 const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
   margin: 0;
-  border-radius: ${p => p.theme.borderRadius};
 `;
