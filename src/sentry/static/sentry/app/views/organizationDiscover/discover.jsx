@@ -288,7 +288,7 @@ export default class OrganizationDiscover extends React.Component {
               <Button onClick={this.reset}>{t('Reset')}</Button>
             </Flex>
           </Box>
-          <Flex w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2} style={{flexDirection: 'column'}}>
+          <Flex w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2} direction="column">
             {data && (
               <Result
                 data={data}
