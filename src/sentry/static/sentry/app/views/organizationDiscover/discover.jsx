@@ -44,6 +44,18 @@ export default class OrganizationDiscover extends React.Component {
     };
   }
 
+  componentWillReceiveProps(nextProps) {
+    const {queryBuilder, location: {search}} = nextProps;
+    if (search === '') {
+      queryBuilder.reset();
+      this.setState({
+        data: null,
+        chartData: null,
+        chartQuery: null,
+      });
+    }
+  }
+
   updateField = (field, value) => {
     this.props.queryBuilder.updateField(field, value);
     this.forceUpdate();
@@ -185,18 +197,11 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   reset = () => {
-    const {queryBuilder, organization} = this.props;
-
-    queryBuilder.reset();
-    this.setState({
-      data: null,
-      chartData: null,
-      chartQuery: null,
-    });
     browserHistory.push({
-      pathname: `/organizations/${organization.slug}/discover/`,
+      pathname: `/organizations/${this.props.organization.slug}/discover/`,
     });
   };
+
   render() {
     const {data, query, chartData, chartQuery, isFetchingQuery} = this.state;
     const {queryBuilder} = this.props;

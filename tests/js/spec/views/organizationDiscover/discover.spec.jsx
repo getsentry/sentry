@@ -1,5 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import {browserHistory} from 'react-router';
 
 import Discover from 'app/views/organizationDiscover/discover';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
@@ -116,12 +117,24 @@ describe('Discover', function() {
   describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
+      browserHistory.push = function(url) {
+        wrapper.setProps({
+          location: {
+            search: url.pathname.replace('/organizations/org-slug/discover/', ''),
+          },
+        });
+      };
+
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       queryBuilder = createQueryBuilder({}, organization);
       queryBuilder.fetch = jest.fn(() => Promise.resolve());
 
       wrapper = mount(
-        <Discover queryBuilder={queryBuilder} organization={organization} />,
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          location={{location: '?fields=something'}}
+        />,
         TestStubs.routerContext()
       );
 

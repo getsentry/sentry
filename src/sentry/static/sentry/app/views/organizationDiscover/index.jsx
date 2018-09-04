@@ -61,6 +61,7 @@ const OrganizationDiscoverContainer = createReactClass({
           <Discover
             organization={this.getOrganization()}
             queryBuilder={this.queryBuilder}
+            location={this.props.location}
           />
         )}
       </div>
