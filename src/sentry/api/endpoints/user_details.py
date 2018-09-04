@@ -214,7 +214,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for org_slug in orgs_to_remove:
             client.delete(
-                path='/organizations/{}/'.format(org_slug),
+                path=u'/organizations/{}/'.format(org_slug),
                 request=request,
                 is_sudo=True)
 

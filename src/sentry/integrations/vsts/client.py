@@ -46,11 +46,11 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def request(self, method, path, data=None, params=None, api_preview=False):
         self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
-            'Accept': 'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
+            'Accept': u'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
             'X-HTTP-Method-Override': method,
             'X-TFS-FedAuthRedirect': 'Suppress',
-            'Authorization': 'Bearer {}'.format(self.identity.data['access_token'])
+            'Authorization': u'Bearer {}'.format(self.identity.data['access_token'])
         }
         return self._request(method, path, headers=headers, data=data, params=params)
 
@@ -167,7 +167,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.repository.format(
                 account_name=instance,
-                project='{}/'.format(project) if project else '',
+                project=u'{}/'.format(project) if project else '',
                 repo_id=name_or_id,
             ),
         )
@@ -176,7 +176,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.repositories.format(
                 account_name=instance,
-                project='{}/'.format(project) if project else '',
+                project=u'{}/'.format(project) if project else '',
             ),
         )
 

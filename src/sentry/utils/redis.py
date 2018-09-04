@@ -134,10 +134,10 @@ class ClusterManager(object):
         # that it's necessary.
         configuration = self.__options_manager.get('redis.clusters').get(key)
         if configuration is None:
-            raise KeyError('Invalid cluster name: {}'.format(key))
+            raise KeyError(u'Invalid cluster name: {}'.format(key))
 
         if not self.__cluster_type.supports(configuration):
-            raise KeyError('Invalid cluster type, expected: {}'.format(self.__cluster_type))
+            raise KeyError(u'Invalid cluster type, expected: {}'.format(self.__cluster_type))
 
         cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
@@ -164,7 +164,7 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     if cluster_options:
         if cluster_option_name in options:
             raise InvalidConfiguration(
-                'Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.'.
+                u'Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.'.
                 format(
                     cluster_option_name,
                     ', '.join(map(repr, cluster_constructor_option_names)),
@@ -173,11 +173,11 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
-                    '{} parameter of {}'.format(
+                    u'{} parameter of {}'.format(
                         ', '.join(map(repr, cluster_constructor_option_names)),
                         setting,
                     ),
-                    '{}["{}"]'.format(
+                    u'{}["{}"]'.format(
                         setting,
                         cluster_option_name,
                     ),
@@ -205,7 +205,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         host = cluster.hosts[id]
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
-        key = '{host}:{port}'.format(host=host.host, port=host.port)
+        key = u'{host}:{port}'.format(host=host.host, port=host.port)
         versions[key] = Version(map(int, info['redis_version'].split('.', 3)))
 
     check_versions(
@@ -225,7 +225,7 @@ def load_script(path):
     # with. (This can prevent lots of bizzare behavior when dealing with
     # clusters of Redis servers.)
     def call_script(client, keys, args):
-        """
+        u"""
         Executes {!r} as a Lua script on a Redis server.
 
         Takes the client to execute the script on as the first argument,

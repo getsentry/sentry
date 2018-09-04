@@ -46,7 +46,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
             self.activity.data['reprocessing_active'],
             'info_url':
             absolute_uri(
-                '/{}/{}/settings/processing-issues/'.format(
+                u'/{}/{}/settings/processing-issues/'.format(
                     self.organization.slug,
                     self.project.slug,
                 )

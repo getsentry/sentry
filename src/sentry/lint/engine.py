@@ -192,7 +192,7 @@ def is_prettier_valid(project_root, prettier_path):
         [prettier_path, '--version']).rstrip()
     if prettier_version != package_version:
         print(  # noqa: B314
-            '[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
+            u'[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
                 prettier_version,
                 package_version),
             file=sys.stderr)

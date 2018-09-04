@@ -68,7 +68,7 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = '{0}?{1}'.format(base_url, querystring)
+            base_url = u'{0}?{1}'.format(base_url, querystring)
         else:
             base_url = base_url + '?'
 

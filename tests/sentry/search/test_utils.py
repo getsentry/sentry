@@ -273,12 +273,12 @@ class ParseQueryTest(TestCase):
         assert result['assigned_to'].id == 0
 
     def test_assigned_valid_team(self):
-        result = self.parse_query('assigned:#{}'.format(self.team.slug))
+        result = self.parse_query(u'assigned:#{}'.format(self.team.slug))
         assert result['assigned_to'] == self.team
 
     def test_assigned_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query('assigned:#{}'.format(team2.slug))
+        result = self.parse_query(u'assigned:#{}'.format(team2.slug))
         assert isinstance(result['assigned_to'], Team)
         assert result['assigned_to'].id == 0
 

@@ -54,7 +54,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             }
         )
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',

@@ -197,7 +197,7 @@ def small_count(v, precision=1):
         if o:
             if len(six.text_type(o)) > 2 or not p:
                 return '%d%s' % (o, y)
-            return ('%.{}f%s'.format(precision)) % (v / float(x), y)
+            return (u'%.{}f%s'.format(precision)) % (v / float(x), y)
     return v
 
 

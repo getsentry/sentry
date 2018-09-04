@@ -17,7 +17,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
             name='Bengal',
         )
         self.login_as(self.user)
-        self.path = '/{}/{}/releases/'.format(
+        self.path = u'/{}/{}/releases/'.format(
             self.org.slug, self.project.slug)
 
     def test_with_releases(self):
@@ -66,7 +66,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             message='Foo bar',
         )
         self.login_as(self.user)
-        self.path = '/{}/{}/releases/{}/'.format(
+        self.path = u'/{}/{}/releases/{}/'.format(
             self.org.slug, self.project.slug, self.release.version)
 
     def test_release_details_no_commits_no_deploys(self):

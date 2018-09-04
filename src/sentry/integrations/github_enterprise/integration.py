@@ -197,8 +197,8 @@ class InstallationConfigView(PipelineView):
             pipeline.bind_state('installation_data', form_data)
 
             pipeline.bind_state('oauth_config_information', {
-                "access_token_url": "https://{}/login/oauth/access_token".format(form_data.get('url')),
-                "authorize_url": "https://{}/login/oauth/authorize".format(form_data.get('url')),
+                "access_token_url": u"https://{}/login/oauth/access_token".format(form_data.get('url')),
+                "authorize_url": u"https://{}/login/oauth/authorize".format(form_data.get('url')),
                 "client_id": form_data.get('client_id'),
                 "client_secret": form_data.get('client_secret'),
             })
@@ -258,7 +258,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     def get_installation_info(self, installation_data, access_token, installation_id):
         session = http.build_session()
         resp = session.get(
-            'https://{}/api/v3/app/installations/{}'.format(
+            u'https://{}/api/v3/app/installations/{}'.format(
                 installation_data['url'], installation_id),
             headers={
                 'Authorization': 'Bearer %s' % get_jwt(github_id=installation_data['id'], github_private_key=installation_data['private_key']),
@@ -270,7 +270,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         installation_resp = resp.json()
 
         resp = session.get(
-            'https://{}/api/v3/user/installations'.format(installation_data['url']),
+            u'https://{}/api/v3/user/installations'.format(installation_data['url']),
             params={'access_token': access_token},
             headers={'Accept': 'application/vnd.github.machine-man-preview+json'},
             verify=False
@@ -298,11 +298,11 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         integration = {
             'name': installation['account']['login'],
             # installation id is not enough to be unique for self-hosted GH
-            'external_id': '{}:{}'.format(domain, installation['id']),
+            'external_id': u'{}:{}'.format(domain, installation['id']),
             # GitHub identity is associated directly to the application, *not*
             # to the installation itself.
             # app id is not enough to be unique for self-hosted GH
-            'idp_external_id': '{}:{}'.format(domain, installation['app_id']),
+            'idp_external_id': u'{}:{}'.format(domain, installation['app_id']),
             'metadata': {
                 # The access token will be populated upon API usage
                 'access_token': None,
@@ -340,7 +340,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
     def get_app_url(self, installation_data):
         url = installation_data.get('url')
         name = installation_data.get('name')
-        return 'https://{}/github-apps/{}'.format(url, name)
+        return u'https://{}/github-apps/{}'.format(url, name)
 
     def dispatch(self, request, pipeline):
         installation_data = pipeline.fetch_state(key='installation_data')

@@ -333,7 +333,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         # endpoint
         try:
             response = client.put(
-                path='/projects/{}/{}/issues/'.format(
+                path=u'/projects/{}/{}/issues/'.format(
                     group.project.organization.slug,
                     group.project.slug,
                 ),

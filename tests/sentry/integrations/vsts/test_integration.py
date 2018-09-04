@@ -28,7 +28,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
         assert metadata['subscription']['id'] == \
             CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
-        assert metadata['domain_name'] == '{}.visualstudio.com'.format(
+        assert metadata['domain_name'] == u'{}.visualstudio.com'.format(
             self.vsts_account_name
         )
 
@@ -36,7 +36,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url='https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+            url=u'https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
                 self.vsts_account_name,
                 self.repo_name,
             ),
@@ -77,7 +77,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url='https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+            url=u'https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
                 self.vsts_account_name,
                 self.repo_name,
             ),
@@ -100,7 +100,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url='https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+            url=u'https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
                 self.vsts_account_name,
                 self.repo_name,
             ),
@@ -128,7 +128,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 'AccountName': self.vsts_account_name,
                 'AccountId': self.vsts_account_id,
             },
-            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'instance': u'{}.visualstudio.com'.format(self.vsts_account_name),
             'identity': {
                 'data': {
                     'access_token': self.access_token,
@@ -145,7 +145,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration_dict['name'] == self.vsts_account_name
         assert integration_dict['external_id'] == self.vsts_account_id
         assert integration_dict['metadata']['domain_name'] == \
-            '{}.visualstudio.com'.format(self.vsts_account_name)
+            u'{}.visualstudio.com'.format(self.vsts_account_name)
 
         assert integration_dict['user_identity']['type'] == 'vsts'
         assert integration_dict['user_identity']['external_id'] == \
@@ -161,7 +161,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 'AccountName': self.vsts_account_name,
                 'AccountId': self.vsts_account_id,
             },
-            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'instance': u'{}.visualstudio.com'.format(self.vsts_account_name),
             'identity': {
                 'data': {
                     'access_token': self.access_token,
@@ -189,7 +189,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
                 'AccountName': self.vsts_account_name,
                 'AccountId': external_id,
             },
-            'instance': '{}.visualstudio.com'.format(self.vsts_account_name),
+            'instance': u'{}.visualstudio.com'.format(self.vsts_account_name),
             'identity': {
                 'data': {
                     'access_token': self.access_token,

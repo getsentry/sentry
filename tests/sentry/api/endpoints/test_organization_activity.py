@@ -21,7 +21,7 @@ class OrganizationActivityTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/organizations/{}/activity/'.format(org.slug)
+        url = u'/api/0/organizations/{}/activity/'.format(org.slug)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

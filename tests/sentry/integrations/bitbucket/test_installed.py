@@ -115,7 +115,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
+            u'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
             json={
                 'values': [{
                     'full_name': 'sentryuser/repo',
@@ -166,7 +166,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
+            u'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
             json={
                 'values': [{
                     'full_name': 'sentryuser/repo',

@@ -26,7 +26,7 @@ logger = logging.getLogger('sentry')
 
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
-    cache_key = 'servicehooks:1:{}'.format(project_id)
+    cache_key = u'servicehooks:1:{}'.format(project_id)
     result = cache.get(cache_key)
     if result is None:
         result = [(h.id, h.events) for h in
@@ -47,7 +47,7 @@ def _capture_stats(event, is_new):
         metrics.incr('events.unique')
 
     metrics.incr('events.processed')
-    metrics.incr('events.processed.{platform}'.format(platform=platform))
+    metrics.incr(u'events.processed.{platform}'.format(platform=platform))
     metrics.timing('events.size.data', event.size)
 
 
@@ -58,8 +58,8 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     """
     with redis.clusters.get('default').map() as client:
         result = client.set(
-            'pp:{}/{}'.format(event.project_id, event.event_id),
-            '{:.0f}'.format(time.time()),
+            u'pp:{}/{}'.format(event.project_id, event.event_id),
+            u'{:.0f}'.format(time.time()),
             ex=60 * 60,
             nx=True,
         )

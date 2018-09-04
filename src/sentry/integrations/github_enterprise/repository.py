@@ -22,7 +22,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         return {
             'name': data['identifier'],
             'external_id': data['external_id'],
-            'url': 'https://{}/{}'.format(base_url, data['identifier']),
+            'url': u'https://{}/{}'.format(base_url, data['identifier']),
             'config': {
                 'name': data['identifier'],
             },

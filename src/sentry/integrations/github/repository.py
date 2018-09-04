@@ -25,7 +25,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             # make sure installation has access to this specific repo
             client.repo_hooks(repo)
         except ApiError as e:
-            raise IntegrationError('You must grant Sentry access to {}'.format(repo))
+            raise IntegrationError(u'You must grant Sentry access to {}'.format(repo))
 
         return repo_data
 
@@ -52,7 +52,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return {
             'name': data['identifier'],
             'external_id': data['external_id'],
-            'url': 'https://github.com/{}'.format(data['identifier']),
+            'url': u'https://github.com/{}'.format(data['identifier']),
             'config': {
                 'name': data['identifier'],
             },

@@ -112,7 +112,7 @@ class OrganizationMemberListTest(APITestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['foo@example.com']
-        assert mail.outbox[0].subject == 'Join {} in using Sentry'.format(
+        assert mail.outbox[0].subject == u'Join {} in using Sentry'.format(
             self.org.name)
 
     def test_existing_user_for_invite(self):

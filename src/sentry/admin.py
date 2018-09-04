@@ -31,7 +31,7 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ('key', )
 
     def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+        return u'<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
             escape(saferepr(instance.value))
         )
 

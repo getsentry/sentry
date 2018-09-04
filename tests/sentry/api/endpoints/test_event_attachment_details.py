@@ -33,7 +33,7 @@ class EventAttachmentDetailsTest(APITestCase):
             name='hello.png',
         )
 
-        path = '/api/0/projects/{}/{}/events/{}/attachments/{}/'.format(
+        path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/'.format(
             event1.project.organization.slug,
             event1.project.slug,
             event1.id,
@@ -73,7 +73,7 @@ class EventAttachmentDetailsTest(APITestCase):
             name='hello.png',
         )
 
-        path = '/api/0/projects/{}/{}/events/{}/attachments/{}/?download'.format(
+        path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/?download'.format(
             event1.project.organization.slug,
             event1.project.slug,
             event1.id,

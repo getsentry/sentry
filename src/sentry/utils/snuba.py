@@ -43,7 +43,7 @@ def timer(name, prefix='snuba.client'):
     try:
         yield
     finally:
-        metrics.timing('{}.{}'.format(prefix, name), time.time() - t)
+        metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
 _snuba_pool = urllib3.connectionpool.connection_from_url(
@@ -164,13 +164,13 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     try:
         body = json.loads(response.data)
     except ValueError:
-        raise SnubaError("Could not decode JSON response: {}".format(response.data))
+        raise SnubaError(u"Could not decode JSON response: {}".format(response.data))
 
     if response.status != 200:
         if body.get('error'):
             raise SnubaError(body['error'])
         else:
-            raise SnubaError('HTTP {}'.format(response.status))
+            raise SnubaError(u'HTTP {}'.format(response.status))
 
     # Forward and reverse translation maps from model ids to snuba keys, per column
     body['data'] = [reverse(d) for d in body['data']]

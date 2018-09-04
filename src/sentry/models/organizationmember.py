@@ -182,7 +182,7 @@ class OrganizationMember(Model):
 
         email = self.get_email()
 
-        recover_uri = '{path}?{query}'.format(
+        recover_uri = u'{path}?{query}'.format(
             path=reverse('sentry-account-recover'),
             query=urlencode({'email': email}),
         )

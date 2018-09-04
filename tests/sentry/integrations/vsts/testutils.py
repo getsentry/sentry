@@ -91,7 +91,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/DefaultCollection/_apis/projects'.format(
+            u'https://{}.visualstudio.com/DefaultCollection/_apis/projects'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -104,7 +104,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
+            u'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
                 self.vsts_account_name.lower(),
             ),
             json=CREATE_SUBSCRIPTION,
@@ -112,7 +112,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/_apis/git/repositories'.format(
+            u'https://{}.visualstudio.com/_apis/git/repositories'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -128,7 +128,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
+            u'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
                 self.vsts_account_name.lower(),
                 self.project_a['name'],
                 'Bug',
@@ -150,7 +150,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         )
 
     def make_oauth_redirect_request(self, state):
-        return self.client.get('{}?{}'.format(
+        return self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',
@@ -166,7 +166,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
-        assert '<option value="{}"'.format(account_id) in response.content
+        assert u'<option value="{}"'.format(account_id) in response.content
 
     def assert_installation(self):
         # Initial request to the installation URL for VSTS

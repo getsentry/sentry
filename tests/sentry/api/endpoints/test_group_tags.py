@@ -49,7 +49,7 @@ class GroupTagsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/'.format(this_group.id)
+        url = u'/api/0/issues/{}/tags/'.format(this_group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
@@ -67,6 +67,6 @@ class GroupTagsTest(APITestCase):
     def test_invalid_env(self):
         this_group = self.create_group()
         self.login_as(user=self.user)
-        url = '/api/0/issues/{}/tags/'.format(this_group.id)
+        url = u'/api/0/issues/{}/tags/'.format(this_group.id)
         response = self.client.get(url, {'environment': 'notreal'}, format='json')
         assert response.data == []
