@@ -253,6 +253,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         'height': 800,
     }
 
+    VSTS_ACCOUNT_LOOKUP_URL = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1'
+
     def post_install(self, integration, organization):
         installation = self.get_installation(integration, organization.id)
 
@@ -362,7 +364,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def get_base_url(self, access_token, account_id):
         session = http.build_session()
-        url = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % account_id
+        url = self.VSTS_ACCOUNT_LOOKUP_URL % account_id
         response = session.get(
             url,
             headers={
