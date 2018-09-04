@@ -71,8 +71,8 @@ class VstsExtensionConfigurationView(BaseView):
 
         pipeline.initialize()
         pipeline.bind_state('vsts', {
-            'AccountId': id,
-            'AccountName': name,
+            'accountId': id,
+            'accountName': name,
         })
 
         return pipeline

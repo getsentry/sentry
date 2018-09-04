@@ -293,12 +293,13 @@ class VstsIntegrationProvider(IntegrationProvider):
         account = state['account']
         user = get_user_info(data['access_token'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
+        base_url = self.get_base_url(data['access_token'], account['accountId'])['locationUrl']
 
         integration = {
             'name': account['accountName'],
             'external_id': account['accountId'],
             'metadata': {
-                'domain_name': state['base_url'],
+                'domain_name': base_url,
                 'scopes': scopes,
             },
             'user_identity': {
@@ -324,7 +325,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
-                state['base_url'], account['accountId'], oauth_data)
+                base_url, account['accountId'], oauth_data)
             integration['metadata']['subscription'] = {
                 'id': subscription_id,
                 'secret': subscription_secret,
@@ -359,6 +360,20 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return data
 
+    def get_base_url(self, access_token, account_id):
+        session = http.build_session()
+        url = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % account_id
+        response = session.get(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            },
+        )
+        if response.status_code == 200:
+            return response.json()
+        return None
+
     def setup(self):
         from sentry.plugins import bindings
         bindings.add(
@@ -377,9 +392,7 @@ class AccountConfigView(PipelineView):
             if account is not None:
                 state = pipeline.fetch_state(key='identity')
                 access_token = state['data']['access_token']
-                base_url = self.get_base_url(access_token, account['accountId'])['locationUrl']
                 pipeline.bind_state('account', account)
-                pipeline.bind_state('base_url', base_url)
                 return pipeline.next_step()
 
         state = pipeline.fetch_state(key='identity')
@@ -401,20 +414,6 @@ class AccountConfigView(PipelineView):
         for account in accounts:
             if account['accountId'] == account_id:
                 return account
-        return None
-
-    def get_base_url(self, access_token, organization_id):
-        session = http.build_session()
-        url = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % organization_id
-        response = session.get(
-            url,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            },
-        )
-        if response.status_code == 200:
-            return response.json()
         return None
 
     def get_accounts(self, access_token, user_id):

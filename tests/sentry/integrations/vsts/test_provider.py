@@ -123,7 +123,6 @@ class TestAccountConfigView(TestCase):
 
         view.dispatch(request, pipeline)
 
-        assert pipeline.fetch_state(key='base_url') == self.base_url
         assert pipeline.fetch_state(key='account') == self.accounts[1]
         assert pipeline.next_step.call_count == 1
 
