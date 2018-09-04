@@ -100,6 +100,8 @@ def create_deletion_task(days, project_id, model, dtfield, order_by):
         # Handled by other parts of cleanup
         models.Event,
         models.EventMapping,
+        models.EventAttachment,
+        models.UserReport,
         models.Group,
         models.GroupEmailThread,
         models.GroupRuleStatus,
@@ -199,6 +201,8 @@ def cleanup(days, project, concurrency, max_procs, silent, model, router, timed)
     # (model, datetime_field, order_by)
     BULK_QUERY_DELETES = [
         (models.EventMapping, 'date_added', '-date_added'),
+        (models.EventAttachment, 'date_added', None),
+        (models.UserReport, 'date_added', None),
         (models.GroupHashTombstone, 'deleted_at', None),
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
