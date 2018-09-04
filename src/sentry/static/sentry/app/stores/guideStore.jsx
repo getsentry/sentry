@@ -107,10 +107,14 @@ const GuideStore = Reflux.createStore({
   },
 
   recordCue(id, cue) {
-    analytics('assistant.guide_cued', {
+    let data = {
       guide: id,
       cue,
-    });
+    };
+    if (this.state.org) {
+      data.org_id = parseInt(this.state.org.id, 10);
+    }
+    analytics('assistant.guide_cued', data);
   },
 
   updatePrevGuide(bestGuide) {
