@@ -67,7 +67,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                         '/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
                     ),
                     'active': True,
-                    'events': ['repo:push'],
+                    'events': ['repo:push', 'pullrequest:fulfilled'],
                 }
             )
         except Exception as e:

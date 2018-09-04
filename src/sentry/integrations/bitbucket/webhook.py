@@ -49,6 +49,11 @@ def parse_raw_user_name(raw):
     return raw.split('<')[0].strip()
 
 
+class PullEventWebhook(Webhook):
+    def __call__(self, organization, event):
+        pass
+
+
 class PushEventWebhook(Webhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
     def __call__(self, organization, event):
@@ -107,6 +112,7 @@ class PushEventWebhook(Webhook):
 class BitbucketWebhookEndpoint(View):
     _handlers = {
         'repo:push': PushEventWebhook,
+        'pullrequest:fulfilled': PullEventWebhook,
     }
 
     def get_handler(self, event_type):
