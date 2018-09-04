@@ -41,6 +41,8 @@ scopes = (
 
 
 class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixin):
+    repo_search = True
+
     def get_client(self):
         return BitbucketApiClient(
             self.model.metadata['base_url'],
@@ -53,16 +55,19 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
         return self.model.name
 
     def get_repositories(self, query=None):
-        repos = self.get_client().get_repos(self.username)['values']
-        data = []
-        for repo in repos:
-            data.append(
-                {
-                    'identifier': repo['full_name'],
-                    'name': repo['full_name'],
-                }
-            )
-        return data
+        if not query:
+            resp = self.get_client().get_repos(self.username)
+            return [{
+                'identifier': repo['full_name'],
+                'name': repo['full_name'],
+            } for repo in resp.get('values', [])]
+
+        full_query = (u'name~"%s"' % (query)).encode('utf-8')
+        resp = self.get_client().search_repositories(self.username, full_query)
+        return [{
+            'identifier': i['full_name'],
+            'name': i['full_name']
+        } for i in resp.get('values', [])]
 
     def get_unmigratable_repositories(self):
         repos = Repository.objects.filter(
