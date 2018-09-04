@@ -8,7 +8,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.models import Integration, Repository
 from sentry.plugins import bindings
 
 
@@ -56,13 +56,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         elif status == 'unmigratable':
             repos = []
 
-            org_integrations = OrganizationIntegration.objects.filter(
-                organization_id=organization.id,
-            )
-
             integrations = Integration.objects.filter(
-                id__in=org_integrations.values('integration_id'),
+                organizationintegration__organization=organization,
+                organizationintegration__status=ObjectStatus.ACTIVE,
                 provider__in=('bitbucket', 'github', 'vsts'),
+                status=ObjectStatus.ACTIVE,
             )
 
             repos = [
