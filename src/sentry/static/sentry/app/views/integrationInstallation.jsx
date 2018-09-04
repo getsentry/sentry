@@ -32,7 +32,7 @@ class IntegrationInstallation extends AsyncView {
 
   handleSubmit = formData => {
     const name = 'sentryAddIntegration';
-    const installationId = this.props.location.pathname.replace(/[\/\integration]/g, '');
+    const installationId = this.props.params.installationId;
     const orgSlug = formData.organization;
     this.dialog = window.open(
       `/organizations/${orgSlug}/integrations/github/setup/?installation_id=${installationId}`,

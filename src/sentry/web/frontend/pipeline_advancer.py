@@ -15,6 +15,12 @@ from sentry.web.frontend.base import BaseView
 PIPELINE_CLASSES = [IntegrationPipeline, IdentityProviderPipeline]
 
 
+# GitHub apps may be installed directly from GitHub, in which case
+# they will redirect here *without* being in the pipeline. If that happens
+# redirect to the integration install org picker.
+FORWARD_INSTALL_FOR = ['github']
+
+
 class PipelineAdvancerView(BaseView):
     """Gets the current pipeline from the request and executes the current step."""
     auth_required = False
@@ -23,15 +29,15 @@ class PipelineAdvancerView(BaseView):
 
     def handle(self, request, provider_id):
         pipeline = None
-        if request.path == u'/extensions/github/setup/' and request.GET.get(
-                'setup_action') == 'install':
-            installation_id = request.GET.get('installation_id')
-            return self.redirect(reverse('integration-installation', args=[installation_id]))
 
         for pipeline_cls in PIPELINE_CLASSES:
             pipeline = pipeline_cls.get_for_request(request=request)
             if pipeline:
                 break
+
+        if provider_id in FORWARD_INSTALL_FOR and request.GET.get('setup_action') == 'install':
+            installation_id = request.GET.get('installation_id')
+            return self.redirect(reverse('integration-installation', args=[installation_id]))
 
         if pipeline is None or not pipeline.is_valid():
             messages.add_message(request, messages.ERROR, _("Invalid request."))

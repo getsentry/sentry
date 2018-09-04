@@ -390,7 +390,8 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-organization-member-settings'
     ),
-    url(r'^integration/(?P<installation_id>\w+)/$', react_page_view, name='integration-installation'),
+    url(r'^extensions/external-install/(?P<installation_id>\w+)/$',
+        react_page_view, name='integration-installation'),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',
