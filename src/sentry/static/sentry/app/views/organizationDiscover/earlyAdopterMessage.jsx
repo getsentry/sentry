@@ -13,7 +13,7 @@ export default class EarlyAdopterMessage extends React.Component {
         <Flex justify="space-between">
           {t('Sentry Discover is alpha software. Thanks for being an early adopter.')}
           <Link href="mailto:feedback-discover@sentry.io">
-            {t('feedback-discover@sentry.io')}{' '}
+            {t('feedback-discover@sentry.io')}
           </Link>
         </Flex>
       </StyledAlert>
