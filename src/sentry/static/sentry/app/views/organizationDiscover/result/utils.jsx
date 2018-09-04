@@ -164,8 +164,8 @@ function getLabel(value) {
 
 /**
  * Takes any value and returns a display version of that value for rendering in
- * the "discover" result table. Only expected to handle the 3 types that we
- * would expect to be present in Snuba data - string, null and array
+ * the "discover" result table. Only expected to handle the 4 types that we
+ * would expect to be present in Snuba data - string, number, null and array
  *
  * @param {*} val Value to display in table cell
  * @param {Number} idx Index if part of array
@@ -200,9 +200,10 @@ export function getDisplayValue(val, idx) {
 
 /**
  * Takes any value and returns the text-only version of that value that will be
- * rendered in the table. Only expected to handle the 3 types that we would
- * expect to be present in Snuba data - string, null and array. This function
- * is required for dynamically calculating column width based on cell contents.
+ * rendered in the table. Only expected to handle the 4 types that we would
+ * expect to be present in Snuba data - string, number, null and array. This
+ * function is required for dynamically calculating column width based on cell
+ * contents.
  *
  * @param {*} val Value to display in table cell
  * @returns {String} Cell contents as string
