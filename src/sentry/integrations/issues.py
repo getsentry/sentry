@@ -147,7 +147,7 @@ class IssueBasicMixin(object):
         """
         return data['key']
 
-    def get_issue_display_name(self, external_issue_key):
+    def get_issue_display_name(self, external_issue):
         """
         Returns the display name of the issue.
 
