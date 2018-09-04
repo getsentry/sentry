@@ -174,7 +174,6 @@ class BasicResolvingIntegrationTest(TestCase):
         self._postWithHeader(event_data)
         with self.assertWriteQueries({
             'nodestore_node': 2,
-            'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
             'sentry_filtervalue': 8,
