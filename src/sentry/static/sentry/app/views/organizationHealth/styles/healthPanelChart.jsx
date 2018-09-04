@@ -1,9 +1,9 @@
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import PanelChart from 'app/components/charts/panelChart';
 import space from 'app/styles/space';
 
-const getChartMargin = () => `
+const chartMarginCss = css`
   margin-right: ${space(2)};
   &:last-child {
     margin-right: 0;
@@ -11,7 +11,7 @@ const getChartMargin = () => `
 `;
 
 const HealthPanelChart = styled(PanelChart)`
-  ${getChartMargin};
+  ${chartMarginCss};
   flex-shrink: 0;
   overflow: hidden;
 `;
