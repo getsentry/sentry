@@ -97,6 +97,7 @@ class Environment(Model):
                     EnvironmentProject.objects.create(project=project, environment=self)
                 cache.set(cache_key, 1, 3600)
             except IntegrityError:
+                # We've already created the object, should still cache the action.
                 cache.set(cache_key, 1, 3600)
 
     @staticmethod
