@@ -91,13 +91,12 @@ class Environment(Model):
         cache_key = 'envproj:c:%s:%s' % (self.id, project.id)
 
         envproj = cache.get(cache_key)
-        if env is None:
+        if envproj is None:
             try:
                 with transaction.atomic():
                     EnvironmentProject.objects.create(project=project, environment=self)
+                cache.set(cache_key, 1, 3600)
             except IntegrityError:
-                pass
-            finally:
                 cache.set(cache_key, 1, 3600)
 
     @staticmethod
