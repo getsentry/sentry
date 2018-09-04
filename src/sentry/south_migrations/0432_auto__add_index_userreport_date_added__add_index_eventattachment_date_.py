@@ -4,25 +4,35 @@ from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
 
+from sentry.utils.db import is_postgres
+
 
 class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
-        # Adding index on 'UserReport', fields ['date_added']
-        db.create_index('sentry_userreport', ['date_added'])
-
-        # Adding index on 'EventAttachment', fields ['date_added']
-        db.create_index('sentry_eventattachment', ['date_added'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_eventattachment (date_added)".format(
+                    db.create_index_name('sentry_eventattachment', ['date_added']),
+                )
+            )
+            db.execute(
+                "CREATE INDEX CONCURRENTLY {} ON sentry_userreport (date_added)".format(
+                    db.create_index_name('sentry_userreport', ['date_added']),
+                )
+            )
+            db.start_transaction()
+        else:
+            db.create_index('sentry_eventattachment', ['date_added'])
+            db.create_index('sentry_userreport', ['date_added'])
 
     def backwards(self, orm):
-        # Removing index on 'EventAttachment', fields ['date_added']
         db.delete_index('sentry_eventattachment', ['date_added'])
-
-        # Removing index on 'UserReport', fields ['date_added']
         db.delete_index('sentry_userreport', ['date_added'])
 
     models = {
