@@ -49,7 +49,7 @@ export default class Aggregations extends React.Component {
           <PlaceholderText>{t('None, showing raw event data')}</PlaceholderText>
         )}
         {value.map((aggregation, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${aggregation[2]}`}>
             <Aggregation
               value={aggregation}
               onChange={val => this.handleChange(val, idx)}
