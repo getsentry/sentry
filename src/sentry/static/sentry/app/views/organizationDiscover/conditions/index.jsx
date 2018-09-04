@@ -49,7 +49,7 @@ export default class Conditions extends React.Component {
           <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
         )}
         {value.map((condition, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${condition[2]}`}>
             <Condition
               value={condition}
               onChange={val => this.handleChange(val, idx)}
