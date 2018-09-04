@@ -315,12 +315,7 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
           </Sidebar>
-          <Flex
-            w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]}
-            style={{flexDirection: 'column'}}
-            px={space(4)}
-            py={space(3)}
-          >
+          <Flex direction="column" px={space(4)} py={space(3)}>
             {data && (
               <Result
                 data={data}
