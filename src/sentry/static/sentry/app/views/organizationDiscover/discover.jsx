@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
+import {uniq} from 'lodash';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -78,7 +79,18 @@ export default class OrganizationDiscover extends React.Component {
 
     clearIndicators();
 
-    queryBuilder.fetch().then(
+    // If there are no aggregations, always ensure we fetch event ID and
+    // project ID so we can display the link to event
+    const externalQuery = queryBuilder.getExternal();
+    const queryToFetch =
+      !externalQuery.aggregations.length && externalQuery.fields.length
+        ? {
+            ...externalQuery,
+            fields: uniq([...externalQuery.fields, 'event_id', 'project_id']),
+          }
+        : externalQuery;
+
+    queryBuilder.fetch(queryToFetch).then(
       data => {
         const query = queryBuilder.getInternal();
         const queryCopy = {...query};

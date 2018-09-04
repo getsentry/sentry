@@ -109,7 +109,7 @@ export default class Result extends React.Component {
       <div>
         {this.renderToggle()}
 
-        {view === 'table' && <Table data={data} />}
+        {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
           <LineChart
             series={basicChartData}
