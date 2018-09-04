@@ -6,6 +6,7 @@ from mock import patch
 
 from django.core.urlresolvers import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
@@ -81,6 +82,70 @@ class OrganizationRepositoriesListTest(APITestCase):
             # exist (the Integration has been disabled)
             assert response.status_code == 200, response.content
             assert len(response.data) == 0
+
+    def test_status_unmigratable_disabled_integration(self):
+        self.url = self.url + '?status=unmigratable'
+
+        integration = Integration.objects.create(
+            provider='github',
+            status=ObjectStatus.DISABLED,
+        )
+
+        OrganizationIntegration.objects.create(
+            integration_id=integration.id,
+            organization_id=self.org.id,
+        )
+
+        unmigratable_repo = Repository.objects.create(
+            name='NotConnected/foo',
+            organization_id=self.org.id,
+        )
+
+        with patch('sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories') as f:
+            f.return_value = [unmigratable_repo]
+
+            response = self.client.get(self.url, format='json')
+
+            assert response.status_code == 200
+
+            # Shouldn't return the above "unmigratable repo" since the
+            # Integration is disabled.
+            assert len(response.data) == 0
+
+            # Shouldn't even make the request to get repos
+            assert not f.called
+
+    def test_status_unmigratable_disabled_org_integration(self):
+        self.url = self.url + '?status=unmigratable'
+
+        integration = Integration.objects.create(
+            provider='github',
+        )
+
+        OrganizationIntegration.objects.create(
+            integration_id=integration.id,
+            organization_id=self.org.id,
+            status=ObjectStatus.DISABLED,
+        )
+
+        unmigratable_repo = Repository.objects.create(
+            name='NotConnected/foo',
+            organization_id=self.org.id,
+        )
+
+        with patch('sentry.integrations.github.GitHubIntegration.get_unmigratable_repositories') as f:
+            f.return_value = [unmigratable_repo]
+
+            response = self.client.get(self.url, format='json')
+
+            assert response.status_code == 200
+
+            # Shouldn't return the above "unmigratable repo" since the
+            # Integration is disabled.
+            assert len(response.data) == 0
+
+            # Shouldn't even make the request to get repos
+            assert not f.called
 
 
 class OrganizationRepositoriesCreateTest(APITestCase):
