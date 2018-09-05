@@ -46,7 +46,7 @@ class BulkDeleteQueryTest(TestCase):
 class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
     def test_iteration(self):
         target_project = self.project
-        expected_group_ids = set([self.create_group().id for i in xrange(2)])
+        expected_group_ids = set([self.create_group().id for i in range(2)])
 
         other_project = self.create_project()
         self.create_group(other_project)
