@@ -35,7 +35,7 @@ class UnsubscribeIssueNotificationsView(BaseView):
             raise Http404
 
         issue_link = absolute_uri(
-            '/{}/{}/issues/{}/'.format(
+            u'/{}/{}/issues/{}/'.format(
                 group.project.organization.slug,
                 group.project.slug,
                 group.id,

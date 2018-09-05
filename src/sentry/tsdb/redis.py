@@ -156,7 +156,7 @@ class RedisTSDB(BaseTSDB):
 
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
-            return '{}?e={}'.format(key, environment_id)
+            return u'{}?e={}'.format(key, environment_id)
         else:
             return key
 
@@ -166,7 +166,7 @@ class RedisTSDB(BaseTSDB):
         values.
         """
         return self.add_environment_parameter(
-            '{prefix}{model}:{epoch}:{key}'.format(
+            u'{prefix}{model}:{epoch}:{key}'.format(
                 prefix=self.prefix,
                 model=model.value,
                 epoch=self.normalize_ts_to_rollup(timestamp, rollup),
@@ -190,7 +190,7 @@ class RedisTSDB(BaseTSDB):
                 model_key = model_key.encode('utf-8')
             vnode = crc32(model_key) % self.vnodes
 
-        return '{prefix}{model}:{epoch}:{vnode}'.format(
+        return u'{prefix}{model}:{epoch}:{vnode}'.format(
             prefix=self.prefix,
             model=model.value,
             epoch=self.normalize_to_rollup(timestamp, rollup),
@@ -484,7 +484,7 @@ class RedisTSDB(BaseTSDB):
         temporary_id = uuid.uuid1().hex
 
         def make_temporary_key(key):
-            return '{}{}:{}'.format(self.prefix, temporary_id, key)
+            return u'{}{}:{}'.format(self.prefix, temporary_id, key)
 
         def expand_key(key):
             """
@@ -509,7 +509,7 @@ class RedisTSDB(BaseTSDB):
             results from merging all HyperLogLogs at the provided keys.
             """
             (host, keys) = value
-            destination = make_temporary_key('p:{}'.format(host))
+            destination = make_temporary_key(u'p:{}'.format(host))
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
@@ -524,7 +524,7 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key('a')  # all values will be merged into this key
-            aggregates = {make_temporary_key('a:{}'.format(host)): value for host, value in values}
+            aggregates = {make_temporary_key(u'a:{}'.format(host)): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -571,7 +571,7 @@ class RedisTSDB(BaseTSDB):
             temporary_id = uuid.uuid1().hex
 
             def make_temporary_key(key):
-                return '{}{}:{}'.format(self.prefix, temporary_id, key)
+                return u'{}{}:{}'.format(self.prefix, temporary_id, key)
 
             data = {}
             for rollup, series in rollups.items():

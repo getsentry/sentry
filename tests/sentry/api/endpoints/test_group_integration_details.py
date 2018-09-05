@@ -18,7 +18,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
@@ -58,7 +58,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
@@ -112,7 +112,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
         response = self.client.get(path)
         assert response.status_code == 400
@@ -128,7 +128,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.put(path, data={
@@ -159,7 +159,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
         response = self.client.put(path, data={
             'externalIssue': 'APP-123'
@@ -177,7 +177,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.post(path, data={})
@@ -211,7 +211,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
         integration.add_organization(org.id)
 
-        path = '/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
+        path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
         response = self.client.post(path, data={})
         assert response.status_code == 400
@@ -241,7 +241,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = '/api/0/issues/{}/integrations/{}/?externalIssue={}'.format(
+        path = u'/api/0/issues/{}/integrations/{}/?externalIssue={}'.format(
             group.id, integration.id, external_issue.id,
         )
 
@@ -276,7 +276,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = '/api/0/issues/{}/integrations/{}/?externalIssue={}'.format(
+        path = u'/api/0/issues/{}/integrations/{}/?externalIssue={}'.format(
             group.id, integration.id, external_issue.id,
         )
 

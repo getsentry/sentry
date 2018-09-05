@@ -74,7 +74,7 @@ def _make_index_backend(cluster=None):
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             index = DummyIndexBackend()
-            logger.info('No redis cluster provided for similarity, using {!r}.'.format(index))
+            logger.info(u'No redis cluster provided for similarity, using {!r}.'.format(index))
             return index
 
     return MetricsWrapper(

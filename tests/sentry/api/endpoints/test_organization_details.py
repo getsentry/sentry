@@ -233,18 +233,18 @@ class OrganizationUpdateTest(APITestCase):
         log = AuditLogEntry.objects.get(organization=org)
         assert log.get_event_display() == 'org.edit'
         # org fields & flags
-        assert 'to {}'.format(data['defaultRole']) in log.data['default_role']
-        assert 'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
-        assert 'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
-        assert 'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
-        assert 'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
-        assert 'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        assert u'to {}'.format(data['defaultRole']) in log.data['default_role']
+        assert u'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
+        assert u'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
+        assert u'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
+        assert u'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
+        assert u'to {}'.format(data['require2FA']) in log.data['require_2fa']
         # org options
-        assert 'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
-        assert 'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
-        assert 'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
-        assert 'to {}'.format(data['safeFields']) in log.data['safeFields']
-        assert 'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
+        assert u'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
+        assert u'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
+        assert u'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
+        assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
+        assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)

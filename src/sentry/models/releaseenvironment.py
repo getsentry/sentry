@@ -28,7 +28,7 @@ class ReleaseEnvironment(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, release_id, environment_id):
-        return 'releaseenv:2:{}:{}:{}'.format(
+        return u'releaseenv:2:{}:{}:{}'.format(
             organization_id,
             release_id,
             environment_id,

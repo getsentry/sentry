@@ -54,7 +54,7 @@ except ImportError:
         pass
 
 
-USER_AGENT = 'sentry/{version} (https://sentry.io)'.format(
+USER_AGENT = u'sentry/{version} (https://sentry.io)'.format(
     version=sentry.VERSION,
 )
 

@@ -25,7 +25,7 @@ def generate_security_email(account, type, actor, ip_address, context=None, curr
         template = 'sentry/emails/recovery-codes-regenerated.txt'
         html_template = 'sentry/emails/recovery-codes-regenerated.html'
     else:
-        raise ValueError('unknown type: {}'.format(type))
+        raise ValueError(u'unknown type: {}'.format(type))
 
     new_context = {
         'account': account,

@@ -26,7 +26,7 @@ backend = get_default_backend()
 def _get_key(key):
     prefix = settings.SENTRY_METRICS_PREFIX
     if prefix:
-        return '{}{}'.format(prefix, key)
+        return u'{}{}'.format(prefix, key)
     return key
 
 
@@ -57,7 +57,7 @@ class InternalMetrics(object):
                 key, instance, tags, amount = q.get()
                 amount = _sampled_value(amount)
                 if instance:
-                    full_key = '{}.{}'.format(key, instance)
+                    full_key = u'{}.{}'.format(key, instance)
                 else:
                     full_key = key
                 try:

@@ -25,7 +25,7 @@ def get_installation_metadata(event, host):
         return
     try:
         integration = Integration.objects.get(
-            external_id='{}:{}'.format(host, event['installation']['id']),
+            external_id=u'{}:{}'.format(host, event['installation']['id']),
             provider='github_enterprise')
     except Integration.DoesNotExist:
         return
@@ -55,7 +55,7 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
         return 'github_enterprise:%s' % username
 
     def get_idp_external_id(self, integration, host):
-        return '{}:{}'.format(host, integration.metadata['installation']['id'])
+        return u'{}:{}'.format(host, integration.metadata['installation']['id'])
 
     def should_ignore_commit(self, commit):
         return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit['message'])
@@ -72,7 +72,7 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
         return 'github_enterprise:%s' % username
 
     def get_idp_external_id(self, integration, host):
-        return '{}:{}'.format(host, integration.metadata['installation']['id'])
+        return u'{}:{}'.format(host, integration.metadata['installation']['id'])
 
 
 class GitHubEnterpriseWebhookBase(View):

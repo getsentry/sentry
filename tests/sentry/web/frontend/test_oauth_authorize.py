@@ -23,7 +23,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?redirect_uri={}&client_id={}'.format(
+            u'{}?redirect_uri={}&client_id={}'.format(
                 self.path,
                 'https://example.com',
                 self.application.client_id,
@@ -37,7 +37,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
+            u'{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
                 self.path,
                 'https://example.com',
                 self.application.client_id,
@@ -51,7 +51,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=code&redirect_uri={}'.format(
+            u'{}?response_type=code&redirect_uri={}'.format(
                 self.path,
                 'https://example.com',
             )
@@ -65,7 +65,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}&scope=foo'.format(
+            u'{}?response_type=code&client_id={}&scope=foo'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -78,7 +78,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=code&redirect_uri=https://google.com&client_id={}'.format(
+            u'{}?response_type=code&redirect_uri=https://google.com&client_id={}'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -92,7 +92,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}'.format(
+            u'{}?response_type=code&client_id={}'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -112,7 +112,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'https://example.com?code={}'.format(
+        assert resp['Location'] == u'https://example.com?code={}'.format(
             grant.code,
         )
 
@@ -126,7 +126,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}'.format(
+            u'{}?response_type=code&client_id={}'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -150,7 +150,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}&scope=org%3Aread&state=foo'.format(
+            u'{}?response_type=code&client_id={}&scope=org%3Aread&state=foo'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -170,7 +170,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert grant.get_scopes() == ['org:read']
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'https://example.com?state=foo&code={}'.format(
+        assert resp['Location'] == u'https://example.com?state=foo&code={}'.format(
             grant.code,
         )
 
@@ -185,7 +185,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}'.format(
+            u'{}?response_type=code&client_id={}'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -197,7 +197,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'https://example.com?code={}'.format(
+        assert resp['Location'] == u'https://example.com?code={}'.format(
             grant.code,
         )
 
@@ -210,7 +210,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}&force_prompt=1'.format(
+            u'{}?response_type=code&client_id={}&force_prompt=1'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -230,7 +230,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}&scope=org:read'.format(
+            u'{}?response_type=code&client_id={}&scope=org:read'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -256,7 +256,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         resp = self.client.get(
-            '{}?response_type=code&client_id={}&scope=member:read member:admin'.format(
+            u'{}?response_type=code&client_id={}&scope=member:read member:admin'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -271,7 +271,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ]
 
     def test_unauthenticated_basic_auth(self):
-        full_path = '{}?response_type=code&client_id={}'.format(
+        full_path = u'{}?response_type=code&client_id={}'.format(
             self.path,
             self.application.client_id,
         )
@@ -280,7 +280,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/login.html')
-        assert resp.context['banner'] == 'Connect Sentry to {}'.format(self.application.name)
+        assert resp.context['banner'] == u'Connect Sentry to {}'.format(self.application.name)
 
         resp = self.client.post(
             full_path,
@@ -291,7 +291,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             },
         )
         assert resp.status_code == 302
-        assert resp.get('Location') == 'http://testserver{}'.format(full_path)
+        assert resp.get('Location') == u'http://testserver{}'.format(full_path)
 
         resp = self.client.get(full_path)
         self.assertTemplateUsed('sentry/oauth-authorize.html')
@@ -307,7 +307,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'https://example.com?code={}'.format(
+        assert resp['Location'] == u'https://example.com?code={}'.format(
             grant.code,
         )
 
@@ -334,7 +334,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?redirect_uri={}&client_id={}'.format(
+            u'{}?redirect_uri={}&client_id={}'.format(
                 self.path,
                 'https://example.com',
                 self.application.client_id,
@@ -348,7 +348,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
+            u'{}?response_type=foobar&redirect_uri={}&client_id={}'.format(
                 self.path,
                 'https://example.com',
                 self.application.client_id,
@@ -362,7 +362,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=token&redirect_uri={}'.format(
+            u'{}?response_type=token&redirect_uri={}'.format(
                 self.path,
                 'https://example.com',
             )
@@ -376,7 +376,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=token&client_id={}&scope=foo'.format(
+            u'{}?response_type=token&client_id={}&scope=foo'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -389,7 +389,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=token&client_id={}'.format(
+            u'{}?response_type=token&client_id={}'.format(
                 self.path,
                 self.application.client_id,
             )
@@ -424,7 +424,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            '{}?response_type=token&client_id={}'.format(
+            u'{}?response_type=token&client_id={}'.format(
                 self.path,
                 self.application.client_id,
             )

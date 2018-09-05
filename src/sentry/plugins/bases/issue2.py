@@ -169,8 +169,8 @@ class IssueTrackingPlugin2(Plugin):
         e.g. GitHub represents issues as GH-XXX
         """
         if isinstance(issue, dict):
-            return '#{}'.format(issue['id'])
-        return '#{}'.format(issue)
+            return u'#{}'.format(issue['id'])
+        return u'#{}'.format(issue)
 
     def create_issue(self, request, group, form_data, **kwargs):
         """
@@ -209,10 +209,10 @@ class IssueTrackingPlugin2(Plugin):
         conf_key = self.get_conf_key()
         if self.issue_fields is None:
             return {
-                'id': '{}:tid'.format(conf_key)
+                'id': u'{}:tid'.format(conf_key)
             }
         return {
-            key: '{}:issue_{}'.format(
+            key: u'{}:issue_{}'.format(
                 conf_key,
                 key,
             )

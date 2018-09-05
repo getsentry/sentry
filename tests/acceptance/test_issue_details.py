@@ -40,7 +40,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details python')
@@ -51,7 +51,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
         self.browser.wait_until('[data-test-id="loaded-device-name"]')
@@ -63,8 +63,8 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
-                                                 self.project.slug, event.group.id, event.id)
+            u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
+                                                  self.project.slug, event.group.id, event.id)
         )
         self.browser.wait_until('.event-details-container')
         self.browser.wait_until_not('.loading-indicator')
@@ -78,7 +78,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details rust')
@@ -89,7 +89,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details cordova')
@@ -100,7 +100,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.activity-item')
         self.browser.snapshot('issue activity python')

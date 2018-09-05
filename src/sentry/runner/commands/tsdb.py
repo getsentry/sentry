@@ -25,7 +25,7 @@ class DateTimeParamType(click.ParamType):
             result = parse(value)
         except Exception:
             self.fail(
-                '{!r} is not a valid datetime'.format(value),
+                u'{!r} is not a valid datetime'.format(value),
                 option,
                 context,
             )
@@ -91,10 +91,10 @@ def organizations(metrics, since, until):
         since = until - timedelta(minutes=60)
 
     if until < since:
-        raise click.ClickException('invalid time range provided: {} to {}'.format(since, until))
+        raise click.ClickException(u'invalid time range provided: {} to {}'.format(since, until))
 
     stderr.write(
-        'Dumping {} from {} to {}...\n'.format(
+        u'Dumping {} from {} to {}...\n'.format(
             ', '.join(metrics.keys()),
             since,
             until,
@@ -116,7 +116,7 @@ def organizations(metrics, since, until):
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(
-                '{} {} {}\n'.format(
+                u'{} {} {}\n'.format(
                     instance.id,
                     instance.slug,
                     ' '.join(map(six.binary_type, values)),

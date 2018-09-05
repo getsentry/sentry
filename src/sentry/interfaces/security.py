@@ -173,7 +173,7 @@ class Hpkp(SecurityReport):
         return ['hpkp', self.hostname]
 
     def get_message(self):
-        return "Public key pinning validation failed for '{self.hostname}'".format(self=self)
+        return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
         return [
@@ -237,7 +237,7 @@ class ExpectStaple(SecurityReport):
         return ['expect-staple', self.hostname]
 
     def get_message(self):
-        return "Expect-Staple failed for '{self.hostname}'".format(self=self)
+        return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
         return (
@@ -299,7 +299,7 @@ class ExpectCT(SecurityReport):
         return ['expect-ct', self.hostname]
 
     def get_message(self):
-        return "Expect-CT failed for '{self.hostname}'".format(self=self)
+        return u"Expect-CT failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
         return (

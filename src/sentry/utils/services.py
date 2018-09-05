@@ -301,7 +301,7 @@ class ServiceDelegator(Service):
             # request is going to fail anyway.
             if selected_backend_names[0] not in self.__backends:
                 raise self.InvalidBackend(
-                    '{!r} is not a registered backend.'.format(
+                    u'{!r} is not a registered backend.'.format(
                         selected_backend_names[0]))
 
             def call_backend_method(context, backend, is_primary):
@@ -331,11 +331,11 @@ class ServiceDelegator(Service):
                         expected_raises = getattr(base_value, '__raises__', [])
                         if not expected_raises or not isinstance(e, tuple(expected_raises)):
                             logger.warning('%s caught in executor while calling %r on %s.',
-                                type(e).__name__,
-                                attribute_name,
-                                type(backend).__name__,
-                                exc_info=True,
-                            )
+                                           type(e).__name__,
+                                           attribute_name,
+                                           type(backend).__name__,
+                                           exc_info=True,
+                                           )
                     raise
                 finally:
                     type(self).__state.context = None

@@ -273,7 +273,7 @@ class IsValidIPTestCase(TestCase):
 
 class IsValidReleaseTestCase(TestCase):
     def is_valid_release(self, value, inputs):
-        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), inputs)
+        self.project.update_option(u'sentry:{}'.format(FilterTypes.RELEASES), inputs)
         return is_valid_release(self.project, value)
 
     def test_release_not_in_list(self):
@@ -292,7 +292,7 @@ class IsValidReleaseTestCase(TestCase):
 
 class IsValidErrorMessageTestCase(TestCase):
     def is_valid_error_message(self, value, inputs):
-        self.project.update_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
+        self.project.update_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES), inputs)
         return is_valid_error_message(self.project, value)
 
     def test_error_class_not_in_list(self):

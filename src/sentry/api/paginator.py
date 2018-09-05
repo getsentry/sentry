@@ -206,7 +206,7 @@ class OffsetPaginator(BasePaginator):
         queryset = self.queryset
         if self.key:
             if self.desc:
-                queryset = queryset.order_by('-{}'.format(self.key))
+                queryset = queryset.order_by(u'-{}'.format(self.key))
             else:
                 queryset = queryset.order_by(self.key)
 

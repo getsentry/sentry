@@ -24,7 +24,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     def get_issue_url(self, key):
         repo, issue_id = key.split('#')
-        return 'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
+        return u'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
 
     def get_repo_choices(self, **kwargs):
 
@@ -135,7 +135,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return super(BitbucketIssueBasicMixin, self).message_from_error(exc)
 
     def make_external_key(self, data):
-        return '{}#{}'.format(data['repo'], data['key'])
+        return u'{}#{}'.format(data['repo'], data['key'])
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs['data']

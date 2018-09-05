@@ -31,7 +31,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         visibility = request.GET.get('visibility', 'visible')
         if visibility not in environment_visibility_filter_options:
             return Response({
-                'detail': 'Invalid value for \'visibility\', valid values are: {!r}'.format(
+                'detail': u'Invalid value for \'visibility\', valid values are: {!r}'.format(
                     environment_visibility_filter_options.keys(),
                 ),
             }, status=400)

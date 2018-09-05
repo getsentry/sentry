@@ -41,7 +41,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get('bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
+        lock = locks.get(u'bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization,
@@ -64,7 +64,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 data['identifier'], {
                     'description': 'sentry-bitbucket-repo-hook',
                     'url': absolute_uri(
-                        '/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
+                        u'/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
                     ),
                     'active': True,
                     'events': ['repo:push', 'pullrequest:fulfilled'],
@@ -76,7 +76,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             return {
                 'name': data['identifier'],
                 'external_id': data['external_id'],
-                'url': 'https://bitbucket.org/{}'.format(data['name']),
+                'url': u'https://bitbucket.org/{}'.format(data['name']),
                 'config': {
                     'name': data['name'],
                     'webhook_id': resp['uuid'],

@@ -50,7 +50,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            'https://api.github.com/installations/{}/access_tokens'.format(
+            u'https://api.github.com/installations/{}/access_tokens'.format(
                 self.installation_id,
             ),
             json={
@@ -118,7 +118,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert redirect.path == '/apps/sentry-test-app'
 
         # App installation ID is provided
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({'installation_id': self.installation_id})
         ))
@@ -140,7 +140,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # Compact list values into singular values, since there's only ever one.
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',
@@ -285,7 +285,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.status == ObjectStatus.DISABLED
         assert integration.external_id == self.installation_id
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.init_path,
             urlencode({'reinstall_id': integration.id})
         ))
@@ -299,7 +299,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # New Installation
         self.installation_id = 'install_2'
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({'installation_id': self.installation_id})
         ))
@@ -323,7 +323,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',

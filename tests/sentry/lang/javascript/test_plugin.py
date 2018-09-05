@@ -474,7 +474,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_minified.putfile(open(get_fixture_path('nofiles.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f_minified.name),
+            name=u'~/{}'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -487,7 +487,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('nofiles.js.map'), 'rb'))
         ReleaseFile.objects.create(
-            name='app:///{}'.format(f_sourcemap.name),
+            name=u'app:///{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -665,7 +665,7 @@ class JavascriptIntegrationTest(TestCase):
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='~/{}?foo=bar'.format(f_minified.name),
+            name=u'~/{}?foo=bar'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -682,7 +682,7 @@ class JavascriptIntegrationTest(TestCase):
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name=u'http://example.com/{}'.format(f1.name),
             release=release,
             organization_id=project.organization_id,
             file=f1,
@@ -698,7 +698,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name=u'http://example.com/{}'.format(f2.name),
             release=release,
             organization_id=project.organization_id,
             file=f2,
@@ -716,7 +716,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=u'~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             organization_id=project.organization_id,
             file=f2_empty,
@@ -732,7 +732,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_sourcemap.name),
+            name=u'http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -817,7 +817,7 @@ class JavascriptIntegrationTest(TestCase):
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='~/{}?foo=bar'.format(f_minified.name),
+            name=u'~/{}?foo=bar'.format(f_minified.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -835,7 +835,7 @@ class JavascriptIntegrationTest(TestCase):
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name=u'http://example.com/{}'.format(f1.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -852,7 +852,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name=u'http://example.com/{}'.format(f2.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -871,7 +871,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=u'~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -888,7 +888,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_sourcemap.name),
+            name=u'http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -1237,7 +1237,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_minified.putfile(open(get_fixture_path('dist.bundle.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f_minified.name),
+            name=u'~/{}'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -1250,7 +1250,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('dist.bundle.js.map'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f_sourcemap.name),
+            name=u'~/{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,

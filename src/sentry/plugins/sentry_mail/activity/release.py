@@ -177,7 +177,7 @@ class ReleaseActivityEmail(ActivityEmail):
             'environment':
             self.environment,
             'setup_repo_link':
-            absolute_uri('/organizations/{}/repos/'.format(
+            absolute_uri(u'/organizations/{}/repos/'.format(
                 self.organization.slug,
             )),
         }
@@ -195,7 +195,7 @@ class ReleaseActivityEmail(ActivityEmail):
             projects = [p for p in self.projects if p.id in team_projects]
         release_links = [
             absolute_uri(
-                '/{}/{}/releases/{}/'.format(
+                u'/{}/{}/releases/{}/'.format(
                     self.organization.slug,
                     p.slug,
                     self.release.version,

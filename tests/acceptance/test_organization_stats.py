@@ -17,7 +17,7 @@ class OrganizationStatsTest(AcceptanceTestCase):
             name='Project Name'
         )
         self.login_as(self.user)
-        self.path = '/organizations/{}/stats/'.format(self.org.slug)
+        self.path = u'/organizations/{}/stats/'.format(self.org.slug)
 
     def test_simple(self):
         self.project.update(first_event=timezone.now())

@@ -1611,7 +1611,7 @@ class MinidumpIntegrationTest(TestCase):
 
         self.login_as(self.user)
         with self.tasks():
-            url = '/api/0/issues/{}/'.format(event.group_id)
+            url = u'/api/0/issues/{}/'.format(event.group_id)
             response = self.client.delete(url)
 
         assert response.status_code == 202

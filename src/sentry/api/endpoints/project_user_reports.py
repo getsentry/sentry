@@ -20,7 +20,7 @@ def create_user_feedback_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
         runner.request(
             method='POST',
-            path='/projects/{}/{}/user-feedback/'.format(runner.org.slug, project.slug),
+            path=u'/projects/{}/{}/user-feedback/'.format(runner.org.slug, project.slug),
             data={
                 'name': 'Jane Smith',
                 'email': 'jane@example.com',

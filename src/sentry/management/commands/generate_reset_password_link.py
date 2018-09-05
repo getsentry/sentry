@@ -38,7 +38,7 @@ class Command(BaseCommand):
                 password_hash.set_hash()
                 password_hash.save()
             echo(
-                '{} ({}) - {}'.format(
+                u'{} ({}) - {}'.format(
                     user.username,
                     user.email,
                     password_hash.get_absolute_url(),

@@ -77,7 +77,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
     zero-width spaces after common delimeters, as well as soft-hyphenating long
     identifiers.
     """
-    delimiters = re.compile(r'([{}]+)'.format(''.join(map(re.escape, ',.$:/+@!?()<>[]{}'))))
+    delimiters = re.compile(ur'([{}]+)'.format(''.join(map(re.escape, ',.$:/+@!?()<>[]{}'))))
 
     def soft_break_delimiter(match):
         results = []
@@ -92,7 +92,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
         return u''.join(results).rstrip(u'\u200b')
 
-    return re.sub(r'\S{{{},}}'.format(length), soft_break_delimiter, value)
+    return re.sub(ur'\S{{{},}}'.format(length), soft_break_delimiter, value)
 
 
 def to_unicode(value):

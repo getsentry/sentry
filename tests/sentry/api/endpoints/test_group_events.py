@@ -18,7 +18,7 @@ class GroupEventsTest(APITestCase):
         event_1 = self.create_event('a' * 32, group=group)
         event_2 = self.create_event('b' * 32, group=group)
 
-        url = '/api/0/issues/{}/events/'.format(group.id)
+        url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -81,7 +81,7 @@ class GroupEventsTest(APITestCase):
             ],
         )
 
-        url = '/api/0/issues/{}/events/'.format(group.id)
+        url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url + '?query=foo:baz', format='json')
 
         assert response.status_code == 200, response.content
@@ -133,7 +133,7 @@ class GroupEventsTest(APITestCase):
         self.create_event('b' * 32, group=group)
         query = event_1.event_id
 
-        url = '/api/0/issues/{}/events/?query={}'.format(group.id, query)
+        url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -152,7 +152,7 @@ class GroupEventsTest(APITestCase):
         query_2 = "hello+world"
 
         # Single Word Query
-        url = '/api/0/issues/{}/events/?query={}'.format(group.id, query_1)
+        url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query_1)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -161,7 +161,7 @@ class GroupEventsTest(APITestCase):
             event_1.id) and response.data[0]['eventID'] == event_1.event_id
 
         # Multiple Word Query
-        url = '/api/0/issues/{}/events/?query={}'.format(group.id, query_2)
+        url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query_2)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -210,7 +210,7 @@ class GroupEventsTest(APITestCase):
                 ],
             )
 
-        url = '/api/0/issues/{}/events/'.format(group.id)
+        url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url + '?environment=production', format='json')
 
         assert response.status_code == 200, response.content
@@ -218,13 +218,13 @@ class GroupEventsTest(APITestCase):
             six.text_type(events['production'].id),
         ])
 
-        url = '/api/0/issues/{}/events/'.format(group.id)
+        url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url + '?environment=invalid', format='json')
 
         assert response.status_code == 200, response.content
         assert response.data == []
 
-        url = '/api/0/issues/{}/events/'.format(group.id)
+        url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(
             url + '?environment=production&query=environment:development',
             format='json')
@@ -245,7 +245,7 @@ class GroupEventsTest(APITestCase):
         event_2 = self.create_event('b' * 32, group=group)
 
         with self.options({'system.event-retention-days': 1}):
-            response = self.client.get('/api/0/issues/{}/events/'.format(group.id))
+            response = self.client.get(u'/api/0/issues/{}/events/'.format(group.id))
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

@@ -458,12 +458,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:blacklisted_ips',
                     clean_newline_inputs(options['filters:blacklisted_ips'])
                 )
-            if 'filters:{}'.format(FilterTypes.RELEASES) in options:
+            if u'filters:{}'.format(FilterTypes.RELEASES) in options:
                 if features.has('projects:custom-inbound-filters', project, actor=request.user):
                     project.update_option(
-                        'sentry:{}'.format(FilterTypes.RELEASES),
+                        u'sentry:{}'.format(FilterTypes.RELEASES),
                         clean_newline_inputs(
-                            options['filters:{}'.format(FilterTypes.RELEASES)])
+                            options[u'filters:{}'.format(FilterTypes.RELEASES)])
                     )
                 else:
                     return Response(
@@ -471,12 +471,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                             'detail': ['You do not have that feature enabled']
                         }, status=400
                     )
-            if 'filters:{}'.format(FilterTypes.ERROR_MESSAGES) in options:
+            if u'filters:{}'.format(FilterTypes.ERROR_MESSAGES) in options:
                 if features.has('projects:custom-inbound-filters', project, actor=request.user):
                     project.update_option(
-                        'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
+                        u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
                         clean_newline_inputs(
-                            options['filters:{}'.format(
+                            options[u'filters:{}'.format(
                                 FilterTypes.ERROR_MESSAGES)],
                             case_insensitive=False
                         )

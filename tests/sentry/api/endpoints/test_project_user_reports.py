@@ -43,7 +43,7 @@ class ProjectUserReportListTest(APITestCase):
             group=group2,
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -72,12 +72,12 @@ class ProjectUserReportListTest(APITestCase):
             group=group,
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
 
-        response = self.client.get('{}?status='.format(url), format='json')
+        response = self.client.get(u'{}?status='.format(url), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -107,7 +107,7 @@ class CreateProjectUserReportTest(APITestCase):
         event = self.create_event(group=group, tags={
             'environment': environment.name})
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -151,7 +151,7 @@ class CreateProjectUserReportTest(APITestCase):
             comments='',
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -203,7 +203,7 @@ class CreateProjectUserReportTest(APITestCase):
             comments='',
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -252,7 +252,7 @@ class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):
 
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/user-feedback/'.format(
+        return u'/api/0/projects/{}/{}/user-feedback/'.format(
             self.project.organization.slug,
             self.project.slug,
         )

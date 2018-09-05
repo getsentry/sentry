@@ -31,7 +31,7 @@ class OrganizationIssuesNewTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = '/api/0/organizations/{}/issues/new/'.format(
+        url = u'/api/0/organizations/{}/issues/new/'.format(
             org.slug,
         )
         response = self.client.get(url, format='json')

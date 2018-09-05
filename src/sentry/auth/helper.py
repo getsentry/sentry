@@ -61,7 +61,7 @@ class RedisBackedState(object):
         return self.request.session.get('auth_key')
 
     def regenerate(self, initial_state):
-        auth_key = 'auth:pipeline:{}'.format(uuid4().hex)
+        auth_key = u'auth:pipeline:{}'.format(uuid4().hex)
 
         self.request.session['auth_key'] = auth_key
         self.request.session.modified = True
@@ -673,7 +673,7 @@ class AuthHelper(object):
         user_id = identity['id']
 
         lock = locks.get(
-            'sso:auth:{}:{}'.format(
+            u'sso:auth:{}:{}'.format(
                 auth_provider.id,
                 md5_text(user_id).hexdigest(),
             ),

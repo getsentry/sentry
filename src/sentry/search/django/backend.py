@@ -78,11 +78,11 @@ class ScalarCondition(Condition):
 
     def apply(self, queryset, name, parameters):
         inclusive = parameters.get(
-            '{}_inclusive'.format(name),
+            u'{}_inclusive'.format(name),
             self.default_inclusivity,
         )
         return queryset.filter(**{
-            '{}__{}{}'.format(
+            u'{}__{}{}'.format(
                 self.field,
                 self.operator,
                 'e' if inclusive else ''
@@ -91,12 +91,12 @@ class ScalarCondition(Condition):
 
 
 def get_sql_table(model):
-    return '{}'.format(model._meta.db_table)
+    return u'{}'.format(model._meta.db_table)
 
 
 def get_sql_column(model, field):
     "Convert a model class and field name to it's (unquoted!) SQL column representation."
-    return '{}.{}'.format(*[
+    return u'{}.{}'.format(*[
         get_sql_table(model),
         model._meta.get_field_by_name(field)[0].column,
     ])
@@ -118,12 +118,12 @@ def get_priority_sort_expression(model):
     engine = get_db_engine(router.db_for_read(model))
     table = get_sql_table(model)
     if 'postgres' in engine:
-        return 'log({table}.times_seen) * 600 + {table}.last_seen::abstime::int'.format(table=table)
+        return u'log({table}.times_seen) * 600 + {table}.last_seen::abstime::int'.format(table=table)
     else:
         # TODO: This should be improved on other databases where possible.
         # (This doesn't work on some databases: SQLite for example doesn't
         # have a built-in logarithm function.)
-        return '{}.times_seen'.format(table)
+        return u'{}.times_seen'.format(table)
 
 
 environment_sort_strategies = {
@@ -136,15 +136,15 @@ environment_sort_strategies = {
         int,
     ),
     'date': (
-        lambda model: '{}.last_seen'.format(get_sql_table(model)),
+        lambda model: u'{}.last_seen'.format(get_sql_table(model)),
         lambda score: int(to_timestamp(score) * 1000),
     ),
     'new': (
-        lambda model: '{}.first_seen'.format(get_sql_table(model)),
+        lambda model: u'{}.first_seen'.format(get_sql_table(model)),
         lambda score: int(to_timestamp(score) * 1000),
     ),
     'freq': (
-        lambda model: '{}.times_seen'.format(get_sql_table(model)),
+        lambda model: u'{}.times_seen'.format(get_sql_table(model)),
         int,
     ),
 }

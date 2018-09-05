@@ -39,7 +39,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
     def get_issue_url(self, group, issue_id, **kwargs):
         tracker_url = self.get_option('tracker_url', group.project)
 
-        return '{}?issueID={}'.format(tracker_url, issue_id)
+        return u'{}?issueID={}'.format(tracker_url, issue_id)
 
     def get_configure_plugin_fields(self, project, **kwargs):
         return [

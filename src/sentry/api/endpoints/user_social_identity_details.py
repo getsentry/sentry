@@ -31,7 +31,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
 
         backend = get_backend(auth.provider, request, '/')
         if backend is None:
-            raise Exception('Backend was not found for request: {}'.format(auth.provider))
+            raise Exception(u'Backend was not found for request: {}'.format(auth.provider))
 
         # stop this from bubbling up errors to social-auth's middleware
         # XXX(dcramer): IM SO MAD ABOUT THIS

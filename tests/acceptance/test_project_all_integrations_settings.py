@@ -27,7 +27,7 @@ class ProjectAllIntegrationsSettingsTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_all_integrations_list(self):
-        path = '/{}/{}/settings/plugins/'.format(self.org.slug, self.project.slug)
+        path = u'/{}/{}/settings/plugins/'.format(self.org.slug, self.project.slug)
         self.browser.get(path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project settings - all integrations')

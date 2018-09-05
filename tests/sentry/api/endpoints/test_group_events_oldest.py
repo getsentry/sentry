@@ -23,7 +23,7 @@ class GroupEventsOldestTest(APITestCase):
             datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
 
-        url = '/api/0/issues/{}/events/oldest/'.format(group.id)
+        url = u'/api/0/issues/{}/events/oldest/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200

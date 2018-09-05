@@ -99,7 +99,7 @@ class IntegrationProviderSerializer(Serializer):
             'canDisable': obj.can_disable,
             'features': [f.value for f in obj.features],
             'setupDialog': dict(
-                url='/organizations/{}/integrations/{}/setup/'.format(
+                url=u'/organizations/{}/integrations/{}/setup/'.format(
                     organization.slug,
                     obj.key,
                 ),

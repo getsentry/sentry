@@ -38,7 +38,7 @@ class OrganizationIntegrationSettingsTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_all_integrations_list(self):
-        path = '/settings/{}/integrations/'.format(self.org.slug)
+        path = u'/settings/{}/integrations/'.format(self.org.slug)
         self.browser.get(path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization settings - all integrations')

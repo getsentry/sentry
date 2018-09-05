@@ -52,7 +52,7 @@ class VisualStudioAuth(BaseOAuth2):
     def user_data(self, access_token, *args, **kwargs):
         """Loads user data from service"""
         resp = requests.get(VISUALSTUDIO_USER_DETAILS_URL,
-                            headers={'Authorization': 'Bearer {}'.format(access_token)})
+                            headers={'Authorization': u'Bearer {}'.format(access_token)})
         resp.raise_for_status()
         content = resp.json()
         return {

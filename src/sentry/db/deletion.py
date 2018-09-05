@@ -25,17 +25,17 @@ class BulkDeleteQuery(object):
         where = []
         if self.dtfield and self.days is not None:
             where.append(
-                "{} < '{}'::timestamptz".format(
+                u"{} < '{}'::timestamptz".format(
                     quote_name(self.dtfield),
                     (timezone.now() - timedelta(days=self.days)).isoformat(),
                     self.days,
                 )
             )
         if self.project_id:
-            where.append("project_id = {}".format(self.project_id))
+            where.append(u"project_id = {}".format(self.project_id))
 
         if where:
-            where_clause = 'where {}'.format(' and '.join(where))
+            where_clause = u'where {}'.format(' and '.join(where))
         else:
             where_clause = ''
 
@@ -46,14 +46,14 @@ class BulkDeleteQuery(object):
             else:
                 direction = 'asc'
                 order_field = self.order_by
-            order_clause = 'order by {} {}'.format(
+            order_clause = u'order by {} {}'.format(
                 quote_name(order_field),
                 direction,
             )
         else:
             order_clause = ''
 
-        query = """
+        query = u"""
             delete from {table}
             where id = any(array(
                 select id
@@ -87,7 +87,7 @@ class BulkDeleteQuery(object):
 
         if self.days:
             cutoff = timezone.now() - timedelta(days=self.days)
-            qs = qs.filter(**{'{}__lte'.format(self.dtfield): cutoff})
+            qs = qs.filter(**{u'{}__lte'.format(self.dtfield): cutoff})
         if self.project_id:
             if 'project' in self.model._meta.get_all_field_names():
                 qs = qs.filter(project=self.project_id)
@@ -141,7 +141,7 @@ class BulkDeleteQuery(object):
                 # having to pull all rows into memory at once.
                 with conn.cursor(uuid4().hex) as cursor:
                     where = [(
-                        "{} < %s".format(quote_name(self.dtfield)),
+                        u"{} < %s".format(quote_name(self.dtfield)),
                         [cutoff],
                     )]
 
@@ -156,7 +156,7 @@ class BulkDeleteQuery(object):
                         order_field = self.order_by[1:]
                         if position is not None:
                             where.append((
-                                '{} <= %s'.format(quote_name(order_field)),
+                                u'{} <= %s'.format(quote_name(order_field)),
                                 [position],
                             ))
                     else:
@@ -164,14 +164,14 @@ class BulkDeleteQuery(object):
                         order_field = self.order_by
                         if position is not None:
                             where.append((
-                                '{} >= %s'.format(quote_name(order_field)),
+                                u'{} >= %s'.format(quote_name(order_field)),
                                 [position],
                             ))
 
                     conditions, parameters = zip(*where)
                     parameters = list(itertools.chain.from_iterable(parameters))
 
-                    query = """
+                    query = u"""
                         select id, {order_field}
                         from {table}
                         where {conditions}

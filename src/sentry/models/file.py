@@ -99,7 +99,7 @@ class FileBlob(Model):
 
         # TODO(dcramer): the database here is safe, but if this lock expires
         # and duplicate files are uploaded then we need to prune one
-        lock = locks.get('fileblob:upload:{}'.format(checksum), duration=60 * 10)
+        lock = locks.get(u'fileblob:upload:{}'.format(checksum), duration=60 * 10)
         with TimedRetryPolicy(60)(lock.acquire):
             # test for presence
             try:
@@ -130,7 +130,7 @@ class FileBlob(Model):
         return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
+        lock = locks.get(u'fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
         with TimedRetryPolicy(60)(lock.acquire):
             super(FileBlob, self).delete(*args, **kwargs)
         if self.path:

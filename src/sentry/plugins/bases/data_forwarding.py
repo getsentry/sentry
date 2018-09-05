@@ -33,7 +33,7 @@ class DataForwardingPlugin(Plugin):
         return 'data-forwarding'
 
     def post_process(self, event, **kwargs):
-        rl_key = '{}:{}'.format(
+        rl_key = u'{}:{}'.format(
             self.conf_key,
             event.project.organization_id,
         )

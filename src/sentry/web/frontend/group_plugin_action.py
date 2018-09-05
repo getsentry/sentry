@@ -28,7 +28,7 @@ class GroupPluginActionView(ProjectView):
 
         redirect = request.META.get('HTTP_REFERER', '')
         if not is_safe_url(redirect, host=request.get_host()):
-            redirect = '/{}/{}/'.format(
+            redirect = u'/{}/{}/'.format(
                 organization.slug,
                 group.project.slug,
             )

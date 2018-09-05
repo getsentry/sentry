@@ -178,7 +178,7 @@ class ModelDeletionTask(BaseDeletionTask):
                 assert shard_id < num_shards
                 queryset = queryset.extra(
                     where=[
-                        'id %% {num_shards} = {shard_id}'.format(
+                        u'id %% {num_shards} = {shard_id}'.format(
                             num_shards=num_shards,
                             shard_id=shard_id,
                         )

@@ -13,7 +13,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
             url='http://example.com',
         )[0]
         self.login_as(user=self.user)
-        path = '/api/0/projects/{}/{}/hooks/{}/'.format(
+        path = u'/api/0/projects/{}/{}/hooks/{}/'.format(
             project.organization.slug,
             project.slug,
             hook.guid,
@@ -33,7 +33,7 @@ class UpdateProjectServiceHookTest(APITestCase):
             actor_id=self.user.id,
             url='http://example.com',
         )[0]
-        self.path = '/api/0/projects/{}/{}/hooks/{}/'.format(
+        self.path = u'/api/0/projects/{}/{}/hooks/{}/'.format(
             self.project.organization.slug,
             self.project.slug,
             self.hook.guid,
@@ -62,7 +62,7 @@ class DeleteProjectServiceHookTest(APITestCase):
             actor_id=self.user.id,
             url='http://example.com',
         )[0]
-        self.path = '/api/0/projects/{}/{}/hooks/{}/'.format(
+        self.path = u'/api/0/projects/{}/{}/hooks/{}/'.format(
             self.project.organization.slug,
             self.project.slug,
             self.hook.guid,

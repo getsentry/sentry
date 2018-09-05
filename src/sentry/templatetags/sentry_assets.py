@@ -56,4 +56,4 @@ def locale_js_include(context):
         return ''
 
     href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
-    return "<script src=\"{0}\"{1}></script>".format(href, crossorigin())
+    return u"<script src=\"{0}\"{1}></script>".format(href, crossorigin())

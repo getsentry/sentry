@@ -22,7 +22,7 @@ def summarize(sequence, max=3):
 
 
 def make_upgrade_message(service, modality, version, hosts):
-    return '{service} {modality} be upgraded to {version} on {hosts}.'.format(
+    return u'{service} {modality} be upgraded to {version} on {hosts}.'.format(
         hosts=','.join(map(six.binary_type, summarize(hosts.keys(), 2))),
         modality=modality,
         service=service,

@@ -54,7 +54,7 @@ class DashboardTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = '/{}/'.format(self.org.slug)
+        self.path = u'/{}/'.format(self.org.slug)
 
     def test_no_issues(self):
         # I think no "activity" would be more accurate?
@@ -103,7 +103,7 @@ class EmptyDashboardTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.login_as(self.user)
-        self.path = '/{}/'.format(self.org.slug)
+        self.path = u'/{}/'.format(self.org.slug)
 
     def test_new_dashboard_empty(self):
         with self.feature('organizations:dashboard'):

@@ -78,7 +78,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
 
         query = urlencode({'code': '1234', 'state': state})
-        resp = self.client.get('{}?{}'.format(self.sso_path, query), **kargs)
+        resp = self.client.get(u'{}?{}'.format(self.sso_path, query), **kargs)
 
         if expect_success:
             assert resp.status_code == 200

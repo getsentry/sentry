@@ -55,13 +55,13 @@ class BaseAttachmentCache(object):
         self.inner = inner
 
     def make_key(self, key):
-        return '{}:{}'.format(key, self.appendix)
+        return u'{}:{}'.format(key, self.appendix)
 
     def set(self, key, attachments, timeout=None):
         key = self.make_key(key)
         for index, attachment in enumerate(attachments):
             compressed = zlib.compress(attachment.data)
-            self.inner.set('{}:{}'.format(key, index), compressed, timeout, raw=True)
+            self.inner.set(u'{}:{}'.format(key, index), compressed, timeout, raw=True)
 
         meta = [attachment.meta() for attachment in attachments]
         self.inner.set(key, meta, timeout, raw=False)
@@ -73,7 +73,7 @@ class BaseAttachmentCache(object):
             result = [
                 CachedAttachment(
                     load=lambda index=index: zlib.decompress(
-                        self.inner.get('{}:{}'.format(key, index), raw=True)),
+                        self.inner.get(u'{}:{}'.format(key, index), raw=True)),
                     **attachment
                 )
                 for index, attachment in enumerate(result)
@@ -87,5 +87,5 @@ class BaseAttachmentCache(object):
             return
 
         for index in range(0, len(attachments)):
-            self.inner.delete('{}:{}'.format(key, index))
+            self.inner.delete(u'{}:{}'.format(key, index))
         self.inner.delete(key)

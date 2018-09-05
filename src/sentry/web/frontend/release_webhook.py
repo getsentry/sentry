@@ -37,7 +37,7 @@ class ReleaseWebhookView(View):
         return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)
 
     def _handle_builtin(self, request, project):
-        endpoint = '/projects/{}/{}/releases/'.format(
+        endpoint = u'/projects/{}/{}/releases/'.format(
             project.organization.slug,
             project.slug,
         )

@@ -24,7 +24,7 @@ class Filter(object):
     def is_enabled(self):
         return ProjectOption.objects.get_value(
             project=self.project,
-            key='filters:{}'.format(self.id),
+            key=u'filters:{}'.format(self.id),
             default='1' if self.default else '0',
         ) == '1'
 
@@ -34,7 +34,7 @@ class Filter(object):
 
         ProjectOption.objects.set_value(
             project=self.project,
-            key='filters:{}'.format(self.id),
+            key=u'filters:{}'.format(self.id),
             value='1' if value.get('active', False) else '0',
         )
 

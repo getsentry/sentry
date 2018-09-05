@@ -669,7 +669,7 @@ class BaseOAuth2(BaseOAuth):
         data = None
 
         if cls.REVOKE_TOKEN_METHOD == 'GET':
-            url = '{}?{}'.format(url, urlencode(params))
+            url = u'{}?{}'.format(url, urlencode(params))
         else:
             data = urlencode(params)
 

@@ -57,7 +57,7 @@ class SnubaTagStorage(TagStorage):
 
     def __get_tag_key(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
@@ -88,7 +88,7 @@ class SnubaTagStorage(TagStorage):
     def __get_tag_key_and_top_values(self, project_id, group_id, environment_id,
                                      key, limit=3, raise_on_empty=True):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
@@ -169,7 +169,7 @@ class SnubaTagStorage(TagStorage):
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
@@ -229,7 +229,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
@@ -258,7 +258,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
             'environment': [environment_id],
@@ -309,7 +309,7 @@ class SnubaTagStorage(TagStorage):
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
         tag = 'sentry:release'
-        col = 'tags[{}]'.format(tag)
+        col = u'tags[{}]'.format(tag)
         conditions = [[col, 'IN', versions]]
         aggregations = [
             ['count()', '', 'times_seen'],
@@ -402,7 +402,7 @@ class SnubaTagStorage(TagStorage):
 
         conditions = []
         if query:
-            conditions.append(['tags_value', 'LIKE', '%{}%'.format(query)])
+            conditions.append(['tags_value', 'LIKE', u'%{}%'.format(query)])
 
         start, end = self.get_time_range()
         results = snuba.query(
@@ -520,7 +520,7 @@ class SnubaTagStorage(TagStorage):
             'issue': [group_id],
         }
 
-        conditions = [[['tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
+        conditions = [[[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
 
         result = snuba.raw_query(start, end, selected_columns=['event_id'],
                                  conditions=conditions, orderby='-timestamp', filter_keys=filters,

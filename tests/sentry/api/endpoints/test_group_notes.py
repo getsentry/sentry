@@ -26,7 +26,7 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -39,7 +39,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         response = self.client.post(url, format='json')
         assert response.status_code == 400
@@ -90,7 +90,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         # mentioning a member that does not exist returns 400
         response = self.client.post(
@@ -148,7 +148,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         # mentioning a team that does not exist returns 400
         response = self.client.post(
@@ -213,7 +213,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         with self.feature({
             'organizations:integrations-issue-sync': True,

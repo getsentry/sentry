@@ -34,7 +34,7 @@ def split_key(key):
 
 
 def unsplit_key(plugin, project):
-    return '{plugin.slug}:p:{project.id}'.format(plugin=plugin, project=project)
+    return u'{plugin.slug}:p:{project.id}'.format(plugin=plugin, project=project)
 
 
 def strip_for_serialization(instance):

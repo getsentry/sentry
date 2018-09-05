@@ -38,7 +38,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user, superuser=True)
-        response = self.client.get('{}?show=all'.format(self.path))
+        response = self.client.get(u'{}?show=all'.format(self.path))
         assert response.status_code == 200
         assert len(response.data) == 2
 
@@ -130,11 +130,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.client.get('{}?query=id:{}'.format(self.path, project1.id))
+        response = self.client.get(u'{}?query=id:{}'.format(self.path, project1.id))
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(project1.id)
 
-        response = self.client.get('{}?query=id:-1'.format(self.path))
+        response = self.client.get(u'{}?query=id:-1'.format(self.path))
         assert response.status_code == 200
         assert len(response.data) == 0

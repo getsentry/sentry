@@ -40,7 +40,7 @@ class GroupTagExportTest(TestCase):
 
         self.login_as(user=self.user)
 
-        url = '/{}/{}/issues/{}/tags/{}/export/?environment={}'.format(
+        url = u'/{}/{}/issues/{}/tags/{}/export/?environment={}'.format(
             project.organization.slug, project.slug, group.id, key, self.environment.name
         )
 

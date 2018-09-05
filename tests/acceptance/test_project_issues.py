@@ -18,7 +18,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
         )
         self.environment = self.create_environment(name="staging")
         self.login_as(self.user)
-        self.path = '/{}/{}/'.format(self.org.slug, self.project.slug)
+        self.path = u'/{}/{}/'.format(self.org.slug, self.project.slug)
 
     # TODO(dcramer): abstract fixtures into a basic set that is present for
     # all acceptance tests

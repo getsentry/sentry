@@ -11,4 +11,4 @@ class OrganizationAvatarEndpoint(AvatarMixin, OrganizationEndpoint):
 
     def get_avatar_filename(self, obj):
         # for consistency with organization details endpoint
-        return '{}.png'.format(obj.slug)
+        return u'{}.png'.format(obj.slug)

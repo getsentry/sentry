@@ -182,7 +182,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         if request.method == 'POST':
             provider_key = request.POST.get('provider')
             if not manager.exists(provider_key):
-                raise ValueError('Provider not found: {}'.format(provider_key))
+                raise ValueError(u'Provider not found: {}'.format(provider_key))
 
             helper = AuthHelper(
                 request=request,

@@ -99,7 +99,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {'email': user.email})
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver{}'.format(configure_path)
+        assert resp['Location'] == u'http://testserver{}'.format(configure_path)
 
         auth_provider = AuthProvider.objects.get(
             organization=organization,

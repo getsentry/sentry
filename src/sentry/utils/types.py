@@ -42,7 +42,7 @@ class Type(object):
             # and give us the type we were expecting
             if self.test(rv):
                 return rv
-        raise InvalidTypeError('{!r} is not a valid {}'.format(value, repr(self)))
+        raise InvalidTypeError(u'{!r} is not a valid {}'.format(value, repr(self)))
 
     def convert(self, value):
         return value
