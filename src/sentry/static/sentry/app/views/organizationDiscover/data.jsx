@@ -15,7 +15,7 @@ const PROMOTED_TAGS = [
   {name: 'tags[browser_name]', type: 'string'},
   {name: 'tags[os]', type: 'string'},
   {name: 'tags[os_name]', type: 'string'},
-  {name: 'tags[os_rooted]', type: 'number'},
+  {name: 'tags[os_rooted]', type: 'boolean'},
   {name: 'tags[sentry:release]', type: 'string'},
 ];
 
@@ -63,7 +63,7 @@ const COLUMNS = [
   {name: 'exception_frames.package', type: 'string'},
   {name: 'exception_frames.module', type: 'string'},
   {name: 'exception_frames.function', type: 'string'},
-  {name: 'exception_frames.in_app', type: 'string'},
+  {name: 'exception_frames.in_app', type: 'boolean'},
   {name: 'exception_frames.colno', type: 'string'},
   {name: 'exception_frames.lineno', type: 'string'},
   {name: 'exception_frames.stack_level', type: 'string'},
