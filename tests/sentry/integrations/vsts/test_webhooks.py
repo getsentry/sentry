@@ -73,7 +73,7 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @responses.activate
     def test_workitem_change_assignee(self):
-        work_item_id = 31
+        work_item_id = 'Project#31'
 
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -99,7 +99,7 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @responses.activate
     def test_workitem_unassign(self):
-        work_item_id = 33
+        work_item_id = 'Project#33'
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.model.id,
@@ -129,7 +129,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             'https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
             json=WORK_ITEM_STATES,
         )
-        work_item_id = 33
+        work_item_id = 'Project#33'
         num_groups = 5
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -163,7 +163,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             'https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
             json=WORK_ITEM_STATES,
         )
-        work_item_id = 33
+        work_item_id = 'Project#33'
         num_groups = 5
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,

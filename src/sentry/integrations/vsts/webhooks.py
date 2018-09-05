@@ -4,6 +4,7 @@ from .client import VstsApiClient
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from sentry.app import raven
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 
@@ -42,17 +43,37 @@ class WorkItemWebhook(Endpoint):
     def check_webhook_secret(self, request, integration):
         assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
 
+    def get_project_name(self, data, integration):
+        project_id = data['resourceContainers']['project']['id']
+        organization_ids = OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+        ).values_list('organization_id', flat=True)
+        for organization_id in organization_ids:
+            installation = integration.get_installation(organization_id)
+            client = installation.get_client()
+            try:
+                project = client.get_project(
+                    instance=installation.instance,
+                    project_id=project_id,
+                )
+            except (ApiError, ApiUnauthorized):
+                pass
+            else:
+                break
+        return project['value']['name']
+
     def handle_updated_workitem(self, data, integration):
-        external_issue_key = data['resource']['workItemId']
+        project_name = self.get_project_name(data, integration)
+        external_issue_key = u'{}#{}'.format(project_name, data['resource']['workItemId'])
         assigned_to = data['resource']['fields'].get('System.AssignedTo')
         status_change = data['resource']['fields'].get('System.State')
-        project = data['resourceContainers']['project']['id']
+
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(
             integration,
             external_issue_key,
             status_change,
-            project)
+            data['resourceContainers']['project']['id'])
 
     def handle_assign_to(self, integration, external_issue_key, assigned_to):
         if not assigned_to:

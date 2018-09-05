@@ -20,6 +20,7 @@ class VstsApiPath(object):
     commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    project = u'https://fabrikam.visualstudio.com/_apis/projects/{project_id}'
     projects = u'https://{account_name}/DefaultCollection/_apis/projects'
     repository = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
     repositories = u'https://{account_name}/{project}_apis/git/repositories'
@@ -220,6 +221,15 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                     'version': end_sha
                 }
             }
+        )
+
+    def get_project(self, instance, project_id):
+        return self.get(
+            VstsApiPath.project.format(
+                account_name=instance,
+                project_id=project_id,
+            ),
+            params={'stateFilter': 'WellFormed'}
         )
 
     def get_projects(self, instance):
