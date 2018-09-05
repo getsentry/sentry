@@ -99,7 +99,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
     aggregate_cols = [a[1] for a in aggregations]
-    condition_cols = [c[0] for c in flat_conditions(conditions)]
+    condition_cols = all_referenced_columns(conditions)
     all_cols = groupby + aggregate_cols + condition_cols + selected_columns
     get_issues = 'issue' in all_cols
 
@@ -195,12 +195,32 @@ def nest_groups(data, groups, aggregate_cols):
 
 
 def is_condition(cond_or_list):
-    return len(cond_or_list) == 3 and isinstance(cond_or_list[0], six.string_types)
+    # A condition is a 3-tuple, where the middle element is an operator string,
+    # eg ">=" or "IN". We should possibly validate that it is one of the
+    # allowed operators.
+    return len(cond_or_list) == 3 and isinstance(cond_or_list[1], six.string_types)
 
 
-def flat_conditions(conditions):
-    return list(chain(*[[c] if is_condition(c) else c for c in conditions]))
+def all_referenced_columns(conditions):
+    # Get the set of colummns that are represented by an entire set of conditions
 
+    # First flatten to remove the AND/OR nesting.
+    flat_conditions = list(chain(*[[c] if is_condition(c) else c for c in conditions]))
+    return set(list(chain(*[columns_in_expr(c[0]) for c in flat_conditions])))
+
+
+def columns_in_expr(expr):
+    # Get the set of columns that are referenced by a single column expression.
+    # Either it is a simple string with the column name, or a nested function
+    # that could reference multiple columns
+    cols = []
+    if isinstance(expr, six.string_types):
+        cols.append(expr)
+    elif (isinstance(expr, (list, tuple)) and len(expr) >= 2
+          and isinstance(expr[1], (list, tuple))):
+        for func_arg in expr[1]:
+            cols.extend(columns_in_expr(func_arg))
+    return cols
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
