@@ -15,6 +15,8 @@ HEALTH_ID_KEY = '_health_id'
 
 
 def make_health_id(lookup, value):
+    # Convert a lookup and value into
+    # a string that can be used back in a request query.
     return '%s:%s' % (lookup.name, lookup.encoder(value))
 
 
@@ -98,6 +100,8 @@ def serialize_eventusers(organization, item_list, user, lookup):
 
 
 def encoder_eventuser(value):
+    # EventUser needs to be encoded as a
+    # project_id, value tuple.
     tag_value, project_id = value
     return '%d:%s' % (project_id, tag_value)
 
@@ -155,6 +159,11 @@ def zerofill(data, start, end, rollup):
 
 
 class SnubaLookup(object):
+    """
+    A SnubaLookup consists of all of the attributes needed to facilitate making
+    a query for a column in Snuba. This covers which columns are selected, the extra conditions
+    that need to be applied, how values are serialized in/out of Snuba, etc.
+    """
     __slots__ = 'name', 'tagkey', 'columns', 'selected_columns', 'conditions', 'serializer', 'encoder', 'filter_key'
     __registry = {}
 
@@ -184,6 +193,9 @@ SnubaLookup(
     ['project_id'],
     serializer=serialize_eventusers,
     encoder=encoder_eventuser,
+    # User is a complex query and can't be treated as a single value.
+    # And EventUser is a tuple of project_id and the tag value. So we need
+    # to make sure we always keep them together and query them as a single unit.
     filter_key=(
         'concat', (('toString', ('project_id',)), "':'", 'tags[sentry:user]')
     ),
@@ -191,12 +203,21 @@ SnubaLookup(
 SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
 SnubaLookup('os.name', 'tags[os.name]')
 SnubaLookup('browser.name', 'tags[browser.name]', conditions=[])
+# error.type is special in that in ClickHouse, it's an array. But we need
+# to make sure that we don't do any queries across a NULL value or an empty array
+# so we must filter them out explicitly. We also are choosing to explicitly take the
+# first element of the exception_stacks array as the "primary" error type for the event.
+# This is slightly inaccurate due to the fact that a single error may have multiple
+# errors.
 SnubaLookup('error.type', 'error_type', selected_columns=[
     ('ifNull', ('arrayElement', ('exception_stacks.type', 1), "''"), 'error_type'),
 ], conditions=[
     [('notEmpty', ('exception_stacks.type',)), '=', 1],
     [('error_type', '!=', '')],
 ])
+# Similar to error.type, we need to also guard against NULL types, but for this case,
+# the NULL type is actually significant for us, which means "unknown". So we want
+# to also retain and capture this.
 SnubaLookup('error.handled', 'error_handled', selected_columns=[
     ('arrayElement', ('exception_stacks.mechanism_handled', 1), 'error_handled'),
 ], conditions=[
@@ -204,7 +225,7 @@ SnubaLookup('error.handled', 'error_handled', selected_columns=[
 ])
 
 
-class SnubaSerializer(object):
+class BaseSnubaSerializer(object):
     def __init__(self, organization, lookup, user):
         self.organization = organization
         self.lookup = lookup
@@ -215,7 +236,11 @@ class SnubaSerializer(object):
             self.organization, item_list, self.user)
 
 
-class SnubaResultSerializer(SnubaSerializer):
+class SnubaResultSerializer(BaseSnubaSerializer):
+    """
+    Serializer for the top values Snuba results.
+    """
+
     def serialize(self, result):
         counts_by_value = {
             value_from_row(r, self.lookup.columns): r['count']
@@ -254,7 +279,10 @@ class SnubaResultSerializer(SnubaSerializer):
         }
 
 
-class SnubaTSResultSerializer(SnubaSerializer):
+class SnubaTSResultSerializer(BaseSnubaSerializer):
+    """
+    Serializer for time-series Snuba data.
+    """
 
     def serialize(self, result):
         data = [

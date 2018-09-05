@@ -135,6 +135,10 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
     MAX_LIMIT = 50
 
     def get(self, request, organization):
+        """
+        Returns a top-N view based on queryset over time period, as well as previous
+        period.
+        """
         try:
             lookup = SnubaLookup.get(request.GET['tag'])
         except KeyError:
@@ -158,6 +162,9 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         query_condition = self.get_query_condition(request, organization)
 
         aggregations = [('count()', '', 'count')]
+
+        # If we pass `?topk` this means we also are
+        # layering on top_projects and total_projects for each value.
         if 'topk' in request.GET:
             topk = int(request.GET['topk'])
             aggregations += [
@@ -184,6 +191,9 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         if not data['data']:
             return self.empty()
 
+        # Convert our results from current period into a condition
+        # to be used in the next query for the previous period.
+        # This way our values overlap to be able to deduce a delta.
         values = []
         is_null = False
         for row in data['data']:
@@ -224,6 +234,9 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
     MAX_STATS_PERIOD = timedelta(days=90)
 
     def get(self, request, organization):
+        """
+        Returns a time series view over statsPeriod over interval.
+        """
         try:
             lookup = SnubaLookup.get(request.GET['tag'])
         except KeyError:
@@ -271,53 +284,3 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             ),
             status=200,
         )
-
-
-# TODO: I dunno if we'll need this ever
-
-# class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
-#     MIN_STATS_PERIOD = timedelta(hours=1)
-#     MAX_STATS_PERIOD = timedelta(days=90)
-
-#     def get(self, request, organization):
-#         try:
-#             lookup = SnubaLookup.get(request.GET['tag'])
-#         except KeyError:
-#             raise ResourceDoesNotExist
-
-#         stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
-#         if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
-#             return Response({'detail': 'Invalid statsPeriod'}, status=400)
-
-#         interval = parse_stats_period(request.GET.get('interval', '1h'))
-#         if interval is None:
-#             interval = timedelta(hours=1)
-
-#         project_ids = self.get_project_ids(request, organization)
-#         if not project_ids:
-#             return self.empty()
-
-#         environment = self.get_environment(request, organization)
-
-#         now = timezone.now()
-
-#         data = query(
-#             end=now,
-#             start=now - stats_period,
-#             rollup=interval.total_seconds(),
-#             selected_columns=lookup.selected_columns,
-#             aggregations=[
-#                 ('uniq', lookup.tagkey, 'count'),
-#             ],
-#             filter_keys={
-#                 'project_id': project_ids,
-#             },
-#             conditions=[
-#                 lookup.conditions,
-#                 environment,
-#             ],
-#             groupby=['time'],
-#             orderby='time',
-#         )
-#         # TODO: Use proper serializer
-#         return Response({'data': data})
