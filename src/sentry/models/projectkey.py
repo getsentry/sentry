@@ -115,12 +115,11 @@ class ProjectKey(Model):
 
     @classmethod
     def get_default(cls, project):
-        try:
-            return cls.objects.filter(
-                project=project, roles=cls.roles.store, status=ProjectKeyStatus.ACTIVE
-            )[0]
-        except IndexError:
-            return None
+        return cls.objects.filter(
+            project=project,
+            roles=models.F('roles').bitor(cls.roles.store),
+            status=ProjectKeyStatus.ACTIVE
+        ).first()
 
     @property
     def is_active(self):

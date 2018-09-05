@@ -74,18 +74,18 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        team_list = list(Team.objects.filter(
+        team_list = sorted(Team.objects.filter(
             organization=obj,
             status=TeamStatus.VISIBLE,
-        ))
+        ), key=lambda x: x.slug)
 
         for team in team_list:
             team._organization_cache = obj
 
-        project_list = list(Project.objects.filter(
+        project_list = sorted(Project.objects.filter(
             organization=obj,
             status=ProjectStatus.VISIBLE,
-        ))
+        ), key=lambda x: x.slug)
 
         for project in project_list:
             project._organization_cache = obj

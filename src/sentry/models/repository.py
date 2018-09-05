@@ -17,7 +17,7 @@ class Repository(Model):
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)
     external_id = models.CharField(max_length=64, null=True)
-    config = JSONField(default=lambda: {})
+    config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),

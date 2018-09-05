@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import template
 from django.conf import settings
+from django.db.models import F
 
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
@@ -13,7 +14,7 @@ def _get_project_key(project_id):
     try:
         return ProjectKey.objects.filter(
             project=project_id,
-            roles=ProjectKey.roles.store,
+            roles=F('roles').bitor(ProjectKey.roles.store),
         )[0]
     except IndexError:
         return None

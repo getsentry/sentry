@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.models import Integration
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 
 
@@ -13,6 +14,20 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
     name = 'GitHub Enterprise'
     logger = logging.getLogger('sentry.plugins.github_enterprise')
     repo_provider = 'github_enterprise'
+
+    def _validate_repo(self, client, installation, repo):
+        try:
+            repo_data = client.get_repo(repo)
+        except Exception as e:
+            installation.raise_error(e)
+
+        try:
+            # make sure installation has access to this specific repo
+            client.get_commits(repo)
+        except ApiError as e:
+            raise IntegrationError(u'You must grant Sentry access to {}'.format(repo))
+
+        return repo_data
 
     def create_repository(self, organization, data):
         integration = Integration.objects.get(

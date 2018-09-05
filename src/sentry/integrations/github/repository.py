@@ -23,6 +23,9 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         try:
             # make sure installation has access to this specific repo
+            # use hooks endpoint since we explicity ask for those permissions
+            # when installing the app (commits can be accessed for public repos)
+            # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo)
         except ApiError as e:
             raise IntegrationError(u'You must grant Sentry access to {}'.format(repo))
