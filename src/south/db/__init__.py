@@ -46,16 +46,7 @@ try:
         dbs[alias] = module.DatabaseOperations(alias)
 except ImportError:
     raise
-    # This error should only be triggered on 1.1 and below.
-    sys.stderr.write(
-        (
-            "There is no South database module '%s' for your database. " +
-            "Please either choose a supported database, check for " +
-            "SOUTH_DATABASE_ADAPTER[S] settings, " +
-            "or remove South from INSTALLED_APPS.\n"
-        ) % (module_name,)
-    )
-    sys.exit(1)
+
 
 # Finally, to make old migrations work, keep 'db' around as the default database
 db = dbs[DEFAULT_DB_ALIAS]
