@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from sentry.integrations.issues import IssueBasicMixin
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiError, IntegrationFormError
 
 
 ISSUE_TYPES = (
@@ -13,12 +13,6 @@ PRIORITIES = (
     ('blocker', 'Blocker'),
 )
 
-ERR_404 = (
-    'Bitbucket returned a 404. Please make sure that '
-    'the repo exists, you have access to it, and it has '
-    'issue tracking enabled.'
-)
-
 
 class BitbucketIssueBasicMixin(IssueBasicMixin):
 
@@ -27,16 +21,19 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return 'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
 
     def get_repo_choices(self, **kwargs):
-
         try:
             repos = self.get_repositories()
         except ApiError:
-            repo_choices = []
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+            return [], None
 
+        repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
         params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+
+        try:
+            default_repo = params.get('repo', repo_choices[0][0])
+        except IndexError:
+            return repo_choices, None
+
         return repo_choices, default_repo
 
     def get_create_issue_config(self, group, **kwargs):
@@ -96,8 +93,8 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             'label': 'Issue',
             'default': '',
             'type': 'select',
+            'required': True,
             'url': autocomplete_url,
-
         }, {
             'name': 'comment',
             'label': 'Comment',
@@ -110,7 +107,14 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()
-        issue = client.create_issue(data.get('repo'), data)
+        if not data.get('repo'):
+            raise IntegrationFormError({'repo': ['Repository is required']})
+
+        try:
+            issue = client.create_issue(data.get('repo'), data)
+        except ApiError as e:
+            self.raise_error(e)
+
         return {
             'key': issue['id'],
             'title': issue['title'],
@@ -129,11 +133,6 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             'repo': repo,
         }
 
-    def message_from_error(self, exc):
-        if isinstance(exc, ApiError) and exc.code == 404:
-            return ERR_404
-        return super(BitbucketIssueBasicMixin, self).message_from_error(exc)
-
     def make_external_key(self, data):
         return '{}#{}'.format(data['repo'], data['key'])
 
@@ -144,10 +143,9 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         repo, issue_num = external_issue.key.split('#')
 
         if not repo:
-            raise IntegrationError('repo must be provided')
-
+            raise IntegrationFormError({'repo': 'Repository is required'})
         if not issue_num:
-            raise IntegrationError('issue number must be provided')
+            raise IntegrationFormError({'externalIssue': 'Issue ID is required'})
 
         comment = data.get('comment')
         if comment:
@@ -158,4 +156,4 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                     data={'content': {'raw': comment}}
                 )
             except ApiError as e:
-                raise IntegrationError(self.message_from_error(e))
+                self.raise_error(e)
