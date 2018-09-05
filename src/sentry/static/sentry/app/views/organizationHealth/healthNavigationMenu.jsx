@@ -23,6 +23,7 @@ const HealthNavigationMenu = styled(
               <NavItem to={`/organizations/${organization.slug}/health/`}>
                 {t('Overview')}
               </NavItem>
+
               <NavItem to={`/organizations/${organization.slug}/health/transactions/`}>
                 {t('Transaction')}
               </NavItem>
@@ -31,6 +32,10 @@ const HealthNavigationMenu = styled(
             <NavigationGroup title={t('Users')}>
               <NavItem to={`/organizations/${organization.slug}/health/browsers/`}>
                 {t('Browsers')}
+              </NavItem>
+
+              <NavItem to={`/organizations/${organization.slug}/health/devices/`}>
+                {t('Devices')}
               </NavItem>
             </NavigationGroup>
           </div>
