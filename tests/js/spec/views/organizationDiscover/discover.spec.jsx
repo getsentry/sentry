@@ -117,17 +117,18 @@ describe('Discover', function() {
   describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
-      browserHistory.push = function(url) {
+      browserHistory.push.mockImplementation(function(url) {
         wrapper.setProps({
           location: {
             search: url.pathname.replace('/organizations/org-slug/discover/', ''),
           },
         });
-      };
+      });
 
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       queryBuilder = createQueryBuilder({}, organization);
       queryBuilder.fetch = jest.fn(() => Promise.resolve());
+      queryBuilder.reset = jest.fn(queryBuilder.reset);
 
       wrapper = mount(
         <Discover
@@ -144,6 +145,16 @@ describe('Discover', function() {
 
       wrapper.instance().runQuery();
       wrapper.update();
+    });
+
+    it('resets query builder and state', function() {
+      wrapper.instance().reset();
+      expect(queryBuilder.reset).toHaveBeenCalled();
+      const {data, query, chartData, chartQuery} = wrapper.instance().state;
+      expect(data).toBeNull();
+      expect(query).toBeNull();
+      expect(chartData).toBeNull();
+      expect(chartQuery).toBeNull();
     });
 
     it('resets "fields"', function() {

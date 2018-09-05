@@ -50,6 +50,7 @@ export default class OrganizationDiscover extends React.Component {
       queryBuilder.reset();
       this.setState({
         data: null,
+        query: null,
         chartData: null,
         chartQuery: null,
       });
