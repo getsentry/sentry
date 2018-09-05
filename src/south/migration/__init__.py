@@ -85,7 +85,7 @@ def check_migration_histories(histories, delete_ghosts=False, ignore_ghosts=Fals
         try:
             m = h.get_migration()
             m.migration()
-        except exceptions.UnknownMigration:
+        except (exceptions.UnknownMigration, exceptions.NoMigrations):
             ghosts.append(h)
         except ImproperlyConfigured:
             pass                        # Ignore missing applications
