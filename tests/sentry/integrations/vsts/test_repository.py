@@ -15,6 +15,10 @@ from .testutils import (
 
 
 class VisualStudioRepositoryProviderTest(TestCase):
+    def setUp(self):
+        self.base_url = 'https://visualstudio.com/'
+        self.vsts_external_id = '654321'
+
     @fixture
     def provider(self):
         return VstsRepositoryProvider('integrations:vsts')
@@ -34,8 +38,11 @@ class VisualStudioRepositoryProviderTest(TestCase):
         )
         integration = Integration.objects.create(
             provider='vsts',
-            external_id='vsts_external_id',
+            external_id=self.vsts_external_id,
             name='Hello world',
+            metadata={
+                'domain_name': self.base_url,
+            }
         )
         default_auth = Identity.objects.create(
             idp=IdentityProvider.objects.create(
@@ -57,7 +64,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             name='example',
             organization_id=self.organization.id,
             config={
-                'instance': 'visualstudio.com',
+                'instance': self.base_url,
                 'project': 'project-name',
                 'name': 'example',
             },
@@ -81,14 +88,17 @@ class VisualStudioRepositoryProviderTest(TestCase):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='vsts',
-            external_id='vsts_external_id',
+            external_id=self.vsts_external_id,
             name='Hello world',
+            metadata={
+                'domain_name': self.base_url,
+            }
         )
         data = {
             'name': 'MyFirstProject',
             'external_id': '654321',
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
-            'instance': 'https://visualstudio.com',
+            'instance': self.base_url,
             'project': 'MyFirstProject',
             'installation': integration.id,
         }
@@ -96,13 +106,13 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         assert data == {
             'name': 'MyFirstProject',
-            'external_id': '654321',
+            'external_id': self.vsts_external_id,
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
 
             'config': {
                 'project': 'MyFirstProject',
                 'name': 'MyFirstProject',
-                'instance': 'https://visualstudio.com'
+                'instance': self.base_url
 
             },
             'integration_id': integration.id,

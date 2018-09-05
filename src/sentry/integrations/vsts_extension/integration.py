@@ -26,13 +26,9 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
 
     def build_integration(self, state):
         state['account'] = {
-            'AccountId': state['vsts']['AccountId'],
-            'AccountName': state['vsts']['AccountName'],
+            'accountId': state['vsts']['accountId'],
+            'accountName': state['vsts']['accountName'],
         }
-
-        state['instance'] = u'{}.visualstudio.com'.format(
-            state['vsts']['AccountName']
-        )
 
         return super(
             VstsExtensionIntegrationProvider,

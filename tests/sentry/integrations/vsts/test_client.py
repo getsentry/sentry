@@ -28,7 +28,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         integration \
             .get_installation(integration.organizations.first().id) \
             .get_client() \
-            .get_projects(u'{}.visualstudio.com'.format(self.vsts_account_name))
+            .get_projects(self.vsts_base_url)
 
         # Second to last request, before the Projects request, was to refresh
         # the Access Token.
@@ -37,8 +37,8 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Then we request the Projects with the new token
         assert responses.calls[-1].request.url == \
-            u'https://{}.visualstudio.com/DefaultCollection/_apis/projects?stateFilter=WellFormed'.format(
-                self.vsts_account_name.lower(),
+            u'{}DefaultCollection/_apis/projects?stateFilter=WellFormed'.format(
+                self.vsts_base_url.lower(),
         )
 
         identity = Identity.objects.get(id=identity.id)

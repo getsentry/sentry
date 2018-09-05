@@ -14,6 +14,7 @@ import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import space from 'app/styles/space';
 
 import Aggregations from './aggregations';
 import Conditions from './conditions';
@@ -23,7 +24,7 @@ import EarlyAdopterMessage from './earlyAdopterMessage';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
-import {Fieldset, PlaceholderText, ButtonSpinner} from './styles';
+import {Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
 
 import {getQueryStringFromQuery} from './utils';
 
@@ -212,14 +213,8 @@ export default class OrganizationDiscover extends React.Component {
     }));
 
     return (
-      <Discover className="organization-home">
-        <Header
-          p={2}
-          justify="space-between"
-          align="center"
-          className="sub-header"
-          style={{marginBottom: 16}}
-        >
+      <Discover>
+        <Header px={space(4)} py={2} className="sub-header">
           <strong>{t('Discover')}</strong>
           <Flex>
             <MultipleProjectSelector
@@ -237,12 +232,35 @@ export default class OrganizationDiscover extends React.Component {
             />
           </Flex>
         </Header>
-        <Flex px={2}>
-          <Box w={[1 / 3, 1 / 3, 1 / 3, 1 / 4]}>
+        <DiscoverBody>
+          <Sidebar w={320}>
+            <SidebarHeader align="center" px={space(4)} py={space(1.5)}>
+              <Box flex="1">
+                <DiscoverHeading>{t('Query')}</DiscoverHeading>
+              </Box>
+              <Box>
+                <Button
+                  size="xsmall"
+                  onClick={this.reset}
+                  style={{marginRight: space(1)}}
+                >
+                  {t('Reset')}
+                </Button>
+                <Button
+                  size="xsmall"
+                  onClick={this.runQuery}
+                  priority="primary"
+                  busy={isFetchingQuery}
+                >
+                  {t('Run')}
+                  {isFetchingQuery && <ButtonSpinner />}
+                </Button>
+              </Box>
+            </SidebarHeader>
             <Fieldset>
-              <label htmlFor="fields" className="control-label">
+              <SidebarLabel htmlFor="fields" className="control-label">
                 {t('Summarize')}
-              </label>
+              </SidebarLabel>
               <SelectControl
                 name="fields"
                 multiple={true}
@@ -267,9 +285,9 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
             <Fieldset>
-              <label htmlFor="orderby" className="control-label">
+              <SidebarLabel htmlFor="orderby" className="control-label">
                 {t('Order by')}
-              </label>
+              </SidebarLabel>
               <SelectControl
                 name="orderby"
                 label={t('Order By')}
@@ -282,25 +300,15 @@ export default class OrganizationDiscover extends React.Component {
             <Fieldset>
               <NumberField
                 name="limit"
-                label={t('Limit')}
+                label={<SidebarLabel>{t('Limit')}</SidebarLabel>}
                 placeholder="#"
                 value={currentQuery.limit}
                 onChange={val =>
                   this.updateField('limit', typeof val === 'number' ? val : null)}
               />
             </Fieldset>
-
-            <Flex pt={1}>
-              <Box mr={1}>
-                <Button onClick={this.runQuery} priority="primary" busy={isFetchingQuery}>
-                  {t('Run Query')}
-                  {isFetchingQuery && <ButtonSpinner />}
-                </Button>
-              </Box>
-              <Button onClick={this.reset}>{t('Reset')}</Button>
-            </Flex>
-          </Box>
-          <Flex w={[2 / 3, 2 / 3, 2 / 3, 3 / 4]} pl={2} direction="column">
+          </Sidebar>
+          <Flex flex="1" direction="column" px={3} py={3}>
             {data && (
               <Result
                 data={data}
@@ -312,11 +320,31 @@ export default class OrganizationDiscover extends React.Component {
             {!data && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
           </Flex>
-        </Flex>
+        </DiscoverBody>
       </Discover>
     );
   }
 }
+
+const DiscoverHeading = styled.h2`
+  font-size: 18px;
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
+const SidebarHeader = styled(Flex)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+const DiscoverBody = styled(Flex)`
+  min-height: calc(100vh - 152px);
+`;
+
+const Sidebar = styled(Box)`
+  border-right: 1px solid ${p => p.theme.borderDark};
+  min-width: 320px;
+`;
 
 const Discover = styled('div')`
   .control-group {
@@ -326,4 +354,7 @@ const Discover = styled('div')`
 
 const Header = styled(Flex)`
   font-size: 18px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0 !important;
 `;
