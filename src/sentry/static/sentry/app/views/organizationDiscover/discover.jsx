@@ -236,7 +236,7 @@ export default class OrganizationDiscover extends React.Component {
           <Sidebar w={320}>
             <SidebarHeader align="center" px={space(4)} py={space(1.5)}>
               <Box flex="1">
-                <DiscoverHeading>Query</DiscoverHeading>
+                <DiscoverHeading>{t('Query')}</DiscoverHeading>
               </Box>
               <Box>
                 <Button
@@ -342,7 +342,7 @@ const DiscoverBody = styled(Flex)`
 `;
 
 const Sidebar = styled(Box)`
-  border-right: 1px solid ${p => p.theme.borderDark}; /* eventually make a react component to handle drag event */
+  border-right: 1px solid ${p => p.theme.borderDark};
   min-width: 320px;
 `;
 

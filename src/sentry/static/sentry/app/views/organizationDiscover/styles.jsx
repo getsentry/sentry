@@ -10,7 +10,7 @@ export const PlaceholderText = styled.div`
 `;
 
 export const Fieldset = styled.fieldset`
-  margin: ${space(3)} ${space(4)} ${space(3)} ${space(4)};
+  margin: ${space(3)} ${space(4)};
 `;
 
 export const SelectListItem = styled(Flex)`
