@@ -7,6 +7,8 @@ from sentry.db.deletion import BulkDeleteQuery
 from sentry.models import Group, Project
 from sentry.testutils import TestCase, TransactionTestCase
 
+from six.moves import xrange
+
 
 class BulkDeleteQueryTest(TestCase):
     def test_project_restriction(self):
