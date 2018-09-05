@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from time import time
 import logging
+import re
 
 from django import forms
 from django.utils.translation import ugettext as _
@@ -90,10 +91,19 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
+        self.check_domain_name()
         return VstsApiClient(
             self.default_identity,
             VstsIntegrationProvider.oauth_redirect_url,
         )
+
+    def check_domain_name(self):
+        if re.match('^https://.+/$', self.model.metadata['domain_name']):
+            return
+        base_url = VstsIntegrationProvider.get_base_url(
+            self.default_identity.data['access_token'], self.model.external_id)
+        self.model.metadata['domain_name'] = base_url
+        self.model.save()
 
     def get_organization_config(self):
         client = self.get_client()
@@ -242,7 +252,6 @@ class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
     name = 'Visual Studio Team Services'
     metadata = metadata
-    domain = '.visualstudio.com'
     api_version = '4.1'
     oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
@@ -253,6 +262,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         'width': 600,
         'height': 800,
     }
+
+    VSTS_ACCOUNT_LOOKUP_URL = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1'
 
     def post_install(self, integration, organization):
         installation = self.get_installation(integration, organization.id)
@@ -292,15 +303,15 @@ class VstsIntegrationProvider(IntegrationProvider):
         data = state['identity']['data']
         oauth_data = self.get_oauth_data(data)
         account = state['account']
-        instance = state['instance']
         user = get_user_info(data['access_token'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
+        base_url = self.get_base_url(data['access_token'], account['accountId'])
 
         integration = {
-            'name': account['AccountName'],
-            'external_id': account['AccountId'],
+            'name': account['accountName'],
+            'external_id': account['accountId'],
             'metadata': {
-                'domain_name': instance,
+                'domain_name': base_url,
                 'scopes': scopes,
             },
             'user_identity': {
@@ -314,7 +325,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         try:
             integration_model = IntegrationModel.objects.get(
                 provider='vsts',
-                external_id=account['AccountId'],
+                external_id=account['accountId'],
                 status=ObjectStatus.VISIBLE,
             )
             assert 'subscription' in integration_model.metadata
@@ -326,7 +337,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
-                instance, account['AccountId'], oauth_data)
+                base_url, account['accountId'], oauth_data)
             integration['metadata']['subscription'] = {
                 'id': subscription_id,
                 'secret': subscription_secret,
@@ -361,6 +372,21 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return data
 
+    @classmethod
+    def get_base_url(cls, access_token, account_id):
+        session = http.build_session()
+        url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
+        response = session.get(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            },
+        )
+        if response.status_code == 200:
+            return response.json()['locationUrl']
+        return None
+
     def setup(self):
         from sentry.plugins import bindings
         bindings.add(
@@ -377,12 +403,16 @@ class AccountConfigView(PipelineView):
             accounts = pipeline.fetch_state(key='accounts')
             account = self.get_account_from_id(account_id, accounts)
             if account is not None:
+                state = pipeline.fetch_state(key='identity')
+                access_token = state['data']['access_token']
                 pipeline.bind_state('account', account)
-                pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
                 return pipeline.next_step()
 
-        access_token = pipeline.fetch_state(key='identity')['data']['access_token']
-        accounts = self.get_accounts(access_token)
+        state = pipeline.fetch_state(key='identity')
+        access_token = state['data']['access_token']
+        user = get_user_info(access_token)
+
+        accounts = self.get_accounts(access_token, user['id'])['value']
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
@@ -395,13 +425,13 @@ class AccountConfigView(PipelineView):
 
     def get_account_from_id(self, account_id, accounts):
         for account in accounts:
-            if account['AccountId'] == account_id:
+            if account['accountId'] == account_id:
                 return account
         return None
 
-    def get_accounts(self, access_token):
+    def get_accounts(self, access_token, user_id):
         session = http.build_session()
-        url = 'https://app.vssps.visualstudio.com/_apis/accounts'
+        url = 'https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1' % user_id
         response = session.get(
             url,
             headers={
@@ -418,7 +448,7 @@ class AccountForm(forms.Form):
     def __init__(self, accounts, *args, **kwargs):
         super(AccountForm, self).__init__(*args, **kwargs)
         self.fields['account'] = forms.ChoiceField(
-            choices=[(acct['AccountId'], acct['AccountName']) for acct in accounts],
+            choices=[(acct['accountId'], acct['accountName']) for acct in accounts],
             label='Account',
             help_text='VS Team Services account (account.visualstudio.com).',
         )

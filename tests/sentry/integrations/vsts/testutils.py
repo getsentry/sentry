@@ -20,6 +20,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         self.vsts_account_id = 'c8a585ae-b61f-4ba6-833c-9e8d5d1674d8'
         self.vsts_account_name = 'MyVSTSAccount'
         self.vsts_account_uri = 'https://MyVSTSAccount.vssps.visualstudio.com:443/'
+        self.vsts_base_url = 'https://MyVSTSAccount.visualstudio.com/'
 
         self.vsts_user_id = 'd6245f20-2af8-44f4-9451-8107cb2767db'
         self.vsts_user_name = 'Foo Bar'
@@ -60,15 +61,25 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://app.vssps.visualstudio.com/_apis/accounts',
-            json=[{
-                'AccountId': self.vsts_account_id,
-                'AccountUri': self.vsts_account_uri,
-                'AccountName': self.vsts_account_name,
-                'Properties': {},
-            }],
+            'https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1' % self.vsts_user_id,
+            json={
+                'count': 1,
+                'value': [{
+                    'accountId': self.vsts_account_id,
+                    'accountUri': self.vsts_account_uri,
+                    'accountName': self.vsts_account_name,
+                    'properties': {},
+                }]
+            },
         )
 
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % self.vsts_account_id,
+            json={
+                'locationUrl': self.vsts_base_url,
+            }
+        )
         responses.add(
             responses.GET,
             'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',

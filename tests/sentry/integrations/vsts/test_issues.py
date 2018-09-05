@@ -28,7 +28,7 @@ class VstsIssueSycnTest(TestCase):
             external_id='vsts_external_id',
             name='fabrikam-fiber-inc',
             metadata={
-                'domain_name': 'fabrikam-fiber-inc.visualstudio.com',
+                'domain_name': 'https://fabrikam-fiber-inc.visualstudio.com/',
                 'default_project': '0987654321',
             }
         )

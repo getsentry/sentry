@@ -57,11 +57,13 @@ class TestVSTSOAuthCallbackView(TestCase):
 
 class TestAccountConfigView(TestCase):
     def setUp(self):
+        account_id = '1234567-8910'
+        self.base_url = 'http://sentry2.visualstudio.com/'
         self.accounts = [
             {
-                'AccountId': '1234567-89',
+                'accountId': '1234567-89',
                 'NamespaceId': '00000000-0000-0000-0000-000000000000',
-                'AccountName': 'sentry',
+                'accountName': 'sentry',
                 'OrganizationName': None,
                 'AccountType': 0,
                 'AccountOwner': '00000000-0000-0000-0000-000000000000',
@@ -73,9 +75,9 @@ class TestAccountConfigView(TestCase):
                 'Properties': {},
             },
             {
-                'AccountId': '1234567-8910',
+                'accountId': account_id,
                 'NamespaceId': '00000000-0000-0000-0000-000000000000',
-                'AccountName': 'sentry2',
+                'accountName': 'sentry2',
                 'OrganizationName': None,
                 'AccountType': 0,
                 'AccountOwner': '00000000-0000-0000-0000-000000000000',
@@ -95,6 +97,13 @@ class TestAccountConfigView(TestCase):
             status=200,
 
         )
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % account_id,
+            json={
+                'locationUrl': self.base_url,
+            }
+        )
 
     @responses.activate
     def test_dispatch(self):
@@ -103,22 +112,26 @@ class TestAccountConfigView(TestCase):
         request.POST = {'account': '1234567-8910'}
 
         pipeline = Mock()
-        pipeline.state = {'accounts': self.accounts}
+        pipeline.state = {
+            'accounts': self.accounts,
+            'identity': {
+                'data': {'access_token': '123456789'}
+            }
+        }
         pipeline.fetch_state = lambda key: pipeline.state[key]
         pipeline.bind_state = lambda name, value: pipeline.state.update({name: value})
 
         view.dispatch(request, pipeline)
 
-        assert pipeline.fetch_state(key='instance') == 'sentry2.visualstudio.com'
         assert pipeline.fetch_state(key='account') == self.accounts[1]
         assert pipeline.next_step.call_count == 1
 
     @responses.activate
     def test_get_accounts(self):
         view = AccountConfigView()
-        accounts = view.get_accounts('access-token')
-        assert accounts[0]['AccountName'] == 'sentry'
-        assert accounts[1]['AccountName'] == 'sentry2'
+        accounts = view.get_accounts('access-token', 'user-id')
+        assert accounts[0]['accountName'] == 'sentry'
+        assert accounts[1]['accountName'] == 'sentry2'
 
     def test_account_form(self):
         account_form = AccountForm(self.accounts)
