@@ -68,7 +68,7 @@ class RestoreOrganizationView(OrganizationView):
             status__in=deletion_statuses,
         ).update(status=OrganizationStatus.VISIBLE)
         if updated:
-            client.put('/organizations/{}/'.format(organization.slug), data={
+            client.put(u'/organizations/{}/'.format(organization.slug), data={
                 'cancelDeletion': True,
             }, request=request)
             messages.add_message(request, messages.SUCCESS, MSG_RESTORE_SUCCESS)

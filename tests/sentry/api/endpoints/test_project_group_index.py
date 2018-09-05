@@ -32,7 +32,7 @@ class GroupListTest(APITestCase):
 
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -47,7 +47,7 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
         assert response.status_code == 200
@@ -71,7 +71,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.get(
-            '{}?sort_by=date&limit=1'.format(self.path),
+            u'{}?sort_by=date&limit=1'.format(self.path),
             format='json',
         )
         assert response.status_code == 200
@@ -141,16 +141,16 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?statsPeriod=24h'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=24h'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod=14d'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=14d'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod='.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod='.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod=48h'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=48h'.format(self.path), format='json')
         assert response.status_code == 400
 
     def test_environment(self):
@@ -198,7 +198,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
@@ -220,7 +220,7 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?query={}&environment=test'.format(
+            u'{}?query={}&environment=test'.format(
                 self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -241,7 +241,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.get(
-            '{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
+            u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
         )
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -254,7 +254,7 @@ class GroupListTest(APITestCase):
         self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -347,7 +347,7 @@ class GroupListTest(APITestCase):
 class GroupUpdateTest(APITestCase):
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -369,7 +369,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.put(
-            '{}?status=unresolved'.format(self.path),
+            u'{}?status=unresolved'.format(self.path),
             data={
                 'status': 'resolved',
             },
@@ -428,14 +428,14 @@ class GroupUpdateTest(APITestCase):
             self.create_group(status=GroupStatus.UNRESOLVED)
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
         assert len(response.data) == 100
 
         response = self.client.put(
-            '{}?status=unresolved'.format(self.path),
+            u'{}?status=unresolved'.format(self.path),
             data={
                 'status': 'resolved',
             },
@@ -448,7 +448,7 @@ class GroupUpdateTest(APITestCase):
             'statusDetails': {},
         }
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
@@ -494,7 +494,7 @@ class GroupUpdateTest(APITestCase):
         )[0]
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
@@ -506,7 +506,7 @@ class GroupUpdateTest(APITestCase):
                 'organizations:internal-catchall': True,
             }):
                 response = self.client.put(
-                    '{}?status=unresolved'.format(self.path),
+                    u'{}?status=unresolved'.format(self.path),
                     data={
                         'status': 'resolved',
                     },
@@ -526,7 +526,7 @@ class GroupUpdateTest(APITestCase):
                 )
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
         assert len(response.data) == 0
@@ -573,7 +573,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -615,7 +615,7 @@ class GroupUpdateTest(APITestCase):
         uo1 = UserOption.objects.create(key='self_assign_issue', value='1', project=None, user=user)
 
         self.login_as(user=user)
-        url = '{url}?id={group.id}'.format(url=self.path, group=group)
+        url = u'{url}?id={group.id}'.format(url=self.path, group=group)
         response = self.client.put(
             url,
             data={
@@ -654,7 +654,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -701,7 +701,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -751,7 +751,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -806,7 +806,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -859,7 +859,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -912,7 +912,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -959,7 +959,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -995,7 +995,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1023,7 +1023,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1051,7 +1051,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1100,7 +1100,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1144,7 +1144,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1184,7 +1184,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1231,7 +1231,7 @@ class GroupUpdateTest(APITestCase):
         group4 = self.create_group(project=self.create_project(slug='foo'), checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1277,7 +1277,7 @@ class GroupUpdateTest(APITestCase):
         group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1310,7 +1310,7 @@ class GroupUpdateTest(APITestCase):
             assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1342,7 +1342,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1383,7 +1383,7 @@ class GroupUpdateTest(APITestCase):
         self.create_group(checksum='d' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1421,7 +1421,7 @@ class GroupUpdateTest(APITestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = '{url}?id={group1.id}'.format(
+        url = u'{url}?id={group1.id}'.format(
             url=self.path,
             group1=group1,
         )
@@ -1468,7 +1468,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=member)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1491,7 +1491,7 @@ class GroupUpdateTest(APITestCase):
 
         group.project.add_team(team)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1536,7 +1536,7 @@ class GroupUpdateTest(APITestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = '{url}?id={group1.id}'.format(
+        url = u'{url}?id={group1.id}'.format(
             url=self.path,
             group1=group1,
         )
@@ -1570,7 +1570,7 @@ class GroupUpdateTest(APITestCase):
 class GroupDeleteTest(APITestCase):
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -1596,7 +1596,7 @@ class GroupDeleteTest(APITestCase):
             )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,

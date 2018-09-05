@@ -39,7 +39,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert redirect.path == '/github-apps/test-app'
 
         # App installation ID is provided, mveo thr
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({'installation_id': installation_id})
         ))
@@ -67,7 +67,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
 
         responses.add(
-            responses.POST, 'https://35.232.149.196/api/v3/installations/{}/access_tokens'.format(
+            responses.POST, u'https://35.232.149.196/api/v3/installations/{}/access_tokens'.format(
                 installation_id,
             ),
             json={
@@ -103,7 +103,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             }
         )
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',

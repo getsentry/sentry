@@ -117,7 +117,7 @@ class AuthenticationForm(forms.Form):
 
         ip_address = self.request.META['REMOTE_ADDR']
         return ratelimiter.is_limited(
-            'auth:ip:{}'.format(ip_address),
+            u'auth:ip:{}'.format(ip_address),
             limit,
         )
 
@@ -617,7 +617,7 @@ class NotificationDeploySettingsForm(forms.Form):
         self.fields['notifications'].initial = deploy_setting
 
     def save(self):
-        value = self.data.get('{}-notifications'.format(self.prefix), None)
+        value = self.data.get(u'{}-notifications'.format(self.prefix), None)
         if value is not None:
             UserOption.objects.set_value(
                 user=self.user,

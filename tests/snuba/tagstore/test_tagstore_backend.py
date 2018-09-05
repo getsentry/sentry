@@ -53,11 +53,11 @@ class TagStorageTest(SnubaTestCase):
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
                     'sentry:release': 100 * r,
-                    'sentry:user': "id:user{}".format(r),
+                    'sentry:user': u"id:user{}".format(r),
                 },
                 'sentry.interfaces.User': {
-                    'id': "user{}".format(r),
-                    'email': "user{}@sentry.io".format(r)
+                    'id': u"user{}".format(r),
+                    'email': u"user{}@sentry.io".format(r)
                 }
             },
         } for r in [1, 2]] + [{
@@ -154,7 +154,7 @@ class TagStorageTest(SnubaTestCase):
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
         for k in keys.values():
             if k.key not in set(['sentry:release', 'sentry:user']):
-                assert k.values_seen == 1, 'expected {!r} to have 1 unique value'.format(k.key)
+                assert k.values_seen == 1, u'expected {!r} to have 1 unique value'.format(k.key)
             else:
                 assert k.values_seen == 2
 

@@ -287,7 +287,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_invalid_release(self):
-        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['1.3.2'])
+        self.project.update_option(u'sentry:{}'.format(FilterTypes.RELEASES), ['1.3.2'])
         body = {
             "release": "1.3.2",
             "message": "foo bar",
@@ -306,7 +306,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_short_release_globbing(self):
-        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['1.*'])
+        self.project.update_option(u'sentry:{}'.format(FilterTypes.RELEASES), ['1.*'])
         body = {
             "release": "1.3.2",
             "message": "foo bar",
@@ -325,7 +325,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
     def test_request_with_longer_release_globbing(self):
-        self.project.update_option('sentry:{}'.format(FilterTypes.RELEASES), ['2.1.*'])
+        self.project.update_option(u'sentry:{}'.format(FilterTypes.RELEASES), ['2.1.*'])
         body = {
             "release": "2.1.3",
             "message": "foo bar",
@@ -345,7 +345,7 @@ class StoreViewTest(TestCase):
 
     def test_request_with_invalid_error_messages(self):
         self.project.update_option(
-            'sentry:{}'.format(FilterTypes.ERROR_MESSAGES), ['ZeroDivisionError*']
+            u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES), ['ZeroDivisionError*']
         )
         body = {
             "release": "abcdefg",
@@ -369,7 +369,7 @@ class StoreViewTest(TestCase):
 
     def test_request_with_beggining_glob(self):
         self.project.update_option(
-            'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
+            u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES),
             ['*: integer division or modulo by zero']
         )
         body = {

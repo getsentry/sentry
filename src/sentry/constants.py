@@ -29,7 +29,7 @@ def get_all_languages():
             continue
         if '_' in path:
             pre, post = path.split('_', 1)
-            path = '{}-{}'.format(pre, post.lower())
+            path = u'{}-{}'.format(pre, post.lower())
         results.append(path)
     return results
 

@@ -15,7 +15,7 @@ class OrganizationIntegrationsListTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org.id)
-        path = '/api/0/organizations/{}/integrations/'.format(org.slug)
+        path = u'/api/0/organizations/{}/integrations/'.format(org.slug)
 
         response = self.client.get(path, format='json')
 

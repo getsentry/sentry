@@ -22,7 +22,7 @@ class BaseCache(local):
             self.prefix = prefix
 
     def make_key(self, key, version=None):
-        return '{}:{}:{}'.format(
+        return u'{}:{}:{}'.format(
             self.prefix,
             version or self.version,
             key,

@@ -10,7 +10,7 @@ class ProjectKeyStatsTest(APITestCase):
         self.project = self.create_project()
         self.key = ProjectKey.objects.create(project=self.project)
         self.login_as(user=self.user)
-        self.path = '/api/0/projects/{}/{}/keys/{}/stats/'.format(
+        self.path = u'/api/0/projects/{}/{}/keys/{}/stats/'.format(
             self.project.organization.slug,
             self.project.slug,
             self.key.public_key,

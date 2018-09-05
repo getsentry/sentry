@@ -37,7 +37,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Then we request the Projects with the new token
         assert responses.calls[-1].request.url == \
-            '{}DefaultCollection/_apis/projects?stateFilter=WellFormed'.format(
+            u'{}DefaultCollection/_apis/projects?stateFilter=WellFormed'.format(
                 self.vsts_base_url.lower(),
         )
 

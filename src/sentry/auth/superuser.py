@@ -225,7 +225,7 @@ class Superuser(object):
 
             if not self.is_active:
                 if self._inactive_reason:
-                    logger.warn('superuser.{}'.format(self._inactive_reason), extra={
+                    logger.warn(u'superuser.{}'.format(self._inactive_reason), extra={
                         'ip_address': request.META['REMOTE_ADDR'],
                         'user_id': request.user.id,
                     })

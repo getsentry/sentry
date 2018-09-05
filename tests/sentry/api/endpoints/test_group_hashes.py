@@ -14,7 +14,7 @@ class GroupHashesTest(APITestCase):
         GroupHash.objects.create(group=group, hash='a' * 32)
         GroupHash.objects.create(group=group, hash='b' * 32)
 
-        url = '/api/0/issues/{}/hashes/'.format(group.id)
+        url = u'/api/0/issues/{}/hashes/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -39,7 +39,7 @@ class GroupHashesTest(APITestCase):
 
         url = '?'.join(
             [
-                '/api/0/issues/{}/hashes/'.format(group.id),
+                u'/api/0/issues/{}/hashes/'.format(group.id),
                 urlencode({
                     'id': [h.hash for h in hashes],
                 }, True),

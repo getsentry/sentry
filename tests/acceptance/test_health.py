@@ -26,22 +26,22 @@ class HealthTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = '/organizations/{}/health'.format(self.org.slug)
+        self.path = u'/organizations/{}/health'.format(self.org.slug)
 
     def test_overview_without_feature_flag(self):
-        self.browser.get('{}/'.format(self.path))
+        self.browser.get(u'{}/'.format(self.path))
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('health overview - no permissions')
 
     def test_overview(self):
         with self.feature('organizations:health'):
-            self.browser.get('{}/'.format(self.path))
+            self.browser.get(u'{}/'.format(self.path))
             self.browser.wait_until_not('.loading-indicator')
             self.browser.snapshot('health overview')
 
     def test_errors(self):
         with self.feature('organizations:health'):
-            self.browser.get('{}/errors/'.format(self.path))
+            self.browser.get(u'{}/errors/'.format(self.path))
             self.browser.wait_until_not('.loading-indicator')
             self.browser.snapshot('health errors')
 

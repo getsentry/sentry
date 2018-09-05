@@ -13,7 +13,7 @@ class VstsExtensionConfigurationView(BaseView):
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated():
-            configure_uri = '{}?{}'.format(
+            configure_uri = u'{}?{}'.format(
                 reverse('vsts-extension-configuration'),
                 urlencode({
                     'targetId': request.GET['targetId'],
@@ -21,7 +21,7 @@ class VstsExtensionConfigurationView(BaseView):
                 }),
             )
 
-            redirect_uri = '{}?{}'.format(
+            redirect_uri = u'{}?{}'.format(
                 reverse('sentry-login'),
                 urlencode({'next': configure_uri}),
             )
@@ -40,7 +40,7 @@ class VstsExtensionConfigurationView(BaseView):
 
             return pipeline.current_step()
         else:
-            return self.redirect('/extensions/vsts/link/?{}'.format(
+            return self.redirect(u'/extensions/vsts/link/?{}'.format(
                 urlencode({
                     'targetId': request.GET['targetId'],
                     'targetName': request.GET['targetName'],

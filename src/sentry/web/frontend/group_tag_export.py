@@ -69,7 +69,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             raise Http404
 
         if tagstore.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
+            lookup_key = u'sentry:{0}'.format(key)
         else:
             lookup_key = key
 
@@ -94,7 +94,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks
         )
 
-        filename = '{}-{}'.format(
+        filename = u'{}-{}'.format(
             group.qualified_short_id or group.id,
             key,
         )

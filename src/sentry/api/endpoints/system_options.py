@@ -21,7 +21,7 @@ class SystemOptionsEndpoint(Endpoint):
         if query == 'is:required':
             option_list = options.filter(flag=options.FLAG_REQUIRED)
         elif query:
-            return Response('{} is not a supported search query'.format(query), status=400)
+            return Response(u'{} is not a supported search query'.format(query), status=400)
         else:
             option_list = options.all()
 

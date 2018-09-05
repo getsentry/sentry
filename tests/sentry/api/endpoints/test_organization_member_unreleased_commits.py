@@ -50,7 +50,7 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
             project=project, repo=repo, date_added=datetime(
                 2015, 1, 3, tzinfo=timezone.utc))
 
-        path = '/api/0/organizations/{}/members/me/unreleased-commits/'.format(org.slug)
+        path = u'/api/0/organizations/{}/members/me/unreleased-commits/'.format(org.slug)
 
         self.login_as(user)
 

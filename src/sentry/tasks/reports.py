@@ -457,7 +457,7 @@ class RedisReportBackend(ReportBackend):
         self.namespace = namespace
 
     def __make_key(self, timestamp, duration, organization):
-        return '{}:{}:{}:{}:{}'.format(
+        return u'{}:{}:{}:{}:{}'.format(
             self.namespace,
             self.version,
             organization.id,

@@ -34,12 +34,12 @@ class RoutePanel(Panel):
 
     def _get_func_name(self, func):
         if hasattr(func, 'im_class'):
-            return '{}.{}.{}'.format(
+            return u'{}.{}.{}'.format(
                 func.__module__,
                 func.im_class.__name__,
                 func.__name__,
             )
-        return '{}.{}'.format(func.__module__, func.__name__)
+        return u'{}.{}'.format(func.__module__, func.__name__)
 
     def _get_func_argspec(self, args, kwargs):
         result = []

@@ -975,7 +975,7 @@ class EventManager(object):
         if not euser.hash:
             return
 
-        cache_key = 'euserid:1:{}:{}'.format(
+        cache_key = u'euserid:1:{}:{}'.format(
             project.id,
             euser.hash,
         )

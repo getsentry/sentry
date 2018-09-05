@@ -22,7 +22,7 @@ from sentry.utils import json
 
 def react_plugin_config(plugin, project, request):
     response = client.get(
-        '/projects/{}/{}/plugins/{}/'.format(
+        u'/projects/{}/{}/plugins/{}/'.format(
             project.organization.slug,
             project.slug,
             plugin.slug,

@@ -244,7 +244,7 @@ class OrganizationSerializer(serializers.Serializer):
                 relation={'organization': org},
                 type=self.init_data.get('avatarType', 'upload'),
                 avatar=self.init_data.get('avatar'),
-                filename='{}.png'.format(org.slug),
+                filename=u'{}.png'.format(org.slug),
             )
         if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
             org.handle_2fa_required(self.context['request'])

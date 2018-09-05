@@ -34,7 +34,7 @@ class WebhookTest(APITestCase):
 
     def test_unregistered_event(self):
         project = self.project  # force creation
-        url = '/extensions/github/webhook/'.format(
+        url = u'/extensions/github/webhook/'.format(
             project.organization.id,
         )
 

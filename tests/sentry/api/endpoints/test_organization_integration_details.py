@@ -18,7 +18,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         )
         self.integration.add_organization(self.org.id, config={'setting': 'value'})
 
-        self.path = '/api/0/organizations/{}/integrations/{}/'.format(
+        self.path = u'/api/0/organizations/{}/integrations/{}/'.format(
             self.org.slug, self.integration.id)
 
     def test_simple(self):
