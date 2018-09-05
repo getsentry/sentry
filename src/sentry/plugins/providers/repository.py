@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from logging import getLogger
+
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
@@ -11,6 +13,9 @@ from sentry.plugins.config import ConfigValidator
 from sentry.signals import repo_linked
 
 from .base import ProviderMixin
+
+
+logger = getLogger('sentry.integrations')
 
 
 class RepositoryProvider(ProviderMixin):
@@ -59,6 +64,7 @@ class RepositoryProvider(ProviderMixin):
                 actor=request.user,
             )
         except PluginError as e:
+            logger.exception('repo.create-error')
             return Response(
                 {
                     'errors': {
