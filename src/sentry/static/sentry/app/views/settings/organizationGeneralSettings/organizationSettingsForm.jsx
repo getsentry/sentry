@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import ApiMixin from 'app/mixins/apiMixin';
 import AvatarChooser from 'app/components/avatarChooser';
@@ -41,14 +40,6 @@ const OrganizationSettingsForm = createReactClass({
           if (typeof onSave === 'function') {
             onSave(initialData, model.initialData);
           }
-        }}
-        onSubmitError={error => {
-          if (error.responseJSON && 'require2FA' in error.responseJSON) {
-            return addErrorMessage(
-              'Unable to save change. Enable two-factor authentication on your account first.'
-            );
-          }
-          return addErrorMessage('Unable to save change');
         }}
       >
         <Box>
