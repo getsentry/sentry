@@ -7,7 +7,6 @@ import IssueSyncListElement from 'app/components/issueSyncListElement';
 import AlertLink from 'app/components/alertLink';
 import SentryTypes from 'app/sentryTypes';
 import PluginActions from 'app/components/group/pluginActions';
-import space from 'app/styles/space';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 
@@ -29,13 +28,15 @@ class ExternalIssueList extends AsyncComponent {
       integration => integration.status === 'active'
     );
 
-    return activeIntegrations.length ? activeIntegrations.map(integration => (
-      <ExternalIssueActions
-        key={integration.id}
-        integration={integration}
-        group={group}
-      />
-    )) : null;
+    return activeIntegrations.length
+      ? activeIntegrations.map(integration => (
+          <ExternalIssueActions
+            key={integration.id}
+            integration={integration}
+            group={group}
+          />
+        ))
+      : null;
   }
 
   renderPluginIssues() {
