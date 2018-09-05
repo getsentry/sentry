@@ -16,6 +16,7 @@ import uuid
 import six
 import decimal
 
+from bitfield.types import BitHandler
 from django.utils.timezone import is_aware
 from django.utils.html import mark_safe
 
@@ -40,6 +41,8 @@ def better_default_encoder(o):
         return six.text_type(o)
     elif isinstance(o, Enum):
         return o.value
+    elif isinstance(o, BitHandler):
+        return int(o)
     elif callable(o):
         return '<function>'
     raise TypeError(repr(o) + ' is not JSON serializable')

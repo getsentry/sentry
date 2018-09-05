@@ -425,3 +425,8 @@ class Require2fa(TestCase):
             actor_key=None,
             ip_address=None,
         ).count() == 1
+
+    def test_get_audit_log_data(self):
+        org = self.create_organization()
+        result = org.get_audit_log_data()
+        assert result['flags'] == int(org.flags)

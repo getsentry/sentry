@@ -2,24 +2,23 @@ from __future__ import absolute_import
 
 import six
 
+from bitfield.types import BitHandler
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import AuditLogEntry
 
 
 def fix(data):
+    # XXX(dcramer): At some point Organization.flags was serialized as a BitHandler
+    if 'flags' in data and isinstance(data['flags'], BitHandler):
+        data['flags'] = int(data['flags'])
+
     # There was a point in time where full Team objects
     # got serialized into our AuditLogEntry.data, so these
     # values need to be stripped and reduced down to integers
-    if 'teams' not in data:
-        return data
+    if data.get('teams'):
+        if hasattr(data['teams'][0], 'id'):
+            data['teams'] = [t.id for t in data['teams']]
 
-    if not data['teams']:
-        return data
-
-    if not hasattr(data['teams'][0], 'id'):
-        return data
-
-    data['teams'] = [t.id for t in data['teams']]
     return data
 
 
