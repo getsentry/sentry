@@ -354,3 +354,20 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
             'sync_status_forward': True,
             'other_option': 'hello',
         }
+
+    def test_update_domain_name(self):
+        account_name = 'MyVSTSAccount.visualstudio.com'
+        account_uri = 'https://MyVSTSAccount.visualstudio.com/'
+
+        self.assert_installation()
+
+        model = Integration.objects.get(provider='vsts')
+        model.metadata['domain_name'] = account_name
+        model.save()
+
+        integration = VstsIntegration(model, self.organization.id)
+        integration.get_client()
+
+        domain_name = integration.model.metadata['domain_name']
+        assert domain_name == account_uri
+        assert Integration.objects.get(provider='vsts').metadata['domain_name'] == account_uri

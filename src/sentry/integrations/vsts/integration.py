@@ -103,6 +103,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
         base_url = VstsIntegrationProvider.get_base_url(
             self.default_identity.data['access_token'], self.model.external_id)
         self.model.metadata['domain_name'] = base_url
+        self.model.save()
 
     def get_organization_config(self):
         client = self.get_client()
