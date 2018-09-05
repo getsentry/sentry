@@ -18,13 +18,18 @@ class OrganizationAuthList extends React.Component {
   };
 
   static propTypes = {
-    providerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
+    providerList: PropTypes.array,
   };
 
   render() {
     let {organization} = this.context;
     let {providerList} = this.props;
     let hasProviderList = providerList && !!providerList.length;
+    let samlAvailable =
+      hasProviderList &&
+      providerList.some(([providerKey, providerName, providerSaml]) => {
+        return providerSaml;
+      });
 
     return (
       <div className="sso">
@@ -41,6 +46,15 @@ class OrganizationAuthList extends React.Component {
                 }
               )}
             </PanelAlert>
+
+            {organization.require2FA &&
+              samlAvailable && (
+                <PanelAlert m={0} mb={0} type="warning">
+                  {t(
+                    'Require 2FA will be disabled if you enable SAML-based SSO (Okta, OneLogin, Auth0, etc.)'
+                  )}
+                </PanelAlert>
+              )}
 
             <form
               action={`/organizations/${organization.slug}/auth/configure/`}
