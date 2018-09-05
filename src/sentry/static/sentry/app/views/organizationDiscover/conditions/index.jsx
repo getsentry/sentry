@@ -7,7 +7,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
-import {PlaceholderText, SelectListItem, AddText} from '../styles';
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 
 export default class Conditions extends React.Component {
   static propTypes = {
@@ -40,7 +40,7 @@ export default class Conditions extends React.Component {
     return (
       <div>
         <div>
-          <strong>{t('Conditions')}</strong>
+          <SidebarLabel>{t('Conditions')}</SidebarLabel>
           <AddText>
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
           </AddText>

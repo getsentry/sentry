@@ -10,11 +10,17 @@ export const PlaceholderText = styled.div`
 `;
 
 export const Fieldset = styled.fieldset`
-  margin-bottom: ${space(1)};
+  margin: ${space(3)} ${space(4)};
 `;
 
 export const SelectListItem = styled(Flex)`
   margin-top: ${space(0.5)};
+`;
+
+export const SidebarLabel = styled.label`
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray3};
 `;
 
 export const AddText = styled.span`
