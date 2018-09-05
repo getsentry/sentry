@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
 import re
+
+import six
+
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -57,6 +60,23 @@ class DiscoverSerializer(serializers.Serializer):
         self.member = OrganizationMember.objects.get(
             user=self.context['user'], organization=self.context['organization'])
 
+        fields = kwargs['data'].get('fields') or []
+
+        match = next(
+            (
+                self.get_array_field(field).group(1)
+                for field
+                in fields
+                if self.get_array_field(field) is not None
+            ),
+            None
+        )
+        self.arrayjoin = match if match else None
+
+    def validate(self, data):
+        data['arrayjoin'] = self.arrayjoin
+        return data
+
     def validate_projects(self, attrs, source):
         organization = self.context['organization']
         member = self.member
@@ -73,24 +93,33 @@ class DiscoverSerializer(serializers.Serializer):
 
         return attrs
 
-    def validate_fields(self, attrs, source):
-        # If we're including exception_stacks.* or exception_frames.* fields
-        # then add arrayjoin value so this gets returned as strings
-        pattern = r"^(exception_stacks|exception_frames)\..+"
-        match = next(
-            (
-                re.search(pattern, field).group(1)
-                for field
-                in attrs.get(source, [])
-                if re.match(pattern, field)
-            ),
-            None
-        )
-
-        if match:
-            attrs['arrayjoin'] = match
-
+    def validate_conditions(self, attrs, source):
+        # Handle exception_stacks, exception_frames
+        if attrs.get(source):
+            conditions = [self.get_condition(condition) for condition in attrs[source]]
+            attrs[source] = conditions
         return attrs
+
+    def get_array_field(self, field):
+        pattern = r"^(exception_stacks|exception_frames)\..+"
+        return re.search(pattern, field)
+
+    def get_condition(self, condition):
+        array_field = self.get_array_field(condition[0])
+        has_equality_operator = condition[1] in ('=', '!=')
+
+        # Apply has function to any array field if it's = / != and not part of arrayjoin
+        if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
+            value = condition[2]
+
+            if (isinstance(value, six.string_types)):
+                value = "'{}'".format(value)
+
+            bool_value = 1 if condition[1] == '=' else 0
+
+            return [["has", [array_field.group(0), value]], "=", bool_value]
+
+        return condition
 
     def has_projects_access(self, member, organization, requested_projects):
         has_global_access = roles.get(member.role).is_global
