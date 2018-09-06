@@ -8217,9 +8217,9 @@ react-document-title@2.0.3:
     prop-types "^15.5.6"
     react-side-effect "^1.0.2"
 
-react-dom@16.3.2:
-  version "16.3.2"
-  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.3.2.tgz#cb90f107e09536d683d84ed5d4888e9640e0e4df"
+react-dom@16.3.3:
+  version "16.3.3"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.3.3.tgz#af4c2aef9f6a66251a46da50253c860a67ae66d9"
   dependencies:
     fbjs "^0.8.16"
     loose-envify "^1.1.0"
