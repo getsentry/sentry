@@ -133,6 +133,14 @@ class SnubaTSDBTest(TestCase):
 
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
+        # snuba trims query windows based on first_seen/last_seen, so these need to be correct-ish
+        self.proj1group1.first_seen = self.now
+        self.proj1group1.last_seen = self.now + timedelta(seconds=14400)
+        self.proj1group1.save()
+        self.proj1group2.first_seen = self.now
+        self.proj1group2.last_seen = self.now + timedelta(seconds=14400)
+        self.proj1group2.save()
+
     def test_range_groups(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
