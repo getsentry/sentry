@@ -34,15 +34,13 @@ class PieChart extends React.Component {
   // echarts Legend does not have access to percentages (but tooltip does :/)
   getSeriesPercentages = series => {
     const total = series.data.reduce((acc, {value}) => acc + value, 0);
-    return series.data
-      .map(({name, value}) => [name, Math.round(value / total * 10000) / 100])
-      .reduce(
-        (acc, [name, value]) => ({
-          ...acc,
-          [name]: value,
-        }),
-        {}
-      );
+    return series.data.reduce(
+      (acc, {name, value}) => ({
+        ...acc,
+        [name]: Math.round(value / total * 10000) / 100,
+      }),
+      {}
+    );
   };
 
   // Select a series to highlight (e.g. shows details of series)
