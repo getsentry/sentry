@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import logging
 
@@ -218,33 +218,32 @@ def migrate_repo(repo_id, integration_id, organization_id):
 )
 @retry()
 def kickoff_vsts_subscription_check():
-    all_integrations = Integration.objects.filter(
-        provider='vsts',
-    )
-    subscription_check_interval = None  # RAWR
-    integrations_to_check = []
-    for integration in all_integrations:
+    organization_integrations = OrganizationIntegration.objects.filter(
+        integration__provider='vsts',
+        # integration__status=ObjectStatus.VISIBLE,
+        # status=ObjectStatus.VISIBLE,
+    ).select_related('integration')
+    update_interval = datetime.now() - timedelta(hours=6)
+    for org_integration in organization_integrations:
+        organization_id = org_integration.organization_id
+        integration = org_integration.integration
         try:
-            subscription = integration.metadata['subscription']
+            subscription = org_integration.integration.metadata['subscription']
         except KeyError:
             continue
-        try:
-            if subscription['check'] <= subscription_check_interval:  # 6 hours?
-                integrations_to_check.append(integration)
-        except KeyError:
-            integrations_to_check.append(integration)
 
-    for integration in integrations_to_check:
-        organization_ids = OrganizationIntegration.objects.filter(
-            integration_id=integration.id,
-        ).values_list('organization_id', flatten=True)
-        for organization_id in organization_ids:
-            vsts_subscription_check(integration, organization_id).apply_async(
-                kwargs={
-                    'integration': integration,
-                    'organization_id': organization_id,
-                }
-            )
+        try:
+            if subscription['check'] > update_interval:
+                continue
+        except KeyError:
+            pass
+
+        vsts_subscription_check(integration, organization_id).apply_async(
+            kwargs={
+                'integration': integration,
+                'organization_id': organization_id,
+            }
+        )
 
 
 @instrumented_task(
