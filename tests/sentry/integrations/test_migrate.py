@@ -55,3 +55,10 @@ class PluginMigratorTest(TestCase):
 
         self.migrator.call()
         assert plugin not in plugins.for_project(self.project)
+
+    def test_does_not_disable_any_plugin(self):
+        plugin = plugins.get('webhooks')
+        plugin.enable(self.project)
+
+        self.migrator.call()
+        assert plugin in plugins.for_project(self.project)
