@@ -279,6 +279,7 @@ export default class OrganizationDiscover extends React.Component {
                 options={fieldOptions}
                 value={currentQuery.fields}
                 onChange={val => this.updateField('fields', val.map(({value}) => value))}
+                clearable={true}
               />
             </Fieldset>
             <Fieldset>
