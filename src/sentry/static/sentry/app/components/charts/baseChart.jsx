@@ -183,13 +183,7 @@ class BaseChart extends React.Component {
             xAxis !== null
               ? XAxis({
                   ...xAxis,
-                  ...(isGroupedByDate
-                    ? {
-                        axisLabel: {
-                          formatter: (value, index) => moment(value).format('MMM D'),
-                        },
-                      }
-                    : {}),
+                  isGroupedByDate,
                 })
               : null,
           series: !previousPeriod
