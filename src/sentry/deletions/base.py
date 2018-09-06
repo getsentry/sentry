@@ -37,12 +37,12 @@ class BaseDeletionTask(object):
     DEFAULT_CHUNK_SIZE = 100
 
     def __init__(self, manager, skip_models=None, transaction_id=None,
-                 actor_id=None, chunk_size=DEFAULT_CHUNK_SIZE):
+                 actor_id=None, chunk_size=None):
         self.manager = manager
         self.skip_models = set(skip_models) if skip_models else None
         self.transaction_id = transaction_id
         self.actor_id = actor_id
-        self.chunk_size = chunk_size
+        self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
     def __repr__(self):
         return '<%s: skip_models=%s transaction_id=%s actor_id=%s>' % (
