@@ -192,19 +192,19 @@ class BaseChart extends React.Component {
                     : {}),
                 })
               : null,
-          series: [
-            ...series,
-            ...((previousPeriod &&
-              LineSeries({
-                name: previousPeriod.seriesName,
-                data: previousPeriod.data.map(({name, value}) => [name, value]),
-                lineStyle: {
-                  color: theme.gray1,
-                  type: 'dotted',
-                },
-              })) ||
-              []),
-          ],
+          series: !previousPeriod
+            ? series
+            : [
+                ...series,
+                LineSeries({
+                  name: previousPeriod.seriesName,
+                  data: previousPeriod.data.map(({name, value}) => [name, value]),
+                  lineStyle: {
+                    color: theme.gray1,
+                    type: 'dotted',
+                  },
+                }),
+              ],
         }}
       />
     );
