@@ -55,7 +55,7 @@ export default class ResultTable extends React.Component {
       ? this.getLink(data[rowIndex - 1])
       : getDisplayValue(data[rowIndex - 1][colName]);
 
-    const isNumber = typeof value === 'number';
+    const isNumber = !isLinkCol && typeof data[rowIndex - 1][colName] === 'number';
 
     const align = isNumber ? 'right' : isLinkCol ? 'center' : 'left';
 
