@@ -46,6 +46,20 @@ jest.mock('react-lazyload', () => {
   return LazyLoadMock;
 });
 
+jest.mock('echarts-for-react/lib/core', () => {
+  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // guaranteed to be in scope
+  const ReactActual = require('react');
+
+  // We need a class component here because `BaseChart` passes `ref` which will
+  // error if we return a stateless/functional component
+  return class extends ReactActual.Component {
+    render() {
+      return null;
+    }
+  };
+});
+
 jest.mock('app/utils/sdk', () => ({
   captureMessage: jest.fn(),
   captureException: jest.fn(),
