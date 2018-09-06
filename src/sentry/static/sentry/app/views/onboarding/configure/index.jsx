@@ -23,7 +23,6 @@ const Configure = createReactClass({
     return {
       isFirstTimePolling: true,
       hasSentRealEvent: false,
-      loading: true,
     };
   },
 
@@ -123,9 +122,10 @@ const Configure = createReactClass({
             </ProjectDocsContext>
           </ProjectContext>
           <Waiting
-                skip={this.submit}
-                hasEvent={this.state.hasSentRealEvent}
-                params={this.props.params}
+            skip={this.submit}
+            hasEvent={this.state.hasSentRealEvent}
+            params={this.props.params}
+            organization={this.context.organization}
           />
         </div>
       </div>

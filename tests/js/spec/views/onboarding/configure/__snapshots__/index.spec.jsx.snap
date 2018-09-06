@@ -1,264 +1,70 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Configure should render correctly render() should redirect to if no matching platform 1`] = `
-<Configure
-  next={[Function]}
-  params={
-    Object {
-      "orgId": "testOrg",
-      "platform": "other",
-      "projectId": "project-slug",
-    }
-  }
->
-  <div>
-    <div
-      className="onboarding-Configure"
+<div>
+  <div
+    className="onboarding-Configure"
+  >
+    <h2
+      style={
+        Object {
+          "marginBottom": 30,
+        }
+      }
     >
-      <h2
-        style={
-          Object {
-            "marginBottom": 30,
-          }
+      Configure your application
+    </h2>
+    <withProjects(withRouter(ProjectContext))
+      orgId="testOrg"
+      projectId="project-slug"
+      style={
+        Object {
+          "marginBottom": 30,
         }
-      >
-        Configure your application
-      </h2>
-      <withProjects(withRouter(ProjectContext))
-        orgId="testOrg"
-        projectId="project-slug"
-        style={
-          Object {
-            "marginBottom": 30,
-          }
-        }
-      >
-        <withRouter(ProjectContext)
-          orgId="testOrg"
-          projectId="project-slug"
-          projects={
-            Array [
-              Object {
-                "hasAccess": true,
-                "id": "testProject",
-                "isBookmarked": false,
-                "isMember": true,
-                "name": "Test Project",
-                "slug": "project-slug",
-                "teams": Array [
-                  Object {
-                    "hasAccess": true,
-                    "id": "coolid",
-                    "slug": "coolteam",
-                  },
-                ],
-              },
-            ]
-          }
-          style={
+      }
+    >
+      <ProjectDocsContext>
+        <ProjectInstallPlatform
+          linkPath={[Function]}
+          params={
             Object {
-              "marginBottom": 30,
+              "orgId": "testOrg",
+              "platform": "other",
+              "projectId": "project-slug",
             }
           }
-        >
-          <ProjectContext
-            location={
-              Object {
-                "query": Object {},
-              }
+          platformData={
+            Object {
+              "hack": "actually set by ProjectDocsContext, this object is here to avoid proptypes warnings",
             }
-            orgId="testOrg"
-            projectId="project-slug"
-            projects={
-              Array [
-                Object {
-                  "hasAccess": true,
-                  "id": "testProject",
-                  "isBookmarked": false,
-                  "isMember": true,
-                  "name": "Test Project",
-                  "slug": "project-slug",
-                  "teams": Array [
-                    Object {
-                      "hasAccess": true,
-                      "id": "coolid",
-                      "slug": "coolteam",
-                    },
-                  ],
-                },
-              ]
-            }
-            router={
-              Object {
-                "createHref": [MockFunction],
-                "go": [MockFunction],
-                "goBack": [MockFunction],
-                "goForward": [MockFunction],
-                "isActive": [MockFunction],
-                "listen": [MockFunction],
-                "location": Object {
-                  "query": Object {},
-                },
-                "push": [MockFunction],
-                "replace": [MockFunction],
-                "setRouteLeaveHook": [MockFunction],
-              }
-            }
-            style={
-              Object {
-                "marginBottom": 30,
-              }
-            }
-          >
-            <SideEffect(DocumentTitle)
-              title="project-slug"
-            >
-              <DocumentTitle
-                title="project-slug"
-              >
-                <div
-                  className="loading-full-layout"
-                >
-                  <LoadingIndicator>
-                    <div
-                      className="loading"
-                    >
-                      <div
-                        className="loading-indicator"
-                        style={Object {}}
-                      />
-                      <div
-                        className="loading-message"
-                      />
-                    </div>
-                  </LoadingIndicator>
-                </div>
-              </DocumentTitle>
-            </SideEffect(DocumentTitle)>
-          </ProjectContext>
-        </withRouter(ProjectContext)>
-      </withProjects(withRouter(ProjectContext))>
-      <Waiting
-        hasEvent={false}
-        params={
-          Object {
-            "orgId": "testOrg",
-            "platform": "other",
-            "projectId": "project-slug",
           }
+        />
+      </ProjectDocsContext>
+    </withProjects(withRouter(ProjectContext))>
+    <Waiting
+      hasEvent={false}
+      organization={
+        Object {
+          "id": "1337",
+          "slug": "testOrg",
+          "teams": Array [
+            Array [
+              "project-slug",
+            ],
+          ],
         }
-        skip={[Function]}
-      >
-        <div
-          className="awaiting-event"
-        >
-          <div
-            className="row"
-          >
-            <div
-              className="col-sm-10"
-            >
-              <div
-                className="wrap waiting-text"
-              >
-                <h3
-                  className="animated-ellipsis"
-                >
-                  Waiting to receive an error
-                </h3>
-                <div
-                  className="robot"
-                >
-                  <span
-                    className="eye"
-                  />
-                </div>
-              </div>
-            </div>
-            <CenteredButtons
-              className="col-sm-2"
-            >
-              <div
-                className="col-sm-2 css-mm32tp-CenteredButtons e1p80ulz0"
-              >
-                <div
-                  className="pull-right"
-                >
-                  <Button
-                    alignLabel="left"
-                    data-test-id="configure-done"
-                    disabled={false}
-                    onClick={[Function]}
-                    priority="primary"
-                  >
-                    <StyledButton
-                      aria-label="All done!"
-                      data-test-id="configure-done"
-                      disabled={false}
-                      onClick={[Function]}
-                      priority="primary"
-                      role="button"
-                    >
-                      <Component
-                        aria-label="All done!"
-                        className="css-1msljz8-StyledButton-getColors eqrebog0"
-                        data-test-id="configure-done"
-                        disabled={false}
-                        onClick={[Function]}
-                        priority="primary"
-                        role="button"
-                      >
-                        <button
-                          aria-label="All done!"
-                          className="css-1msljz8-StyledButton-getColors eqrebog0"
-                          data-test-id="configure-done"
-                          disabled={false}
-                          onClick={[Function]}
-                          priority="primary"
-                          role="button"
-                        >
-                          <ButtonLabel
-                            justify="flex-start"
-                            priority="primary"
-                          >
-                            <Component
-                              className="css-1emshjx-ButtonLabel eqrebog1"
-                              justify="flex-start"
-                              priority="primary"
-                            >
-                              <Flex
-                                align="center"
-                                className="css-1emshjx-ButtonLabel eqrebog1"
-                                justify="flex-start"
-                              >
-                                <Base
-                                  align="center"
-                                  className="eqrebog1 css-11rqwwm-ButtonLabel"
-                                  justify="flex-start"
-                                >
-                                  <div
-                                    className="eqrebog1 css-11rqwwm-ButtonLabel"
-                                    is={null}
-                                  >
-                                    All done!
-                                  </div>
-                                </Base>
-                              </Flex>
-                            </Component>
-                          </ButtonLabel>
-                        </button>
-                      </Component>
-                    </StyledButton>
-                  </Button>
-                </div>
-              </div>
-            </CenteredButtons>
-          </div>
-        </div>
-      </Waiting>
-    </div>
+      }
+      params={
+        Object {
+          "orgId": "testOrg",
+          "platform": "other",
+          "projectId": "project-slug",
+        }
+      }
+      skip={[Function]}
+    />
   </div>
-</Configure>
+</div>
 `;
 
 exports[`Configure should render correctly render() should render platform docs 1`] = `
@@ -706,6 +512,43 @@ exports[`Configure should render correctly render() should render platform docs 
       </withProjects(withRouter(ProjectContext))>
       <Waiting
         hasEvent={false}
+        organization={
+          Object {
+            "id": "1337",
+            "projects": Array [
+              Object {
+                "hasAccess": true,
+                "id": "testProject",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Test Project",
+                "slug": "project-slug",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "coolteam",
+                    "slug": "coolteam",
+                  },
+                ],
+              },
+            ],
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "coolteam",
+                "projects": Array [
+                  Object {
+                    "id": "testProject",
+                    "name": "Test Project",
+                    "slug": "project-slug",
+                  },
+                ],
+                "slug": "coolteam",
+              },
+            ],
+          }
+        }
         params={
           Object {
             "orgId": "testOrg",
@@ -816,6 +659,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       </Component>
                     </StyledButton>
                   </Button>
+                  0
                 </div>
               </div>
             </CenteredButtons>
@@ -870,6 +714,17 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     </withProjects(withRouter(ProjectContext))>
     <Waiting
       hasEvent={false}
+      organization={
+        Object {
+          "id": "1337",
+          "slug": "testOrg",
+          "teams": Array [
+            Array [
+              "project-slug",
+            ],
+          ],
+        }
+      }
       params={
         Object {
           "orgId": "testOrg",

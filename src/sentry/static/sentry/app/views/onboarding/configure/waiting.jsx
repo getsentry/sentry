@@ -5,13 +5,44 @@ import styled from 'react-emotion';
 
 import Button from 'app/components/button';
 import HookStore from 'app/stores/hookStore';
+import SentryTypes from 'app/sentryTypes';
 
 class Waiting extends React.Component {
   static propTypes = {
     skip: PropTypes.func,
     hasEvent: PropTypes.bool.isRequired,
     params: PropTypes.object,
+    organization: SentryTypes.Organization,
   };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      component: null,
+    };
+  }
+
+  getInitialState() {
+    return {
+      component: null,
+    };
+  }
+
+  componentDidMount() {
+    this.getComponent();
+  }
+
+  getComponent() {
+    let component =
+      HookStore.get('component:sample-event').length &&
+      !this.props.hasEvent &&
+      HookStore.get('component:sample-event')[0](
+        this.props.params,
+        this.props.organization
+      );
+
+    this.setState({component});
+  }
 
   render() {
     return (
@@ -31,12 +62,14 @@ class Waiting extends React.Component {
           </div>
           <CenteredButtons className="col-sm-2">
             <div className="pull-right">
-              <Button priority="primary" data-test-id="configure-done" onClick={this.props.skip}>
+              <Button
+                priority="primary"
+                data-test-id="configure-done"
+                onClick={this.props.skip}
+              >
                 {t('All done!')}
               </Button>
-              {HookStore.get('experiment:sample-event').length
-              ? HookStore.get('experiment:sample-event')[0](this.props.params)
-              : undefined}
+              {this.state.component}
             </div>
           </CenteredButtons>
         </div>
