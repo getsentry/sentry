@@ -63,7 +63,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             project=project,
             last_seen__lte=cutoff,
             status=GroupStatus.UNRESOLVED,
-        )[:chunk_size]
+        ).order_by('-last_seen')[:chunk_size]
     )
 
     might_have_more = len(queryset) == chunk_size
