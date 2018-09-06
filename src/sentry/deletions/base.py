@@ -118,7 +118,6 @@ class BaseDeletionTask(object):
     def delete_children(self, relations):
         # Ideally this runs through the deletion manager
         for relation in relations:
-            has_more = True
             task = self.manager.get(
                 transaction_id=self.transaction_id,
                 actor_id=self.actor_id,
@@ -126,9 +125,10 @@ class BaseDeletionTask(object):
                 task=relation.task,
                 **relation.params
             )
+            has_more = True
             while has_more:
                 has_more = task.chunk()
-        return has_more
+        return False
 
     def mark_deletion_in_progress(self, instance_list):
         pass
