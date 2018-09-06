@@ -746,7 +746,7 @@ class SecurityReportView(StoreView):
         )
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
-        return HttpResponse(status=201)
+        return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):
         report_type_for_key = {
