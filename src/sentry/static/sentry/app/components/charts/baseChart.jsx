@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
-import moment from 'moment';
 
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
