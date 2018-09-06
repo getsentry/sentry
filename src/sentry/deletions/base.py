@@ -122,7 +122,6 @@ class BaseDeletionTask(object):
             task = self.manager.get(
                 transaction_id=self.transaction_id,
                 actor_id=self.actor_id,
-                chunk_size=self.chunk_size,
                 task=relation.task,
                 **relation.params
             )
