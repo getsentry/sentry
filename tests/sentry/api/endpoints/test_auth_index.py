@@ -77,6 +77,15 @@ class AuthLogoutEndpointTest(APITestCase):
         assert response.status_code == 204
         assert list(self.client.session.keys()) == []
 
+    def test_logged_in__invalidate_all_sessions(self):
+        user = self.create_user('foo@example.com')
+        self.login_as(user)
+        response = self.client.delete(self.path, data={'all': 1})
+        assert response.status_code == 204
+        assert list(self.client.session.keys()) == []
+        updated = type(user).objects.get(pk=user.id)
+        assert updated.session_nonce != user.session_nonce
+
     def test_logged_out(self):
         response = self.client.delete(self.path)
         assert response.status_code == 204
