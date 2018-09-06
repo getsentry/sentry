@@ -27,6 +27,12 @@ const HealthNavigationMenu = styled(
                 {t('Transaction')}
               </NavItem>
             </NavigationGroup>
+
+            <NavigationGroup title={t('Users')}>
+              <NavItem to={`/organizations/${organization.slug}/health/browsers/`}>
+                {t('Browsers')}
+              </NavItem>
+            </NavigationGroup>
           </div>
         );
       }

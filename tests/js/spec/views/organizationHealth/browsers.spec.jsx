@@ -1,11 +1,11 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationHealthTransactions from 'app/views/organizationHealth/transactions';
+import OrganizationHealthBrowsers from 'app/views/organizationHealth/browsers';
 
 jest.mock('app/utils/withLatestContext');
 
-describe('OrganizationHealthTransactions', function() {
+describe('OrganizationHealthBrowsers', function() {
   const org = TestStubs.Organization();
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/health/top/',
@@ -21,12 +21,11 @@ describe('OrganizationHealthTransactions', function() {
     },
   });
 
-  it('renders with LineChart, AreaChart, and TableChart', async function() {
-    let wrapper = mount(<OrganizationHealthTransactions organization={org} />);
+  it('renders with PieChart, and EventTableChart', async function() {
+    let wrapper = mount(<OrganizationHealthBrowsers organization={org} />);
     await tick();
     wrapper.update();
-    expect(wrapper.find('TableChart')).toHaveLength(1);
-    expect(wrapper.find('AreaChart')).toHaveLength(1);
-    expect(wrapper.find('LineChart')).toHaveLength(1);
+    expect(wrapper.find('PieChart')).toHaveLength(2);
+    expect(wrapper.find('EventsTableChart')).toHaveLength(1);
   });
 });
