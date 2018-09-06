@@ -23,10 +23,10 @@ class Waiting extends React.Component {
   }
 
   componentDidMount() {
-    this.getComponent();
+    this.getHookComponent();
   }
 
-  getComponent() {
+  getHookComponent() {
     let component =
       HookStore.get('component:sample-event').length && !this.props.hasEvent
         ? HookStore.get('component:sample-event')[0](
