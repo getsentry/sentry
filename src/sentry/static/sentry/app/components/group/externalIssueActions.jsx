@@ -156,6 +156,7 @@ class ExternalIssueForm extends AsyncComponent {
       // TODO(jess): figure out why this is breaking and fix
       initialData[field.name] = field.multiple ? '' : field.default;
     });
+
     return (
       <Form
         apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
