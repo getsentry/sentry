@@ -8,6 +8,7 @@ import theme from 'app/utils/theme';
 import AutoSelectText from 'app/components/autoSelectText';
 import Link from 'app/components/link';
 import InlineSvg from 'app/components/inlineSvg';
+import Panel from 'app/components/panels/panel';
 import {getDisplayValue, getDisplayText} from './utils';
 
 /**
@@ -45,9 +46,9 @@ export default class ResultTable extends React.Component {
 
     if (rowIndex === 0) {
       return (
-        <Cell key={key} style={style}>
+        <TableHeader key={key} style={style}>
           <strong>{colName}</strong>
-        </Cell>
+        </TableHeader>
       );
     }
 
@@ -108,8 +109,8 @@ export default class ResultTable extends React.Component {
         sizes.push(this.measureText(getDisplayText(row[colName]), false));
       });
 
-      // Ensure size is within max and min bounds, add 8px for cell padding
-      return Math.max(Math.min(Math.max(...sizes) + 8, MAX_COL_WIDTH), MIN_COL_WIDTH);
+      // Ensure size is within max and min bounds, add 20px for cell padding
+      return Math.max(Math.min(Math.max(...sizes) + 20, MAX_COL_WIDTH), MIN_COL_WIDTH);
     }
 
     return MIN_COL_WIDTH;
@@ -146,20 +147,16 @@ export default class ResultTable extends React.Component {
           {({width, height}) => (
             <MultiGrid
               ref={ref => (this.grid = ref)}
-              width={width}
+              width={width - 1} // Fix weird 1px right overflow
               height={height}
               rowCount={data.length + 1} // Add 1 for header row
               columnCount={cols.length + (showEventLinks ? 1 : 0)}
               fixedRowCount={1}
-              rowHeight={30}
+              rowHeight={40}
               columnWidth={this.getColumnWidth}
               cellRenderer={this.cellRenderer}
-              styleBottomRightGrid={{
-                border: `1px solid ${theme.borderDark}`,
-              }}
               styleTopRightGrid={{
-                border: `1px solid ${theme.borderDark}`,
-                borderBottom: 'none',
+                borderBottom: `1px solid ${theme.borderDark}`,
               }}
             />
           )}
@@ -179,8 +176,8 @@ export default class ResultTable extends React.Component {
   }
 }
 
-const GridContainer = styled('div')`
-  height: ${p => p.visibleRows * 30}px;
+const GridContainer = styled(Panel)`
+  height: ${p => p.visibleRows * 40}px;
 
   .ReactVirtualized__Grid {
     outline: none;
@@ -188,11 +185,12 @@ const GridContainer = styled('div')`
 `;
 
 const Cell = styled('div')`
-  ${p => p.isOddRow && `background-color: ${p.theme.borderLighter};`} ${p =>
+  ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
       `text-align: ${p.align};`} overflow: scroll;
   font-size: 14px;
-  line-height: 30px;
-  padding: 0 4px;
+  line-height: 40px;
+  padding: 0 10px;
+  border-top: 1px solid ${p => p.theme.borderLight};
 
   ::-webkit-scrollbar {
     display: none;
@@ -203,4 +201,13 @@ const Cell = styled('div')`
   }
 
   -ms-overflow-style: -ms-autohiding-scrollbar;
+`;
+
+const TableHeader = styled(Cell)`
+  background: ${p => p.theme.offWhite};
+  color: ${p => p.theme.gray3};
+  border-top: none;
+  &:first-of-type {
+    border-top-left-radius: 3px;
+  }
 `;
