@@ -15,7 +15,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from operator import or_
 from six.moves import reduce
@@ -927,14 +927,6 @@ class V2TagStorage(TagStorage):
         # get initial matches to start the filter
         matches = candidates or []
 
-        def get_quoted_column_name(field):
-            model = field.field.model
-            quote_name = connections[router.db_for_read(model)].ops.quote_name
-            return '{}.{}'.format(
-                quote_name(model._meta.db_table),
-                quote_name(field.field.column),
-            )
-
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
@@ -944,13 +936,9 @@ class V2TagStorage(TagStorage):
                     _key__project_id=project_id,
                     _key__key=k,
                     _value__project_id=project_id,
+                    _value___key=F('_key'),
                     _value__value=v,
-                ).extra(where=[
-                    '{} = {}'.format(
-                        get_quoted_column_name(models.TagValue._key),
-                        get_quoted_column_name(models.GroupTagValue._key),
-                    ),
-                ])
+                )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
             else:
                 base_qs = models.GroupTagValue.objects.filter(
