@@ -3,14 +3,14 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Logout" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Sign out" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-<h3>Sign out</h3>
+<h3>{% trans "Sign out" %}</h3>
 <form class="form-stacked" method="post">
     {% csrf_token %}
     <div class="p-b-2 m-t-1 align-center">
-        <button class="btn btn-primary">{% trans 'Sign out' %}</button>
+        <button class="btn btn-primary">{% trans "Sign out" %}</button>
     </div>
 </form>
 {% endblock %}
