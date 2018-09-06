@@ -94,6 +94,8 @@ class BaseChart extends React.Component {
      */
     previousPeriod: SentryTypes.SeriesUnit,
 
+    // If data is grouped by date, then apply default date formatting to
+    // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
   };
 
@@ -103,13 +105,13 @@ class BaseChart extends React.Component {
     renderer: 'svg',
     notMerge: true,
     lazyUpdate: false,
-    isGroupedByDate: false,
     onChartReady: () => {},
+    options: {},
+
+    series: [],
     xAxis: {},
     yAxis: {},
-
-    options: {},
-    series: [],
+    isGroupedByDate: false,
   };
 
   handleChartReady = (...args) => {
@@ -127,7 +129,7 @@ class BaseChart extends React.Component {
 
   render() {
     let {
-      // options
+      options,
       colors,
       grid,
       tooltip,
@@ -142,7 +144,6 @@ class BaseChart extends React.Component {
       height,
       width,
       renderer,
-      options,
       notMerge,
       lazyUpdate,
       silent,
