@@ -57,13 +57,15 @@ class SnubaUtilTest(TestCase):
         assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
 
         group1 = self.create_group()
+        group1.first_seen = now - timedelta(hours=1)
+        group1.last_seen = now
+        group1.save()
         group2 = self.create_group()
 
         # issues is a list like [(gid, pid, [(hash, tombstone_date), ...]), ...]
         issues = [(group1.id, group1.project_id, [('a' * 32, None)])]
         assert snuba.shrink_time_window(issues, year_ago, year_ahead) == \
-            (snuba.naiveify_datetime(group1.first_seen) - timedelta(minutes=5),
-             snuba.naiveify_datetime(group1.last_seen) + timedelta(minutes=5))
+            (now - timedelta(hours=1, minutes=5), now + timedelta(minutes=5))
 
         issues = [
             (group1.id, group1.project_id, [('a' * 32, None)]),
