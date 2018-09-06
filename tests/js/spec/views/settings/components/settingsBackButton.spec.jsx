@@ -79,7 +79,7 @@ describe('SettingsBackButton', function() {
     });
 
     it('renders "Back to Invite" when no organization and `pending-invite` cookie', function() {
-      let wrapper = mount(<BackButton params={{}} organization={{}} />);
+      let wrapper = mount(<BackButton params={{}} organization={null} />);
       expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Invite');
       expect(wrapper.find('BackButtonWrapper').prop('href')).toBe('/test/');
     });
