@@ -147,9 +147,9 @@ export default class ResultTable extends React.Component {
           {({width, height}) => (
             <MultiGrid
               ref={ref => (this.grid = ref)}
-              width={width - 1} // Fix weird 1px right overflow
+              width={width - 1}
               height={height}
-              rowCount={data.length + 1} // Add 1 for header row
+              rowCount={data.length + 1}
               columnCount={cols.length + (showEventLinks ? 1 : 0)}
               fixedRowCount={1}
               rowHeight={40}
