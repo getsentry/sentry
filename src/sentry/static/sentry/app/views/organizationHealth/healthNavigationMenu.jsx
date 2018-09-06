@@ -25,7 +25,7 @@ const HealthNavigationMenu = styled(
               </NavItem>
 
               <NavItem to={`/organizations/${organization.slug}/health/transactions/`}>
-                {t('Transaction')}
+                {t('Transactions')}
               </NavItem>
             </NavigationGroup>
 
