@@ -117,8 +117,8 @@ class BaseDeletionTask(object):
 
     def delete_children(self, relations):
         # Ideally this runs through the deletion manager
-        has_more = True
         for relation in relations:
+            has_more = True
             task = self.manager.get(
                 transaction_id=self.transaction_id,
                 actor_id=self.actor_id,
