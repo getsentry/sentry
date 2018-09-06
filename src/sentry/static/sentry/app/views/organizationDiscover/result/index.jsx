@@ -111,74 +111,66 @@ export default class Result extends React.Component {
       <div>
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
-            <Heading>Result</Heading>
+            <Heading>{t('Result')}</Heading>
           </Box>
           <Box justifySelf="flex-end">{this.renderToggle()}</Box>
         </Flex>
 
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
-          <Panel>
-            <Box px={space(2)} py={space(1.5)}>
-              <LineChart
-                series={basicChartData}
-                height={300}
-                options={{
-                  tooltip: Tooltip({
-                    formatter: formatTooltip,
-                  }),
-                }}
-              />
-            </Box>
-          </Panel>
+          <ChartWrapper>
+            <LineChart
+              series={basicChartData}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+          </ChartWrapper>
         )}
         {view === 'bar' && (
-          <Panel>
-            <Box px={space(2)} py={space(1.5)}>
-              <BarChart
-                series={basicChartData}
-                height={300}
-                options={{
-                  tooltip: Tooltip({
-                    formatter: formatTooltip,
-                  }),
-                }}
-              />
-            </Box>
-          </Panel>
+          <ChartWrapper>
+            <BarChart
+              series={basicChartData}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+          </ChartWrapper>
         )}
         {view === 'line-by-day' && (
-          <Panel>
-            <Box px={space(2)} py={space(1.5)}>
-              <LineChart
-                series={byDayChartData}
-                height={300}
-                options={{
-                  tooltip: Tooltip({
-                    formatter: formatTooltip,
-                  }),
-                }}
-              />
-              {this.renderNote()}
-            </Box>
-          </Panel>
+          <ChartWrapper>
+            <LineChart
+              series={byDayChartData}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+            {this.renderNote()}
+          </ChartWrapper>
         )}
         {view === 'bar-by-day' && (
-          <Panel>
-            <Box px={space(2)} py={space(1.5)}>
-              <BarChart
-                series={byDayChartData}
-                stacked={true}
-                height={300}
-                options={{
-                  tooltip: Tooltip({
-                    formatter: formatTooltip,
-                  }),
-                }}
-              />
-              {this.renderNote()}
-            </Box>
-          </Panel>
+          <ChartWrapper>
+            <BarChart
+              series={byDayChartData}
+              stacked={true}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+            {this.renderNote()}
+          </ChartWrapper>
         )}
         {this.renderSummary()}
       </div>
@@ -186,11 +178,20 @@ export default class Result extends React.Component {
   }
 }
 
+const ChartWrapper = styled(Panel)`
+  padding-left: ${space(3)};
+  padding-right: ${space(3)};
+`;
+
 const Summary = styled(Box)`
   color: ${p => p.theme.gray6};
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(3)};
 `;
 
 const Note = styled(Box)`
   text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray3};
+  margin-bottom: ${space(3)};
 `;
