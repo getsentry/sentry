@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
 import {orderBy} from 'lodash';
+import Papa from 'papaparse';
 
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
@@ -231,3 +232,37 @@ const LightGray = styled.span`
 const DarkGray = styled.span`
   color: ${p => p.theme.gray5};
 `;
+
+/**
+ * Downloads a Snuba result object as CSV format
+ *
+ * @param {Object} result Result received from Snuba
+ * @param {Object} result.data Result data object from Snuba
+ * @param {String} result.meta Result metadata from Snuba
+ * @returns {Void}
+ */
+export function downloadAsCsv(result) {
+  const {meta, data} = result;
+  const headings = meta.map(({name}) => name);
+
+  const csvContent = Papa.unparse({
+    fields: headings,
+    data: data.map(row => {
+      return headings.map(col => quoteUnsafeStrings(row[col]));
+    }),
+  });
+
+  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+
+  window.location.assign(encodedDataUrl);
+}
+
+function quoteUnsafeStrings(value) {
+  const unsafeCharacterRegex = /^[\=\+\-\@]/;
+
+  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+    return `"${value}"`;
+  }
+
+  return value;
+}
