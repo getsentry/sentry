@@ -11,7 +11,7 @@ class SnubaUtilTest(TestCase):
             ['a', '=', '1'],
             ['b', '=', '1'],
         ]
-        assert snuba.all_referenced_columns(conditions) == set(['a', 'b'])
+        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b'])
 
         # a = 1 AND (b = 1 OR c = 1)
         conditions = [
@@ -21,7 +21,7 @@ class SnubaUtilTest(TestCase):
                 ['c', '=', '1'],
             ],
         ]
-        assert snuba.all_referenced_columns(conditions) == set(['a', 'b', 'c'])
+        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c'])
 
         # a = 1 AND (b = 1 OR foo(c) = 1)
         conditions = [
@@ -31,7 +31,7 @@ class SnubaUtilTest(TestCase):
                 [['foo', ['c']], '=', '1'],
             ],
         ]
-        assert snuba.all_referenced_columns(conditions) == set(['a', 'b', 'c'])
+        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c'])
 
         # a = 1 AND (b = 1 OR foo(c, bar(d)) = 1)
         conditions = [
@@ -41,4 +41,4 @@ class SnubaUtilTest(TestCase):
                 [['foo', ['c', ['bar', ['d']]]], '=', '1'],
             ],
         ]
-        assert snuba.all_referenced_columns(conditions) == set(['a', 'b', 'c', 'd'])
+        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c', 'd'])
