@@ -7,10 +7,13 @@ import {Box, Flex} from 'grid-emotion';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
+import space from 'app/styles/space';
 import Tooltip from 'app/components/charts/components/tooltip';
 
 import Table from './table';
 import {getChartData, getChartDataByDay, formatTooltip} from './utils';
+import {Heading} from '../styles';
+
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
@@ -60,24 +63,22 @@ export default class Result extends React.Component {
     }
 
     return (
-      <Flex justify="flex-end" align="center" my={2}>
-        <div className="btn-group">
-          {options.map(opt => {
-            const active = opt.id === this.state.view;
-            return (
-              <a
-                key={opt.id}
-                className={classNames('btn btn-default btn-sm', {active})}
-                onClick={() => {
-                  this.setState({view: opt.id});
-                }}
-              >
-                {opt.name}
-              </a>
-            );
-          })}
-        </div>
-      </Flex>
+      <div className="btn-group">
+        {options.map(opt => {
+          const active = opt.id === this.state.view;
+          return (
+            <a
+              key={opt.id}
+              className={classNames('btn btn-default btn-sm', {active})}
+              onClick={() => {
+                this.setState({view: opt.id});
+              }}
+            >
+              {opt.name}
+            </a>
+          );
+        })}
+      </div>
     );
   }
 
@@ -107,7 +108,12 @@ export default class Result extends React.Component {
 
     return (
       <div>
-        {this.renderToggle()}
+        <Flex align="center" mb={space(2)}>
+          <Box flex="1">
+            <Heading>Result</Heading>
+          </Box>
+          <Box justifySelf="flex-end">{this.renderToggle()}</Box>
+        </Flex>
 
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
