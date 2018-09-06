@@ -109,6 +109,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             }
         )
 
+        responses.add(
+            responses.GET,
+            u'https://api.github.com/repos/Test-Organization/foo/hooks',
+            json=[],
+        )
+
     def assert_setup_flow(self):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
@@ -173,6 +179,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             url='https://github.com/Test-Organization/foo',
             provider='github',
             external_id=123,
+            config={
+                'name': 'Test-Organization/foo',
+            },
         )
 
         inaccessible_repo = Repository.objects.create(
@@ -180,9 +189,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             name='Not-My-Org/other',
             provider='github',
             external_id=321,
+            config={
+                'name': 'Not-My-Org/other',
+            },
         )
 
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -212,27 +225,32 @@ class GitHubIntegrationTest(IntegrationTestCase):
             url='https://github.com/Test-Organization/foo',
             provider='github',
             external_id=123,
+            config={
+                'name': 'Test-Organization/foo',
+            },
         )
 
         assert 'github' in [p.slug for p in plugins.for_project(project)]
 
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         assert 'github' not in [p.slug for p in plugins.for_project(project)]
 
     @responses.activate
     def test_basic_flow(self):
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
 
         assert integration.external_id == self.installation_id
         assert integration.name == 'Test Organization'
         assert integration.metadata == {
-            'access_token': self.access_token,
+            'access_token': None,
             # The metadata doesn't get saved with the timezone "Z" character
             # for some reason, so just compare everything but that.
-            'expires_at': self.expires_at[:-1],
+            'expires_at': None,
             'icon': 'http://example.com/avatar.png',
             'domain_name': 'github.com/Test-Organization',
             'account_type': 'Organization',
@@ -366,12 +384,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
             url='https://github.com/Test-Organization/foo',
             provider='github',
             external_id='123',
+            config={
+                'name': 'Test-Organization/foo',
+            },
         )
 
         # Enabled before
         assert 'github' in [p.slug for p in plugins.for_project(project)]
 
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         # Disabled after Integration installed
         assert 'github' not in [p.slug for p in plugins.for_project(project)]
