@@ -9,9 +9,9 @@ from sentry.integrations import Integration, IntegrationFeatures, IntegrationPro
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.integrations.migrate import PluginMigrator
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 
 from .client import GitHubAppsClient
@@ -124,6 +124,18 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
         else:
             return ERR_INTERNAL
 
+    def has_repo_access(self, repo):
+        client = self.get_client()
+        try:
+            # make sure installation has access to this specific repo
+            # use hooks endpoint since we explicity ask for those permissions
+            # when installing the app (commits can be accessed for public repos)
+            # https://developer.github.com/v3/repos/hooks/#list-hooks
+            client.repo_hooks(repo.config['name'])
+        except ApiError:
+            return False
+        return True
+
 
 class GitHubIntegrationProvider(IntegrationProvider):
     key = 'github'
@@ -143,19 +155,17 @@ class GitHubIntegrationProvider(IntegrationProvider):
     }
 
     def post_install(self, integration, organization):
-        repos = Repository.objects.filter(
+        repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider='github',
-        )
+        ).values_list('id', flat=True)
 
-        unmigratable_repos = self \
-            .get_installation(integration, organization.id) \
-            .get_unmigratable_repositories()
-
-        for repo in filter(lambda r: r not in unmigratable_repos, repos):
-            repo.update(integration_id=integration.id)
-
-        PluginMigrator(integration, organization).call()
+        for repo_id in repo_ids:
+            migrate_repo.apply_async(kwargs={
+                'repo_id': repo_id,
+                'integration_id': integration.id,
+                'organization_id': organization.id,
+            })
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
