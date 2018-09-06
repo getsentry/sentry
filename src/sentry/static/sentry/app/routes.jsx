@@ -766,14 +766,14 @@ function routes() {
             <Route
               path="browsers"
               componentPromise={() =>
-                import(/*webpackChunkName: HealthErrors*/ './views/organizationHealth/browsers')}
+                import(/*webpackChunkName: HealthBrowsers*/ './views/organizationHealth/browsers')}
               component={errorHandler(LazyLoad)}
             />
 
             <Route
               path="devices"
               componentPromise={() =>
-                import(/*webpackChunkName: HealthErrors*/ './views/organizationHealth/devices')}
+                import(/*webpackChunkName: HealthDevices*/ './views/organizationHealth/devices')}
               component={errorHandler(LazyLoad)}
             />
           </Route>
