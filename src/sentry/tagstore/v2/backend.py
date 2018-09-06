@@ -940,6 +940,7 @@ class V2TagStorage(TagStorage):
                     _value__value=v,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
+
             else:
                 base_qs = models.GroupTagValue.objects.filter(
                     project_id=project_id,
