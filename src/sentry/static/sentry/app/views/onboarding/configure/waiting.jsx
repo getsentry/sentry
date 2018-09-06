@@ -22,12 +22,6 @@ class Waiting extends React.Component {
     };
   }
 
-  getInitialState() {
-    return {
-      component: null,
-    };
-  }
-
   componentDidMount() {
     this.getComponent();
   }
