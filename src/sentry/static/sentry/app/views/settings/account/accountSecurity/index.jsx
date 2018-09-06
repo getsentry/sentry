@@ -12,6 +12,8 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ListLink from 'app/components/listLink';
+import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel.jsx';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp.jsx';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -25,6 +27,7 @@ const AuthenticatorName = styled.span`
   font-size: 1.2em;
 `;
 
+
 class AccountSecurity extends AsyncView {
   static PropTypes = {
     authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -33,6 +36,7 @@ class AccountSecurity extends AsyncView {
     deleteDisabled: PropTypes.bool.isRequired,
     onDisable: PropTypes.func.isRequired,
   };
+
   getTitle() {
     return t('Security');
   }
@@ -40,6 +44,16 @@ class AccountSecurity extends AsyncView {
   getEndpoints() {
     return [];
   }
+
+  handleSessionClose = () => {
+    this.api.request('/auth/', {
+      method: 'DELETE',
+      data: {all: true},
+      success: () => {
+        window.location = '/auth/login'
+      }
+    });
+  };
 
   renderBody() {
     let {
@@ -66,6 +80,23 @@ class AccountSecurity extends AsyncView {
           countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
 
         <PasswordForm />
+
+        <Panel>
+          <PanelHeader>{t('Sessions')}</PanelHeader>
+          <PanelBody>
+            <PanelItem>
+              <Flex w={1} justify="space-between">
+                <Box>
+                  <FieldLabel>{t('Sign out of all devices')}</FieldLabel>
+                  <FieldHelp>
+                    {t('Signing out of all devices will sign you out of this device as well.')}
+                  </FieldHelp>
+                </Box>
+                <Button onClick={this.handleSessionClose}>{t('Sign out of all devices')}</Button>
+              </Flex>
+            </PanelItem>
+          </PanelBody>
+        </Panel>
 
         <Panel>
           <PanelHeader>
