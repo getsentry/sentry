@@ -15,7 +15,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from operator import or_
 from six.moves import reduce
@@ -936,6 +936,7 @@ class V2TagStorage(TagStorage):
                     _key__project_id=project_id,
                     _key__key=k,
                     _value__project_id=project_id,
+                    _value___key=F('_key'),
                     _value__value=v,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
