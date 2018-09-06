@@ -279,6 +279,14 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             )
         )
 
+    def update_subscription(self, instance, subscription_id):
+        self.put(
+            VstsApiPath.subscription.format(
+                instance=instance,
+                subscription_id=subscription_id,
+            )
+        )
+
     def search_issues(self, account_name, query=None):
         return self.post(
             VstsApiPath.work_item_search.format(
