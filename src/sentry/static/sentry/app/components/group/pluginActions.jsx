@@ -98,6 +98,7 @@ const PluginActions = createReactClass({
       <React.Fragment>
         <IssueSyncListElement
           onOpen={this.openModal}
+          externalIssueDisplayName={issue ? issue.label : null}
           externalIssueId={issue ? issue.issue_id : null}
           externalIssueLink={issue ? issue.url : null}
           onClose={this.deleteIssue}
