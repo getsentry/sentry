@@ -27,6 +27,7 @@ import {isValidAggregation} from './aggregations/utils';
 import {Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
 
 import {getQueryStringFromQuery} from './utils';
+import {trackQuery} from './analytics';
 
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
@@ -71,6 +72,10 @@ export default class OrganizationDiscover extends React.Component {
 
   runQuery = () => {
     const {queryBuilder, organization} = this.props;
+
+    // Track query for analytics
+    trackQuery(organization, queryBuilder.getExternal());
+
     // Strip any invalid conditions and aggregations
     const {conditions, aggregations} = queryBuilder.getInternal();
     const filteredConditions = conditions.filter(condition =>
