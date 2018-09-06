@@ -263,6 +263,14 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             },
         )
 
+    def get_subscription(self, instance, subscription_id):
+        return self.get(
+            VstsApiPath.subscription.format(
+                instance=instance,
+                subscription_id=subscription_id,
+            )
+        )
+
     def delete_subscription(self, instance, subscription_id):
         self.delete(
             VstsApiPath.subscription.format(

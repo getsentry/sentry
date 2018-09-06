@@ -1,14 +1,16 @@
 from __future__ import absolute_import
+from datetime import datetime
 
 import logging
 
 from sentry import analytics, features
 from sentry.models import (
     ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
-    ObjectStatus, Repository, User
+    ObjectStatus, OrganizationIntegration, Repository, User
 )
-from sentry.integrations.exceptions import IntegrationError
+
 from sentry.mediators.plugins import Migrator
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.tasks.base import instrumented_task, retry
 
 logger = logging.getLogger('sentry.tasks.integrations')
@@ -207,3 +209,61 @@ def migrate_repo(repo_id, integration_id, organization_id):
             integration=integration,
             organization=Organization.objects.get(id=organization_id),
         )
+
+@instrumented_task(
+    name='sentry.tasks.integrations.vsts_subscription_check_kickoff',
+    queue='integrations',
+    default_retry_delay=60 * 5,  # TODO(lb): not sure what this should be
+    max_retries=5,
+)
+@retry()
+def kickoff_vsts_subscription_check():
+    all_integrations = Integration.objects.filter(
+        provider='vsts',
+    )
+    subscription_check_interval = None  # RAWR
+    integrations_to_check = []
+    for integration in all_integrations:
+        try:
+            subscription = integration.metadata['subscription']
+        except KeyError:
+            continue
+        try:
+            if subscription['check'] <= subscription_check_interval:  # 6 hours?
+                integrations_to_check.append(integration)
+        except KeyError:
+            integrations_to_check.append(integration)
+
+    for integration in integrations_to_check:
+        organization_ids = OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+        ).values_list('organization_id', flatten=True)
+        for organization_id in organization_ids:
+            vsts_subscription_check(integration, organization_id)
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.vsts_subscription_check',
+    queue='integrations',
+    default_retry_delay=60 * 5,  # TODO(lb): not sure what this should be
+    max_retries=5,
+)
+@retry(exclude=(ApiError, ApiUnauthorized))
+def vsts_subscription_check(integration, organization_id):
+    installation = integration.get_installation(organization_id=organization_id)
+    client = installation.get_client()
+    subscription_id = integration.metadata['subscription']['id']
+    subscription = client.get_subscription(
+        instance=installation.instance,
+        subscription_id=subscription_id,
+    )
+
+    # TODO(lb): looked at 'onProbation' status cannot tell how/if it affects functionality
+    # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
+    if subscription['status'] == 'disabledBySystem':
+        client.update_subscription(
+            instance=installation.instance,
+            subscription_id=subscription_id,
+        )
+        integration.metadata['subscription']['check'] = datetime.now()
+        integration.save()
