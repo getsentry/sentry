@@ -12,9 +12,8 @@ import withHealth from './util/withHealth';
 
 class OrganizationHealthDevices extends React.Component {
   render() {
-    let {className} = this.props;
     return (
-      <div className={className}>
+      <React.Fragment>
         <Flex justify="space-between">
           <Header>{t('Devices')}</Header>
         </Flex>
@@ -54,7 +53,7 @@ class OrganizationHealthDevices extends React.Component {
             </React.Fragment>
           )}
         </HealthRequest>
-      </div>
+      </React.Fragment>
     );
   }
 }
