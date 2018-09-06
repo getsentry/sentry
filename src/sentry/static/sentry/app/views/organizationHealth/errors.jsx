@@ -37,12 +37,7 @@ class OrganizationHealthErrors extends React.Component {
     return (
       <React.Fragment>
         <Flex justify="space-between">
-          <Header>
-            {t('Errors')}
-            <SubduedCount>
-              (<Count value={12198} />)
-            </SubduedCount>
-          </Header>
+          <Header>{t('Errors')}</Header>
         </Flex>
 
         <Flex>
@@ -335,11 +330,6 @@ export {OrganizationHealthErrors};
 const PieChartWrapper = styled(Box)`
   flex: 1;
   flex-shrink: 0;
-`;
-
-const SubduedCount = styled('span')`
-  color: ${p => p.theme.gray1};
-  margin-left: ${space(0.5)};
 `;
 
 const ReleaseName = styled(Box)`
