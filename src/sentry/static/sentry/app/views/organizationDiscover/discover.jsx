@@ -314,7 +314,7 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
           </Sidebar>
-          <Flex flex="1" direction="column" px={space(4)} py={space(2)}>
+          <Flex flex="1" direction="column" px={space(4)} pt={space(2)} pb={space(3)}>
             {data && (
               <Result
                 data={data}
@@ -338,6 +338,7 @@ const SidebarHeader = styled(Flex)`
 
 const DiscoverBody = styled(Flex)`
   min-height: calc(100vh - 152px);
+  margin-bottom: -${space(3)};
 `;
 
 const Sidebar = styled(Box)`

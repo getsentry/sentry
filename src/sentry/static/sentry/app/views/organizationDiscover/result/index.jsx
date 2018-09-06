@@ -7,6 +7,7 @@ import {Box, Flex} from 'grid-emotion';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
+import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/charts/components/tooltip';
 
@@ -117,55 +118,67 @@ export default class Result extends React.Component {
 
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
-          <LineChart
-            series={basicChartData}
-            height={300}
-            options={{
-              tooltip: Tooltip({
-                formatter: formatTooltip,
-              }),
-            }}
-          />
+          <Panel>
+            <Box px={space(2)} py={space(1.5)}>
+              <LineChart
+                series={basicChartData}
+                height={300}
+                options={{
+                  tooltip: Tooltip({
+                    formatter: formatTooltip,
+                  }),
+                }}
+              />
+            </Box>
+          </Panel>
         )}
         {view === 'bar' && (
-          <BarChart
-            series={basicChartData}
-            height={300}
-            options={{
-              tooltip: Tooltip({
-                formatter: formatTooltip,
-              }),
-            }}
-          />
+          <Panel>
+            <Box px={space(2)} py={space(1.5)}>
+              <BarChart
+                series={basicChartData}
+                height={300}
+                options={{
+                  tooltip: Tooltip({
+                    formatter: formatTooltip,
+                  }),
+                }}
+              />
+            </Box>
+          </Panel>
         )}
         {view === 'line-by-day' && (
-          <React.Fragment>
-            <LineChart
-              series={byDayChartData}
-              height={300}
-              options={{
-                tooltip: Tooltip({
-                  formatter: formatTooltip,
-                }),
-              }}
-            />
-            {this.renderNote()}
-          </React.Fragment>
+          <Panel>
+            <Box px={space(2)} py={space(1.5)}>
+              <LineChart
+                series={byDayChartData}
+                height={300}
+                options={{
+                  tooltip: Tooltip({
+                    formatter: formatTooltip,
+                  }),
+                }}
+              />
+              {this.renderNote()}
+            </Box>
+          </Panel>
         )}
         {view === 'bar-by-day' && (
-          <React.Fragment>
-            <BarChart
-              series={byDayChartData}
-              stacked={true}
-              height={300}
-              options={{
-                tooltip: Tooltip({
-                  formatter: formatTooltip,
-                }),
-              }}
-            />
-            {this.renderNote()}
-          </React.Fragment>
+          <Panel>
+            <Box px={space(2)} py={space(1.5)}>
+              <BarChart
+                series={byDayChartData}
+                stacked={true}
+                height={300}
+                options={{
+                  tooltip: Tooltip({
+                    formatter: formatTooltip,
+                  }),
+                }}
+              />
+              {this.renderNote()}
+            </Box>
+          </Panel>
         )}
         {this.renderSummary()}
       </div>
