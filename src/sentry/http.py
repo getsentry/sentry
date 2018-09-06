@@ -16,6 +16,7 @@ import requests
 import warnings
 import time
 import logging
+from ssl import wrap_socket
 
 from sentry import options
 from django.core.exceptions import SuspiciousOperation
@@ -86,19 +87,25 @@ def is_valid_url(url):
     """
     Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
     """
+    return is_safe_hostname(urlparse(url).hostname)
+
+
+def is_safe_hostname(hostname):
+    """
+    Tests a hostname to ensure it doesn't appear to be a blacklisted IP range.
+    """
     # If we have no disallowed ips, we can skip any further validation
     # and there's no point in doing a DNS lookup to validate against
     # an empty list.
     if not DISALLOWED_IPS:
         return True
 
-    parsed = urlparse(url)
-    if not parsed.hostname:
+    if not hostname:
         return False
 
     server_hostname = get_server_hostname()
 
-    if parsed.hostname == server_hostname:
+    if hostname == server_hostname:
         return True
 
     # NOTE: The use of `socket.gethostbyname` is slightly flawed.
@@ -122,7 +129,7 @@ def is_valid_url(url):
     # >>> socket.getaddrinfo('0177.0000.0000.0001', None)[0]
     # (2, 2, 17, '', ('177.0.0.1', 0))
     try:
-        ip_addresses = set(addr for _, _, _, _, addr in socket.getaddrinfo(parsed.hostname, 0))
+        ip_addresses = set(addr for _, _, _, _, addr in socket.getaddrinfo(hostname, 0))
     except socket.gaierror:
         return False
 
@@ -367,3 +374,18 @@ def fetch_file(
             response.close()
 
     return UrlResult(url, result[0], result[1], result[2], result[3])
+
+
+def safe_socket_connect(address, timeout=30, ssl=False):
+    """
+    Creates a socket and connects to address, but prevents connecting to
+    our disallowed IP blocks.
+    """
+    if not is_safe_hostname(address[0]):
+        raise RestrictedIPAddress('%s matches the hostname blacklist' % address[0])
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(timeout)
+    s.connect(address)
+    if not ssl:
+        return s
+    return wrap_socket(s)

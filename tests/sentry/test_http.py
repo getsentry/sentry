@@ -59,6 +59,11 @@ class HttpTest(TestCase):
             # '0177.0000.0000.0001' is an octal for '127.0.0.1'
             http.safe_urlopen('http://0177.0000.0000.0001')
 
+    def test_safe_socket_connect(self):
+        http.DISALLOWED_IPS = set([ipaddress.ip_network(u'127.0.0.1')])
+        with pytest.raises(SuspiciousOperation):
+            http.safe_socket_connect(('127.0.0.1', 80))
+
     @responses.activate
     def test_fetch_file(self):
         responses.add(
