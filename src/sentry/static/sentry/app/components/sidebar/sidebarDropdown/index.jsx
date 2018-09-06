@@ -15,11 +15,12 @@ import ConfigStore from 'app/stores/configStore';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
+import withApi from 'app/utils/withApi.jsx';
 
 import SwitchOrganization from './switchOrganization';
 import Divider from './divider.styled';
 
-class SidebarDropdown extends React.Component {
+const SidebarDropdown = withApi(class SidebarDropdown extends React.Component {
   static propTypes = {
     orientation: PropTypes.oneOf(['top', 'left']),
     collapsed: PropTypes.bool,
@@ -31,6 +32,17 @@ class SidebarDropdown extends React.Component {
 
   static defaultProps = {
     onClick: () => {},
+  };
+
+  handleLogout = (...args) => {
+    let {api} = this.props;
+
+    api.request('/auth/', {
+      method: 'DELETE',
+      success: (res) => {
+        window.location = '/auth/login';
+      }
+    });
   };
 
   render() {
@@ -140,7 +152,7 @@ class SidebarDropdown extends React.Component {
                         {user.isSuperuser && (
                           <SidebarMenuItem to={'/manage/'}>{t('Admin')}</SidebarMenuItem>
                         )}
-                        <SidebarMenuItem href="/auth/logout/">
+                        <SidebarMenuItem onClick={this.handleLogout}>
                           {t('Sign out')}
                         </SidebarMenuItem>
                       </div>
@@ -154,7 +166,7 @@ class SidebarDropdown extends React.Component {
       </DropdownMenu>
     );
   }
-}
+});
 
 export default SidebarDropdown;
 
