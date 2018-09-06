@@ -79,8 +79,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
-    start = start if not start.tzinfo else start.astimezone(pytz.utc).replace(tzinfo=None)
-    end = end if not end.tzinfo else end.astimezone(pytz.utc).replace(tzinfo=None)
+    start = naiveify_datetime(start)
+    end = naiveify_datetime(end)
 
     groupby = groupby or []
     conditions = conditions or []
@@ -133,11 +133,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     with timer('get_project_issues'):
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
-    if len(issues) == 1:
-        group_id = issues[0][0]
-        group = Group.objects.get(pk=group_id)
-        start = max(start, group.first_seen - timedelta(minutes=5))
-        end = min(end, group.last_seen + timedelta(minutes=5))
+    start, end = shrink_time_window(issues, start, end)
 
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
@@ -454,3 +450,17 @@ def insert_raw(data):
             )
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
+
+
+def shrink_time_window(issues, start, end):
+    if issues and len(issues) == 1:
+        group_id = issues[0][0]
+        group = Group.objects.get(pk=group_id)
+        start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
+        end = min(end, naiveify_datetime(group.last_seen) + timedelta(minutes=5))
+
+    return start, end
+
+
+def naiveify_datetime(dt):
+    return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)

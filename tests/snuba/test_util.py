@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+
 from sentry.testutils import TestCase
 from sentry.utils import snuba
 
@@ -42,3 +44,29 @@ class SnubaUtilTest(TestCase):
             ],
         ]
         assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c', 'd'])
+
+    def test_shrink_timeframe(self):
+        now = datetime.now()
+        year_ago = now - timedelta(days=365)
+        year_ahead = now + timedelta(days=365)
+
+        issues = None
+        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
+
+        issues = []
+        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
+
+        group1 = self.create_group()
+        group2 = self.create_group()
+
+        # issues is a list like [(gid, pid, [(hash, tombstone_date), ...]), ...]
+        issues = [(group1.id, group1.project_id, [('a' * 32, None)])]
+        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == \
+            (snuba.naiveify_datetime(group1.first_seen) - timedelta(minutes=5),
+             snuba.naiveify_datetime(group1.last_seen) + timedelta(minutes=5))
+
+        issues = [
+            (group1.id, group1.project_id, [('a' * 32, None)]),
+            (group2.id, group2.project_id, [('b' * 32, None)]),
+        ]
+        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
