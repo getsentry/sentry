@@ -659,7 +659,6 @@ exports[`Configure should render correctly render() should render platform docs 
                       </Component>
                     </StyledButton>
                   </Button>
-                  0
                 </div>
               </div>
             </CenteredButtons>
