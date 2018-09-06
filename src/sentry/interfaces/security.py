@@ -41,6 +41,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     'mbinit://*',
     'symres://*',
     'resource://*',
+    'moz-extension://*',
     '*.metrext.com',
     'static.image2play.com',
     '*.tlscdn.com',
