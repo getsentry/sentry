@@ -2,7 +2,8 @@ import theme from 'app/utils/theme';
 
 export default function XAxis(props = {}) {
   return {
-    boundaryGap: true,
+    type: 'category',
+    boundaryGap: false,
     axisLine: {
       lineStyle: {
         color: theme.gray1,

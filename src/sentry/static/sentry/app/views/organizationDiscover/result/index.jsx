@@ -10,11 +10,11 @@ import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
-import Tooltip from 'app/components/charts/components/tooltip';
 
 import {getChartData, getChartDataByDay, formatTooltip, downloadAsCsv} from './utils';
 import Table from './table';
 import {Heading} from '../styles';
+import {getChartData, getChartDataByDay} from './utils';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
@@ -118,6 +118,11 @@ export default class Result extends React.Component {
 
     const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
 
+    const tooltipOptions = {
+      filterNull: true,
+      truncate: 80,
+    };
+
     return (
       <div>
         <Flex align="center" mb={space(2)}>
@@ -130,41 +135,17 @@ export default class Result extends React.Component {
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
           <ChartWrapper>
-            <LineChart
-              series={basicChartData}
-              height={300}
-              options={{
-                tooltip: Tooltip({
-                  formatter: formatTooltip,
-                }),
-              }}
-            />
+            <LineChart series={basicChartData} height={300} tooltip={tooltipOptions} />
           </ChartWrapper>
         )}
         {view === 'bar' && (
           <ChartWrapper>
-            <BarChart
-              series={basicChartData}
-              height={300}
-              options={{
-                tooltip: Tooltip({
-                  formatter: formatTooltip,
-                }),
-              }}
-            />
+            <BarChart series={basicChartData} height={300} tooltip={tooltipOptions} />
           </ChartWrapper>
         )}
         {view === 'line-by-day' && (
           <ChartWrapper>
-            <LineChart
-              series={byDayChartData}
-              height={300}
-              options={{
-                tooltip: Tooltip({
-                  formatter: formatTooltip,
-                }),
-              }}
-            />
+            <LineChart series={byDayChartData} height={300} tooltip={tooltipOptions} />
             {this.renderNote()}
           </ChartWrapper>
         )}
@@ -174,11 +155,7 @@ export default class Result extends React.Component {
               series={byDayChartData}
               stacked={true}
               height={300}
-              options={{
-                tooltip: Tooltip({
-                  formatter: formatTooltip,
-                }),
-              }}
+              tooltip={tooltipOptions}
             />
             {this.renderNote()}
           </ChartWrapper>
