@@ -299,6 +299,7 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response({'issue_url': self.get_issue_url(group, issue),
                          'link': self._get_issue_url_compat(group, issue),
+                         'label': self._get_issue_label_compat(group, issue),
                          'id': issue['id']})
 
     def view_link(self, request, group, **kwargs):
@@ -360,6 +361,7 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response({'message': 'Successfully linked issue.',
                          'link': self._get_issue_url_compat(group, issue),
+                         'label': self._get_issue_label_compat(group, issue),
                          'id': issue['id']})
 
     def view_unlink(self, request, group, **kwargs):
