@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import {Flex} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import Button from 'app/components/button';
 import HeaderItem from 'app/components/organizations/headerItem';
@@ -101,9 +102,12 @@ class TimeRangeSelector extends React.Component {
       : `${ALLOWED_RELATIVE_DATES[relative]}`;
 
     return (
-      <HeaderItem className={className} label={t('Time Range')}>
+      <HeaderItem
+        className={className}
+        label={t('Time frame')}
+      >
         <DropdownLink
-          title={<DynamicWrapper value={summary} fixed="start to end" />}
+          title={<DynamicWrapper value={<Title>{summary}</Title>} fixed="start to end" />}
           anchorRight={true}
           keepMenuOpen={true}
           isOpen={this.state.isOpen}
@@ -131,5 +135,9 @@ class TimeRangeSelector extends React.Component {
     );
   }
 }
+
+const Title = styled.span`
+  padding-right: 40px;
+`;
 
 export default TimeRangeSelector;
