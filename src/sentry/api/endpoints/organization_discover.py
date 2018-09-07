@@ -113,7 +113,7 @@ class DiscoverSerializer(serializers.Serializer):
             value = condition[2]
 
             if (isinstance(value, six.string_types)):
-                value = "'{}'".format(value)
+                value = u"'{}'".format(value)
 
             bool_value = 1 if condition[1] == '=' else 0
 
