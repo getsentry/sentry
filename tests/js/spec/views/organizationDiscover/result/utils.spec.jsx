@@ -226,7 +226,7 @@ describe('Utils', function() {
       downloadAsCsv(result);
       expect(locationSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          encodeURI('message\r\n"""=HYPERLINK(http://some-bad-website)"""')
+          encodeURI("message\r\n'=HYPERLINK(http://some-bad-website)")
         )
       );
     });

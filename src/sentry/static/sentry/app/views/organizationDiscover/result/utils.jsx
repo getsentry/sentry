@@ -248,7 +248,7 @@ export function downloadAsCsv(result) {
   const csvContent = Papa.unparse({
     fields: headings,
     data: data.map(row => {
-      return headings.map(col => quoteUnsafeStrings(row[col]));
+      return headings.map(col => disableMacros(row[col]));
     }),
   });
 
@@ -257,11 +257,11 @@ export function downloadAsCsv(result) {
   window.location.assign(encodedDataUrl);
 }
 
-function quoteUnsafeStrings(value) {
+function disableMacros(value) {
   const unsafeCharacterRegex = /^[\=\+\-\@]/;
 
   if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
-    return `"${value}"`;
+    return `'${value}`;
   }
 
   return value;
