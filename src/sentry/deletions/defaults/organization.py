@@ -17,9 +17,19 @@ class OrganizationDeletionTask(ModelDeletionTask):
         ]
 
         model_list = (
-            OrganizationMember, CommitFileChange, Commit, CommitAuthor, Environment, Repository,
-            Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution,
-            ReleaseHeadCommit, Project,
+            OrganizationMember,
+            CommitFileChange,
+            Commit,
+            CommitAuthor,
+            Environment,
+            Repository,
+            Project,
+            Release,  # Depends on Group deletions, a child of Project
+            ReleaseCommit,
+            ReleaseEnvironment,
+            ReleaseFile,
+            Distribution,
+            ReleaseHeadCommit,
         )
         relations.extend([ModelRelation(m, {'organization_id': instance.id}) for m in model_list])
 
