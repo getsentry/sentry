@@ -55,6 +55,7 @@
     "moment": "2.22.0",
     "moment-timezone": "0.5.4",
     "node-libs-browser": "0.5.3",
+    "papaparse": "^4.6.0",
     "platformicons": "2.0.3",
     "po-catalog-loader": "2.0.0",
     "prop-types": "^15.6.0",
