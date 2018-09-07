@@ -5,14 +5,6 @@ from sentry.plugins import plugins
 from sentry.utils.cache import memoize
 
 
-DISABLEABLE_PLUGINS = (
-    'vsts',
-    'bitbucket',
-    'github',
-    'example',  # Tests
-)
-
-
 class PluginMigrator(object):
     def __init__(self, integration, organization):
         self.integration = integration
@@ -21,7 +13,7 @@ class PluginMigrator(object):
     def call(self):
         for project in self.projects:
             for plugin in plugins.for_project(project):
-                if plugin.slug not in DISABLEABLE_PLUGINS:
+                if plugin.slug != self.integration.provider:
                     continue
 
                 if self.all_repos_migrated(plugin.slug):
