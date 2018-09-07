@@ -117,7 +117,7 @@ class DiscoverSerializer(serializers.Serializer):
 
             bool_value = 1 if condition[1] == '=' else 0
 
-            return [["has", [array_field.group(0), value]], "=", bool_value]
+            return [['has', [array_field.group(0), value]], '=', bool_value]
 
         return condition
 
