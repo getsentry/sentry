@@ -64,6 +64,9 @@ class GroupTagValue(Model):
         if hasattr(self, '__key_cache'):
             return self._key.key
 
+        if hasattr(self, '__value__cache') and hasattr(self.__value__cache, '__key_cache'):
+            return self.__value__cache.__key_cache.key
+
         # fallback
         from sentry.tagstore.v2.models import TagKey
 
