@@ -1,4 +1,4 @@
-const PROMOTED_TAGS = [
+export const PROMOTED_TAGS = [
   {name: 'tags[level]', type: 'string'},
   {name: 'tags[logger]', type: 'string'},
   {name: 'tags[server_name]', type: 'string'},
@@ -19,7 +19,7 @@ const PROMOTED_TAGS = [
   {name: 'tags[sentry:release]', type: 'string'},
 ];
 
-const COLUMNS = [
+export const COLUMNS = [
   {name: 'event_id', type: 'string'},
   {name: 'project_id', type: 'string'},
   {name: 'platform', type: 'string'},
@@ -69,7 +69,7 @@ const COLUMNS = [
   {name: 'exception_frames.stack_level', type: 'string'},
 ];
 
-const CONDITION_OPERATORS = [
+export const CONDITION_OPERATORS = [
   '>',
   '<',
   '>=',
@@ -83,6 +83,6 @@ const CONDITION_OPERATORS = [
   'NOT LIKE',
 ];
 
-const NUMBER_OF_SERIES_BY_DAY = 10;
+export const ARRAY_FIELD_PREFIXES = ['exception_stacks', 'exception_frames'];
 
-export {COLUMNS, PROMOTED_TAGS, CONDITION_OPERATORS, NUMBER_OF_SERIES_BY_DAY};
+export const NUMBER_OF_SERIES_BY_DAY = 10;
