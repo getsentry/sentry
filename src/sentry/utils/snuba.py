@@ -33,7 +33,11 @@ class SnubaError(Exception):
     pass
 
 
-class EntireQueryOutsideRetentionError(Exception):
+class QueryOutsideRetentionError(Exception):
+    pass
+
+
+class QueryOutsideGroupActivityError(Exception):
     pass
 
 
@@ -121,7 +125,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
-            raise EntireQueryOutsideRetentionError
+            raise QueryOutsideRetentionError
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
@@ -134,6 +138,12 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
 
     start, end = shrink_time_window(issues, start, end)
+
+    # if `shrink_time_window` pushed `start` after `end` it means the user queried
+    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
+    # wouldn't return any results anyway
+    if start > end:
+        raise QueryOutsideGroupActivityError
 
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
@@ -195,8 +205,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             arrayjoin=arrayjoin, limit=limit, orderby=orderby, having=having,
             referrer=referrer, is_grouprelease=is_grouprelease, totals=totals
         )
-    except EntireQueryOutsideRetentionError:
-        # this exception could also bubble up to the caller instead
+    except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
