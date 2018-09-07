@@ -85,7 +85,7 @@ class U2fEnrolledDetails extends React.Component {
               </PanelItem>
             ))}
           <PanelItem justify="flex-end" p={2}>
-            <Button type="button" to="/settings/account/security/u2f/enroll/">
+            <Button type="button" to="/settings/account/security/mfa/u2f/enroll/">
               {t('Add Another Device')}
             </Button>
           </PanelItem>

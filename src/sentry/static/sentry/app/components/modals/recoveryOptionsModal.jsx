@@ -82,7 +82,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             <Button
               priority="primary"
               onClick={closeModal}
-              to={`/settings/account/security/${sms.id}/enroll/`}
+              to={`/settings/account/security/mfa/${sms.id}/enroll/`}
               name="addPhone"
               css={{marginLeft: space(1)}}
               autoFocus
@@ -98,7 +98,7 @@ class RecoveryOptionsModal extends AsyncComponent {
               onClick={closeModal}
               to={
                 recoveryEnrolled
-                  ? `/settings/account/security/${recovery.authId}/`
+                  ? `/settings/account/security/mfa/${recovery.authId}/`
                   : '/settings/account/security/'
               }
               name="getCodes"
