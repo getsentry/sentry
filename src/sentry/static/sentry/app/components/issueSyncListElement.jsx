@@ -25,7 +25,6 @@ class IssueSyncElement extends React.Component {
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
-    integrationName: PropTypes.string,
     hoverCardHeader: PropTypes.node,
     hoverCardBody: PropTypes.node,
   };

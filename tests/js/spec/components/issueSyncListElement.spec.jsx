@@ -26,7 +26,7 @@ describe('AlertLink', function() {
       <IssueSyncListElement
         integrationType="github"
         externalIssueLink="github.com/issues/gh-101"
-        externalIssueId="GH-101"
+        externalIssueId={101}
         onClose={onClose}
         onOpen={onOpen}
       />
