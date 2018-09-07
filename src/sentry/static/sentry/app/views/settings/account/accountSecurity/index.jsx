@@ -11,9 +11,8 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
 import ListLink from 'app/components/listLink';
-import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel.jsx';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp.jsx';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -26,7 +25,6 @@ import recreateRoute from 'app/utils/recreateRoute';
 const AuthenticatorName = styled.span`
   font-size: 1.2em;
 `;
-
 
 class AccountSecurity extends AsyncView {
   static PropTypes = {
@@ -50,8 +48,8 @@ class AccountSecurity extends AsyncView {
       method: 'DELETE',
       data: {all: true},
       success: () => {
-        window.location = '/auth/login'
-      }
+        window.location = '/auth/login/';
+      },
     });
   };
 
@@ -84,17 +82,18 @@ class AccountSecurity extends AsyncView {
         <Panel>
           <PanelHeader>{t('Sessions')}</PanelHeader>
           <PanelBody>
-            <PanelItem>
-              <Flex w={1} justify="space-between">
-                <Box>
-                  <FieldLabel>{t('Sign out of all devices')}</FieldLabel>
-                  <FieldHelp>
-                    {t('Signing out of all devices will sign you out of this device as well.')}
-                  </FieldHelp>
-                </Box>
-                <Button onClick={this.handleSessionClose}>{t('Sign out of all devices')}</Button>
-              </Flex>
-            </PanelItem>
+            <Field
+              alignRight={true}
+              flexibleControlStateSize={true}
+              label={t('Sign out of all devices')}
+              help={t(
+                'Signing out of all devices will sign you out of this device as well.'
+              )}
+            >
+              <Button data-test-id="signoutAll" onClick={this.handleSessionClose}>
+                {t('Sign out of all devices')}
+              </Button>
+            </Field>
           </PanelBody>
         </Panel>
 
