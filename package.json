@@ -78,6 +78,7 @@
     "react-virtualized": "^9.20.1",
     "reflux": "0.4.1",
     "scroll-to-element": "^2.0.0",
+    "sentry-dreamy-components": "chrissy/dreamy-components",
     "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
     "svg-sprite-loader": "^3.4.1",
