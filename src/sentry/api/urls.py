@@ -168,6 +168,7 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
@@ -317,6 +318,11 @@ urlpatterns = patterns(
         r'^users/(?P<user_id>[^\/]+)/identities/(?P<identity_id>[^\/]+)/$',
         UserIdentityDetailsEndpoint.as_view(),
         name='sentry-api-0-user-identity-details'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/ips/$',
+        UserIPsEndpoint.as_view(),
+        name='sentry-api-0-user-ips'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/organizations/$',
