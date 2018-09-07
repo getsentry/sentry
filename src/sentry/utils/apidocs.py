@@ -492,6 +492,8 @@ class Runner(object):
         return rv
 
     def to_json(self):
+        """Convert the current scenario into a dict
+        """
         doc = extract_documentation(self.func)
         title, text = extract_title_and_text(doc)
         return {

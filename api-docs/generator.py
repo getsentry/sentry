@@ -16,7 +16,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 SENTRY_CONFIG = os.environ['SENTRY_CONF'] = os.path.join(HERE, 'sentry.conf.py')
 os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
-# No sentry or django imports before that point
+# No sentry or django imports before this point
 from sentry.runner import configure
 configure()
 from django.conf import settings
@@ -89,7 +89,7 @@ def management_connection():
 
 def init_db():
     drop_db()
-    report('db', 'Migrating database (this can time some time)')
+    report('db', 'Migrating database (this can take some time)')
     call_command('syncdb', migrate=True, interactive=False,
                  traceback=True, verbosity=0)
 
