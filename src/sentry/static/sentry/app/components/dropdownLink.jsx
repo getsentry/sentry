@@ -86,11 +86,7 @@ class DropdownLink extends React.Component {
               >
                 <div className="dropdown-actor-title">
                   <span>{title}</span>
-                  {caret && (
-                    <i
-                      className="icon-arrow-down"
-                    />
-                  )}
+                  {caret && <i className="icon-arrow-down" />}
                 </div>
               </a>
 
@@ -110,6 +106,5 @@ class DropdownLink extends React.Component {
     );
   }
 }
-
 
 export default DropdownLink;
