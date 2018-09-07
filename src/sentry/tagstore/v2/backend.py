@@ -1077,9 +1077,11 @@ class V2TagStorage(TagStorage):
 
         if queryset.model == models.TagKey:
             return queryset.filter(environment_id=environment_id)
-        elif queryset.model in (models.EventTag,):
+        elif queryset.model == models.EventTag:
             return queryset.filter(key__environment_id=environment_id)
-        elif queryset.model in (models.TagValue, models.GroupTagKey, models.GroupTagValue):
+        elif queryset.model in (models.TagValue, models.GroupTagKey):
             return queryset.filter(_key__environment_id=environment_id)
+        elif queryset.model == models.GroupTagValue:
+            return queryset.filter(_value___key__environment_id=environment_id)
         else:
             raise ValueError("queryset of unsupported model '%s' provided" % queryset.model)
