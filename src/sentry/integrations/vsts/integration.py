@@ -280,7 +280,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         for repo in repos:
             repo.update(integration_id=integration.id)
 
-        PluginMigrator(installation, organization).call()
+        PluginMigrator(integration, organization).call()
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
