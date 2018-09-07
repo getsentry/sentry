@@ -926,34 +926,29 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         </MenuItemLink>
       </SidebarMenuItem>
       <SidebarMenuItem
-        href="/auth/logout/"
+        onClick={[Function]}
       >
         <MenuItemLink
-          href="/auth/logout/"
+          onClick={[Function]}
         >
           <Component
-            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
-            href="/auth/logout/"
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            onClick={[Function]}
           >
-            <Link
-              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
-              href="/auth/logout/"
+            <div
+              className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+              onClick={[Function]}
             >
-              <a
-                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
-                href="/auth/logout/"
+              <MenuItemLabel
+                hasMenu={true}
               >
-                <MenuItemLabel
-                  hasMenu={false}
+                <span
+                  className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
-                  <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
-                  >
-                    Sign out
-                  </span>
-                </MenuItemLabel>
-              </a>
-            </Link>
+                  Sign out
+                </span>
+              </MenuItemLabel>
+            </div>
           </Component>
         </MenuItemLink>
       </SidebarMenuItem>
@@ -2106,34 +2101,29 @@ exports[`Sidebar renders without org and router 1`] = `
         </MenuItemLink>
       </SidebarMenuItem>
       <SidebarMenuItem
-        href="/auth/logout/"
+        onClick={[Function]}
       >
         <MenuItemLink
-          href="/auth/logout/"
+          onClick={[Function]}
         >
           <Component
-            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
-            href="/auth/logout/"
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            onClick={[Function]}
           >
-            <Link
-              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
-              href="/auth/logout/"
+            <div
+              className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+              onClick={[Function]}
             >
-              <a
-                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
-                href="/auth/logout/"
+              <MenuItemLabel
+                hasMenu={true}
               >
-                <MenuItemLabel
-                  hasMenu={false}
+                <span
+                  className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
-                  <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
-                  >
-                    Sign out
-                  </span>
-                </MenuItemLabel>
-              </a>
-            </Link>
+                  Sign out
+                </span>
+              </MenuItemLabel>
+            </div>
           </Component>
         </MenuItemLink>
       </SidebarMenuItem>
