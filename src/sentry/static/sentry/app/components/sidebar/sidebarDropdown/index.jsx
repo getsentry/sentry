@@ -22,6 +22,7 @@ import Divider from './divider.styled';
 
 const SidebarDropdown = withApi(class SidebarDropdown extends React.Component {
   static propTypes = {
+    api: PropTypes.object,
     orientation: PropTypes.oneOf(['top', 'left']),
     collapsed: PropTypes.bool,
     org: SentryTypes.Organization,
@@ -36,7 +37,6 @@ const SidebarDropdown = withApi(class SidebarDropdown extends React.Component {
 
   handleLogout = (...args) => {
     let {api} = this.props;
-
     api.request('/auth/', {
       method: 'DELETE',
       success: (res) => {
