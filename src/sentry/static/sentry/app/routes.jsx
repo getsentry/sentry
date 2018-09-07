@@ -145,7 +145,14 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
-            path=":authId/"
+            path="session-history/"
+            name="Session History"
+            componentPromise={() =>
+              import(/*webpackChunkName: "AccountSecuritySessionHistory"*/ './views/settings/account/accountSecurity/accountSecuritySessionHistory')}
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="mfa/:authId/"
             name="Details"
             componentPromise={() =>
               import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
@@ -154,7 +161,7 @@ function routes() {
         </Route>
 
         <Route
-          path=":authId/enroll/"
+          path="mfa/:authId/enroll/"
           name="Enroll"
           componentPromise={() =>
             import(/*webpackChunkName: "AccountSecurityEnroll"*/ './views/settings/account/accountSecurity/accountSecurityEnroll')}
