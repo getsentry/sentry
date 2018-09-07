@@ -240,7 +240,7 @@ export default class OrganizationDiscover extends React.Component {
         </Header>
         <DiscoverBody>
           <Sidebar w={320}>
-            <SidebarHeader align="center" px={space(4)} py={space(2)}>
+            <SidebarHeader>
               <Box flex="1">
                 <Heading>{t('Query')}</Heading>
               </Box>
@@ -333,6 +333,8 @@ export default class OrganizationDiscover extends React.Component {
 }
 
 const SidebarHeader = styled(Flex)`
+  align-items: center;
+  padding: ${space(2)} ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
