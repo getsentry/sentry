@@ -26,7 +26,7 @@ import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
 
-import {getQueryStringFromQuery} from './utils';
+import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {trackQuery} from './analytics';
 
 export default class OrganizationDiscover extends React.Component {
@@ -47,16 +47,22 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search}} = nextProps;
-    if (search === '') {
-      queryBuilder.reset();
-      this.setState({
-        data: null,
-        query: null,
-        chartData: null,
-        chartQuery: null,
-      });
+    const {queryBuilder, location: {search, action}} = nextProps;
+    const currentSearch = this.props.location.search;
+
+    if (currentSearch === search || action === 'REPLACE') {
+      return;
     }
+
+    const newQuery = getQueryFromQueryString(search);
+    queryBuilder.reset(newQuery);
+
+    this.setState({
+      data: null,
+      query: null,
+      chartData: null,
+      chartQuery: null,
+    });
   }
 
   updateField = (field, value) => {
