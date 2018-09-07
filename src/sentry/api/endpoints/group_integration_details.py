@@ -71,7 +71,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         external_issue_id = request.DATA.get('externalIssue')
         if not external_issue_id:
-            return Response({'detail': 'External ID required'}, status=400)
+            return Response({'externalIssue': ['Issue ID is required']}, status=400)
 
         organization_id = group.project.organization_id
         try:
@@ -90,8 +90,10 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         installation = integration.get_installation(organization_id)
         try:
             data = installation.get_issue(external_issue_id, data=request.DATA)
+        except IntegrationFormError as exc:
+            return Response(exc.field_errors, status=400)
         except IntegrationError as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({'non_field_errors': [exc.message]}, status=400)
 
         defaults = {
             'title': data.get('title'),
@@ -117,7 +119,12 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         else:
             external_issue.update(**defaults)
 
-        installation.after_link_issue(external_issue, data=request.DATA)
+        try:
+            installation.after_link_issue(external_issue, data=request.DATA)
+        except IntegrationFormError as exc:
+            return Response(exc.field_errors, status=400)
+        except IntegrationError as exc:
+            return Response({'non_field_errors': [exc.message]}, status=400)
 
         try:
             with transaction.atomic():

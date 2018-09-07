@@ -56,6 +56,9 @@ class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixi
     def username(self):
         return self.model.name
 
+    def error_message_from_json(self, data):
+        return data.get('error', {}).get('message', 'unknown error')
+
     def get_repositories(self, query=None):
         if not query:
             resp = self.get_client().get_repos(self.username)
