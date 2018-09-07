@@ -31,16 +31,28 @@ describe('InstallWizard', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('should have beacon.anonymous off by default', function() {
+  it('has "Send my contact information..." when beacon.anonymous is false', function() {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: TestStubs.InstallWizard({}),
+      body: TestStubs.InstallWizard({
+        'beacon.anonymous': {
+          field: {
+            disabledReason: null,
+            default: false,
+            required: true,
+            disabled: false,
+            allowEmpty: true,
+            isSet: false,
+          },
+          value: false,
+        },
+      }),
     });
     const wrapper = mount(<InstallWizard onConfigured={jest.fn()} />);
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
-    ).toBe(false);
+    ).toBe(true);
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
