@@ -7,10 +7,14 @@ import {Box, Flex} from 'grid-emotion';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
+import Panel from 'app/components/panels/panel';
+import space from 'app/styles/space';
 import Tooltip from 'app/components/charts/components/tooltip';
 
 import Table from './table';
 import {getChartData, getChartDataByDay, formatTooltip} from './utils';
+import {Heading} from '../styles';
+
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
@@ -60,24 +64,22 @@ export default class Result extends React.Component {
     }
 
     return (
-      <Flex justify="flex-end" align="center" my={2}>
-        <div className="btn-group">
-          {options.map(opt => {
-            const active = opt.id === this.state.view;
-            return (
-              <a
-                key={opt.id}
-                className={classNames('btn btn-default btn-sm', {active})}
-                onClick={() => {
-                  this.setState({view: opt.id});
-                }}
-              >
-                {opt.name}
-              </a>
-            );
-          })}
-        </div>
-      </Flex>
+      <div className="btn-group">
+        {options.map(opt => {
+          const active = opt.id === this.state.view;
+          return (
+            <a
+              key={opt.id}
+              className={classNames('btn btn-default btn-sm', {active})}
+              onClick={() => {
+                this.setState({view: opt.id});
+              }}
+            >
+              {opt.name}
+            </a>
+          );
+        })}
+      </div>
     );
   }
 
@@ -107,33 +109,42 @@ export default class Result extends React.Component {
 
     return (
       <div>
-        {this.renderToggle()}
+        <Flex align="center" mb={space(2)}>
+          <Box flex="1">
+            <Heading>{t('Result')}</Heading>
+          </Box>
+          <Box justifySelf="flex-end">{this.renderToggle()}</Box>
+        </Flex>
 
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
-          <LineChart
-            series={basicChartData}
-            height={300}
-            options={{
-              tooltip: Tooltip({
-                formatter: formatTooltip,
-              }),
-            }}
-          />
+          <ChartWrapper>
+            <LineChart
+              series={basicChartData}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+          </ChartWrapper>
         )}
         {view === 'bar' && (
-          <BarChart
-            series={basicChartData}
-            height={300}
-            options={{
-              tooltip: Tooltip({
-                formatter: formatTooltip,
-              }),
-            }}
-          />
+          <ChartWrapper>
+            <BarChart
+              series={basicChartData}
+              height={300}
+              options={{
+                tooltip: Tooltip({
+                  formatter: formatTooltip,
+                }),
+              }}
+            />
+          </ChartWrapper>
         )}
         {view === 'line-by-day' && (
-          <React.Fragment>
+          <ChartWrapper>
             <LineChart
               series={byDayChartData}
               height={300}
@@ -144,10 +155,10 @@ export default class Result extends React.Component {
               }}
             />
             {this.renderNote()}
-          </React.Fragment>
+          </ChartWrapper>
         )}
         {view === 'bar-by-day' && (
-          <React.Fragment>
+          <ChartWrapper>
             <BarChart
               series={byDayChartData}
               stacked={true}
@@ -159,7 +170,7 @@ export default class Result extends React.Component {
               }}
             />
             {this.renderNote()}
-          </React.Fragment>
+          </ChartWrapper>
         )}
         {this.renderSummary()}
       </div>
@@ -167,11 +178,20 @@ export default class Result extends React.Component {
   }
 }
 
+const ChartWrapper = styled(Panel)`
+  padding-left: ${space(3)};
+  padding-right: ${space(3)};
+`;
+
 const Summary = styled(Box)`
   color: ${p => p.theme.gray6};
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(3)};
 `;
 
 const Note = styled(Box)`
   text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray3};
+  margin-bottom: ${space(3)};
 `;

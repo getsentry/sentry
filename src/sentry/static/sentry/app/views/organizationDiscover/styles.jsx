@@ -9,6 +9,13 @@ export const PlaceholderText = styled.div`
   font-size: 15px;
 `;
 
+export const Heading = styled.h2`
+  font-size: 20px;
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
 export const Fieldset = styled.fieldset`
   margin: ${space(3)} ${space(4)};
 `;
