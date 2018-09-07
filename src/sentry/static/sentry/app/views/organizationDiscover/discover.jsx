@@ -353,7 +353,7 @@ const DiscoverHeader = styled.h2`
   align-items: center;
   padding-left: 30px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  height: ${p => p.theme.sidebar.discoverSidebarHeaderHeight};
+  height: 60px;
 `;
 
 const DiscoverSubHeader = styled.h2`
