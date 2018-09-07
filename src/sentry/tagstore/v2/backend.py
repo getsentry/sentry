@@ -15,7 +15,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
-from django.db.models import F, Q, Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 from operator import or_
 from six.moves import reduce
@@ -542,12 +542,12 @@ class V2TagStorage(TagStorage):
         return value
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
-        qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = models.GroupTagValue.objects.select_related('_value', '_value___key').filter(
             project_id=project_id,
             group_id=group_id,
-            _key__project_id=project_id,
-            _key__key=key,
             _value__project_id=project_id,
+            _value___key__project_id=project_id,
+            _value___key__key=key,
         )
 
         qs = self._add_environment_filter(qs, environment_id)
@@ -560,13 +560,13 @@ class V2TagStorage(TagStorage):
         )
 
     def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
-        qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = models.GroupTagValue.objects.select_related('_value', '_value___key').filter(
             project_id=project_id,
             group_id__in=group_id_list,
-            _key__project_id=project_id,
-            _key__key=key,
             _value__project_id=project_id,
             _value__value=value,
+            _value___key__project_id=project_id,
+            _value___key__key=key,
         )
 
         qs = self._add_environment_filter(qs, environment_id)
@@ -810,12 +810,12 @@ class V2TagStorage(TagStorage):
             )
 
         cutoff = timezone.now() - timedelta(days=7)
-        qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = models.GroupTagValue.objects.select_related('_key', '_value___key').filter(
             project_id=project_id,
             group_id=group_id,
-            _key__project_id=project_id,
-            _key__key=key,
             _value__project_id=project_id,
+            _value___key__project_id=project_id,
+            _value___key__key=key,
             last_seen__gte=cutoff,
         )
         qs = self._add_environment_filter(qs, environment_id)
@@ -831,9 +831,9 @@ class V2TagStorage(TagStorage):
             first_release = models.GroupTagValue.objects.select_related('_value').filter(
                 project_id=project_id,
                 group_id=group_id,
-                _key__project_id=project_id,
-                _key__key__in=('sentry:release', 'release'),
                 _value__project_id=project_id,
+                _value___key__project_id=project_id,
+                _value___key__key__in=('sentry:release', 'release'),
             ).order_by('first_seen')[0]
         except IndexError:
             return None
@@ -845,9 +845,9 @@ class V2TagStorage(TagStorage):
             last_release = models.GroupTagValue.objects.select_related('_value').filter(
                 project_id=project_id,
                 group_id=group_id,
-                _key__project_id=project_id,
-                _key__key__in=('sentry:release', 'release'),
                 _value__project_id=project_id,
+                _value___key__project_id=project_id,
+                _value___key__key__in=('sentry:release', 'release'),
             ).order_by('-last_seen')[0]
         except IndexError:
             return None
@@ -878,9 +878,9 @@ class V2TagStorage(TagStorage):
         return set(models.GroupTagValue.objects.filter(
             project_id__in=project_ids,
             _key__project_id__in=project_ids,
-            _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
-            _key__key='sentry:user',
             _value__value__in=[eu.tag_value for eu in event_users],
+            _value___key__environment_id=AGGREGATE_ENVIRONMENT_ID,
+            _value___key__key='sentry:user',
         ).extra(where=[
             # Force the join also through the shard
             'tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id',
@@ -898,13 +898,13 @@ class V2TagStorage(TagStorage):
         return list(
             map(
                 transformers[models.GroupTagValue],
-                models.GroupTagValue.objects.select_related('_value').filter(
+                models.GroupTagValue.objects.select_related('_value', '_value__key').filter(
                     reduce(or_, tag_filters),
                     project_id__in=project_ids,
-                    _key__project_id__in=project_ids,
-                    _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
-                    _key__key='sentry:user',
                     _value__project_id__in=project_ids,
+                    _value___key__project_id__in=project_ids,
+                    _value___key__environment_id=AGGREGATE_ENVIRONMENT_ID,
+                    _value___key__key='sentry:user',
                 ).extra(where=[
                     # Force the join also through the shard
                     'tagstore_grouptagvalue.project_id = tagstore_tagkey.project_id',
@@ -933,11 +933,10 @@ class V2TagStorage(TagStorage):
             if v != ANY:
                 base_qs = models.GroupTagValue.objects.filter(
                     project_id=project_id,
-                    _key__project_id=project_id,
-                    _key__key=k,
                     _value__project_id=project_id,
-                    _value___key=F('_key'),
                     _value__value=v,
+                    _value___key__project_id=project_id,
+                    _value___key__key=k,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
 
@@ -1030,11 +1029,11 @@ class V2TagStorage(TagStorage):
         )
 
     def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
+        qs = models.GroupTagValue.objects.select_related('_value', '_value__key').filter(
             project_id=project_id,
-            _key__project_id=project_id,
-            _key__key=key,
             _value__project_id=project_id,
+            _value___key__project_id=project_id,
+            _value___key__key=key,
         )
 
         if isinstance(group_id, collections.Iterable):
@@ -1043,7 +1042,7 @@ class V2TagStorage(TagStorage):
             qs = qs.filter(group_id=group_id)
 
         if value is not None:
-            qs = qs.filter(_value__project_id=project_id, _value__value=value)
+            qs = qs.filter(_value__value=value)
 
         qs = self._add_environment_filter(qs, environment_id)
         return qs
