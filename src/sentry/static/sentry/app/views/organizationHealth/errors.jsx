@@ -46,7 +46,7 @@ class OrganizationHealthErrors extends React.Component {
             includeTimeseries
             interval="1d"
             showLoading
-            getCategory={value => (value ? 'Handled' : 'Crash')}
+            getCategory={value => (value ? t('Handled') : t('Crash'))}
           >
             {({timeseriesData}) => {
               return (
@@ -75,14 +75,12 @@ class OrganizationHealthErrors extends React.Component {
                     <div>
                       <IdBadge
                         user={value[tag].value}
-                        displayName={
-                          value[tag] && value[tag].value && value[tag].value.label
-                        }
+                        displayName={value[tag].value && value[tag].value.label}
                       />
                     </div>
                   );
                 }}
-                renderDataCell={({getValue, value, columnIndex}) => {
+                renderDataCell={({getValue, value}) => {
                   return <Count value={getValue(value)} />;
                 }}
                 showRowTotal={false}
@@ -104,8 +102,8 @@ class OrganizationHealthErrors extends React.Component {
             {({tagData}) => {
               return (
                 <HealthTableChart
-                  title="Error Type"
-                  headers={['Error type']}
+                  title={t('Error Type')}
+                  headers={[t('Error Type')]}
                   data={tagData}
                   widths={[null, 60, 60, 60, 60]}
                   showColumnTotal
