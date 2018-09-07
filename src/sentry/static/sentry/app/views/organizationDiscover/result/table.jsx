@@ -176,7 +176,7 @@ export default class ResultTable extends React.Component {
   }
 }
 
-const GridContainer = styled(Panel)`
+const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
   height: ${p =>
     p.visibleRows * 43}px; /* cell height + cell border + top and bottom Panel border */
   overflow: hidden;
