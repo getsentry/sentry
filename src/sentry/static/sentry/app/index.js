@@ -127,6 +127,7 @@ export default {
     HookStore: require('app/stores/hookStore').default,
     Indicators: require('app/components/indicators').default,
     IndicatorStore: require('app/stores/indicatorStore').default,
+    InlineSvg: require('app/components/inlineSvg').default,
     InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
     LoadingError: require('app/components/loadingError').default,
     LoadingIndicator: require('app/components/loadingIndicator').default,
