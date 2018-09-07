@@ -27,14 +27,14 @@ function formatAxisLabel(value, isTimestamp) {
   return moment(value).format('MMM D, YYYY');
 }
 
-function getFormatter({filterEmpty, filterNull, filter, isGroupedByDate, truncate}) {
+function getFormatter({filter, isGroupedByDate, truncate}) {
   const getFilter = seriesParam => {
     const value = seriesParam.data[1];
     if (typeof filter === 'function') {
       return filter(value);
     }
 
-    return filterNull ? value !== null : filterEmpty ? !!value : true;
+    return true;
   };
 
   return seriesParams => {
@@ -56,10 +56,9 @@ function getFormatter({filterEmpty, filterNull, filter, isGroupedByDate, truncat
 }
 
 export default function Tooltip(
-  {filterEmpty, filterNull, isGroupedByDate, formatter, truncate, ...props} = {}
+  {filter, isGroupedByDate, formatter, truncate, ...props} = {}
 ) {
-  formatter =
-    formatter || getFormatter({filterEmpty, filterNull, isGroupedByDate, truncate});
+  formatter = formatter || getFormatter({filter, isGroupedByDate, truncate});
 
   return {
     show: true,

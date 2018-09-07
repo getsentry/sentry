@@ -11,10 +11,9 @@ import LineChart from 'app/components/charts/lineChart';
 import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 
-import {getChartData, getChartDataByDay, formatTooltip, downloadAsCsv} from './utils';
+import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
 import Table from './table';
 import {Heading} from '../styles';
-import {getChartData, getChartDataByDay} from './utils';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
@@ -119,7 +118,7 @@ export default class Result extends React.Component {
     const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
 
     const tooltipOptions = {
-      filterNull: true,
+      filter: value => value !== null,
       truncate: 80,
     };
 

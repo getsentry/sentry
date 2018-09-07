@@ -475,12 +475,6 @@ export const EChartsAxis = PropTypes.shape({
 });
 
 export const EChartsTooltip = PropTypes.shape({
-  // Filter empty values (0, '', null, undefined, false)
-  filterEmpty: PropTypes.bool,
-
-  // Filter `null` values
-  filterNull: PropTypes.bool,
-
   // custom filter function
   filter: PropTypes.func,
 
