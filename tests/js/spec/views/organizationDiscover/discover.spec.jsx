@@ -121,6 +121,7 @@ describe('Discover', function() {
         wrapper.setProps({
           location: {
             search: url.pathname.replace('/organizations/org-slug/discover/', ''),
+            action: 'PUSH',
           },
         });
       });
@@ -176,6 +177,17 @@ describe('Discover', function() {
       wrapper.instance().reset();
       wrapper.update();
       expect(wrapper.find('NumberField[name="limit"]').prop('value')).toBe(1000);
+    });
+
+    it('does not reset on location replace', function() {
+      const prevCallCount = queryBuilder.reset.mock.calls.length;
+      wrapper.setProps({
+        location: {
+          search: '?fields=[]',
+          action: 'REPLACE',
+        },
+      });
+      expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount);
     });
   });
 });
