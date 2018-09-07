@@ -4,7 +4,7 @@ from django import forms
 from django.core.urlresolvers import reverse
 from django.views.generic import View
 
-from sentry import features, roles
+from sentry import roles
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -62,11 +62,6 @@ class JiraConfigureView(View):
             ).values('organization'),
         ))
 
-        # TODO(jess): remove after wide release
-        organizations = [
-            o for o in organizations if features.has(
-                'organizations:jira-integration', o, actor=request.user)
-        ]
         form = JiraConfigForm(organizations, request.POST)
 
         if request.method == 'GET' or not form.is_valid():
