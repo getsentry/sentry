@@ -22,22 +22,20 @@ class PluginMigratorTest(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-        self.integration = ExampleIntegrationProvider()
+        self.integration = Integration.objects.create(
+            provider=ExampleIntegrationProvider.key,
+        )
 
         self.migrator = PluginMigrator(self.integration, self.organization)
 
     def test_all_repos_migrated(self):
-        integration = Integration.objects.create(
-            provider=ExampleIntegrationProvider.key,
-        )
-
         Repository.objects.create(
             organization_id=self.organization.id,
-            provider=self.integration.key,
-            integration_id=integration.id,
+            provider=self.integration.provider,
+            integration_id=self.integration.id,
         )
 
-        assert self.migrator.all_repos_migrated(self.integration.key)
+        assert self.migrator.all_repos_migrated(self.integration.provider)
 
     def test_disable_for_all_projects(self):
         plugin = plugins.get('example')

@@ -124,8 +124,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         }]
 
     def post_install(self, integration, organization):
-        installation = self.get_installation(integration, organization.id)
-        PluginMigrator(installation, organization).call()
+        PluginMigrator(integration, organization).call()
 
     def build_integration(self, state):
         return {
