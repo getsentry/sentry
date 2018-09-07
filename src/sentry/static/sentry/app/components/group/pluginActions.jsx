@@ -81,7 +81,7 @@ const PluginActions = createReactClass({
 
   closeModal(data) {
     this.setState({
-      issue: data.id && data.link ? {issue_id: data.id, url: data.link} : null,
+      issue: data && data.id && data.link ? {issue_id: data.id, url: data.link} : null,
       showModal: false,
     });
   },
