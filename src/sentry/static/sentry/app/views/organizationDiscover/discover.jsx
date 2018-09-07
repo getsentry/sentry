@@ -24,7 +24,7 @@ import EarlyAdopterMessage from './earlyAdopterMessage';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
-import {Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
+import {Heading, Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
 
 import {getQueryStringFromQuery} from './utils';
 import {trackQuery} from './analytics';
@@ -245,9 +245,9 @@ export default class OrganizationDiscover extends React.Component {
         </Header>
         <DiscoverBody>
           <Sidebar w={320}>
-            <SidebarHeader align="center" px={space(4)} py={space(1.5)}>
+            <SidebarHeader>
               <Box flex="1">
-                <DiscoverHeading>{t('Query')}</DiscoverHeading>
+                <Heading>{t('Query')}</Heading>
               </Box>
               <Box>
                 <Button
@@ -320,7 +320,7 @@ export default class OrganizationDiscover extends React.Component {
               />
             </Fieldset>
           </Sidebar>
-          <Flex flex="1" direction="column" px={3} py={3}>
+          <Flex flex="1" direction="column" px={space(4)} pt={space(2)} pb={space(3)}>
             {data && (
               <Result
                 data={data}
@@ -338,19 +338,15 @@ export default class OrganizationDiscover extends React.Component {
   }
 }
 
-const DiscoverHeading = styled.h2`
-  font-size: 18px;
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
 const SidebarHeader = styled(Flex)`
+  align-items: center;
+  padding: ${space(2)} ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
 const DiscoverBody = styled(Flex)`
   min-height: calc(100vh - 152px);
+  margin-bottom: -${space(3)};
 `;
 
 const Sidebar = styled(Box)`
