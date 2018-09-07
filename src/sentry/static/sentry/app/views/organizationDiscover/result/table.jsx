@@ -177,7 +177,9 @@ export default class ResultTable extends React.Component {
 }
 
 const GridContainer = styled(Panel)`
-  height: ${p => p.visibleRows * 40}px;
+  height: ${p =>
+    p.visibleRows * 43}px; /* cell height + cell border + top and bottom Panel border */
+  overflow: hidden;
 
   .ReactVirtualized__Grid {
     outline: none;
