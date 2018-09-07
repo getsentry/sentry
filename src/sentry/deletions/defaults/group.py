@@ -49,7 +49,10 @@ class GroupDeletionTask(ModelDeletionTask):
     def mark_deletion_in_progress(self, instance_list):
         from sentry.models import Group, GroupStatus
 
-        in_progress = Group.objects.filter(
-            id__in=[i.id for i in instance_list]
-        ).exclude(status=GroupStatus.DELETION_IN_PROGRESS)
-        in_progress.update(status=GroupStatus.DELETION_IN_PROGRESS)
+        Group.objects.filter(
+            id__in=[i.id for i in instance_list],
+        ).exclude(
+            status=GroupStatus.DELETION_IN_PROGRESS,
+        ).update(
+            status=GroupStatus.DELETION_IN_PROGRESS,
+        )
