@@ -13,7 +13,7 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import Tag from 'app/views/settings/components/tag.jsx';
 import space from 'app/styles/space';
 
-const EARLY_ADOPTER_INTEGRATIONS = ['github', 'jira', 'github_enterprise'];
+const EARLY_ADOPTER_INTEGRATIONS = [];
 
 const alertMarkedRenderer = new marked.Renderer();
 alertMarkedRenderer.paragraph = s => s;
