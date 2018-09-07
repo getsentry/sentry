@@ -428,6 +428,32 @@ const StreamActions = createReactClass({
                     {t('Set status to: Unresolved')}
                   </ActionLink>
                 </MenuItem>
+                <MenuItem noAnchor={true}>
+                  <ActionLink
+                    disabled={!this.state.anySelected}
+                    onAction={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}
+                    extraDescription={extraDescription}
+                    confirmationQuestion={
+                      this.state.allInQuerySelected
+                        ? t('Are you sure you want to snooze all issues matching this search query?')
+                        : (count) =>
+                             tn('Are you sure you want to snooze this %d issue?',
+                                'Are you sure you want to snooze these %d issues?',
+                                count)
+                    }
+                    confirmLabel={
+                      this.state.allInQuerySelected
+                        ? t('Snooze all issues')
+                        : (count) =>
+                            tn('Snooze %d selected issue',
+                               'Snooze %d selected issues',
+                               count)
+                    }
+                    onlyIfBulk={true}
+                    selectAllActive={this.state.pageSelected}>
+                   {t('Set status to: Resolved in next release')}
+                  </ActionLink>
+                </MenuItem>
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
                   <ActionLink
