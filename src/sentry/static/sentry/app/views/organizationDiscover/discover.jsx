@@ -24,7 +24,7 @@ import EarlyAdopterMessage from './earlyAdopterMessage';
 
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
-import {Heading, Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
+import {Fieldset, PlaceholderText, ButtonSpinner, SidebarLabel} from './styles';
 
 import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {trackQuery} from './analytics';

@@ -70,7 +70,7 @@ export default class MultipleProjectSelector extends React.Component {
     return (
       <HeaderItem
         className={className}
-        label={t('Projects')}
+        label={t('Project(s)')}
       >
         <DropdownLink
           title={<Title>{summary}</Title>}

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import {Flex} from 'grid-emotion';
-import styled from "react-emotion";
+import styled from 'react-emotion';
 
 import Button from 'app/components/button';
 import HeaderItem from 'app/components/organizations/headerItem';

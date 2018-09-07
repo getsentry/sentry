@@ -32,8 +32,6 @@ export default HeaderItem;
 const StyledHeaderItem = styled(props => (
   <Flex direction="column" justify="center" {...props} />
 ))`
-  text-align: left;
-
   .dropdown-actor-title {
     font-size: 15px;
     height: auto;
@@ -43,8 +41,8 @@ const StyledHeaderItem = styled(props => (
 
 const Label = styled('label')`
   font-weight: 400;
-  font-size: 13px;
-  color: ${p => p.theme.gray6};
+  font-size: 12px;
+  color: ${p => p.theme.gray3};
   height: 14px;
 
 `;
