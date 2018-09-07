@@ -212,7 +212,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    *
    * @returns {Void}
    */
-  function reset() {
-    query = applyDefaults({});
+  function reset(q = {}) {
+    query = applyDefaults(q);
   }
 }
