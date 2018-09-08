@@ -32,7 +32,7 @@ class OrganizationAuthList extends React.Component {
         <Panel>
           <PanelHeader>{t('Choose a provider')}</PanelHeader>
           <PanelBody>
-            <PanelAlert m={0} mb={0} type="info">
+            <PanelAlert type="info">
               {tct(
                 `Get started with Single Sign-on for your organization by
                 selecting a provider. Read more in our [link:SSO documentation].`,

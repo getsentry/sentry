@@ -210,7 +210,7 @@ class KeyRateLimitsForm extends React.Component {
             </PanelBody>
           ) : (
             <PanelBody>
-              <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+              <PanelAlert type="info" icon="icon-circle-exclamation">
                 {t(
                   'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
                 )}
@@ -406,7 +406,7 @@ const KeySettings = createReactClass({
         <Panel>
           <PanelHeader>{t('Credentials')}</PanelHeader>
           <PanelBody>
-            <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+            <PanelAlert type="info" icon="icon-circle-exclamation">
               {t(
                 'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
               )}
