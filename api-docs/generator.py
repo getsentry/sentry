@@ -127,27 +127,17 @@ class SentryBox(object):
         drop_db()
 
 
-def dump_json(path, data):
-    path = os.path.join(OUTPUT_PATH, path)
-    try:
-        os.makedirs(os.path.dirname(path))
-    except OSError:
-        pass
-    with open(path, 'w') as f:
-        for line in json.dumps(data, indent=2, sort_keys=True).splitlines():
-            f.write(line.rstrip() + '\n')
-
-
 def run_scenario(vars, scenario_ident, func):
     runner = Runner(scenario_ident, func, **vars)
     report('scenario', 'Running scenario "%s"' % scenario_ident)
     func(runner)
-    dump_json('scenarios/%s.json' % scenario_ident, runner.to_json())
+    return runner.to_json()
 
 
 @click.command()
 @click.option('--output-path', type=click.Path())
-def cli(output_path):
+@click.option('--output-format', type=click.Choice(['json', 'markdown', 'both']), default='both')
+def cli(output_path, output_format):
     """API docs dummy generator."""
     global OUTPUT_PATH
     if output_path is not None:
@@ -191,27 +181,190 @@ def cli(output_path):
             }],
         }
 
+        scenario_map = {}
+        report('docs', 'Collecting scenarios')
         for scenario_ident, func in iter_scenarios():
-            run_scenario(vars, scenario_ident, func)
+            scenario = run_scenario(vars, scenario_ident, func)
+            scenario_map[scenario_ident] = scenario
 
         section_mapping = {}
-
-        report('docs', 'Exporting endpoint documentation')
+        report('docs', 'Collecting endpoint documentation')
         for endpoint in iter_endpoints():
-            report('endpoint', 'Exporting docs for "%s"' %
+            report('endpoint', 'Collecting docs for "%s"' %
                    endpoint['endpoint_name'])
-            section_mapping.setdefault(endpoint['section'], []) \
-                .append((endpoint['endpoint_name'],
-                         endpoint['title']))
-            dump_json('endpoints/%s.json' % endpoint['endpoint_name'], endpoint)
 
-        report('docs', 'Exporting sections')
-        dump_json('sections.json', {
-            'sections': dict((section, {
-                'title': title,
-                'entries': dict(section_mapping.get(section, ())),
-            }) for section, title in six.iteritems(get_sections()))
-        })
+            section_mapping \
+                .setdefault(endpoint['section'], []) \
+                .append(endpoint)
+        sections = get_sections()
+
+        if output_format in ('json', 'both'):
+            output_json(sections, scenario_map, section_mapping)
+        if output_format in ('markdown', 'both'):
+            output_markdown(sections, scenario_map, section_mapping)
+
+
+def output_json(sections, scenarios, section_mapping):
+    report('docs', 'Generating JSON documents')
+
+    for id, scenario in scenarios.items():
+        dump_json('scenarios/%s.json' % id, scenario)
+
+    section_listings = {}
+    for section, title in sections.items():
+        entries = {}
+        for endpoint in section_mapping.get(section, []):
+            entries[endpoint['endpoint_name']] = endpoint['title']
+            dump_json('endpoints/%s.json' % endpoint['endpoint_name'],
+                      endpoint)
+
+        section_listings[section] = {
+            'title': title,
+            'entries': entries
+        }
+    dump_json('sections.json', {'sections': section_listings})
+
+
+def output_markdown(sections, scenarios, section_mapping):
+    report('docs', 'Generating markdown documents')
+    for section, title in sections.items():
+        i = 0
+        links = []
+        for endpoint in section_mapping.get(section, []):
+            i += 1
+            path = u"{}/{}.md".format(section, endpoint['endpoint_name'])
+
+            endpoint['sidebar_order'] = i
+            endpoint['example'] = format_example(endpoint, scenarios)
+            endpoint['text'] = "\n".join(endpoint['text'])
+
+            dump_markdown(path, endpoint)
+
+            links.append({'title': endpoint['title'], 'path': path})
+        dump_index_markdown(section, title, links)
+
+
+def dump_json(path, data):
+    path = os.path.join(OUTPUT_PATH, 'json', path)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        for line in json.dumps(data, indent=2, sort_keys=True).splitlines():
+            f.write(line.rstrip() + '\n')
+
+
+def dump_index_markdown(section, title, links):
+    path = os.path.join(OUTPUT_PATH, 'markdown', section, 'index.md')
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        document = """
+---
+title: {title}
+---
+
+{links}
+"""
+        link_text = '\n'.join([
+            u'- [{title}]({{%- link _documentation/api/{path} -%}})'.format(**item)
+            for item in links
+        ])
+        document = document.format(title=title, links=link_text)
+        f.write(document)
+
+
+def dump_markdown(path, data):
+    path = os.path.join(OUTPUT_PATH, 'markdown', path)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        document = """
+---
+title: {title}
+sidebar_order: {sidebar_order}
+---
+
+{method} {path}
+
+: {text}
+
+## Example
+
+{example}
+"""
+        document = document.format(**data)
+        f.write(document)
+
+
+def dump_markdown_index(path, data):
+    path = os.path.join(OUTPUT_PATH, path)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        document = """
+---
+title: %(title)s
+---
+
+%(links)s
+"""
+        document = document.format(data)
+        f.write(document)
+
+
+def format_headers(headers):
+    if not headers:
+        return ''
+    headers = [
+        u"{}:{}".format(key, value)
+        for key, value in headers.items()
+    ]
+    return '\n'.join(headers)
+
+
+def format_example(endpoint, scenario_map):
+    example = u''
+    for scene in endpoint['scenarios']:
+        if scene not in scenario_map:
+            continue
+        scene_data = scenario_map[scene]
+        for scenario in scene_data['requests']:
+            template_data = {
+                'status': scenario['response']['status'],
+                'reason': scenario['response']['reason'],
+                'method': scenario['request']['method'],
+                'path': scenario['request']['path'],
+                'request_headers': format_headers(scenario['request']['headers']),
+                'request_data': json.dumps(scenario['request']['data'], sort_keys=True, indent=2),
+                'response_headers': format_headers(scenario['response']['headers']),
+                'response_data': json.dumps(scenario['response']['data'], sort_keys=True, indent=2),
+            }
+            example += """
+```http
+{method} {path} HTTP/1.1
+Authorization: Bearer {{base64-encoded-key-here}}
+{request_headers}
+Host: sentry.io
+
+{request_data}
+```
+
+```http
+HTTP/1.1 {status} {reason}
+{response_headers}
+
+{response_data}
+```
+""".format(**template_data)
+    return example
 
 
 if __name__ == '__main__':
