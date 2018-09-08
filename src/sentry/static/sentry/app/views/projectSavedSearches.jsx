@@ -52,6 +52,7 @@ class SavedSearchRow extends React.Component {
 
   render() {
     let {data, canModify} = this.props;
+    let deleteDisabled = !canModify && !data.isPrivate;
 
     return (
       <PanelItem p={0} py={2} align="center">
@@ -76,20 +77,20 @@ class SavedSearchRow extends React.Component {
                 name="default"
                 checked={data.isDefault}
                 onChange={this.handleDefault}
+                disabled={data.isPrivate}
               />
             </InputColumn>
           )}
 
-          {canModify && (
-            <InputColumn>
-              <Confirm
-                message={t('Are you sure you want to remove this?')}
-                onConfirm={this.handleRemove}
-              >
-                <Button size="small" icon="icon-trash" />
-              </Confirm>
-            </InputColumn>
-          )}
+          <InputColumn>
+            <Confirm
+              message={t('Are you sure you want to remove this?')}
+              onConfirm={this.handleRemove}
+              disabled={deleteDisabled}
+            >
+              <Button size="small" icon="icon-trash" />
+            </Confirm>
+          </InputColumn>
         </Flex>
       </PanelItem>
     );
@@ -226,7 +227,7 @@ class ProjectSavedSearches extends AsyncView {
               <Flex flex="1">
                 <InputColumn>{t('My Default')}</InputColumn>
                 {canModify && <InputColumn>{t('Team Default')}</InputColumn>}
-                {canModify && <InputColumn>{t('Remove')}</InputColumn>}
+                {<InputColumn>{t('Remove')}</InputColumn>}
               </Flex>
             </Flex>
           </PanelHeader>
