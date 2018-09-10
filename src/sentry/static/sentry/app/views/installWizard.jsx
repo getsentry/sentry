@@ -23,12 +23,13 @@ export default class InstallWizard extends AsyncView {
     jQuery(document.body).removeClass('install-wizard');
   }
 
-  getEndpoint() {
-    return '/internal/options/?query=is:required';
+  getEndpoints() {
+    return [['data', '/internal/options/?query=is:required']];
   }
 
   renderFormFields() {
     let options = this.state.data;
+
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
     );
@@ -108,7 +109,7 @@ export default class InstallWizard extends AsyncView {
     return (
       <ApiForm
         apiMethod="PUT"
-        apiEndpoint={this.getEndpoint()}
+        apiEndpoint={this.getEndpoints()[0][1]}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
         onSubmitSuccess={this.props.onConfigured}
