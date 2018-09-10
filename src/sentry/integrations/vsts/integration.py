@@ -278,7 +278,10 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
         for repo in repos:
-            repo.update(integration_id=integration.id)
+            repo.update(
+                integration_id=integration.id,
+                provider='integrations:vsts',
+            )
 
         PluginMigrator(integration, organization).call()
 
