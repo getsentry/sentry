@@ -36,7 +36,7 @@ export default class NavigationGroup extends React.Component {
     let {organization, project, name, items} = this.props;
 
     return (
-      <NavSection>
+      <NavSection data-test-id={name}>
         <SettingsHeading>{name}</SettingsHeading>
         {items.map(({path, title, index, show, badge}) => {
           if (typeof show === 'function' && !show(this.props)) return null;
