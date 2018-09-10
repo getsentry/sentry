@@ -25,7 +25,7 @@
     "bootstrap": "3.3.5",
     "classnames": "2.2.0",
     "clipboard": "^1.7.1",
-    "compression-webpack-plugin": "^1.0.0",
+    "compression-webpack-plugin": "1.1.12",
     "create-react-class": "^15.6.2",
     "crypto-js": "3.1.5",
     "css-loader": "^0.28.2",
