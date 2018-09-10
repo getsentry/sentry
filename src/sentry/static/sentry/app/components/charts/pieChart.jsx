@@ -135,39 +135,41 @@ class PieChart extends React.Component {
                 : ''}`;
             },
           }),
-          series: [
-            PieSeries({
-              name: firstSeries.seriesName,
-              data: firstSeries.data,
-              avoidLabelOverlap: false,
-              label: {
-                normal: {
-                  formatter: ({name, percent, dataIndex}) => {
-                    return `${name}\n${percent}%`;
-                  },
-                  show: false,
-                  position: 'center',
-                },
-                emphasis: {
-                  show: true,
-                  textStyle: {
-                    fontSize: '18',
-                  },
-                },
-              },
-              itemStyle: {
-                normal: {
-                  label: {
-                    show: false,
-                  },
-                  labelLine: {
-                    show: false,
-                  },
-                },
-              },
-            }),
-          ],
         }}
+        series={[
+          PieSeries({
+            name: firstSeries.seriesName,
+            data: firstSeries.data,
+            avoidLabelOverlap: false,
+            label: {
+              normal: {
+                formatter: ({name, percent, dataIndex}) => {
+                  return `${name}\n${percent}%`;
+                },
+                show: false,
+                position: 'center',
+              },
+              emphasis: {
+                show: true,
+                textStyle: {
+                  fontSize: '18',
+                },
+              },
+            },
+            itemStyle: {
+              normal: {
+                label: {
+                  show: false,
+                },
+                labelLine: {
+                  show: false,
+                },
+              },
+            },
+          }),
+        ]}
+        xAxis={null}
+        yAxis={null}
       />
     );
   }

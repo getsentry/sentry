@@ -4,9 +4,6 @@ import moment from 'moment';
 
 import BarSeries from './series/barSeries.jsx';
 import BaseChart from './baseChart';
-import Tooltip from './components/tooltip';
-import XAxis from './components/xAxis';
-import YAxis from './components/yAxis';
 
 const FILLER_NAME = '__filler';
 
@@ -72,49 +69,41 @@ export default class PercentageBarChart extends React.Component {
   }
 
   render() {
-    const series = this.getSeries();
     return (
       <BaseChart
         {...this.props}
-        options={{
-          tooltip: Tooltip({
-            // Make sure tooltip is inside of chart (because of overflow: hidden)
-            confine: true,
-            formatter: seriesParams => {
-              // Filter series that have 0 counts
-              const date =
-                `${seriesParams.length &&
-                  moment(seriesParams[0].axisValue).format('MMM D, YYYY')}<br />` || '';
-              return `${date} ${seriesParams
-                .filter(
-                  ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
-                )
-                .map(
-                  ({marker, seriesName, data}) =>
-                    `${marker} ${seriesName}:  <strong>${data[1]}</strong>%`
-                )
-                .join('<br />')}`;
-            },
-          }),
-          xAxis: XAxis({
-            type: 'time',
-            axisLabel: {
-              formatter: (value, index) => moment(value).format('MMM D'),
-            },
-          }),
-          yAxis: YAxis({
-            min: 0,
-            max: 100,
-            type: 'value',
-            interval: 25,
-            splitNumber: 4,
-            data: [0, 25, 50, 100],
-            axisLabel: {
-              formatter: '{value}%',
-            },
-          }),
-          series,
+        tooltip={{
+          // Make sure tooltip is inside of chart (because of overflow: hidden)
+          confine: true,
+          formatter: seriesParams => {
+            // Filter series that have 0 counts
+            const date =
+              `${seriesParams.length &&
+                moment(seriesParams[0].axisValue).format('MMM D, YYYY')}<br />` || '';
+            return `${date} ${seriesParams
+              .filter(
+                ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
+              )
+              .map(
+                ({marker, seriesName, data}) =>
+                  `${marker} ${seriesName}:  <strong>${data[1]}</strong>%`
+              )
+              .join('<br />')}`;
+          },
         }}
+        xAxis={{boundaryGap: true}}
+        yAxis={{
+          min: 0,
+          max: 100,
+          type: 'value',
+          interval: 25,
+          splitNumber: 4,
+          data: [0, 25, 50, 100],
+          axisLabel: {
+            formatter: '{value}%',
+          },
+        }}
+        series={this.getSeries()}
       />
     );
   }

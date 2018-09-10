@@ -14,5 +14,7 @@ export default function Grid(props = {}) {
     left: '10%',
 
     right: '10%',
+
+    ...props,
   };
 }
