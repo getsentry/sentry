@@ -9,10 +9,10 @@ import {t, tct} from 'app/locale';
 function Collapsed(props) {
   return (
     <li className="crumbs-collapsed">
-      <span className="icon-container">
-        <span className="icon icon-ellipsis" />
-      </span>
       <a onClick={props.onClick}>
+        <span className="icon-container">
+          <span className="icon icon-ellipsis" />
+        </span>
         {tct('Show [count] collapsed crumbs', {count: props.count})}
       </a>
     </li>
