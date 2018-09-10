@@ -24,11 +24,6 @@ export default class ResultTable extends React.Component {
     organization: SentryTypes.Organization,
   };
 
-  componentWillMount() {
-    // Create canvas once in order to measure column widths
-    this.canvas = document.createElement('canvas');
-  }
-
   componentWillReceiveProps(nextProps) {
     if (this.props.data.meta !== nextProps.data.meta) {
       this.grid.recomputeGridSize();
@@ -149,6 +144,10 @@ export default class ResultTable extends React.Component {
   };
 
   measureText = (text, isHeader) => {
+    // Create canvas once in order to measure column widths
+    if (!this.canvas) {
+      this.canvas = document.createElement('canvas');
+    }
     const context = this.canvas.getContext('2d');
     context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
     return Math.ceil(context.measureText(text).width);
