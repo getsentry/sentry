@@ -172,7 +172,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
     repo = Repository.objects.get(id=repo_id)
     if installation.has_repo_access(repo):
         repo.integration_id = integration_id
-        repo.provider = 'integrations:github'
+        repo.provider = 'integrations:%s' % (integration.provider,)
         repo.save()
 
         PluginMigrator(
