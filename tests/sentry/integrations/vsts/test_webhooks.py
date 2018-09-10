@@ -36,7 +36,7 @@ class VstsWebhookWorkItemTest(APITestCase):
                  }
             }
         )
-        self.identity_provider = IdentityProvider.objects.create(type='vsts')
+        self.identity_provider = IdentityProvider.objects.create(type='azure_devops')
         self.identity = Identity.objects.create(
             idp=self.identity_provider,
             user=self.user,
