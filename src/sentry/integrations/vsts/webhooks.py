@@ -43,10 +43,13 @@ class WorkItemWebhook(Endpoint):
         assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
 
     def handle_updated_workitem(self, data, integration):
-        external_issue_key = data['resource']['workItemId']
-        assigned_to = data['resource']['fields'].get('System.AssignedTo')
-        status_change = data['resource']['fields'].get('System.State')
-        project = data['resourceContainers']['project']['id']
+        try:
+            external_issue_key = data['resource']['workItemId']
+            assigned_to = data['resource']['fields'].get('System.AssignedTo')
+            status_change = data['resource']['fields'].get('System.State')
+            project = data['resourceContainers']['project']['id']
+        except KeyError:
+            return  # In the case that there are no fields sent, no syncing can be done
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(
             integration,
