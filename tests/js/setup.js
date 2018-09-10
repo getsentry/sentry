@@ -1,3 +1,7 @@
+/* global __dirname */
+/* eslint import/no-nodejs-modules:0 */
+import fs from 'fs';
+
 import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import sinon from 'sinon';
@@ -8,17 +12,6 @@ import PropTypes from 'prop-types';
 
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
-
-import RoleList from './fixtures/roleList';
-import Release from './fixtures/release';
-import {AsanaPlugin, AsanaCreate, AsanaAutocomplete} from './fixtures/asana';
-import {Graph, Top} from './fixtures/health';
-import {
-  PhabricatorPlugin,
-  PhabricatorCreate,
-  PhabricatorAutocomplete,
-} from './fixtures/phabricator';
-import {VstsPlugin, VstsCreate} from './fixtures/vsts-old';
 
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
@@ -85,6 +78,26 @@ window.scrollTo = jest.fn();
 
 // emotion context broadcast
 const broadcast = createBroadcast(theme);
+
+// Dynamically load fixtures
+const fixturesPath = `${__dirname}/fixtures`;
+const modules = fs
+  .readdirSync(fixturesPath)
+  .map(filename => require(`${fixturesPath}/${filename}`));
+
+modules.forEach(exports => {
+  if (Object.keys(exports).includes('default')) {
+    throw new Error('Javascript fixtures cannot use default export');
+  }
+});
+
+const fixtures = modules.reduce(
+  (acc, exports) => ({
+    ...acc,
+    ...exports,
+  }),
+  {}
+);
 
 window.TestStubs = {
   // react-router's 'router' context
@@ -552,9 +565,6 @@ window.TestStubs = {
     };
   },
 
-  HealthGraph: Graph,
-  HealthTop: Top,
-
   JiraIntegrationProvider: params => {
     return {
       key: 'jira',
@@ -967,10 +977,6 @@ window.TestStubs = {
     };
   },
 
-  Release,
-
-  RoleList,
-
   Searches: params => [
     {
       name: 'Needs Triage',
@@ -1166,17 +1172,7 @@ window.TestStubs = {
     issue: TestStubs.Group(),
   }),
 
-  /**
-   * Plugins
-   */
-  AsanaPlugin,
-  AsanaCreate,
-  AsanaAutocomplete,
-  PhabricatorPlugin,
-  PhabricatorCreate,
-  PhabricatorAutocomplete,
-  VstsPlugin,
-  VstsCreate,
+  ...fixtures,
 };
 
 // this is very commonly used, so expose it globally

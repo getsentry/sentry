@@ -6,7 +6,7 @@ const COUNT_OBJ = tag => ({
   },
 });
 
-export function Top(tag = 'release', params) {
+export function HealthTop(tag = 'release', params) {
   const countObject = COUNT_OBJ(tag);
   return {
     data: [countObject],
@@ -17,7 +17,7 @@ export function Top(tag = 'release', params) {
   };
 }
 
-export function Graph(tag = 'release', params) {
+export function HealthGraph(tag = 'release', params) {
   const countObject = COUNT_OBJ(tag);
 
   return {

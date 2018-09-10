@@ -1,4 +1,4 @@
-export default function Release(params) {
+export function Release(params) {
   return {
     dateReleased: null,
     commitCount: null,

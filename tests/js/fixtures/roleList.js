@@ -1,4 +1,4 @@
-export default function RoleList(params = [], fullAccess = false) {
+export function RoleList(params = [], fullAccess = false) {
   return [
     {
       scopes: [
