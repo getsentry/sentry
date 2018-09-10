@@ -148,7 +148,7 @@ export default class ProjectServiceHookDetails extends AsyncView {
         <Panel>
           <PanelHeader>{t('Event Validation')}</PanelHeader>
           <PanelBody>
-            <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+            <PanelAlert type="info" icon="icon-circle-exclamation">
               Sentry will send the <code>X-ServiceHook-Signature</code> header built using{' '}
               <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify
               this signature before trusting the information provided in the webhook.
