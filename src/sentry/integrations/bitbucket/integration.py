@@ -124,7 +124,10 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             .get_unmigratable_repositories()
 
         for repo in filter(lambda r: r not in unmigrateable_repos, repos):
-            repo.update(integration_id=integration.id)
+            repo.update(
+                integration_id=integration.id,
+                provider='integrations:bitbucket',
+            )
 
         PluginMigrator(integration, organization).call()
 
