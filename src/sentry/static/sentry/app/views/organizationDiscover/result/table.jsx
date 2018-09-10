@@ -125,7 +125,7 @@ export default class ResultTable extends React.Component {
       widths.push(LINK_COL_WIDTH);
     }
 
-    const sumOfWidths = widths.reduce((sum, w) => sum + w, 0);
+    const sumOfWidths = widths.reduce((sum, w) => sum + w, 0) + 2;
 
     // Add a fake column of remaining width
     widths.push(Math.max(tableWidth - sumOfWidths, 0));
