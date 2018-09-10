@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {COLUMNS, PROMOTED_TAGS} from './data';
+import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
@@ -72,7 +72,10 @@ export default function createQueryBuilder(initial = {}, organization) {
       end: moment().format(DATE_TIME_FORMAT),
     })
       .then(res => {
-        tags = res.data.map(tag => ({name: `tags[${tag.tags_key}]`, type: 'string'}));
+        tags = res.data.map(tag => {
+          const type = SPECIAL_TAGS[tags.tags_key] || 'string';
+          return {name: `tags[${tag.tags_key}]`, type};
+        });
       })
       .catch(err => {
         tags = PROMOTED_TAGS;
