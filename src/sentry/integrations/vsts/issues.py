@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 
 
 class VstsIssueSync(IssueSyncMixin):
-    description = 'Integrate Visual Studio Team Services work items by linking a project.'
+    description = 'Integrate Azure DevOps work items by linking a project.'
     slug = 'vsts'
     conf_key = slug
 
