@@ -463,9 +463,10 @@ const getItemPaddingForSize = size => {
   return space(1);
 };
 
-const AutoCompleteItem = styled(Flex)`
+const AutoCompleteItem = styled('div')`
   /* needed for virtualized lists that do not fill parent height */
   /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
+  display: flex;
   flex-direction: column;
   justify-content: center;
 
