@@ -35,6 +35,10 @@ const conditionList = [
     internal: 'message LIKE',
     external: ['message', 'LIKE', null],
   },
+  {
+    internal: 'exception_frames.in_app = true',
+    external: ['exception_frames.in_app', '=', true],
+  },
 ];
 
 describe('Conditions', function() {

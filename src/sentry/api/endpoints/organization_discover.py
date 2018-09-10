@@ -108,6 +108,10 @@ class DiscoverSerializer(serializers.Serializer):
         array_field = self.get_array_field(condition[0])
         has_equality_operator = condition[1] in ('=', '!=')
 
+        # Cast boolean values to 1 / 0
+        if isinstance(condition[2], bool):
+            condition[2] = int(condition[2])
+
         # Apply has function to any array field if it's = / != and not part of arrayjoin
         if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
             value = condition[2]

@@ -84,6 +84,15 @@ export function getExternal(internal, columns) {
       const num = parseInt(external[2], 10);
       external[2] = !isNaN(num) ? num : null;
     }
+
+    if (type === 'boolean') {
+      if (external[2] === 'true') {
+        external[2] = true;
+      }
+      if (external[2] === 'false') {
+        external[2] = false;
+      }
+    }
   }
 
   return external;
