@@ -24,8 +24,11 @@ from django.conf import settings
 # Fair game from here
 from django.core.management import call_command
 
-from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, \
+from sentry.utils.apidocs import (
+    Runner, MockUtils, iter_scenarios,
     iter_endpoints, get_sections
+)
+from sentry.web.helpers import render_to_string
 
 
 OUTPUT_PATH = os.path.join(HERE, 'cache')
@@ -233,12 +236,22 @@ def output_markdown(sections, scenarios, section_mapping):
         for endpoint in section_mapping.get(section, []):
             i += 1
             path = u"{}/{}.md".format(section, endpoint['endpoint_name'])
-
-            endpoint['sidebar_order'] = i
-            endpoint['example'] = format_example(endpoint, scenarios)
-            endpoint['text'] = "\n".join(endpoint['text'])
-
-            dump_markdown(path, endpoint)
+            auth = ''
+            if len(endpoint['params'].get('auth', [])):
+                auth = endpoint['params']['auth'][0]['description']
+            payload = dict(
+                title=title,
+                sidebar_order=i,
+                description=''.join(endpoint['text']),
+                method=endpoint['method'],
+                query_parameters=endpoint['params'].get('query'),
+                path_parameters=endpoint['params'].get('path'),
+                parameters=endpoint['params'].get('params'),
+                authentication=auth,
+                example_request=format_request(endpoint, scenarios),
+                example_response=format_response(endpoint, scenarios)
+            )
+            dump_markdown(path, payload)
 
             links.append({'title': endpoint['title'], 'path': path})
         dump_index_markdown(section, title, links)
@@ -262,19 +275,10 @@ def dump_index_markdown(section, title, links):
     except OSError:
         pass
     with open(path, 'w') as f:
-        document = """
----
-title: {title}
----
-
-{links}
-"""
-        link_text = '\n'.join([
-            u'- [{title}]({{%- link _documentation/api/{path} -%}})'.format(**item)
-            for item in links
-        ])
-        document = document.format(title=title, links=link_text)
-        f.write(document)
+        contents = render_to_string(
+            'sentry/apidocs/index.md',
+            dict(title=title, links=links))
+        f.write(contents)
 
 
 def dump_markdown(path, data):
@@ -284,87 +288,68 @@ def dump_markdown(path, data):
     except OSError:
         pass
     with open(path, 'w') as f:
-        document = """
+        template = u"""---
+{}
 ---
-title: {title}
-sidebar_order: {sidebar_order}
----
-
-{method} {path}
-
-: {text}
-
-## Example
-
-{example}
 """
-        document = document.format(**data)
-        f.write(document)
+        contents = template.format(json.dumps(data, sort_keys=True, indent=2))
+        f.write(contents)
 
 
-def dump_markdown_index(path, data):
-    path = os.path.join(OUTPUT_PATH, path)
-    try:
-        os.makedirs(os.path.dirname(path))
-    except OSError:
-        pass
-    with open(path, 'w') as f:
-        document = """
----
-title: %(title)s
----
-
-%(links)s
-"""
-        document = document.format(data)
-        f.write(document)
-
-
-def format_headers(headers):
-    if not headers:
-        return ''
-    headers = [
-        u"{}:{}".format(key, value)
-        for key, value in headers.items()
-    ]
-    return '\n'.join(headers)
-
-
-def format_example(endpoint, scenario_map):
-    example = u''
+def find_first_scenario(endpoint, scenario_map):
     for scene in endpoint['scenarios']:
         if scene not in scenario_map:
             continue
-        scene_data = scenario_map[scene]
-        for scenario in scene_data['requests']:
-            template_data = {
-                'status': scenario['response']['status'],
-                'reason': scenario['response']['reason'],
-                'method': scenario['request']['method'],
-                'path': scenario['request']['path'],
-                'request_headers': format_headers(scenario['request']['headers']),
-                'request_data': json.dumps(scenario['request']['data'], sort_keys=True, indent=2),
-                'response_headers': format_headers(scenario['response']['headers']),
-                'response_data': json.dumps(scenario['response']['data'], sort_keys=True, indent=2),
-            }
-            example += """
-```http
-{method} {path} HTTP/1.1
-Authorization: Bearer {{base64-encoded-key-here}}
-{request_headers}
-Host: sentry.io
+        try:
+            return scenario_map[scene]['requests'][0]
+        except IndexError:
+            return None
+    return None
 
-{request_data}
-```
 
-```http
-HTTP/1.1 {status} {reason}
-{response_headers}
+def format_request(endpoint, scenario_map):
+    scene = find_first_scenario(endpoint, scenario_map)
+    if not scene:
+        return ''
+    request = scene['request']
+    lines = [
+        u"{} {} HTTP/1.1".format(request['method'], request['path']),
+        'Host: sentry.io',
+        'Authorization: Bearer {base64-encoded-key-here}',
+    ]
+    lines.extend(format_headers(request['headers']))
+    if request['data']:
+        lines.append('')
+        lines.append(json.dumps(request['data'],
+                                sort_keys=True,
+                                indent=2))
+    return "\n".join(lines)
 
-{response_data}
-```
-""".format(**template_data)
-    return example
+
+def format_response(endpoint, scenario_map):
+    scene = find_first_scenario(endpoint, scenario_map)
+    if not scene:
+        return ''
+    response = scene['response']
+    lines = [
+        u"HTTP/1.1 {} {}".format(response['status'], response['reason']),
+    ]
+    lines.extend(format_headers(response['headers']))
+    if response['data']:
+        lines.append('')
+        lines.append(json.dumps(response['data'],
+                                sort_keys=True,
+                                indent=2))
+    return "\n".join(lines)
+
+
+def format_headers(headers):
+    """Format headers into a list."""
+    return [
+        u'{}: {}'.format(key, value)
+        for key, value
+        in headers.items()
+    ]
 
 
 if __name__ == '__main__':
