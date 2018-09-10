@@ -17,8 +17,6 @@ exports[`OrganizationAuthList renders 1`] = `
       flex={false}
     >
       <PanelAlert
-        m={0}
-        mb={0}
         type="info"
       >
         <span
@@ -92,8 +90,6 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
       flex={false}
     >
       <PanelAlert
-        m={0}
-        mb={0}
         type="info"
       >
         <span
