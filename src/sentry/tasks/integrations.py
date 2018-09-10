@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from sentry import analytics, features
 from sentry.models import (
     ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization, Repository, User
@@ -7,6 +9,8 @@ from sentry.models import (
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.migrate import PluginMigrator
 from sentry.tasks.base import instrumented_task, retry
+
+logger = logging.getLogger('sentry.tasks.integrations')
 
 
 @instrumented_task(
@@ -174,6 +178,14 @@ def migrate_repo(repo_id, integration_id, organization_id):
         repo.integration_id = integration_id
         repo.provider = 'integrations:%s' % (integration.provider,)
         repo.save()
+        logger.info(
+            'repo.migrated',
+            extra={
+                'integration_id': integration_id,
+                'organization_id': organization_id,
+                'repo_id': repo.id,
+            }
+        )
 
         PluginMigrator(
             integration,
