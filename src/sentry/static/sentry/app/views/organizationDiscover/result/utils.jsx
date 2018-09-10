@@ -127,26 +127,6 @@ function formatDate(datetime) {
   return moment.utc(datetime * 1000).format('MMM Do');
 }
 
-export function formatTooltip(seriesParams) {
-  const label = seriesParams.length && seriesParams[0].axisValueLabel;
-  return [
-    `<div>${truncateLabel(label)}</div>`,
-    seriesParams
-      .filter(s => s.data[1] !== null)
-      .map(s => `<div>${s.marker} ${truncateLabel(s.seriesName)}:  ${s.data[1]}</div>`)
-      .join(''),
-  ].join('');
-}
-
-// Truncates labels for tooltip
-function truncateLabel(seriesName) {
-  let result = seriesName;
-  if (seriesName.length > 80) {
-    result = seriesName.substring(0, 80) + '…';
-  }
-  return result;
-}
-
 // Converts a value to a string for the chart label. This could
 // potentially cause incorrect grouping, e.g. if the value null and string
 // 'null' are both present in the same series they will be merged into 1 value
