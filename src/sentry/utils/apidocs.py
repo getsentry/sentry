@@ -8,10 +8,12 @@ import inspect
 import requests
 import mimetypes
 
+from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import transaction
+from docutils.core import publish_doctree
 from pytz import utc
 from random import randint
 from six import StringIO
@@ -79,10 +81,12 @@ def get_endpoint_path(internal_endpoint):
     return '%s.%s' % (internal_endpoint.__module__, internal_endpoint.__name__, )
 
 
-def extract_title_and_text(doc):
+def parse_doc_string(doc):
     title = None
+    current_param = ''
+    param_lines = []
+    lines = []
     iterable = iter((doc or u'').splitlines())
-    clean_end = False
 
     for line in iterable:
         line = line.strip()
@@ -90,21 +94,75 @@ def extract_title_and_text(doc):
             if not line:
                 continue
             title = line
-        elif line[0] * len(line) == line:
-            clean_end = True
-            break
-        else:
-            break
+        elif line and line[0] * len(line) == line:
+            # is an RST underline
+            continue
+        elif line and line.startswith(':'):
+            # Is a new parameter or other annotation
+            if current_param:
+                param_lines.append(current_param)
+            current_param = line
+        elif current_param:
+            # Adding to an existing parameter annotation
+            current_param = current_param + ' ' + line.strip()
+        elif line:
+            lines.append(line)
 
-    lines = []
-    if clean_end:
-        for line in iterable:
-            if line.strip():
-                lines.append(line)
-                break
-    lines.extend(iterable)
+    if current_param:
+        param_lines.append(current_param)
 
-    return title, lines
+    return title, lines, parse_params(param_lines)
+
+
+def get_node_text(nodes):
+    """Recursively read text from a node tree."""
+    text = []
+    for node in nodes:
+        if node.nodeType == node.TEXT_NODE:
+            text.append(node.data)
+        if node.nodeType == node.ELEMENT_NODE:
+            text.append(get_node_text(node.childNodes))
+    return ''.join(text)
+
+
+def parse_params(params):
+    """
+    Parse parameter annotations.
+
+    docutils doesn't give us much to work with, but
+    we can get a DomDocument and traverse that for path parameters
+    and query parameters, and layer on some text munging to get
+    enough data to make the output we need.
+    """
+    parsed = defaultdict(list)
+    param_tree = publish_doctree('\n'.join(params)).asdom()
+    field_names = param_tree.getElementsByTagName('field_name')
+    field_values = param_tree.getElementsByTagName('field_body')
+
+    for i, field in enumerate(field_names):
+        name = get_node_text(field.childNodes)
+        value = ''
+        field_value = field_values.item(i)
+        if field_value:
+            value = get_node_text(field_value.childNodes)
+        field_type = 'param'
+        if name.startswith('pparam'):
+            field_type = 'path'
+            name = name[7:]
+        elif name.startswith('qparam'):
+            field_type = 'query'
+            name = name[7:]
+        elif name.startswith('auth'):
+            field_type = 'auth'
+            name = ''
+
+        # Split out the parameter type
+        param_type = ''
+        if ' ' in name:
+            param_type, name = name.split(' ', 1)
+        parsed[field_type].append(dict(name=name, type=param_type,
+                                       description=value))
+    return parsed
 
 
 def camelcase_to_dashes(string):
@@ -138,12 +196,13 @@ def extract_endpoint_info(pattern, internal_endpoint):
         if endpoint_name.endswith('Endpoint'):
             endpoint_name = endpoint_name[:-8]
         endpoint_name = camelcase_to_dashes(endpoint_name)
-        title, text = extract_title_and_text(doc)
+        title, text, params = parse_doc_string(doc)
         yield dict(
             path=API_PREFIX + path.lstrip('/'),
             method=method_name,
             title=title,
             text=text,
+            params=params,
             scenarios=getattr(method, 'api_scenarios', None) or [],
             section=section.name.lower(),
             internal_path='%s:%s' % (get_endpoint_path(internal_endpoint), method.__name__),
@@ -495,10 +554,11 @@ class Runner(object):
         """Convert the current scenario into a dict
         """
         doc = extract_documentation(self.func)
-        title, text = extract_title_and_text(doc)
+        title, text, params = parse_doc_string(doc)
         return {
             'ident': self.ident,
             'requests': self.requests,
             'title': title,
             'text': text,
+            'params': params,
         }
