@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import theme from 'app/utils/theme';
 import AutoSelectText from 'app/components/autoSelectText';
 import Link from 'app/components/link';
 import InlineSvg from 'app/components/inlineSvg';
@@ -139,7 +138,7 @@ export default class ResultTable extends React.Component {
 
     const showEventLinks = !query.aggregations.length;
 
-    const maxVisibleResults = Math.min(data.length, 15);
+    const maxVisibleResults = Math.min(data.length, 10);
 
     return (
       <GridContainer visibleRows={maxVisibleResults + 1}>
@@ -152,12 +151,9 @@ export default class ResultTable extends React.Component {
               rowCount={data.length + 1}
               columnCount={cols.length + (showEventLinks ? 1 : 0)}
               fixedRowCount={1}
-              rowHeight={41}
+              rowHeight={40}
               columnWidth={this.getColumnWidth}
               cellRenderer={this.cellRenderer}
-              styleTopRightGrid={{
-                borderBottom: `1px solid ${theme.borderDark}`,
-              }}
             />
           )}
         </AutoSizer>
@@ -178,7 +174,8 @@ export default class ResultTable extends React.Component {
 
 const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
   height: ${p =>
-    p.visibleRows * 43}px; /* cell height + cell border + top and bottom Panel border */
+    p.visibleRows * 40 +
+    2}px; /* cell height + cell border + top and bottom Panel border */
   overflow: hidden;
 
   .ReactVirtualized__Grid {
@@ -209,6 +206,7 @@ const TableHeader = styled(Cell)`
   background: ${p => p.theme.offWhite};
   color: ${p => p.theme.gray3};
   border-top: none;
+  border-bottom: 1px solid ${p => p.theme.borderDark};
   &:first-of-type {
     border-top-left-radius: 3px;
   }
