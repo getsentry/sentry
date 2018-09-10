@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal, isValidCondition} from './utils';
-import {CONDITION_OPERATORS} from '../data';
+import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 
 export default class Condition extends React.Component {
@@ -65,9 +65,15 @@ export default class Condition extends React.Component {
     return CONDITION_OPERATORS.filter(operator => {
       if (colType === 'number') {
         return !stringOnlyOperators.has(operator);
-      } else {
-        return !numberOnlyOperators.has(operator);
       }
+
+      // We currently only support = and != on array fields
+      if (ARRAY_FIELD_PREFIXES.some(prefix => colName.startsWith(prefix))) {
+        return ['=', '!='].includes(operator);
+      }
+
+      // Treat everything else like a string
+      return !numberOnlyOperators.has(operator);
     });
   }
 
