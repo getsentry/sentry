@@ -784,6 +784,7 @@ SENTRY_FEATURES = {
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
     'organizations:relay': False,
+    'organizations:js-loader': False,
     'organizations:health': False,
     'organizations:discover': False,
     'projects:global-events': False,
