@@ -97,6 +97,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 label=result.get('name'),
                 public_key=result.get('public'),
                 secret_key=result.get('secret'),
+                data={'browserSdkVersion': 'latest'}
             )
 
             self.create_audit_entry(
