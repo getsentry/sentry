@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
@@ -42,7 +42,7 @@ scopes = (
 )
 
 
-class BitbucketIntegration(Integration, BitbucketIssueBasicMixin, RepositoryMixin):
+class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, RepositoryMixin):
     repo_search = True
 
     def get_client(self):

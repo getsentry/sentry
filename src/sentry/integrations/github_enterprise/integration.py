@@ -8,7 +8,7 @@ from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github_enterprise import get_user_info
-from sentry.integrations import IntegrationMetadata, Integration
+from sentry.integrations import IntegrationMetadata, IntegrationInstallation
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
@@ -81,7 +81,7 @@ API_ERRORS = {
 }
 
 
-class GitHubEnterpriseIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
+class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
         base_url = self.model.metadata['domain_name'].split('/')[0]
         return GitHubEnterpriseAppsClient(

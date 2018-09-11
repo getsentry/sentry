@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration', 'IntegrationFeatures', 'IntegrationProvider', 'IntegrationMetadata']
+__all__ = [
+    'IntegrationInstallation',
+    'IntegrationFeatures',
+    'IntegrationProvider',
+    'IntegrationMetadata']
 
 import logging
 import six
@@ -173,9 +177,9 @@ class IntegrationProvider(PipelineProvider):
         return feature in self.features
 
 
-class Integration(object):
+class IntegrationInstallation(object):
     """
-    An integration represents an installed integration and manages the
+    An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
     """
 

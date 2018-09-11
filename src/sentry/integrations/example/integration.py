@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.http import HttpResponse
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
+    IntegrationInstallation, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
@@ -44,7 +44,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(Integration, IssueSyncMixin):
+class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_outbound'
     inbound_status_key = 'sync_status_inbound'

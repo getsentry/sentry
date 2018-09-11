@@ -12,7 +12,7 @@ from sentry.models import (
     Integration as IntegrationModel, IntegrationExternalProject, Organization,
     OrganizationIntegration,
 )
-from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
@@ -48,7 +48,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
+class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     logger = logging.getLogger('sentry.integrations')
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
