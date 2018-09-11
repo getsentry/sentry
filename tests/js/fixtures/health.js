@@ -1,13 +1,35 @@
-const COUNT_OBJ = tag => ({
-  count: 123,
-  release: {
-    _health_id: `${tag}:${tag}-slug`,
-    value: {slug: `${tag}-slug`},
-  },
-});
+const COUNT_OBJ = ({tag, topk}) => {
+  let tagObject;
 
-export function HealthTop(tag = 'release', params) {
-  const countObject = COUNT_OBJ(tag);
+  if (tag === 'user') {
+    const user = TestStubs.User();
+    tagObject = {
+      _health_id: `${tag}:${user.id}`,
+      value: user,
+    };
+  } else if (tag === 'release') {
+    const release = TestStubs.Release();
+    tagObject = {
+      _health_id: `${tag}:${release.slug}`,
+      value: release,
+    };
+  } else {
+    tagObject = {
+      _health_id: `${tag}:${tag}-slug`,
+      value: tag,
+    };
+  }
+
+  return {
+    count: 123,
+    [tag]: tagObject,
+    topProjects: topk ? [TestStubs.Project()] : [],
+  };
+};
+
+const DEFAULT_QUERY = {tag: 'release'};
+export function HealthTop(query = DEFAULT_QUERY, params) {
+  const countObject = COUNT_OBJ(query);
   return {
     data: [countObject],
     totals: {
@@ -17,8 +39,8 @@ export function HealthTop(tag = 'release', params) {
   };
 }
 
-export function HealthGraph(tag = 'release', params) {
-  const countObject = COUNT_OBJ(tag);
+export function HealthGraph(query = DEFAULT_QUERY, params) {
+  const countObject = COUNT_OBJ(query);
 
   return {
     data: [
