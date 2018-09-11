@@ -23,6 +23,7 @@ let validHookNames = new Set([
   'analytics:log-experiment',
   'sidebar:organization-dropdown-menu',
   'sidebar:help-menu',
+  'interations:feature-gates',
 ]);
 
 const HookStore = Reflux.createStore({

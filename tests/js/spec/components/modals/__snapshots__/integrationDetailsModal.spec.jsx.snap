@@ -32,6 +32,16 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       }
     }
   />
+  <ul>
+    <li
+      dangerouslySetInnerHTML={
+        Object {
+          "__html": "<em>markdown</em> feature description",
+        }
+      }
+      key="0"
+    />
+  </ul>
   <Metadata>
     <AuthorName
       flex={1}
@@ -100,6 +110,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             },
             "author": "Morty",
             "description": "*markdown* formatted _description_",
+            "features": Array [
+              Object {
+                "description": "*markdown* feature description",
+              },
+            ],
             "issue_url": "http://example.com/integration_issue_url",
             "noun": "Installation",
             "source_url": "http://example.com/integration_source_url",

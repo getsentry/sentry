@@ -9,21 +9,46 @@ import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrat
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/externalLink';
+import HookStore from 'app/stores/hookStore';
+import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag.jsx';
 import space from 'app/styles/space';
 
 const EARLY_ADOPTER_INTEGRATIONS = [];
 
-const alertMarkedRenderer = new marked.Renderer();
-alertMarkedRenderer.paragraph = s => s;
-const alertMarked = text => marked(text, {renderer: alertMarkedRenderer});
+const noParagraphRenderer = new marked.Renderer();
+noParagraphRenderer.paragraph = s => s;
+const markedSimple = text => marked(text, {renderer: noParagraphRenderer});
+
+/**
+ * In sentry.io the features list supports rendering plan details. If the hook
+ * is not registered for rendering the features list like this simply show the
+ * features as a normal list.
+ */
+const defaultFeatureGateComponents = {
+  IntegrationFeatures: p =>
+    p.children({
+      mustUpgrade: false,
+      ungatedFeatures: p.features,
+      gatedFeatureGroups: [],
+    }),
+  FeatureList: p => (
+    <ul>
+      {p.features.map((f, i) => (
+        <li key={i} dangerouslySetInnerHTML={{__html: markedSimple(f.description)}} />
+      ))}
+    </ul>
+  ),
+};
 
 class IntegrationDetailsModal extends React.Component {
   static propTypes = {
     closeModal: PropTypes.func.isRequired,
     onAddIntegration: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
   };
 
   onAddIntegration = integration => {
@@ -31,9 +56,9 @@ class IntegrationDetailsModal extends React.Component {
     this.props.onAddIntegration(integration);
   };
 
-  features(features) {
+  featureTags(features) {
     return features.map(feature => (
-      <StyledTag key={feature}>{feature.replace(/_/g, ' ')}</StyledTag>
+      <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
     ));
   }
 
@@ -44,7 +69,7 @@ class IntegrationDetailsModal extends React.Component {
   }
 
   render() {
-    const {provider, closeModal} = this.props;
+    const {provider, organization, closeModal} = this.props;
     const {metadata} = provider;
     const description = marked(metadata.description);
 
@@ -58,6 +83,41 @@ class IntegrationDetailsModal extends React.Component {
       });
     }
 
+    const buttonProps = {
+      style: {marginLeft: space(1)},
+      size: 'small',
+      priority: 'primary',
+    };
+
+    const AddButton = p =>
+      (provider.canAdd && (
+        <AddIntegrationButton
+          provider={provider}
+          onAddIntegration={this.onAddIntegration}
+          {...buttonProps}
+          {...p}
+        />
+      )) ||
+      (!provider.canAdd &&
+        metadata.aspects.externalInstall && (
+          <Button
+            icon="icon-exit"
+            href={metadata.aspects.externalInstall.url}
+            onClick={closeModal}
+            external
+            {...buttonProps}
+            {...p}
+          >
+            {metadata.aspects.externalInstall.buttonText}
+          </Button>
+        ));
+
+    const featureListHooks = HookStore.get('integrations:feature-gates');
+    featureListHooks.push(() => defaultFeatureGateComponents);
+
+    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
+    const featureProps = {organization, features: metadata.features};
+
     return (
       <React.Fragment>
         <Flex align="center" mb={2}>
@@ -66,11 +126,13 @@ class IntegrationDetailsModal extends React.Component {
             <ProviderName>{t('%s Integration', provider.name)}</ProviderName>
             <Flex>
               {this.earlyAdopterLabel(provider)}
-              {provider.features.length && this.features(provider.features)}
+              {provider.features.length && this.featureTags(provider.features)}
             </Flex>
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
+        <FeatureList {...featureProps} />
+
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>
           <Box>
@@ -81,42 +143,35 @@ class IntegrationDetailsModal extends React.Component {
 
         {alerts.map((alert, i) => (
           <Alert key={i} type={alert.type} icon={alert.icon}>
-            <span dangerouslySetInnerHTML={{__html: alertMarked(alert.text)}} />
+            <span dangerouslySetInnerHTML={{__html: markedSimple(alert.text)}} />
           </Alert>
         ))}
 
-        <div className="modal-footer">
-          <Button size="small" onClick={closeModal}>
-            {t('Cancel')}
-          </Button>
-          {provider.canAdd && (
-            <AddIntegrationButton
-              css={{marginLeft: space(1)}}
-              size="small"
-              priority="primary"
-              provider={provider}
-              onAddIntegration={this.onAddIntegration}
-            />
-          )}
-          {!provider.canAdd &&
-            metadata.aspects.externalInstall && (
-              <Button
-                css={{marginLeft: space(1)}}
-                size="small"
-                priority="primary"
-                icon="icon-exit"
-                href={metadata.aspects.externalInstall.url}
-                onClick={closeModal}
-                external
-              >
-                {metadata.aspects.externalInstall.buttonText}
+        <IntegrationFeatures {...featureProps}>
+          {({mustUpgrade}) => (
+            <div className="modal-footer">
+              {!!mustUpgrade && <DisabledNotice reason={mustUpgrade} />}
+              <Button size="small" onClick={closeModal}>
+                {t('Cancel')}
               </Button>
-            )}
-        </div>
+              <AddButton disabled={!!mustUpgrade} />
+            </div>
+          )}
+        </IntegrationFeatures>
       </React.Fragment>
     );
   }
 }
+
+const DisabledNotice = styled(({reason, ...p}) => (
+  <Flex align="center" flex={1} {...p}>
+    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <Box ml={1}>{reason}</Box>
+  </Flex>
+))`
+  color: ${p => p.theme.red};
+  font-size: 0.9em;
+`;
 
 const ProviderName = styled(p => <Box {...p} />)`
   font-weight: bold;

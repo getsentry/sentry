@@ -12,7 +12,7 @@ from sentry.models import (
     Integration as IntegrationModel, IntegrationExternalProject, Organization,
     OrganizationIntegration,
 )
-from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
@@ -29,17 +29,47 @@ from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
-Connect your Sentry organization to one or more of your Azure DevOps organizations. Get started streamlining your bug squashing workflow by unifying your Sentry and Azure DevOps accounts together.
-
-* Create and link Sentry issue groups directly to a Azure DevOps work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
-* Automatically synchronize assignees to and from Azure DevOps. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and Azure DevOps assignees.
-* Never forget to close a resolved workitem! Resolving an issue in Sentry will resolve your linked workitems and viceversa.
-* Synchronize comments on Sentry Issues directly to the linked Azure DevOps workitems.
-
+Connect your Sentry organization to one or more of your Azure DevOps
+organizations. Get started streamlining your bug squashing workflow by unifying
+your Sentry and Azure DevOps organization together.
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a Azure DevOps work item in any of
+        your projects, providing a quick way to jump from Sentry bug to tracked
+        work item!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically synchronize assignees to and from Azure DevOps. Don't get
+        confused who's fixing what, let us handle ensuring your issues and work
+        items match up to your Sentry and Azure DevOps assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Never forget to close a resolved workitem! Resolving an issue in Sentry
+        will resolve your linked workitems and viceversa.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize comments on Sentry Issues directly to the linked Azure
+        DevOps workitems.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    )
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=VSTS%20Integration:%20&labels=Component%3A%20Integrations',
@@ -266,7 +296,12 @@ class VstsIntegrationProvider(IntegrationProvider):
     oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
     integration_cls = VstsIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC, IntegrationFeatures.COMMITS])
+
+    features = frozenset([
+        IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.COMMITS
+    ])
 
     setup_dialog_config = {
         'width': 600,

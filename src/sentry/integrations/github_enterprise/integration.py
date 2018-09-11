@@ -8,7 +8,7 @@ from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github_enterprise import get_user_info
-from sentry.integrations import IntegrationMetadata, IntegrationInstallation
+from sentry.integrations import IntegrationMetadata, IntegrationInstallation, FeatureDescription, IntegrationFeatures
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
@@ -27,15 +27,27 @@ instances. Take a step towards augmenting your sentry issues with commits from
 your repositories ([using releases](https://docs.sentry.io/learn/releases/))
 and linking up your GitHub issues and pull requests directly to issues in
 Sentry.
-
- * Create and link Sentry issue groups directly to a GitHub issue or pull
-   request in any of your repositories, providing a quick way to jump from
-   Sentry bug to tracked issue or PR!
-
- * Authorize repositories to be added to your Sentry organization to augmenting
-   sentry issues with commit data with [deployment
-   tracking](https://docs.sentry.io/learn/releases/).
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Authorize repositories to be added to your Sentry organization to augmenting
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+]
+
 
 disable_dialog = {
     'actionText': 'Visit GitHub Enterprise',
@@ -63,6 +75,7 @@ setup_alert = {
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
