@@ -109,6 +109,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
     name = 'Gitlab'
     metadata = metadata
     integration_cls = GitlabIntegration
+
+    needs_default_identity = True
+
     features = frozenset([
         IntegrationFeatures.COMMITS,
         IntegrationFeatures.ISSUE_BASIC,
@@ -160,6 +163,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'Accept': 'application/json',
                 'Authorization': 'Bearer %s' % access_token,
             },
+            verify=False
         )
 
         resp.raise_for_status()
@@ -174,6 +178,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'Accept': 'application/json',
                 'Authorization': 'Bearer %s' % access_token,
             },
+            verify=False
         )
 
         resp.raise_for_status()
