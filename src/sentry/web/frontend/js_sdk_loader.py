@@ -26,7 +26,10 @@ class JavaScriptSdkLoader(BaseView):
             raise Http404
 
         sdk_version = get_browser_sdk_version(key)
-        sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version, )
+        try:
+            sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version, )
+        except TypeError:
+            sdk_url = ''  # It fails if it cannot inject the version in the string
 
         if not sdk_url:
             tmpl = 'sentry/js-sdk-loader-noop.js.tmpl'

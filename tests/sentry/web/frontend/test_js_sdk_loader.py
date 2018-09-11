@@ -29,7 +29,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/js-sdk-loader.js.tmpl')
         self.assertIn(self.projectkey.public_key, resp.content)
-        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, resp.content)
+        self.assertIn('bundle.min.js', resp.content)
 
     def test_minified(self):
         resp = self.client.get(self.path)
@@ -43,7 +43,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert min_resp.status_code == 200
         self.assertTemplateUsed(min_resp, 'sentry/js-sdk-loader.min.js.tmpl')
         self.assertIn(self.projectkey.public_key, min_resp.content)
-        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, min_resp.content)
+        self.assertIn('bundle.min.js', min_resp.content)
         assert len(resp.content) > len(min_resp.content)
 
     def test_headers(self):
