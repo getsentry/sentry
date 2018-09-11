@@ -1,3 +1,4 @@
+import {AutoSizer, List} from 'react-virtualized';
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -82,6 +83,14 @@ class DropdownAutoCompleteMenu extends React.Component {
     maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
     /**
+     * Supplying this height will force the dropdown menu to be a virtualized list.
+     * This is very useful (and probably required) if you have a large list. e.g. Project selector with many projects.
+     *
+     * Currently, our implementation of the virtualized list requires a fixed height.
+     */
+    virtualizedHeight: PropTypes.number,
+
+    /**
      * Search input's placeholder text
      */
     searchPlaceholder: PropTypes.string,
@@ -156,6 +165,72 @@ class DropdownAutoCompleteMenu extends React.Component {
     }
 
     return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
+  };
+
+  renderList = ({items, ...otherProps}) => {
+    const {maxHeight, virtualizedHeight} = this.props;
+
+    // If `virtualizedHeight` is defined, use a virtualized list
+    if (typeof virtualizedHeight !== 'undefined') {
+      return (
+        <AutoSizer disableHeight>
+          {({width}) => (
+            <List
+              width={width}
+              height={Math.min(items.length * virtualizedHeight, maxHeight)}
+              rowCount={items.length}
+              rowHeight={virtualizedHeight}
+              rowRenderer={({key, index, style}) => {
+                const item = items[index];
+                return this.renderRow({
+                  item,
+                  style,
+                  key,
+                  ...otherProps,
+                });
+              }}
+            />
+          )}
+        </AutoSizer>
+      );
+    }
+
+    return items.map(item => {
+      const {index} = item;
+      const key = `${item.value}-${index}`;
+
+      return this.renderRow({item, key, ...otherProps});
+    });
+  };
+
+  renderRow = ({
+    item,
+    style,
+    itemSize,
+    key,
+    highlightedIndex,
+    inputValue,
+    getItemProps,
+  }) => {
+    const {index} = item;
+
+    return item.groupLabel ? (
+      !item.hideGroupLabel && (
+        <LabelWithBorder style={style} key={item.label || item.id}>
+          {item.label && <GroupLabel>{item.label}</GroupLabel>}
+        </LabelWithBorder>
+      )
+    ) : (
+      <AutoCompleteItem
+        size={itemSize}
+        key={key}
+        index={index}
+        highlightedIndex={highlightedIndex}
+        {...getItemProps({item, index, style})}
+      >
+        {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
+      </AutoCompleteItem>
+    );
   };
 
   render() {
@@ -267,28 +342,13 @@ class DropdownAutoCompleteMenu extends React.Component {
                         </Flex>
                       )}
                       {!busy &&
-                        autoCompleteResults.map(
-                          ({index, ...item}) =>
-                            item.groupLabel ? (
-                              !item.hideGroupLabel && (
-                                <LabelWithBorder key={item.label || item.id}>
-                                  {item.label && <GroupLabel>{item.label}</GroupLabel>}
-                                </LabelWithBorder>
-                              )
-                            ) : (
-                              <AutoCompleteItem
-                                size={itemSize}
-                                key={`${item.value}-${index}`}
-                                index={index}
-                                highlightedIndex={highlightedIndex}
-                                {...getItemProps({item, index})}
-                              >
-                                {typeof item.label === 'function'
-                                  ? item.label({inputValue})
-                                  : item.label}
-                              </AutoCompleteItem>
-                            )
-                        )}
+                        this.renderList({
+                          items: autoCompleteResults,
+                          itemSize,
+                          highlightedIndex,
+                          inputValue,
+                          getItemProps,
+                        })}
                     </StyledItemList>
 
                     {menuFooter && <LabelWithPadding>{menuFooter}</LabelWithPadding>}
@@ -404,6 +464,12 @@ const getItemPaddingForSize = size => {
 };
 
 const AutoCompleteItem = styled('div')`
+  /* needed for virtualized lists that do not fill parent height */
+  /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
   font-size: 0.9em;
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};

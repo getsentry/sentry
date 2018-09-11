@@ -112,6 +112,7 @@ const ProjectSelector = withRouter(
           inputProps={{style: {padding: 8, paddingLeft: 14}}}
           emptyMessage={t('You have no projects')}
           noResultsMessage={t('No projects found')}
+          virtualizedHeight={33}
           menuFooter={
             !hasProjects && hasProjectWrite ? (
               <CreateProjectButton
