@@ -308,7 +308,14 @@ export const EChartsSeriesUnit = PropTypes.shape({
   showSymbol: PropTypes.bool,
   name: PropTypes.string,
   data: PropTypes.arrayOf(
-    PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))
+    PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])),
+      // e.g. PieCharts
+      PropTypes.shape({
+        name: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+        value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      }),
+    ])
   ),
 });
 
