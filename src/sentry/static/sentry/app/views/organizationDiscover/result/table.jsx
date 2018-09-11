@@ -178,7 +178,7 @@ export default class ResultTable extends React.Component {
                 rowCount={data.length + 1}
                 columnCount={colCount}
                 fixedRowCount={1}
-                rowHeight={40}
+                rowHeight={41} // Add 1px for border
                 columnWidth={({index}) => columnWidths[index]}
                 cellRenderer={this.cellRenderer}
               />
@@ -202,7 +202,7 @@ export default class ResultTable extends React.Component {
 
 const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
   height: ${p =>
-    p.visibleRows * 40 +
+    p.visibleRows * 41 +
     2}px; /* cell height + cell border + top and bottom Panel border */
   overflow: hidden;
 
