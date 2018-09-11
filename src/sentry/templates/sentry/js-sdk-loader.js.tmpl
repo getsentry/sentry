@@ -20,7 +20,9 @@
     // content.p = promise rejection
     // content.f = function call the Sentry
     if (
-      (content.e || content.p || (content.f && content.f.indexOf('capture') > -1)) &&
+      (content.e || content.p ||
+        (content.f && content.f.indexOf('capture') > -1) ||
+        (content.f && content.f.indexOf('showReportDialog') > -1)) &&
       lazy
     ) {
       // We only want to lazy inject/load the sdk bundle if
@@ -140,6 +142,7 @@
     'captureException',
     'captureEvent',
     'configureScope',
+    'showReportDialog',
   ].forEach(function(f) {
     _window[_namespace][f] = function() {
       queue({f: f, a: arguments});
