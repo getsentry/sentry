@@ -91,9 +91,16 @@
 
       // We want to replay all calls to Sentry first to make sure init is called before
       // we call all our internal error handlers
+      var firstInitCall = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i].f) {
           var call = data[i];
+          if (firstInitCall === false && call.f !== 'init') {
+            // First call always has to be init, this is a conveniece for the user
+            // so call to init is optional
+            SDK.init();
+          }
+          firstInitCall = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
