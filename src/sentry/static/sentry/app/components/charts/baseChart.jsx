@@ -13,6 +13,7 @@ import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
 import YAxis from './components/yAxis';
 import XAxis from './components/xAxis';
+import Legend from './components/legend';
 
 // If dimension is a number conver it to pixels, otherwise use dimension without transform
 const getDimensionValue = dimension => {
@@ -49,6 +50,9 @@ class BaseChart extends React.Component {
 
     // ECharts Grid options
     grid: SentryTypes.EChartsGrid,
+
+    // Chart legend
+    legend: SentryTypes.EChartsLegend,
 
     // Chart height
     height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -132,6 +136,7 @@ class BaseChart extends React.Component {
       colors,
       grid,
       tooltip,
+      legend,
       series,
       yAxis,
       xAxis,
@@ -177,6 +182,18 @@ class BaseChart extends React.Component {
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
           tooltip: tooltip !== null ? Tooltip({isGroupedByDate, ...tooltip}) : null,
+          legend: {
+            type: 'scroll',
+            formatter: function(name) {
+              if (name.length > 80) {
+                return name.substring(0, 80) + '...';
+              } else {
+                return name;
+              }
+            },
+            padding: 0,
+            ...legend,
+          },
           yAxis: yAxis !== null ? YAxis(yAxis) : null,
           xAxis:
             xAxis !== null

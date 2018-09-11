@@ -375,7 +375,7 @@ export default class OrganizationDiscover extends React.Component {
           </TopBar>
           <Flex flex="1" direction="column" p={3}>
             {data && (
-              <Result
+              <Result flex="1"
                 data={data}
                 query={query}
                 chartData={chartData}
