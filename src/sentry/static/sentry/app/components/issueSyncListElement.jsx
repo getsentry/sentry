@@ -60,7 +60,7 @@ class IssueSyncElement extends React.Component {
       case 'github_enterprise':
         return 'GitHub Enterprise';
       case 'vsts':
-        return 'VSTS';
+        return 'Azure DevOps';
       default:
         return capitalize(type);
     }
