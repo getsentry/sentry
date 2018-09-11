@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from django.db import transaction
 
 from sentry.utils.cache import memoize
+from sentry.utils.functional import compact
 from .param import Param
 
 
@@ -170,7 +171,11 @@ class Mediator(object):
 
     def log(self, **kwargs):
         if any(kwargs):
-            self.logger.info(None, extra=kwargs)
+            extra = {}
+            extra.update(self._default_logging)
+            extra.update(self._logging_context)
+            extra.update(kwargs)
+            self.logger.info(None, extra=extra)
         else:
             return self._measured(self)
 
@@ -205,6 +210,30 @@ class Mediator(object):
             self.__class__.__module__,
             self.__class__.__name__
         ])
+
+    @property
+    def _default_logging(self):
+        from sentry.app import env
+
+        if not env.request or \
+           not hasattr(env.request, 'resolver_match') or \
+           not hasattr(env.request.resolver_match, 'kwargs'):
+            return {}
+
+        request_params = env.request.resolver_match.kwargs
+
+        return compact({
+            'org': request_params.get('organization_slug'),
+            'team': request_params.get('team_slug'),
+            'project': request_params.get('project_slug'),
+        })
+
+    @property
+    def _logging_context(self):
+        """
+        Overwrite this function to add attributes to automatic log lines.
+        """
+        return {}
 
     @contextmanager
     def _measured(self, context):

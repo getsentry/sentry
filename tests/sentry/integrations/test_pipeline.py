@@ -210,7 +210,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert org_integration.default_auth_id == old_identity_id
         assert Identity.objects.filter(external_id='AccountId').exists()
 
-    @patch('sentry.integrations.migrate.PluginMigrator.call')
+    @patch('sentry.mediators.plugins.Migrator.call')
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
         Repository.objects.create(
             organization_id=self.organization.id,
