@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import six
 
+from django.core.exceptions import MultipleObjectsReturned
 from django.db import models, router, connections
 from django.utils import timezone
 
@@ -100,12 +101,24 @@ class TagValue(Model):
         rv = cache.get(cache_key)
         created = False
         if rv is None:
-            rv, created = cls.objects.get_or_create(
-                project_id=project_id,
-                _key_id=_key_id,
-                value=value,
-                **kwargs
-            )
+            try:
+                rv, created = cls.objects.get_or_create(
+                    project_id=project_id,
+                    _key_id=_key_id,
+                    value=value,
+                    **kwargs
+                )
+            except MultipleObjectsReturned:
+                # HACK: Temporary fix to deal with non-uniqueness of
+                # rows that should be unique after glibc upgrade changed
+                # how unicode values sort
+                rv = cls.objects.filter(
+                    project_id=project_id,
+                    _key_id=_key_id,
+                    value=value,
+                    **kwargs
+                ).order_by('id')[0]
+                created = False
             cache.set(cache_key, rv, 3600)
 
         return rv, created
