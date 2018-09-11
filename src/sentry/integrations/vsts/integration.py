@@ -29,12 +29,12 @@ from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
-Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
+Connect your Sentry organization to one or more of your Azure DevOps organizations. Get started streamlining your bug squashing workflow by unifying your Sentry and Azure DevOps accounts together.
 
-* Create and link Sentry issue groups directly to a VSTS work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
-* Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and VSTS assignees.
+* Create and link Sentry issue groups directly to a Azure DevOps work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
+* Automatically synchronize assignees to and from Azure DevOps. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and Azure DevOps assignees.
 * Never forget to close a resolved workitem! Resolving an issue in Sentry will resolve your linked workitems and viceversa.
-* Synchronize comments on Sentry Issues directly to the linked VSTS workitems.
+* Synchronize comments on Sentry Issues directly to the linked Azure DevOps workitems.
 
 """
 
@@ -136,12 +136,12 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'name': self.outbound_status_key,
                 'type': 'choice_mapper',
                 'disabled': disabled,
-                'label': _('Sync Sentry Status to VSTS'),
-                'help': _('When a Sentry issue changes status, change the status of the linked work item in VSTS.'),
-                'addButtonText': _('Add VSTS Project'),
+                'label': _('Sync Sentry Status to Azure DevOps'),
+                'help': _('When a Sentry issue changes status, change the status of the linked work item in Azure DevOps.'),
+                'addButtonText': _('Add Azure DevOps Project'),
                 'addDropdown': {
                     'emptyMessage': _('All projects configured'),
-                    'noResultsMessage': _('Could not find VSTS project'),
+                    'noResultsMessage': _('Could not find Azure DevOps project'),
                     'items': project_selector,
                 },
                 'mappedSelectors': {
@@ -152,33 +152,33 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                     'on_resolve': _('When resolved'),
                     'on_unresolve': _('When unresolved'),
                 },
-                'mappedColumnLabel': _('VSTS Project'),
+                'mappedColumnLabel': _('Azure DevOps Project'),
             },
             {
                 'name': self.outbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Sync Sentry Assignment to VSTS'),
-                'help': _('When an issue is assigned in Sentry, assign its linked VSTS work item to the same user.'),
+                'label': _('Sync Sentry Assignment to Azure DevOps'),
+                'help': _('When an issue is assigned in Sentry, assign its linked Azure DevOps work item to the same user.'),
             },
             {
                 'name': self.comment_key,
                 'type': 'boolean',
-                'label': _('Sync Sentry Comments to VSTS'),
-                'help': _('Post comments from Sentry issues to linked VSTS work items'),
+                'label': _('Sync Sentry Comments to Azure DevOps'),
+                'help': _('Post comments from Sentry issues to linked Azure DevOps work items'),
             },
             {
                 'name': self.inbound_status_key,
                 'type': 'boolean',
-                'label': _('Sync VSTS Status to Sentry'),
-                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry. '
-                          'When a VSTS work item is removed from being done, unresolve its linked Sentry issue.'
+                'label': _('Sync Azure DevOps Status to Sentry'),
+                'help': _('When a Azure DevOps work item is marked done, resolve its linked issue in Sentry. '
+                          'When a Azure DevOps work item is removed from being done, unresolve its linked Sentry issue.'
                           ),
             },
             {
                 'name': self.inbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Sync VSTS Assignment to Sentry'),
-                'help': _('When a work item is assigned in VSTS, assign its linked Sentry issue to the same user.'),
+                'label': _('Sync Azure DevOps Assignment to Sentry'),
+                'help': _('When a work item is assigned in Azure DevOps, assign its linked Sentry issue to the same user.'),
             },
         ]
 
@@ -250,7 +250,7 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
 
 class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
-    name = 'Visual Studio Team Services'
+    name = 'Azure DevOps'
     metadata = metadata
     api_version = '4.1'
     oauth_redirect_url = '/extensions/vsts/setup/'
@@ -453,5 +453,5 @@ class AccountForm(forms.Form):
         self.fields['account'] = forms.ChoiceField(
             choices=[(acct['accountId'], acct['accountName']) for acct in accounts],
             label='Account',
-            help_text='VS Team Services account (account.visualstudio.com).',
+            help_text='Azure DevOps organization.',
         )
