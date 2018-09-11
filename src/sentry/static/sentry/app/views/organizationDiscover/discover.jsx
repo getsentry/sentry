@@ -379,10 +379,12 @@ const SidebarHeader = styled(Flex)`
 `;
 
 const DiscoverBody = styled(Flex)`
-  min-height: calc(107vh - 174px);
+  min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
 `;
 
 const Discover = styled('div')`
+  margin-bottom: -20px;
+
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
   }
