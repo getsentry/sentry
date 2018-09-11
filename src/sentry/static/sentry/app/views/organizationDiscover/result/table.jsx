@@ -24,11 +24,6 @@ export default class ResultTable extends React.Component {
     organization: SentryTypes.Organization,
   };
 
-  componentDidMount() {
-    // Create canvas once in order to measure column widths
-    this.canvas = document.createElement('canvas');
-  }
-
   componentWillReceiveProps(nextProps) {
     if (this.props.data.meta !== nextProps.data.meta) {
       this.grid.recomputeGridSize();
@@ -36,12 +31,16 @@ export default class ResultTable extends React.Component {
   }
 
   cellRenderer = ({key, rowIndex, columnIndex, style}) => {
-    const {data} = this.props.data;
+    const {query, data: {data}} = this.props;
     const cols = this.getColumnList();
 
-    const isLinkCol = typeof cols[columnIndex] === 'undefined';
+    const showEventLinks = !query.aggregations.length;
 
-    const colName = isLinkCol ? null : cols[columnIndex].name;
+    const isLinkCol = showEventLinks && columnIndex === cols.length;
+
+    const isSpacingCol = typeof cols[columnIndex] === 'undefined';
+
+    const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
 
     if (rowIndex === 0) {
       return (
@@ -53,7 +52,7 @@ export default class ResultTable extends React.Component {
 
     const value = isLinkCol
       ? this.getLink(data[rowIndex - 1])
-      : getDisplayValue(data[rowIndex - 1][colName]);
+      : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
 
     const isNumber = !isLinkCol && typeof data[rowIndex - 1][colName] === 'number';
 
@@ -81,38 +80,57 @@ export default class ResultTable extends React.Component {
     );
   };
 
-  // Estimates the column width based on the header row and the first two rows
+  // Returns an array of column widths for each column in the table.
+  // Estimates the column width based on the header row and the first three rows
   // of data. Since this might be expensive, we'll only do this if there are
-  // less than 20 columns of data to check
-  getColumnWidth = ({index}) => {
+  // less than 20 columns of data to check.
+  // Adds an empty column at the end with the remaining table width if any.
+  getColumnWidths = tableWidth => {
     const MIN_COL_WIDTH = 100;
     const MAX_COL_WIDTH = 400;
     const LINK_COL_WIDTH = 40;
 
-    const {data} = this.props.data;
-
+    const {query, data: {data}} = this.props;
     const cols = this.getColumnList();
 
-    const isLinkCol = typeof cols[index] === 'undefined';
+    const widths = [];
 
-    if (isLinkCol) {
-      return LINK_COL_WIDTH;
-    }
+    const showEventLinks = !query.aggregations.length;
 
     if (cols.length < 20) {
-      const colName = cols[index].name;
-      const sizes = [this.measureText(colName, true)];
+      cols.forEach(col => {
+        const colName = col.name;
+        const sizes = [this.measureText(colName, true)];
 
-      // Check the first 3 rows to set column width
-      data.slice(0, 3).forEach(row => {
-        sizes.push(this.measureText(getDisplayText(row[colName]), false));
+        // Check the first 3 rows to set column width
+        data.slice(0, 3).forEach(row => {
+          sizes.push(this.measureText(getDisplayText(row[colName]), false));
+        });
+
+        // Ensure size is within max and min bounds, add 20px for cell padding
+        const width = Math.max(
+          Math.min(Math.max(...sizes) + 20, MAX_COL_WIDTH),
+          MIN_COL_WIDTH
+        );
+
+        widths.push(width);
       });
-
-      // Ensure size is within max and min bounds, add 20px for cell padding
-      return Math.max(Math.min(Math.max(...sizes) + 20, MAX_COL_WIDTH), MIN_COL_WIDTH);
+    } else {
+      cols.forEach(() => {
+        widths.push(MIN_COL_WIDTH);
+      });
     }
 
-    return MIN_COL_WIDTH;
+    if (showEventLinks) {
+      widths.push(LINK_COL_WIDTH);
+    }
+
+    const sumOfWidths = widths.reduce((sum, w) => sum + w, 0) + 2;
+
+    // Add a fake column of remaining width
+    widths.push(Math.max(tableWidth - sumOfWidths, 0));
+
+    return widths;
   };
 
   getColumnList = () => {
@@ -126,6 +144,10 @@ export default class ResultTable extends React.Component {
   };
 
   measureText = (text, isHeader) => {
+    // Create canvas once in order to measure column widths
+    if (!this.canvas) {
+      this.canvas = document.createElement('canvas');
+    }
     const context = this.canvas.getContext('2d');
     context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
     return Math.ceil(context.measureText(text).width);
@@ -138,24 +160,30 @@ export default class ResultTable extends React.Component {
 
     const showEventLinks = !query.aggregations.length;
 
+    // Add one column at the end to make sure table spans full width
+    const colCount = cols.length + (showEventLinks ? 1 : 0) + 1;
+
     const maxVisibleResults = Math.min(data.length, 10);
 
     return (
       <GridContainer visibleRows={maxVisibleResults + 1}>
         <AutoSizer>
-          {({width, height}) => (
-            <MultiGrid
-              ref={ref => (this.grid = ref)}
-              width={width - 1}
-              height={height}
-              rowCount={data.length + 1}
-              columnCount={cols.length + (showEventLinks ? 1 : 0)}
-              fixedRowCount={1}
-              rowHeight={40}
-              columnWidth={this.getColumnWidth}
-              cellRenderer={this.cellRenderer}
-            />
-          )}
+          {({width, height}) => {
+            const columnWidths = this.getColumnWidths(width);
+            return (
+              <MultiGrid
+                ref={ref => (this.grid = ref)}
+                width={width - 1}
+                height={height}
+                rowCount={data.length + 1}
+                columnCount={colCount}
+                fixedRowCount={1}
+                rowHeight={40}
+                columnWidth={({index}) => columnWidths[index]}
+                cellRenderer={this.cellRenderer}
+              />
+            );
+          }}
         </AutoSizer>
       </GridContainer>
     );
