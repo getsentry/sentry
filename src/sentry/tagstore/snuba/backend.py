@@ -539,3 +539,7 @@ class SnubaTagStorage(TagStorage):
         # exist in Snuba. This logic is implemented in the search backend
         # instead.
         raise NotImplementedError
+
+    def update_group_for_events(self, project_id, event_ids, destination_id):
+        # Group updates are unncessary in Snuba, but we shouldn't throw an error.
+        pass
