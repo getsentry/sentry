@@ -102,7 +102,9 @@ class AuditLogList extends React.Component {
                         )}
                       </div>
                       <NameContainer>
-                        <Name>{entry.actor.name}</Name>
+                        <Name>
+                        {entry.actor.isSuperuser ? `${entry.actor.name} (Sentry Staff)` : entry.actor.name}
+                        </Name>
                         <Note>{entry.note}</Note>
                       </NameContainer>
                     </UserInfo>
