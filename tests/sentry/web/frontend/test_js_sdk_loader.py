@@ -11,7 +11,7 @@ class JavaScriptSdkLoaderTest(TestCase):
     @fixture
     def path(self):
         settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
-        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js' % settings.JS_SDK_LOADER_SDK_VERSION
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js'
         return reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key])
 
     def test_404(self):
