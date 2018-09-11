@@ -79,7 +79,7 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
         size_attrs = 'height="%s" width="%s"' % (size, size) if size else ''
         return (
             u'<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
-            '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
+            '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill="{color}"></rect>'
             '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
             '{initials}'
             '</text>'
