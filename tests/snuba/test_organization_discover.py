@@ -13,7 +13,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationDiscoverTest, self).setUp()
 
-        now = datetime.now()
+        one_second_ago = datetime.now() - timedelta(seconds=1)
 
         self.login_as(user=self.user)
 
@@ -30,9 +30,9 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
             'project_id': self.project.id,
             'message': 'message!',
             'platform': 'python',
-            'datetime': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'datetime': one_second_ago.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'data': {
-                'received': time.mktime(now.timetuple()),
+                'received': time.mktime(one_second_ago.timetuple()),
                 'exception': {
                     'values': [
                         {
@@ -69,7 +69,22 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
-                'end': (datetime.now() + timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert response.data['data'][0]['message'] == 'message!'
+        assert response.data['data'][0]['platform'] == 'python'
+
+    def test_relative_dates(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'range': '1d',
                 'orderby': '-timestamp',
             })
 
