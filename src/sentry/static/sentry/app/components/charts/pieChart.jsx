@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import theme from 'app/utils/theme';
+
+import BaseChart from './baseChart';
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
-import BaseChart from './baseChart';
 
 class PieChart extends React.Component {
   static propTypes = {
@@ -96,6 +98,11 @@ class PieChart extends React.Component {
       <BaseChart
         ref={this.chart}
         onChartReady={this.handleChartReady}
+        colors={
+          firstSeries &&
+          firstSeries.data &&
+          theme.charts.getColorPalette(firstSeries.data.length)
+        }
         onEvents={{
           // when legend highlights it does NOT pass dataIndex :(
           highlight: ({name}) => {
