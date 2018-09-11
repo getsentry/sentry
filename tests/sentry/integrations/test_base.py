@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from sentry.models import Integration as IntegrationModel, Identity, IdentityProvider
-from sentry.integrations import Integration
+from sentry.models import Integration, Identity, IdentityProvider
+from sentry.integrations import IntegrationInstallation
 from sentry.testutils import TestCase
 
 
@@ -11,7 +11,7 @@ class IntegrationTestCase(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project()
 
-        self.model = IntegrationModel.objects.create(
+        self.model = Integration.objects.create(
             provider='integrations:base',
             external_id='base_external_id',
             name='base_name',
@@ -32,11 +32,11 @@ class IntegrationTestCase(TestCase):
             self.organization, self.user, self.identity.id)
 
     def test_no_context(self):
-        integration = Integration(self.model, self.organization.id)
+        integration = IntegrationInstallation(self.model, self.organization.id)
         integration.name = 'Base'
 
     def test_with_context(self):
-        integration = Integration(self.model, self.organization.id)
+        integration = IntegrationInstallation(self.model, self.organization.id)
 
         assert integration.model == self.model
         assert integration.org_integration == self.org_integration

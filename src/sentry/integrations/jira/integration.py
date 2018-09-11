@@ -10,7 +10,7 @@ from django.utils.translation import ugettext as _
 
 from sentry import features
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
@@ -73,7 +73,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraIntegration(Integration, IssueSyncMixin):
+class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
     inbound_status_key = 'sync_status_reverse'

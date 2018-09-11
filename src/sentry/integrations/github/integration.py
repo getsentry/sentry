@@ -5,7 +5,10 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
-from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider,
+    IntegrationMetadata
+)
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
@@ -69,7 +72,7 @@ API_ERRORS = {
 }
 
 
-class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
     repo_search = True
 
     def get_client(self):
