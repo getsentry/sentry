@@ -201,8 +201,6 @@ SnubaLookup(
     ),
 )
 SnubaLookup('release', 'tags[sentry:release]', serializer=serialize_releases)
-SnubaLookup('os.name', 'tags[os.name]')
-SnubaLookup('browser.name', 'tags[browser.name]', conditions=[])
 # error.type is special in that in ClickHouse, it's an array. But we need
 # to make sure that we don't do any queries across a NULL value or an empty array
 # so we must filter them out explicitly. We also are choosing to explicitly take the
@@ -223,6 +221,15 @@ SnubaLookup('error.handled', 'error_handled', selected_columns=[
 ], conditions=[
     [('notEmpty', ('exception_stacks.mechanism_handled',)), '=', 1],
 ])
+
+# Simple tags don't need any special treatment
+for _tag in (
+    'transaction',
+    'os', 'os.name',
+    'browser', 'browser.name',
+    'device', 'device.family',
+):
+    SnubaLookup(_tag, 'tags[%s]' % _tag)
 
 
 class BaseSnubaSerializer(object):
