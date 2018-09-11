@@ -384,6 +384,7 @@ const DiscoverBody = styled(Flex)`
 
 const Discover = styled('div')`
   margin-bottom: -20px;
+  flex: 1;
 
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
