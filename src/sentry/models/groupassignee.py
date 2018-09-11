@@ -174,7 +174,11 @@ class GroupAssigneeManager(BaseManager):
             })
         else:
             affected = True
-            issue_assigned.send(project=group.project, group=group, sender=acting_user)
+            issue_assigned.send_robust(
+                project=group.project,
+                group=group,
+                user=acting_user,
+                sender=self.__class__)
 
         if affected:
             activity = Activity.objects.create(

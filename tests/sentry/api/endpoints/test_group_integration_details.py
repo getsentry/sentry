@@ -16,7 +16,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
 
@@ -56,7 +56,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
@@ -110,7 +110,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
@@ -126,7 +126,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
@@ -157,7 +157,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
@@ -175,7 +175,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
@@ -209,7 +209,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
@@ -225,7 +225,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id,
@@ -260,7 +260,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id,

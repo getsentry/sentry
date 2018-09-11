@@ -8,6 +8,7 @@ from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import (AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam)
+from sentry.signals import team_joined
 
 
 class AccessRequestPermission(OrganizationPermission):
@@ -129,6 +130,12 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     target_user=access_request.member.user,
                     event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
                     data=omt.get_audit_log_data(),
+                )
+                team_joined.send_robust(
+                    organization=organization,
+                    user=access_request.member.user,
+                    team=access_request.team,
+                    sender=self.__class__,
                 )
 
                 access_request.send_approved_email()

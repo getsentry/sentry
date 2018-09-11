@@ -47,7 +47,8 @@ class VstsWebhookWorkItemTest(APITestCase):
                 'expires': int(time()) + int(1234567890),
             }
         )
-        self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
+        self.org_integration = self.model.add_organization(
+            self.organization, self.user, self.identity.id)
         self.org_integration.config = {
             'sync_status_reverse': True,
             'sync_status_forward': True,

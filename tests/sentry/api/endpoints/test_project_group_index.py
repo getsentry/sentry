@@ -464,7 +464,7 @@ class GroupUpdateTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
 
         OrganizationIntegration.objects.filter(
@@ -540,7 +540,7 @@ class GroupUpdateTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
             organization_id=group.organization.id,

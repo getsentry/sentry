@@ -25,7 +25,7 @@ class GitHubIssueBasicTest(TestCase):
             external_id='github_external_id',
             name='getsentry',
         )
-        self.model.add_organization(self.organization.id)
+        self.model.add_organization(self.organization, self.user)
         self.integration = GitHubIntegration(self.model, self.organization.id)
 
     @responses.activate
@@ -67,7 +67,8 @@ class GitHubIssueBasicTest(TestCase):
         responses.add(
             responses.POST,
             'https://api.github.com/repos/getsentry/sentry/issues',
-            json={'number': 321, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://github.com/getsentry/sentry/issues/231'}
+            json={'number': 321, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://github.com/getsentry/sentry/issues/231'}
         )
 
         form_data = {
@@ -127,7 +128,8 @@ class GitHubIssueBasicTest(TestCase):
         responses.add(
             responses.GET,
             'https://api.github.com/repos/getsentry/sentry/issues/321',
-            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://github.com/getsentry/sentry/issues/231'}
+            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://github.com/getsentry/sentry/issues/231'}
         )
 
         data = {

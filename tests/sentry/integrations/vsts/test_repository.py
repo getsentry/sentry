@@ -58,7 +58,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
                 'token_type': 'jwt-bearer',
             },
         )
-        integration.add_organization(self.organization.id, default_auth.id)
+        integration.add_organization(self.organization, self.user, default_auth.id)
         repo = Repository.objects.create(
             provider='visualstudio',
             name='example',
