@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import Mock
 import responses
 from django.http import HttpRequest
-from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, VSTSIdentityProvider
+from sentry.identity.azure_devops.provider import AzureDevOpsOAuth2CallbackView, AzureDevOpsIdentityProvider
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.testutils import TestCase
 from six.moves.urllib.parse import parse_qs
@@ -12,13 +12,13 @@ from sentry.models import Identity, IdentityProvider
 from time import time
 
 
-class TestVSTSOAuthCallbackView(TestCase):
+class TestAzureDevOpsOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
         def redirect_url():
             return 'https://app.vssps.visualstudio.com/oauth2/authorize'
 
-        view = VSTSOAuth2CallbackView(
+        view = AzureDevOpsOAuth2CallbackView(
             access_token_url='https://app.vssps.visualstudio.com/oauth2/token',
             client_id='vsts-client-id',
             client_secret='vsts-client-secret',
@@ -139,10 +139,10 @@ class TestAccountConfigView(TestCase):
             ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
 
 
-class VstsIdentityProviderTest(TestCase):
+class AzureDevOpsIdentityProviderTest(TestCase):
 
     def setUp(self):
-        self.identity_provider_model = IdentityProvider.objects.create(type='vsts')
+        self.identity_provider_model = IdentityProvider.objects.create(type='azure_devops')
         self.identity = Identity.objects.create(
             idp=self.identity_provider_model,
             user=self.user,
@@ -155,7 +155,7 @@ class VstsIdentityProviderTest(TestCase):
             }
 
         )
-        self.provider = VSTSIdentityProvider()
+        self.provider = AzureDevOpsIdentityProvider()
         self.client_secret = '12345678'
         self.provider.get_oauth_client_secret = lambda: self.client_secret
 

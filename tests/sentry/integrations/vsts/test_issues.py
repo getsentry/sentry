@@ -34,7 +34,7 @@ class VstsIssueSycnTest(TestCase):
         )
         identity = Identity.objects.create(
             idp=IdentityProvider.objects.create(
-                type='vsts',
+                type='azure_devops',
                 config={},
             ),
             user=self.user,

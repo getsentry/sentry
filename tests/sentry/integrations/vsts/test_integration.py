@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 
-from sentry.identity.vsts import VSTSIdentityProvider
+from sentry.identity.azure_devops import AzureDevOpsIdentityProvider
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
@@ -25,7 +25,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration.name == self.vsts_account_name
 
         metadata = integration.metadata
-        assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
+        assert metadata['scopes'] == list(AzureDevOpsIdentityProvider.oauth_scopes)
         assert metadata['subscription']['id'] == \
             CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
         assert metadata['domain_name'] == self.vsts_base_url
@@ -144,11 +144,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert integration_dict['external_id'] == self.vsts_account_id
         assert integration_dict['metadata']['domain_name'] == self.vsts_base_url
 
-        assert integration_dict['user_identity']['type'] == 'vsts'
+        assert integration_dict['user_identity']['type'] == 'azure_devops'
         assert integration_dict['user_identity']['external_id'] == \
             self.vsts_account_id
         assert integration_dict['user_identity']['scopes'] == sorted(
-            VSTSIdentityProvider.oauth_scopes)
+            AzureDevOpsIdentityProvider.oauth_scopes)
 
     def test_webhook_subscription_created_once(self):
         self.assert_installation()

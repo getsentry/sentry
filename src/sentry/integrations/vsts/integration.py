@@ -20,7 +20,7 @@ from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.vsts import VSTSIdentityProvider, get_user_info
+from sentry.identity.azure_devops import AzureDevOpsIdentityProvider, get_user_info
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
 from sentry.utils.http import absolute_uri
@@ -29,7 +29,7 @@ from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
-Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
+Connect your Sentry organization to one or more of your Visual Studio Team Services (AzureDevOps) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
 
 * Create and link Sentry issue groups directly to a VSTS work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
 * Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and VSTS assignees.
@@ -292,7 +292,8 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         identity_pipeline_view = NestedPipelineView(
             bind_key='identity',
-            provider_key=self.key,
+            # TODO(lb): change this back to provider_key=self.key,
+            provider_key='azure_devops',
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
@@ -307,7 +308,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         oauth_data = self.get_oauth_data(data)
         account = state['account']
         user = get_user_info(data['access_token'])
-        scopes = sorted(VSTSIdentityProvider.oauth_scopes)
+        scopes = sorted(AzureDevOpsIdentityProvider.oauth_scopes)
         base_url = self.get_base_url(data['access_token'], account['accountId'])
 
         integration = {
@@ -318,7 +319,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'scopes': scopes,
             },
             'user_identity': {
-                'type': 'vsts',
+                'type': 'azure_devops',
                 'external_id': user['id'],
                 'scopes': scopes,
                 'data': oauth_data,

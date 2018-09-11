@@ -29,9 +29,9 @@ def get_user_info(access_token):
     resp.raise_for_status()
     # NOTE (from Microsoft PM):
     # The "descriptor" is the universal identifier for a given user and is consistent across
-    # all VSTS accounts (organizations). The "id" field for the same user can be different for
+    # all Azure DevOps organizations. The "id" field for the same user can be different for
     # the same user in different places, so the "descriptor" is the best identifier for a user.
-    # This is returned in most/all of the VSTS REST APIs at this point (except for the
+    # This is returned in most/all of the Azure DevOps REST APIs at this point (except for the
     # profiles/me API above). To get the current user's descriptor, we call the "connection data"
     # REST API (this assumes we are authenticating with an access token issued to the user).
     # We will also see descriptors returned for every user in the "Get users" (Graph) REST API.
@@ -40,9 +40,9 @@ def get_user_info(access_token):
     return user
 
 
-class VSTSIdentityProvider(OAuth2Provider):
-    key = 'vsts'
-    name = 'Visual Studio Team Services'
+class AzureDevOpsIdentityProvider(OAuth2Provider):
+    key = 'azure_devops'
+    name = 'Azure DevOps'
 
     oauth_access_token_url = 'https://app.vssps.visualstudio.com/oauth2/token'
     oauth_authorize_url = 'https://app.vssps.visualstudio.com/oauth2/authorize'
@@ -69,7 +69,7 @@ class VSTSIdentityProvider(OAuth2Provider):
                 client_id=self.get_oauth_client_id(),
                 scope=' '.join(self.get_oauth_scopes()),
             ),
-            VSTSOAuth2CallbackView(
+            AzureDevOpsOAuth2CallbackView(
                 access_token_url=self.oauth_access_token_url,
                 client_id=self.get_oauth_client_id(),
                 client_secret=self.get_oauth_client_secret(),
@@ -85,7 +85,7 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_params(self, refresh_token, *args, **kwargs):
         oauth_redirect_url = kwargs.get('redirect_url')
         if oauth_redirect_url is None:
-            raise ValueError('VSTS requires oauth redirect url when refreshing identity')
+            raise ValueError('Azure DevOps requires oauth redirect url when refreshing identity')
         return {
             'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
             'client_assertion': self.get_oauth_client_secret(),
@@ -109,7 +109,7 @@ class VSTSIdentityProvider(OAuth2Provider):
         }
 
 
-class VSTSOAuth2CallbackView(OAuth2CallbackView):
+class AzureDevOpsOAuth2CallbackView(OAuth2CallbackView):
 
     def exchange_token(self, request, pipeline, code):
         from sentry.http import safe_urlopen, safe_urlread
