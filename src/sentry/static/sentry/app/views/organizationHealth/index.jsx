@@ -1,4 +1,6 @@
 import {Flex} from 'grid-emotion';
+import {withRouter} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -17,28 +19,43 @@ import HealthNavigationMenu from './healthNavigationMenu';
 class OrganizationHealth extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
+    router: PropTypes.object,
   };
+
+  static getDerivedStateFromProps(props, state) {
+    const {query} = props.router.location;
+
+    return {
+      projects: query.projects || [],
+      environments: query.environments || [],
+      specifiers:
+        typeof query.specifiers === 'string'
+          ? [query.specifiers]
+          : Array.isArray(query.specifiers) ? query.specifiers : [],
+      period: query.period || '7d',
+    };
+  }
 
   constructor(props) {
     super(props);
 
-    this.state = {
-      actions: {
-        updateParams: this.updateParams,
-        setSpecifier: this.setSpecifier,
-      },
-      projects: [],
-      environments: [],
-      period: '7d',
-      specifiers: [],
+    this.actions = {
+      updateParams: this.updateParams,
+      setSpecifier: this.setSpecifier,
     };
+
+    this.state = {};
   }
 
   updateParams = obj => {
-    this.setState(state => ({
-      ...state,
-      ...obj,
-    }));
+    const {router} = this.props;
+    router.push({
+      pathname: router.location.pathname,
+      query: {
+        ...router.location.query,
+        ...obj,
+      },
+    });
   };
 
   setSpecifier = (tag, value) => {
@@ -69,7 +86,7 @@ class OrganizationHealth extends React.Component {
 
     return (
       <Feature feature={['health']} renderNoFeatureMessage>
-        <HealthContext.Provider value={this.state}>
+        <HealthContext.Provider value={{actions: this.actions, ...this.state}}>
           <HealthWrapper>
             <HealthNavigationMenu />
             <Content>
@@ -103,7 +120,7 @@ class OrganizationHealth extends React.Component {
   }
 }
 
-export default withLatestContext(OrganizationHealth);
+export default withRouter(withLatestContext(OrganizationHealth));
 export {OrganizationHealth};
 
 const HealthWrapper = styled(Flex)`
