@@ -37,7 +37,9 @@ class OrganizationHealthTransactions extends React.Component {
                   title={t('Transactions')}
                   previousPeriod={previousTimeseriesData}
                 >
-                  {props => <LineChart {...props} series={[timeAggregatedData]} />}
+                  {props => (
+                    <LineChart isGroupedByDate {...props} series={[timeAggregatedData]} />
+                  )}
                 </HealthPanelChart>
               </Flex>
             );
@@ -71,7 +73,7 @@ class OrganizationHealthTransactions extends React.Component {
                     series={timeseriesData}
                     previousPeriod={previousTimeseriesData}
                   >
-                    {props => <AreaChart {...props} />}
+                    {props => <AreaChart isGroupedByDate {...props} />}
                   </HealthPanelChart>
                 </Flex>
                 <Flex>
