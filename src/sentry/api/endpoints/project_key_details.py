@@ -11,7 +11,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.loader.browsersdkversion import get_browser_sdk_version_choices
+from sentry.loader.browsersdkversion import (
+    DEFAULT_VERSION,
+    get_browser_sdk_version_choices
+)
 
 
 @scenario('DeleteClientKey')
@@ -97,9 +100,9 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                 key.label = result['name']
 
             if result.get('browserSdkVersion') == '':
-                key.data = {}
+                key.data = {'browserSdkVersion': DEFAULT_VERSION}
             else:
-                key.data = {'browserSdkVersion': result.get('browserSdkVersion', None)}
+                key.data = {'browserSdkVersion': result.get('browserSdkVersion', DEFAULT_VERSION)}
 
             if result.get('isActive') is True:
                 key.status = ProjectKeyStatus.ACTIVE
