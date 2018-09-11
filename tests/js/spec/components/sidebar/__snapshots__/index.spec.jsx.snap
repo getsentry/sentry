@@ -926,17 +926,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         </MenuItemLink>
       </SidebarMenuItem>
       <SidebarMenuItem
+        data-test-id="sidebarSignout"
         onClick={[Function]}
       >
         <MenuItemLink
+          data-test-id="sidebarSignout"
           onClick={[Function]}
         >
           <Component
             className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            data-test-id="sidebarSignout"
             onClick={[Function]}
           >
             <div
               className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+              data-test-id="sidebarSignout"
               onClick={[Function]}
             >
               <MenuItemLabel
@@ -2101,17 +2105,21 @@ exports[`Sidebar renders without org and router 1`] = `
         </MenuItemLink>
       </SidebarMenuItem>
       <SidebarMenuItem
+        data-test-id="sidebarSignout"
         onClick={[Function]}
       >
         <MenuItemLink
+          data-test-id="sidebarSignout"
           onClick={[Function]}
         >
           <Component
             className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            data-test-id="sidebarSignout"
             onClick={[Function]}
           >
             <div
               className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+              data-test-id="sidebarSignout"
               onClick={[Function]}
             >
               <MenuItemLabel

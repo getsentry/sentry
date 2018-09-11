@@ -141,6 +141,28 @@ describe('Sidebar', function() {
       expect(wrapper.find('SwitchOrganizationMenu')).toMatchSnapshot();
       jest.useRealTimers();
     });
+
+    it('has can logout', function() {
+      let mock = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'DELETE',
+        status: 204,
+      });
+
+      let org = TestStubs.Organization();
+      org = {
+        ...org,
+        access: [...org.access, 'member:read'],
+      };
+
+      wrapper = createWrapper({
+        organization: org,
+        user: TestStubs.User(),
+      });
+      wrapper.find('SidebarDropdownActor').simulate('click');
+      wrapper.find('SidebarMenuItem[data-test-id="sidebarSignout"]').simulate('click');
+      expect(mock).toHaveBeenCalled();
+    });
   });
 
   describe('SidebarPanel', function() {
