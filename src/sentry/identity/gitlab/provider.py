@@ -9,9 +9,7 @@ class GitlabIdentityProvider(OAuth2Provider):
 
     oauth_scopes = (
         'api',
-        'read_user',
-        'read_repository',
-        'read_registry',
+        'sudo',
     )
 
     def build_identity(self, data):
