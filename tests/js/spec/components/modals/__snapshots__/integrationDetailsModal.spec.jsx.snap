@@ -20,11 +20,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         GitHub Integration
       </ProviderName>
       <Flex>
-        <StyledTag
-          priority="attention"
-        >
-          Early Adopter
-        </StyledTag>
         0
       </Flex>
     </Flex>
