@@ -25,7 +25,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             }
         )
-        self.integration.add_organization(event.project.organization_id)
+        self.integration.add_organization(event.project.organization, self.user)
 
     @responses.activate
     def test_applies_correctly(self):

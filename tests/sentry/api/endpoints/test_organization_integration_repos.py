@@ -15,7 +15,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             provider='github',
             name='Example',
         )
-        self.integration.add_organization(self.org.id)
+        self.integration.add_organization(self.org, self.user)
         self.path = u'/api/0/organizations/{}/integrations/{}/repos/'.format(
             self.org.slug, self.integration.id)
 
@@ -35,7 +35,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(self.org.id)
+        integration.add_organization(self.org, self.user)
         path = u'/api/0/organizations/{}/integrations/{}/repos/'.format(
             self.org.slug, integration.id)
         response = self.client.get(path, format='json')

@@ -33,7 +33,7 @@ class OrganizationIntegrationSettingsTest(AcceptanceTestCase):
             },
         )
 
-        self.org_integration = self.model.add_organization(self.org.id)
+        self.org_integration = self.model.add_organization(self.org, self.user)
 
         self.login_as(self.user)
 

@@ -30,7 +30,7 @@ from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release
+from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
@@ -507,7 +507,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             group_tombstone_id=tombstone.id,
                         )
 
-            self._delete_groups(request, project, groups_to_delete)
+            self._delete_groups(request, project, groups_to_delete, delete_type='discard')
 
             return Response(status=204)
 
@@ -531,6 +531,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_next_release
+                res_type_str = 'in_next_release'
                 res_status = GroupResolution.Status.pending
             elif statusDetails.get('inRelease'):
                 release = statusDetails['inRelease']
@@ -544,9 +545,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_release
+                res_type_str = 'in_release'
                 res_status = GroupResolution.Status.resolved
             else:
                 release = None
+                res_type_str = 'now'
                 activity_type = Activity.SET_RESOLVED
                 activity_data = {}
                 status_details = {}
@@ -602,10 +605,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         if not is_bulk:
                             activity.send_notification()
 
-                issue_resolved_in_release.send(
+                issue_resolved_in_release.send_robust(
                     group=group,
                     project=project,
-                    sender=acting_user,
+                    user=acting_user,
+                    resolution_type=res_type_str,
+                    sender=self.__class__,
                 )
 
                 kick_off_status_syncs.apply_async(kwargs={
@@ -934,11 +939,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if not group_list:
             return Response(status=204)
 
-        self._delete_groups(request, project, group_list)
+        self._delete_groups(request, project, group_list, delete_type='delete')
 
         return Response(status=204)
 
-    def _delete_groups(self, request, project, group_list):
+    def _delete_groups(self, request, project, group_list, delete_type):
         group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
@@ -979,3 +984,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'model': type(group).__name__,
                 }
             )
+
+            issue_deleted.send_robust(
+                group=group,
+                user=request.user,
+                delete_type=delete_type,
+                sender=self.__class__)

@@ -15,7 +15,7 @@ class GroupIntegrationsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         external_issue = ExternalIssue.objects.create(
             organization_id=org.id,
             integration_id=integration.id,
@@ -70,7 +70,7 @@ class GroupIntegrationsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         external_issue = ExternalIssue.objects.create(
             organization_id=org.id,
             integration_id=integration.id,

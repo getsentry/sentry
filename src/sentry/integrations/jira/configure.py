@@ -74,8 +74,8 @@ class JiraConfigureView(View):
             form = JiraConfigForm(organizations, initial={'organizations': active_orgs})
             return self.get_response({'form': form})
 
-        enabled_orgs = form.cleaned_data['organizations']
-        disabled_orgs = list(set(o.id for o in organizations) - set(enabled_orgs))
+        enabled_orgs = [o for o in organizations if o.id in form.cleaned_data['organizations']]
+        disabled_orgs = list(set(organizations) - set(enabled_orgs))
 
         # Remove Jira integrations not in the set of enabled organizations
         OrganizationIntegration.objects.filter(
@@ -85,7 +85,7 @@ class JiraConfigureView(View):
         ).delete()
 
         # Ensure all enabled integrations.
-        for org_id in enabled_orgs:
-            integration.add_organization(org_id)
+        for org in enabled_orgs:
+            integration.add_organization(org, request.user)
 
         return self.get_response({'form': form, 'completed': True})

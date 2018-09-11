@@ -25,7 +25,7 @@ class GitHubAppsProviderTest(PluginTestCase):
             provider='github',
             name='Example Github',
         )
-        integration.add_organization(organization.id)
+        integration.add_organization(organization, self.user)
         data = {
             'identifier': 'getsentry/example-repo',
             'external_id': '654321',

@@ -101,7 +101,7 @@ class PushEventWebhookTest(APITestCase):
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         response = self.client.post(
             path=url,
@@ -166,7 +166,7 @@ class PushEventWebhookTest(APITestCase):
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         Repository.objects.create(
             organization_id=project.organization.id,
@@ -253,7 +253,7 @@ class PushEventWebhookTest(APITestCase):
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name='bar')
@@ -276,7 +276,7 @@ class PushEventWebhookTest(APITestCase):
                 }
             }
         )
-        integration.add_organization(org2.id)
+        integration.add_organization(org2, self.user)
 
         response = self.client.post(
             path=url,
@@ -332,7 +332,7 @@ class PullRequestEventWebhook(APITestCase):
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -392,7 +392,7 @@ class PullRequestEventWebhook(APITestCase):
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -451,7 +451,7 @@ class PullRequestEventWebhook(APITestCase):
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,

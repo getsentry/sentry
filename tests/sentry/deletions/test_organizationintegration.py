@@ -14,7 +14,7 @@ class DeleteOrganizationIntegrationTest(TestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         organization_integration = OrganizationIntegration.objects.get(
             integration_id=integration.id,
             organization_id=org.id,

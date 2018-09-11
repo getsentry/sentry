@@ -17,6 +17,7 @@ from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 )
 from sentry.search.utils import tokenize_query
+from sentry.signals import team_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 CONFLICTING_SLUG_ERROR = 'A team with this slug already exists.'
@@ -143,6 +144,13 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         'detail': CONFLICTING_SLUG_ERROR,
                     },
                     status=409,
+                )
+            else:
+                team_created.send_robust(
+                    organization=organization,
+                    user=request.user,
+                    team=team,
+                    sender=self.__class__,
                 )
 
             if request.user.is_authenticated():

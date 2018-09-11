@@ -86,8 +86,9 @@ def resolved_in_commit(instance, created, **kwargs):
                         id=repo.integration_id,
                         organization_id=repo.organization_id,
                     )
+                user = user_list[0] if user_list else None
                 resolved_with_commit.send_robust(
-                    organization_id=repo.organization_id, sender='resolved_in_commit')
+                    organization_id=repo.organization_id, user=user, group=group, sender='resolved_in_commit')
 
 
 def resolved_in_pull_request(instance, created, **kwargs):

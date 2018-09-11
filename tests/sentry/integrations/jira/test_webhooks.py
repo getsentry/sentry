@@ -95,7 +95,7 @@ class JiraWebhooksTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -118,7 +118,7 @@ class JiraWebhooksTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -141,7 +141,7 @@ class JiraWebhooksTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 

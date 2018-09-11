@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
-    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
+    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption, Organization
 )
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
@@ -48,8 +48,21 @@ def check_for_onboarding_complete(organization_id):
 
 @project_created.connect(weak=False)
 def record_new_project(project, user, **kwargs):
-    if not user.is_authenticated():
-        user = None
+    if user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user = user_id = None
+        default_user_id = Organization.objects.get(
+            id=project.organization_id).get_default_owner().id
+
+    analytics.record(
+        'project.created',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
 
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
@@ -103,32 +116,50 @@ def record_first_event(project, group, **kwargs):
         }
     )
 
-    # If first_event task is complete
-    if not rows_affected and not created:
-        try:
-            oot = OrganizationOnboardingTask.objects.filter(
-                organization_id=project.organization_id,
-                task=OnboardingTask.FIRST_EVENT,
-            )[0]
-        except IndexError:
-            return
+    user = Organization.objects.get(id=project.organization_id).get_default_owner()
 
-        # Only counts if it's a new project and platform
-        if oot.project_id != project.id and oot.data.get(
-            'platform', group.platform
-        ) != group.platform:
-            OrganizationOnboardingTask.objects.create_or_update(
+    if rows_affected or created:
+        analytics.record(
+            'first_event.sent',
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=group.platform,
+        )
+        return
+
+    try:
+        oot = OrganizationOnboardingTask.objects.filter(
+            organization_id=project.organization_id,
+            task=OnboardingTask.FIRST_EVENT,
+        )[0]
+    except IndexError:
+        return
+
+    # Only counts if it's a new project and platform
+    if oot.project_id != project.id and oot.data.get(
+        'platform', group.platform
+    ) != group.platform:
+        rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+            organization_id=project.organization_id,
+            task=OnboardingTask.SECOND_PLATFORM,
+            status=OnboardingTaskStatus.PENDING,
+            values={
+                'status': OnboardingTaskStatus.COMPLETE,
+                'project_id': project.id,
+                'date_completed': project.first_event,
+                'data': {
+                    'platform': group.platform
+                },
+            }
+        )
+        if rows_affected or created:
+            analytics.record(
+                'second_platform.added',
+                user_id=user.id,
                 organization_id=project.organization_id,
-                task=OnboardingTask.SECOND_PLATFORM,
-                status=OnboardingTaskStatus.PENDING,
-                values={
-                    'status': OnboardingTaskStatus.COMPLETE,
-                    'project_id': project.id,
-                    'date_completed': project.first_event,
-                    'data': {
-                        'platform': group.platform
-                    },
-                }
+                project_id=project.id,
+                platform=group.platform,
             )
 
 
@@ -179,6 +210,13 @@ def record_release_received(project, group, event, **kwargs):
         project_id=project.id,
     )
     if success:
+        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        analytics.record(
+            'first_release_tag.sent',
+            user_id=user.id,
+            project_id=project.id,
+            organization_id=project.organization_id,
+        )
         check_for_onboarding_complete(project.organization_id)
 
 
@@ -198,6 +236,13 @@ def record_user_context_received(project, group, event, **kwargs):
             project_id=project.id,
         )
         if success:
+            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            analytics.record(
+                'first_user_context.sent',
+                user_id=user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
             check_for_onboarding_complete(project.organization_id)
 
 
@@ -213,6 +258,13 @@ def record_sourcemaps_received(project, group, event, **kwargs):
         project_id=project.id,
     )
     if success:
+        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        analytics.record(
+            'first_sourcemaps.sent',
+            user_id=user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+        )
         check_for_onboarding_complete(project.organization_id)
 
 
@@ -238,6 +290,14 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
     if success:
         check_for_onboarding_complete(project.organization_id)
 
+    analytics.record(
+        'plugin.enabled',
+        user_id=user.id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        plugin=plugin.slug,
+    )
+
 
 @issue_tracker_used.connect(weak=False)
 def record_issue_tracker_used(plugin, project, user, **kwargs):
@@ -255,5 +315,20 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
             }
         }
     )
+
     if rows_affected or created:
         check_for_onboarding_complete(project.organization_id)
+
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+    analytics.record(
+        'issue_tracker.used',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        issue_tracker=plugin.slug,
+    )

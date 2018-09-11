@@ -182,7 +182,7 @@ class GroupNoteCreateTest(APITestCase):
             provider='example',
             external_id='123456',
         )
-        integration.add_organization(group.organization.id)
+        integration.add_organization(group.organization, self.user)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,

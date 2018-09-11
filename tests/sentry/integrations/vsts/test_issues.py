@@ -44,7 +44,7 @@ class VstsIssueSycnTest(TestCase):
                 'expires': time() + 1234567,
             }
         )
-        model.add_organization(self.organization.id, identity.id)
+        model.add_organization(self.organization, self.user, identity.id)
         self.config = {
             'resolve_status': 'Resolved',
             'resolve_when': 'Resolved',

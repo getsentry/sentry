@@ -10,6 +10,8 @@ class IntegrationAddedEvent(analytics.Event):
         analytics.Attribute('provider'),
         analytics.Attribute('id'),
         analytics.Attribute('organization_id'),
+        analytics.Attribute('user_id', required=False),
+        analytics.Attribute('default_user_id'),
     )
 
 
@@ -20,6 +22,8 @@ class IntegrationIssueCreatedEvent(analytics.Event):
         analytics.Attribute('provider'),
         analytics.Attribute('id'),
         analytics.Attribute('organization_id'),
+        analytics.Attribute('user_id', required=False),
+        analytics.Attribute('default_user_id'),
     )
 
 
@@ -30,6 +34,8 @@ class IntegrationIssueLinkedEvent(analytics.Event):
         analytics.Attribute('provider'),
         analytics.Attribute('id'),
         analytics.Attribute('organization_id'),
+        analytics.Attribute('user_id', required=False),
+        analytics.Attribute('default_user_id'),
     )
 
 

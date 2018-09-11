@@ -13,6 +13,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team
 )
+from sentry.signals import team_joined
 
 ERR_INSUFFICIENT_ROLE = 'You do not have permission to edit that user\'s membership.'
 
@@ -139,6 +140,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             target_user=om.user,
             event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
             data=omt.get_audit_log_data(),
+        )
+
+        team_joined.send_robust(
+            organization=organization,
+            user=om.user,
+            team=team,
+            sender=self.__class__,
         )
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)

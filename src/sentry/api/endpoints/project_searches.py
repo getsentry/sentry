@@ -65,7 +65,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                         is_default=result.get('isDefault', False),
                         owner=(None if request.access.has_scope('project:write') else request.user)
                     )
-                    save_search_created.send(project=project, sender=self)
+                    save_search_created.send_robust(project=project, user=request.user, sender=self)
 
                 except IntegrityError:
                     return Response(
