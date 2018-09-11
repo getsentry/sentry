@@ -117,6 +117,7 @@ def parse_timestamp(value):
             rv = None
     return rv.replace(tzinfo=pytz.utc)
 
+
 def parse_stats_period(period):
     """
     Convert a value such as 1h into a

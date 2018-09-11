@@ -15,6 +15,7 @@ def test_timestamp_conversions():
     assert int(to_timestamp(value)) == int(value.strftime('%s'))
     assert to_datetime(to_timestamp(value)) == value
 
+
 def test_parse_stats_period():
     assert parse_stats_period('3s') == datetime.timedelta(seconds=3)
     assert parse_stats_period('30m') == datetime.timedelta(minutes=30)

@@ -88,7 +88,6 @@ class DiscoverSerializer(serializers.Serializer):
         if has_start != has_end or has_range == has_start:
             raise serializers.ValidationError("Either start and end dates or range is required")
 
-
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
 
