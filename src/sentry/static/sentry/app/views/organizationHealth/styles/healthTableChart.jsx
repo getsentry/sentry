@@ -1,10 +1,10 @@
 import styled from 'react-emotion';
 
-import PanelChart from 'app/components/charts/panelChart';
+import TableChart from 'app/components/charts/tableChart';
 
 import chartMargin from './chartMargin';
 
-const HealthPanelChart = styled(PanelChart)`
+const HealthPanelChart = styled(TableChart)`
   ${chartMargin};
   flex-shrink: 0;
   overflow: hidden;
