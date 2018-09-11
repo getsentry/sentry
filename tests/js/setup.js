@@ -39,6 +39,16 @@ jest.mock('react-lazyload', () => {
   return LazyLoadMock;
 });
 
+jest.mock('react-virtualized', () => {
+  const ActualReactVirtualized = require.requireActual('react-virtualized');
+  return {
+    ...ActualReactVirtualized,
+    AutoSizer: ({children}) => {
+      return children({width: 100, height: 100});
+    },
+  };
+});
+
 jest.mock('echarts-for-react/lib/core', () => {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
   // guaranteed to be in scope

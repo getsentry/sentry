@@ -138,7 +138,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-le5ima-AutoCompleteItem ejumqxq3"
+                          className="css-2znhnp-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -153,7 +153,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-14kg2cv-AutoCompleteItem ejumqxq3"
+                          className="css-zryfsl-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -297,7 +297,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-le5ima-AutoCompleteItem ejumqxq3"
+                          className="css-2znhnp-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -312,7 +312,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-14kg2cv-AutoCompleteItem ejumqxq3"
+                          className="css-zryfsl-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -327,7 +327,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-14kg2cv-AutoCompleteItem ejumqxq3"
+                          className="css-zryfsl-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
