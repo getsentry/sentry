@@ -346,9 +346,9 @@ export default class OrganizationDiscover extends React.Component {
 
 const DiscoverHeader = styled.h2`
   display: flex;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: normal;
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray4};
   margin: 0;
   align-items: center;
   padding-left: 30px;
@@ -379,11 +379,12 @@ const SidebarHeader = styled(Flex)`
 `;
 
 const DiscoverBody = styled(Flex)`
-  min-height: calc(100vh - 152px);
-  margin-bottom: -20px;
+  min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
 `;
 
 const Discover = styled('div')`
+  margin-bottom: -20px;
+
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
   }
