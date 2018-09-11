@@ -29,7 +29,7 @@ from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
-Connect your Sentry organization to one or more of your Azure DevOps (formally known as Visual Studio Team Services) organizations. Get started streamlining your bug squashing workflow by unifying your Sentry and Azure DevOps accounts together.
+Connect your Sentry organization to one or more of your Azure DevOps organizations. Get started streamlining your bug squashing workflow by unifying your Sentry and Azure DevOps accounts together.
 
 * Create and link Sentry issue groups directly to a Azure DevOps work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
 * Automatically synchronize assignees to and from Azure DevOps. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and Azure DevOps assignees.
