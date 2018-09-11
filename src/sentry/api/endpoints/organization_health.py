@@ -148,13 +148,20 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
             return Response({'detail': 'Invalid statsPeriod'}, status=400)
 
-        limit = int(request.GET.get('limit', '5'))
+        try:
+            limit = int(request.GET.get('limit', '5'))
+        except ValueError:
+            return Response({'detail': 'Invalid limit'}, status=400)
+
         if limit > self.MAX_LIMIT:
             return Response({'detail': 'Invalid limit: max %d' % self.MAX_LIMIT}, status=400)
         if limit <= 0:
             return self.empty()
 
-        project_ids = self.get_project_ids(request, organization)
+        try:
+            project_ids = self.get_project_ids(request, organization)
+        except ValueError:
+            return Response({'detail': 'Invalid project ids'}, status=400)
         if not project_ids:
             return self.empty()
 
@@ -166,7 +173,10 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
         # If we pass `?topk` this means we also are
         # layering on top_projects and total_projects for each value.
         if 'topk' in request.GET:
-            topk = int(request.GET['topk'])
+            try:
+                topk = int(request.GET['topk'])
+            except ValueError:
+                return Response({'detail': 'Invalid topk'}, status=400)
             aggregations += [
                 ('topK(%d)' % topk, 'project_id', 'top_projects'),
                 ('uniq', 'project_id', 'total_projects'),
@@ -250,7 +260,10 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         if interval is None:
             interval = timedelta(hours=1)
 
-        project_ids = self.get_project_ids(request, organization)
+        try:
+            project_ids = self.get_project_ids(request, organization)
+        except ValueError:
+            return Response({'detail': 'Invalid project ids'}, status=400)
         if not project_ids:
             return self.empty()
 
