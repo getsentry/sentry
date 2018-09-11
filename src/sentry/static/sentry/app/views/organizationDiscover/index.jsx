@@ -54,7 +54,7 @@ const OrganizationDiscoverContainer = createReactClass({
     if (!hasFeature) return this.renderComingSoon();
 
     return (
-      <div>
+      <Flex flex="1">
         {isLoading ? (
           this.renderLoading()
         ) : (
@@ -64,7 +64,7 @@ const OrganizationDiscoverContainer = createReactClass({
             location={this.props.location}
           />
         )}
-      </div>
+      </Flex>
     );
   },
 });
