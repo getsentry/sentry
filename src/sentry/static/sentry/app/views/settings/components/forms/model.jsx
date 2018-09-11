@@ -281,11 +281,10 @@ class FormModel {
       errors.push([id, fieldIsRequiredMessage]);
     }
 
-    errors
-      .filter(([, errorMessage]) => !!errorMessage)
-      .forEach(([field, errorMessage]) => {
-        this.setError(field, errorMessage);
-      });
+    // If we have no errors, ensure we clear the field
+    errors = errors.length === 0 ? [[id, null]] : errors;
+
+    errors.forEach(([field, errorMessage]) => this.setError(field, errorMessage));
   }
 
   @action

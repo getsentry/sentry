@@ -90,4 +90,27 @@ describe('PasswordForm', function() {
       done();
     }, 1);
   });
+
+  it('validates mismatched passwords and remvoes validation on match', function() {
+    wrapper.find('input[name="password"]').simulate('change', {target: {value: 'test'}});
+    wrapper
+      .find('input[name="passwordNew"]')
+      .simulate('change', {target: {value: 'nottest'}});
+    wrapper
+      .find('input[name="passwordVerify"]')
+      .simulate('change', {target: {value: 'nottest-mismatch'}});
+
+    const error = wrapper.find('Field[id="passwordVerify"] FormFieldErrorReason');
+
+    expect(error.exists()).toBe(true);
+    expect(error.text()).toBe('Passwords do not match');
+
+    wrapper
+      .find('input[name="passwordVerify"]')
+      .simulate('change', {target: {value: 'nottest'}});
+
+    expect(wrapper.find('Field[id="passwordVerify"] FormFieldErrorReason').exists()).toBe(
+      false
+    );
+  });
 });
