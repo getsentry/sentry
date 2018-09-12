@@ -92,7 +92,8 @@ class RelaxedSearchPermission(ProjectPermission):
         # members can do writes
         'POST': ['project:write', 'project:admin', 'project:read'],
         'PUT': ['project:write', 'project:admin', 'project:read'],
-        'DELETE': ['project:admin'],
+        # members can delete their own searches
+        'DELETE': ['project:read', 'project:write', 'project:admin'],
     }
 
 
