@@ -23,13 +23,8 @@ exports[`ProjectAlertSettings render() renders 1`] = `
       </Tooltip>
     }
     tabs={
-      <ul
-        className="nav nav-tabs"
-        style={
-          Object {
-            "borderBottom": "1px solid #ddd",
-          }
-        }
+      <NavTabs
+        underlined={true}
       >
         <ListLink
           activeClassName="active"
@@ -45,7 +40,7 @@ exports[`ProjectAlertSettings render() renders 1`] = `
         >
           Rules
         </ListLink>
-      </ul>
+      </NavTabs>
     }
     title="Alerts"
   />

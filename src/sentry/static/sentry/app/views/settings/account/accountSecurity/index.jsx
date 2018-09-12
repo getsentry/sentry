@@ -13,6 +13,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -65,14 +66,19 @@ class AccountSecurity extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title="Security" tabs={
-          <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
-            <ListLink to={recreateRoute('', this.props)} index={true}>
-              {t('Settings')}
-            </ListLink>
-            <ListLink to={recreateRoute('session-history/', this.props)}>{t('Session History')}</ListLink>
-          </ul>
-        } />
+        <SettingsPageHeader
+          title="Security"
+          tabs={
+            <NavTabs underlined={true}>
+              <ListLink to={recreateRoute('', this.props)} index={true}>
+                {t('Settings')}
+              </ListLink>
+              <ListLink to={recreateRoute('session-history/', this.props)}>
+                {t('Session History')}
+              </ListLink>
+            </NavTabs>
+          }
+        />
 
         {!isEmpty &&
           countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}

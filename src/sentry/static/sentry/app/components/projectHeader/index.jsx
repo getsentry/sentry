@@ -10,6 +10,7 @@ import BookmarkToggle from 'app/components/projects/bookmarkToggle';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Button from 'app/components/button';
+import NavTabs from 'app/components/navTabs';
 
 import {t} from 'app/locale';
 
@@ -65,7 +66,7 @@ class ProjectHeader extends React.Component {
               <BookmarkToggle />
             </div>
 
-            <ul className="nav nav-tabs">
+            <NavTabs>
               <li className={navSection == 'stream' ? 'active' : ''}>
                 <ProjectLink to={`/${org.slug}/${project.slug}/`}>
                   {t('Issues')}
@@ -106,7 +107,7 @@ class ProjectHeader extends React.Component {
                   </Link>
                 </li>
               )}
-            </ul>
+            </NavTabs>
           </div>
           {showEnvironmentsToggle && (
             <EnvironmentsToggle>

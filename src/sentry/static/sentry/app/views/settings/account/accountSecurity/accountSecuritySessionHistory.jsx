@@ -6,6 +6,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
@@ -72,7 +73,7 @@ class AccountSecuritySessionHistory extends AsyncView {
         <SettingsPageHeader
           title="Security"
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink
                 to={recreateRoute('', {...this.props, stepBack: -1})}
                 index={true}
@@ -82,7 +83,7 @@ class AccountSecuritySessionHistory extends AsyncView {
               <ListLink to={recreateRoute('', this.props)}>
                 {t('Session History')}
               </ListLink>
-            </ul>
+            </NavTabs>
           }
         />
 

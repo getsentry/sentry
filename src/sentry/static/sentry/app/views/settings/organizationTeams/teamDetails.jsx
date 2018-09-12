@@ -13,6 +13,7 @@ import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
+import NavTabs from 'app/components/navTabs';
 import OrganizationState from 'app/mixins/organizationState';
 import TeamStore from 'app/stores/teamStore';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -113,13 +114,13 @@ const TeamDetails = createReactClass({
             </DropdownLink>
           )}
 
-        <ul className="nav nav-tabs border-bottom">
+        <NavTabs underlined={true}>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
           {onNewSettings ? (
             <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
           ) : null}
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
-        </ul>
+        </NavTabs>
 
         {children &&
           React.cloneElement(children, {
