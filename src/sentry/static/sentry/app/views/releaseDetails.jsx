@@ -14,6 +14,7 @@ import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NavTabs from 'app/components/navTabs';
 import ProjectState from 'app/mixins/projectState';
 import ReleaseStats from 'app/components/releaseStats';
 import SentryTypes from 'app/sentryTypes';
@@ -235,7 +236,7 @@ const ReleaseDetails = createReactClass({
               projectId={projectId}
               release={release}
             />
-            <ul className="nav nav-tabs">
+            <NavTabs>
               <ListLink
                 to={`${releasePath}/`}
                 isActive={loc => {
@@ -250,7 +251,7 @@ const ReleaseDetails = createReactClass({
               <ListLink to={`${releasePath}/all-events/`}>{t('All Issues')}</ListLink>
               <ListLink to={`${releasePath}/artifacts/`}>{t('Artifacts')}</ListLink>
               <ListLink to={`${releasePath}/commits/`}>{t('Commits')}</ListLink>
-            </ul>
+            </NavTabs>
           </div>
           {React.cloneElement(this.props.children, {
             release,
