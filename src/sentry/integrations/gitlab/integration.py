@@ -113,7 +113,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
     needs_default_identity = True
 
     features = frozenset([
-        IntegrationFeatures.COMMITS,
         IntegrationFeatures.ISSUE_BASIC,
     ])
 
@@ -158,7 +157,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     def get_user_info(self, access_token, installation_data):
         session = http.build_session()
         resp = session.get(
-            'https://{}/api/v4/user'.format(installation_data['url']),
+            u'https://{}/api/v4/user'.format(installation_data['url']),
             headers={
                 'Accept': 'application/json',
                 'Authorization': 'Bearer %s' % access_token,
@@ -172,7 +171,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     def get_group_info(self, access_token, installation_data):
         session = http.build_session()
         resp = session.get(
-            'https://{}/api/v4/groups/{}'.format(
+            u'https://{}/api/v4/groups/{}'.format(
                 installation_data['url'], installation_data['group']),
             headers={
                 'Accept': 'application/json',
@@ -197,11 +196,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
         integration = {
             'name': group['name'],
-            # probs should add on base url to make it unique like ghe
-            'external_id': group['id'],
+            'external_id': u'{}:{}'.format(base_url, group['id']),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': base_url,
+                'domain_name': group['web_url'].replace('https://', ''),
                 'scopes': scopes,
             },
             'user_identity': {
