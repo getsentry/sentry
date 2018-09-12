@@ -4,6 +4,7 @@ import {mount} from 'enzyme';
 import OrganizationHealthDevices from 'app/views/organizationHealth/devices';
 
 jest.mock('app/utils/withLatestContext');
+jest.mock('app/views/organizationHealth/util/withHealth');
 
 describe('OrganizationHealthDevices', function() {
   const org = TestStubs.Organization();

@@ -3,6 +3,7 @@ import {mount} from 'enzyme';
 
 import OrganizationHealthBrowsers from 'app/views/organizationHealth/browsers';
 
+jest.mock('app/views/organizationHealth/util/withHealth');
 jest.mock('app/utils/withLatestContext');
 
 describe('OrganizationHealthBrowsers', function() {
