@@ -627,7 +627,7 @@ class FeatureAdoptionTest(TestCase):
         member = self.create_member(
             organization=self.organization, teams=[self.team], user=self.create_user()
         )
-        member_joined.send(member=member, sender=type(self.project))
+        member_joined.send(member=member, organization=self.organization, sender=type(self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="invite_team"
         )

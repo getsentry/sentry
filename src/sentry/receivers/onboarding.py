@@ -181,7 +181,7 @@ def record_member_invited(member, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, **kwargs):
+def record_member_joined(member, organization, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
