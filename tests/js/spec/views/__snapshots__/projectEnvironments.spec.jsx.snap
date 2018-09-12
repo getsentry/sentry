@@ -18,13 +18,8 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -42,19 +37,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -72,7 +62,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -105,61 +95,60 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
@@ -243,13 +232,8 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -267,19 +251,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -297,7 +276,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -330,61 +309,60 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
@@ -923,13 +901,8 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -947,19 +920,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -977,7 +945,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -1010,61 +978,60 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
@@ -1148,13 +1115,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -1172,19 +1134,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -1202,7 +1159,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -1235,61 +1192,60 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>

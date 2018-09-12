@@ -9,9 +9,7 @@ exports[`NoteInput renders 1`] = `
   <div
     className="activity-notes"
   >
-    <ul
-      className="nav nav-tabs"
-    >
+    <NavTabs>
       <li
         className="active"
       >
@@ -42,7 +40,7 @@ exports[`NoteInput renders 1`] = `
           Markdown supported
         </span>
       </li>
-    </ul>
+    </NavTabs>
     <withDefaultStyle(MentionsInput)
       autoFocus={true}
       displayTransform={[Function]}

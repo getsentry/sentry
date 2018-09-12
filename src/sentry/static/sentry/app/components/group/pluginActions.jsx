@@ -5,6 +5,7 @@ import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from 'app/mixins/apiMixin';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import GroupState from 'app/mixins/groupState';
+import NavTabs from 'app/components/navTabs';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -116,17 +117,14 @@ const PluginActions = createReactClass({
           <Modal.Header closeButton>
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
-          <ul
-            className="nav nav-tabs"
-            style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
-          >
+          <NavTabs underlined={true}>
             <li className={actionType == 'create' ? 'active' : ''}>
               <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
             </li>
             <li className={actionType == 'link' ? 'active' : ''}>
               <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
             </li>
-          </ul>
+          </NavTabs>
           {this.state.showModal &&
             actionType &&
             !this.state.pluginLoading && (

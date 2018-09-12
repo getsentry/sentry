@@ -35,13 +35,8 @@ exports[`projectAlertRules renders 1`] = `
           </Tooltip>
         }
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -57,19 +52,14 @@ exports[`projectAlertRules renders 1`] = `
             >
               Rules
             </ListLink>
-          </ul>
+          </NavTabs>
         }
         title="Alerts"
       >
         <Wrapper
           tabs={
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
               <ListLink
                 activeClassName="active"
@@ -85,7 +75,7 @@ exports[`projectAlertRules renders 1`] = `
               >
                 Rules
               </ListLink>
-            </ul>
+            </NavTabs>
           }
         >
           <div
@@ -266,58 +256,57 @@ exports[`projectAlertRules renders 1`] = `
               </Base>
             </Flex>
             <div>
-              <ul
-                className="nav nav-tabs"
-                style={
-                  Object {
-                    "borderBottom": "1px solid #ddd",
-                  }
-                }
+              <NavTabs
+                underlined={true}
               >
-                <ListLink
-                  activeClassName="active"
-                  index={false}
-                  to="alerts"
+                <ul
+                  className="nav nav-tabs border-bottom"
                 >
-                  <li
-                    className=""
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    to="alerts"
                   >
-                    <Link
-                      onlyActiveOnIndex={false}
-                      style={Object {}}
-                      to="alerts"
+                    <li
+                      className=""
                     >
-                      <a
-                        onClick={[Function]}
+                      <Link
+                        onlyActiveOnIndex={false}
                         style={Object {}}
+                        to="alerts"
                       >
-                        Settings
-                      </a>
-                    </Link>
-                  </li>
-                </ListLink>
-                <ListLink
-                  activeClassName="active"
-                  index={false}
-                  to=""
-                >
-                  <li
-                    className=""
+                        <a
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          Settings
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                  <ListLink
+                    activeClassName="active"
+                    index={false}
+                    to=""
                   >
-                    <Link
-                      onlyActiveOnIndex={false}
-                      style={Object {}}
-                      to=""
+                    <li
+                      className=""
                     >
-                      <a
+                      <Link
+                        onlyActiveOnIndex={false}
                         style={Object {}}
+                        to=""
                       >
-                        Rules
-                      </a>
-                    </Link>
-                  </li>
-                </ListLink>
-              </ul>
+                        <a
+                          style={Object {}}
+                        >
+                          Rules
+                        </a>
+                      </Link>
+                    </li>
+                  </ListLink>
+                </ul>
+              </NavTabs>
             </div>
           </div>
         </Wrapper>
