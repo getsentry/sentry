@@ -57,7 +57,6 @@ export default class CombinedSelector extends React.Component {
         start: statsPeriod.start,
         end: statsPeriod.end,
       });
-      return;
     } else {
       onChange({...prev, [prop]: val});
     }
