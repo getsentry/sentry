@@ -23,7 +23,11 @@ describe('OrganizationHealthDevices', function() {
 
   it('renders with PieChart, and EventTableChart', async function() {
     let wrapper = mount(
-      <OrganizationHealthDevices organization={org} />,
+      <OrganizationHealthDevices
+        actions={{updateParams: jest.fn(), setSpecifier: jest.fn()}}
+        router={TestStubs.router()}
+        organization={org}
+      />,
       TestStubs.routerContext()
     );
     await tick();

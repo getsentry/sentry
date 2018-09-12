@@ -43,6 +43,7 @@ const StyledDelta = styled(Flex)`
 class EventsTableChart extends React.Component {
   static propTypes = {
     headers: PropTypes.arrayOf(PropTypes.node),
+    onRowClick: PropTypes.func,
     data: PropTypes.arrayOf(
       PropTypes.shape({
         name: PropTypes.node,
@@ -51,6 +52,15 @@ class EventsTableChart extends React.Component {
         lastCount: PropTypes.number,
       })
     ),
+  };
+
+  static defaultProps = {
+    onRowClick: () => {},
+  };
+
+  handleRowClick = ({specifier}, e) => {
+    const {onRowClick} = this.props;
+    onRowClick(specifier, e);
   };
 
   render() {
@@ -73,8 +83,8 @@ class EventsTableChart extends React.Component {
           </React.Fragment>,
           <LastEvent key="time-ago">n/a</LastEvent>,
         ])}
-        renderRow={({items}) => (
-          <React.Fragment>
+        renderRow={({items, rowIndex, ...other}) => (
+          <Row onClick={this.handleRowClick} data={data} rowIndex={rowIndex}>
             <NameAndEventsContainer justify="space-between" align="center">
               {items[0]}
               <div>{items[1]}</div>
@@ -87,12 +97,28 @@ class EventsTableChart extends React.Component {
                 {items[3]}
               </Flex>
             </PercentageContainer>
-          </React.Fragment>
+          </Row>
         )}
       />
     );
   }
 }
+
+const Row = styled(function RowComponent({className, data, rowIndex, onClick, children}) {
+  return (
+    <div
+      className={className}
+      onClick={e =>
+        typeof onClick === 'function' && rowIndex > -1 && onClick(data[rowIndex], e)}
+    >
+      {children}
+    </div>
+  );
+})`
+  display: flex;
+  flex: 1;
+  cursor: pointer;
+`;
 
 const StyledEventsTableChart = styled(EventsTableChart)`
   width: 100%;
