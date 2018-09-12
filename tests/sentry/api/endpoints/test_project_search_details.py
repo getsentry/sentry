@@ -197,26 +197,106 @@ class UpdateProjectSearchDetailsTest(APITestCase):
 
 
 class DeleteProjectSearchTest(APITestCase):
-    def test_simple(self):
+    def setUp(self):
         self.login_as(user=self.user)
 
-        project = self.create_project(name='foo')
+    def get_url(self, search):
+        return reverse(
+            'sentry-api-0-project-search-details',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+                'search_id': search.id,
+            }
+        )
+
+    def create_user_with_member_role(self):
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            role="member",
+            organization=self.organization
+        )
+        return user
+
+    def test_owner_can_delete_shared_searches(self):
         search = SavedSearch.objects.create(
-            project=project,
+            project=self.project,
             name='foo',
             query='',
         )
 
-        url = reverse(
-            'sentry-api-0-project-search-details',
-            kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-                'search_id': search.id,
-            }
-        )
-        response = self.client.delete(url)
+        response = self.client.delete(self.get_url(search))
 
         assert response.status_code == 204, response.content
-
         assert not SavedSearch.objects.filter(id=search.id).exists()
+
+    def test_owner_can_delete_own_searches(self):
+        search = SavedSearch.objects.create(
+            project=self.project,
+            name='foo',
+            query='',
+            owner=self.user
+        )
+
+        response = self.client.delete(self.get_url(search))
+
+        assert response.status_code == 204, response.content
+        assert not SavedSearch.objects.filter(id=search.id).exists()
+
+    def test_owners_cannot_delete_searches_they_do_not_own(self):
+        search = SavedSearch.objects.create(
+            project=self.project,
+            name='foo',
+            query='',
+            owner=self.create_user()
+        )
+
+        response = self.client.delete(self.get_url(search))
+
+        assert response.status_code == 403, response.content
+        assert SavedSearch.objects.filter(id=search.id).exists()
+
+    def test_members_can_delete_own_searches(self):
+        user = self.create_user_with_member_role()
+        search = SavedSearch.objects.create(
+            project=self.project,
+            name='foo',
+            query='',
+            owner=user,
+        )
+
+        self.login_as(user=user)
+        response = self.client.delete(self.get_url(search))
+
+        assert response.status_code == 204, response.content
+        assert not SavedSearch.objects.filter(id=search.id).exists()
+
+    def test_members_cannot_delete_searches_they_do_not_own(self):
+        user = self.create_user_with_member_role()
+        search = SavedSearch.objects.create(
+            project=self.project,
+            name='foo',
+            query='',
+            owner=self.create_user(),
+        )
+
+        self.login_as(user=user)
+        response = self.client.delete(self.get_url(search))
+
+        assert response.status_code == 403, response.content
+        assert SavedSearch.objects.filter(id=search.id).exists()
+
+    def test_members_cannot_delete_shared_searches(self):
+        user = self.create_user_with_member_role()
+        search = SavedSearch.objects.create(
+            project=self.project,
+            name='foo',
+            query=''
+        )
+
+        self.login_as(user=user)
+        response = self.client.delete(self.get_url(search))
+
+        assert response.status_code == 403, response.content
+        assert SavedSearch.objects.filter(id=search.id).exists()
