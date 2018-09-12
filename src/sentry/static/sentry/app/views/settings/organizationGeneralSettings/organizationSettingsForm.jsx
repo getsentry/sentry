@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import ApiMixin from 'app/mixins/apiMixin';
 import AvatarChooser from 'app/components/avatarChooser';
@@ -41,6 +42,7 @@ const OrganizationSettingsForm = createReactClass({
             onSave(initialData, model.initialData);
           }
         }}
+        onSubmitError={addErrorMessage('Unable to save change')}
       >
         <Box>
           <JsonForm

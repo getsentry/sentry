@@ -84,4 +84,5 @@ class OrganizationSettingsTest(AcceptanceTestCase):
             self.browser.wait_until('.modal')
             self.browser.click('.modal [data-test-id="confirm-modal"]')
             self.browser.wait_until_not('.modal')
+            self.browser.wait_until('.ref-toast.ref-error')
             self.load_organization_helper("setting 2fa without 2fa enabled")
