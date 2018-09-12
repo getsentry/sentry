@@ -18,8 +18,6 @@ import {
   clearActiveEnvironment,
 } from 'app/actionCreators/environments';
 
-import BackfillNotice from './backfillNotice';
-
 class ProjectHeader extends React.Component {
   static propTypes = {
     project: PropTypes.object.isRequired,
@@ -112,7 +110,6 @@ class ProjectHeader extends React.Component {
           </div>
           {showEnvironmentsToggle && (
             <EnvironmentsToggle>
-              <BackfillNotice project={project} />
               <div className="project-header-toggle">
                 <label>{t('Environment')}</label>
                 <DropdownLink
