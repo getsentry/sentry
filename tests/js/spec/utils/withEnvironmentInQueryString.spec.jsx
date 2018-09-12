@@ -16,9 +16,7 @@ const WrappedComponent = withEnvironmentInQueryString(BasicComponent);
 describe('withEnvironmentInQueryString', function() {
   beforeEach(function() {
     browserHistory.replace = jest.fn();
-    LatestContextStore.onSetActiveOrganization({
-      features: ['environments'],
-    });
+    LatestContextStore.onSetActiveOrganization({});
   });
 
   describe('updates environment', function() {

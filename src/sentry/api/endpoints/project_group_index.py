@@ -230,11 +230,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             query_kwargs.update(extra_query_kwargs)
 
         try:
-            if features.has('organizations:environments', project.organization, actor=request.user):
-                query_kwargs['environment'] = self._get_environment_from_request(
-                    request,
-                    project.organization_id,
-                )
+            query_kwargs['environment'] = self._get_environment_from_request(
+                request,
+                project.organization_id,
+            )
         except Environment.DoesNotExist:
             # XXX: The 1000 magic number for `max_hits` is an abstraction leak
             # from `sentry.api.paginator.BasePaginator.get_result`.

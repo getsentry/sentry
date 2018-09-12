@@ -305,15 +305,6 @@ const ReleaseOverview = createReactClass({
                       deploy.environment
                     )}`;
 
-                    // TODO(lyn): Remove when environment feature switched on
-                    if (!this.getFeatures().has('environments')) {
-                      let q = encodeURIComponent(
-                        `environment:${deploy.environment} release:${version}`
-                      );
-                      href = `/${orgId}/${projectId}/?query=${q}`;
-                    }
-                    // End remove block
-
                     return (
                       <li key={deploy.id}>
                         <a href={href} title={t('View in stream')}>
