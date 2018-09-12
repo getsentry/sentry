@@ -75,7 +75,7 @@ class OrganizationHealth extends React.Component {
             <Content>
               <Header>
                 <MultipleProjectSelector
-                  anchorRight={false}
+                  anchorRight
                   projects={projects}
                   value={this.state.projects}
                   onChange={this.handleChangeProjects}
@@ -119,6 +119,7 @@ const Content = styled(Flex)`
 const Header = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   font-size: 18px;
+  padding: ${space(1)} ${space(4)};
 `;
 
 const Body = styled('div')`
