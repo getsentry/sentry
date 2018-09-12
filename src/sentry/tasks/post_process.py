@@ -48,7 +48,11 @@ def _capture_stats(event, is_new):
 
     metrics.incr('events.processed')
     metrics.incr(u'events.processed.{platform}'.format(platform=platform))
-    metrics.timing('events.size.data', event.size)
+    metrics.timing('events.size.data', event.size,
+        tags={
+            'platform': platform,
+        }
+    )
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
