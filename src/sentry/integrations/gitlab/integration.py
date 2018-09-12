@@ -20,6 +20,7 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.utils.hashlib import sha1_text
+from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 
 from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
@@ -68,6 +69,13 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+API_ERRORS = {
+    404: 'Gitlab returned a 404 Not Found error. If this repository exists, ensure'
+         ' that your installation has permission to access this repository',
+    # ' (https://github.com/settings/installations).',
+    401: ERR_UNAUTHORIZED,
+}
+
 
 class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMixin):
     repo_search = True
@@ -103,6 +111,30 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         client = self.get_client()
         group_id = self.get_group_id()
         return client.search_group_issues(group_id, query)
+
+    def reinstall(self):
+        installation_id = self.model.external_id.split(':')[1]
+        metadata = self.model.metadata
+        metadata['installation_id'] = installation_id
+        self.model.update(metadata=metadata)
+        self.reinstall_repositories()
+
+    def search_issues(self, query):
+        pass
+
+    def message_from_error(self, exc):
+        if isinstance(exc, ApiError):
+            message = API_ERRORS.get(exc.code)
+            if message:
+                return message
+            return (
+                'Error Communicating with Gitlab (HTTP %s): %s' % (
+                    exc.code, exc.json.get('message', 'unknown error')
+                    if exc.json else 'unknown error',
+                )
+            )
+        else:
+            return ERR_INTERNAL
 
 
 class InstallationForm(forms.Form):
