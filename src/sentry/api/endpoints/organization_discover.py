@@ -86,7 +86,7 @@ class DiscoverSerializer(serializers.Serializer):
         has_range = bool(data.get('range'))
 
         if has_start != has_end or has_range == has_start:
-            raise serializers.ValidationError("Either start and end dates or range is required")
+            raise serializers.ValidationError('Either start and end dates or range is required')
 
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
@@ -96,7 +96,12 @@ class DiscoverSerializer(serializers.Serializer):
     def validate_range(self, attrs, source):
         # Populate start and end if only range is provided
         if (attrs.get(source)):
-            attrs['start'] = timezone.now() - parse_stats_period(attrs[source])
+            delta = parse_stats_period(attrs[source])
+
+            if (delta is None):
+                raise serializers.ValidationError('Invalid range')
+
+            attrs['start'] = timezone.now() - delta
             attrs['end'] = timezone.now()
 
         return attrs
