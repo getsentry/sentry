@@ -94,10 +94,6 @@
             <button type="submit" class="btn btn-primary" style="width: 50%">{% trans "Login" %}</button>
           </fieldset>
 
-          {% if github_login_template %}
-            {% include github_login_template %}
-          {% endif %}
-
           {% if github_login_link %}
             <p style="text-align: center">
               <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="width: 50%">
