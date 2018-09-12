@@ -1,9 +1,9 @@
-import {isEqual} from 'lodash';
+import {isEqual, pickBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import {doHealthRequest} from 'app/actionCreators/health';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingPanel from 'app/views/organizationHealth/loadingPanel';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withLatestContext from 'app/utils/withLatestContext';
@@ -112,6 +112,7 @@ class HealthRequestWithParams extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      reloading: false,
       tagData: null,
       timeseriesData: null,
     };
@@ -122,13 +123,40 @@ class HealthRequestWithParams extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (isEqual(prevProps, this.props)) return;
+    const propNamesToCheck = [
+      'environments',
+      'includePrevious',
+      'includeTimeseries',
+      'includeTop',
+      'includeTransformedData',
+      'interval',
+      'limit',
+      'period',
+      'projects',
+      'showLoading',
+      'specifiers',
+      'tag',
+    ];
+
+    const prevPropsToCheck = pickBy(prevProps, (value, key) =>
+      propNamesToCheck.includes(key)
+    );
+
+    const propsToCheck = pickBy(this.props, (value, key) =>
+      propNamesToCheck.includes(key)
+    );
+
+    if (isEqual(prevPropsToCheck, propsToCheck)) return;
 
     this.fetchData();
   }
 
   fetchData = async () => {
     const {tag} = this.props;
+
+    this.setState(state => ({
+      reloading: state.tagData !== null && state.timeseriesData !== null,
+    }));
 
     // If `includeTop` is defined and > 0, we need to fetch the top tags ordered by count
     // And then if we need timeseries, we'll pass the specific tag values into the timeseries query
@@ -151,6 +179,7 @@ class HealthRequestWithParams extends React.Component {
     });
 
     this.setState({
+      reloading: false,
       tagData,
       timeseriesData,
     });
@@ -349,13 +378,13 @@ class HealthRequestWithParams extends React.Component {
   render() {
     const {children, tag, showLoading, ...props} = this.props;
 
-    const {tagData, timeseriesData} = this.state;
+    const {tagData, timeseriesData, reloading} = this.state;
 
     // Is "loading" if data is null
-    const loading = tagData === null && timeseriesData === null;
+    const loading = reloading || (tagData === null || timeseriesData === null);
 
     if (showLoading && loading) {
-      return <LoadingIndicator />;
+      return <LoadingPanel />;
     }
 
     const {
