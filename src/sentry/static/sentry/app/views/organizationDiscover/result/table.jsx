@@ -10,6 +10,8 @@ import InlineSvg from 'app/components/inlineSvg';
 import Panel from 'app/components/panels/panel';
 import {getDisplayValue, getDisplayText} from './utils';
 
+const TABLE_ROW_HEIGHT = 41; // Includes 1px for border
+
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
@@ -178,7 +180,7 @@ export default class ResultTable extends React.Component {
                 rowCount={data.length + 1}
                 columnCount={colCount}
                 fixedRowCount={1}
-                rowHeight={41} // Add 1px for border
+                rowHeight={TABLE_ROW_HEIGHT}
                 columnWidth={({index}) => columnWidths[index]}
                 cellRenderer={this.cellRenderer}
               />
@@ -202,7 +204,7 @@ export default class ResultTable extends React.Component {
 
 const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
   height: ${p =>
-    p.visibleRows * 41 +
+    p.visibleRows * TABLE_ROW_HEIGHT +
     2}px; /* cell height + cell border + top and bottom Panel border */
   overflow: hidden;
 
