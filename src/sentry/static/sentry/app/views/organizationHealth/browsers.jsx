@@ -27,6 +27,7 @@ class OrganizationHealthBrowsers extends React.Component {
             {({tagData}) => {
               return (
                 <HealthPanelChart
+                  showLegend={false}
                   height={200}
                   series={[
                     {
@@ -44,6 +45,7 @@ class OrganizationHealthBrowsers extends React.Component {
 
           <HealthRequest
             tag="os.name"
+            showLegend={false}
             showLoading
             includeTimeseries={false}
             includeTop
