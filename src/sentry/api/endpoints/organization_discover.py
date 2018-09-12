@@ -81,19 +81,19 @@ class DiscoverSerializer(serializers.Serializer):
         )
         self.arrayjoin = match if match else None
 
-        has_start = bool(data.get('start'))
-        has_end = bool(data.get('end'))
-        has_range = bool(data.get('range'))
-
-        if has_start != has_end or has_range == has_start:
-            raise serializers.ValidationError('Either start and end dates or range is required')
-
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
 
         return data
 
     def validate_range(self, attrs, source):
+        has_start = bool(attrs.get('start'))
+        has_end = bool(attrs.get('end'))
+        has_range = bool(attrs.get('range'))
+
+        if has_start != has_end or has_range == has_start:
+            raise serializers.ValidationError('Either start and end dates or range is required')
+
         # Populate start and end if only range is provided
         if (attrs.get(source)):
             delta = parse_stats_period(attrs[source])
