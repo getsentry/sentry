@@ -48,14 +48,15 @@ class OrganizationHealthErrors extends React.Component {
             showLoading
             getCategory={value => (value ? t('Handled') : t('Crash'))}
           >
-            {({timeseriesData}) => {
+            {({timeseriesData, previousTimeseriesData}) => {
               return (
                 <HealthPanelChart
                   height={200}
                   title={t('Errors')}
                   series={timeseriesData}
+                  previousPeriod={previousTimeseriesData}
                 >
-                  {props => <AreaChart {...props} />}
+                  {props => <AreaChart isGroupedByDate {...props} />}
                 </HealthPanelChart>
               );
             }}
