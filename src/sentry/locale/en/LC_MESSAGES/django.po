@@ -3590,7 +3590,7 @@ msgid "e.g. operations, web-frontend, desktop"
 msgstr ""
 
 #: static/sentry/app/components/createTeam/createTeamForm.jsx:45
-msgid "May contain lowercase letters, numbers, dashes and underscores."
+msgid "May only contain lowercase letters, numbers, dashes and underscores."
 msgstr ""
 
 #: static/sentry/app/components/customIgnoreCountModal.jsx:56
