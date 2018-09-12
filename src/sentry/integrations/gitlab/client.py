@@ -1,37 +1,27 @@
 from __future__ import absolute_import
 
-from requests.exceptions import HTTPError
 from six.moves.urllib.parse import quote
-from sentry.http import build_session
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
 
 
 class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
-    def __init__(self, url, token):
-        self.url = url
-        self.token = token
+    api_version = '/v4/'
 
-    def request(self, method, path, data=None, params=None):
+    def __init__(self, base_url, access_token):
+        self.base_url = base_url
+        self.access_token = access_token
+
+    def request(self, method, path, data=None, params=None, api_preview=False):
+        self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
-            'Private-Token': self.token,
+            'Authorization': u'Bearer {}'.format(self.identity.data['access_token'])
         }
-        session = build_session()
-        try:
-            resp = getattr(session, method.lower())(
-                url='{}/api/v4/{}'.format(self.url, path.lstrip('/')),
-                headers=headers,
-                json=data,
-                params=params,
-                allow_redirects=False,
-            )
-            resp.raise_for_status()
-        except HTTPError as e:
-            raise ApiError.from_response(e.response)
-        return resp.json()
+        return self._request(method, '%s%s' % (self.api_version, path),
+                             headers=headers, data=data, params=params)
 
-    def auth(self):
+    def get_user(self):
         return self.request('GET', '/user')
 
     def get_project(self, repo):
