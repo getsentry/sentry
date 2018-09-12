@@ -21,3 +21,5 @@ def test_parse_stats_period():
     assert parse_stats_period('30m') == datetime.timedelta(minutes=30)
     assert parse_stats_period('1h') == datetime.timedelta(hours=1)
     assert parse_stats_period('20d') == datetime.timedelta(days=20)
+    assert parse_stats_period('20f') is None
+    assert parse_stats_period('-1s') is None
