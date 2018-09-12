@@ -29,7 +29,7 @@ describe('ProjectTags', function() {
     );
   });
 
-  it.skip('renders empty', function() {
+  it('renders empty', function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,

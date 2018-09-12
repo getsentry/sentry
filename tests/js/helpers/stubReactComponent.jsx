@@ -5,6 +5,7 @@ import React from 'react';
 let divFactory = React.createFactory('div');
 let originalCreateElement = React.createElement;
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default function(stubber, stubbedComponents) {
   stubber.stub(React, 'createElement', function(component, props) {
     props = props || {};

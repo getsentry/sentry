@@ -10,7 +10,6 @@ class MessageInterface extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   };
 

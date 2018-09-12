@@ -14,6 +14,7 @@ describe('PluginIcon', function() {
   });
 
   // doesn't work because of the above comment
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('renders with default icon with invalid plugin id', function() {
     let wrapper = shallow(<PluginIcon pluginId="invalid" size={20} />);
     expect(wrapper).toMatchSnapshot();

@@ -15,7 +15,6 @@ class RequestInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    isShare: PropTypes.bool,
   };
 
   static contextTypes = {
