@@ -107,6 +107,18 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_invalid_range_value(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'range': '1x',
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 400, response.content
+
     def test_boolean_condition(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
