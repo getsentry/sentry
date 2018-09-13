@@ -23,6 +23,11 @@ module.exports = {
         loaders: [
           {
             loader: require.resolve('@storybook/addon-storysource/loader'),
+            options: {
+              prettierConfig: {
+                parser: 'babylon',
+              },
+            },
           },
         ],
         enforce: 'pre',
