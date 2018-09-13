@@ -64,14 +64,15 @@ export function getInternal(external) {
 
 /**
 * Returns an alias for a given column name, which is either just the column name
-* or a string with an underscore instead of square brackets for tags
+* or a string with an underscore instead of square brackets for tags. We'll also
+* replace the characters `.`, `:` and `-` from aliases.
 *
 * @param {String} columnName Name of column
 * @return {String} Alias
 */
 function getAlias(columnName) {
   const tagMatch = columnName.match(/^tags\[(.+)]$/);
-  return tagMatch ? `tags_${tagMatch[1]}` : columnName;
+  return tagMatch ? `tags_${tagMatch[1].replace(/[.:-]/, '_')}` : columnName;
 }
 
 /**
