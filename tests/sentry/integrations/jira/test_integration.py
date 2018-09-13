@@ -418,16 +418,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-<<<<<<< HEAD
         integration.add_organization(org, self.user)
-=======
-        config = {
-            'project_issue_defaults': {
-                group.project_id: {'project': '10000', 'issuetype': '2'},
-            }
-        }
-        integration.add_organization(org.id, config=config)
->>>>>>> tests
 
         installation = integration.get_installation(org.id)
 
