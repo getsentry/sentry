@@ -96,13 +96,7 @@ class ProjectHeader extends React.Component {
               </li>
               {access.has('project:write') && (
                 <li className={navSection == 'settings' ? 'active' : ''}>
-                  <Link
-                    to={
-                      orgFeatures.has('new-settings')
-                        ? `/settings/${org.slug}/${project.slug}/`
-                        : `/${org.slug}/${project.slug}/settings/`
-                    }
-                  >
+                  <Link to={`/settings/${org.slug}/${project.slug}/`}>
                     {t('Settings')}
                   </Link>
                 </li>
@@ -142,11 +136,7 @@ class ProjectHeader extends React.Component {
                   <MenuItem divider={true} />
                   <div style={{textAlign: 'center', padding: '5px 0px'}}>
                     <Button
-                      to={
-                        orgFeatures.has('new-settings')
-                          ? `/settings/${org.slug}/${project.slug}/environments/`
-                          : `/${org.slug}/${project.slug}/settings/`
-                      }
+                      to={`/settings/${org.slug}/${project.slug}/environments/`}
                       size="small"
                     >
                       {t('Manage environments')}

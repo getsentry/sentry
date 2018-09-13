@@ -109,8 +109,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('group-unmerge')
         if features.has('organizations:github-apps', obj, actor=user):
             feature_list.append('github-apps')
-        if features.has('organizations:new-settings', obj, actor=user):
-            feature_list.append('new-settings')
         if features.has('organizations:require-2fa', obj, actor=user):
             feature_list.append('require-2fa')
         if features.has('organizations:environments', obj, actor=user):
@@ -158,6 +156,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('require-2fa')
         if features.has('organizations:event-attachments', obj, actor=user):
             feature_list.append('event-attachments')
+
+        # deleteme: new-settings UI checks have been removed, but this was
+        # left behind to smooth over deploy boundaries.
+        feature_list.append('new-settings')
 
         experiment_assignments = experiments.all(org=obj)
 
