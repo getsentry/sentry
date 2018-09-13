@@ -769,7 +769,6 @@ SENTRY_FEATURES = {
     'organizations:group-unmerge': False,
     'organizations:github-apps': True,
     'organizations:invite-members': True,
-    'organizations:new-settings': True,
     'organizations:require-2fa': False,
     'organizations:environments': True,
     'organizations:internal-catchall': False,
