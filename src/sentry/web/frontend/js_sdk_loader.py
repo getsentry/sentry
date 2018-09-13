@@ -27,7 +27,10 @@ class JavaScriptSdkLoader(BaseView):
 
         sdk_version = get_browser_sdk_version(key)
         try:
-            sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version, )
+            if '%s' in settings.JS_SDK_LOADER_DEFAULT_SDK_URL:
+                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version, )
+            else:
+                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
         except TypeError:
             sdk_url = ''  # It fails if it cannot inject the version in the string
 

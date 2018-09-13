@@ -24,6 +24,14 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/js-sdk-loader-noop.js.tmpl')
 
+    def test_no_replace(self):
+        settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js'
+        resp = self.client.get(reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key]))
+        assert resp.status_code == 200
+        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, resp.content)
+        self.assertTemplateUsed(resp, 'sentry/js-sdk-loader.js.tmpl')
+
     def test_renders_js_loader(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
