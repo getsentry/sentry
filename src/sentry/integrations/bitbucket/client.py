@@ -131,6 +131,13 @@ class BitbucketApiClient(ApiClient):
             data=data
         )
 
+    def get_hooks(self, repo):
+        return self.get(
+            path=BitbucketAPIPath.repository_hooks.format(
+                repo=repo,
+            ),
+        )
+
     def delete_hook(self, repo, hook_id):
         return self.delete(path=BitbucketAPIPath.repository_hook.format(
             repo=repo,
