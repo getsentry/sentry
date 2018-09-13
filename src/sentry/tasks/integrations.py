@@ -175,6 +175,18 @@ def migrate_repo(repo_id, integration_id, organization_id):
     )
     repo = Repository.objects.get(id=repo_id)
     if installation.has_repo_access(repo):
+        # this probably shouldn't happen, but log it just in case
+        if repo.integration_id is not None and repo.integration_id != integration_id:
+            logger.info(
+                'repo.migration.integration-change',
+                extra={
+                    'integration_id': integration_id,
+                    'old_integration_id': repo.integration_id,
+                    'organization_id': organization_id,
+                    'repo_id': repo.id,
+                }
+            )
+
         repo.integration_id = integration_id
         repo.provider = 'integrations:%s' % (integration.provider,)
         repo.save()
