@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, CommitAuthor, Environment, Organization, Release, ReleaseCommit, ReleaseEnvironment,
-    Repository, ScheduledDeletion
+    Commit, CommitAuthor, Environment, Organization, PullRequest, Release,
+    ReleaseCommit, ReleaseEnvironment, Repository, ScheduledDeletion
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -33,6 +33,12 @@ class DeleteOrganizationTest(TestCase):
             author=commit_author,
             key='a' * 40,
         )
+        pull_request = PullRequest.objects.create(
+            repository_id=repo.id,
+            organization_id=org.id,
+            author=commit_author,
+            key='b' * 40,
+        )
         ReleaseCommit.objects.create(
             organization_id=org.id,
             release=release,
@@ -61,3 +67,4 @@ class DeleteOrganizationTest(TestCase):
         assert not Release.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(id=commit_author.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
+        assert not PullRequest.objects.filter(id=pull_request.id).exists()
