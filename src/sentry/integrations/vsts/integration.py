@@ -14,7 +14,6 @@ from sentry.models import (
 )
 from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
@@ -23,6 +22,7 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider, get_user_info
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
+from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
@@ -86,6 +86,16 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         ).exclude(
             external_id__in=[r['identifier'] for r in self.get_repositories()],
         )
+
+    def has_repo_access(self, repo):
+        client = self.get_client()
+        try:
+            # since we don't actually use webhooks for vsts commits,
+            # just verify repo access
+            client.get_repo(self.instance, repo.config['name'], project=repo.config['project'])
+        except ApiError:
+            return False
+        return True
 
     def get_client(self):
         if self.default_identity is None:
@@ -266,24 +276,17 @@ class VstsIntegrationProvider(IntegrationProvider):
     VSTS_ACCOUNT_LOOKUP_URL = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1'
 
     def post_install(self, integration, organization):
-        installation = self.get_installation(integration, organization.id)
-
-        unmigratable_repos = installation.get_unmigratable_repositories()
-
-        repos = Repository.objects.filter(
+        repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider='visualstudio',
-        ).exclude(
-            id__in=unmigratable_repos,
-        )
+        ).values_list('id', flat=True)
 
-        for repo in repos:
-            repo.update(
-                integration_id=integration.id,
-                provider='integrations:vsts',
-            )
-
-        PluginMigrator(integration, organization).call()
+        for repo_id in repo_ids:
+            migrate_repo.apply_async(kwargs={
+                'repo_id': repo_id,
+                'integration_id': integration.id,
+                'organization_id': organization.id,
+            })
 
     def get_pipeline_views(self):
         identity_pipeline_config = {

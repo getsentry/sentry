@@ -139,6 +139,22 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
+            u'https://{}.visualstudio.com/DefaultCollection/ProjectA/_apis/git/repositories/ProjectA'.format(
+                self.vsts_account_name.lower(),
+            ),
+            json={
+                'repository': {
+                    'id': self.repo_id,
+                    'name': self.repo_name,
+                    'project': {
+                        'name': self.project_a['name'],
+                    },
+                },
+            },
+        )
+
+        responses.add(
+            responses.GET,
             u'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
                 self.vsts_account_name.lower(),
                 self.project_a['name'],
