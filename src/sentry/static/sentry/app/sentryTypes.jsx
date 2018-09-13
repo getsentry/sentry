@@ -177,11 +177,14 @@ export const Team = PropTypes.shape({
 });
 
 export const Project = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
+  // snuba returns id as number
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   slug: PropTypes.string.isRequired,
-  isBookmarked: PropTypes.bool.isRequired,
-  teams: PropTypes.arrayOf(Team).isRequired,
+
+  // snuba results may not contain a `name` or `isBookmarked
+  teams: PropTypes.arrayOf(Team),
+  name: PropTypes.string,
+  isBookmarked: PropTypes.bool,
   status: PropTypes.string,
 });
 
