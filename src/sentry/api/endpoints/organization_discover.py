@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
 import re
-
 import six
 
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+
+from sentry.utils.dates import (
+    parse_stats_period,
+)
+
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
@@ -28,8 +33,9 @@ class DiscoverSerializer(serializers.Serializer):
         required=True,
         allow_null=False,
     )
-    start = serializers.DateTimeField(required=True)
-    end = serializers.DateTimeField(required=True)
+    start = serializers.DateTimeField(required=False)
+    end = serializers.DateTimeField(required=False)
+    range = serializers.CharField(required=False)
     fields = ListField(
         child=serializers.CharField(),
         required=False,
@@ -60,7 +66,9 @@ class DiscoverSerializer(serializers.Serializer):
         self.member = OrganizationMember.objects.get(
             user=self.context['user'], organization=self.context['organization'])
 
-        fields = kwargs['data'].get('fields') or []
+        data = kwargs['data']
+
+        fields = data.get('fields') or []
 
         match = next(
             (
@@ -75,7 +83,28 @@ class DiscoverSerializer(serializers.Serializer):
 
     def validate(self, data):
         data['arrayjoin'] = self.arrayjoin
+
         return data
+
+    def validate_range(self, attrs, source):
+        has_start = bool(attrs.get('start'))
+        has_end = bool(attrs.get('end'))
+        has_range = bool(attrs.get('range'))
+
+        if has_start != has_end or has_range == has_start:
+            raise serializers.ValidationError('Either start and end dates or range is required')
+
+        # Populate start and end if only range is provided
+        if (attrs.get(source)):
+            delta = parse_stats_period(attrs[source])
+
+            if (delta is None):
+                raise serializers.ValidationError('Invalid range')
+
+            attrs['start'] = timezone.now() - delta
+            attrs['end'] = timezone.now()
+
+        return attrs
 
     def validate_projects(self, attrs, source):
         organization = self.context['organization']
