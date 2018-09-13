@@ -8,6 +8,12 @@ import {selectByLabel} from '../../../helpers/select';
 
 describe('OrganizationHealth', function() {
   let wrapper;
+  const router = TestStubs.router({
+    location: {
+      pathname: '/organizations/org-slug/health/',
+      query: {},
+    },
+  });
   const project = TestStubs.Project({isMember: true});
   const organization = TestStubs.Organization({
     features: ['health'],
@@ -24,7 +30,7 @@ describe('OrganizationHealth', function() {
     await tick();
 
     wrapper = mount(
-      <OrganizationHealth organization={organization}>
+      <OrganizationHealth router={router} organization={organization}>
         <div />
       </OrganizationHealth>,
       TestStubs.routerContext([
@@ -39,14 +45,62 @@ describe('OrganizationHealth', function() {
     expect(wrapper.find('HealthWrapper')).toHaveLength(1);
   });
 
-  it('changes environments', async function() {
+  it('updates router when changing environments', async function() {
     wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
     await tick();
     wrapper.update();
 
     selectByLabel(wrapper, 'production', {control: true, name: 'environments'});
-    expect(wrapper.state('environments')).toEqual(['production']);
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/health/',
+      query: {
+        environments: ['production'],
+      },
+    });
     selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/health/',
+      query: {
+        environments: ['production', 'staging'],
+      },
+    });
+  });
+
+  it('updates component state when router is updated', async function() {
+    wrapper = mount(
+      <OrganizationHealth router={router} organization={organization}>
+        <div />
+      </OrganizationHealth>,
+      TestStubs.routerContext([
+        {
+          organization,
+        },
+      ])
+    );
+    expect(wrapper.state('environments')).toEqual([]);
+
+    wrapper.setProps({
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/health/',
+          query: {
+            environments: ['production'],
+          },
+        },
+      },
+    });
+    expect(wrapper.state('environments')).toEqual(['production']);
+
+    wrapper.setProps({
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/health/',
+          query: {
+            environments: ['production', 'staging'],
+          },
+        },
+      },
+    });
     expect(wrapper.state('environments')).toEqual(['production', 'staging']);
   });
 });
