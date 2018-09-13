@@ -12,7 +12,7 @@ def get_user_info(access_token, installation_data):
             'Accept': 'application/json',
             'Authorization': 'Bearer %s' % access_token,
         },
-        verify=False
+        verify=installation_data['verify_ssl']
     )
 
     resp.raise_for_status()

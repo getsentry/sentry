@@ -58,6 +58,13 @@ class InstallationForm(forms.Form):
             attrs={'placeholder': _('my-awesome-group')}
         )
     )
+    verify_ssl = forms.BooleanField(
+        label=_("Verify SSL"),
+        help_text=_('By default, we verify SSL certificates '
+                    'when delivering payloads to your Gitlab instance'),
+        widget=forms.CheckboxInput(),
+        required=False
+    )
     client_id = forms.CharField(
         label=_("Gitlab Application ID"),
         widget=forms.TextInput(
@@ -74,6 +81,7 @@ class InstallationForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(InstallationForm, self).__init__(*args, **kwargs)
+        self.fields['verify_ssl'].initial = True
 
 
 class InstallationConfigView(PipelineView):
@@ -90,6 +98,7 @@ class InstallationConfigView(PipelineView):
                 "authorize_url": u"https://{}/oauth/authorize".format(form_data.get('url')),
                 "client_id": form_data.get('client_id'),
                 "client_secret": form_data.get('client_secret'),
+                "verify_ssl": form_data.get('verify_ssl')
             })
 
             return pipeline.next_step()
@@ -135,7 +144,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'sudo',
             ),
             redirect_url=absolute_uri('/extensions/gitlab/setup/'),
-            verify_ssl=False,
             **self.pipeline.fetch_state('oauth_config_information')
         )
 
@@ -174,7 +182,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'Accept': 'application/json',
                 'Authorization': 'Bearer %s' % access_token,
             },
-            verify=False
+            verify=installation_data['verify_ssl']
         )
 
         resp.raise_for_status()
@@ -198,6 +206,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'icon': group['avatar_url'],
                 'domain_name': group['web_url'].replace('https://', ''),
                 'scopes': scopes,
+                'verify_ssl': state['installation_data']['verify_ssl'],
             },
             'user_identity': {
                 'type': 'gitlab',
