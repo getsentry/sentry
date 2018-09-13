@@ -1,23 +1,34 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {map} from 'lodash';
+import {groupBy} from 'lodash';
 
 import {tct} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import AlertLink from 'app/components/alertLink';
+import AsyncComponent from 'app/components/asyncComponent';
 
-export default class MigrationWarnings extends React.Component {
+export default class MigrationWarnings extends AsyncComponent {
   static propTypes = {
-    unmigratableRepos: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
     providers: PropTypes.array.isRequired,
     onInstall: PropTypes.func.isRequired,
   };
 
+  getEndpoints() {
+    let {orgId} = this.props;
+
+    return [['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`]];
+  }
+
+  get unmigratableReposByOrg() {
+    // Group by [GitHub|BitBucket|VSTS] Org name
+    return groupBy(this.state.unmigratableRepos, repo => repo.name.split('/')[0]);
+  }
+
   render() {
-    return map(this.props.unmigratableRepos, (repos, orgName) => {
+    return Object.entries(this.unmigratableReposByOrg).map(([orgName, repos]) => {
       // Repos use 'visualstudio', Integrations use 'vsts'. Normalize to 'vsts'.
       const key = repos[0].provider.id == 'visualstudio' ? 'vsts' : repos[0].provider.id;
-
       const provider = this.props.providers.find(p => p.key === key);
 
       // The Org might not have access to this Integration yet.
