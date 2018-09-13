@@ -11,7 +11,7 @@ class JavaScriptSdkLoaderTest(TestCase):
     @fixture
     def path(self):
         settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
-        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js' % settings.JS_SDK_LOADER_SDK_VERSION
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js'
         return reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key])
 
     def test_404(self):
@@ -24,12 +24,20 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/js-sdk-loader-noop.js.tmpl')
 
+    def test_no_replace(self):
+        settings.JS_SDK_LOADER_SDK_VERSION = '0.5.2'
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js'
+        resp = self.client.get(reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key]))
+        assert resp.status_code == 200
+        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, resp.content)
+        self.assertTemplateUsed(resp, 'sentry/js-sdk-loader.js.tmpl')
+
     def test_renders_js_loader(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/js-sdk-loader.js.tmpl')
         self.assertIn(self.projectkey.public_key, resp.content)
-        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, resp.content)
+        self.assertIn('bundle.min.js', resp.content)
 
     def test_minified(self):
         resp = self.client.get(self.path)
@@ -43,7 +51,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert min_resp.status_code == 200
         self.assertTemplateUsed(min_resp, 'sentry/js-sdk-loader.min.js.tmpl')
         self.assertIn(self.projectkey.public_key, min_resp.content)
-        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, min_resp.content)
+        self.assertIn('bundle.min.js', min_resp.content)
         assert len(resp.content) > len(min_resp.content)
 
     def test_headers(self):

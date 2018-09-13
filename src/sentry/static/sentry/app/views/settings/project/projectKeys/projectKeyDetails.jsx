@@ -30,6 +30,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
@@ -382,7 +383,6 @@ const KeySettings = createReactClass({
         {jsSdkLoaderEnabled && (
           <Form
             saveOnBlur
-            allowUndo
             apiEndpoint={apiEndpoint}
             apiMethod="PUT"
             initialData={data}
@@ -398,6 +398,15 @@ const KeySettings = createReactClass({
                   <TextCopyInput>{`<script src='${data.dsn
                     .cdn}'></script>`}</TextCopyInput>
                 </Field>
+                <SelectField
+                  name="browserSdkVersion"
+                  choices={data.browserSdk.choices}
+                  placeholder={t('4.x')}
+                  allowClear={false}
+                  help={t(
+                    'Select the version of the SDK that should be loaded'
+                  )}
+                />
               </PanelBody>
             </Panel>
           </Form>
@@ -481,7 +490,7 @@ export default class ProjectKeyDetails extends AsyncView {
     let features = new Set(project.features);
     let hasRateLimitsEnabled = features.has('rate-limits');
     let orgFeatures = new Set(organization.features);
-    let hasjsSdkLoaderEnabled = orgFeatures.has('relay');
+    let hasjsSdkLoaderEnabled = orgFeatures.has('js-loader');
 
     return (
       <div className="ref-key-details">

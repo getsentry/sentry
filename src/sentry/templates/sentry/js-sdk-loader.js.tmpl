@@ -20,7 +20,9 @@
     // content.p = promise rejection
     // content.f = function call the Sentry
     if (
-      (content.e || content.p || (content.f && content.f.indexOf('capture') > -1)) &&
+      (content.e || content.p ||
+        (content.f && content.f.indexOf('capture') > -1) ||
+        (content.f && content.f.indexOf('showReportDialog') > -1)) &&
       lazy
     ) {
       // We only want to lazy inject/load the sdk bundle if
@@ -89,9 +91,16 @@
 
       // We want to replay all calls to Sentry first to make sure init is called before
       // we call all our internal error handlers
+      var firstInitCall = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i].f) {
           var call = data[i];
+          if (firstInitCall === false && call.f !== 'init') {
+            // First call always has to be init, this is a conveniece for the user
+            // so call to init is optional
+            SDK.init();
+          }
+          firstInitCall = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
@@ -140,6 +149,7 @@
     'captureException',
     'captureEvent',
     'configureScope',
+    'showReportDialog',
   ].forEach(function(f) {
     _window[_namespace][f] = function() {
       queue({f: f, a: arguments});
