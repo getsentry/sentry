@@ -30,7 +30,6 @@ from sentry.signals import (
     ownership_rule_created,
     issue_ignored,
     team_created,
-    team_joined,
     issue_deleted,
     integration_added,
     integration_issue_created,
@@ -116,9 +115,14 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, **kwargs):
+def record_member_joined(member, organization, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
+    )
+    analytics.record(
+        'organization.joined',
+        user_id=member.user.id,
+        organization_id=organization.id,
     )
 
 
@@ -353,16 +357,6 @@ def record_team_created(organization, user, team, **kwargs):
         'team.created',
         user_id=user_id,
         default_user_id=default_user_id,
-        organization_id=organization.id,
-        team_id=team.id,
-    )
-
-
-@team_joined.connect(weak=False)
-def record_team_joined(organization, user, team, **kwargs):
-    analytics.record(
-        'team.joined',
-        user_id=user.id,
         organization_id=organization.id,
         team_id=team.id,
     )
