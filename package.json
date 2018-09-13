@@ -6,7 +6,6 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@storybook/addon-storysource": "^3.4.0",
     "babel-core": "6.21.0",
     "babel-gettext-extractor": "^3.0.0",
     "babel-loader": "^7.1.2",
@@ -149,13 +148,13 @@
     "output": ".artifacts/jest.junit.xml"
   },
   "devDependencies": {
-    "@percy-io/percy-storybook": "^1.3.3",
-    "@storybook/addon-a11y": "^3.4.0",
-    "@storybook/addon-actions": "3.4.0",
-    "@storybook/addon-info": "3.4.0",
-    "@storybook/addon-knobs": "3.4.0",
-    "@storybook/addons": "3.4.0",
-    "@storybook/react": "3.4.0",
+    "@storybook/addon-a11y": "3.4.10",
+    "@storybook/addon-actions": "3.4.10",
+    "@storybook/addon-info": "3.4.10",
+    "@storybook/addon-knobs": "3.4.10",
+    "@storybook/addon-storysource": "3.4.10",
+    "@storybook/addons": "3.4.10",
+    "@storybook/react": "3.4.10",
     "babel-eslint": "7.2.3",
     "babel-jest": "22.1.0",
     "babel-runtime": "^6.26.0",
