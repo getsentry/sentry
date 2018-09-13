@@ -1,4 +1,4 @@
-import {isEqual, pickBy} from 'lodash';
+import {isEqual, omitBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -123,27 +123,21 @@ class HealthRequestWithParams extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    const propNamesToCheck = [
-      'environments',
-      'includePrevious',
-      'includeTimeseries',
-      'includeTop',
-      'includeTransformedData',
-      'interval',
-      'limit',
-      'period',
-      'projects',
-      'showLoading',
-      'specifiers',
-      'tag',
+    const propNamesToIgnore = [
+      'api',
+      'children',
+      'getCategory',
+      'organization',
+      'organizations',
+      'project',
     ];
 
-    const prevPropsToCheck = pickBy(prevProps, (value, key) =>
-      propNamesToCheck.includes(key)
+    const prevPropsToCheck = omitBy(prevProps, (value, key) =>
+      propNamesToIgnore.includes(key)
     );
 
-    const propsToCheck = pickBy(this.props, (value, key) =>
-      propNamesToCheck.includes(key)
+    const propsToCheck = omitBy(this.props, (value, key) =>
+      propNamesToIgnore.includes(key)
     );
 
     if (isEqual(prevPropsToCheck, propsToCheck)) return;
