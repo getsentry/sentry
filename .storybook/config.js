@@ -11,7 +11,7 @@ const withTheme = storyFn => <ThemeProvider theme={theme}>{storyFn()}</ThemeProv
 setDefaults({
   inline: true,
   header: false,
-  source: true,
+  source: false,
 });
 setAddon(infoAddon);
 addDecorator(checkA11y);
