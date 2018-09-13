@@ -52,6 +52,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             ),
             provider='visualstudio',
             external_id=self.repo_id,
+            config={'name': self.project_a['name'], 'project': self.project_a['name']}
         )
 
         inaccessible_repo = Repository.objects.create(
@@ -60,9 +61,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             url='https://randoaccount.visualstudio.com/Product/_git/NotReachable',
             provider='visualstudio',
             external_id='123456789',
+            config={'name': 'NotReachable', 'project': 'NotReachable'}
         )
 
-        self.assert_installation()
+        with self.tasks():
+            self.assert_installation()
         integration = Integration.objects.get(provider='vsts')
 
         assert Repository.objects.get(
@@ -91,12 +94,14 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             ),
             provider='visualstudio',
             external_id=self.repo_id,
+            config={'name': self.project_a['name'], 'project': self.project_a['name']}
         )
 
         # Enabled before Integration installation
         assert 'vsts' in [p.slug for p in plugins.for_project(self.project)]
 
-        self.assert_installation()
+        with self.tasks():
+            self.assert_installation()
 
         # Disabled
         assert 'vsts' not in [p.slug for p in plugins.for_project(self.project)]
