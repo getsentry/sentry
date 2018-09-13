@@ -520,7 +520,7 @@ class SnubaTagStorage(TagStorage):
             'issue': [group_id],
         }
 
-        conditions = [[[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
+        conditions = [[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]
 
         result = snuba.raw_query(start, end, selected_columns=['event_id'],
                                  conditions=conditions, orderby='-timestamp', filter_keys=filters,
