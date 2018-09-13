@@ -7,6 +7,7 @@ from sentry.relay import config
 from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
+from sentry.loader.browsersdkversion import get_browser_sdk_version
 
 
 CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000'
@@ -24,7 +25,14 @@ class JavaScriptSdkLoader(BaseView):
         except ProjectKey.DoesNotExist:
             raise Http404
 
-        sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
+        sdk_version = get_browser_sdk_version(key)
+        try:
+            if '%s' in settings.JS_SDK_LOADER_DEFAULT_SDK_URL:
+                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version, )
+            else:
+                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
+        except TypeError:
+            sdk_url = ''  # It fails if it cannot inject the version in the string
 
         if not sdk_url:
             tmpl = 'sentry/js-sdk-loader-noop.js.tmpl'
@@ -43,6 +51,6 @@ class JavaScriptSdkLoader(BaseView):
 
         response['Cache-Control'] = CACHE_CONTROL
         response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
-            key.project_id, settings.JS_SDK_LOADER_SDK_VERSION)
+            key.project_id, sdk_version)
 
         return response

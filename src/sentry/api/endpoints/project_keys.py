@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.loader.browsersdkversion import get_highest_browser_sdk_version
 
 
 @scenario('ListClientKeys')
@@ -97,6 +98,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 label=result.get('name'),
                 public_key=result.get('public'),
                 secret_key=result.get('secret'),
+                data={'browserSdkVersion': get_highest_browser_sdk_version()}
             )
 
             self.create_audit_entry(

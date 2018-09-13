@@ -141,6 +141,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('unreleased-changes')
         if features.has('organizations:relay', obj, actor=user):
             feature_list.append('relay')
+        if features.has('organizations:js-loader', obj, actor=user):
+            feature_list.append('js-loader')
         if features.has('organizations:health', obj, actor=user):
             feature_list.append('health')
         if features.has('organizations:discover', obj, actor=user):
