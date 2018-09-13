@@ -12,6 +12,7 @@ import {t} from 'app/locale';
 
 import AbsoluteSelector from './absoluteSelector';
 import RelativeSelector from './relativeSelector';
+import CombinedSelector from './combinedSelector';
 
 const ALLOWED_RELATIVE_DATES = {
   '24h': t('Last 24 hours'),
@@ -92,20 +93,17 @@ class TimeRangeSelector extends React.Component {
       showRelative,
       onChange,
     } = this.props;
-    // Currently we will only show either absolute or relative selector, with "absolute" taking precedence
-    // Maybe an ideal selector would allow the user to choose between the two if both types of dates were allowed
-    const shouldShowAbsolute = showAbsolute || !showRelative;
-    const shouldShowRelative = !showAbsolute && showRelative;
 
-    const summary = shouldShowAbsolute
-      ? `${this.formatDate(start)} to ${this.formatDate(end)}`
-      : `${ALLOWED_RELATIVE_DATES[relative]}`;
+    const shouldShowAbsolute = showAbsolute && !showRelative;
+    const shouldShowRelative = !showAbsolute && showRelative;
+    const shouldShowBoth = showAbsolute && showRelative;
+
+    const summary = relative
+      ? `${ALLOWED_RELATIVE_DATES[relative]}`
+      : `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
-      <HeaderItem
-        className={className}
-        label={t('Time frame')}
-      >
+      <HeaderItem className={className} label={t('Time frame')}>
         <DropdownLink
           title={<DynamicWrapper value={<Title>{summary}</Title>} fixed="start to end" />}
           anchorRight={true}
@@ -125,7 +123,15 @@ class TimeRangeSelector extends React.Component {
                 value={relative}
               />
             )}
-
+            {shouldShowBoth && (
+              <CombinedSelector
+                choices={Object.entries(ALLOWED_RELATIVE_DATES)}
+                onChange={onChange}
+                relative={relative}
+                start={start}
+                end={end}
+              />
+            )}
             <div>
               <Button onClick={this.handleUpdate}>{t('Update')}</Button>
             </div>
