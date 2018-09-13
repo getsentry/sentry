@@ -304,10 +304,10 @@ class TagStorageTest(SnubaTestCase):
             self.proj1group1.id,
             self.proj1env1.id,
             {
-                'foo': 'bar',  # OR
-                'release': '200'
+                'foo': 'bar',  # AND
+                'sentry:release': '200'
             }
-        ) == {'event_id__in': set(["1" * 32, "2" * 32])}
+        ) == {'event_id__in': set(["2" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
