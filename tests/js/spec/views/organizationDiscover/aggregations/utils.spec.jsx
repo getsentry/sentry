@@ -23,6 +23,10 @@ const aggregationList = [
     internal: 'uniq(tags[server_name])',
     external: ['uniq', 'tags[server_name]', 'uniq_tags_server_name'],
   },
+  {
+    internal: 'uniq(tags[browser.name])',
+    external: ['uniq', 'tags[browser.name]', 'uniq_tags_browser_name'],
+  },
 ];
 
 describe('Aggregations', function() {
