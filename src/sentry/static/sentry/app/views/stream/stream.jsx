@@ -46,7 +46,6 @@ const Stream = createReactClass({
 
   propTypes: {
     environment: SentryTypes.Environment,
-    hasEnvironmentsFeature: PropTypes.bool,
     tags: PropTypes.object,
     tagsLoading: PropTypes.bool,
   },
@@ -287,22 +286,15 @@ const Stream = createReactClass({
         search => search.id === searchId
       );
       if (searchResult) {
-        // New behavior is that we'll no longer want to support environment in saved search
+        // New behavior is that we no longer support environment in saved search
         // We check if the query contains a valid environment and update the global setting if so
         // We'll always strip environment from the querystring whether valid or not
-        if (this.props.hasEnvironmentsFeature) {
-          const queryEnv = queryString.getQueryEnvironment(searchResult.query);
-          if (queryEnv) {
-            const env = EnvironmentStore.getByName(queryEnv);
-            setActiveEnvironment(env);
-          }
-          newState.query = queryString.getQueryStringWithoutEnvironment(
-            searchResult.query
-          );
-        } else {
-          // Old behavior, keep the environment in the querystring
-          newState.query = searchResult.query;
+        const queryEnv = queryString.getQueryEnvironment(searchResult.query);
+        if (queryEnv) {
+          const env = EnvironmentStore.getByName(queryEnv);
+          setActiveEnvironment(env);
         }
+        newState.query = queryString.getQueryStringWithoutEnvironment(searchResult.query);
 
         if (this.state.searchId && !props.params.searchId) {
           newState.isDefaultSearch = true;
@@ -495,15 +487,12 @@ const Stream = createReactClass({
       // We no longer want to support environments specified in the querystring
       // To keep this aligned with old behavior though we'll update the global environment
       // and remove it from the query if someone does provide it this way
-      if (this.props.hasEnvironmentsFeature) {
-        const queryEnvironment = queryString.getQueryEnvironment(query);
-        if (queryEnvironment !== null) {
-          const env = EnvironmentStore.getByName(queryEnvironment);
-          setActiveEnvironment(env);
-        }
-
-        query = queryString.getQueryStringWithoutEnvironment(query);
+      const queryEnvironment = queryString.getQueryEnvironment(query);
+      if (queryEnvironment !== null) {
+        const env = EnvironmentStore.getByName(queryEnvironment);
+        setActiveEnvironment(env);
       }
+      query = queryString.getQueryStringWithoutEnvironment(query);
 
       this.setState(
         {
