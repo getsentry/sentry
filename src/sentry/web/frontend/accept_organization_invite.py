@@ -145,7 +145,7 @@ class AcceptOrganizationInviteView(BaseView):
                     (organization.name.encode('utf-8'), )
                 )
 
-                member_joined.send(member=om, sender=self)
+                member_joined.send_robust(member=om, organization=organization, sender=self)
 
             request.session.pop('can_register', None)
             response = self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
