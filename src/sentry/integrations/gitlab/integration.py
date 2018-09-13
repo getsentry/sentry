@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from time import time
 
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
@@ -8,6 +7,7 @@ from django import forms
 from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -129,7 +129,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
         method should be late bound into the pipeline vies.
         """
         identity_pipeline_config = dict(
-            oauth_scopes=(),
+            oauth_scopes=(
+                'api',
+                'sudo',
+            ),
             redirect_url=absolute_uri('/extensions/gitlab/setup/'),
             verify_ssl=False,
             **self.pipeline.fetch_state('oauth_config_information')
@@ -145,28 +148,21 @@ class GitlabIntegrationProvider(IntegrationProvider):
     def get_oauth_data(self, payload):
         data = {'access_token': payload['access_token']}
 
-        if 'expires_in' in payload:
-            data['expires'] = int(time()) + int(payload['expires_in'])
+        # https://docs.gitlab.com/ee/api/oauth2.html#2-requesting-access-token
+        # doesn't seem to be correct, format we actually get:
+        # {
+        #   "access_token": "123432sfh29uhs29347",
+        #   "token_type": "bearer",
+        #   "refresh_token": "29f43sdfsk22fsj929",
+        #   "created_at": 1536798907,
+        #   "scope": "api sudo"
+        # }
         if 'refresh_token' in payload:
             data['refresh_token'] = payload['refresh_token']
         if 'token_type' in payload:
             data['token_type'] = payload['token_type']
 
         return data
-
-    def get_user_info(self, access_token, installation_data):
-        session = http.build_session()
-        resp = session.get(
-            u'https://{}/api/v4/user'.format(installation_data['url']),
-            headers={
-                'Accept': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            },
-            verify=False
-        )
-
-        resp.raise_for_status()
-        return resp.json()
 
     def get_group_info(self, access_token, installation_data):
         session = http.build_session()
@@ -189,7 +185,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         data = state['identity']['data']
         oauth_data = self.get_oauth_data(data)
-        user = self.get_user_info(data['access_token'], state['installation_data'])
+        user = get_user_info(data['access_token'], state['installation_data'])
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
@@ -204,7 +200,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
             'user_identity': {
                 'type': 'gitlab',
-                'external_id': user['id'],
+                'external_id': u'{}:{}'.format(base_url, user['id']),
                 'scopes': scopes,
                 'data': oauth_data,
             },
