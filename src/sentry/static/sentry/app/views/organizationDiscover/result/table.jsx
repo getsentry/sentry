@@ -152,7 +152,10 @@ export default class ResultTable extends React.Component {
     }
     const context = this.canvas.getContext('2d');
     context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
-    return Math.ceil(context.measureText(text).width);
+
+    // The measureText function sometimes slightly miscalculates text width.
+    // Add 1px to compensate since we want to avoid rows breaking unnecessarily.
+    return Math.ceil(context.measureText(text).width) + 1;
   };
 
   renderTable() {
