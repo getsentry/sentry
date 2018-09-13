@@ -109,7 +109,7 @@ class OrganizationHealthErrors extends React.Component {
                   widths={[null, 60, 60, 60, 60]}
                   showColumnTotal
                   shadeRowPercentage
-                  renderDataCell={({value}) => <Count value={value * 220} />}
+                  renderDataCell={({value}) => <Count value={value} />}
                 />
               );
             }}
