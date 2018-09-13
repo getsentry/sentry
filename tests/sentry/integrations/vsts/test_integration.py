@@ -9,12 +9,24 @@ from sentry.models import (
     Project
 )
 from sentry.plugins import plugins
-from tests.sentry.plugins.testutils import VstsPlugin  # NOQA
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins,
+    unregister_mock_plugins,
+    VstsPlugin,
+)
 from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
 
 
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
+
+    def setUp(self):
+        super(VstsIntegrationProviderTest, self).setUp()
+        register_mock_plugins()
+
+    def tearDown(self):
+        unregister_mock_plugins()
+        super(VstsIntegrationProviderTest, self).tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()
@@ -65,9 +77,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         self.project = Project.objects.create(
             organization_id=self.organization.id,
         )
-
-        self.plugin = plugins.get('vsts')
-        self.plugin.enable(self.project)
+        VstsPlugin().enable(project=self.project)
 
     def test_disabled_plugin_when_fully_migrated(self):
         self.setupPluginTest()

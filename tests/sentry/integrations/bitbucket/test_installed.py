@@ -7,7 +7,10 @@ from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import scopes, BitbucketIntegrationProvider
 from sentry.models import Integration, Repository, Project
 from sentry.plugins import plugins
-from tests.sentry.plugins.testutils import BitbucketPlugin  # NOQA
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins,
+    unregister_mock_plugins,
+)
 
 
 class BitbucketInstalledEndpointTest(APITestCase):
@@ -66,6 +69,12 @@ class BitbucketInstalledEndpointTest(APITestCase):
                 'bitbucket_client_id': self.client_key,
             }
         }
+
+        register_mock_plugins()
+
+    def tearDown(self):
+        unregister_mock_plugins()
+        super(BitbucketInstalledEndpointTest, self).tearDown()
 
     def test_default_permissions(self):
         # Permissions must be empty so that it will be accessible to bitbucket.

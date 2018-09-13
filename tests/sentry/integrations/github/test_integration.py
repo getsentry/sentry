@@ -15,7 +15,10 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.testutils import IntegrationTestCase
-from tests.sentry.plugins.testutils import GitHubPlugin  # NOQA
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins,
+    unregister_mock_plugins,
+)
 
 
 class GitHubIntegrationTest(IntegrationTestCase):
@@ -31,6 +34,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.expires_at = '3000-01-01T00:00:00Z'
 
         self._stub_github()
+        register_mock_plugins()
+
+    def tearDown(self):
+        unregister_mock_plugins()
+        super(GitHubIntegrationTest, self).tearDown()
 
     def _stub_github(self):
         responses.reset()

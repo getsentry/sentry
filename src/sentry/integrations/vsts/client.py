@@ -45,7 +45,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         if 'access_token' not in self.identity.data:
             raise ValueError('Vsts Identity missing access token')
 
-    def request(self, method, path, data=None, params=None, api_preview=False):
+    def request(self, method, path, data=None, params=None, api_preview=False, timeout=None):
         self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
             'Accept': u'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
@@ -54,7 +54,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             'X-TFS-FedAuthRedirect': 'Suppress',
             'Authorization': u'Bearer {}'.format(self.identity.data['access_token'])
         }
-        return self._request(method, path, headers=headers, data=data, params=params)
+        return self._request(method, path, headers=headers, data=data,
+                             params=params, timeout=timeout)
 
     def create_work_item(self, instance, project, title=None,
                          description=None, comment=None, link=None):
@@ -180,6 +181,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 instance=instance,
                 project=u'{}/'.format(project) if project else '',
             ),
+            timeout=5,
         )
 
     def get_commits(self, instance, repo_id, commit, limit=100):

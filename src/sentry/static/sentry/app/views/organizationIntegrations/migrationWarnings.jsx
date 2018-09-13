@@ -20,6 +20,11 @@ export default class MigrationWarnings extends React.Component {
 
       const provider = this.props.providers.find(p => p.key === key);
 
+      // The Org might not have access to this Integration yet.
+      if (!provider) {
+        return '';
+      }
+
       return (
         <AddIntegration
           key={provider.key}
