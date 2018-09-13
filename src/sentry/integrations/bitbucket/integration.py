@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
-from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.integrations.exceptions import ApiError
 from sentry.models import Repository
+from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 
 from .repository import BitbucketRepositoryProvider
@@ -74,6 +75,14 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             'name': i['full_name']
         } for i in resp.get('values', [])]
 
+    def has_repo_access(self, repo):
+        client = self.get_client()
+        try:
+            client.get_hooks(repo.config['name'])
+        except ApiError:
+            return False
+        return True
+
     def get_unmigratable_repositories(self):
         repos = Repository.objects.filter(
             organization_id=self.organization_id,
@@ -114,22 +123,17 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         return [identity_pipeline_view, VerifyInstallation()]
 
     def post_install(self, integration, organization):
-        repos = Repository.objects.filter(
+        repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider='bitbucket',
-        )
+        ).values_list('id', flat=True)
 
-        unmigrateable_repos = self \
-            .get_installation(integration, organization.id) \
-            .get_unmigratable_repositories()
-
-        for repo in filter(lambda r: r not in unmigrateable_repos, repos):
-            repo.update(
-                integration_id=integration.id,
-                provider='integrations:bitbucket',
-            )
-
-        PluginMigrator(integration, organization).call()
+        for repo_id in repo_ids:
+            migrate_repo.apply_async(kwargs={
+                'repo_id': repo_id,
+                'integration_id': integration.id,
+                'organization_id': organization.id,
+            })
 
     def build_integration(self, state):
         if state.get('publicKey'):

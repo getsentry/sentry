@@ -102,6 +102,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             url='https://bitbucket.org/sentryuser/repo',
             provider='bitbucket',
             external_id='123456',
+            config={'name': 'sentryuser/repo'},
         )
 
         inaccessible_repo = Repository.objects.create(
@@ -110,6 +111,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             url='https://bitbucket.org/otheruser/otherrepo',
             provider='bitbucket',
             external_id='654321',
+            config={'name': 'otheruser/otherrepo'},
         )
 
         self.client.post(
@@ -124,26 +126,31 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            u'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
+            u'https://api.bitbucket.org/2.0/repositories/{}/hooks'.format(accessible_repo.name),
             json={
                 'values': [{
-                    'full_name': 'sentryuser/repo',
+                    'description': 'sentry-bitbucket-repo-hook',
                 }],
             },
         )
 
-        BitbucketIntegrationProvider().post_install(
-            integration,
-            self.organization,
-        )
+        with self.tasks():
+            BitbucketIntegrationProvider().post_install(
+                integration,
+                self.organization,
+            )
 
-        assert Repository.objects.get(
-            id=accessible_repo.id
-        ).integration_id == integration.id
+            assert Repository.objects.get(
+                id=accessible_repo.id
+            ).integration_id == integration.id
 
-        assert Repository.objects.get(
-            id=inaccessible_repo.id
-        ).integration_id is None
+            assert Repository.objects.get(
+                id=accessible_repo.id
+            ).provider == 'integrations:bitbucket'
+
+            assert Repository.objects.get(
+                id=inaccessible_repo.id
+            ).integration_id is None
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
@@ -161,6 +168,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             url='https://bitbucket.org/sentryuser/repo',
             provider='bitbucket',
             external_id='123456',
+            config={'name': 'sentryuser/repo'},
         )
 
         self.client.post(
@@ -175,22 +183,23 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            u'https://api.bitbucket.org/2.0/repositories/{}'.format(self.username),
+            u'https://api.bitbucket.org/2.0/repositories/sentryuser/repo/hooks',
             json={
                 'values': [{
-                    'full_name': 'sentryuser/repo',
+                    'description': 'sentry-bitbucket-repo-hook',
                 }],
             },
         )
 
         assert 'bitbucket' in [p.slug for p in plugins.for_project(project)]
 
-        BitbucketIntegrationProvider().post_install(
-            integration,
-            self.organization,
-        )
+        with self.tasks():
+            BitbucketIntegrationProvider().post_install(
+                integration,
+                self.organization,
+            )
 
-        assert 'bitbucket' not in [p.slug for p in plugins.for_project(project)]
+            assert 'bitbucket' not in [p.slug for p in plugins.for_project(project)]
 
     def test_installed_without_public_key(self):
         integration = Integration.objects.get_or_create(
