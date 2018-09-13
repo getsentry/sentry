@@ -3,14 +3,11 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import ApiMixin from 'app/mixins/apiMixin';
-import DropdownLink from 'app/components/dropdownLink';
-import {setActiveEnvironment} from 'app/actionCreators/environments';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupState from 'app/mixins/groupState';
 import GroupReleaseChart from 'app/components/group/releaseChart';
-import MenuItem from 'app/components/menuItem';
 import SeenInfo from 'app/components/group/seenInfo';
 import {t} from 'app/locale';
 
@@ -38,9 +35,6 @@ const GroupReleaseStats = createReactClass({
     return {
       envList,
       environment: LatestContextStore.getInitialState().environment,
-      hasEnvironmentsFeature: new Set(this.context.organization.features).has(
-        'environments'
-      ),
     };
   },
 
@@ -57,12 +51,9 @@ const GroupReleaseStats = createReactClass({
 
   render() {
     let {group, allEnvironments} = this.props;
-    let {environment, hasEnvironmentsFeature} = this.state;
-
-    let envList = this.state.envList || [];
+    let {environment} = this.state;
 
     let envName = environment ? environment.displayName : t('All Environments');
-
     let projectId = this.getProject().slug;
     let orgId = this.getOrganization().slug;
     let hasRelease = this.getProjectFeatures().has('releases');
@@ -71,31 +62,7 @@ const GroupReleaseStats = createReactClass({
     return (
       <div className="env-stats">
         <h6>
-          <span>
-            {hasEnvironmentsFeature ? (
-              envName
-            ) : (
-              <DropdownLink title={envName}>
-                <MenuItem
-                  isActive={environment === null}
-                  onClick={() => setActiveEnvironment(null)}
-                >
-                  {t('All Environments')}
-                </MenuItem>
-                {envList.map(env => {
-                  return (
-                    <MenuItem
-                      key={env.name}
-                      isActive={env.name === envName}
-                      onClick={() => setActiveEnvironment(env)}
-                    >
-                      {env.displayName}
-                    </MenuItem>
-                  );
-                })}
-              </DropdownLink>
-            )}
-          </span>
+          <span>{envName}</span>
         </h6>
         <div className="env-content">
           {isLoading ? (
