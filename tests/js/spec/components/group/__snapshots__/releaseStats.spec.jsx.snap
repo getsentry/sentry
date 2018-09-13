@@ -80,66 +80,7 @@ exports[`GroupReleaseStats renders 1`] = `
   >
     <h6>
       <span>
-        <DropdownLink
-          alwaysRenderMenu={true}
-          anchorRight={false}
-          caret={true}
-          disabled={false}
-          title="All Environments"
-        >
-          <DropdownMenu
-            alwaysRenderMenu={true}
-            keepMenuOpen={false}
-          >
-            <span
-              className="dropdown"
-            >
-              <a
-                className="dropdown-actor dropdown-toggle"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <div
-                  className="dropdown-actor-title"
-                >
-                  <span>
-                    All Environments
-                  </span>
-                  <i
-                    className="icon-arrow-down"
-                  />
-                </div>
-              </a>
-              <ul
-                className="dropdown-menu"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <MenuItem
-                  isActive={true}
-                  onClick={[Function]}
-                >
-                  <li
-                    className="active"
-                    href={null}
-                    onClick={[Function]}
-                    role="presentation"
-                    title={null}
-                  >
-                    <a
-                      onClick={[Function]}
-                      tabIndex="-1"
-                    >
-                      All Environments
-                    </a>
-                  </li>
-                </MenuItem>
-              </ul>
-            </span>
-          </DropdownMenu>
-        </DropdownLink>
+        All Environments
       </span>
     </h6>
     <div
