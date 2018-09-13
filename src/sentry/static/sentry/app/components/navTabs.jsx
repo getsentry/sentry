@@ -1,14 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classnames from 'classnames';
 
 function NavTabs(props) {
-  let {children, underlined, ...tabProps} = props;
-  let className = 'nav nav-tabs' + (underlined ? ' border-bottom' : '');
-  return (
-    <ul className={className} {...tabProps}>
-      {children}
-    </ul>
-  );
+  let {underlined, ...tabProps} = props;
+  let className = classnames('nav nav-tabs', {'border-bottom': underlined});
+  return <ul className={className} {...tabProps} />;
 }
 
 NavTabs.propTypes = {
