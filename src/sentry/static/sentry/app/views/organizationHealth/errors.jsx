@@ -109,6 +109,7 @@ class OrganizationHealthErrors extends React.Component {
                   widths={[null, 60, 60, 60, 60]}
                   showColumnTotal
                   shadeRowPercentage
+                  renderDataCell={({value}) => <Count value={value * 220} />}
                 />
               );
             }}
@@ -125,7 +126,7 @@ class OrganizationHealthErrors extends React.Component {
                   title={t('Releases')}
                   series={timeseriesData}
                 >
-                  {props => <AreaChart {...props} />}
+                  {props => <AreaChart isGroupedByDate {...props} />}
                 </HealthPanelChart>
               );
             }}
@@ -142,7 +143,7 @@ class OrganizationHealthErrors extends React.Component {
                   title={t('Releases')}
                   series={timeseriesData}
                 >
-                  {props => <PercentageBarChart {...props} />}
+                  {props => <PercentageBarChart isGroupedByDate {...props} />}
                 </HealthPanelChart>
               );
             }}
@@ -163,7 +164,7 @@ class OrganizationHealthErrors extends React.Component {
                   title={t('Releases')}
                   series={timeseriesData}
                 >
-                  {props => <PercentageBarChart {...props} />}
+                  {props => <PercentageBarChart isGroupedByDate {...props} />}
                 </HealthPanelChart>
               );
             }}
