@@ -92,7 +92,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         try:
             # since we don't actually use webhooks for vsts commits,
             # just verify repo access
-            client.get_repo(self.instance, repo.config['name'])
+            client.get_repo(self.instance, repo.config['name'], project=repo.config['project'])
         except ApiError:
             return False
         return True

@@ -52,7 +52,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             ),
             provider='visualstudio',
             external_id=self.repo_id,
-            config={'name': self.project_a['name']}
+            config={'name': self.project_a['name'], 'project': self.project_a['name']}
         )
 
         inaccessible_repo = Repository.objects.create(
@@ -61,7 +61,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             url='https://randoaccount.visualstudio.com/Product/_git/NotReachable',
             provider='visualstudio',
             external_id='123456789',
-            config={'name': 'NotReachable'}
+            config={'name': 'NotReachable', 'project': 'NotReachable'}
         )
 
         with self.tasks():
@@ -94,7 +94,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             ),
             provider='visualstudio',
             external_id=self.repo_id,
-            config={'name': self.project_a['name']}
+            config={'name': self.project_a['name'], 'project': self.project_a['name']}
         )
 
         # Enabled before Integration installation
