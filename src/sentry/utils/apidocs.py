@@ -145,7 +145,6 @@ def parse_params(params):
         field_value = field_values.item(i)
         if field_value:
             value = get_node_text(field_value.childNodes)
-        field_type = 'param'
         if name.startswith('pparam'):
             field_type = 'path'
             name = name[7:]
@@ -155,6 +154,9 @@ def parse_params(params):
         elif name.startswith('auth'):
             field_type = 'auth'
             name = ''
+        else:
+            field_type = 'param'
+            _, name = name.split(' ', 1)
 
         # Split out the parameter type
         param_type = ''
