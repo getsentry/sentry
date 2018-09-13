@@ -36,36 +36,37 @@ class GitlabIntegration(Integration):
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
-        label="Installation Url",
-        help_text=_('The "base URL" for your github enterprise instance, '
+        label=_("Installation Url"),
+        help_text=_('The "base URL" for your gitlab instance, '
                     'includes the host and protocol.'),
         widget=forms.TextInput(
-            attrs={'placeholder': _('https://github.example.com')}
+            attrs={'placeholder': 'https://github.example.com'}
         ),
     )
     name = forms.CharField(
-        label="Gitlab App Name",
-        help_text=_('The GitHub App name of your Sentry app. '
+        label=_("Gitlab App Name"),
+        help_text=_('The name of your OAuth Application in Gitlab. '
                     'This can be found on the apps configuration '
-                    'page.'),
+                    'page. (/profile/applications)'),
         widget=forms.TextInput(
-            attrs={'placeholder': _('our-sentry-app')}
+            attrs={'placeholder': _('Sentry App')}
         )
     )
     group = forms.CharField(
-        label="Gitlab Group Name",
+        label=_("Gitlab Group Name"),
         widget=forms.TextInput(
             attrs={'placeholder': _('my-awesome-group')}
         )
     )
     client_id = forms.CharField(
-        label="Gitlab OAuth Client ID",
+        label=_("Gitlab Application ID"),
         widget=forms.TextInput(
-            attrs={'placeholder': _('1')}
+            attrs={'placeholder': _(
+                '5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737')}
         )
     )
     client_secret = forms.CharField(
-        label="Gitlab OAuth Client Secret",
+        label=_("Gitlab Application Secret"),
         widget=forms.TextInput(
             attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
         )
