@@ -30,6 +30,6 @@ describe('ResultTable', function() {
       query: {fields: ['col1'], aggregations: []},
     });
     const widths = wrapper.instance().getColumnWidths(500);
-    expect(widths).toEqual([340, 40, 118]);
+    expect(widths).toEqual([341, 40, 117]);
   });
 });
