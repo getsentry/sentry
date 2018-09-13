@@ -83,12 +83,8 @@ const ProjectSettings = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let access = this.getAccess();
-    let features = this.getFeatures();
     let {orgId, projectId} = this.props.params;
-    let hasNewSettings = features.has('new-settings');
-    let pathPrefix = hasNewSettings
-      ? `/settings/${orgId}/${projectId}`
-      : `/${orgId}/${projectId}/settings`;
+    let pathPrefix = `/settings/${orgId}/${projectId}`;
     let settingsUrlRoot = pathPrefix;
     let project = this.state.project;
     let rootInstallPath = `${pathPrefix}/install/`;
