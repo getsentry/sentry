@@ -122,11 +122,7 @@ class NoDeploys extends React.Component {
     return (
       <DeployBox p={2}>
         <Background align="center" justify="center">
-          <Button
-            size="xsmall"
-            href="https://blog.sentry.io/2017/05/09/release-deploys"
-            external={true}
-          >
+          <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
             {t('Track deploys')}
           </Button>
         </Background>
