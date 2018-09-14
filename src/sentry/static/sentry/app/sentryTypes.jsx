@@ -306,20 +306,27 @@ export const ProjectKey = PropTypes.shape({
   cdnSdkUrl: PropTypes.string,
 });
 
+export const EChartsData = PropTypes.arrayOf(
+  PropTypes.oneOfType([
+    // `PercentageBarChart` has a fixed dataset of 0, 25, 50, 100
+    PropTypes.number,
+
+    // e.g. ['Category', 123, 123, 123]
+    PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])),
+
+    // e.g. PieCharts
+    PropTypes.shape({
+      name: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    }),
+  ])
+);
+
 export const EChartsSeriesUnit = PropTypes.shape({
   type: PropTypes.oneOf(['line', 'bar', 'pie']),
   showSymbol: PropTypes.bool,
   name: PropTypes.string,
-  data: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])),
-      // e.g. PieCharts
-      PropTypes.shape({
-        name: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-        value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-      }),
-    ])
-  ),
+  data: EChartsData,
 });
 
 export const EChartsSeries = PropTypes.arrayOf(EChartsSeriesUnit);
@@ -463,15 +470,7 @@ export const EChartsAxis = PropTypes.shape({
   // color: 'red'
   // }
   // }, 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  data: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
-      PropTypes.shape({
-        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-        value: PropTypes.number,
-      }),
-    ])
-  ),
+  data: EChartsData,
 
   // axisPointer settings on the axis.
   axisPointer: PropTypes.object,

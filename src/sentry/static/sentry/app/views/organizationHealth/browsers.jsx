@@ -1,24 +1,31 @@
 import {Flex} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
+import OrganizationHealthDetails from 'app/views/organizationHealth/details';
 import PieChart from 'app/components/charts/pieChart';
 
+import DetailContainer from './detailContainer';
 import EventsTableChart from './eventsTableChart';
-import Header from './styles/header';
 import HealthPanelChart from './styles/healthPanelChart';
 import HealthRequest from './util/healthRequest';
-import withHealth from './util/withHealth';
 
-class OrganizationHealthBrowsers extends React.Component {
+class OrganizationHealthBrowsersOverview extends React.Component {
+  static propTypes = {
+    tag: PropTypes.string,
+    title: PropTypes.string,
+    onSetSpecifier: PropTypes.func,
+  };
+
   render() {
+    const {tag, title, onSetSpecifier} = this.props;
+
     return (
       <React.Fragment>
-        <Header>{t('Browsers')}</Header>
-
         <Flex>
           <HealthRequest
-            tag="browser.name"
+            tag={tag}
             showLoading
             includeTimeseries={false}
             includeTop
@@ -31,11 +38,11 @@ class OrganizationHealthBrowsers extends React.Component {
                   height={200}
                   series={[
                     {
-                      seriesName: t('Browsers'),
+                      seriesName: title,
                       data: tagData.map(([name, value]) => ({name, value})),
                     },
                   ]}
-                  title={t('Browsers')}
+                  title={title}
                 >
                   {({series}) => <PieChart height={300} series={series} selectOnRender />}
                 </HealthPanelChart>
@@ -54,6 +61,7 @@ class OrganizationHealthBrowsers extends React.Component {
             {({tagData}) => {
               return (
                 <HealthPanelChart
+                  showLegend={false}
                   height={200}
                   series={[
                     {
@@ -72,7 +80,7 @@ class OrganizationHealthBrowsers extends React.Component {
 
         <Flex>
           <HealthRequest
-            tag="browser.name"
+            tag={tag}
             showLoading
             includeTimeseries={false}
             includeTop
@@ -82,8 +90,9 @@ class OrganizationHealthBrowsers extends React.Component {
             {({tagDataWithPercentages}) => {
               return (
                 <EventsTableChart
-                  headers={[t('Browser'), t('Events'), t('Percentage'), t('Last event')]}
+                  headers={[title, t('Events'), t('Percentage'), t('Last event')]}
                   data={tagDataWithPercentages}
+                  onRowClick={onSetSpecifier}
                 />
               );
             }}
@@ -93,6 +102,29 @@ class OrganizationHealthBrowsers extends React.Component {
     );
   }
 }
+class OrganizationHealthBrowsers extends React.Component {
+  render() {
+    const title = t('Browsers');
 
-export default withHealth(OrganizationHealthBrowsers);
+    return (
+      <DetailContainer title={title}>
+        {({shouldShowDetails, setSpecifier}) => (
+          <React.Fragment>
+            {shouldShowDetails ? (
+              <OrganizationHealthDetails title={title} />
+            ) : (
+              <OrganizationHealthBrowsersOverview
+                tag="browser.name"
+                title={title}
+                onSetSpecifier={setSpecifier}
+              />
+            )}
+          </React.Fragment>
+        )}
+      </DetailContainer>
+    );
+  }
+}
+
+export default OrganizationHealthBrowsers;
 export {OrganizationHealthBrowsers};
