@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import Tag from 'app/views/settings/components/tag';
 
-storiesOf('Tags', module)
+storiesOf('UI|Tags', module)
   .add(
     'default',
     withInfo('A basic tag-like thing. If you pass no type, it will be gray')(() => (

@@ -4,8 +4,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import TextOverflow from 'app/components/textOverflow';
 
-storiesOf('TextOverflow', module).add(
-  'default',
+storiesOf('Style|Text', module).add(
+  'TextOverflow',
   withInfo(
     'Simple component that adds "text-overflow: ellipsis" and "overflow: hidden", still depends on container styles'
   )(() => (

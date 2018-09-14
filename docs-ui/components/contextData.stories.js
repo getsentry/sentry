@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import ContextData from 'app/components/contextData';
 
-storiesOf('ContextData', module).add(
+storiesOf('UI|ContextData', module).add(
   'strings',
   withInfo('Default')(() => <ContextData data="https://example.org/foo/bar/" />)
 );

@@ -16,7 +16,7 @@ const Section = styled('div')`
 `;
 
 // eslint-disable-next-line
-storiesOf('Buttons', module)
+storiesOf('UI|Buttons', module)
   .add(
     'overview',
     withInfo({

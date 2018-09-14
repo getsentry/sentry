@@ -5,8 +5,8 @@ import {number, text, boolean, array} from '@storybook/addon-knobs';
 
 import TableChart from 'app/components/charts/tableChart';
 
-storiesOf('Charts/TableChart', module).add(
-  'default',
+storiesOf('Charts|TableChart', module).add(
+  'TableChart',
   withInfo(
     'A simple table that can calculate totals and relative share as a bar inside of a row'
   )(() => {

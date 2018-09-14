@@ -19,7 +19,7 @@ const Header = styled('h2')`
 `;
 Header.displayName = 'Header';
 
-storiesOf('IdBadge', module).add(
+storiesOf('UI|IdBadge', module).add(
   'all',
   withInfo({
     text:

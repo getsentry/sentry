@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import SimilarSpectrum from 'app/components/similarSpectrum';
 
-storiesOf('SimilarSpectrum', module).add(
-  'default',
-  withInfo('Description')(() => <SimilarSpectrum />)
+storiesOf('Other|SimilarSpectrum', module).add(
+  'SimilarSpectrum',
+  withInfo('Similar Spectrum used in Similar Issues')(() => <SimilarSpectrum />)
 );

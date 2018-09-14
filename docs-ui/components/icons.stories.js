@@ -6,7 +6,7 @@ import {Flex} from 'grid-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 
-storiesOf('Icons', module).add(
+storiesOf('Style|Icons', module).add(
   'SVG',
   withInfo('All SVG icons, to be used with `InlineSvg`')(() => {
     const context = require.context('app/icons', true, /\.svg/);

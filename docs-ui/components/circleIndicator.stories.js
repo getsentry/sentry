@@ -5,7 +5,7 @@ import {number, boolean} from '@storybook/addon-knobs';
 
 import CircleIndicator from 'app/components/circleIndicator';
 
-storiesOf('CircleIndicator', module).add(
+storiesOf('UI|CircleIndicator', module).add(
   'default',
   withInfo('Description')(() => {
     let enabled = boolean('Enabled', true);

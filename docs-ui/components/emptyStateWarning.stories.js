@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
-storiesOf('EmptyStateWarning', module).add(
+storiesOf('UI|EmptyStateWarning', module).add(
   'default',
   withInfo('Default')(() => (
     <EmptyStateWarning data="https://example.org/foo/bar/">

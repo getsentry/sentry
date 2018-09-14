@@ -6,7 +6,7 @@ import Button from 'app/components/button';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 
-storiesOf('New Settings/Panel', module)
+storiesOf('UI|Panels', module)
   .add(
     'Basic Panel',
     withInfo({
@@ -25,7 +25,7 @@ storiesOf('New Settings/Panel', module)
     ))
   )
   .add(
-    'Field',
+    'With Fields',
     withInfo({
       text: 'Non-connected form field item',
       propTablesExclude: [Panel, PanelBody, PanelItem],
