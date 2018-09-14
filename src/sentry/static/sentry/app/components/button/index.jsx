@@ -229,7 +229,30 @@ const StyledButton = styled(({busy, external, borderless, ...props}) => {
   padding: 0;
   text-transform: none;
 
+  ${getFontWeight};
+  font-size: ${getFontSize};
+  ${getColors};
+  ${getBoxShadow(false)};
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${p => (p.busy || p.disabled) && '0.65'};
+  ${p => p.borderless && 'border-color: transparent'};
+
+  &:active {
+    ${getBoxShadow(true)};
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  /* stylelint-disable-next-line no-duplicate-selectors,no-descending-specificity */
   ${ButtonGroup} & {
+    margin-left: -1px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+
     &:last-child:not(:first-child) {
       border-bottom-left-radius: 0;
       border-top-left-radius: 0;
@@ -240,30 +263,10 @@ const StyledButton = styled(({busy, external, borderless, ...props}) => {
       border-top-right-radius: 0;
     }
 
-    & {
-      margin-left: -1px;
-    }
-
-    &:first-child {
-      margin-left: 0;
+    &:not(:first-child):not(:last-child):not(.dropdown-toggle) {
+      border-radius: 0;
     }
   }
-
-  ${getFontWeight};
-  font-size: ${getFontSize};
-  ${getColors};
-  ${getBoxShadow(false)};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${p => (p.busy || p.disabled) && '0.65'};
-
-  &:active {
-    ${getBoxShadow(true)};
-  }
-  &:focus {
-    outline: none;
-  }
-
-  ${p => p.borderless && 'border-color: transparent'};
 `;
 
 /**
