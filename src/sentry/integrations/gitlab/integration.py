@@ -210,7 +210,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
             'user_identity': {
                 'type': 'gitlab',
-                'external_id': u'{}:{}'.format(base_url, user['id']),
+                'external_id': user['id'],
                 'scopes': scopes,
                 'data': oauth_data,
             },
