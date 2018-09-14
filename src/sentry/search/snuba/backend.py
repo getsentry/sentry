@@ -377,6 +377,7 @@ def snuba_search(project_id, environment_id, tags, start, end,
         orderby='-' + sort,
         referrer='search',
     )
+    metrics.timing('snuba.search.num_result_hashes', len(snuba_results.keys()))
 
     # {hash -> group_id, ...}
     if candidate_hashes is not None:
