@@ -7,10 +7,10 @@ from .oauth2 import *  # NOQA
 from .slack import *  # NOQA
 from .github import *  # NOQA
 from .github_enterprise import *  # NOQA
-from .gitlab import *  # NOQA
 from .vsts import *  # NOQA
 from .vsts_extension import *  # NOQA
 from .bitbucket import *  # NOQA
+from .gitlab import *  # NOQA
 
 
 default_manager = IdentityManager()
