@@ -5,9 +5,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import BarChart from 'app/components/charts/barChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/BarChart', module).add(
-  'default',
+storiesOf('Charts|BarChart', module).add(
+  'BarChart',
   withInfo('Stacked Bar')(() => {
     return (
       <div>

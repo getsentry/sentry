@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import Clipboard from 'app/components/clipboard';
 
-storiesOf('Clipboard', module).add(
+storiesOf('UI|Clipboard', module).add(
   'default',
   withInfo('Copy text to clipboard')(() => (
     <div>

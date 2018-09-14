@@ -7,9 +7,8 @@ import AreaChart from 'app/components/charts/areaChart';
 import PanelChart from 'app/components/charts/panelChart';
 import PieChart from 'app/components/charts/pieChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/PanelChart', module).add(
-  'default',
+storiesOf('Charts|PanelChart', module).add(
+  'PanelChart',
   withInfo('PanelChart')(() => {
     const TOTAL = 6;
     const NOW = new Date().getTime();

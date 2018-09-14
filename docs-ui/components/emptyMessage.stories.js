@@ -6,7 +6,7 @@ import {withInfo} from '@storybook/addon-info';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-storiesOf('EmptyMessage', module)
+storiesOf('UI|EmptyMessage', module)
   .add(
     'default',
     withInfo('Super Generic')(() => (
