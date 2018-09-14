@@ -9,7 +9,7 @@ from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
-from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -28,7 +28,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(Integration):
+class GitlabIntegration(IntegrationInstallation):
 
     def get_client(self):
         pass
