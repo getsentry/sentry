@@ -770,7 +770,6 @@ SENTRY_FEATURES = {
     'organizations:github-apps': True,
     'organizations:invite-members': True,
     'organizations:require-2fa': False,
-    'organizations:environments': True,
     'organizations:internal-catchall': False,
     'organizations:new-issue-ui': True,
     'organizations:github-enterprise': True,
