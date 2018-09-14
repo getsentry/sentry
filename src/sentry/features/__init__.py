@@ -30,7 +30,6 @@ default_manager.add('organizations:integrations-issue-basic', OrganizationFeatur
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
-default_manager.add('organizations:environments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('organizations:js-loader', OrganizationFeature)  # NOQA
 default_manager.add('organizations:health', OrganizationFeature)  # NOQA
