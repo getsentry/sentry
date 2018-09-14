@@ -120,14 +120,13 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         else:
             external_issue.update(**defaults)
 
-        # try:
-        #     installation.after_link_issue(external_issue, data=request.DATA)
-        # except IntegrationFormError as exc:
-        #     return Response(exc.field_errors, status=400)
-        # except IntegrationError as exc:
-        #     return Response({'non_field_errors': [exc.message]}, status=400)
-        installation.store_issue_last_defaults(group.project_id, request.DATA)
-        installation.after_link_issue(external_issue, data=request.DATA)
+        try:
+            installation.store_issue_last_defaults(group.project_id, request.DATA)
+            installation.after_link_issue(external_issue, data=request.DATA)
+        except IntegrationFormError as exc:
+            return Response(exc.field_errors, status=400)
+        except IntegrationError as exc:
+            return Response({'non_field_errors': [exc.message]}, status=400)
 
         try:
             with transaction.atomic():
