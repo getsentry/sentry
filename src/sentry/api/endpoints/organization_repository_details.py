@@ -73,7 +73,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         updated = Repository.objects.filter(
             id=repo.id,
-            status=ObjectStatus.VISIBLE,
+            status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED],
         ).update(status=ObjectStatus.PENDING_DELETION)
         if updated:
             repo.status = ObjectStatus.PENDING_DELETION
