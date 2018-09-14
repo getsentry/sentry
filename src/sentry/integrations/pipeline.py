@@ -138,7 +138,7 @@ class IntegrationPipeline(Pipeline):
                         # The external_id is linked to a different user. If that user doesn't
                         # have a password, we don't delete the link as it may lock them out.
                         if not other_identity.user.has_usable_password():
-                            proper_name = 'GitHub' if idp.type == 'github' else 'VSTS'
+                            proper_name = 'GitHub' if idp.type == 'github' else 'Azure DevOps'
                             return self._dialog_response({
                                 'error': _(
                                     'The provided %s account is linked to a different user. '
