@@ -109,7 +109,7 @@ const Row = styled(function RowComponent({className, data, rowIndex, onClick, ch
     <div
       className={className}
       onClick={e =>
-        typeof onClick === 'function' && rowIndex > -1 && onClick(data[rowIndex], e)}
+        typeof onClick === 'function' && onClick(data[rowIndex], e)}
     >
       {children}
     </div>
