@@ -58,7 +58,7 @@ from .endpoints.organization_auth_provider_details import OrganizationAuthProvid
 from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
-from .endpoints.organization_discover import OrganizationDiscoverEndpoint
+from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -375,9 +375,9 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-details'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/discover/$',
-        OrganizationDiscoverEndpoint.as_view(),
-        name='sentry-api-0-organization-discover'
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/query/$',
+        OrganizationDiscoverQueryEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-query'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',
