@@ -76,6 +76,14 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
 
+  handleUpdateTime = ({relative, start, end}) => {
+    this.updateFields({
+      range: relative,
+      start,
+      end,
+    });
+  };
+
   runQuery = () => {
     const {queryBuilder, organization} = this.props;
 
@@ -319,9 +327,12 @@ export default class OrganizationDiscover extends React.Component {
               />
               <HeaderSeparator />
               <TimeRangeSelector
+                showAbsolute={true}
+                showRelative={true}
                 start={currentQuery.start}
                 end={currentQuery.end}
-                onChange={(name, val) => this.updateField(name, val)}
+                relative={currentQuery.range}
+                onChange={this.handleUpdateTime}
                 onUpdate={this.runQuery}
               />
             </ProjectAndTimeSelector>

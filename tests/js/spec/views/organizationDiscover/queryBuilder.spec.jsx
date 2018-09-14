@@ -46,8 +46,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [2],
-            start: '2017-07-19T02:41:20',
-            end: '2017-10-17T02:41:20',
+            range: '90d',
           }),
         })
       );
