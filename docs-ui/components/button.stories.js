@@ -173,8 +173,10 @@ storiesOf('UI|Buttons', module)
           </Section>
 
           <Section>
+            <h4>New `ButtonGroup`</h4>
             <ButtonGroup>
               <Button>Foo</Button>
+              <Button>Bar</Button>
               <DropdownLink caret isButton>
                 <div>hi</div>
               </DropdownLink>
@@ -182,6 +184,7 @@ storiesOf('UI|Buttons', module)
           </Section>
 
           <Section>
+            <h4>Using `btn-group` (deprecated)</h4>
             <div className="btn-group">
               <button className="btn btn-default">test</button>
               <button className="btn btn-default">test</button>
