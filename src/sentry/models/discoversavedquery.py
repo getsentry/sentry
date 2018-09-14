@@ -1,8 +1,22 @@
 from __future__ import absolute_import
 from django.db import models
+from jsonfield import JSONField
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, ArrayField, sane_repr
+    Model, FlexibleForeignKey, sane_repr
 )
+from django.utils import timezone
+
+
+class DiscoverSavedQueryProject(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey('sentry.Project')
+    discover_saved_query = FlexibleForeignKey('sentry.DiscoverSavedQuery')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_discoversavedqueryproject'
+        unique_together = (('project', 'discover_saved_query'), )
 
 
 class DiscoverSavedQuery(Model):
@@ -11,21 +25,23 @@ class DiscoverSavedQuery(Model):
     """
     __core__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
-    name = models.CharField(max_length=64)
-    project_ids = ArrayField(BoundedPositiveIntegerField())
-    fields = ArrayField(models.CharField())
-    conditions = ArrayField(ArrayField())
-    aggregations = ArrayField(ArrayField())
-    start = models.DateTimeField(null=True)
-    end = models.DateTimeField(null=True)
-    range = models.CharField(max_length=32, null=True)
-    order_by = models.CharField(max_length=256, null=True)
-    limit = BoundedPositiveIntegerField()
-    position = BoundedPositiveIntegerField()
+    projects = models.ManyToManyField('sentry.Project', through=DiscoverSavedQueryProject)
+    organization = FlexibleForeignKey('sentry.Organization')
+    query = JSONField()
+    date_created = models.DateTimeField(default=timezone.now)
+    date_updated = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_discoversavedquery'
 
     __repr__ = sane_repr('organization_id', 'name')
+
+    def add_projects(self, project_ids):
+        DiscoverSavedQueryProject.objects.bulk_create(
+            [
+                DiscoverSavedQueryProject(
+                    project_id=project_id, discover_saved_query=self)
+                for project_id in project_ids
+            ]
+        )
