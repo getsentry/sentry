@@ -3,10 +3,12 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
+import Button from 'app/components/button';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import IconOpen from 'app/icons/icon-open';
+import HeroIcon from 'app/components/heroIcon';
 import LastCommit from 'app/components/lastCommit';
 import IssueList from 'app/components/issueList';
 import CommitAuthorStats from 'app/components/commitAuthorStats';
@@ -20,6 +22,7 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import OrganizationState from 'app/mixins/organizationState';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import Well from 'app/components/well';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
@@ -284,17 +287,17 @@ const ReleaseOverview = createReactClass({
                 </ul>
               </div>
             ) : (
-              <div className="well blankslate m-t-2 m-b-2 p-x-2 p-t-1 p-b-2 align-center">
-                <span className="icon icon-git-commit" />
+              <Well centered>
+                <HeroIcon src="icon-commit" />
                 <h5>Releases are better with commit data!</h5>
                 <p>
                   Connect a repository to see commit info, files changed, and authors
                   involved in future releases.
                 </p>
-                <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
+                <Button priority="primary" href={`/organizations/${orgId}/repos/`}>
                   Connect a repository
-                </a>
-              </div>
+                </Button>
+              </Well>
             )}
             <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
             <ul className="nav nav-stacked">
