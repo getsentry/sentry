@@ -38,7 +38,6 @@ class ProjectHeader extends React.Component {
     let org = this.props.organization;
     let features = new Set(project.features);
     let access = new Set(org.access);
-    let orgFeatures = new Set(org.features);
     let allEnvironmentsLabel = t('All environments');
 
     let pagesWithEnvironments = new Set([
