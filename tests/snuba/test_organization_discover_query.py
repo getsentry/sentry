@@ -9,9 +9,9 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import SnubaTestCase
 
 
-class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
+class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationDiscoverTest, self).setUp()
+        super(OrganizationDiscoverQueryTest, self).setUp()
 
         one_second_ago = datetime.now() - timedelta(seconds=1)
 
@@ -64,7 +64,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -80,7 +80,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_relative_dates(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -95,7 +95,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_invalid_date_request(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -109,7 +109,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform'],
@@ -121,7 +121,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_boolean_condition(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'platform', 'exception_frames.in_app'],
@@ -138,7 +138,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_array_join(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'fields': ['message', 'exception_stacks.type'],
@@ -152,7 +152,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_array_condition_equals(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'conditions': [['exception_stacks.type', '=', 'ValidationError']],
@@ -166,7 +166,7 @@ class OrganizationDiscoverTest(APITestCase, SnubaTestCase):
 
     def test_array_condition_not_equals(self):
         with self.feature('organizations:discover'):
-            url = reverse('sentry-api-0-organization-discover', args=[self.org.slug])
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'conditions': [['exception_stacks.type', '!=', 'ValidationError']],

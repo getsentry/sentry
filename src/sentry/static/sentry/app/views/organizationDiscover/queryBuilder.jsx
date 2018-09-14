@@ -172,7 +172,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function fetch(data) {
     const api = new Client();
-    const endpoint = `/organizations/${organization.slug}/discover/`;
+    const endpoint = `/organizations/${organization.slug}/discover/query/`;
 
     data = data || getExternal();
 

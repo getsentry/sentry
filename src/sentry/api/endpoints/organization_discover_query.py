@@ -169,7 +169,7 @@ class DiscoverSerializer(serializers.Serializer):
         return set(requested_projects).issubset(set(member_project_list))
 
 
-class OrganizationDiscoverEndpoint(OrganizationEndpoint):
+class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDiscoverPermission, )
 
     def do_query(self, start, end, groupby, **kwargs):
