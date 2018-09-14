@@ -16,7 +16,6 @@ from mock import patch
 from sentry import tagstore
 from sentry.tagstore.models import GroupTagValue
 from sentry.app import tsdb
-from sentry.event_manager import ScoreClause
 from sentry.models import (
     Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease,
     Release, UserReport
@@ -115,7 +114,7 @@ class UnmergeTestCase(TestCase):
             'platform': 'java',
             'message': 'Hello from JavaScript',
             'level': logging.INFO,
-            'score': ScoreClause.calculate(3, now),
+            'score': Group.calculate_score(3, now),
             'logger': 'java',
             'times_seen': 3,
             'first_release': None,
@@ -138,7 +137,7 @@ class UnmergeTestCase(TestCase):
                 platform='javascript',
                 message='Hello from JavaScript',
                 level=logging.INFO,
-                score=ScoreClause.calculate(3, now),
+                score=Group.calculate_score(3, now),
                 logger='javascript',
                 times_seen=1,
                 first_release=None,
@@ -181,7 +180,7 @@ class UnmergeTestCase(TestCase):
             'active_at': now - timedelta(hours=2),
             'first_seen': now - timedelta(hours=2),
             'platform': 'java',
-            'score': ScoreClause.calculate(3, now),
+            'score': Group.calculate_score(3, now),
             'logger': 'java',
             'times_seen': 3,
             'first_release': None,

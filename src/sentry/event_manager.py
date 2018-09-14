@@ -7,7 +7,6 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
-import math
 import re
 import six
 
@@ -242,14 +241,14 @@ try:
 except ImportError:
     # XXX(dramer): compatibility hack for Django 1.6
     class ScoreClause(object):
-        def __init__(self, group, *args, **kwargs):
+        def __init__(self, group=None, *args, **kwargs):
             self.group = group
             super(ScoreClause, self).__init__(*args, **kwargs)
 
         def __int__(self):
             # Calculate the score manually when coercing to an int.
             # This is used within create_or_update and friends
-            return self.group.get_score()
+            return self.group.get_score() if self.group else 0
 
         def prepare_database_save(self, unused):
             return self
@@ -268,10 +267,6 @@ except ImportError:
                 sql = int(self)
 
             return (sql, [])
-
-        @classmethod
-        def calculate(cls, times_seen, last_seen):
-            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 else:
     # XXX(dramer): compatibility hack for Django 1.8+
     class ScoreClause(Func):
@@ -282,7 +277,7 @@ else:
         def __int__(self):
             # Calculate the score manually when coercing to an int.
             # This is used within create_or_update and friends
-            return self.group.get_score()
+            return self.group.get_score() if self.group else 0
 
         def as_sql(self, compiler, connection, function=None, template=None):
             engine = get_db_engine(getattr(connection, 'alias', 'default'))
@@ -295,10 +290,6 @@ else:
                 sql = int(self)
 
             return (sql, [])
-
-        @classmethod
-        def calculate(cls, times_seen, last_seen):
-            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
 class InvalidTimestamp(Exception):
@@ -1060,7 +1051,6 @@ class EventManager(object):
         # it should be resolved by the hash merging function later but this
         # should be better tested/reviewed
         if existing_group_id is None:
-            kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
             # it's possible the release was deleted between
             # when we queried for the release and now, so
             # make sure it still exists

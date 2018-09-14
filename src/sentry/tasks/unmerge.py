@@ -9,7 +9,7 @@ from sentry import tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import (
-    ScoreClause, generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
+    generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
 )
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group,
@@ -104,7 +104,7 @@ backfill_fields = {
         event.get_tag('sentry:release'),
     ) if event.get_tag('sentry:release') else data.get('first_release', None),
     'times_seen': lambda caches, data, event: data['times_seen'] + 1,
-    'score': lambda caches, data, event: ScoreClause.calculate(
+    'score': lambda caches, data, event: Group.calculate_score(
         data['times_seen'] + 1,
         data['last_seen'],
     ),

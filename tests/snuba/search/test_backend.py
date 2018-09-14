@@ -8,7 +8,6 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry import options
-from sentry.event_manager import ScoreClause
 from sentry.models import (
     Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
     Release, ReleaseEnvironment, ReleaseProjectEnvironment
@@ -36,10 +35,6 @@ class SnubaSearchTest(SnubaTestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=base_datetime,
             first_seen=base_datetime - timedelta(days=31),
-            score=ScoreClause.calculate(
-                times_seen=5,
-                last_seen=base_datetime,
-            ),
         )
 
         self.event1 = self.create_event(
@@ -79,10 +74,6 @@ class SnubaSearchTest(SnubaTestCase):
             status=GroupStatus.RESOLVED,
             last_seen=base_datetime - timedelta(days=30),
             first_seen=base_datetime - timedelta(days=30),
-            score=ScoreClause.calculate(
-                times_seen=10,
-                last_seen=base_datetime - timedelta(days=30),
-            ),
         )
 
         self.event2 = self.create_event(

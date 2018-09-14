@@ -8,6 +8,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize, GroupSerializer
 from sentry.models import Group, GroupStatus, Project
+from sentry.utils.db import get_db_engine
 
 
 class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
@@ -29,14 +30,19 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff
 
+        if get_db_engine('default') == 'sqlite':
+            sort_value = 'times_seen'
+        else:
+            sort_value = 'score'
+
         group_list = list(
             Group.objects.filter(
                 project__in=project_dict.keys(),
                 status=GroupStatus.UNRESOLVED,
                 active_at__gte=cutoff_dt,
             ).extra(
-                select={'sort_value': 'score'},
-            ).order_by('-score', '-first_seen')[:limit]
+                select={'sort_value': sort_value},
+            ).order_by('-{}'.format(sort_value), '-first_seen')[:limit]
         )
 
         for group in group_list:

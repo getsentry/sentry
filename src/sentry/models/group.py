@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
-import time
 import warnings
 
 from datetime import timedelta
@@ -221,6 +220,7 @@ class Group(Model):
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
+    # score will be incorrect in sqlite as it doesnt support the required functions
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.NullBooleanField(default=False, null=True)
@@ -254,6 +254,12 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
+        if self.times_seen is None:
+            self.times_seen = 1
+        self.score = type(self).calculate_score(
+            times_seen=self.times_seen,
+            last_seen=self.last_seen,
+        )
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -328,8 +334,7 @@ class Group(Model):
         )
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 +
-                   float(time.mktime(self.last_seen.timetuple())))
+        return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self):
         from sentry.models import Event
@@ -430,3 +435,7 @@ class Group(Model):
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
             self.project_id, [self.id], environment_id=None)[self.id]
+
+    @classmethod
+    def calculate_score(cls, times_seen, last_seen):
+        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime('%s'))

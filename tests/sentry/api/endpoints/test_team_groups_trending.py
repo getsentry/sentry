@@ -9,8 +9,8 @@ class TeamGroupsTrendingTest(APITestCase):
     def test_simple(self):
         project1 = self.create_project(teams=[self.team], slug='foo')
         project2 = self.create_project(teams=[self.team], slug='bar')
-        group1 = self.create_group(checksum='a' * 32, project=project1, score=10)
-        group2 = self.create_group(checksum='b' * 32, project=project2, score=5)
+        group1 = self.create_group(checksum='a' * 32, project=project1, times_seen=10)
+        group2 = self.create_group(checksum='b' * 32, project=project2, times_seen=5)
 
         self.login_as(user=self.user)
 
