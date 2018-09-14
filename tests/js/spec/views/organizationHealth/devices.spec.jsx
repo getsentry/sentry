@@ -4,6 +4,7 @@ import {mount} from 'enzyme';
 import OrganizationHealthDevices from 'app/views/organizationHealth/devices';
 
 jest.mock('app/utils/withLatestContext');
+jest.mock('app/views/organizationHealth/util/withHealth');
 
 describe('OrganizationHealthDevices', function() {
   const org = TestStubs.Organization();
@@ -23,7 +24,11 @@ describe('OrganizationHealthDevices', function() {
 
   it('renders with PieChart, and EventTableChart', async function() {
     let wrapper = mount(
-      <OrganizationHealthDevices organization={org} />,
+      <OrganizationHealthDevices
+        actions={{updateParams: jest.fn(), setSpecifier: jest.fn()}}
+        router={TestStubs.router()}
+        organization={org}
+      />,
       TestStubs.routerContext()
     );
     await tick();
