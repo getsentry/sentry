@@ -6,7 +6,7 @@ import {withInfo} from '@storybook/addon-info';
 import space from 'app/styles/space';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
-storiesOf('IssueSyncListElement', module)
+storiesOf('Other|IssueSyncListElement', module)
   .add(
     'without issue added',
     withInfo('No issue id or url has been passed')(() => (

@@ -2,12 +2,10 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {number, boolean, array, color} from '@storybook/addon-knobs';
-// import {action} from '@storybook/addon-actions';
 
 import ScoreBar from 'app/components/scoreBar';
 
-const stories = storiesOf('ScoreBar', module);
-stories
+storiesOf('Other|ScoreBar', module)
   .add(
     'horizontal',
     withInfo('Description')(() => (

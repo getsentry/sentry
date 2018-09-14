@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import AlertLink from 'app/components/alertLink';
 
-storiesOf('Links/AlertLink', module)
+storiesOf('UI|Alerts/AlertLink', module)
   .add(
     'default',
     withInfo('A way to loudly link between different parts of the application')(() => [

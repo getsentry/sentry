@@ -39,7 +39,7 @@ UndoButton.contextTypes = {
 };
 
 // eslint-disable-next-line
-storiesOf('Forms/Form', module)
+storiesOf('Forms|Form', module)
   .add('empty', withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />))
   .add(
     'with Cancel',
@@ -63,7 +63,7 @@ storiesOf('Forms/Form', module)
     ))
   );
 
-storiesOf('Forms/Fields/Old', module)
+storiesOf('Forms|Fields/Old', module)
   .add(
     'PasswordField',
     withInfo({
@@ -87,7 +87,7 @@ storiesOf('Forms/Fields/Old', module)
     ))
   );
 
-storiesOf('Forms/Fields/New', module)
+storiesOf('Forms|Fields', module)
   .add(
     'TextField',
     withInfo({

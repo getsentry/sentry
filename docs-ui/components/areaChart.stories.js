@@ -5,9 +5,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import AreaChart from 'app/components/charts/areaChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/AreaChart', module).add(
-  'default',
+storiesOf('Charts|AreaChart', module).add(
+  'AreaChart',
   withInfo('Stacked AreaChart with previous period')(() => {
     const TOTAL = 6;
     const NOW = new Date().getTime();
