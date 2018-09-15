@@ -31,6 +31,8 @@ export const Sidebar = styled(Box)`
   min-width: 320px;
 `;
 
+export const Body = styled(Box)``;
+
 export const TopBar = styled(Flex)`
   padding: 0 ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};

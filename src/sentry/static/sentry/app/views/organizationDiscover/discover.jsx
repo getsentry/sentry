@@ -13,7 +13,6 @@ import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
-import space from 'app/styles/space';
 
 import Aggregations from './aggregations';
 import Conditions from './conditions';
@@ -26,6 +25,7 @@ import {isValidAggregation} from './aggregations/utils';
 import {
   Discover,
   Sidebar,
+  Body,
   TopBar,
   SidebarHeader,
   SidebarTitle,
@@ -253,10 +253,12 @@ export default class OrganizationDiscover extends React.Component {
           <PageTitle>{t('Discover')}</PageTitle>
           <SidebarHeader>
             <SidebarTitle>{t('Query')}</SidebarTitle>
-            <Box>
-              <Button size="xsmall" onClick={this.reset} style={{marginRight: space(1)}}>
-                {t('Reset')}
-              </Button>
+            <Flex>
+              <Box mr={1}>
+                <Button size="xsmall" onClick={this.reset}>
+                  {t('Reset')}
+                </Button>
+              </Box>
               <Button
                 size="xsmall"
                 onClick={this.runQuery}
@@ -266,7 +268,7 @@ export default class OrganizationDiscover extends React.Component {
                 {t('Run')}
                 {isFetchingQuery && <ButtonSpinner />}
               </Button>
-            </Box>
+            </Flex>
           </SidebarHeader>
           <Fieldset>
             <SidebarLabel htmlFor="fields" className="control-label">
@@ -320,7 +322,7 @@ export default class OrganizationDiscover extends React.Component {
             />
           </Fieldset>
         </Sidebar>
-        <Flex direction="column" flex="1">
+        <Body direction="column" flex="1">
           <TopBar>
             <MultipleProjectSelector
               value={currentQuery.projects}
@@ -351,7 +353,7 @@ export default class OrganizationDiscover extends React.Component {
             {!data && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
           </Flex>
-        </Flex>
+        </Body>
       </Discover>
     );
   }
