@@ -84,6 +84,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
 
+        self.assertDialogSuccess(resp)
+
     @responses.activate
     def test_basic_flow(self):
         self.assert_setup_flow()
