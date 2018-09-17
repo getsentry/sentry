@@ -227,6 +227,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         max_pre_snuba_candidates = options.get('snuba.search.max-pre-snuba-candidates')
 
         # pre-filter query
+        candidate_hashes = None
         if max_pre_snuba_candidates:
             candidate_hashes = dict(
                 GroupHash.objects.filter(
@@ -236,25 +237,23 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 )[:max_pre_snuba_candidates + 1]
             )
             metrics.timing('snuba.search.num_candidates', len(candidate_hashes))
-        else:
-            candidate_hashes = {}
 
-        if not candidate_hashes:
-            # no matches could possibly be found from this point on
-            metrics.incr('snuba.search.no_candidates')
-            return Paginator(Group.objects.none()).get_result()
-        elif len(candidate_hashes) > max_pre_snuba_candidates:
-            # If the pre-filter query didn't include anything to significantly
-            # filter down the number of results (from 'first_release', 'query',
-            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-            # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-            # might have surpassed the `max_pre_snuba_candidates`. In this case,
-            # we *don't* want to pass candidates down to Snuba, and instead we
-            # want Snuba to do all the filtering/sorting it can and *then* apply
-            # this queryset to the results from Snuba, which we call
-            # post-filtering.
-            metrics.incr('snuba.search.too_many_candidates')
-            candidate_hashes = None
+            if not candidate_hashes:
+                # no matches could possibly be found from this point on
+                metrics.incr('snuba.search.no_candidates')
+                return Paginator(Group.objects.none()).get_result()
+            elif len(candidate_hashes) > max_pre_snuba_candidates:
+                # If the pre-filter query didn't include anything to significantly
+                # filter down the number of results (from 'first_release', 'query',
+                # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+                # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
+                # might have surpassed the `max_pre_snuba_candidates`. In this case,
+                # we *don't* want to pass candidates down to Snuba, and instead we
+                # want Snuba to do all the filtering/sorting it can and *then* apply
+                # this queryset to the results from Snuba, which we call
+                # post-filtering.
+                metrics.incr('snuba.search.too_many_candidates')
+                candidate_hashes = None
 
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
         chunk_limit = limit
