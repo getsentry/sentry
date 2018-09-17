@@ -1,8 +1,57 @@
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
+
+export const Discover = styled(Flex)`
+  min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
+
+  margin-bottom: -20px;
+
+  .control-group {
+    margin-bottom: 0; /* Do not want the global control-group margins  */
+  }
+`;
+
+export const PageTitle = styled.h2`
+  display: flex;
+  font-size: 20px;
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+  align-items: center;
+  padding-left: 30px;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  height: 60px;
+`;
+
+export const Sidebar = styled(Box)`
+  border-right: 1px solid ${p => p.theme.borderDark};
+  min-width: 320px;
+`;
+
+export const Body = styled(Box)``;
+
+export const TopBar = styled(Flex)`
+  padding: 0 ${space(4)};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  height: 60px;
+`;
+
+export const SidebarHeader = styled(Flex)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(1.5)} ${space(4)};
+`;
+
+export const SidebarTitle = styled(Box)`
+  flex: 1;
+  align-items: center;
+  font-size: 18px;
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
 
 export const PlaceholderText = styled.div`
   color: ${p => p.theme.gray6};
