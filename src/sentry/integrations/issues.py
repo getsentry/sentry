@@ -133,10 +133,7 @@ class IssueBasicMixin(object):
     def merge_issue_config_defaults(self, project_id, config):
         # project_id is a long, but stored in the config as a string
         project_id = six.text_type(project_id)
-
-        defaults = self.org_integration.config \
-            .get('project_issue_defaults', {}) \
-            .get(project_id, None)
+        defaults = self.get_project_defaults(project_id)
 
         if not defaults:
             return config
@@ -148,6 +145,11 @@ class IssueBasicMixin(object):
             field.update({'default': defaults[field['name']]})
 
         return updated_configs
+
+    def get_project_defaults(self, project_id):
+        return self.org_integration.config \
+            .get('project_issue_defaults', {}) \
+            .get(six.text_type(project_id), {})
 
     def create_issue(self, data, **kwargs):
         """

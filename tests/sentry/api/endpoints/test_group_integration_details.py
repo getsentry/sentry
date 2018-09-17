@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
@@ -16,13 +16,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        # integration.add_organization(org, self.user)
-        config = {
-            'project_issue_defaults': {
-                group.project_id: {'project': '1'}
-            }
-        }
-        integration.add_organization(org.id, config=config)
+        integration.add_organization(org, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(group.id, integration.id)
 
@@ -63,6 +57,17 @@ class GroupIntegrationDetailsTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org, self.user)
+        config = {
+            'project_issue_defaults': {
+                group.project_id: {'project': '1'}
+            }
+        }
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+        org_integration.config = config
+        org_integration.save()
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 

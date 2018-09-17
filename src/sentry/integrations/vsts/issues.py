@@ -29,9 +29,7 @@ class VstsIssueSync(IssueSyncMixin):
             self.raise_error(e)
 
         project_choices = []
-        field_defaults = self.org_integration.config \
-            .get('project_issue_defaults', {}) \
-            .get(six.text_type(group.project_id), {})
+        field_defaults = self.get_project_defaults(group.project_id)
         initial_project = field_defaults.get('project') or ('', '')
         for project in projects:
             project_id_and_name = '%s#%s' % (project['id'], project['name'])
