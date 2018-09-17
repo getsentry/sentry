@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from sentry import options
 from sentry.event_manager import ScoreClause
 from sentry.models import (
     Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
@@ -790,6 +791,8 @@ class SnubaSearchTest(SnubaTestCase):
             'referrer': 'search',
             'groupby': ['primary_hash'],
             'conditions': [],
+            'limit': 1001,
+            'offset': 0,
         }
 
         self.backend.query(self.project, query='foo')
@@ -837,13 +840,8 @@ class SnubaSearchTest(SnubaTestCase):
         )
 
     def test_pre_and_post_filtering(self):
-        from sentry.search.snuba import backend as snuba_search
-
-        prev_max_pre = snuba_search.MAX_PRE_SNUBA_CANDIDATES
-        prev_max_post = snuba_search.MAX_POST_SNUBA_CHUNK
-
-        snuba_search.MAX_PRE_SNUBA_CANDIDATES = 1
-        snuba_search.MAX_POST_SNUBA_CHUNK = 1
+        prev_max_pre = options.get('snuba.search.max-pre-snuba-candidates')
+        options.set('snuba.search.max-pre-snuba-candidates', 1)
         try:
             # normal queries work as expected
             results = self.backend.query(self.project, query='foo')
@@ -859,5 +857,4 @@ class SnubaSearchTest(SnubaTestCase):
             results = self.backend.query(self.project)
             assert set(results) == set([self.group1, self.group2])
         finally:
-            snuba_search.MAX_PRE_SNUBA_CANDIDATES = prev_max_pre
-            snuba_search.MAX_POST_SNUBA_CHUNK = prev_max_post
+            options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)

@@ -94,7 +94,6 @@ register(
 register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # Beacon
-
 register('beacon.anonymous', type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore
@@ -134,3 +133,6 @@ register('github-app.client-secret', flags=FLAG_PRIORITIZE_DISK)
 # VSTS Integration
 register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
+
+# Snuba
+register('snuba.search.max-pre-snuba-candidates', default=500)
