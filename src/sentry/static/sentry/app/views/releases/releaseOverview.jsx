@@ -287,16 +287,18 @@ const ReleaseOverview = createReactClass({
                 </ul>
               </div>
             ) : (
-              <Well centered className="p-x-2 p-b-2 m-t-2">
+              <Well centered className="m-t-2">
                 <HeroIcon src="icon-commit" />
                 <h5>Releases are better with commit data!</h5>
                 <p>
                   Connect a repository to see commit info, files changed, and authors
                   involved in future releases.
                 </p>
-                <Button priority="primary" href={`/organizations/${orgId}/repos/`}>
-                  Connect a repository
-                </Button>
+                <p>
+                  <Button priority="primary" href={`/organizations/${orgId}/repos/`}>
+                    Connect a repository
+                  </Button>
+                </p>
               </Well>
             )}
             <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
