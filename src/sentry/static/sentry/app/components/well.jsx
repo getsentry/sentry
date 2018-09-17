@@ -12,8 +12,8 @@ const Well = styled('div')`
 `;
 
 Well.propTypes = {
-  hasImage: PropTypes.boolean,
-  centered: PropTypes.boolean,
+  hasImage: PropTypes.bool,
+  centered: PropTypes.bool,
 };
 
 Well.defaultProps = {
