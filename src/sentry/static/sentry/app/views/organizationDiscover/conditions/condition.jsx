@@ -50,6 +50,14 @@ export default class Condition extends React.Component {
     );
   };
 
+  handleOpen = () => {
+    if (this.state.inputValue === '') {
+      this.setState({
+        inputValue: getInternal(this.props.value),
+      });
+    }
+  };
+
   getOptions() {
     const currentValue = getInternal(this.props.value);
     const shouldDisplayValue = currentValue || this.state.inputValue;
@@ -155,6 +163,7 @@ export default class Condition extends React.Component {
           options={this.getOptions()}
           filterOptions={this.filterOptions}
           onChange={this.handleChange}
+          onOpen={this.handleOpen}
           closeOnSelect={true}
           openOnFocus={true}
           autoBlur={true}
