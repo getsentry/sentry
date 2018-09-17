@@ -7,6 +7,7 @@ from rest_framework.exceptions import APIException
 
 class ResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
+    default_detail = 'The requested resource does not exist'
 
 
 class SentryAPIException(APIException):
