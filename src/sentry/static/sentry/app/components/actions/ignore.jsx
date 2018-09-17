@@ -1,16 +1,18 @@
-import React from 'react';
+import {ButtonGroup} from 'react-bootstrap';
 import PropTypes from 'prop-types';
+import React from 'react';
 import classNames from 'classnames';
 
 import {t} from 'app/locale';
-import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
-import Duration from 'app/components/duration';
+import ActionLink from 'app/components/actions/actionLink';
+import Button from 'app/components/button';
 import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
-import ActionLink from 'app/components/actions/actionLink';
-import Tooltip from 'app/components/tooltip';
+import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import MenuItem from 'app/components/menuItem';
+import Tooltip from 'app/components/tooltip';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -67,7 +69,7 @@ export default class IgnoreActions extends React.Component {
       confirmLabel,
     } = this.props;
 
-    let linkClassName = classNames('btn btn-default btn-sm', {
+    let linkClassName = classNames({
       active: isIgnored,
     });
 
@@ -81,13 +83,17 @@ export default class IgnoreActions extends React.Component {
 
     if (isIgnored) {
       return (
-        <div className="btn-group">
+        <ButtonGroup>
           <Tooltip title={t('Change status to unresolved')}>
-            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+            <Button
+              size="small"
+              className={linkClassName}
+              onClick={() => onUpdate({status: 'unresolved'})}
+            >
               <span className="icon-ban" />
-            </a>
+            </Button>
           </Tooltip>
-        </div>
+        </ButtonGroup>
       );
     }
 
@@ -118,9 +124,13 @@ export default class IgnoreActions extends React.Component {
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}
         />
-        <div className="btn-group">
+        <ButtonGroup>
           <ActionLink
             {...actionLinkProps}
+            isButton
+            buttonProps={{
+              size: 'small',
+            }}
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
@@ -135,6 +145,7 @@ export default class IgnoreActions extends React.Component {
             title=""
             alwaysRenderMenu
             disabled={disabled}
+            isButton
           >
             <MenuItem header={true}>Ignore</MenuItem>
             <li className="dropdown-submenu">
@@ -263,7 +274,7 @@ export default class IgnoreActions extends React.Component {
               </DropdownLink>
             </li>
           </DropdownLink>
-        </div>
+        </ButtonGroup>
       </div>
     );
   }

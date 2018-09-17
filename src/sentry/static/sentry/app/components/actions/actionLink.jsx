@@ -1,24 +1,27 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-
+import React from 'react';
 import classNames from 'classnames';
 
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 
 export default class ActionLink extends React.Component {
   static propTypes = {
     shouldConfirm: PropTypes.bool,
+    isButton: PropTypes.bool,
     message: PropTypes.node,
     className: PropTypes.any,
     onAction: PropTypes.func.isRequired,
     title: PropTypes.string,
     confirmLabel: PropTypes.string,
     disabled: PropTypes.bool,
+    buttonProps: PropTypes.object,
   };
 
   static defaultProps = {
     shouldConfirm: false,
     disabled: false,
+    buttonProps: {},
   };
 
   render() {
@@ -31,26 +34,32 @@ export default class ActionLink extends React.Component {
       confirmLabel,
       disabled,
       children,
+      isButton,
+      buttonProps,
     } = this.props;
+
+    const Component = isButton ? Button : 'a';
+    const componentProps = {...(isButton ? buttonProps : {})};
 
     if (shouldConfirm && !disabled) {
       return (
         <Confirm message={message} confirmText={confirmLabel} onConfirm={onAction}>
-          <a className={className} title={title}>
+          <Component className={className} title={title} {...componentProps}>
             {' '}
             {children}
-          </a>
+          </Component>
         </Confirm>
       );
     } else {
       return (
-        <a
+        <Component
           className={classNames(className, {disabled})}
           onClick={disabled ? undefined : onAction}
           disabled={disabled}
+          {...componentProps}
         >
           {children}
-        </a>
+        </Component>
       );
     }
   }
