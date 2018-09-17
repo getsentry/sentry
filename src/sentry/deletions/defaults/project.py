@@ -19,7 +19,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupHash, models.GroupHashTombstone, models.GroupRelease, models.GroupRuleStatus,
             models.GroupSeen, models.GroupShare, models.GroupSubscription, models.ProjectBookmark,
             models.ProjectKey, models.ProjectTeam, models.SavedSearchUserDefault, models.SavedSearch,
-            models.ServiceHook, models.UserReport,
+            models.ServiceHook, models.UserReport, models.DiscoverSavedQueryProject,
         )
 
         relations.extend(
