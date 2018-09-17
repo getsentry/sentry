@@ -155,10 +155,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has('organizations:event-attachments', obj, actor=user):
             feature_list.append('event-attachments')
 
-        # deleteme: new-settings UI checks have been removed, but this was
-        # left behind to smooth over deploy boundaries.
-        feature_list.append('new-settings')
-
         experiment_assignments = experiments.all(org=obj)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
