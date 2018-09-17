@@ -17,7 +17,7 @@ class DiscoverSavedQueryTest(TestCase):
             'limit': 10
         }
 
-        model = DiscoverSavedQuery.objects.create(organization=org, query=query)
+        model = DiscoverSavedQuery.objects.create(organization=org, name="Test query", query=query)
 
         model.add_projects(project_ids)
 
