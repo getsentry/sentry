@@ -176,6 +176,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       mb={1}
     >
       <HeroIcon
+        size="72px"
         src="icon-commit"
       />
     </Box>
@@ -268,6 +269,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       mb={1}
     >
       <HeroIcon
+        size="72px"
         src="icon-commit"
       />
     </Box>

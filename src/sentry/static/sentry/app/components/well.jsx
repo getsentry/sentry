@@ -1,20 +1,24 @@
 import styled from 'react-emotion';
+import PropTypes from 'prop-types';
 
-export default styled('div')(props => {
-  let styles = {
-    border: `1px solid ${props.theme.borderLight}`,
-    boxShadow: 'none',
-    background: props.theme.whiteDark,
-    padding: '15px 20px',
-    marginBottom: '20px',
-    borderRadius: '3px',
-  };
-  if (props.imagewell) {
-    styles.padding = '80px 30px';
-  }
-  if (props.centered) {
-    styles.textAlign = 'center';
-  }
+const Well = styled('div')`
+  border: 1px solid ${p => p.theme.borderLight};
+  box-shadow: 'none';
+  background: ${p => p.theme.whiteDark};
+  padding: ${p => (p.hasImage ? '80px 30px' : '15px 20px')};
+  margin-bottom: 20px;
+  border-radius: 3px;
+  ${p => p.centered && 'text-align: center'};
+`;
 
-  return styles;
-});
+Well.propTypes = {
+  hasImage: PropTypes.boolean,
+  centered: PropTypes.boolean,
+};
+
+Well.defaultProps = {
+  hasImage: false,
+  centered: false,
+};
+
+export default Well;

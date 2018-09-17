@@ -203,7 +203,9 @@ export default class OrganizationRepositories extends React.Component {
               )}
             </TextBlock>
             <p className="m-b-1">
-              <Button href="https://docs.sentry.io/learn/releases/">Learn more</Button>
+              <Button href="https://docs.sentry.io/learn/releases/">
+                {t('Learn more')}
+              </Button>
             </p>
           </Panel>
         )}

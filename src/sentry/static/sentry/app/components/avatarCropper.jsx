@@ -387,7 +387,7 @@ class AvatarCropper extends React.Component {
     return (
       <div>
         {!src && (
-          <Well imagewell centered>
+          <Well hasImage centered>
             <p>
               <a onClick={this.uploadClick}>
                 <strong>Upload a photo</strong>
