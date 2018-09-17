@@ -37,7 +37,7 @@ const defaultFeatureGateComponents = {
   FeatureList: p => (
     <ul>
       {p.features.map((f, i) => (
-        <li key={i} dangerouslySetInnerHTML={{__html: markedSimple(f.description)}} />
+        <li key={i} dangerouslySetInnerHTML={{__html: p.formatter(f.description)}} />
       ))}
     </ul>
   ),
@@ -131,7 +131,7 @@ class IntegrationDetailsModal extends React.Component {
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
-        <FeatureList {...featureProps} />
+        <FeatureList {...featureProps} formatter={markedSimple} />
 
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>
