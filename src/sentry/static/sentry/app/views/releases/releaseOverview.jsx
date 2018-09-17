@@ -287,7 +287,7 @@ const ReleaseOverview = createReactClass({
                 </ul>
               </div>
             ) : (
-              <Well centered>
+              <Well centered className="p-x-2 p-b-2 m-t-2">
                 <HeroIcon src="icon-commit" />
                 <h5>Releases are better with commit data!</h5>
                 <p>
