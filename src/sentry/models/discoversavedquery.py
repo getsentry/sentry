@@ -27,6 +27,7 @@ class DiscoverSavedQuery(Model):
 
     projects = models.ManyToManyField('sentry.Project', through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey('sentry.Organization')
+    name = models.CharField(max_length=255)
     query = JSONField()
     date_created = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
