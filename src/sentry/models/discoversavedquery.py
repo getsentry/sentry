@@ -4,7 +4,6 @@ from jsonfield import JSONField
 from sentry.db.models import (
     Model, FlexibleForeignKey, sane_repr
 )
-from django.utils import timezone
 
 
 class DiscoverSavedQueryProject(Model):
@@ -29,8 +28,8 @@ class DiscoverSavedQuery(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     name = models.CharField(max_length=255)
     query = JSONField()
-    date_created = models.DateTimeField(default=timezone.now)
-    date_updated = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'sentry'
