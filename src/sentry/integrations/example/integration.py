@@ -6,7 +6,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.integrations.migrate import PluginMigrator
+from sentry.mediators.plugins import Migrator
 from sentry.pipeline import PipelineView
 
 
@@ -124,7 +124,10 @@ class ExampleIntegrationProvider(IntegrationProvider):
         }]
 
     def post_install(self, integration, organization):
-        PluginMigrator(integration, organization).call()
+        Migrator.run(
+            integration=integration,
+            organization=organization
+        )
 
     def build_integration(self, state):
         return {

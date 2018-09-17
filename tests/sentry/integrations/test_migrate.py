@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.integrations.example import ExampleIntegrationProvider
-from sentry.integrations.migrate import PluginMigrator
+from sentry.mediators.plugins import Migrator
 from sentry.models import Integration, Repository
 from sentry.plugins import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
@@ -15,9 +15,9 @@ class ExamplePlugin(IssuePlugin2):
 plugins.register(ExamplePlugin)
 
 
-class PluginMigratorTest(TestCase):
+class MigratorTest(TestCase):
     def setUp(self):
-        super(PluginMigratorTest, self).setUp()
+        super(MigratorTest, self).setUp()
 
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -26,7 +26,10 @@ class PluginMigratorTest(TestCase):
             provider=ExampleIntegrationProvider.key,
         )
 
-        self.migrator = PluginMigrator(self.integration, self.organization)
+        self.migrator = Migrator(
+            integration=self.integration,
+            organization=self.organization,
+        )
 
     def test_all_repos_migrated(self):
         Repository.objects.create(
@@ -60,3 +63,9 @@ class PluginMigratorTest(TestCase):
 
         self.migrator.call()
         assert plugin in plugins.for_project(self.project)
+
+    def test_logs(self):
+        Migrator.run(
+            integration=self.integration,
+            organization=self.organization,
+        )

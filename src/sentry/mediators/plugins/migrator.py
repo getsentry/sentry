@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
+from sentry.mediators import Mediator, Param
 from sentry.models import Repository
 from sentry.plugins import plugins
 from sentry.utils.cache import memoize
 
 
-class PluginMigrator(object):
-    def __init__(self, integration, organization):
-        self.integration = integration
-        self.organization = organization
+class Migrator(Mediator):
+    integration = Param('sentry.models.integration.Integration')
+    organization = Param('sentry.models.organization.Organization')
 
     def call(self):
         for project in self.projects:
@@ -33,6 +33,7 @@ class PluginMigrator(object):
     def disable_for_all_projects(self, plugin):
         for project in self.projects:
             try:
+                self.log(at='disable', project=project.slug, plugin=plugin.slug)
                 plugin.disable(project=project)
             except NotImplementedError:
                 pass
@@ -56,3 +57,11 @@ class PluginMigrator(object):
             plugins.configurable_for_project(project)
             for project in self.projects
         ]
+
+    @property
+    def _logging_context(self):
+        return {
+            'org': self.organization.slug,
+            'integration_id': self.integration.id,
+            'integration_provider': self.integration.provider,
+        }

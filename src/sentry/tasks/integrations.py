@@ -7,7 +7,7 @@ from sentry.models import (
     ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization, Repository, User
 )
 from sentry.integrations.exceptions import IntegrationError
-from sentry.integrations.migrate import PluginMigrator
+from sentry.mediators.plugins import Migrator
 from sentry.tasks.base import instrumented_task, retry
 
 logger = logging.getLogger('sentry.tasks.integrations')
@@ -199,7 +199,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
             }
         )
 
-        PluginMigrator(
-            integration,
-            Organization.objects.get(id=organization_id),
-        ).call()
+        Migrator.run(
+            integration=integration,
+            organization=Organization.objects.get(id=organization_id),
+        )
