@@ -122,7 +122,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
   renderBody() {
     const providers = this.providers
-      .sort(p => !p.isInstalled)
+      .sort((a, b) => b.isInstalled - a.isInstalled)
       .map(provider => (
         <ProviderRow
           key={provider.key}
