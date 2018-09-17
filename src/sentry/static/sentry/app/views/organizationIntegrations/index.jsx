@@ -121,19 +121,21 @@ export default class OrganizationIntegrations extends AsyncComponent {
   // Rendering
 
   renderBody() {
-    const providers = this.providers.map(provider => (
-      <ProviderRow
-        key={provider.key}
-        provider={provider}
-        orgId={this.props.params.orgId}
-        integrations={provider.integrations}
-        onInstall={this.onInstall}
-        onRemove={this.onRemove}
-        onDisable={this.onDisable}
-        onReinstall={this.onInstall}
-        enabledPlugins={this.enabledPlugins}
-      />
-    ));
+    const providers = this.providers
+      .sort(p => !p.isInstalled)
+      .map(provider => (
+        <ProviderRow
+          key={provider.key}
+          provider={provider}
+          orgId={this.props.params.orgId}
+          integrations={provider.integrations}
+          onInstall={this.onInstall}
+          onRemove={this.onRemove}
+          onDisable={this.onDisable}
+          onReinstall={this.onInstall}
+          enabledPlugins={this.enabledPlugins}
+        />
+      ));
 
     return (
       <React.Fragment>

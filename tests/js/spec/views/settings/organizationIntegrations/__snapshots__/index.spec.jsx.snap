@@ -3049,7 +3049,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
             <ProviderRow
               enabledPlugins={Array []}
               integrations={Array []}
-              key="github"
+              key="jira"
               onDisable={[Function]}
               onInstall={[Function]}
               onReinstall={[Function]}
@@ -3057,34 +3057,27 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
               orgId="org-slug"
               provider={
                 Object {
-                  "canAdd": true,
+                  "canAdd": false,
                   "config": Array [],
-                  "externalIssues": Array [],
                   "features": Array [],
                   "integrations": Array [],
                   "isInstalled": false,
-                  "key": "github",
+                  "key": "jira",
                   "metadata": Object {
                     "aspects": Object {
-                      "alerts": Array [
-                        Object {
-                          "text": "This is a an alert example",
-                          "type": "warning",
-                        },
-                      ],
+                      "externalInstall": Object {
+                        "buttonText": "Visit Jira",
+                        "noticeText": "You must visit jira to install the integration",
+                        "url": "http://jira.com",
+                      },
                     },
-                    "author": "Morty",
-                    "description": "*markdown* formatted _description_",
-                    "issue_url": "http://example.com/integration_issue_url",
-                    "noun": "Installation",
-                    "source_url": "http://example.com/integration_source_url",
+                    "author": "Rick",
+                    "description": "*markdown* formatted Jira _description_",
+                    "issue_url": "http://example.com/jira_integration_issue_url",
+                    "noun": "Instance",
+                    "source_url": "http://example.com/jira_integration_source_url",
                   },
-                  "name": "GitHub",
-                  "setupDialog": Object {
-                    "height": 100,
-                    "url": "/github-integration-setup-uri/",
-                    "width": 100,
-                  },
+                  "name": "Jira",
                 }
               }
             >
@@ -3115,7 +3108,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                           is={null}
                         >
                           <PluginIcon
-                            pluginId="github"
+                            pluginId="jira"
                             size={36}
                           >
                             <IntegrationIcon
@@ -3145,7 +3138,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                   <div
                                     className="css-1nak1rg-ProviderName e1egfpwi0"
                                   >
-                                    GitHub
+                                    Jira
                                   </div>
                                 </ProviderName>
                                 <ProviderDetails>
@@ -3795,7 +3788,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
             <ProviderRow
               enabledPlugins={Array []}
               integrations={Array []}
-              key="jira"
+              key="github"
               onDisable={[Function]}
               onInstall={[Function]}
               onReinstall={[Function]}
@@ -3803,27 +3796,34 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
               orgId="org-slug"
               provider={
                 Object {
-                  "canAdd": false,
+                  "canAdd": true,
                   "config": Array [],
+                  "externalIssues": Array [],
                   "features": Array [],
                   "integrations": Array [],
                   "isInstalled": false,
-                  "key": "jira",
+                  "key": "github",
                   "metadata": Object {
                     "aspects": Object {
-                      "externalInstall": Object {
-                        "buttonText": "Visit Jira",
-                        "noticeText": "You must visit jira to install the integration",
-                        "url": "http://jira.com",
-                      },
+                      "alerts": Array [
+                        Object {
+                          "text": "This is a an alert example",
+                          "type": "warning",
+                        },
+                      ],
                     },
-                    "author": "Rick",
-                    "description": "*markdown* formatted Jira _description_",
-                    "issue_url": "http://example.com/jira_integration_issue_url",
-                    "noun": "Instance",
-                    "source_url": "http://example.com/jira_integration_source_url",
+                    "author": "Morty",
+                    "description": "*markdown* formatted _description_",
+                    "issue_url": "http://example.com/integration_issue_url",
+                    "noun": "Installation",
+                    "source_url": "http://example.com/integration_source_url",
                   },
-                  "name": "Jira",
+                  "name": "GitHub",
+                  "setupDialog": Object {
+                    "height": 100,
+                    "url": "/github-integration-setup-uri/",
+                    "width": 100,
+                  },
                 }
               }
             >
@@ -3854,7 +3854,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                           is={null}
                         >
                           <PluginIcon
-                            pluginId="jira"
+                            pluginId="github"
                             size={36}
                           >
                             <IntegrationIcon
@@ -3884,7 +3884,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                   <div
                                     className="css-1nak1rg-ProviderName e1egfpwi0"
                                   >
-                                    Jira
+                                    GitHub
                                   </div>
                                 </ProviderName>
                                 <ProviderDetails>

@@ -70,7 +70,7 @@ describe('OrganizationIntegrations', function() {
 
         wrapper
           .find('Button')
-          .first()
+          .at(1)
           .simulate('click');
 
         expect(openIntegrationDetails).toBeCalledWith(options);
