@@ -72,7 +72,6 @@ metadata = IntegrationMetadata(
 API_ERRORS = {
     404: 'Gitlab returned a 404 Not Found error. If this repository exists, ensure'
          ' that your installation has permission to access this repository',
-    # ' (https://github.com/settings/installations).',
     401: ERR_UNAUTHORIZED,
 }
 
@@ -118,9 +117,6 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         metadata['installation_id'] = installation_id
         self.model.update(metadata=metadata)
         self.reinstall_repositories()
-
-    def search_issues(self, query):
-        pass
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
