@@ -376,7 +376,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group2]
-        assert results.hits == 2
+        assert results.hits is None  # NOQA
 
         results = self.backend.query(
             self.project,
@@ -387,7 +387,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group1]
-        assert results.hits == 2
+        assert results.hits is None  # NOQA
 
         results = self.backend.query(
             self.project,
@@ -398,7 +398,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == []
-        assert results.hits == 2
+        assert results.hits is None  # NOQA
 
     def test_age_filter(self):
         results = self.backend.query(
