@@ -35,7 +35,7 @@ This is an example integration. Descriptions support _markdown rendering_.
 
 FEATURES = [
     FeatureDescription(
-        "This is a feature discription. Also *supports markdown*",
+        "This is a feature description. Also *supports markdown*",
         IntegrationFeatures.ISSUE_SYNC,
     ),
 ]
