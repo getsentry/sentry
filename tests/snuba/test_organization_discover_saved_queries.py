@@ -23,7 +23,8 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
             'limit': 10
         }
 
-        model = DiscoverSavedQuery.objects.create(organization=self.org, name="Test query", query=query)
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org, name="Test query", query=query)
 
         model.add_projects(project_ids)
 
@@ -33,5 +34,5 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data['data']) == 1
-        assert response.data['data'][0]['name'] == 'Test query'
+        assert len(response.data) == 1
+        assert response.data[0]['name'] == 'Test query'
