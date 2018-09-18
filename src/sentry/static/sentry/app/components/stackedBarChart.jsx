@@ -251,11 +251,18 @@ const StackedBarChart = createReactClass({
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
+    let gap = index == 0 ? 0 : 1;
     let pts = point.y.map((y, i) => {
       let pct = totalY && this.floatFormat(y / totalY * totalPct * 99, 2);
-      let height = Math.random() * 200;
+      let height = Math.random() * 100;
       let pt = (
-        <rect x={index * 100} y={100 - height} width="80" height={height} fill="#aab"/>
+        <rect
+          x={index * pointWidth + '%'}
+          y={100 - height + '%'}
+          width={pointWidth - 1 + '%'}
+          height={height}
+          fill="#aab"
+        />
       );
       prevPct += pct;
       return pt;
@@ -270,9 +277,7 @@ const StackedBarChart = createReactClass({
         key={point.x}
         tooltipOptions={{html: true, placement: 'bottom'}}
       >
-        <g>
-          {pts}
-        </g>
+        <g>{pts}</g>
       </Tooltip>
     );
   },
@@ -280,7 +285,7 @@ const StackedBarChart = createReactClass({
   renderChart() {
     let {pointIndex, series} = this.state;
     let totalPoints = Math.max(...series.map(s => s.data.length));
-    let pointWidth = this.floatFormat(100.0 / totalPoints, 2) + '%';
+    let pointWidth = this.floatFormat(101.0 / totalPoints, 2);
 
     let maxval = this.maxPointValue();
     let markers = this.props.markers.slice();
@@ -328,7 +333,14 @@ const StackedBarChart = createReactClass({
           <Count value={maxval} />
         </span>
         <span className="min-y">0</span>
-        <svg shape-rendering="geometricPrecision" viewBox={`0 0 ${Object.keys(this.state.pointIndex).length * 100} 100`} style={{width: '100%', height: '100%'}}>{this.renderChart()}</svg>
+        <svg
+          shapeRendering="geometricPrecision"
+          viewBox={'0 0 100 99'}
+          preserveAspectRatio="none"
+          style={{width: '100%', height: '100%'}}
+        >
+          {this.renderChart()}
+        </svg>
       </figure>
     );
   },
