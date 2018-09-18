@@ -18,6 +18,7 @@ const ProjectInstallPlatform = createReactClass({
   displayName: 'ProjectInstallPlatform',
 
   propTypes: {
+    // eslint-disable-next-line react/no-unused-prop-types
     platformData: PropTypes.object.isRequired,
     linkPath: PropTypes.func,
   },
@@ -119,7 +120,7 @@ const ProjectInstallPlatform = createReactClass({
           <Flex>
             <Box ml={1}>
               <Button size="small" href={`/${orgId}/${projectId}/getting-started/`}>
-                {t('Back')}
+                {t('< Back')}
               </Button>
             </Box>
             <Box ml={1}>
@@ -171,7 +172,7 @@ const ProjectInstallPlatform = createReactClass({
   render() {
     return (
       <div className="install row">
-        <div className="install-content col-md-8 col-md-offset-2">{this.renderBody()}</div>
+        <div className="install-content col-lg-10">{this.renderBody()}</div>
       </div>
     );
   },

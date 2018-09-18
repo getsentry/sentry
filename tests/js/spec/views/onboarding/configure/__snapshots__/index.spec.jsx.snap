@@ -218,7 +218,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       className="install row"
                     >
                       <div
-                        className="install-content col-md-8 col-md-offset-2"
+                        className="install-content col-lg-10"
                       >
                         <Panel>
                           <Component
@@ -275,7 +275,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                       size="small"
                                                     >
                                                       <StyledButton
-                                                        aria-label="Back"
+                                                        aria-label="< Back"
                                                         disabled={false}
                                                         href="/testOrg/project-slug/getting-started/"
                                                         onClick={[Function]}
@@ -283,7 +283,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                         size="small"
                                                       >
                                                         <Component
-                                                          aria-label="Back"
+                                                          aria-label="< Back"
                                                           className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                           disabled={false}
                                                           href="/testOrg/project-slug/getting-started/"
@@ -292,7 +292,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                           size="small"
                                                         >
                                                           <a
-                                                            aria-label="Back"
+                                                            aria-label="< Back"
                                                             className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                             disabled={false}
                                                             href="/testOrg/project-slug/getting-started/"
@@ -323,7 +323,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                                       className="eqrebog1 css-gzxb22-ButtonLabel"
                                                                       is={null}
                                                                     >
-                                                                      Back
+                                                                      &lt; Back
                                                                     </div>
                                                                   </Base>
                                                                 </Flex>
