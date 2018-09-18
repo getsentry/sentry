@@ -46,6 +46,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
   </SettingsPageHeading>
   <MigrationWarnings
     onInstall={[Function]}
+    orgId="org-slug"
     providers={
       Array [
         Object {
@@ -135,7 +136,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
         },
       ]
     }
-    unmigratableRepos={Object {}}
   />
   <Panel>
     <Component
@@ -2929,6 +2929,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
   </SettingsPageHeading>
   <MigrationWarnings
     onInstall={[Function]}
+    orgId="org-slug"
     providers={
       Array [
         Object {
@@ -2986,7 +2987,6 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
         },
       ]
     }
-    unmigratableRepos={Object {}}
   />
   <Panel>
     <Component

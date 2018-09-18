@@ -32,7 +32,6 @@ export default class OrganizationIntegrations extends AsyncComponent {
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
-      ['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`],
     ];
   }
 
@@ -140,7 +139,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
         {!this.props.hideHeader && <SettingsPageHeader title={t('Integrations')} />}
 
         <MigrationWarnings
-          unmigratableRepos={this.unmigratableReposByOrg}
+          orgId={this.props.params.orgId}
           providers={this.providers}
           onInstall={this.onInstall}
         />

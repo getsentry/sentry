@@ -169,11 +169,6 @@ describe('OrganizationIntegrations', function() {
 
       const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
 
-      it('fetches unmigratable repositories', function() {
-        expect(wrapper.instance().state.unmigratableRepos).toHaveLength(1);
-        expect(wrapper.instance().state.unmigratableRepos[0].name).toBe('Test-Org/foo');
-      });
-
       it('displays an Upgrade when the Plugin is enabled but a new Integration is not', function() {
         expect(
           wrapper
@@ -205,30 +200,6 @@ describe('OrganizationIntegrations', function() {
             .first()
             .text()
         ).toBe('Install');
-      });
-
-      it('displays a warning for each Org with unmigratable repos', () => {
-        // Use a regex because React/Enzyme/Jest/Whatever turns single quotes into
-        // apostrophes, so you can't match it explicitly.
-        expect(
-          wrapper
-            .find('AlertLink')
-            .first()
-            .text()
-        ).toMatch(/Your Test-Org repositories can.t send commit data to Sentry/);
-      });
-
-      it('opens the new Integration dialog when the warning is clicked', () => {
-        wrapper
-          .find('AlertLink')
-          .first()
-          .simulate('click');
-
-        expect(open.mock.calls).toHaveLength(1);
-        expect(focus.mock.calls).toHaveLength(1);
-        expect(open.mock.calls[0][2]).toBe(
-          'scrollbars=yes,width=100,height=100,top=334,left=462'
-        );
       });
     });
   });
