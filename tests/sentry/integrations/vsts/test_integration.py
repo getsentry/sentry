@@ -46,7 +46,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url=u'{}/DefaultCollection/_git/{}'.format(
+            url=u'{}/_git/{}'.format(
                 self.vsts_base_url,
                 self.repo_name,
             ),
@@ -88,7 +88,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url=u'https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+            url=u'https://{}.visualstudio.com/_git/{}'.format(
                 self.vsts_account_name,
                 self.repo_name,
             ),
@@ -113,7 +113,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a['name'],
-            url=u'https://{}.visualstudio.com/DefaultCollection/_git/{}'.format(
+            url=u'https://{}.visualstudio.com/_git/{}'.format(
                 self.vsts_account_name,
                 self.repo_name,
             ),

@@ -115,7 +115,7 @@ class VstsIssueSycnTest(TestCase):
     def test_get_issue(self):
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%s' % self.issue_id,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%s' % self.issue_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -135,7 +135,7 @@ class VstsIssueSycnTest(TestCase):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -158,7 +158,7 @@ class VstsIssueSycnTest(TestCase):
         assert len(responses.calls) == 2
         assert responses.calls[0].request.url == 'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users'
         assert responses.calls[0].response.status_code == 200
-        assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id
+        assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id
         assert responses.calls[1].response.status_code == 200
 
     @responses.activate
@@ -166,7 +166,7 @@ class VstsIssueSycnTest(TestCase):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
@@ -178,13 +178,13 @@ class VstsIssueSycnTest(TestCase):
         )
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id,
             body=WORK_ITEM_RESPONSE,
             content_type='application/json',
         )
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/projects',
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects',
             body=GET_PROJECTS_RESPONSE,
             content_type='application/json',
         )
@@ -206,7 +206,7 @@ class VstsIssueSycnTest(TestCase):
         self.integration.sync_status_outbound(external_issue, True, self.project.id)
         assert len(responses.calls) == 3
         req = responses.calls[2].request
-        assert req.url == 'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/wit/workitems/%d' % vsts_work_item_id
+        assert req.url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id
         assert req.body == '[{"path": "/fields/System.State", "value": "Resolved", "op": "replace"}]'
         assert responses.calls[2].response.status_code == 200
 
