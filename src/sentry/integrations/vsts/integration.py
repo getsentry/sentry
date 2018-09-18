@@ -298,7 +298,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     integration_cls = VstsIntegration
 
     features = frozenset([
-        IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.ISSUE_BASIC,
         IntegrationFeatures.ISSUE_SYNC,
         IntegrationFeatures.COMMITS
     ])
