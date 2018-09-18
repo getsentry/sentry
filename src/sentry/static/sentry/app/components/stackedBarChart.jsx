@@ -257,10 +257,11 @@ const StackedBarChart = createReactClass({
       let pt = (
         <rect
           x={index * pointWidth}
-          y={100 - pct}
+          y={100 - pct - prevPct}
           width={pointWidth - space}
           height={pct}
-          fill="#aab"
+          fill={this.state.series[i].color}
+          className={this.props.barClasses[i]}
         />
       );
       prevPct += pct;

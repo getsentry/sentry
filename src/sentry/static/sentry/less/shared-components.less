@@ -1147,28 +1147,33 @@ table.integrations {
     margin-bottom: 20px;
     position: relative;
 
-    a {
+    a,
+    g {
       height: 90px;
       position: relative;
       cursor: default;
 
-      span {
+      span,
+      rect {
         display: block;
         min-height: 2px;
 
         &.accepted {
           background: @gray-lightest;
+          fill: @gray-lightest;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red;
+          fill: @red;
           min-height: 0;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-light;
+          fill: @orange-light;
           min-height: 0;
         }
       }
