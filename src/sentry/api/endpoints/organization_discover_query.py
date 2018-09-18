@@ -13,7 +13,7 @@ from sentry.utils.dates import (
 )
 
 from sentry.api.serializers.rest_framework import ListField
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization import OrganizationDiscoverPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
@@ -21,13 +21,7 @@ from sentry import roles
 from sentry import features
 
 
-class OrganizationDiscoverPermission(OrganizationPermission):
-    scope_map = {
-        'POST': ['org:read', 'project:read']
-    }
-
-
-class DiscoverSerializer(serializers.Serializer):
+class DiscoverQuerySerializer(serializers.Serializer):
     projects = ListField(
         child=serializers.IntegerField(),
         required=True,
@@ -62,7 +56,7 @@ class DiscoverSerializer(serializers.Serializer):
     )
 
     def __init__(self, *args, **kwargs):
-        super(DiscoverSerializer, self).__init__(*args, **kwargs)
+        super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
         self.member = OrganizationMember.objects.get(
             user=self.context['user'], organization=self.context['organization'])
 
@@ -189,7 +183,7 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
         if not features.has('organizations:discover', organization, actor=request.user):
             return self.respond(status=404)
 
-        serializer = DiscoverSerializer(
+        serializer = DiscoverQuerySerializer(
             data=request.DATA, context={
                 'organization': organization, 'user': request.user})
 

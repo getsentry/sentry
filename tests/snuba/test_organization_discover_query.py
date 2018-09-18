@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-import time
-import uuid
 
 from sentry.testutils import APITestCase
 from django.core.urlresolvers import reverse
@@ -24,16 +22,16 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             organization=self.org,
         )
 
-        events = [{
-            'event_id': uuid.uuid4().hex,
-            'primary_hash': uuid.uuid4().hex,
-            'project_id': self.project.id,
-            'message': 'message!',
-            'platform': 'python',
-            'datetime': one_second_ago.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            'data': {
-                'received': time.mktime(one_second_ago.timetuple()),
-                'exception': {
+        self.group = self.create_group(project=self.project)
+
+        self.event = self.create_event(
+            group=self.group,
+            message="message!",
+            platform="python",
+            datetime=one_second_ago,
+            tags={'environment': 'production'},
+            data={
+                'sentry.interfaces.Exception': {
                     'values': [
                         {
                             'type': 'ValidationError',
@@ -55,12 +53,9 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                             },
                         }
                     ]
-                },
+                }
             },
-
-        }]
-
-        self.snuba_insert(events)
+        )
 
     def test(self):
         with self.feature('organizations:discover'):
