@@ -251,15 +251,14 @@ const StackedBarChart = createReactClass({
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
-    let gap = index == 0 ? 0 : 1;
     let pts = point.y.map((y, i) => {
       let pct = totalY && this.floatFormat(y / totalY * totalPct * 99, 2);
       let height = Math.random() * 100;
       let pt = (
         <rect
-          x={index * pointWidth + '%'}
-          y={100 - height + '%'}
-          width={pointWidth - 1 + '%'}
+          x={index * pointWidth}
+          y={100 - height}
+          width={pointWidth - 1}
           height={height}
           fill="#aab"
         />
@@ -335,7 +334,7 @@ const StackedBarChart = createReactClass({
         <span className="min-y">0</span>
         <svg
           shapeRendering="geometricPrecision"
-          viewBox={'0 0 100 99'}
+          viewBox={'0 0 99.9 99.9'}
           preserveAspectRatio="none"
           style={{width: '100%', height: '100%'}}
         >
