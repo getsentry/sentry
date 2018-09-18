@@ -885,6 +885,7 @@ class V2TagStorage(TagStorage):
             _key__project_id__in=project_ids,
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
+            _value___key=F('_key'),
             _value__value__in=[eu.tag_value for eu in event_users],
         ).extra(where=[
             # Force the join also through the shard
@@ -986,7 +987,7 @@ class V2TagStorage(TagStorage):
             )
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
-            order_by='-last_seen'):
+                                order_by='-last_seen'):
         from sentry.api.paginator import DateTimePaginator
 
         qs = models.TagValue.objects.select_related('_key').filter(
@@ -1016,7 +1017,7 @@ class V2TagStorage(TagStorage):
         return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
 
     def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
-            order_by='-id'):
+                                      order_by='-id'):
         from sentry.api.paginator import DateTimePaginator, Paginator
 
         qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)
