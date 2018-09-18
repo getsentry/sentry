@@ -8,10 +8,8 @@ import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
 import ConfigStore from 'app/stores/configStore';
 
-const StackedBarChart = createReactClass({
-  displayName: 'StackedBarChart',
-
-  propTypes: {
+class StackedBarChart extends React.Component {
+  static propTypes = {
     // TODO(dcramer): DEPRECATED, use series instead
     points: PropTypes.arrayOf(
       PropTypes.shape({
@@ -42,73 +40,74 @@ const StackedBarChart = createReactClass({
     ),
     tooltip: PropTypes.func,
     barClasses: PropTypes.array,
-  },
+  };
 
-  statics: {
-    getInterval(series) {
-      // TODO(dcramer): not guaranteed correct
-      return series.length && series[0].data.length > 1
-        ? series[0].data[1].x - series[0].data[0].x
-        : null;
-    },
+  static defaultProps = {
+    className: 'sparkline',
+    height: null,
+    label: '',
+    points: [],
+    series: [],
+    markers: [],
+    width: null,
+    barClasses: ['chart-bar'],
+  };
 
-    pointsToSeries(points) {
-      let series = [];
-      points.forEach((p, pIdx) => {
-        p.y.forEach((y, yIdx) => {
-          if (!series[yIdx]) {
-            series[yIdx] = {data: []};
-          }
-          series[yIdx].data.push({x: p.x, y});
-        });
+  getInterval = series => {
+    // TODO(dcramer): not guaranteed correct
+    return series.length && series[0].data.length > 1
+      ? series[0].data[1].x - series[0].data[0].x
+      : null;
+  };
+
+  pointsToSeries = points => {
+    let series = [];
+    points.forEach((p, pIdx) => {
+      p.y.forEach((y, yIdx) => {
+        if (!series[yIdx]) {
+          series[yIdx] = {data: []};
+        }
+        series[yIdx].data.push({x: p.x, y});
       });
-      return series;
-    },
+    });
+    return series;
+  };
 
-    pointIndex(series) {
-      let points = {};
-      series.forEach(s => {
-        s.data.forEach(p => {
-          if (!points[p.x]) {
-            points[p.x] = {y: [], x: p.x};
-          }
-          points[p.x].y.push(p.y);
-        });
+  pointIndex = series => {
+    let points = {};
+    series.forEach(s => {
+      s.data.forEach(p => {
+        if (!points[p.x]) {
+          points[p.x] = {y: [], x: p.x};
+        }
+        points[p.x].y.push(p.y);
       });
-      return points;
-    },
-  },
+    });
+    return points;
+  };
 
-  getDefaultProps() {
-    return {
-      className: 'sparkline',
-      height: null,
-      label: '',
-      points: [],
-      series: [],
-      markers: [],
-      width: null,
-      barClasses: ['chart-bar'],
-    };
-  },
+  funTime = () => console.log('hi');
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
+
     // massage points
     let series = this.props.series;
+
     if (this.props.points.length) {
       if (series.length) {
         throw new Error('Only one of [points|series] should be specified.');
       }
 
-      series = StackedBarChart.pointsToSeries(this.props.points);
+      series = this.pointsToSeries(this.props.points);
     }
 
-    return {
+    this.state = {
       series,
-      pointIndex: StackedBarChart.pointIndex(series),
-      interval: StackedBarChart.getInterval(series),
+      pointIndex: this.pointIndex(series),
+      interval: this.getInterval(series),
     };
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.points || nextProps.series) {
@@ -118,31 +117,31 @@ const StackedBarChart = createReactClass({
           throw new Error('Only one of [points|series] should be specified.');
         }
 
-        series = StackedBarChart.pointsToSeries(nextProps.points);
+        series = this.pointsToSeries(nextProps.points);
       }
 
       this.setState({
         series,
-        pointIndex: StackedBarChart.pointIndex(series),
-        interval: StackedBarChart.getInterval(series),
+        pointIndex: this.pointIndex(series),
+        interval: this.getInterval(series),
       });
     }
-  },
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     return !_.isEqual(this.props, nextProps);
-  },
+  }
 
   use24Hours() {
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
     return options.clock24Hours;
-  },
+  }
 
   floatFormat(number, places) {
     let multi = Math.pow(10, places);
     return parseInt(number * multi, 10) / multi;
-  },
+  }
 
   timeLabelAsHour(point) {
     let timeMoment = moment(point.x * 1000);
@@ -158,13 +157,13 @@ const StackedBarChart = createReactClass({
       nextMoment.format(format) +
       '</span>'
     );
-  },
+  }
 
   timeLabelAsDay(point) {
     let timeMoment = moment(point.x * 1000);
 
     return `<span>${timeMoment.format('LL')}</span>`;
-  },
+  }
 
   timeLabelAsRange(interval, point) {
     let timeMoment = moment(point.x * 1000);
@@ -179,12 +178,12 @@ const StackedBarChart = createReactClass({
       nextMoment.format(format) +
       '</span>'
     );
-  },
+  }
 
   timeLabelAsFull(point) {
     let timeMoment = moment(point.x * 1000);
     return timeMoment.format('lll');
-  },
+  }
 
   getTimeLabel(point) {
     switch (this.state.interval) {
@@ -197,7 +196,7 @@ const StackedBarChart = createReactClass({
       default:
         return this.timeLabelAsRange(this.state.interval, point);
     }
-  },
+  }
 
   maxPointValue() {
     return Math.max(
@@ -206,7 +205,7 @@ const StackedBarChart = createReactClass({
         .map(s => Math.max(...s.data.map(p => p.y)))
         .reduce((a, b) => a + b, 0)
     );
-  },
+  }
 
   renderMarker(marker) {
     let timeLabel = moment(marker.x * 1000).format('lll');
@@ -224,7 +223,7 @@ const StackedBarChart = createReactClass({
         </a>
       </Tooltip>
     );
-  },
+  }
 
   renderTooltip(point, pointIdx) {
     let timeLabel = this.getTimeLabel(point);
@@ -245,7 +244,7 @@ const StackedBarChart = createReactClass({
       }
     });
     return title;
-  },
+  }
 
   renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
     let totalY = point.y.reduce((a, b) => a + b);
@@ -280,10 +279,10 @@ const StackedBarChart = createReactClass({
         key={point.x}
         tooltipOptions={{html: true, placement: 'bottom'}}
       >
-        <g>{pts}</g>
+        <g onHover={this.funTime}>{pts}</g>
       </Tooltip>
     );
-  },
+  }
 
   renderChart() {
     let {pointIndex, series} = this.state;
@@ -325,7 +324,7 @@ const StackedBarChart = createReactClass({
     });
 
     return children;
-  },
+  }
 
   render() {
     let {className, style, height, width} = this.props;
@@ -348,7 +347,7 @@ const StackedBarChart = createReactClass({
         </svg>
       </figure>
     );
-  },
-});
+  }
+}
 
 export default StackedBarChart;
