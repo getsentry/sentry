@@ -157,26 +157,7 @@ exports[`Configure should render correctly render() should render platform docs 
             }
             router={
               Object {
-                "createHref": [MockFunction] {
-                  "calls": Array [
-                    Array [
-                      "/onboarding/testOrg/project-slug/configure/node/",
-                    ],
-                    Array [
-                      "/onboarding/testOrg/project-slug/configure/node/",
-                    ],
-                  ],
-                  "results": Array [
-                    Object {
-                      "isThrow": false,
-                      "value": undefined,
-                    },
-                    Object {
-                      "isThrow": false,
-                      "value": undefined,
-                    },
-                  ],
-                },
+                "createHref": [MockFunction],
                 "go": [MockFunction],
                 "goBack": [MockFunction],
                 "goForward": [MockFunction],
@@ -237,7 +218,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       className="install row"
                     >
                       <div
-                        className="install-content col-md-10"
+                        className="install-content col-lg-10"
                       >
                         <Panel>
                           <Component
@@ -268,88 +249,192 @@ exports[`Configure should render correctly render() should render platform docs 
                                         is={null}
                                       >
                                         Configure node
-                                        <Button
-                                          alignLabel="left"
-                                          disabled={false}
-                                          external={true}
-                                          href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                          size="small"
-                                        >
-                                          <StyledButton
-                                            aria-label="Full Documentation"
-                                            disabled={false}
-                                            external={true}
-                                            href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                            onClick={[Function]}
-                                            role="button"
-                                            size="small"
+                                        <Flex>
+                                          <Base
+                                            className="css-sncxrr"
                                           >
-                                            <Component
-                                              aria-label="Full Documentation"
-                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                              disabled={false}
-                                              external={true}
-                                              href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                              onClick={[Function]}
-                                              role="button"
-                                              size="small"
+                                            <div
+                                              className="css-sncxrr"
+                                              is={null}
                                             >
-                                              <ExternalLink
-                                                aria-label="Full Documentation"
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                disabled={false}
-                                                href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                onClick={[Function]}
-                                                rel="noreferrer noopener"
-                                                role="button"
-                                                size="small"
-                                                target="_blank"
+                                              <Box
+                                                ml={1}
                                               >
-                                                <a
-                                                  aria-label="Full Documentation"
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                                  disabled={false}
-                                                  href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                  onClick={[Function]}
-                                                  rel="noreferrer noopener"
-                                                  role="button"
-                                                  size="small"
-                                                  target="_blank"
+                                                <Base
+                                                  className="css-re0chm"
+                                                  ml={1}
                                                 >
-                                                  <ButtonLabel
-                                                    justify="flex-start"
-                                                    size="small"
+                                                  <div
+                                                    className="css-re0chm"
+                                                    is={null}
                                                   >
-                                                    <Component
-                                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                                      justify="flex-start"
+                                                    <Button
+                                                      alignLabel="left"
+                                                      disabled={false}
+                                                      href="/testOrg/project-slug/getting-started/"
                                                       size="small"
                                                     >
-                                                      <Flex
-                                                        align="center"
-                                                        className="css-o42ntg-ButtonLabel eqrebog1"
-                                                        justify="flex-start"
+                                                      <StyledButton
+                                                        aria-label="< Back"
+                                                        disabled={false}
+                                                        href="/testOrg/project-slug/getting-started/"
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        size="small"
                                                       >
-                                                        <Base
-                                                          align="center"
-                                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                          justify="flex-start"
+                                                        <Component
+                                                          aria-label="< Back"
+                                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                          disabled={false}
+                                                          href="/testOrg/project-slug/getting-started/"
+                                                          onClick={[Function]}
+                                                          role="button"
+                                                          size="small"
                                                         >
-                                                          <div
-                                                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                            is={null}
+                                                          <a
+                                                            aria-label="< Back"
+                                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                            disabled={false}
+                                                            href="/testOrg/project-slug/getting-started/"
+                                                            onClick={[Function]}
+                                                            role="button"
+                                                            size="small"
                                                           >
-                                                            Full Documentation
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </ExternalLink>
-                                            </Component>
-                                          </StyledButton>
-                                        </Button>
+                                                            <ButtonLabel
+                                                              justify="flex-start"
+                                                              size="small"
+                                                            >
+                                                              <Component
+                                                                className="css-o42ntg-ButtonLabel eqrebog1"
+                                                                justify="flex-start"
+                                                                size="small"
+                                                              >
+                                                                <Flex
+                                                                  align="center"
+                                                                  className="css-o42ntg-ButtonLabel eqrebog1"
+                                                                  justify="flex-start"
+                                                                >
+                                                                  <Base
+                                                                    align="center"
+                                                                    className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                                    justify="flex-start"
+                                                                  >
+                                                                    <div
+                                                                      className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                                      is={null}
+                                                                    >
+                                                                      &lt; Back
+                                                                    </div>
+                                                                  </Base>
+                                                                </Flex>
+                                                              </Component>
+                                                            </ButtonLabel>
+                                                          </a>
+                                                        </Component>
+                                                      </StyledButton>
+                                                    </Button>
+                                                  </div>
+                                                </Base>
+                                              </Box>
+                                              <Box
+                                                ml={1}
+                                              >
+                                                <Base
+                                                  className="css-re0chm"
+                                                  ml={1}
+                                                >
+                                                  <div
+                                                    className="css-re0chm"
+                                                    is={null}
+                                                  >
+                                                    <Button
+                                                      alignLabel="left"
+                                                      disabled={false}
+                                                      external={true}
+                                                      href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                                      size="small"
+                                                    >
+                                                      <StyledButton
+                                                        aria-label="Full Documentation"
+                                                        disabled={false}
+                                                        external={true}
+                                                        href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        size="small"
+                                                      >
+                                                        <Component
+                                                          aria-label="Full Documentation"
+                                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                          disabled={false}
+                                                          external={true}
+                                                          href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                                          onClick={[Function]}
+                                                          role="button"
+                                                          size="small"
+                                                        >
+                                                          <ExternalLink
+                                                            aria-label="Full Documentation"
+                                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                            disabled={false}
+                                                            href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                                            onClick={[Function]}
+                                                            rel="noreferrer noopener"
+                                                            role="button"
+                                                            size="small"
+                                                            target="_blank"
+                                                          >
+                                                            <a
+                                                              aria-label="Full Documentation"
+                                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                              disabled={false}
+                                                              href="https://docs.getsentry.com/hosted/clients/csharp/"
+                                                              onClick={[Function]}
+                                                              rel="noreferrer noopener"
+                                                              role="button"
+                                                              size="small"
+                                                              target="_blank"
+                                                            >
+                                                              <ButtonLabel
+                                                                justify="flex-start"
+                                                                size="small"
+                                                              >
+                                                                <Component
+                                                                  className="css-o42ntg-ButtonLabel eqrebog1"
+                                                                  justify="flex-start"
+                                                                  size="small"
+                                                                >
+                                                                  <Flex
+                                                                    align="center"
+                                                                    className="css-o42ntg-ButtonLabel eqrebog1"
+                                                                    justify="flex-start"
+                                                                  >
+                                                                    <Base
+                                                                      align="center"
+                                                                      className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                                      justify="flex-start"
+                                                                    >
+                                                                      <div
+                                                                        className="eqrebog1 css-gzxb22-ButtonLabel"
+                                                                        is={null}
+                                                                      >
+                                                                        Full Documentation
+                                                                      </div>
+                                                                    </Base>
+                                                                  </Flex>
+                                                                </Component>
+                                                              </ButtonLabel>
+                                                            </a>
+                                                          </ExternalLink>
+                                                        </Component>
+                                                      </StyledButton>
+                                                    </Button>
+                                                  </div>
+                                                </Base>
+                                              </Box>
+                                            </div>
+                                          </Base>
+                                        </Flex>
                                       </div>
                                     </Base>
                                   </Flex>
@@ -432,75 +517,6 @@ exports[`Configure should render correctly render() should render platform docs 
                             </div>
                           </Component>
                         </Panel>
-                      </div>
-                      <div
-                        className="install-sidebar col-md-2"
-                      >
-                        <LanguageNav
-                          active={true}
-                          key="javascript"
-                          name="js"
-                        >
-                          <div
-                            className="install-language-nav"
-                          >
-                            <ul
-                              className="list-group"
-                            >
-                              <li
-                                className="list-group-item list-group-header"
-                              >
-                                <a
-                                  onClick={[Function]}
-                                  style={
-                                    Object {
-                                      "display": "block",
-                                    }
-                                  }
-                                >
-                                  <span
-                                    className="pull-right"
-                                  >
-                                    <span
-                                      className="icon-minus"
-                                    />
-                                  </span>
-                                  <strong>
-                                    js
-                                  </strong>
-                                </a>
-                              </li>
-                              <span
-                                style={
-                                  Object {
-                                    "display": "block",
-                                  }
-                                }
-                              >
-                                <Link
-                                  className="list-group-item"
-                                  key="node"
-                                  to="/onboarding/testOrg/project-slug/configure/node/"
-                                >
-                                  <Link
-                                    className="list-group-item"
-                                    onlyActiveOnIndex={false}
-                                    style={Object {}}
-                                    to="/onboarding/testOrg/project-slug/configure/node/"
-                                  >
-                                    <a
-                                      className="list-group-item"
-                                      onClick={[Function]}
-                                      style={Object {}}
-                                    >
-                                      node
-                                    </a>
-                                  </Link>
-                                </Link>
-                              </span>
-                            </ul>
-                          </div>
-                        </LanguageNav>
                       </div>
                     </div>
                   </ProjectInstallPlatform>
