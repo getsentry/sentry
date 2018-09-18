@@ -205,9 +205,23 @@ export default class IntegrationRepos extends AsyncComponent {
       ? this.handleSearchRepositories
       : null;
 
+    // need a default cause DropdownAutoCompleteMenu won't render the input box
+    // if there aren't any options to perform a search on (when items is empty).
+    // When a search doesn't have repos matches we get items == [].
+    let defaultItem = [
+      {
+        searchKey: '',
+        value: '',
+        label: (
+          <StyledListElement>
+            <StyledName>Loading...</StyledName>
+          </StyledListElement>
+        ),
+      },
+    ];
     return (
       <DropdownAutoComplete
-        items={items}
+        items={!!items.length ? items : defaultItem}
         onSelect={this.addRepo.bind(this)}
         onChange={onChange}
         menuHeader={menuHeader}
