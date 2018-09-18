@@ -391,10 +391,11 @@ const Frame = createReactClass({
               </span>
             )}
             {hint !== null ? (
-              <a key="inline" className="tip" data-title={_.escape(hint)}>
-                {' '}
-                <span className="icon-question" />
-              </a>
+              <Tooltip title={_.escape(hint)}>
+                <a key="inline">
+                  <span className="icon-question" />
+                </a>
+              </Tooltip>
             ) : null}
             {this.renderExpander()}
           </span>
