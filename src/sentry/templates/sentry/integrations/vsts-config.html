@@ -6,17 +6,17 @@
 {% block wrapperclass %}narrow auth{% endblock %}
 {% block modal_header_signout %}{% endblock %}
 
-{% block title %}{% trans "Visual Studio Team Services Setup" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Azure DevOps Setup" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-<h3>Visual Studio Team Services Configuration</h3>
+<h3>Azure DevOps Configuration</h3>
 
 <form action="" method="post" class="form-stacked">
   {% csrf_token %}
   <input type="hidden" name="provider" value="vsts" />
 
   <p>
-    Configure Visual Studio Team Services to use with Sentry.io.
+    Configure Azure DevOps to use with Sentry.io.
   </p>
 
   {{ form|as_crispy_errors }}
