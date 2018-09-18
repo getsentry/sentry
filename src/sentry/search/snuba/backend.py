@@ -261,6 +261,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         num_chunks = 0
         paginator_results = Paginator(Group.objects.none()).get_result()
         result_groups = []
+        result_group_ids = set()
 
         # Do smaller searches in chunks until we have enough results
         # to answer the query (or hit the end of possible results). We do
@@ -305,28 +306,28 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     id__in=[gid for gid, _ in snuba_groups]
                 ).values_list('id', flat=True)
 
-                existing_group_ids = set(r[0] for r in result_groups)
                 group_to_score = dict(snuba_groups)
                 for group_id in filtered_group_ids:
-                    if group_id in existing_group_ids:
+                    if group_id in result_group_ids:
                         # because we're doing multiple Snuba queries, which
-                        # happen outside a transaction, there is a small possibility
+                        # happen outside of a transaction, there is a small possibility
                         # of groups moving around in the sort scoring underneath us,
                         # so we at least want to protect against duplicates
                         continue
 
+                    result_group_ids.add(group_id)
                     result_groups.append((group_id, group_to_score[group_id]))
 
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups],
                 reverse=True,
                 **paginator_options
-            ).get_result(limit, cursor, count_hits=count_hits)
+            ).get_result(limit, cursor, count_hits=False)
 
             # break the query loop for one of three reasons:
-            # * we started with Postgres candidates and so only do one iteration
-            # * the paginator is returning >= the limit
-            # * there are no more groups in Snuba to test against
+            # * we started with Postgres candidates and so only do one Snuba query max
+            # * the paginator is returning enough results to satisfy the query (>= the limit)
+            # * there are no more groups in Snuba to post-filter
             if candidate_hashes \
                     or len(paginator_results.results) >= limit \
                     or not more_results:
