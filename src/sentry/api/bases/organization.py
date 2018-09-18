@@ -129,6 +129,13 @@ class OrganizationAuthProviderPermission(OrganizationPermission):
     }
 
 
+class OrganizationDiscoverPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'project:read'],
+        'POST': ['org:read', 'project:read'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
