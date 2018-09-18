@@ -247,19 +247,19 @@ const StackedBarChart = createReactClass({
     return title;
   },
 
-  renderChartColumn(point, maxval, pointWidth, index) {
+  renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
+    let space = 36 / totalPoints;
     let pts = point.y.map((y, i) => {
-      let pct = totalY && this.floatFormat(y / totalY * totalPct * 99, 2);
-      let height = Math.random() * 100;
+      let pct = Math.max(totalY && this.floatFormat(y / totalY * totalPct * 99, 2), 1.5);
       let pt = (
         <rect
           x={index * pointWidth}
-          y={100 - height}
-          width={pointWidth - 1}
-          height={height}
+          y={100 - pct}
+          width={pointWidth - space}
+          height={pct}
           fill="#aab"
         />
       );
@@ -309,7 +309,9 @@ const StackedBarChart = createReactClass({
         children.push(this.renderMarker(markers.shift()));
       }
 
-      children.push(this.renderChartColumn(point, maxval, pointWidth, index));
+      children.push(
+        this.renderChartColumn(point, maxval, pointWidth, index, totalPoints)
+      );
     });
 
     // in bizarre case where markers never got rendered, render them last
