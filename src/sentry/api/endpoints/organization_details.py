@@ -15,9 +15,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializer)
 from sentry.api.serializers.rest_framework import ListField
+from sentry.auth.providers.saml2 import SAML2Provider
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
-    AuditLogEntryEvent, Authenticator, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
+    AuditLogEntryEvent, Authenticator, AuthProvider, Organization, OrganizationAvatar,
+    OrganizationOption, OrganizationStatus,
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -99,6 +101,14 @@ class OrganizationSerializer(serializers.Serializer):
             key__in=LEGACY_RATE_LIMIT_OPTIONS,
         ).exists()
 
+    def _has_saml_enabled(self):
+        org = self.context['organization']
+        try:
+            provider = AuthProvider.objects.get(organization=org).get_provider()
+        except AuthProvider.DoesNotExist:
+            return False
+        return isinstance(provider, SAML2Provider)
+
     def validate_slug(self, attrs, source):
         value = attrs[source]
         # Historically, the only check just made sure there was more than 1
@@ -139,6 +149,9 @@ class OrganizationSerializer(serializers.Serializer):
         if value and not has_2fa:
             raise serializers.ValidationError(
                 'Cannot require two-factor authentication without personal two-factor enabled.')
+        if value and self._has_saml_enabled():
+            raise serializers.ValidationError(
+                'Cannot require two-factor authentication with SAML SSO enabled')
         return attrs
 
     def validate_accountRateLimit(self, attrs, source):
