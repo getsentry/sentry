@@ -343,6 +343,21 @@ class SnubaSearchTest(SnubaTestCase):
         assert set(results) == set([])
 
     def test_pagination(self):
+        # test with and without max-pre-snuba-candidates enabled
+        prev_max_pre = options.get('snuba.search.max-pre-snuba-candidates')
+        options.set('snuba.search.max-pre-snuba-candidates', None)
+        try:
+            results = self.backend.query(self.project, limit=1, sort_by='date')
+            assert set(results) == set([self.group1])
+
+            results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+            assert set(results) == set([self.group2])
+
+            results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+            assert set(results) == set([])
+        finally:
+            options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)
+
         results = self.backend.query(self.project, limit=1, sort_by='date')
         assert set(results) == set([self.group1])
 
@@ -781,6 +796,10 @@ class SnubaSearchTest(SnubaTestCase):
                     return isinstance(other, cls)
             return Any()
 
+        DEFAULT_LIMIT = 100
+        chunk_growth = options.get('snuba.search.chunk-growth-rate')
+        limit = (DEFAULT_LIMIT * chunk_growth) + 1
+
         common_args = {
             'start': Any(datetime),
             'end': Any(datetime),
@@ -791,7 +810,7 @@ class SnubaSearchTest(SnubaTestCase):
             'referrer': 'search',
             'groupby': ['primary_hash'],
             'conditions': [],
-            'limit': 1001,
+            'limit': limit,
             'offset': 0,
         }
 

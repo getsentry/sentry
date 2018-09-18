@@ -228,7 +228,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
         # pre-filter query
         candidate_hashes = None
-        if max_pre_snuba_candidates:
+        if max_pre_snuba_candidates and limit <= max_pre_snuba_candidates:
             candidate_hashes = dict(
                 GroupHash.objects.filter(
                     group__in=group_queryset
@@ -256,12 +256,18 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 candidate_hashes = None
 
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
+
+        chunk_growth = options.get('snuba.search.chunk-growth-rate')
+        max_chunk_size = options.get('snuba.search.max-chunk-size')
         chunk_limit = limit
         offset = 0
         num_chunks = 0
+
         paginator_results = Paginator(Group.objects.none()).get_result()
         result_groups = []
         result_group_ids = set()
+        min_score = float('inf')
+        max_score = -1
 
         # Do smaller searches in chunks until we have enough results
         # to answer the query (or hit the end of possible results). We do
@@ -271,7 +277,12 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # when typically the first N results will do.
         while True:
             num_chunks += 1
-            chunk_limit = max(chunk_limit * 2, 1000)
+
+            # grow the chunk size on each iteration to account for huge projects
+            # and weird queries, up to a max size
+            chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
+            # but if we have candidate_hashes always query for at least that many items
+            chunk_limit = max(chunk_limit, len(candidate_hashes) if candidate_hashes else 0)
 
             # {group_id: group_score, ...}
             snuba_groups, more_results = snuba_search(
@@ -315,8 +326,32 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                         # so we at least want to protect against duplicates
                         continue
 
+                    group_score = group_to_score[group_id]
                     result_group_ids.add(group_id)
-                    result_groups.append((group_id, group_to_score[group_id]))
+                    result_groups.append((group_id, group_score))
+
+                    # used for cursor logic
+                    min_score = min(min_score, group_score)
+                    max_score = max(max_score, group_score)
+
+            # HACK: If a cursor is being used and there may be more results available
+            # in Snuba, we need to detect whether the cursor's value will be
+            # found in the result groups. If it isn't in the results yet we need to
+            # continue querying before we hand off to the paginator to decide whether
+            # enough results are found or not, otherwise the paginator will happily
+            # return `limit` worth of results that don't take the cursor into account
+            # at all, since it can't know there are more results available.
+            # TODO: If chunked search works in practice we should probably extend the
+            # paginator to throw something if the cursor value is never found, or do
+            # something other than partially leak internal paginator logic up to here.
+            # Or make separate Paginator implementation just for Snuba search?
+            if cursor is not None \
+                    and not candidate_hashes \
+                    and more_results:
+                if cursor.is_prev and min_score < cursor.value:
+                    continue
+                elif not cursor.is_prev and max_score > cursor.value:
+                    continue
 
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups],
