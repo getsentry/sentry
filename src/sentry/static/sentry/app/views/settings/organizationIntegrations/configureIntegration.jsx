@@ -54,7 +54,7 @@ export default class ConfigureIntegration extends AsyncView {
           </Form>
         )}
 
-        {provider.features.includes('alert_rule') && (
+        {provider.features.includes('alert-rule') && (
           <IntegrationAlertRules integration={integration} />
         )}
 
