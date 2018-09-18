@@ -1,3 +1,4 @@
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -7,7 +8,6 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
-import LanguageNav from 'app/views/projectInstall/languageNav';
 import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -104,30 +104,6 @@ const ProjectInstallPlatform = createReactClass({
     );
   },
 
-  renderSidebar() {
-    let platform = this.state.platform;
-    return (
-      <div className="install-sidebar col-md-2">
-        {this.props.platformData.platforms.map(p_item => {
-          return (
-            <LanguageNav
-              key={p_item.id}
-              name={p_item.name}
-              active={platform && platform.id === p_item.id}
-            >
-              {p_item.integrations.map(i_item => {
-                return this.getPlatformLink(
-                  i_item.id,
-                  i_item.id === p_item.id ? t('Generic') : i_item.name
-                );
-              })}
-            </LanguageNav>
-          );
-        })}
-      </div>
-    );
-  },
-
   renderBody() {
     let {integration, platform} = this.state;
     let {orgId, projectId} = this.props.params;
@@ -140,9 +116,18 @@ const ProjectInstallPlatform = createReactClass({
       <Panel>
         <PanelHeader hasButtons>
           {t('Configure %(integration)s', {integration: integration.name})}
-          <Button size="small" href={integration.link} external>
-            {t('Full Documentation')}
-          </Button>
+          <Flex>
+            <Box ml={1}>
+              <Button size="small" href={`/${orgId}/${projectId}/getting-started/`}>
+                {t('Back')}
+              </Button>
+            </Box>
+            <Box ml={1}>
+              <Button size="small" href={integration.link} external>
+                {t('Full Documentation')}
+              </Button>
+            </Box>
+          </Flex>
         </PanelHeader>
 
         <PanelBody disablePadding={false}>
@@ -186,8 +171,7 @@ const ProjectInstallPlatform = createReactClass({
   render() {
     return (
       <div className="install row">
-        <div className="install-content col-md-10">{this.renderBody()}</div>
-        {this.renderSidebar()}
+        <div className="install-content col-md-8 col-md-offset-2">{this.renderBody()}</div>
       </div>
     );
   },
