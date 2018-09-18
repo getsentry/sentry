@@ -253,7 +253,10 @@ const StackedBarChart = createReactClass({
     let prevPct = 0;
     let space = 36 / totalPoints;
     let pts = point.y.map((y, i) => {
-      let pct = Math.max(totalY && this.floatFormat(y / totalY * totalPct * 99, 2), 1.5);
+      let pct = Math.max(
+        totalY && this.floatFormat(y / totalY * totalPct * 99, 2),
+        i == 0 ? 1.5 : 0
+      );
       let pt = (
         <rect
           x={index * pointWidth}
