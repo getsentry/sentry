@@ -36,3 +36,20 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['name'] == 'Test query'
+
+    def test_post(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-saved-queries', args=[self.org.slug])
+            response = self.client.post(url, {
+                'name': 'New query',
+                'projects': [2],
+                'fields': [],
+                'range': '24h',
+                'limit': 20,
+                'conditions': [],
+                'aggregations': [],
+                'orderby': '-time',
+            })
+
+        assert response.status_code == 201, response.content
+        assert response.data['name'] == 'New query'
