@@ -22,13 +22,14 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         """
         provider_list = []
         for k, v in manager:
-            if issubclass(v, SAML2Provider) and not HAS_SAML2:
+            is_saml = issubclass(v, SAML2Provider)
+            if is_saml and not HAS_SAML2:
                 continue
 
             feature = v.required_feature
             if feature and not features.has(feature, organization, actor=request.user):
                 continue
 
-            provider_list.append((k, v.name))
+            provider_list.append((k, v.name, is_saml))
 
         return Response(serialize(provider_list, request.user))

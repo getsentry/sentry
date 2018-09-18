@@ -13,6 +13,7 @@ from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
+    AuthProvider,
     DeletedOrganization,
     Organization,
     OrganizationAvatar,
@@ -566,6 +567,22 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_cannot_enforce_2fa_with_saml_enabled(self):
+        self.auth_provider = AuthProvider.objects.create(
+            provider='saml2',
+            organization=self.org_2fa,
+        )
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_can_enforce_2fa_with_non_saml_sso_enabled(self):
+        org = self.create_organization(owner=self.owner)
+        TotpInterface().enroll(self.owner)
+        self.auth_provider = AuthProvider.objects.create(
+            provider='github',
+            organization=org,
+        )
+        self.assert_can_enable_org_2fa(self.organization, self.owner)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)

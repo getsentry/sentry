@@ -9,9 +9,13 @@ from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.db import models
 
 from sentry.auth.providers.saml2 import SAML2Provider, Attributes, HAS_SAML2
-from sentry.models import AuthProvider
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization,
+    TotpInterface
+)
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 
@@ -48,6 +52,14 @@ class AuthSAML2Test(AuthProviderTestCase):
     def setUp(self):
         self.user = self.create_user('rick@onehundredyears.com')
         self.org = self.create_organization(owner=self.user, name='saml2-org')
+
+        # enable require 2FA and enroll user
+        TotpInterface().enroll(self.user)
+        self.org.update(
+            flags=models.F('flags').bitor(Organization.flags.require_2fa)
+        )
+        assert self.org.flags.require_2fa.is_set
+
         self.auth_provider = AuthProvider.objects.create(
             provider=self.provider_name,
             config=dummy_provider_config,
@@ -119,7 +131,8 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert auth.status_code == 200
         assert auth.context['existing_user'] == self.user
 
-    def test_auth_setup(self):
+    @mock.patch('sentry.auth.providers.saml2.logger')
+    def test_auth_setup(self, auth_log):
         self.auth_provider.delete()
         self.login_as(self.user)
 
@@ -139,6 +152,23 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert len(messages) == 2
         assert messages[0] == 'You have successfully linked your account to your SSO provider.'
         assert messages[1].startswith('SSO has been configured for your organization')
+
+        # require 2FA disabled when saml is enabled
+        org = Organization.objects.get(id=self.org.id)
+        assert not org.flags.require_2fa.is_set
+
+        event = AuditLogEntry.objects.get(
+            target_object=org.id,
+            event=AuditLogEntryEvent.ORG_EDIT,
+            actor=self.user
+        )
+        assert 'require_2fa to False when enabling SAML SSO' in event.get_note()
+        auth_log.info.assert_called_once_with(
+            'Require 2fa disabled during saml sso setup',
+            extra={
+                'organization_id': self.org.id
+            }
+        )
 
     def test_auth_idp_initiated_no_provider(self):
         self.auth_provider.delete()
