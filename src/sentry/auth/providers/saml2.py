@@ -73,8 +73,9 @@ class SAML2LoginView(AuthView):
 
         provider = helper.provider
 
-        # If we're authenticating during the setup piepline the provider will
-        # not have been configured yet, build the config first from the state
+        # During the setup pipeline, the provider will not have been configured yet,
+        # so build the config first from the state. Then disable require 2FA for the
+        # orgnization, since only SAML or require 2FA can be enabled.
         if not provider.config:
             provider.config = provider.build_config(helper.fetch_state())
             disable_2fa_required(request, helper.organization)
