@@ -202,11 +202,11 @@ export default class OrganizationRepositories extends React.Component {
                 'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
               )}
             </TextBlock>
-            <p className="m-b-1">
+            <Box mb={1}>
               <Button href="https://docs.sentry.io/learn/releases/">
                 {t('Learn more')}
               </Button>
-            </p>
+            </Box>
           </Panel>
         )}
       </div>

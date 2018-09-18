@@ -186,8 +186,8 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <p
-      className="m-b-1"
+    <Box
+      mb={1}
     >
       <Button
         alignLabel="left"
@@ -196,7 +196,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       >
         Learn more
       </Button>
-    </p>
+    </Box>
   </Panel>
 </div>
 `;
@@ -279,8 +279,8 @@ exports[`OrganizationRepositories renders without providers 1`] = `
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <p
-      className="m-b-1"
+    <Box
+      mb={1}
     >
       <Button
         alignLabel="left"
@@ -289,7 +289,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       >
         Learn more
       </Button>
-    </p>
+    </Box>
   </Panel>
 </div>
 `;
