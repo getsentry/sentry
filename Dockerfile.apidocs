@@ -1,0 +1,47 @@
+# Sentry api documentation generation environment
+#
+# NOTE: This should not be used in production!
+#
+# Instructions:
+#
+#   Build the container:
+#     $ docker build -t sentry:apidocs -f Dockerfile.apidocs .
+#   Run the container:
+#     $ docker run --rm -v $(pwd):/usr/src sentry:apidocs make build-api-docs
+#
+FROM python:2.7.11-slim
+
+RUN groupadd -r redis --gid=998 && useradd -r -g redis --uid=998 redis \
+    && groupadd -r postgres --gid=999 && useradd -r -g postgres --uid=999 postgres
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang \
+        curl \
+        g++ \
+        gcc \
+        git \
+        libffi-dev \
+        libjpeg-dev \
+        libpq-dev \
+        libxml2-dev \
+        libxslt-dev \
+        libyaml-dev \
+        llvm-3.5 \
+        bzip2 \
+        make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Sane defaults for pip
+ENV PIP_NO_CACHE_DIR off
+ENV PIP_DISABLE_PIP_VERSION_CHECK on
+ENV PYTHONUNBUFFERED 1
+
+# Install Redis
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends redis-server
+
+RUN mkdir -p /usr/src
+WORKDIR /usr/src
+VOLUME /usr/src
+
+CMD [ "bash" ]
