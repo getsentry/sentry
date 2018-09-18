@@ -60,7 +60,11 @@ describe('IntegrationDetailsModal', function() {
     const provider = TestStubs.GitHubIntegrationProvider();
 
     const wrapper = mount(
-      <IntegrationDetailsModal provider={provider} onAddIntegration={integrationAdded} />,
+      <IntegrationDetailsModal
+        provider={provider}
+        onAddIntegration={integrationAdded}
+        closeModal={() => null}
+      />,
       routerContext
     );
 
