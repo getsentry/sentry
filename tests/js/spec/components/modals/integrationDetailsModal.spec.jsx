@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mount} from 'enzyme';
 import IntegrationDetailsModal from 'app/components/modals/integrationDetailsModal';
+import HookStore from 'app/stores/hookStore';
 
 describe('IntegrationDetailsModal', function() {
   const integrationAdded = jest.fn();
@@ -42,5 +43,28 @@ describe('IntegrationDetailsModal', function() {
     );
 
     expect(wrapper.find('Button[external]').exists()).toBe(true);
+  });
+
+  it('disables the button via a hookstore IntegrationFeatures component', function() {
+    HookStore.add('integrations:feature-gates', () => ({
+      FeatureList: p => null,
+      IntegrationFeatures: p =>
+        p.children({
+          disabled: true,
+          disabledReason: 'Integration disabled',
+          ungatedFeatures: p.features,
+          gatedFeatureGroups: [],
+        }),
+    }));
+
+    const provider = TestStubs.GitHubIntegrationProvider();
+
+    const wrapper = mount(
+      <IntegrationDetailsModal provider={provider} onAddIntegration={integrationAdded} />,
+      routerContext
+    );
+
+    expect(wrapper.find('Button[disabled]').exists()).toBe(true);
+    expect(wrapper.find('DisabledNotice').text()).toBe('Integration disabled');
   });
 });
