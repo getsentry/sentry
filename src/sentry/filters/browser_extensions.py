@@ -52,6 +52,7 @@ EXTENSION_EXC_SOURCES = re.compile(
         (
             # Facebook flakiness
             r'graph\.facebook\.com'
+            r'connect\.facebook.\net' ##Facebook signals
             # Facebook blocked
             r'connect\.facebook\.net\/en_US\/all\.js',
             # Woopra flakiness
