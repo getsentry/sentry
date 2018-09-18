@@ -4,6 +4,8 @@ import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
 
+import Link from 'app/components/link';
+
 export const Discover = styled(Flex)`
   min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
 
@@ -77,6 +79,11 @@ export const SidebarLabel = styled.label`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray3};
+`;
+
+export const SidebarToggle = styled(Link)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-decoration: underline;
 `;
 
 export const AddText = styled.span`
