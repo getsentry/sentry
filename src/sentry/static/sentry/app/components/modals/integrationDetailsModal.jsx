@@ -30,7 +30,8 @@ const markedSimple = text => marked(text, {renderer: noParagraphRenderer});
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
     p.children({
-      mustUpgrade: false,
+      disabled: false,
+      disabledReason: null,
       ungatedFeatures: p.features,
       gatedFeatureGroups: [],
     }),
@@ -148,13 +149,13 @@ class IntegrationDetailsModal extends React.Component {
         ))}
 
         <IntegrationFeatures {...featureProps}>
-          {({mustUpgrade}) => (
+          {({disabled, disabledReason}) => (
             <div className="modal-footer">
-              {!!mustUpgrade && <DisabledNotice reason={mustUpgrade} />}
+              {disabled && <DisabledNotice reason={disabledReason} />}
               <Button size="small" onClick={closeModal}>
                 {t('Cancel')}
               </Button>
-              <AddButton disabled={!!mustUpgrade} />
+              <AddButton disabled={disabled} />
             </div>
           )}
         </IntegrationFeatures>
