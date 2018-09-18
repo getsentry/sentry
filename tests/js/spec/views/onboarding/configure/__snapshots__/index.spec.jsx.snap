@@ -250,21 +250,21 @@ exports[`Configure should render correctly render() should render platform docs 
                                 hasButtons={true}
                               >
                                 <Component
-                                  className="css-xm0vov-PanelHeader-getPadding e1p8v8nv0"
+                                  className="css-1y5n6pb-PanelHeader-getPadding e1p8v8nv0"
                                   hasButtons={true}
                                 >
                                   <Flex
                                     align="center"
-                                    className="css-xm0vov-PanelHeader-getPadding e1p8v8nv0"
+                                    className="css-1y5n6pb-PanelHeader-getPadding e1p8v8nv0"
                                     justify="space-between"
                                   >
                                     <Base
                                       align="center"
-                                      className="e1p8v8nv0 css-13rknte-PanelHeader-getPadding"
+                                      className="e1p8v8nv0 css-11k8wi9-PanelHeader-getPadding"
                                       justify="space-between"
                                     >
                                       <div
-                                        className="e1p8v8nv0 css-13rknte-PanelHeader-getPadding"
+                                        className="e1p8v8nv0 css-11k8wi9-PanelHeader-getPadding"
                                         is={null}
                                       >
                                         Configure node
@@ -361,7 +361,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                 flex={false}
                               >
                                 <div
-                                  className="css-zhfi4l-padding-textStyles"
+                                  className="css-16j4pxn-padding-textStyles"
                                 >
                                   <TextBlock>
                                     <Component

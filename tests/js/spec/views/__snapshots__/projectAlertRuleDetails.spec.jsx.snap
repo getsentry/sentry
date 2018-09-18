@@ -199,20 +199,20 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
               >
                 <PanelHeader>
                   <Component
-                    className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-1iugrb1-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
-                      className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                      className="css-1iugrb1-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-10twxsa-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
-                          className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                          className="e1p8v8nv0 css-10twxsa-PanelHeader-getPadding"
                           is={null}
                         >
                           Edit Alert Rule
@@ -227,7 +227,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-zhfi4l-padding-textStyles"
+                    className="css-16j4pxn-padding-textStyles"
                   >
                     <h6>
                       Rule name
@@ -2646,20 +2646,20 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
               >
                 <PanelHeader>
                   <Component
-                    className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-1iugrb1-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
-                      className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                      className="css-1iugrb1-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-10twxsa-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
-                          className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                          className="e1p8v8nv0 css-10twxsa-PanelHeader-getPadding"
                           is={null}
                         >
                           New Alert Rule
@@ -2674,7 +2674,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                   flex={false}
                 >
                   <div
-                    className="css-zhfi4l-padding-textStyles"
+                    className="css-16j4pxn-padding-textStyles"
                   >
                     <h6>
                       Rule name

@@ -9,7 +9,7 @@ import textStyles from 'app/styles/text';
 const PanelBody = ({disablePadding, flex, direction, ...props}) => {
   let padding = !disablePadding
     ? css`
-        padding: ${space(2)};
+        padding: ${space(3)};
       `
     : '';
   let flexDirection = flex ? direction : undefined;

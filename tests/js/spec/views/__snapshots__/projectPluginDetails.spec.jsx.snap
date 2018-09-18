@@ -412,21 +412,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                         hasButtons={true}
                       >
                         <Component
-                          className="css-xm0vov-PanelHeader-getPadding e1p8v8nv0"
+                          className="css-1y5n6pb-PanelHeader-getPadding e1p8v8nv0"
                           hasButtons={true}
                         >
                           <Flex
                             align="center"
-                            className="css-xm0vov-PanelHeader-getPadding e1p8v8nv0"
+                            className="css-1y5n6pb-PanelHeader-getPadding e1p8v8nv0"
                             justify="space-between"
                           >
                             <Base
                               align="center"
-                              className="e1p8v8nv0 css-13rknte-PanelHeader-getPadding"
+                              className="e1p8v8nv0 css-11k8wi9-PanelHeader-getPadding"
                               justify="space-between"
                             >
                               <div
-                                className="e1p8v8nv0 css-13rknte-PanelHeader-getPadding"
+                                className="e1p8v8nv0 css-11k8wi9-PanelHeader-getPadding"
                                 is={null}
                               >
                                 <Flex
