@@ -84,13 +84,12 @@ API_ERRORS = {
 class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
     def get_client(self):
         base_url = self.model.metadata['domain_name'].split('/')[0]
-        verify_ssl = self.model.metadata['installation'].get('verify_ssl') or False
         return GitHubEnterpriseAppsClient(
             base_url=base_url,
             integration=self.model,
             private_key=self.model.metadata['installation']['private_key'],
             app_id=self.model.metadata['installation']['id'],
-            verify_ssl=verify_ssl,
+            verify_ssl=self.model.metadata['installation']['verify_ssl'],
         )
 
     def get_repositories(self, query=None):
