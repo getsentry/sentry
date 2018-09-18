@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+import click
+import os
+
+
+def get_bucket(bucket):
+    from google.cloud import storage
+    from google.cloud.storage.bucket import Bucket
+    return Bucket(storage.Client(), bucket)
+
+
+def upload(bucket_name, file_path, version='latest'):
+    bucket = get_bucket(bucket_name)
+    fp = open(file_path, 'rb')
+
+    try:
+        obj = bucket.blob(os.path.join('api_docs', version))
+        obj.content_type = 'application/zip'
+        obj.cache_control = 'public,max-age=315360000'
+        obj.content_encoding = 'gzip'
+        obj.upload_from_file(fp, predefined_acl='publicRead')
+    finally:
+        fp.close()
+
+
+@click.command()
+@click.option('--bucket', 'bucket_name', required=True)
+@click.option('--source', 'source', required=True)
+def main(bucket_name, source):
+    click.echo(u'Uploading {} to {}'.format(source, bucket_name))
+    upload(bucket_name, source)
+    click.echo(u'Completed upload')
+
+
+if __name__ == '__main__':
+    main()

@@ -93,6 +93,19 @@ build-platform-assets:
 	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
+# Build and upload the API docs to GCS
+build-api-docs:
+	@echo "--> Installing dependencies"
+	$(PIP) install -e '.[dev]'
+	@echo "--> Starting Redis"
+	redis-server &
+	@echo "--> Building API docs"
+	python api-docs/generator.py --output-path=./api-artifacts --output-format=both
+	@echo "--> Building zip file"
+	tar -zcvf api-artifacts.tar.gz api-artifacts/
+	@echo "--> Uploading docs"
+	bin/upload-api-docs --bucket=api-docs --source=api-artifacts.tar.gz
+
 test-cli:
 	@echo "--> Testing CLI"
 	rm -rf test_cli
@@ -149,7 +162,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js publish
+.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js publish build-api-docs
 
 
 ############################
