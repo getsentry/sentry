@@ -149,7 +149,8 @@ class InstallationForm(forms.Form):
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_('By default, we verify SSL certificates '
-                    'when delivering payloads to your Gitlab instance'),
+                    'when delivering payloads to your GitHub '
+                    'Enterprise instance'),
         widget=forms.CheckboxInput(),
         required=False
     )
