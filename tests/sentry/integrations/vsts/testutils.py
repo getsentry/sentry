@@ -102,7 +102,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u'https://{}.visualstudio.com/DefaultCollection/_apis/projects'.format(
+            u'https://{}.visualstudio.com/_apis/projects'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -139,7 +139,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u'https://{}.visualstudio.com/DefaultCollection/ProjectA/_apis/git/repositories/ProjectA'.format(
+            u'https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA'.format(
                 self.vsts_account_name.lower(),
             ),
             json={

@@ -28,12 +28,12 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         responses.add(
             responses.POST,
-            'https://visualstudio.com/DefaultCollection/_apis/git/repositories/None/commitsBatch',
+            'https://visualstudio.com/_apis/git/repositories/None/commitsBatch',
             body=COMPARE_COMMITS_EXAMPLE,
         )
         responses.add(
             responses.GET,
-            'https://visualstudio.com/DefaultCollection/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes',
+            'https://visualstudio.com/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes',
             body=FILE_CHANGES_EXAMPLE,
         )
         integration = Integration.objects.create(

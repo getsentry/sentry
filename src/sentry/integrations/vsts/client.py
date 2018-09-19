@@ -17,15 +17,15 @@ INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not vali
 
 
 class VstsApiPath(object):
-    commits = u'{instance}DefaultCollection/_apis/git/repositories/{repo_id}/commits'
-    commits_batch = u'{instance}DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
-    commits_changes = u'{instance}DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
-    projects = u'{instance}DefaultCollection/_apis/projects'
-    repository = u'{instance}DefaultCollection/{project}_apis/git/repositories/{repo_id}'
+    commits = u'{instance}_apis/git/repositories/{repo_id}/commits'
+    commits_batch = u'{instance}_apis/git/repositories/{repo_id}/commitsBatch'
+    commits_changes = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    projects = u'{instance}_apis/projects'
+    repository = u'{instance}{project}_apis/git/repositories/{repo_id}'
     repositories = u'{instance}{project}_apis/git/repositories'
     subscription = u'{instance}_apis/hooks/subscriptions/{subscription_id}'
     subscriptions = u'{instance}_apis/hooks/subscriptions'
-    work_items = u'{instance}DefaultCollection/_apis/wit/workitems/{id}'
+    work_items = u'{instance}_apis/wit/workitems/{id}'
     work_items_create = u'{instance}{project}/_apis/wit/workitems/${type}'
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     work_item_search = u'https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults'
