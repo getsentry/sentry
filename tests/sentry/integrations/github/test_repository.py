@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import datetime
 import responses
 
 from exam import fixture
 from mock import patch
+
+from django.utils import timezone
 from sentry.models import Integration, Repository
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
@@ -92,7 +95,8 @@ class GitHubAppsProviderTest(PluginTestCase):
                 'author_name': 'Monalisa Octocat',
                 'message': 'Fix all the bugs',
                 'id': '6dcb09b5b57875f334f61aebed695e2e4193db5e',
-                'repository': 'example-repo'
+                'repository': 'example-repo',
+                'timestamp': datetime.datetime(2011, 4, 14, 16, 0, 49, tzinfo=timezone.utc),
             }
         ]
 

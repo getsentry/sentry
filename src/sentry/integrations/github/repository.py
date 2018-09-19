@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+import dateutil.parser
 import logging
 import six
+
+from django.utils import timezone
 
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
@@ -70,6 +73,9 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': c['commit']['author'].get('email'),
                 'author_name': c['commit']['author'].get('name'),
                 'message': c['commit']['message'],
+                'timestamp': dateutil.parser.parse(
+                    c['commit']['author'].get('date'),
+                ).astimezone(timezone.utc) if c['commit']['author'].get('date') else None,
             } for c in commit_list
         ]
 
