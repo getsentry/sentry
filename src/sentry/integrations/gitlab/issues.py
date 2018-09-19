@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.utils.http import absolute_uri
+from .client import build_api_url, GitLabApiClientPath
 
 
 class GitlabIssueBasic(IssueBasicMixin):
@@ -12,10 +13,15 @@ class GitlabIssueBasic(IssueBasicMixin):
         pass
 
     def get_issue_url(self, key):
-        # domain_name, user = self.model.metadata['domain_name'].split('/')
-        # project, issue_id = key.split('#')
-        # return u"https://{}/{}/issues/{}".format(domain_name, project, issue_id)
-        pass
+        base_url = self.model.metadata['base_url']
+        project, issue_id = key.split('#')
+        return build_api_url(
+            base_url,
+            GitLabApiClientPath.issue.format(
+                project=project,
+                issue=issue_id,
+            ),
+        )
 
     def after_link_issue(self, external_issue, **kwargs):
         # data = kwargs['data']
