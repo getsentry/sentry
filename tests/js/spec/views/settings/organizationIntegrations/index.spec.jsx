@@ -66,6 +66,7 @@ describe('OrganizationIntegrations', function() {
         const options = {
           provider: githubProvider,
           onAddIntegration: wrapper.instance().onInstall,
+          organization: routerContext.context.organization,
         };
 
         wrapper

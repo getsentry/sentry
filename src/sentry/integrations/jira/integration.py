@@ -10,7 +10,7 @@ from django.utils.translation import ugettext as _
 
 from sentry import features
 from sentry.integrations import (
-    IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription,
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
@@ -25,16 +25,33 @@ DESCRIPTION = """
 Connect your Sentry organization into one or more of your Jira cloud instances.
 Get started streamlining your bug squashing workflow by unifying your Sentry and
 Jira instances together.
-
- * Create and link Sentry issue groups directly to a Jira ticket in any of your
-   projects, providing a quick way to jump from Sentry bug to tracked ticket!
- * Automatically synchronize assignees to and from Jira. Don't get confused
-   who's fixing what, let us handle ensuring your issues and tickets match up
-   to your Sentry and Jira assignees.
- * Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
 """
 
-INSTALL_NOTICE_TEXt = """
+FEATURE_DESCRIPTIONS = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a Jira ticket in any of your
+        projects, providing a quick way to jump from Sentry bug to tracked ticket!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically synchronize assignees to and from Jira. Don't get confused
+        who's fixing what, let us handle ensuring your issues and tickets match up
+        to your Sentry and Jira assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+]
+
+INSTALL_NOTICE_TEXT = """
 Visit the Jira Marketplace to install this integration. After installing the
 Sentry add-on, access the settings panel in your Jira instance to enable the
 integration for this Organization.
@@ -43,11 +60,12 @@ integration for this Organization.
 external_install = {
     'url': 'https://marketplace.atlassian.com/apps/1219432/sentry-for-jira',
     'buttonText': _('Jira Marketplace'),
-    'noticeText': _(INSTALL_NOTICE_TEXt.strip()),
+    'noticeText': _(INSTALL_NOTICE_TEXT.strip()),
 }
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
+    features=FEATURE_DESCRIPTIONS,
     author='The Sentry Team',
     noun=_('Instance'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations',
@@ -664,7 +682,10 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset([
+        IntegrationFeatures.ISSUE_BASIC,
+        IntegrationFeatures.ISSUE_SYNC
+    ])
 
     can_add = False
 

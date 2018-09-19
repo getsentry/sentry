@@ -562,6 +562,7 @@ window.TestStubs = {
       },
       metadata: {
         description: '*markdown* formatted _description_',
+        features: [{description: '*markdown* feature description'}],
         author: 'Morty',
         noun: 'Installation',
         issue_url: 'http://example.com/integration_issue_url',
@@ -588,6 +589,7 @@ window.TestStubs = {
       features: [],
       metadata: {
         description: '*markdown* formatted Jira _description_',
+        features: [{description: '*markdown* feature description'}],
         author: 'Rick',
         noun: 'Instance',
         issue_url: 'http://example.com/jira_integration_issue_url',
@@ -651,6 +653,7 @@ window.TestStubs = {
       features: [],
       metadata: {
         description: '*markdown* formatted VSTS _description_',
+        features: [{description: '*markdown* feature description'}],
         author: 'Frank',
         noun: 'Instance',
         issue_url: 'http://example.com/vsts_issue_url',

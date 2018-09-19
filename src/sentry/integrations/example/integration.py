@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from django.http import HttpResponse
 from sentry.integrations import (
-    IntegrationInstallation, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
+    IntegrationInstallation, IntegrationFeatures, IntegrationMetadata,
+    IntegrationProvider, FeatureDescription
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
@@ -29,13 +30,19 @@ class ExampleSetupView(PipelineView):
 
 
 DESCRIPTION = """
-This is an example integration
-
- * Descriptions support _markdown rendering_.
+This is an example integration. Descriptions support _markdown rendering_.
 """
+
+FEATURES = [
+    FeatureDescription(
+        "This is a feature description. Also *supports markdown*",
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun='example',
     issue_url='https://github.com/getsentry/sentry/issues/new',

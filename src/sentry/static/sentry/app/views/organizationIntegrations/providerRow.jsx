@@ -59,9 +59,10 @@ export default class ProviderRow extends React.Component {
   // Actions
 
   openModal = () => {
+    const organization = this.context.organization;
     const provider = this.props.provider;
     const onAddIntegration = this.props.onInstall;
-    openIntegrationDetails({provider, onAddIntegration});
+    openIntegrationDetails({provider, organization, onAddIntegration});
   };
 
   // Rendering

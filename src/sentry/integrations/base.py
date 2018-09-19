@@ -4,7 +4,9 @@ __all__ = [
     'IntegrationInstallation',
     'IntegrationFeatures',
     'IntegrationProvider',
-    'IntegrationMetadata']
+    'IntegrationMetadata',
+    'FeatureDescription',
+]
 
 import logging
 import six
@@ -23,8 +25,16 @@ from .exceptions import (
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
 from sentry.models import Identity, OrganizationIntegration
 
+
+FeatureDescription = namedtuple('FeatureDescription', [
+    'description',  # A markdown description of the feature
+    'featureGate',  # A IntegrationFeature that gates this feature
+])
+
+
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
+    'features',     # A list of FeatureDescriptions
     'author',       # The integration author's name
     'noun',         # The noun used to identify the integration
     'issue_url',    # URL where issues should be opened
@@ -33,13 +43,34 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 ])
 
 
+class IntegrationMetadata(IntegrationMetadata):
+    def _asdict(self):
+        metadata = super(IntegrationMetadata, self)._asdict()
+        metadata['features'] = [
+            {
+                'description': f.description.strip(),
+                'featureGate': None if f.featureGate is None else f.featureGate.value,
+            }
+            for f in metadata['features']
+        ]
+        return metadata
+
+
 class IntegrationFeatures(Enum):
-    NOTIFICATION = 'notification'
-    ISSUE_BASIC = 'issue_basic'
-    ISSUE_SYNC = 'issue_sync'
+    """
+    IntegrationFeatures are used for marking supported features on an
+    integration. Features are marked on the IntegrationProvider itself, as well
+    as used within the FeatureDescription.
+
+    NOTE: Features in this list that are gated by an organization feature flag
+    *must* match the suffix of the organization feature flag name.
+    """
+    ACTION_NOTIFICATION = 'actionable-notification'
+    ISSUE_BASIC = 'issue-basic'
+    ISSUE_SYNC = 'issue-sync'
     COMMITS = 'commits'
-    CHAT_UNFURL = 'chat_unfurl'
-    ALERT_RULE = 'alert_rule'
+    CHAT_UNFURL = 'chat-unfurl'
+    ALERT_RULE = 'alert-rule'
 
 
 class IntegrationProvider(PipelineProvider):
