@@ -693,7 +693,8 @@ class Stacktrace(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
-        # trim down the frame list for excessive things
+        # Trim down the frame list to a hard limit. Leave the last frame in place in case
+        # it's useful for debugging.
         frameiter = data['frames']
         if len(data['frames']) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
             frameiter = chain(
