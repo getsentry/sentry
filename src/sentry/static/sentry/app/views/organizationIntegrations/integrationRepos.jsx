@@ -210,6 +210,7 @@ export default class IntegrationRepos extends AsyncComponent {
         items={items}
         onSelect={this.addRepo.bind(this)}
         onChange={onChange}
+        isAsync={true}
         menuHeader={menuHeader}
         emptyMessage={t('No repositories available')}
       >

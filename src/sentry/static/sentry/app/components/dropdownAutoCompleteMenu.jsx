@@ -42,6 +42,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     busy: PropTypes.bool,
 
+    /**
+    * When AutoComplete items are fetched asynchronously
+    */
+    isAsync: PropTypes.bool,
+
     onSelect: PropTypes.func,
     /**
      * When AutoComplete input changes
@@ -126,6 +131,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     onSelect: () => {},
     maxHeight: 300,
     blendCorner: true,
+    isAsync: false,
     emptyMessage: t('No items'),
     searchPlaceholder: t('Filter search'),
   };
@@ -254,6 +260,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       searchPlaceholder,
       itemSize,
       busy,
+      isAsync,
       ...props
     } = this.props;
 
@@ -314,7 +321,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                   })}
                 >
                   {itemsLoading && <LoadingIndicator mini />}
-                  {hasItems && (
+                  {(hasItems || isAsync) && (
                     <Flex>
                       <StyledInput
                         autoFocus
