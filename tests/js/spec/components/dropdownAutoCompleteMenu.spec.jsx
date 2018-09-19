@@ -94,7 +94,12 @@ describe('DropdownAutoCompleteMenu', function() {
 
   it('shows empty message when there are no items', function() {
     const wrapper = mount(
-      <DropdownAutoCompleteMenu isOpen={true} items={[]} emptyMessage="No items!">
+      <DropdownAutoCompleteMenu
+        emptyHidesInput
+        isOpen={true}
+        items={[]}
+        emptyMessage="No items!"
+      >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoCompleteMenu>,
       routerContext
