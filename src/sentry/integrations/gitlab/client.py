@@ -8,10 +8,10 @@ from sentry.integrations.exceptions import ApiError
 API_VERSION = '/api/v4'
 
 
-def build_api_url(base_url, api, path):
+def build_api_url(base_url, path):
     return u'{base_url}{api}{path}'.format(
         base_url=base_url,
-        api=api,
+        api=API_VERSION,
         path=path,
     )
 
@@ -51,7 +51,6 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             method,
             build_api_url(
                 self.metadata['base_url'],
-                API_VERSION,
                 path
             ),
             headers=headers, data=data, params=params
