@@ -18,8 +18,9 @@ class DiscoverSavedQueriesSerializer(serializers.Serializer):
     name = serializers.CharField(required=True)
     projects = ListField(
         child=serializers.IntegerField(),
-        required=True,
-        allow_null=False,
+        required=False,
+        allow_null=True,
+        default=[]
     )
     start = serializers.DateTimeField(required=False)
     end = serializers.DateTimeField(required=False)
