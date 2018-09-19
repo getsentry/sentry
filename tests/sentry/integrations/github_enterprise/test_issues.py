@@ -29,7 +29,8 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
                 'installation_id': 'installation_id',
                 'installation': {
                     'id': 2,
-                    'private_key': 'private_key'}}
+                    'private_key': 'private_key',
+                    'verify_ssl': True}}
         )
         self.model.add_organization(self.organization, self.user)
         self.integration = GitHubEnterpriseIntegration(self.model, self.organization.id)
