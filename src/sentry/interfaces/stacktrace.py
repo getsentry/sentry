@@ -204,8 +204,7 @@ def remove_module_outliers(module, platform=None):
     return module
 
 
-def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES,
-                    hard_frame_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT):
+def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
     """
     Removes various excess metadata from middle frames which go beyond
     ``frame_allowance``.
