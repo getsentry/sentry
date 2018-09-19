@@ -307,7 +307,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'firstEvent': obj.first_event,
             'platform': obj.platform,
             'platforms': attrs['platforms'],
-            'latestDeploys': attrs['deploys']
+            'latestDeploys': attrs['deploys'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
@@ -336,6 +336,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:token_header',
             'sentry:verify_ssl',
             'sentry:scrub_ip_address',
+            'sentry:relay_pii_config',
             'feedback:branding',
             'digests:mail:minimum_delay',
             'digests:mail:maximum_delay',
@@ -486,12 +487,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                         if plugin.has_project_conf()
                     ], user, PluginSerializer(obj)
                 ),
-                'platforms':
-                attrs['platforms'],
-                'processingIssues':
-                attrs['processing_issues'],
-                'defaultEnvironment':
-                attrs['options'].get('sentry:default_environment'),
+                'platforms': attrs['platforms'],
+                'processingIssues': attrs['processing_issues'],
+                'defaultEnvironment': attrs['options'].get('sentry:default_environment'),
+                'relayPiiConfig': attrs['options'].get('sentry:relay_pii_config'),
             }
         )
         return data
