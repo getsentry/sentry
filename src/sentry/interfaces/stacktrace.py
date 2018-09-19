@@ -13,6 +13,7 @@ __all__ = ('Stacktrace', )
 import re
 import six
 import posixpath
+from itertools import islice, chain
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -218,8 +219,6 @@ def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAME
             app_frames.append(frame)
         else:
             system_frames.append(frame)
-
-    del frames[hard_frame_limit - 1:-1]
 
     if frames_len <= frame_allowance:
         return
@@ -694,9 +693,15 @@ class Stacktrace(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
+        # trim down the frame list for excessive things
+        frameiter = data['frames']
+        if len(data['frames']) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
+            frameiter = chain(
+                islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
+
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {}, raw=raw) for f in data['frames']
+            Frame.to_python(f or {}, raw=raw) for f in frameiter
         ]
 
         kwargs = {
