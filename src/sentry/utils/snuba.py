@@ -59,9 +59,9 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 
 
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
-              aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
-              orderby=None, having=None, referrer=None, is_grouprelease=False,
-              selected_columns=None, totals=None):
+              aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
+              having=None, referrer=None, is_grouprelease=False, selected_columns=None,
+              totals=None):
     """
     Sends a query to snuba.
 
@@ -158,7 +158,6 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'issues': issues,
         'arrayjoin': arrayjoin,
         'limit': limit,
-        'offset': offset,
         'orderby': orderby,
         'selected_columns': selected_columns,
     }) if v is not None}
@@ -191,9 +190,9 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
-          orderby=None, having=None, referrer=None, is_grouprelease=False,
-          selected_columns=None, totals=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
+          having=None, referrer=None, is_grouprelease=False, selected_columns=None,
+          totals=None):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
@@ -203,7 +202,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         body = raw_query(
             start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             selected_columns=selected_columns, aggregations=aggregations, rollup=rollup,
-            arrayjoin=arrayjoin, limit=limit, offset=offset, orderby=orderby, having=having,
+            arrayjoin=arrayjoin, limit=limit, orderby=orderby, having=having,
             referrer=referrer, is_grouprelease=is_grouprelease, totals=totals
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
