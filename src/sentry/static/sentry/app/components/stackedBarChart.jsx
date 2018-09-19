@@ -277,7 +277,7 @@ class StackedBarChart extends React.Component {
       <Tooltip
         title={tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
         key={point.x}
-        tooltipOptions={{html: true, placement: 'bottom'}}
+        tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
       >
         <g onHover={this.funTime}>{pts}</g>
       </Tooltip>
