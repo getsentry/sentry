@@ -441,6 +441,16 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'environment'
         assert data['errors'][0]['value'] == 'a' * 65
 
+    def test_environment_invalid(self):
+        data = self.validate_and_normalize({
+            'environment': 'a/b',
+        })
+        assert not data.get('environment')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'environment'
+        assert data['errors'][0]['value'] == 'a/b'
+
     def test_environment_as_non_string(self):
         data = self.validate_and_normalize({
             'environment': 42,
