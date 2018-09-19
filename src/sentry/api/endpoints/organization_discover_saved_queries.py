@@ -50,11 +50,26 @@ class DiscoverSavedQueriesSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
+        query = {}
+        query_keys = [
+            'fields',
+            'conditions',
+            'aggregations',
+            'range',
+            'start',
+            'end',
+            'orderby',
+            'limit'
+        ]
+
+        for key in query_keys:
+            if data.get(key) is not None:
+                query[key] = data[key]
+
         return {
             'name': data['name'],
             'project_ids': data['projects'],
-            'query': {
-            }
+            'query': query,
         }
 
 
@@ -68,11 +83,9 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not features.has('organizations:discover', organization, actor=request.user):
             return self.respond(status=404)
 
-        saved_queries = list(
-            DiscoverSavedQuery.objects.filter(
-                organization=organization,
-            ).order_by('name')
-        )
+        saved_queries = list(DiscoverSavedQuery.objects.filter(
+            organization=organization,
+        ).all().prefetch_related('projects').order_by('name'))
 
         return Response(serialize(saved_queries), status=200)
 
