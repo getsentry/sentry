@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider,
+    IntegrationMetadata, FeatureDescription,
+)
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -17,14 +20,41 @@ from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
 
 DESCRIPTION = """
-With the Bitbucket integration, you can:
- * Track commits and releases (learn more [here](https://docs.sentry.io/learn/releases/))
- * Create Bitbucket issues from Sentry
- * Link Sentry issues to existing Bitbucket issues
- * Resolve Sentry issues via Bitbucket commits and pull requests by including `Fixes PROJ-ID` in the message
+Connect your Sentry organization to Bitbucket, enabling the following features:
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Track commits and releases (learn more
+        [here](https://docs.sentry.io/learn/releases/))
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Resolve Sentry issues via Bitbucket commits and pull requests by
+        including `Fixes PROJ-ID` in the message
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create Bitbucket issues from Sentry
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link Sentry issues to existing Bitbucket issues
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+]
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',

@@ -7,7 +7,7 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
 from sentry.integrations import (
     IntegrationInstallation, IntegrationFeatures, IntegrationProvider,
-    IntegrationMetadata
+    IntegrationMetadata, FeatureDescription,
 )
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
@@ -28,15 +28,27 @@ Connect your Sentry organization into your GitHub organization or user account.
 Take a step towards augmenting your sentry issues with commits from your
 repositories ([using releases](https://docs.sentry.io/learn/releases/)) and
 linking up your GitHub issues and pull requests directly to issues in Sentry.
-
- * Create and link Sentry issue groups directly to a GitHub issue or pull
-   request in any of your repositories, providing a quick way to jump from
-   Sentry bug to tracked issue or PR!
-
- * Authorize repositories to be added to your Sentry organization to augmenting
-   sentry issues with commit data with [deployment
-   tracking](https://docs.sentry.io/learn/releases/).
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Authorize repositories to be added to your Sentry organization to augmenting
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+]
+
 disable_dialog = {
     'actionText': 'Visit GitHub',
     'body': 'Before deleting this integration, you must uninstall this'
@@ -54,6 +66,7 @@ removal_dialog = {
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',

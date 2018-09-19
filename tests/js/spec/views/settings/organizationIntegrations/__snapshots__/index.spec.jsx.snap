@@ -84,6 +84,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             },
             "author": "Morty",
             "description": "*markdown* formatted _description_",
+            "features": Array [
+              Object {
+                "description": "*markdown* feature description",
+              },
+            ],
             "issue_url": "http://example.com/integration_issue_url",
             "noun": "Installation",
             "source_url": "http://example.com/integration_source_url",
@@ -128,6 +133,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
             },
             "author": "Rick",
             "description": "*markdown* formatted Jira _description_",
+            "features": Array [
+              Object {
+                "description": "*markdown* feature description",
+              },
+            ],
             "issue_url": "http://example.com/jira_integration_issue_url",
             "noun": "Instance",
             "source_url": "http://example.com/jira_integration_source_url",
@@ -258,6 +268,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                     },
                     "author": "Morty",
                     "description": "*markdown* formatted _description_",
+                    "features": Array [
+                      Object {
+                        "description": "*markdown* feature description",
+                      },
+                    ],
                     "issue_url": "http://example.com/integration_issue_url",
                     "noun": "Installation",
                     "source_url": "http://example.com/integration_source_url",
@@ -1030,6 +1045,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                             },
                             "author": "Morty",
                             "description": "*markdown* formatted _description_",
+                            "features": Array [
+                              Object {
+                                "description": "*markdown* feature description",
+                              },
+                            ],
                             "issue_url": "http://example.com/integration_issue_url",
                             "noun": "Installation",
                             "source_url": "http://example.com/integration_source_url",
@@ -1102,6 +1122,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                               },
                               "author": "Morty",
                               "description": "*markdown* formatted _description_",
+                              "features": Array [
+                                Object {
+                                  "description": "*markdown* feature description",
+                                },
+                              ],
                               "issue_url": "http://example.com/integration_issue_url",
                               "noun": "Installation",
                               "source_url": "http://example.com/integration_source_url",
@@ -1174,6 +1199,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                 },
                                 "author": "Morty",
                                 "description": "*markdown* formatted _description_",
+                                "features": Array [
+                                  Object {
+                                    "description": "*markdown* feature description",
+                                  },
+                                ],
                                 "issue_url": "http://example.com/integration_issue_url",
                                 "noun": "Installation",
                                 "source_url": "http://example.com/integration_source_url",
@@ -1610,6 +1640,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                     },
                     "author": "Rick",
                     "description": "*markdown* formatted Jira _description_",
+                    "features": Array [
+                      Object {
+                        "description": "*markdown* feature description",
+                      },
+                    ],
                     "issue_url": "http://example.com/jira_integration_issue_url",
                     "noun": "Instance",
                     "source_url": "http://example.com/jira_integration_source_url",
@@ -2375,6 +2410,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                             },
                             "author": "Rick",
                             "description": "*markdown* formatted Jira _description_",
+                            "features": Array [
+                              Object {
+                                "description": "*markdown* feature description",
+                              },
+                            ],
                             "issue_url": "http://example.com/jira_integration_issue_url",
                             "noun": "Instance",
                             "source_url": "http://example.com/jira_integration_source_url",
@@ -2440,6 +2480,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                               },
                               "author": "Rick",
                               "description": "*markdown* formatted Jira _description_",
+                              "features": Array [
+                                Object {
+                                  "description": "*markdown* feature description",
+                                },
+                              ],
                               "issue_url": "http://example.com/jira_integration_issue_url",
                               "noun": "Instance",
                               "source_url": "http://example.com/jira_integration_source_url",
@@ -2505,6 +2550,11 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                 },
                                 "author": "Rick",
                                 "description": "*markdown* formatted Jira _description_",
+                                "features": Array [
+                                  Object {
+                                    "description": "*markdown* feature description",
+                                  },
+                                ],
                                 "issue_url": "http://example.com/jira_integration_issue_url",
                                 "noun": "Instance",
                                 "source_url": "http://example.com/jira_integration_source_url",
@@ -2951,6 +3001,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
             },
             "author": "Morty",
             "description": "*markdown* formatted _description_",
+            "features": Array [
+              Object {
+                "description": "*markdown* feature description",
+              },
+            ],
             "issue_url": "http://example.com/integration_issue_url",
             "noun": "Installation",
             "source_url": "http://example.com/integration_source_url",
@@ -2979,6 +3034,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
             },
             "author": "Rick",
             "description": "*markdown* formatted Jira _description_",
+            "features": Array [
+              Object {
+                "description": "*markdown* feature description",
+              },
+            ],
             "issue_url": "http://example.com/jira_integration_issue_url",
             "noun": "Instance",
             "source_url": "http://example.com/jira_integration_source_url",
@@ -3075,6 +3135,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                     },
                     "author": "Morty",
                     "description": "*markdown* formatted _description_",
+                    "features": Array [
+                      Object {
+                        "description": "*markdown* feature description",
+                      },
+                    ],
                     "issue_url": "http://example.com/integration_issue_url",
                     "noun": "Installation",
                     "source_url": "http://example.com/integration_source_url",
@@ -3819,6 +3884,11 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                     },
                     "author": "Rick",
                     "description": "*markdown* formatted Jira _description_",
+                    "features": Array [
+                      Object {
+                        "description": "*markdown* feature description",
+                      },
+                    ],
                     "issue_url": "http://example.com/jira_integration_issue_url",
                     "noun": "Instance",
                     "source_url": "http://example.com/jira_integration_source_url",

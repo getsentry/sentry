@@ -11,7 +11,7 @@ import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits', 'alert_rule'];
+const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
