@@ -815,7 +815,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['totally unique super duper fingerprint'],
             environment='totally unique super duper environment',
         ))
-        event = manager.save(project)
+        event = manager.save(project.id)
 
         def query(model, key, **kwargs):
             return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
@@ -834,7 +834,7 @@ class EventManagerTest(TransactionTestCase):
     def test_record_frequencies(self):
         project = self.project
         manager = EventManager(self.make_event())
-        event = manager.save(project)
+        event = manager.save(project.id)
 
         assert tsdb.get_most_frequent(
             tsdb.models.frequent_issues_by_project,
