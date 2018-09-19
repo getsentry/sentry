@@ -13,6 +13,7 @@ from sentry.integrations import IntegrationInstallation, IntegrationFeatures, In
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
+from .client import GitLabApiClient
 
 DESCRIPTION = """
 Fill me out
@@ -30,8 +31,15 @@ metadata = IntegrationMetadata(
 
 class GitlabIntegration(IntegrationInstallation):
 
+    def __init__(self, *args, **kwargs):
+        super(GitlabIntegration, self).__init__(*args, **kwargs)
+        self.default_identity = None
+
     def get_client(self):
-        pass
+        if self.default_identity is None:
+            self.default_identity = self.get_default_identity()
+
+        return GitLabApiClient(self)
 
 
 class InstallationForm(forms.Form):
@@ -89,13 +97,12 @@ class InstallationConfigView(PipelineView):
         form = InstallationForm(request.POST)
         if form.is_valid():
             form_data = form.cleaned_data
-            form_data['url'] = urlparse(form_data['url']).netloc
 
             pipeline.bind_state('installation_data', form_data)
 
             pipeline.bind_state('oauth_config_information', {
-                "access_token_url": u"https://{}/oauth/token".format(form_data.get('url')),
-                "authorize_url": u"https://{}/oauth/authorize".format(form_data.get('url')),
+                "access_token_url": u"{}/oauth/token".format(form_data.get('url')),
+                "authorize_url": u"{}/oauth/authorize".format(form_data.get('url')),
                 "client_id": form_data.get('client_id'),
                 "client_secret": form_data.get('client_secret'),
                 "verify_ssl": form_data.get('verify_ssl')
@@ -176,7 +183,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     def get_group_info(self, access_token, installation_data):
         session = http.build_session()
         resp = session.get(
-            u'https://{}/api/v4/groups/{}'.format(
+            u'{}/api/v4/groups/{}'.format(
                 installation_data['url'], installation_data['group']),
             headers={
                 'Accept': 'application/json',
@@ -201,12 +208,13 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
         integration = {
             'name': group['name'],
-            'external_id': u'{}:{}'.format(base_url, group['id']),
+            'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
             'metadata': {
                 'icon': group['avatar_url'],
                 'domain_name': group['web_url'].replace('https://', ''),
                 'scopes': scopes,
                 'verify_ssl': state['installation_data']['verify_ssl'],
+                'base_url': base_url,
             },
             'user_identity': {
                 'type': 'gitlab',
