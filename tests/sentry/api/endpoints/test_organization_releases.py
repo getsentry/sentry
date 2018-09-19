@@ -234,14 +234,16 @@ class OrganizationReleaseCreateTest(APITestCase):
             )
 
         release_commits1 = list(
-            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+            ReleaseCommit.objects.filter(
+                release=release).order_by('order').values_list(
+                'commit__key', flat=True)
         )
 
         # check that commits are overwritten
         assert release_commits1 == [
-            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             u'62de626b7c7cfb8e77efb4273b1a3df4123e6216',
             u'58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         ]
 
         # should be 201 because project was added
@@ -278,14 +280,16 @@ class OrganizationReleaseCreateTest(APITestCase):
                 )
 
         release_commits2 = list(
-            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+            ReleaseCommit.objects.filter(
+                release=release).order_by('order').values_list(
+                'commit__key', flat=True)
         )
 
         # check that commits are overwritten
         assert release_commits2 == [
-            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             u'cccccccccccccccccccccccccccccccccccccccc',
             u'dddddddddddddddddddddddddddddddddddddddd',
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         ]
 
         assert response2.status_code == 208, response.content
