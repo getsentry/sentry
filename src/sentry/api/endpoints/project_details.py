@@ -94,6 +94,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
+    relayPiiConfig = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
@@ -353,6 +354,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('storeCrashReports') is not None:
             if project.update_option('sentry:store_crash_reports', result['storeCrashReports']):
                 changed_proj_settings['sentry:store_crash_reports'] = result['storeCrashReports']
+        if result.get('relayPiiConfig') is not None:
+            if project.update_option('sentry:relay_pii_config', result['relayPiiConfig']):
+                changed_proj_settings['sentry:relay_pii_config'] = result['relayPiiConfig'].strip(
+                ) or None
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')

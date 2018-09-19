@@ -40,6 +40,7 @@ ORG_OPTIONS = (
     ('storeCrashReports', 'sentry:store_crash_reports', bool),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
     ('scrapeJavaScript', 'sentry:scrape_javascript', bool),
+    ('trustedRelays', 'sentry:trusted-relays', list),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -92,6 +93,7 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    trustedRelays = ListField(child=serializers.CharField(), required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
