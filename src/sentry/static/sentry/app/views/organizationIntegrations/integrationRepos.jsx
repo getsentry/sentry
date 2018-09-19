@@ -212,6 +212,8 @@ export default class IntegrationRepos extends AsyncComponent {
         onChange={onChange}
         menuHeader={menuHeader}
         emptyMessage={t('No repositories available')}
+        noResultsMessage={t('No repositories found')}
+        busy={this.state.dropdownBusy}
       >
         {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
@@ -305,7 +307,6 @@ const StyledReposLabel = styled('div')`
 `;
 
 const StyledListElement = styled('div')`
-  font-size: 0.875em;
   display: flex;
   align-items: center;
   padding: ${space(0.5)};
