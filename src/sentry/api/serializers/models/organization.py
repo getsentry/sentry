@@ -197,6 +197,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', False)),
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
             'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', True)),
+            'trustedRelays': obj.get_option('sentry:trusted-relays', None) or [],
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
