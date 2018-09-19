@@ -242,6 +242,7 @@ const TeamMembers = createReactClass({
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
+        isAsync={true}
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
         {({isOpen, selectedItem}) => (
