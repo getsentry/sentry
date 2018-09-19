@@ -81,6 +81,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         Repository.objects.create(
@@ -98,6 +99,7 @@ class PushEventWebhookTest(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
@@ -152,6 +154,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -163,6 +166,7 @@ class PushEventWebhookTest(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
@@ -233,6 +237,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         Repository.objects.create(
@@ -250,6 +255,7 @@ class PushEventWebhookTest(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
@@ -273,6 +279,7 @@ class PushEventWebhookTest(APITestCase):
                     'installation_id': '99',
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
@@ -318,6 +325,7 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -329,6 +337,7 @@ class PullRequestEventWebhook(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
@@ -378,6 +387,7 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -389,6 +399,7 @@ class PullRequestEventWebhook(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
@@ -437,6 +448,7 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -448,6 +460,7 @@ class PullRequestEventWebhook(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
