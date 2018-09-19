@@ -1178,19 +1178,23 @@ table.integrations {
         }
       }
 
-      &:hover span {
+      &:hover span,
+      &:hover rect {
         &.accepted {
           background: @gray-light;
+          fill: @gray-light;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red-dark;
+          fill: @red-dark;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-dark;
+          fill: @orange-dark;
         }
       }
     }

@@ -13,7 +13,7 @@ describe('StackedBarChart', function() {
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} />);
-      let columns = wrapper.find('.chart-column');
+      let columns = wrapper.find('[data-test-id="chart-column"]');
 
       expect(columns).toHaveProperty('length', 3);
       expect(columns.at(0).text()).toEqual('10'); // check y values
@@ -33,7 +33,7 @@ describe('StackedBarChart', function() {
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
-      let columns = wrapper.find('a');
+      let columns = wrapper.find('[data-test-id="chart-column"]');
 
       expect(columns).toHaveProperty('length', 5);
 
@@ -53,7 +53,7 @@ describe('StackedBarChart', function() {
       ];
 
       let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
-      let columns = wrapper.find('a');
+      let columns = wrapper.find('[data-test-id="chart-column"]');
 
       expect(columns).toHaveProperty('length', 3);
 

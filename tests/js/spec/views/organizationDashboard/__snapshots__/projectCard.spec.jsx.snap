@@ -521,78 +521,75 @@ exports[`ProjectCard renders 1`] = `
                             >
                               0
                             </span>
-                            <span>
-                              <Tooltip
-                                key="1525042800"
-                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                tooltipOptions={
-                                  Object {
-                                    "html": true,
-                                    "placement": "bottom",
-                                  }
-                                }
+                            <StyledSvg
+                              preserveAspectRatio="none"
+                              shapeRendering="geometricPrecision"
+                              viewBox="0 0 99.9 99.9"
+                            >
+                              <svg
+                                className="css-znv93x-StyledSvg e5t71580"
+                                preserveAspectRatio="none"
+                                shapeRendering="geometricPrecision"
+                                viewBox="0 0 99.9 99.9"
                               >
-                                <a
-                                  className="tip chart-column"
-                                  style={
-                                    Object {
-                                      "height": "100%",
-                                      "width": "50%",
-                                    }
-                                  }
+                                <Tooltip
+                                  key="1525042800"
                                   title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                >
-                                  <span
-                                    className="chart-bar"
-                                    key="0"
-                                    style={
-                                      Object {
-                                        "backgroundColor": null,
-                                        "bottom": "0%",
-                                        "height": "9.9%",
-                                      }
-                                    }
-                                  >
-                                    1
-                                  </span>
-                                </a>
-                              </Tooltip>
-                              <Tooltip
-                                key="1525046400"
-                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                tooltipOptions={
-                                  Object {
-                                    "html": true,
-                                    "placement": "bottom",
-                                  }
-                                }
-                              >
-                                <a
-                                  className="tip chart-column"
-                                  style={
+                                  tooltipOptions={
                                     Object {
-                                      "height": "100%",
-                                      "width": "50%",
+                                      "container": "body",
+                                      "html": true,
+                                      "placement": "bottom",
                                     }
                                   }
-                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
                                 >
-                                  <span
-                                    className="chart-bar"
-                                    key="0"
-                                    style={
-                                      Object {
-                                        "backgroundColor": null,
-                                        "bottom": "0%",
-                                        "height": "19.8%",
-                                      }
-                                    }
+                                  <g
+                                    className="tip"
+                                    data-test-id="chart-column"
+                                    title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
                                   >
-                                    2
-                                  </span>
-                                </a>
-                              </Tooltip>
-                            </span>
+                                    <rect
+                                      className="chart-bar"
+                                      height={9.9}
+                                      key="0"
+                                      width={32.5}
+                                      x={0}
+                                      y={90.1}
+                                    >
+                                      1
+                                    </rect>
+                                  </g>
+                                </Tooltip>
+                                <Tooltip
+                                  key="1525046400"
+                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                  tooltipOptions={
+                                    Object {
+                                      "container": "body",
+                                      "html": true,
+                                      "placement": "bottom",
+                                    }
+                                  }
+                                >
+                                  <g
+                                    className="tip"
+                                    data-test-id="chart-column"
+                                    title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                  >
+                                    <rect
+                                      className="chart-bar"
+                                      height={19.8}
+                                      key="0"
+                                      width={32.5}
+                                      x={50.5}
+                                      y={80.2}
+                                    >
+                                      2
+                                    </rect>
+                                  </g>
+                                </Tooltip>
+                              </svg>
+                            </StyledSvg>
                           </figure>
                         </StackedBarChart>
                       </BarChart>

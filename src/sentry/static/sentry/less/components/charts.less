@@ -15,13 +15,16 @@
     cursor: default;
 
     &:hover {
-      > span {
+      > span,
+      > rect {
         background: @purple;
+        fill: @purple;
         border-color: transparent;
       }
     }
 
-    > span {
+    > span,
+    > rect {
       display: block;
       position: absolute;
       bottom: 0;
@@ -35,6 +38,7 @@
       min-height: 1px;
 
       background: @gray-lighter;
+      fill: @gray-lighter;
     }
   }
 

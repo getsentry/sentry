@@ -1,8 +1,8 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import _ from 'lodash';
+import styled from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
@@ -53,41 +53,6 @@ class StackedBarChart extends React.Component {
     barClasses: ['chart-bar'],
   };
 
-  getInterval = series => {
-    // TODO(dcramer): not guaranteed correct
-    return series.length && series[0].data.length > 1
-      ? series[0].data[1].x - series[0].data[0].x
-      : null;
-  };
-
-  pointsToSeries = points => {
-    let series = [];
-    points.forEach((p, pIdx) => {
-      p.y.forEach((y, yIdx) => {
-        if (!series[yIdx]) {
-          series[yIdx] = {data: []};
-        }
-        series[yIdx].data.push({x: p.x, y});
-      });
-    });
-    return series;
-  };
-
-  pointIndex = series => {
-    let points = {};
-    series.forEach(s => {
-      s.data.forEach(p => {
-        if (!points[p.x]) {
-          points[p.x] = {y: [], x: p.x};
-        }
-        points[p.x].y.push(p.y);
-      });
-    });
-    return points;
-  };
-
-  funTime = () => console.log('hi');
-
   constructor(props) {
     super(props);
 
@@ -131,6 +96,39 @@ class StackedBarChart extends React.Component {
   shouldComponentUpdate(nextProps, nextState) {
     return !_.isEqual(this.props, nextProps);
   }
+
+  getInterval = series => {
+    // TODO(dcramer): not guaranteed correct
+    return series.length && series[0].data.length > 1
+      ? series[0].data[1].x - series[0].data[0].x
+      : null;
+  };
+
+  pointsToSeries = points => {
+    let series = [];
+    points.forEach((p, pIdx) => {
+      p.y.forEach((y, yIdx) => {
+        if (!series[yIdx]) {
+          series[yIdx] = {data: []};
+        }
+        series[yIdx].data.push({x: p.x, y});
+      });
+    });
+    return series;
+  };
+
+  pointIndex = series => {
+    let points = {};
+    series.forEach(s => {
+      s.data.forEach(p => {
+        if (!points[p.x]) {
+          points[p.x] = {y: [], x: p.x};
+        }
+        points[p.x].y.push(p.y);
+      });
+    });
+    return points;
+  };
 
   use24Hours() {
     let user = ConfigStore.get('user');
@@ -218,14 +216,14 @@ class StackedBarChart extends React.Component {
 
     return (
       <Tooltip title={title} key={key} tooltipOptions={{html: true, placement: 'bottom'}}>
-        <a className={className} style={{height: '100%'}}>
+        <a data-test-id="chart-column" className={className} style={{height: '100%'}}>
           <span>{marker.label}</span>
         </a>
       </Tooltip>
     );
   }
 
-  renderTooltip(point, pointIdx) {
+  renderTooltip = (point, pointIdx) => {
     let timeLabel = this.getTimeLabel(point);
     let totalY = point.y.reduce((a, b) => a + b);
     let title =
@@ -244,7 +242,7 @@ class StackedBarChart extends React.Component {
       }
     });
     return title;
-  }
+  };
 
   renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
     let totalY = point.y.reduce((a, b) => a + b);
@@ -258,13 +256,16 @@ class StackedBarChart extends React.Component {
       );
       let pt = (
         <rect
+          key={i}
           x={index * pointWidth}
           y={100 - pct - prevPct}
           width={pointWidth - space}
           height={pct}
           fill={this.state.series[i].color}
           className={this.props.barClasses[i]}
-        />
+        >
+          {y}
+        </rect>
       );
       prevPct += pct;
       return pt;
@@ -279,7 +280,7 @@ class StackedBarChart extends React.Component {
         key={point.x}
         tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
       >
-        <g onHover={this.funTime}>{pts}</g>
+        <g data-test-id="chart-column">{pts}</g>
       </Tooltip>
     );
   }
@@ -337,17 +338,21 @@ class StackedBarChart extends React.Component {
           <Count value={maxval} />
         </span>
         <span className="min-y">0</span>
-        <svg
+        <StyledSvg
           shapeRendering="geometricPrecision"
           viewBox={'0 0 99.9 99.9'}
           preserveAspectRatio="none"
-          style={{width: '100%', height: '100%'}}
         >
           {this.renderChart()}
-        </svg>
+        </StyledSvg>
       </figure>
     );
   }
 }
+
+const StyledSvg = styled('svg')`
+  width: 100%;
+  height: 100%;
+`;
 
 export default StackedBarChart;
