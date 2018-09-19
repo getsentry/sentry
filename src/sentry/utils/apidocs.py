@@ -26,6 +26,8 @@ non_named_group_matcher = re.compile(r'\([^\)]+\)')
 # [foo|bar|baz]
 either_option_matcher = re.compile(r'\[([^\]]+)\|([^\]]+)\]')
 camel_re = re.compile(r'([A-Z]+)([a-z])')
+rst_indent_re = re.compile(r'^\s{2,}')
+rst_block_re = re.compile(r'^\.\.\s[a-z]+::$')
 
 API_PREFIX = '/api/0/'
 
@@ -82,14 +84,25 @@ def get_endpoint_path(internal_endpoint):
 
 
 def parse_doc_string(doc):
+    """
+    Parse a docstring into a tuple.
+
+    The tuple contains:
+
+    (title, lines, warning, params)
+
+    `lines` is a list for backwards compatibility with
+    the JSON formatter.
+    """
     title = None
     current_param = ''
+    in_warning = False
     param_lines = []
     lines = []
+    warning = []
     iterable = iter((doc or u'').splitlines())
 
     for line in iterable:
-        line = line.strip()
         if title is None:
             if not line:
                 continue
@@ -97,21 +110,42 @@ def parse_doc_string(doc):
         elif line and line[0] * len(line) == line:
             # is an RST underline
             continue
+        elif rst_block_re.match(line):
+            # Presently the only RST block we use is `caution` which
+            # displays as a 'warning'
+            in_warning = True
         elif line and line.startswith(':'):
             # Is a new parameter or other annotation
             if current_param:
                 param_lines.append(current_param)
-            current_param = line
+            current_param = line.strip()
         elif current_param:
             # Adding to an existing parameter annotation
             current_param = current_param + ' ' + line.strip()
-        elif line:
-            lines.append(line)
+        else:
+            if in_warning:
+                # If we're indented at least 2 spaces assume
+                # we're in the RST block
+                if rst_indent_re.match(line) or not line:
+                    warning.append(line.strip())
+                    continue
+                # An un-indented non-empty line means we
+                # have other content.
+                elif line:
+                    in_warning = False
+            # Normal text. We want empty lines here so we can
+            # preserve paragraph breaks.
+            lines.append(line.strip())
 
     if current_param:
         param_lines.append(current_param)
 
-    return title, lines, parse_params(param_lines)
+    if warning:
+        warning = '\n'.join(warning).strip()
+    if not warning:
+        warning = None
+
+    return title, lines, warning, parse_params(param_lines)
 
 
 def get_node_text(nodes):
@@ -122,7 +156,7 @@ def get_node_text(nodes):
             text.append(node.data)
         if node.nodeType == node.ELEMENT_NODE:
             text.append(get_node_text(node.childNodes))
-    return ''.join(text)
+    return ' '.join(text)
 
 
 def parse_params(params):
@@ -198,12 +232,13 @@ def extract_endpoint_info(pattern, internal_endpoint):
         if endpoint_name.endswith('Endpoint'):
             endpoint_name = endpoint_name[:-8]
         endpoint_name = camelcase_to_dashes(endpoint_name)
-        title, text, params = parse_doc_string(doc)
+        title, text, warning, params = parse_doc_string(doc)
         yield dict(
             path=API_PREFIX + path.lstrip('/'),
             method=method_name,
             title=title,
             text=text,
+            warning=warning,
             params=params,
             scenarios=getattr(method, 'api_scenarios', None) or [],
             section=section.name.lower(),
@@ -556,11 +591,12 @@ class Runner(object):
         """Convert the current scenario into a dict
         """
         doc = extract_documentation(self.func)
-        title, text, params = parse_doc_string(doc)
+        title, text, warning, params = parse_doc_string(doc)
         return {
             'ident': self.ident,
             'requests': self.requests,
             'title': title,
             'text': text,
             'params': params,
+            'warning': warning,
         }

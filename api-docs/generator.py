@@ -242,7 +242,8 @@ def output_markdown(sections, scenarios, section_mapping):
             payload = dict(
                 title=title,
                 sidebar_order=i,
-                description=' '.join(endpoint['text']),
+                description='\n'.join(endpoint['text']).strip(),
+                warning=endpoint['warning'],
                 method=endpoint['method'],
                 path=endpoint['path'],
                 query_parameters=endpoint['params'].get('query'),
