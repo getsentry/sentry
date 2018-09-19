@@ -42,6 +42,12 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     busy: PropTypes.bool,
 
+    /**
+     * Hide's the input when there are no items. Avoid using this when querying
+     * results in an async fashion.
+     */
+    emptyHidesInput: PropTypes.bool,
+
     onSelect: PropTypes.func,
     /**
      * When AutoComplete input changes
@@ -254,6 +260,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       searchPlaceholder,
       itemSize,
       busy,
+      emptyHidesInput,
       ...props
     } = this.props;
 
@@ -292,6 +299,10 @@ class DropdownAutoCompleteMenu extends React.Component {
           // Results mean there was a search (i.e. inputValue)
           let showNoResultsMessage = !busy && inputValue && !hasResults;
 
+          // Hide the input when we have no items to filter, only if
+          // emptyHidesInput is set to true.
+          let showInput = hasItems || !emptyHidesInput;
+
           return (
             <AutoCompleteRoot {...getRootProps()}>
               {children({
@@ -314,7 +325,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                   })}
                 >
                   {itemsLoading && <LoadingIndicator mini />}
-                  {hasItems && (
+                  {showInput && (
                     <Flex>
                       <StyledInput
                         autoFocus
