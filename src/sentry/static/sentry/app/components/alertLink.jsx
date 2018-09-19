@@ -38,7 +38,8 @@ const StyledLink = styled(Link)`
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
-  padding: ${p => (p.size == 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
+  padding: ${p =>
+    p.size == 'small' ? `${space(1)} ${space(1.5)}` : `${space(2)} ${space(3)}`};
   margin-bottom: ${space(3)};
   border-radius: 0.25em;
   transition: 0.2s border-color;

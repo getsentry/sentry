@@ -49,7 +49,7 @@ const getSystemAlertColorStyles = ({background}) => `
 
 const AlertWrapper = styled(Box)`
   margin: 0 0 ${space(3)};
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(3)};
   font-size: 15px;
   box-shadow: ${p => p.theme.dropShadowLight};
   display: flex;
