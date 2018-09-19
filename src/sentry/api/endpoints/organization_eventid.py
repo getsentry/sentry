@@ -36,14 +36,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                                           event ID should be looked up in.
         :param string event_id: the event ID to look up.
         :auth: required
-
-        Return:
-            organizationSlug
-            projectSlug
-            groupId
-            eventId (optional)
         """
-
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
             return Response({'detail': 'Event ID must be 32 characters.'}, status=400)
