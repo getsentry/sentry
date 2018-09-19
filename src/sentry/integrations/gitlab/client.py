@@ -5,24 +5,25 @@ from six.moves.urllib.parse import quote
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
 
-API_VERSION = '/api/v4'
-
-
-def build_api_url(base_url, path):
-    return u'{base_url}{api}{path}'.format(
-        base_url=base_url,
-        api=API_VERSION,
-        path=path,
-    )
+API_VERSION = u'/api/v4'
 
 
 class GitLabApiClientPath(object):
+    group = u'/groups/{group}'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
     members = u'/projects/{project}/members'
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
     user = u'/user'
+
+    @staticmethod
+    def build_api_url(base_url, path):
+        return u'{base_url}{api}{path}'.format(
+            base_url=base_url,
+            api=API_VERSION,
+            path=path,
+        )
 
 
 class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
@@ -49,7 +50,7 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         }
         return self._request(
             method,
-            build_api_url(
+            GitLabApiClientPath.build_api_url(
                 self.metadata['base_url'],
                 path
             ),

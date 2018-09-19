@@ -13,7 +13,7 @@ from sentry.integrations import IntegrationInstallation, IntegrationFeatures, In
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
-from .client import GitLabApiClient
+from .client import GitLabApiClient, GitLabApiClientPath
 
 DESCRIPTION = """
 Fill me out
@@ -183,8 +183,12 @@ class GitlabIntegrationProvider(IntegrationProvider):
     def get_group_info(self, access_token, installation_data):
         session = http.build_session()
         resp = session.get(
-            u'{}/api/v4/groups/{}'.format(
-                installation_data['url'], installation_data['group']),
+            GitLabApiClientPath.build_api_url(
+                base_url=installation_data['url'],
+                path=GitLabApiClientPath.group.format(
+                    group=installation_data['group'],
+                )
+            ),
             headers={
                 'Accept': 'application/json',
                 'Authorization': 'Bearer %s' % access_token,
