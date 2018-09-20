@@ -10,6 +10,7 @@ import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetai
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ResolutionBox from 'app/components/resolutionBox';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import Meta from 'app/utils/meta';
 
 const GroupEventDetails = createReactClass({
   displayName: 'GroupEventDetails',
@@ -110,6 +111,7 @@ const GroupEventDetails = createReactClass({
                 event={evt}
                 orgId={params.orgId}
                 project={this.getProject()}
+                meta={new Meta(evt._meta)}
               />
             )}
           </div>

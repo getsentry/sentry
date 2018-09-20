@@ -59,6 +59,7 @@ const EventEntries = createReactClass({
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: PropTypes.bool,
+    meta: PropTypes.object.isRequired,
   },
 
   mixins: [GroupState],
@@ -100,7 +101,7 @@ const EventEntries = createReactClass({
   interfaces: INTERFACES,
 
   renderEntries() {
-    let {event, group, isShare} = this.props;
+    let {event, group, isShare, meta} = this.props;
 
     return event.entries.map((entry, entryIdx) => {
       try {
@@ -120,6 +121,7 @@ const EventEntries = createReactClass({
             type={entry.type}
             data={entry.data}
             isShare={isShare}
+            meta={meta.in('entries', entry.type)}
           />
         );
       } catch (ex) {
