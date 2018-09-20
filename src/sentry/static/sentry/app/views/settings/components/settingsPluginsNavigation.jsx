@@ -43,12 +43,12 @@ class SettingsPluginsNavigation extends React.Component {
 
     return (
       <NavSection>
-        <SettingsHeading>{t('Integrations')}</SettingsHeading>
+        <SettingsHeading>{t('Legacy Integrations')}</SettingsHeading>
 
         <SettingsNavItem
           active={router.isActive(allIntegrationsPath)}
           to={allIntegrationsPath}
-          label={t('All Integrations')}
+          label={t('Legacy Integrations')}
         />
 
         <PluginNavigation>

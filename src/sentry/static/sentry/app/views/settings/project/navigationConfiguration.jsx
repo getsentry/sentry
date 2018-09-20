@@ -106,11 +106,11 @@ export default function getConfiguration({project}) {
       ],
     },
     {
-      name: t('Integrations'),
+      name: t('Legacy Integrations'),
       items: [
         {
           path: `${pathPrefix}/plugins/`,
-          title: t('All Integrations'),
+          title: t('Legacy Integrations'),
           description: t('View, enable, and disable all integrations for a project'),
         },
         ...plugins.map(plugin => ({

@@ -31,7 +31,7 @@ class ProjectPluginsContainer extends React.Component {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Integrations')} />
+        <SettingsPageHeader title={t('Legacy Integrations')} />
 
         <ProjectPlugins
           {...this.props}
