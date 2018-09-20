@@ -413,6 +413,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'sentry:store_crash_reports' in options:
                 project.update_option('sentry:store_crash_reports', bool(
                     options['sentry:store_crash_reports']))
+            if 'sentry:relay_pii_config' in options:
+                project.update_option('sentry:relay_pii_config',
+                                      options['sentry:relay_pii_config'].strip() or None)
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',

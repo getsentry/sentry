@@ -224,6 +224,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:sensitive_fields': ['foo', 'bar'],
             'sentry:safe_fields': ['token'],
             'sentry:store_crash_reports': False,
+            'sentry:relay_pii_config': '{"applications": {"freeform": []}}',
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
             'filters:blacklisted_ips': '127.0.0.1\n198.51.100.0',
@@ -263,6 +264,10 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option(
             'sentry:store_crash_reports',
             False) == options['sentry:store_crash_reports']
+
+        assert project.get_option(
+            'sentry:relay_pii_config',
+            '') == options['sentry:relay_pii_config']
         assert AuditLogEntry.objects.filter(
             organization=project.organization,
             event=AuditLogEntryEvent.PROJECT_EDIT,
@@ -486,6 +491,15 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert self.project.get_option('sentry:store_crash_reports') is True
         assert resp.data['storeCrashReports'] is True
+
+    def test_relay_pii_config(self):
+        value = '{"applications": {"freeform": []}}'
+        resp = self.client.put(self.path, data={
+            'relayPiiConfig': value
+        })
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option('sentry:relay_pii_config') == value
+        assert resp.data['relayPiiConfig'] == value
 
     def test_sensitive_fields(self):
         resp = self.client.put(self.path, data={
