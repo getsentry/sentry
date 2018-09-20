@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {uniq} from 'lodash';
+import styled from 'react-emotion';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -373,7 +374,7 @@ export default class OrganizationDiscover extends React.Component {
               onUpdate={this.runQuery}
             />
           </TopBar>
-          <Flex flex="1" direction="column" p={3}>
+          <BodyContent>
             {data && (
               <Result flex="1"
                 data={data}
@@ -384,9 +385,16 @@ export default class OrganizationDiscover extends React.Component {
             )}
             {!data && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
-          </Flex>
+          </BodyContent>
         </Body>
       </Discover>
     );
   }
 }
+
+const BodyContent = styled(Flex)`
+  flex: 1;
+  height: calc(100% - 70px);
+  flex-direction: column;
+  padding: 12px 32px 32px 32px;
+`;
