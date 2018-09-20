@@ -66,6 +66,7 @@ class JavaScriptSdkLoader(BaseView):
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
+        response['Access-Control-Allow-Origin'] = '*'
         response['Cache-Control'] = CACHE_CONTROL
         if sdk_version and key:
             response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
