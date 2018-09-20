@@ -58,10 +58,11 @@ storiesOf('Charts|Playground')
           }}
           height={number('height', 300)}
           grid={{
-            top: text('grid:top', 24),
-            bottom: text('grid:bottom', 40),
-            left: text('grid:left', '10%'),
-            right: text('grid:right', '10%'),
+            top: text('GRID KNOBS:\ntop', 40),
+            bottom: text('bottom', 20),
+            left: text('left', '10%'),
+            right: text('right', '10%'),
+            containLabel: boolean('containLabel', true),
           }}
         />
       </div>
@@ -132,10 +133,11 @@ storiesOf('Charts|Playground')
           }}
           height={number('height', 300)}
           grid={{
-            top: text('GRID KNOBS:\ntop', 24),
-            bottom: text('bottom', 40),
+            top: text('GRID KNOBS:\ntop', 40),
+            bottom: text('bottom', 20),
             left: text('left', '10%'),
             right: text('right', '10%'),
+            containLabel: boolean('containLabel', true),
           }}
         />
       </div>

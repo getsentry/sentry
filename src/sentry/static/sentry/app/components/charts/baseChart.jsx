@@ -100,9 +100,6 @@ class BaseChart extends React.Component {
     // If data is grouped by date, then apply default date formatting to
     // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
-
-    //will add to sentryTypes in showLegend PR for discover coming up
-    legend: PropTypes.object,
   };
 
   static defaultProps = {
