@@ -22,7 +22,7 @@ from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage
+from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils import db
 
 from . import models
@@ -511,12 +511,14 @@ class V2TagStorage(TagStorage):
 
         return transformers[models.GroupTagKey](instance)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
         qs = models.GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
             group_id=group_id,
             _key__project_id=project_id,
         )
+        if keys is not None:
+            qs = qs.filter(_key__key__in=keys)
 
         qs = self._add_environment_filter(qs, environment_id)
 
@@ -781,7 +783,7 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs.aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
+    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         if db.is_postgres():
             environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
 
