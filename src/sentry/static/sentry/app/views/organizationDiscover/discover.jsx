@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {uniq} from 'lodash';
-import styled from 'react-emotion';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -13,7 +12,6 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';
@@ -29,6 +27,7 @@ import {
   Discover,
   Sidebar,
   Body,
+  BodyContent,
   TopBar,
   SidebarHeader,
   SidebarTitle,
@@ -375,9 +374,10 @@ export default class OrganizationDiscover extends React.Component {
               onUpdate={this.runQuery}
             />
           </TopBar>
-          <BodyContent direction="column">
+          <BodyContent>
             {data && (
-              <Result flex="1"
+              <Result
+                flex="1"
                 data={data}
                 query={query}
                 chartData={chartData}
@@ -392,8 +392,3 @@ export default class OrganizationDiscover extends React.Component {
     );
   }
 }
-
-const BodyContent = styled(Flex)`
-  flex: 1;
-  padding: ${space(1.5)} 32px 32px 32px;
-`;
