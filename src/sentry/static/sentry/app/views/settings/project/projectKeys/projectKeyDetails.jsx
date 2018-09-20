@@ -13,6 +13,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
@@ -338,6 +339,10 @@ const KeySettings = createReactClass({
       project,
     } = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    const loaderLink = getDynamicText({
+      value: data.dsn.cdn,
+      fixed: '__JS_SDK_LOADER_URL__',
+    });
 
     return (
       <React.Fragment>
@@ -395,8 +400,7 @@ const KeySettings = createReactClass({
                   inline={false}
                   flexibleControlStateSize
                 >
-                  <TextCopyInput>{`<script src='${data.dsn
-                    .cdn}'></script>`}</TextCopyInput>
+                  <TextCopyInput>{`<script src='${loaderLink}'></script>`}</TextCopyInput>
                 </Field>
                 <SelectField
                   name="browserSdkVersion"
