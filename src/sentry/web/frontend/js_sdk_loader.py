@@ -44,7 +44,7 @@ class JavaScriptSdkLoader(BaseView):
         key = None
 
         try:
-            key = ProjectKey.objects.get(
+            key = ProjectKey.objects.get_from_cache(
                 public_key=public_key
             )
         except ProjectKey.DoesNotExist:
