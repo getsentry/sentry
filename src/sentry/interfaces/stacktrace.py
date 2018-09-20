@@ -13,6 +13,7 @@ __all__ = ('Stacktrace', )
 import re
 import six
 import posixpath
+from itertools import islice, chain
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -691,9 +692,16 @@ class Stacktrace(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
+        # Trim down the frame list to a hard limit. Leave the last frame in place in case
+        # it's useful for debugging.
+        frameiter = data['frames']
+        if len(data['frames']) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
+            frameiter = chain(
+                islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
+
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {}, raw=raw) for f in data['frames']
+            Frame.to_python(f or {}, raw=raw) for f in frameiter
         ]
 
         kwargs = {
