@@ -97,6 +97,12 @@ class GroupIntegrationDetailsTest(APITestCase):
                         'label': 'Description',
                         'autosize': True,
                         'maxRows': 10,
+                    },
+                    {
+                        'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+                        'type': 'select',
+                        'name': 'project',
+                        'label': 'Project',
                     }
                 ]
             }
@@ -283,3 +289,35 @@ class GroupIntegrationDetailsTest(APITestCase):
         response = self.client.delete(path)
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
+
+    def test_default_project(self):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        self.create_event(group=group)
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        org_integration = integration.add_organization(org, self.user)
+        org_integration.config = {
+            'project_issue_defaults': {
+                group.project_id: {'project': '2'}
+            }
+        }
+        org_integration.save()
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+        with self.feature('organizations:integrations-issue-basic'):
+            response = self.client.get(path)
+            assert response.status_code == 200
+            data = response.data
+            assert response.data['id'] == six.text_type(integration.id)
+            for field in data['createIssueConfig']:
+                if field['name'] == 'project':
+                    assert field == {
+                        'name': 'project',
+                        'label': 'Project',
+                        'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+                        'type': 'select',
+                        'default': '2',
+                    }

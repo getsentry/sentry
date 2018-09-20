@@ -121,6 +121,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             external_issue.update(**defaults)
 
         try:
+            installation.store_issue_last_defaults(group.project_id, request.DATA)
             installation.after_link_issue(external_issue, data=request.DATA)
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
@@ -209,6 +210,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 user=request.user,
                 sender=self.__class__,
             )
+        installation.store_issue_last_defaults(group.project_id, request.DATA)
 
         # TODO(jess): return serialized issue
         url = data.get('url') or installation.get_issue_url(external_issue.key)
