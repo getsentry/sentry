@@ -132,8 +132,8 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         """
-        Upload a New Files
-        ``````````````````
+        Upload a New File
+        `````````````````
 
         Upload a new dsym file for the given release.
 
