@@ -5,6 +5,7 @@ import {configure, setAddon, getStorybook, addDecorator} from '@storybook/react'
 import infoAddon, {setDefaults} from '@storybook/addon-info';
 import {checkA11y} from '@storybook/addon-a11y';
 import {setOptions} from '@storybook/addon-options';
+import {withKnobs} from '@storybook/addon-knobs';
 
 import theme from '../src/sentry/static/sentry/app/utils/theme';
 import './storybook.less';
@@ -19,6 +20,7 @@ setDefaults({
 setAddon(infoAddon);
 addDecorator(checkA11y);
 addDecorator(withTheme);
+addDecorator(withKnobs);
 // Use webpack's require.context to load modules dynamically
 // From https://storybook.js.org/basics/writing-stories/
 const req = require.context('../docs-ui/components', true, /\.stories\.js$/);
