@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
-from django.http import Http404
+import time
+
 from django.conf import settings
 
 from sentry.relay import config
+from sentry.utils import metrics
 from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
@@ -16,14 +18,10 @@ CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=3153600
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
 
-    def get(self, request, public_key, minified):
-        """Returns a js file that can be integrated into a website"""
-        try:
-            key = ProjectKey.objects.get(
-                public_key=public_key
-            )
-        except ProjectKey.DoesNotExist:
-            raise Http404
+    def _get_context(self, key):
+        """Sets context information needed to render the loader"""
+        if not key:
+            return ({}, None, None)
 
         sdk_version = get_browser_sdk_version(key)
         try:
@@ -34,23 +32,47 @@ class JavaScriptSdkLoader(BaseView):
         except TypeError:
             sdk_url = ''  # It fails if it cannot inject the version in the string
 
+        return ({
+            'config': config.get_project_key_config(key),
+            'jsSdkUrl': sdk_url,
+            'publicKey': key.public_key
+        }, sdk_version, sdk_url)
+
+    def get(self, request, public_key, minified):
+        """Returns a js file that can be integrated into a website"""
+        start_time = time.time()
+        key = None
+
+        try:
+            key = ProjectKey.objects.get_from_cache(
+                public_key=public_key
+            )
+        except ProjectKey.DoesNotExist:
+            pass
+
+        context, sdk_version, sdk_url = self._get_context(key)
+
+        instance = "default"
         if not sdk_url:
+            instance = "noop"
             tmpl = 'sentry/js-sdk-loader-noop.js.tmpl'
         elif minified is not None:
+            instance = "minified"
             tmpl = 'sentry/js-sdk-loader.min.js.tmpl'
         else:
             tmpl = 'sentry/js-sdk-loader.js.tmpl'
 
-        context = {
-            'config': config.get_project_key_config(key),
-            'jsSdkUrl': sdk_url,
-            'publicKey': public_key
-        }
+        metrics.incr('js-sdk-loader.rendered', instance=instance)
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
+        response['Access-Control-Allow-Origin'] = '*'
         response['Cache-Control'] = CACHE_CONTROL
-        response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
-            key.project_id, sdk_version)
+        if sdk_version and key:
+            response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
+                key.project_id, sdk_version)
+
+        ms = int((time.time() - start_time) * 1000)
+        metrics.timing('js-sdk-loader.duration', ms, instance=instance)
 
         return response
