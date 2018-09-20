@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
+import time
+
 from django.http import Http404
 from django.conf import settings
 
 from sentry.relay import config
+from sentry.utils import metrics
 from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 
 
-CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000'
+CACHE_CONTROL = 'public, max-age=300, s-maxage=600, stale-while-revalidate=315360000, stale-if-error=315360000'
 
 
 class JavaScriptSdkLoader(BaseView):
@@ -18,6 +21,8 @@ class JavaScriptSdkLoader(BaseView):
 
     def get(self, request, public_key, minified):
         """Returns a js file that can be integrated into a website"""
+        start_time = time.time()
+
         try:
             key = ProjectKey.objects.get(
                 public_key=public_key
@@ -34,12 +39,17 @@ class JavaScriptSdkLoader(BaseView):
         except TypeError:
             sdk_url = ''  # It fails if it cannot inject the version in the string
 
+        instance = "default"
         if not sdk_url:
+            instance = "noop"
             tmpl = 'sentry/js-sdk-loader-noop.js.tmpl'
         elif minified is not None:
+            instance = "minified"
             tmpl = 'sentry/js-sdk-loader.min.js.tmpl'
         else:
             tmpl = 'sentry/js-sdk-loader.js.tmpl'
+
+        metrics.incr('js-sdk-loader.rendered', instance=instance)
 
         context = {
             'config': config.get_project_key_config(key),
@@ -52,5 +62,8 @@ class JavaScriptSdkLoader(BaseView):
         response['Cache-Control'] = CACHE_CONTROL
         response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
             key.project_id, sdk_version)
+
+        ms = int((time.time() - start_time) * 1000)
+        metrics.timing('js-sdk-loader.duration', ms, instance=instance)
 
         return response
