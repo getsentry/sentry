@@ -13,6 +13,7 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';
@@ -394,5 +395,5 @@ export default class OrganizationDiscover extends React.Component {
 
 const BodyContent = styled(Flex)`
   flex: 1;
-  padding: 12px 32px 32px 32px;
+  padding: ${space(1.5)} 32px 32px 32px;
 `;
