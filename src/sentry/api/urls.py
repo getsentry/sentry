@@ -60,6 +60,7 @@ from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
+from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -384,6 +385,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/$',
         OrganizationDiscoverSavedQueriesEndpoint.as_view(),
         name='sentry-api-0-organization-discover-saved-queries'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)$',
+        OrganizationDiscoverSavedQueryDetailEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-saved-query-detail'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',
