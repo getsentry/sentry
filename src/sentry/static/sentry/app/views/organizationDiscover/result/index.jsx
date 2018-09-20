@@ -118,7 +118,7 @@ export default class Result extends React.Component {
     const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
 
     const legendData = byDayChartData
-      ? byDayChartData.map(entry => entry.seriesName)
+      ? {data: byDayChartData.map(entry => entry.seriesName)}
       : null;
 
     const tooltipOptions = {
@@ -164,7 +164,7 @@ export default class Result extends React.Component {
               series={byDayChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={legendData ? {data: legendData} : null}
+              legend={legendData}
               renderer="canvas"
             />
             {this.renderNote()}
@@ -177,7 +177,7 @@ export default class Result extends React.Component {
               stacked={true}
               height={300}
               tooltip={tooltipOptions}
-              legend={legendData ? {data: legendData} : null}
+              legend={legendData}
               renderer="canvas"
             />
             {this.renderNote()}
