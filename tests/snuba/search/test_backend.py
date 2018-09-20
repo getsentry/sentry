@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import options
 from sentry.event_manager import ScoreClause
 from sentry.models import (
     Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
@@ -343,21 +342,6 @@ class SnubaSearchTest(SnubaTestCase):
         assert set(results) == set([])
 
     def test_pagination(self):
-        # test with and without max-pre-snuba-candidates enabled
-        prev_max_pre = options.get('snuba.search.max-pre-snuba-candidates')
-        options.set('snuba.search.max-pre-snuba-candidates', None)
-        try:
-            results = self.backend.query(self.project, limit=1, sort_by='date')
-            assert set(results) == set([self.group1])
-
-            results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
-            assert set(results) == set([self.group2])
-
-            results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
-            assert set(results) == set([])
-        finally:
-            options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)
-
         results = self.backend.query(self.project, limit=1, sort_by='date')
         assert set(results) == set([self.group1])
 
@@ -391,7 +375,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group2]
-        assert results.hits is None  # NOQA
+        assert results.hits == 2
 
         results = self.backend.query(
             self.project,
@@ -402,7 +386,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == [self.group1]
-        assert results.hits is None  # NOQA
+        assert results.hits == 2
 
         results = self.backend.query(
             self.project,
@@ -413,7 +397,7 @@ class SnubaSearchTest(SnubaTestCase):
             count_hits=True,
         )
         assert list(results) == []
-        assert results.hits is None  # NOQA
+        assert results.hits == 2
 
     def test_age_filter(self):
         results = self.backend.query(
@@ -796,10 +780,6 @@ class SnubaSearchTest(SnubaTestCase):
                     return isinstance(other, cls)
             return Any()
 
-        DEFAULT_LIMIT = 100
-        chunk_growth = options.get('snuba.search.chunk-growth-rate')
-        limit = (DEFAULT_LIMIT * chunk_growth) + 1
-
         common_args = {
             'start': Any(datetime),
             'end': Any(datetime),
@@ -810,8 +790,6 @@ class SnubaSearchTest(SnubaTestCase):
             'referrer': 'search',
             'groupby': ['primary_hash'],
             'conditions': [],
-            'limit': limit,
-            'offset': 0,
         }
 
         self.backend.query(self.project, query='foo')
@@ -859,8 +837,13 @@ class SnubaSearchTest(SnubaTestCase):
         )
 
     def test_pre_and_post_filtering(self):
-        prev_max_pre = options.get('snuba.search.max-pre-snuba-candidates')
-        options.set('snuba.search.max-pre-snuba-candidates', 1)
+        from sentry.search.snuba import backend as snuba_search
+
+        prev_max_pre = snuba_search.MAX_PRE_SNUBA_CANDIDATES
+        prev_max_post = snuba_search.MAX_POST_SNUBA_CHUNK
+
+        snuba_search.MAX_PRE_SNUBA_CANDIDATES = 1
+        snuba_search.MAX_POST_SNUBA_CHUNK = 1
         try:
             # normal queries work as expected
             results = self.backend.query(self.project, query='foo')
@@ -876,4 +859,5 @@ class SnubaSearchTest(SnubaTestCase):
             results = self.backend.query(self.project)
             assert set(results) == set([self.group1, self.group2])
         finally:
-            options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)
+            snuba_search.MAX_PRE_SNUBA_CANDIDATES = prev_max_pre
+            snuba_search.MAX_POST_SNUBA_CHUNK = prev_max_post
