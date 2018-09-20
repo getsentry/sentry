@@ -18,7 +18,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from . import metrics
 
-UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
+UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', 'sentry/utils/sdk.py')
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven

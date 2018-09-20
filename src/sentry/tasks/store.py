@@ -338,6 +338,20 @@ def save_attachment(event, attachment):
     )
 
 
+def apply_preprocess_rules(project, data):
+    from sentry.rules.base import PreProcessState
+    from sentry.rules.processor import RuleProcessor
+
+    rp = RuleProcessor(
+        project=project,
+        state=PreProcessState(data),
+        action_type='actions/preprocess',
+        default_frequency=None,
+    )
+    for callback, futures in rp.apply():
+        safe_execute(callback, data, futures)
+
+
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
 def save_event(cache_key=None, data=None, start_time=None, event_id=None,
                project_id=None, **kwargs):
@@ -362,6 +376,9 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     if project_id is None:
         project_id = data.pop('project')
 
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
+
     delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
     # This covers two cases: where data is None because we did not manage
@@ -378,8 +395,8 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    project = Project.objects.get_from_cache(id=project_id)
+    apply_preprocess_rules(project, data)
 
     try:
         manager = EventManager(data)

@@ -8,7 +8,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule
-from sentry.rules import EventState, rules
+from sentry.rules import rules
 from sentry.utils.safe import safe_execute
 
 RuleFuture = namedtuple('RuleFuture', ['rule', 'kwargs'])
@@ -35,19 +35,16 @@ class EventCompatibilityProxy(object):
 
 
 class RuleProcessor(object):
+    default_action_match = Rule.DEFAULT_ACTION_MATCH
+
     logger = logging.getLogger('sentry.rules')
 
-    def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
-        self.event = EventCompatibilityProxy(event)
-        self.group = event.group
-        self.project = event.project
-
-        self.is_new = is_new
-        self.is_regression = is_regression
-        self.is_new_group_environment = is_new_group_environment
-        self.has_reappeared = has_reappeared
-
+    def __init__(self, project, state, action_type=None, default_frequency=Rule.DEFAULT_FREQUENCY):
+        self.project = project
         self.grouped_futures = {}
+        self.state = state
+        self.action_type = action_type
+        self.default_frequency = default_frequency
 
     def get_rules(self):
         return Rule.get_for_project(self.project.id)
@@ -55,7 +52,7 @@ class RuleProcessor(object):
     def get_rule_status(self, rule):
         rule_status, _ = GroupRuleStatus.objects.get_or_create(
             rule=rule,
-            group=self.group,
+            group=self.state.event.group,
             defaults={
                 'project': self.project,
             },
@@ -70,20 +67,13 @@ class RuleProcessor(object):
             return
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
-        return safe_execute(condition_inst.passes, self.event, state, _with_transaction=False)
 
-    def get_state(self):
-        return EventState(
-            is_new=self.is_new,
-            is_regression=self.is_regression,
-            is_new_group_environment=self.is_new_group_environment,
-            has_reappeared=self.has_reappeared,
-        )
+        return safe_execute(condition_inst.passes, state, _with_transaction=False)
 
     def apply_rule(self, rule):
-        match = rule.data.get('action_match') or Rule.DEFAULT_ACTION_MATCH
+        match = rule.data.get('action_match') or self.default_action_match
         condition_list = rule.data.get('conditions', ())
-        frequency = rule.data.get('frequency') or Rule.DEFAULT_FREQUENCY
+        frequency = rule.data.get('frequency') or self.default_frequency
 
         # XXX(dcramer): if theres no condition should we really skip it,
         # or should we just apply it blindly?
@@ -94,17 +84,15 @@ class RuleProcessor(object):
                 and self.event.get_environment().id != rule.environment_id:
             return
 
-        status = self.get_rule_status(rule)
+        if frequency:
+            status = self.get_rule_status(rule)
+            now = timezone.now()
+            freq_offset = now - timedelta(minutes=frequency)
 
-        now = timezone.now()
-        freq_offset = now - timedelta(minutes=frequency)
+            if status.last_active and status.last_active > freq_offset:
+                return
 
-        if status.last_active and status.last_active > freq_offset:
-            return
-
-        state = self.get_state()
-
-        condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
+        condition_iter = (self.condition_matches(c, self.state, rule) for c in condition_list)
 
         if match == 'all':
             passed = all(condition_iter)
@@ -116,15 +104,16 @@ class RuleProcessor(object):
             self.logger.error('Unsupported action_match %r for rule %d', match, rule.id)
             return
 
-        if passed:
-            passed = GroupRuleStatus.objects.filter(
-                id=status.id,
-            ).exclude(
-                last_active__gt=freq_offset,
-            ).update(last_active=now)
+        if frequency:
+            if passed:
+                passed = GroupRuleStatus.objects.filter(
+                    id=status.id,
+                ).exclude(
+                    last_active__gt=freq_offset,
+                ).update(last_active=now)
 
-        if not passed:
-            return
+            if not passed:
+                return
 
         for action in rule.data.get('actions', ()):
             action_cls = rules.get(action['id'])
@@ -132,9 +121,13 @@ class RuleProcessor(object):
                 self.logger.warn('Unregistered action %r', action['id'])
                 continue
 
+            if action_cls.rule_type != self.action_type:
+                continue
+
             action_inst = action_cls(self.project, data=action, rule=rule)
+            self.execute_action(action_inst)
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after, state=self.state, _with_transaction=False
             )
             if results is None:
                 self.logger.warn('Action %s did not return any futures', action['id'])

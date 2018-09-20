@@ -51,7 +51,8 @@ class LevelCondition(EventCondition):
         'match': {'type': 'choice', 'choices': MATCH_CHOICES.items()}
     }
 
-    def passes(self, event, state, **kwargs):
+    def passes(self, state, **kwargs):
+        event = state.event
         desired_level = self.get_option('level')
         desired_match = self.get_option('match')
 

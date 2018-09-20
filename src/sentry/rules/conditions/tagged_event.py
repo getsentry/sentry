@@ -63,7 +63,8 @@ class TaggedEventCondition(EventCondition):
         }
     }
 
-    def passes(self, event, state, **kwargs):
+    def passes(self, state, **kwargs):
+        event = state.event
         key = self.get_option('key')
         match = self.get_option('match')
         value = self.get_option('value')

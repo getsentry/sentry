@@ -56,7 +56,8 @@ class BaseEventFrequencyCondition(EventCondition):
 
         super(BaseEventFrequencyCondition, self).__init__(*args, **kwargs)
 
-    def passes(self, event, state):
+    def passes(self, state):
+        event = state.event
         interval = self.get_option('interval')
         try:
             value = int(self.get_option('value'))

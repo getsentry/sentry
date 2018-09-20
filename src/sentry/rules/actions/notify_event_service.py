@@ -12,7 +12,7 @@ from __future__ import absolute_import
 from django import forms
 
 from sentry.plugins import plugins
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import PostProcessAction
 from sentry.utils.safe import safe_execute
 from sentry.utils import metrics
 
@@ -29,7 +29,7 @@ class NotifyEventServiceForm(forms.Form):
         self.fields['service'].widget.choices = self.fields['service'].choices
 
 
-class NotifyEventServiceAction(EventAction):
+class NotifyEventServiceAction(PostProcessAction):
     form_cls = NotifyEventServiceForm
     label = 'Send a notification via {service}'
 
@@ -42,7 +42,8 @@ class NotifyEventServiceAction(EventAction):
             }
         }
 
-    def after(self, event, state):
+    def after(self, state):
+        event = state.event
         service = self.get_option('service')
 
         extra = {'event_id': event.id}

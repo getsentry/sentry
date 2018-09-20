@@ -100,8 +100,14 @@ class RuleBase(object):
         )
 
 
-class EventState(object):
-    def __init__(self, is_new, is_regression, is_new_group_environment, has_reappeared):
+class PreProcessState(object):
+    def __init__(self, data):
+        self.data = data
+
+
+class PostProcessState(object):
+    def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
+        self.event = event
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment

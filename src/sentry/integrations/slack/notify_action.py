@@ -4,7 +4,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import http
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import PostProcessAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
@@ -62,7 +62,7 @@ class SlackNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class SlackNotifyServiceAction(EventAction):
+class SlackNotifyServiceAction(PostProcessAction):
     form_cls = SlackNotifyServiceForm
     label = u'Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification'
 
@@ -86,7 +86,8 @@ class SlackNotifyServiceAction(EventAction):
     def is_enabled(self):
         return self.get_integrations().exists()
 
-    def after(self, event, state):
+    def after(self, state):
+        event = state.event
         if event.group.is_ignored():
             return
 

@@ -205,7 +205,8 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def passes(self, event, state, **kwargs):
+    def passes(self, state, **kwargs):
+        event = state.event
         attr = self.get_option('attribute')
         match = self.get_option('match')
         value = self.get_option('value')

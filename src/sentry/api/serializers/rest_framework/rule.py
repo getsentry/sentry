@@ -66,7 +66,7 @@ class RuleSerializer(serializers.Serializer):
         choices=(('all', 'all'), ('any', 'any'), ('none', 'none'), )
     )
     actions = ListField(
-        child=RuleNodeField(type='action/event'),
+        child=RuleNodeField(type='action/postprocess'),
     )
     conditions = ListField(
         child=RuleNodeField(type='condition/event'),

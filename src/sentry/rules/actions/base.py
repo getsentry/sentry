@@ -11,10 +11,40 @@ from __future__ import absolute_import, print_function
 from sentry.rules.base import RuleBase
 
 
-class EventAction(RuleBase):
-    rule_type = 'action/event'
+class PostProcessAction(RuleBase):
+    rule_type = 'action/postprocess'
 
-    def after(self, event, state):
+    def after(self, state):
+        """
+        Executed after a Rule matches.
+
+        Should yield CallBackFuture instances which will then be passed into
+        the given callback.
+
+        See the notification implementation for example usage.
+
+        >>> def after(self, event, state):
+        >>>     yield self.future(self.print_results)
+        >>>
+        >>> def print_results(self, event, futures):
+        >>>     print('Got futures for Event {}'.format(event.id))
+        >>>     for future in futures:
+        >>>         print(future)
+        """
+        raise NotImplementedError
+
+
+# Compatibility
+EventAction = PostProcessAction
+
+
+class PreProcessAction(RuleBase):
+    """
+    A rule which is executed during event processing.
+    """
+    rule_type = 'action/preprocess'
+
+    def after(self, state):
         """
         Executed after a Rule matches.
 

@@ -10,12 +10,12 @@ Used for notifying *all* enabled plugins
 from __future__ import absolute_import
 
 from sentry.plugins import plugins
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import PostProcessAction
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
-class NotifyEventAction(EventAction):
+class NotifyEventAction(PostProcessAction):
     label = 'Send a notification (for all legacy integrations)'
 
     def get_plugins(self):
@@ -33,7 +33,8 @@ class NotifyEventAction(EventAction):
 
         return results
 
-    def after(self, event, state):
+    def after(self, state):
+        event = state.event
         group = event.group
 
         for plugin in self.get_plugins():
