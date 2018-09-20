@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import time
 
-from django.http import Http404
 from django.conf import settings
 
 from sentry.relay import config
@@ -19,16 +18,10 @@ CACHE_CONTROL = 'public, max-age=300, s-maxage=600, stale-while-revalidate=31536
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
 
-    def get(self, request, public_key, minified):
-        """Returns a js file that can be integrated into a website"""
-        start_time = time.time()
-
-        try:
-            key = ProjectKey.objects.get(
-                public_key=public_key
-            )
-        except ProjectKey.DoesNotExist:
-            raise Http404
+    def _get_context(self, key):
+        """Sets context information needed to render the loader"""
+        if not key:
+            return ({}, None, None)
 
         sdk_version = get_browser_sdk_version(key)
         try:
@@ -38,6 +31,26 @@ class JavaScriptSdkLoader(BaseView):
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
         except TypeError:
             sdk_url = ''  # It fails if it cannot inject the version in the string
+
+        return ({
+            'config': config.get_project_key_config(key),
+            'jsSdkUrl': sdk_url,
+            'publicKey': key.public_key
+        }, sdk_version, sdk_url)
+
+    def get(self, request, public_key, minified):
+        """Returns a js file that can be integrated into a website"""
+        start_time = time.time()
+        key = None
+
+        try:
+            key = ProjectKey.objects.get(
+                public_key=public_key
+            )
+        except ProjectKey.DoesNotExist:
+            pass
+
+        context, sdk_version, sdk_url = self._get_context(key)
 
         instance = "default"
         if not sdk_url:
@@ -51,17 +64,12 @@ class JavaScriptSdkLoader(BaseView):
 
         metrics.incr('js-sdk-loader.rendered', instance=instance)
 
-        context = {
-            'config': config.get_project_key_config(key),
-            'jsSdkUrl': sdk_url,
-            'publicKey': public_key
-        }
-
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
         response['Cache-Control'] = CACHE_CONTROL
-        response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
-            key.project_id, sdk_version)
+        if sdk_version and key:
+            response['Surrogate-Key'] = 'project/%s sdk/%s sdk-loader' % (
+                key.project_id, sdk_version)
 
         ms = int((time.time() - start_time) * 1000)
         metrics.timing('js-sdk-loader.duration', ms, instance=instance)

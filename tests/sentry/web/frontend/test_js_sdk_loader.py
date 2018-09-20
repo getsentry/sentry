@@ -14,9 +14,10 @@ class JavaScriptSdkLoaderTest(TestCase):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = 'https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js'
         return reverse('sentry-js-sdk-loader', args=[self.projectkey.public_key])
 
-    def test_404(self):
+    def test_noop_no_pub_key(self):
         resp = self.client.get(reverse('sentry-js-sdk-loader', args=['abc']))
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/js-sdk-loader-noop.js.tmpl')
 
     def test_noop(self):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = ''
