@@ -351,7 +351,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'model': Organization.__name__,
                     }
                 )
-            else:
+            elif changed_data:
                 self.create_audit_entry(
                     request=request,
                     organization=organization,
