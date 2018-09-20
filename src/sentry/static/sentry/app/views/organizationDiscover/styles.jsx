@@ -5,6 +5,7 @@ import {keyframes} from 'emotion';
 import space from 'app/styles/space';
 
 import Link from 'app/components/link';
+import Panel from 'app/components/panels/panel';
 
 export const Discover = styled(Flex)`
   min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
@@ -114,4 +115,21 @@ export const ButtonSpinner = styled.div`
   border-bottom: 2px solid ${p => p.theme.borderLight};
   border-left: 2px solid ${p => p.theme.purple};
   margin-left: 4px;
+`;
+
+export const ResultSummary = styled(Box)`
+  color: ${p => p.theme.gray6};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(3)};
+`;
+
+export const ChartWrapper = styled(Panel)`
+  padding: ${space(3)} ${space(2)};
+`;
+
+export const ChartNote = styled(Box)`
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray3};
+  margin-bottom: ${space(3)};
 `;

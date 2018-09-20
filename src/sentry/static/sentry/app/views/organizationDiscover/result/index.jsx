@@ -1,19 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import styled from 'react-emotion';
 import {Box, Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 
 import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
 import Table from './table';
-import {Heading} from '../styles';
+import {Heading, ResultSummary, ChartWrapper, ChartNote} from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
@@ -99,14 +97,16 @@ export default class Result extends React.Component {
     const summaryData = baseViews.includes(this.state.view) ? data : chartData;
 
     return (
-      <Summary>
+      <ResultSummary>
         query time: {summaryData.timing.duration_ms} ms, {summaryData.data.length} rows
-      </Summary>
+      </ResultSummary>
     );
   }
 
   renderNote() {
-    return <Note>{t(`Displaying up to ${NUMBER_OF_SERIES_BY_DAY} results`)}</Note>;
+    return (
+      <ChartNote>{t(`Displaying up to ${NUMBER_OF_SERIES_BY_DAY} results`)}</ChartNote>
+    );
   }
 
   render() {
@@ -127,7 +127,7 @@ export default class Result extends React.Component {
     };
 
     return (
-      <Results>
+      <Box flex="1">
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
             <Heading>{t('Result')}</Heading>
@@ -184,27 +184,7 @@ export default class Result extends React.Component {
           </ChartWrapper>
         )}
         {this.renderSummary()}
-      </Results>
+      </Box>
     );
   }
 }
-
-const Results = styled('div')`
-  flex: 1;
-`;
-
-const ChartWrapper = styled(Panel)`
-  padding: ${space(3)} ${space(2)};
-`;
-
-const Summary = styled(Box)`
-  color: ${p => p.theme.gray6};
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(3)};
-`;
-
-const Note = styled(Box)`
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
-`;
