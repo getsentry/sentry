@@ -5,6 +5,7 @@ import six
 import logging
 import math
 import pytz
+import time
 from collections import defaultdict
 from datetime import timedelta, datetime
 
@@ -159,8 +160,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         now = timezone.now()
         end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
         # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the future, but apparently
-        #       `retention_window_start` can be None?
+        #       which may be higher than 90 days in the past, but apparently
+        #       `retention_window_start` can be None(?), so we need a fallback.
         start = max(
             filter(None, [
                 retention_window_start,
@@ -269,13 +270,16 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         min_score = float('inf')
         max_score = -1
 
+        max_time = options.get('snuba.search.max-chunk-time-seconds')
+        time_start = time.time()
+
         # Do smaller searches in chunks until we have enough results
         # to answer the query (or hit the end of possible results). We do
         # this because a common case for search is to return 100 groups
         # sorted by `last_seen`, and we want to avoid returning all of
         # a project's hashes and then post-sorting them all in Postgres
         # when typically the first N results will do.
-        while True:
+        while (time.time() - time_start) < max_time:
             num_chunks += 1
 
             # grow the chunk size on each iteration to account for huge projects
