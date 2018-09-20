@@ -882,16 +882,19 @@ table.integrations {
 * ============================================================================
 */
 .inbound-filters-stats {
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       &.filtered {
         background: @gray-lightest;
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       &.filtered {
         background: @gray-light;
       }
