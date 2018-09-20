@@ -58,11 +58,11 @@ storiesOf('Charts|Playground')
           }}
           height={number('height', 300)}
           grid={{
-            top: text('GRID KNOBS:\ntop', 40),
-            bottom: text('bottom', 20),
-            left: text('left', '10%'),
-            right: text('right', '10%'),
-            containLabel: boolean('containLabel', true),
+            top: text('grid:top', 40),
+            bottom: text('grid:bottom', 20),
+            left: text('grid:left', '10%'),
+            right: text('grid:right', '10%'),
+            containLabel: boolean('grid:containLabel', true),
           }}
         />
       </div>
@@ -118,26 +118,25 @@ storiesOf('Charts|Playground')
               text('Line 2 Legend (match Line 2)', 'environment'),
               text('Line 3 Legend (match Line 3)', 'browser'),
             ],
-            padding: number('Legend Padding', 0),
-            type: text('Legend Type', 'scroll'),
-            orient: text('Legend Orient (vertical or horizontal)', 'horizontal'),
-
-            align: text('Legend Align (left, right)', 'auto'),
-            left: text('Legend Left (left, right, center)', 'center'),
-            right: text('Legend Right (20 or 20%)', 'auto'),
-            top: text('Legend top (top, middle, bottom)', 'auto'),
-            bottom: text('Legend Bottom (20 or 20%)', 'auto'),
-            width: text('Legend Width (string or number)', 'auto'),
-            height: text('Legend Height', 'auto'),
+            padding: number('legend: padding', 0),
+            type: text('legend: type', 'scroll'),
+            orient: text('legend: orient (vertical or horizontal)', 'horizontal'),
+            align: text('legend: align (left, right)', 'auto'),
+            left: text('legend: left (left, right, center)', 'center'),
+            right: text('legend: right (20 or 20%)', 'auto'),
+            top: text('legend: top (top, middle, bottom)', 'auto'),
+            bottom: text('legend: bottom (20 or 20%)', 'auto'),
+            width: text('legend: width (string or number)', 'auto'),
+            height: text('legend: height', 'auto'),
 
           }}
           height={number('height', 300)}
           grid={{
-            top: text('GRID KNOBS:\ntop', 40),
-            bottom: text('bottom', 20),
-            left: text('left', '10%'),
-            right: text('right', '10%'),
-            containLabel: boolean('containLabel', true),
+            top: text('grid: top', 40),
+            bottom: text('grid: bottom', 20),
+            left: text('grid: left', '10%'),
+            right: text('grid: right', '10%'),
+            containLabel: boolean('grid: containLabel', true),
           }}
         />
       </div>
