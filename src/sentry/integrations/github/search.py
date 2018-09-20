@@ -9,12 +9,11 @@ from sentry.models import Integration
 class GitHubSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission, )
 
-    def get(self, request, organization, provider_id, integration_id):
+    def get(self, request, organization, integration_id):
         try:
             integration = Integration.objects.get(
                 organizations=organization,
                 id=integration_id,
-                provider=provider_id,
             )
         except Integration.DoesNotExist:
             return Response(status=404)

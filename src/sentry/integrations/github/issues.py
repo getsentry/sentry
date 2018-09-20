@@ -54,7 +54,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         org = group.organization
         autocomplete_url = reverse(
-            'sentry-extensions-github-search', args=[org.slug, self.model.provider, self.model.id],
+            'sentry-extensions-github-search', args=[org.slug, self.model.id],
         )
 
         return [
