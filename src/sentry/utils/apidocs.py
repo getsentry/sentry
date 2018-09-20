@@ -152,12 +152,23 @@ def parse_doc_string(doc):
 def get_node_text(nodes):
     """Recursively read text from a node tree."""
     text = []
+    format_tags = {
+        'literal': '`',
+        'strong': '**',
+        'emphasis': '*',
+    }
     for node in nodes:
+        # Handle inline formatting elements.
+        if (node.nodeType == node.ELEMENT_NODE and
+                node.tagName in format_tags):
+            wrap = format_tags[node.tagName]
+            text.append(wrap + get_node_text(node.childNodes) + wrap)
+            continue
         if node.nodeType == node.TEXT_NODE:
             text.append(node.data)
         if node.nodeType == node.ELEMENT_NODE:
             text.append(get_node_text(node.childNodes))
-    return ' '.join(text)
+    return ''.join(text)
 
 
 def parse_params(params):

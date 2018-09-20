@@ -19,9 +19,9 @@ This is a glorious function.
 
 It has a multi-line description.
 
-:param int id: An id.
-:qparam bool louder: Make it louder?
-:pparam string orgid: The orgid.
+:param int id: An ``id``.
+:qparam bool louder: Make it **louder**?
+:pparam string orgid: The *orgid*.
                       On a second line.
 :auth: required
 """
@@ -40,16 +40,16 @@ It has a multi-line description.
     params = result[3]
     assert 'path' in params, 'Should have path params'
     assert params['path'][0] == dict(name='orgid', type="string",
-                                     description='The orgid. On a second line.')
+                                     description='The *orgid*. On a second line.')
     assert 'query' in params, 'Should have query params'
     assert params['query'][0] == dict(name='louder', type="bool",
-                                      description='Make it louder?')
+                                      description='Make it **louder**?')
     assert 'auth' in params, 'Should have auth'
     assert params['auth'][0] == dict(name='', type="", description='required')
 
     assert 'param' in params, 'Should have regular param'
     assert params['param'][0] == dict(name='id', type="int",
-                                      description='An id.')
+                                      description='An `id`.')
 
 
 def test_parse_doc_string_warning():
