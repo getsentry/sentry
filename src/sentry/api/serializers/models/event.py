@@ -5,6 +5,7 @@ import six
 from datetime import datetime
 from django.utils import timezone
 
+from semaphore import meta_with_chunks
 from sentry.api.serializers import Serializer, register
 from sentry.models import Event, EventError
 
@@ -16,7 +17,11 @@ class EventSerializer(Serializer):
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
+
+        meta = event.data.get('_meta') or {}
         interface_list = []
+        meta_dict = {}
+
         for key, interface in six.iteritems(event.interfaces):
             # we treat user as a special contextual item
             if key in self._reserved_keys:
@@ -31,41 +36,61 @@ class EventSerializer(Serializer):
                 'data': data,
                 'type': interface.get_alias(),
             }
+
             interface_list.append((interface, entry))
+
+            if not meta.get(key):
+                continue
+
+            api_meta = interface.get_api_meta(meta[key], is_public=is_public)
+            if api_meta:
+                meta_dict[interface.get_alias()] = meta_with_chunks(data, api_meta)
+
         interface_list.sort(
             key=lambda x: x[0].get_display_score(), reverse=True)
 
-        return [i[1] for i in interface_list]
+        return ([i[1] for i in interface_list], meta_dict)
+
+    def _get_interface_with_meta(self, event, name, is_public=False):
+        interface = event.interfaces.get(name)
+        if not interface:
+            return (None, None)
+
+        data = interface.get_api_context(is_public=is_public)
+        event_meta = event.data.get('_meta') or {}
+        if not data or not event_meta.get(name):
+            return (data, None)
+
+        api_meta = interface.get_api_meta(event_meta[name], is_public=is_public)
+        # data might not be returned for e.g. a public HTTP repr
+        if not api_meta:
+            return (data, None)
+
+        return (data, meta_with_chunks(data, api_meta))
 
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
         results = {}
         for item in item_list:
-            user_interface = item.interfaces.get('sentry.interfaces.User')
             # TODO(dcramer): convert to get_api_context
-            if user_interface:
-                user_data = user_interface.to_json()
-            else:
-                user_data = None
+            (user_data, user_meta) = self._get_interface_with_meta(item, 'user', is_public)
+            (contexts_data, contexts_meta) = self._get_interface_with_meta(item, 'contexts', is_public)
+            (sdk_data, sdk_meta) = self._get_interface_with_meta(item, 'sdk', is_public)
 
-            contexts_interface = item.interfaces.get('contexts')
-            if contexts_interface:
-                contexts_data = contexts_interface.get_api_context()
-            else:
-                contexts_data = {}
-
-            sdk_interface = item.interfaces.get('sdk')
-            if sdk_interface:
-                sdk_data = sdk_interface.get_api_context()
-            else:
-                sdk_data = None
+            (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
             results[item] = {
-                'entries': self._get_entries(item, user, is_public=is_public),
+                'entries': entries,
                 'user': user_data,
-                'contexts': contexts_data,
+                'contexts': contexts_data or {},
                 'sdk': sdk_data,
+                '_meta': {
+                    'entries': entries_meta,
+                    'user': user_meta,
+                    'contexts': contexts_meta,
+                    'sdk': sdk_meta,
+                }
             }
         return results
 
@@ -131,6 +156,7 @@ class EventSerializer(Serializer):
                 md5_from_hash(h)
                 for h in get_hashes_from_fingerprint(obj, obj.data.get('fingerprint', ['{{ default }}']))
             ],
+            '_meta': dict(**attrs['_meta'])
         }
         return d
 

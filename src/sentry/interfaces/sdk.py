@@ -64,7 +64,7 @@ class Sdk(Interface):
     def get_path(self):
         return 'sdk'
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)
         newest_name = get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
         if newest_version is not None:
