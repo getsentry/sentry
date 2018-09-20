@@ -58,6 +58,7 @@ class JavaScriptSdkLoaderTest(TestCase):
     def test_headers(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200, resp
+        self.assertIn('*', resp['Access-Control-Allow-Origin'])
         self.assertIn('stale-if-error', resp['Cache-Control'])
         self.assertIn('stale-while-revalidate', resp['Cache-Control'])
         self.assertIn('s-maxage', resp['Cache-Control'])
