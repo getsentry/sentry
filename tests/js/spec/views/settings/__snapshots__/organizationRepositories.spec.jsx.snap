@@ -170,27 +170,33 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
     </TextBlock>
   </div>
   <Panel
-    className="blankslate align-center p-x-2 p-y-1"
+    className="align-center p-x-2 p-y-1"
   >
-    <div
-      className="icon icon-lg icon-git-commit"
-    />
+    <Box
+      mb={1}
+    >
+      <HeroIcon
+        size="72px"
+        src="icon-commit"
+      />
+    </Box>
     <h3>
       Sentry is better with commit data
     </h3>
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <p
-      className="m-b-1"
+    <Box
+      mb={1}
     >
-      <a
-        className="btn btn-default"
+      <Button
+        alignLabel="left"
+        disabled={false}
         href="https://docs.sentry.io/learn/releases/"
       >
         Learn more
-      </a>
-    </p>
+      </Button>
+    </Box>
   </Panel>
 </div>
 `;
@@ -257,27 +263,33 @@ exports[`OrganizationRepositories renders without providers 1`] = `
     </TextBlock>
   </div>
   <Panel
-    className="blankslate align-center p-x-2 p-y-1"
+    className="align-center p-x-2 p-y-1"
   >
-    <div
-      className="icon icon-lg icon-git-commit"
-    />
+    <Box
+      mb={1}
+    >
+      <HeroIcon
+        size="72px"
+        src="icon-commit"
+      />
+    </Box>
     <h3>
       Sentry is better with commit data
     </h3>
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <p
-      className="m-b-1"
+    <Box
+      mb={1}
     >
-      <a
-        className="btn btn-default"
+      <Button
+        alignLabel="left"
+        disabled={false}
         href="https://docs.sentry.io/learn/releases/"
       >
         Learn more
-      </a>
-    </p>
+      </Button>
+    </Box>
   </Panel>
 </div>
 `;

@@ -9,6 +9,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import Feature from 'app/components/feature';
+import HeroIcon from 'app/components/heroIcon';
 import MenuItem from 'app/components/menuItem';
 import SpreadLayout from 'app/components/spreadLayout';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -191,22 +192,21 @@ export default class OrganizationRepositories extends React.Component {
             </PanelBody>
           </Panel>
         ) : (
-          <Panel className="blankslate align-center p-x-2 p-y-1">
-            <div className="icon icon-lg icon-git-commit" />
+          <Panel className="align-center p-x-2 p-y-1">
+            <Box mb={1}>
+              <HeroIcon src="icon-commit" />
+            </Box>
             <h3>{t('Sentry is better with commit data')}</h3>
             <TextBlock>
               {t(
                 'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
               )}
             </TextBlock>
-            <p className="m-b-1">
-              <a
-                className="btn btn-default"
-                href="https://docs.sentry.io/learn/releases/"
-              >
-                Learn more
-              </a>
-            </p>
+            <Box mb={1}>
+              <Button href="https://docs.sentry.io/learn/releases/">
+                {t('Learn more')}
+              </Button>
+            </Box>
           </Panel>
         )}
       </div>

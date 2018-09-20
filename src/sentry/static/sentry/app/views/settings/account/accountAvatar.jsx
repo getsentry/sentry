@@ -13,6 +13,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import SentryTypes from 'app/sentryTypes';
+import Well from 'app/components/well';
 
 const AccountAvatar = createReactClass({
   displayName: 'AccountAvatar',
@@ -105,12 +106,12 @@ const AccountAvatar = createReactClass({
     }
 
     let gravatarMessage = (
-      <div className="well">
+      <Well>
         {t('Gravatars are managed through ')}
         <a href="http://gravatar.com" target="_blank" rel="noreferrer noopener">
           Gravatar.com
         </a>
-      </div>
+      </Well>
     );
 
     let isLetter = this.state.user.avatar.avatarType == 'letter_avatar';

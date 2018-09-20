@@ -165,6 +165,7 @@ export default {
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
+    Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
