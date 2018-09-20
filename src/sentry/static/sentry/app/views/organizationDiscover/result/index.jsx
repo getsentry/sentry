@@ -117,13 +117,17 @@ export default class Result extends React.Component {
 
     const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
 
+    const legendData = byDayChartData
+      ? {data: byDayChartData.map(entry => entry.seriesName)}
+      : null;
+
     const tooltipOptions = {
       filter: value => value !== null,
       truncate: 80,
     };
 
     return (
-      <div>
+      <Results>
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
             <Heading>{t('Result')}</Heading>
@@ -134,17 +138,35 @@ export default class Result extends React.Component {
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
           <ChartWrapper>
-            <LineChart series={basicChartData} height={300} tooltip={tooltipOptions} />
+            <LineChart
+              series={basicChartData}
+              height={300}
+              tooltip={tooltipOptions}
+              legend={{data: [query.aggregations[0][2]]}}
+              renderer="canvas"
+            />
           </ChartWrapper>
         )}
         {view === 'bar' && (
           <ChartWrapper>
-            <BarChart series={basicChartData} height={300} tooltip={tooltipOptions} />
+            <BarChart
+              series={basicChartData}
+              height={300}
+              tooltip={tooltipOptions}
+              legend={{data: [query.aggregations[0][2]]}}
+              renderer="canvas"
+            />
           </ChartWrapper>
         )}
         {view === 'line-by-day' && (
           <ChartWrapper>
-            <LineChart series={byDayChartData} height={300} tooltip={tooltipOptions} />
+            <LineChart
+              series={byDayChartData}
+              height={300}
+              tooltip={tooltipOptions}
+              legend={legendData}
+              renderer="canvas"
+            />
             {this.renderNote()}
           </ChartWrapper>
         )}
@@ -155,19 +177,24 @@ export default class Result extends React.Component {
               stacked={true}
               height={300}
               tooltip={tooltipOptions}
+              legend={legendData}
+              renderer="canvas"
             />
             {this.renderNote()}
           </ChartWrapper>
         )}
         {this.renderSummary()}
-      </div>
+      </Results>
     );
   }
 }
 
+const Results = styled('div')`
+  flex: 1;
+`;
+
 const ChartWrapper = styled(Panel)`
-  padding-left: ${space(3)};
-  padding-right: ${space(3)};
+  padding: ${space(3)} ${space(2)};
 `;
 
 const Summary = styled(Box)`
@@ -180,5 +207,4 @@ const Note = styled(Box)`
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray3};
-  margin-bottom: ${space(3)};
 `;
