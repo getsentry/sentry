@@ -24,20 +24,21 @@
       }
     }
 
-    > span,
-    > .barchart-rect {
+    > span {
       display: block;
       position: absolute;
       bottom: 0;
       left: 1px;
       right: 1px;
-      min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
       text-align: left;
       min-height: 1px;
+    }
 
+    > span,
+    > .barchart-rect {
       background: @gray-lighter;
       fill: @gray-lighter;
     }

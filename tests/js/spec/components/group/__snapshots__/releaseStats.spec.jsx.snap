@@ -160,6 +160,7 @@ exports[`GroupReleaseStats renders 1`] = `
               </span>
             </h6>
             <StackedBarChart
+              allottedGapSpace={20}
               barClasses={
                 Array [
                   "release",
@@ -249,11 +250,11 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <rect
                           className="release barchart-rect"
-                          height={1.5}
+                          height={0}
                           key="0"
-                          width={14}
+                          width={30}
                           x={0}
-                          y={98.5}
+                          y={100}
                         >
                           0
                         </rect>
@@ -261,19 +262,19 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="environment barchart-rect"
                           height={19.8}
                           key="1"
-                          width={14}
+                          width={30}
                           x={0}
-                          y={78.7}
+                          y={80.2}
                         >
                           2
                         </rect>
                         <rect
                           className="inactive barchart-rect"
-                          height={0}
+                          height={4}
                           key="2"
-                          width={14}
+                          width={30}
                           x={0}
-                          y={78.7}
+                          y={76.2}
                         >
                           0
                         </rect>
@@ -297,11 +298,11 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <rect
                           className="release barchart-rect"
-                          height={1.5}
+                          height={0}
                           key="0"
-                          width={14}
+                          width={30}
                           x={50}
-                          y={98.5}
+                          y={100}
                         >
                           0
                         </rect>
@@ -309,19 +310,19 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="environment barchart-rect"
                           height={9.9}
                           key="1"
-                          width={14}
+                          width={30}
                           x={50}
-                          y={88.6}
+                          y={90.1}
                         >
                           1
                         </rect>
                         <rect
                           className="inactive barchart-rect"
-                          height={0}
+                          height={4}
                           key="2"
-                          width={14}
+                          width={30}
                           x={50}
-                          y={88.6}
+                          y={86.1}
                         >
                           0
                         </rect>
@@ -407,6 +408,7 @@ exports[`GroupReleaseStats renders 1`] = `
               </span>
             </h6>
             <StackedBarChart
+              allottedGapSpace={20}
               barClasses={
                 Array [
                   "release",
@@ -496,11 +498,11 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <rect
                           className="release barchart-rect"
-                          height={1.5}
+                          height={0}
                           key="0"
-                          width={14}
+                          width={30}
                           x={0}
-                          y={98.5}
+                          y={100}
                         >
                           0
                         </rect>
@@ -508,19 +510,19 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="environment barchart-rect"
                           height={0.81}
                           key="1"
-                          width={14}
+                          width={30}
                           x={0}
-                          y={97.69}
+                          y={99.19}
                         >
                           1
                         </rect>
                         <rect
                           className="inactive barchart-rect"
-                          height={0}
+                          height={4}
                           key="2"
-                          width={14}
+                          width={30}
                           x={0}
-                          y={97.69}
+                          y={95.19}
                         >
                           0
                         </rect>
@@ -544,11 +546,11 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <rect
                           className="release barchart-rect"
-                          height={1.5}
+                          height={0}
                           key="0"
-                          width={14}
+                          width={30}
                           x={50}
-                          y={98.5}
+                          y={100}
                         >
                           0
                         </rect>
@@ -556,19 +558,19 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="environment barchart-rect"
                           height={99}
                           key="1"
-                          width={14}
+                          width={30}
                           x={50}
-                          y={-0.5}
+                          y={1}
                         >
                           122
                         </rect>
                         <rect
                           className="inactive barchart-rect"
-                          height={0}
+                          height={4}
                           key="2"
-                          width={14}
+                          width={30}
                           x={50}
-                          y={-0.5}
+                          y={-3}
                         >
                           0
                         </rect>

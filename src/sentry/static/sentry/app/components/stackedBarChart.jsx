@@ -41,6 +41,8 @@ class StackedBarChart extends React.Component {
     ),
     tooltip: PropTypes.func,
     barClasses: PropTypes.array,
+    minHeights: PropTypes.arrayOf(PropTypes.number),
+    allottedGapSpace: PropTypes.number,
   };
 
   static defaultProps = {
@@ -52,6 +54,7 @@ class StackedBarChart extends React.Component {
     markers: [],
     width: null,
     barClasses: ['chart-bar'],
+    allottedGapSpace: 20,
   };
 
   constructor(props) {
@@ -245,16 +248,22 @@ class StackedBarChart extends React.Component {
     return title;
   };
 
+  getMinHeight(index, pointLength) {
+    let {minHeights} = this.props;
+    return minHeights && (minHeights[index] || minHeights[index] == 0)
+      ? this.props.minHeights[index]
+      : index == pointLength - 1 ? 4 : 0;
+  }
+
   renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
-    let space = 36 / (totalPoints - 1); // were alloting 36% of the viewport to white space.
+    let space = this.props.allottedGapSpace / (totalPoints - 1); // were alloting 20% of the viewport to white space.
     let pts = point.y.map((y, i) => {
-      let minHeight = i == 0 ? 1.5 : 0; // min-heights are only useful on the first bar
       let pct = Math.max(
         totalY && this.floatFormat(y / totalY * totalPct * 99, 2),
-        minHeight
+        this.getMinHeight(i, point.y.length)
       );
 
       let pt = (

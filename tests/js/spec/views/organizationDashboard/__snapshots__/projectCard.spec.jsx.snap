@@ -468,6 +468,7 @@ exports[`ProjectCard renders 1`] = `
                         }
                       >
                         <StackedBarChart
+                          allottedGapSpace={20}
                           barClasses={
                             Array [
                               "chart-bar",
@@ -552,7 +553,7 @@ exports[`ProjectCard renders 1`] = `
                                       className="chart-bar barchart-rect"
                                       height={9.9}
                                       key="0"
-                                      width={14}
+                                      width={30}
                                       x={0}
                                       y={90.1}
                                     >
@@ -580,7 +581,7 @@ exports[`ProjectCard renders 1`] = `
                                       className="chart-bar barchart-rect"
                                       height={19.8}
                                       key="0"
-                                      width={14}
+                                      width={30}
                                       x={50}
                                       y={80.2}
                                     >

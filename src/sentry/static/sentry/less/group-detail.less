@@ -352,32 +352,32 @@
     span,
     .barchart-rect {
       background: @purple;
-      #gradient > .vertical(@purple-light, @purple);
+      fill: @purple;
 
       &.inactive {
         background: @gray-lightest;
-        #gradient > .vertical(@gray-lightest, @gray-lightest);
+        fill: @gray-lightest;
       }
 
       &.environment {
         background: @purple-lightest;
-        #gradient > .vertical(@purple-lightest, @purple-lightest);
+        fill: @purple-lightest;
       }
     }
 
     &:hover span,
     &:hover .barchart-rect {
       background: @purple-dark;
-      #gradient > .vertical(@purple, @purple-dark);
+      fill: @purple-dark;
 
       &.inactive {
         background: @gray-lighter;
-        #gradient > .vertical(@gray-lighter, @gray-lighter);
+        fill: @purple-dark;
       }
 
       &.environment {
         background: @purple;
-        #gradient > .vertical(@purple, @purple);
+        fill: @purple;
       }
     }
   }
