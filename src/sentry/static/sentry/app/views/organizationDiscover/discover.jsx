@@ -374,7 +374,7 @@ export default class OrganizationDiscover extends React.Component {
               onUpdate={this.runQuery}
             />
           </TopBar>
-          <BodyContent>
+          <BodyContent direction="column">
             {data && (
               <Result flex="1"
                 data={data}
@@ -394,7 +394,5 @@ export default class OrganizationDiscover extends React.Component {
 
 const BodyContent = styled(Flex)`
   flex: 1;
-  height: calc(100% - 70px);
-  flex-direction: column;
   padding: 12px 32px 32px 32px;
 `;
