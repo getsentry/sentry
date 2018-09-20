@@ -36,6 +36,12 @@ export const Sidebar = styled(Box)`
 
 export const Body = styled(Flex)``;
 
+export const BodyContent = styled(Flex)`
+  flex: 1;
+  flex-direction: column;
+  padding: ${space(1.5)} 32px 32px 32px;
+`;
+
 export const TopBar = styled(Flex)`
   padding: 0 ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
