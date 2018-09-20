@@ -12,7 +12,7 @@ from sentry.web.helpers import render_to_response
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 
 
-CACHE_CONTROL = 'public, max-age=300, s-maxage=600, stale-while-revalidate=315360000, stale-if-error=315360000'
+CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000'
 
 
 class JavaScriptSdkLoader(BaseView):
