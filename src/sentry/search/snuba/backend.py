@@ -270,7 +270,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         min_score = float('inf')
         max_score = -1
 
-        max_time = options.get('snuba.search.max-chunk-time-seconds')
+        max_time = options.get('snuba.search.max-total-chunk-time-seconds')
         time_start = time.time()
 
         # Do smaller searches in chunks until we have enough results
