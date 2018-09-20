@@ -23,7 +23,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.public_key = u'123abcDEFg'
         self.shared_secret = u'G12332434SDfsjkdfgsd'
         self.base_url = u'https://api.bitbucket.org'
-        self.domain_name = u'bitbucket.org/sentryuser/'
+        self.domain_name = u'bitbucket.org/sentryuser'
         self.display_name = u'Sentry User'
         self.icon = u'https://bitbucket.org/account/sentryuser/avatar/32/'
 
