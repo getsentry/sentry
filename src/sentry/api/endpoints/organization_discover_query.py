@@ -13,12 +13,18 @@ from sentry.utils.dates import (
 )
 
 from sentry.api.serializers.rest_framework import ListField
-from sentry.api.bases.organization import OrganizationDiscoverPermission
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
 from sentry import roles
 from sentry import features
+
+
+class OrganizationDiscoverQueryPermission(OrganizationPermission):
+    scope_map = {
+        'POST': ['org:read', 'project:read'],
+    }
 
 
 class DiscoverQuerySerializer(serializers.Serializer):
@@ -164,7 +170,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
 
 class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationDiscoverPermission, )
+    permission_classes = (OrganizationDiscoverQueryPermission, )
 
     def do_query(self, start, end, groupby, **kwargs):
 
