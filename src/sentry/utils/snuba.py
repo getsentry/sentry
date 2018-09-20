@@ -61,7 +61,7 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
               orderby=None, having=None, referrer=None, is_grouprelease=False,
-              selected_columns=None, totals=None):
+              selected_columns=None, totals=None, limitby=None):
     """
     Sends a query to snuba.
 
@@ -159,6 +159,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'arrayjoin': arrayjoin,
         'limit': limit,
         'offset': offset,
+        'limitby': limitby,
         'orderby': orderby,
         'selected_columns': selected_columns,
     }) if v is not None}
@@ -193,7 +194,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 def query(start, end, groupby, conditions=None, filter_keys=None,
           aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
           orderby=None, having=None, referrer=None, is_grouprelease=False,
-          selected_columns=None, totals=None):
+          selected_columns=None, totals=None, limitby=None):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
@@ -204,7 +205,7 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             selected_columns=selected_columns, aggregations=aggregations, rollup=rollup,
             arrayjoin=arrayjoin, limit=limit, offset=offset, orderby=orderby, having=having,
-            referrer=referrer, is_grouprelease=is_grouprelease, totals=totals
+            referrer=referrer, is_grouprelease=is_grouprelease, totals=totals, limitby=limitby
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         return OrderedDict()
