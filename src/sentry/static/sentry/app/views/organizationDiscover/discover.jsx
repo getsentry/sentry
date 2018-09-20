@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {uniq} from 'lodash';
+import styled from 'react-emotion';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -12,6 +13,7 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Aggregations from './aggregations';
@@ -373,9 +375,9 @@ export default class OrganizationDiscover extends React.Component {
               onUpdate={this.runQuery}
             />
           </TopBar>
-          <Flex flex="1" direction="column" p={3}>
+          <BodyContent direction="column">
             {data && (
-              <Result
+              <Result flex="1"
                 data={data}
                 query={query}
                 chartData={chartData}
@@ -384,9 +386,14 @@ export default class OrganizationDiscover extends React.Component {
             )}
             {!data && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
-          </Flex>
+          </BodyContent>
         </Body>
       </Discover>
     );
   }
 }
+
+const BodyContent = styled(Flex)`
+  flex: 1;
+  padding: ${space(1.5)} 32px 32px 32px;
+`;
