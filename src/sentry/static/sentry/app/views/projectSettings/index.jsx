@@ -157,9 +157,9 @@ const ProjectSettings = createReactClass({
             <ListLink to={`${pathPrefix}/filters/`}>{t('Inbound Filters')}</ListLink>
             <ListLink to={`${pathPrefix}/keys/`}>{t('Client Keys')} (DSN)</ListLink>
           </ul>
-          <h6 className="nav-header">{t('Integrations')}</h6>
+          <h6 className="nav-header">{t('Legacy Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`${pathPrefix}/plugins/`}>{t('All Integrations')}</ListLink>
+            <ListLink to={`${pathPrefix}/plugins/`}>{t('Legacy Integrations')}</ListLink>
             <PluginNavigation urlRoot={settingsUrlRoot} />
           </ul>
         </div>

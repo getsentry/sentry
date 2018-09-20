@@ -402,7 +402,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
-      <Route path="plugins/" name="Integrations">
+      <Route path="plugins/" name="Legacy Integrations">
         <IndexRoute component={errorHandler(ProjectPlugins)} />
         <Route
           path=":pluginId/"
