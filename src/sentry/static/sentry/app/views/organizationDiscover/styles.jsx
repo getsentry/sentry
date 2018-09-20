@@ -33,7 +33,7 @@ export const Sidebar = styled(Box)`
   min-width: 320px;
 `;
 
-export const Body = styled(Box)``;
+export const Body = styled(Flex)``;
 
 export const TopBar = styled(Flex)`
   padding: 0 ${space(4)};
