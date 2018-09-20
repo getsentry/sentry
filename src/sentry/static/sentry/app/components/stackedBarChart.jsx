@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import _ from 'lodash';
 import styled from 'react-emotion';
+import cx from 'classnames';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
@@ -248,12 +249,14 @@ class StackedBarChart extends React.Component {
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
-    let space = 36 / totalPoints;
+    let space = 36 / (totalPoints - 1); // were alloting 36% of the viewport to white space.
     let pts = point.y.map((y, i) => {
+      let minHeight = i == 0 ? 1.5 : 0; // min-heights are only useful on the first bar
       let pct = Math.max(
         totalY && this.floatFormat(y / totalY * totalPct * 99, 2),
-        i == 0 ? 1.5 : 0
+        minHeight
       );
+
       let pt = (
         <rect
           key={i}
@@ -262,7 +265,7 @@ class StackedBarChart extends React.Component {
           width={pointWidth - space}
           height={pct}
           fill={this.state.series[i].color}
-          className={this.props.barClasses[i]}
+          className={cx(this.props.barClasses[i], 'barchart-rect')}
         >
           {y}
         </rect>
@@ -288,7 +291,7 @@ class StackedBarChart extends React.Component {
   renderChart() {
     let {pointIndex, series} = this.state;
     let totalPoints = Math.max(...series.map(s => s.data.length));
-    let pointWidth = this.floatFormat(101.0 / totalPoints, 2);
+    let pointWidth = this.floatFormat(100.0 / totalPoints, 2);
 
     let maxval = this.maxPointValue();
     let markers = this.props.markers.slice();

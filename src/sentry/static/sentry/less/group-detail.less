@@ -345,10 +345,12 @@
     border-bottom: 1px dotted @trim;
   }
 
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       background: @purple;
       #gradient > .vertical(@purple-light, @purple);
 
@@ -363,7 +365,8 @@
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       background: @purple-dark;
       #gradient > .vertical(@purple, @purple-dark);
 

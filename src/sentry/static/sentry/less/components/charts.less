@@ -7,7 +7,8 @@
     display: none;
   }
 
-  a {
+  a,
+  g {
     position: relative;
     float: left;
     height: 20px;
@@ -16,7 +17,7 @@
 
     &:hover {
       > span,
-      > rect {
+      > .barchart-rect {
         background: @purple;
         fill: @purple;
         border-color: transparent;
@@ -24,7 +25,7 @@
     }
 
     > span,
-    > rect {
+    > .barchart-rect {
       display: block;
       position: absolute;
       bottom: 0;

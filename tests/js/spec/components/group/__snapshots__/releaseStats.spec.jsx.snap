@@ -248,30 +248,30 @@ exports[`GroupReleaseStats renders 1`] = `
                         title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                       >
                         <rect
-                          className="release"
+                          className="release barchart-rect"
                           height={1.5}
                           key="0"
-                          width={32.5}
+                          width={14}
                           x={0}
                           y={98.5}
                         >
                           0
                         </rect>
                         <rect
-                          className="environment"
+                          className="environment barchart-rect"
                           height={19.8}
                           key="1"
-                          width={32.5}
+                          width={14}
                           x={0}
                           y={78.7}
                         >
                           2
                         </rect>
                         <rect
-                          className="inactive"
+                          className="inactive barchart-rect"
                           height={0}
                           key="2"
-                          width={32.5}
+                          width={14}
                           x={0}
                           y={78.7}
                         >
@@ -296,31 +296,31 @@ exports[`GroupReleaseStats renders 1`] = `
                         title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                       >
                         <rect
-                          className="release"
+                          className="release barchart-rect"
                           height={1.5}
                           key="0"
-                          width={32.5}
-                          x={50.5}
+                          width={14}
+                          x={50}
                           y={98.5}
                         >
                           0
                         </rect>
                         <rect
-                          className="environment"
+                          className="environment barchart-rect"
                           height={9.9}
                           key="1"
-                          width={32.5}
-                          x={50.5}
+                          width={14}
+                          x={50}
                           y={88.6}
                         >
                           1
                         </rect>
                         <rect
-                          className="inactive"
+                          className="inactive barchart-rect"
                           height={0}
                           key="2"
-                          width={32.5}
-                          x={50.5}
+                          width={14}
+                          x={50}
                           y={88.6}
                         >
                           0
@@ -495,30 +495,30 @@ exports[`GroupReleaseStats renders 1`] = `
                         title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                       >
                         <rect
-                          className="release"
+                          className="release barchart-rect"
                           height={1.5}
                           key="0"
-                          width={32.5}
+                          width={14}
                           x={0}
                           y={98.5}
                         >
                           0
                         </rect>
                         <rect
-                          className="environment"
+                          className="environment barchart-rect"
                           height={0.81}
                           key="1"
-                          width={32.5}
+                          width={14}
                           x={0}
                           y={97.69}
                         >
                           1
                         </rect>
                         <rect
-                          className="inactive"
+                          className="inactive barchart-rect"
                           height={0}
                           key="2"
-                          width={32.5}
+                          width={14}
                           x={0}
                           y={97.69}
                         >
@@ -543,31 +543,31 @@ exports[`GroupReleaseStats renders 1`] = `
                         title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                       >
                         <rect
-                          className="release"
+                          className="release barchart-rect"
                           height={1.5}
                           key="0"
-                          width={32.5}
-                          x={50.5}
+                          width={14}
+                          x={50}
                           y={98.5}
                         >
                           0
                         </rect>
                         <rect
-                          className="environment"
+                          className="environment barchart-rect"
                           height={99}
                           key="1"
-                          width={32.5}
-                          x={50.5}
+                          width={14}
+                          x={50}
                           y={-0.5}
                         >
                           122
                         </rect>
                         <rect
-                          className="inactive"
+                          className="inactive barchart-rect"
                           height={0}
                           key="2"
-                          width={32.5}
-                          x={50.5}
+                          width={14}
+                          x={50}
                           y={-0.5}
                         >
                           0

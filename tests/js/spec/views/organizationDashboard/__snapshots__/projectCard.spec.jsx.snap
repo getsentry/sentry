@@ -549,10 +549,10 @@ exports[`ProjectCard renders 1`] = `
                                     title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
                                   >
                                     <rect
-                                      className="chart-bar"
+                                      className="chart-bar barchart-rect"
                                       height={9.9}
                                       key="0"
-                                      width={32.5}
+                                      width={14}
                                       x={0}
                                       y={90.1}
                                     >
@@ -577,11 +577,11 @@ exports[`ProjectCard renders 1`] = `
                                     title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
                                   >
                                     <rect
-                                      className="chart-bar"
+                                      className="chart-bar barchart-rect"
                                       height={19.8}
                                       key="0"
-                                      width={32.5}
-                                      x={50.5}
+                                      width={14}
+                                      x={50}
                                       y={80.2}
                                     >
                                       2
