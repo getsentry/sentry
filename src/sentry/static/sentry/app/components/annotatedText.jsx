@@ -7,6 +7,10 @@ import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 
 const Redaction = styled.span`
+  cursor: default;
+`;
+
+const RedactionText = styled.span`
   background: rgba(255, 0, 0, 0.05);
 `;
 
@@ -32,10 +36,10 @@ class AnnotatedText extends React.Component {
       let title = t('Redacted due to PII rule "%s"', chunk.rule_id);
       return (
         <Tooltip title={title}>
-          <span>
-            <Redaction>{content}</Redaction>{' '}
+          <Redaction>
+            <RedactionText>{content}</RedactionText>{' '}
             <RedactionIcon src="icon-circle-exclamation" />
-          </span>
+          </Redaction>
         </Tooltip>
       );
     }
