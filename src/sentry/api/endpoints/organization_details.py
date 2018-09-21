@@ -30,16 +30,16 @@ ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
 ERR_NO_USER = 'This request requires an authenticated user.'
 
 ORG_OPTIONS = (
-    # serializer field name, option key name, type
-    ('projectRateLimit', 'sentry:project-rate-limit', int),
-    ('accountRateLimit', 'sentry:account-rate-limit', int),
-    ('dataScrubber', 'sentry:require_scrub_data', bool),
-    ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool),
-    ('sensitiveFields', 'sentry:sensitive_fields', list),
-    ('safeFields', 'sentry:safe_fields', list),
-    ('storeCrashReports', 'sentry:store_crash_reports', bool),
-    ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
-    ('scrapeJavaScript', 'sentry:scrape_javascript', bool),
+    # serializer field name, option key name, type, default value
+    ('projectRateLimit', 'sentry:project-rate-limit', int, 100),
+    ('accountRateLimit', 'sentry:account-rate-limit', int, 0),
+    ('dataScrubber', 'sentry:require_scrub_data', bool, False),
+    ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool, False),
+    ('sensitiveFields', 'sentry:sensitive_fields', list, None),
+    ('safeFields', 'sentry:safe_fields', list, None),
+    ('storeCrashReports', 'sentry:store_crash_reports', bool, False),
+    ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool, False),
+    ('scrapeJavaScript', 'sentry:scrape_javascript', bool, True),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -185,7 +185,7 @@ class OrganizationSerializer(serializers.Serializer):
         org = self.context['organization']
         changed_data = {}
 
-        for key, option, type_ in ORG_OPTIONS:
+        for key, option, type_, default_value in ORG_OPTIONS:
             if key not in self.init_data:
                 continue
             try:
@@ -197,10 +197,8 @@ class OrganizationSerializer(serializers.Serializer):
                     key=option,
                     value=type_(self.init_data[key]),
                 )
-                # TODO(kelly): This will not work if new ORG_OPTIONS are added and their
-                # default value evaluates as truthy, but this should work for now with the
-                # current ORG_OPTIONS (assumes ORG_OPTIONS are falsy)
-                if type_(self.init_data[key]):
+
+                if self.init_data[key] != default_value:
                     changed_data[key] = u'to {}'.format(self.init_data[key])
             else:
                 option_inst.value = self.init_data[key]
