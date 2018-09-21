@@ -679,7 +679,6 @@ exports[`ProjectCard renders 1`] = `
                             is={null}
                           >
                             <Button
-                              alignLabel="left"
                               disabled={false}
                               external={true}
                               href="https://docs.sentry.io/learn/releases/"
@@ -727,32 +726,17 @@ exports[`ProjectCard renders 1`] = `
                                       target="_blank"
                                     >
                                       <ButtonLabel
-                                        justify="flex-start"
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-6q5v1w-ButtonLabel eqrebog1"
-                                          justify="flex-start"
+                                          className="css-uthd1f-ButtonLabel eqrebog1"
                                           size="xsmall"
                                         >
-                                          <Flex
-                                            align="center"
-                                            className="css-6q5v1w-ButtonLabel eqrebog1"
-                                            justify="flex-start"
+                                          <span
+                                            className="css-uthd1f-ButtonLabel eqrebog1"
                                           >
-                                            <Base
-                                              align="center"
-                                              className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                              justify="flex-start"
-                                            >
-                                              <div
-                                                className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                                is={null}
-                                              >
-                                                Track deploys
-                                              </div>
-                                            </Base>
-                                          </Flex>
+                                            Track deploys
+                                          </span>
                                         </Component>
                                       </ButtonLabel>
                                     </a>

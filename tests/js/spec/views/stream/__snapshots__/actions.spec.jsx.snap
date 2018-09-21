@@ -144,7 +144,6 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
           className="modal-footer"
         >
           <Button
-            alignLabel="left"
             disabled={false}
             onClick={[Function]}
             style={
@@ -188,31 +187,15 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     }
                   }
                 >
-                  <ButtonLabel
-                    justify="flex-start"
-                  >
+                  <ButtonLabel>
                     <Component
-                      className="css-1emshjx-ButtonLabel eqrebog1"
-                      justify="flex-start"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1emshjx-ButtonLabel eqrebog1"
-                        justify="flex-start"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="eqrebog1 css-11rqwwm-ButtonLabel"
-                          justify="flex-start"
-                        >
-                          <div
-                            className="eqrebog1 css-11rqwwm-ButtonLabel"
-                            is={null}
-                          >
-                            Cancel
-                          </div>
-                        </Base>
-                      </Flex>
+                        Cancel
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -220,7 +203,6 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             </StyledButton>
           </Button>
           <Button
-            alignLabel="left"
             autoFocus={true}
             data-test-id="confirm-modal"
             disabled={false}
@@ -257,32 +239,17 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   role="button"
                 >
                   <ButtonLabel
-                    justify="flex-start"
                     priority="primary"
                   >
                     <Component
-                      className="css-1emshjx-ButtonLabel eqrebog1"
-                      justify="flex-start"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                       priority="primary"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1emshjx-ButtonLabel eqrebog1"
-                        justify="flex-start"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="eqrebog1 css-11rqwwm-ButtonLabel"
-                          justify="flex-start"
-                        >
-                          <div
-                            className="eqrebog1 css-11rqwwm-ButtonLabel"
-                            is={null}
-                          >
-                            Bulk resolve issues
-                          </div>
-                        </Base>
-                      </Flex>
+                        Bulk resolve issues
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -472,7 +439,6 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
           className="modal-footer"
         >
           <Button
-            alignLabel="left"
             disabled={false}
             onClick={[Function]}
             style={
@@ -516,31 +482,15 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     }
                   }
                 >
-                  <ButtonLabel
-                    justify="flex-start"
-                  >
+                  <ButtonLabel>
                     <Component
-                      className="css-1emshjx-ButtonLabel eqrebog1"
-                      justify="flex-start"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1emshjx-ButtonLabel eqrebog1"
-                        justify="flex-start"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="eqrebog1 css-11rqwwm-ButtonLabel"
-                          justify="flex-start"
-                        >
-                          <div
-                            className="eqrebog1 css-11rqwwm-ButtonLabel"
-                            is={null}
-                          >
-                            Cancel
-                          </div>
-                        </Base>
-                      </Flex>
+                        Cancel
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -548,7 +498,6 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             </StyledButton>
           </Button>
           <Button
-            alignLabel="left"
             autoFocus={true}
             data-test-id="confirm-modal"
             disabled={false}
@@ -585,32 +534,17 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   role="button"
                 >
                   <ButtonLabel
-                    justify="flex-start"
                     priority="primary"
                   >
                     <Component
-                      className="css-1emshjx-ButtonLabel eqrebog1"
-                      justify="flex-start"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                       priority="primary"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1emshjx-ButtonLabel eqrebog1"
-                        justify="flex-start"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="eqrebog1 css-11rqwwm-ButtonLabel"
-                          justify="flex-start"
-                        >
-                          <div
-                            className="eqrebog1 css-11rqwwm-ButtonLabel"
-                            is={null}
-                          >
-                            Bulk resolve issues
-                          </div>
-                        </Base>
-                      </Flex>
+                        Bulk resolve issues
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>

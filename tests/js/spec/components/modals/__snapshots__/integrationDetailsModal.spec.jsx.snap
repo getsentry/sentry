@@ -275,7 +275,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       className="modal-footer"
     >
       <Button
-        alignLabel="left"
         disabled={false}
         onClick={[MockFunction]}
         size="small"
@@ -304,32 +303,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               size="small"
             >
               <ButtonLabel
-                justify="flex-start"
                 size="small"
               >
                 <Component
-                  className="css-o42ntg-ButtonLabel eqrebog1"
-                  justify="flex-start"
+                  className="css-7ui8bl-ButtonLabel eqrebog1"
                   size="small"
                 >
-                  <Flex
-                    align="center"
-                    className="css-o42ntg-ButtonLabel eqrebog1"
-                    justify="flex-start"
+                  <span
+                    className="css-7ui8bl-ButtonLabel eqrebog1"
                   >
-                    <Base
-                      align="center"
-                      className="eqrebog1 css-gzxb22-ButtonLabel"
-                      justify="flex-start"
-                    >
-                      <div
-                        className="eqrebog1 css-gzxb22-ButtonLabel"
-                        is={null}
-                      >
-                        Cancel
-                      </div>
-                    </Base>
-                  </Flex>
+                    Cancel
+                  </span>
                 </Component>
               </ButtonLabel>
             </button>
@@ -429,7 +413,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 }
               >
                 <Button
-                  alignLabel="left"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -482,34 +465,19 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         }
                       >
                         <ButtonLabel
-                          justify="flex-start"
                           priority="primary"
                           size="small"
                         >
                           <Component
-                            className="css-o42ntg-ButtonLabel eqrebog1"
-                            justify="flex-start"
+                            className="css-7ui8bl-ButtonLabel eqrebog1"
                             priority="primary"
                             size="small"
                           >
-                            <Flex
-                              align="center"
-                              className="css-o42ntg-ButtonLabel eqrebog1"
-                              justify="flex-start"
+                            <span
+                              className="css-7ui8bl-ButtonLabel eqrebog1"
                             >
-                              <Base
-                                align="center"
-                                className="eqrebog1 css-gzxb22-ButtonLabel"
-                                justify="flex-start"
-                              >
-                                <div
-                                  className="eqrebog1 css-gzxb22-ButtonLabel"
-                                  is={null}
-                                >
-                                  Add Installation
-                                </div>
-                              </Base>
-                            </Flex>
+                              Add Installation
+                            </span>
                           </Component>
                         </ButtonLabel>
                       </button>

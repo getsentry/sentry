@@ -128,7 +128,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                 className="pull-right"
               >
                 <Button
-                  alignLabel="left"
                   disabled={false}
                   onClick={[Function]}
                   size="small"
@@ -141,7 +140,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                   Enable Plugin
                 </Button>
                 <Button
-                  alignLabel="left"
                   disabled={false}
                   onClick={[Function]}
                   size="small"
@@ -184,7 +182,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                           className="pull-right"
                         >
                           <Button
-                            alignLabel="left"
                             disabled={false}
                             onClick={[Function]}
                             size="small"
@@ -233,32 +230,17 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   }
                                 >
                                   <ButtonLabel
-                                    justify="flex-start"
                                     size="small"
                                   >
                                     <Component
-                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                       size="small"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-o42ntg-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                          justify="flex-start"
-                                        >
-                                          <div
-                                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                                            is={null}
-                                          >
-                                            Enable Plugin
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Enable Plugin
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -266,7 +248,6 @@ exports[`ProjectPluginDetails renders 1`] = `
                             </StyledButton>
                           </Button>
                           <Button
-                            alignLabel="left"
                             disabled={false}
                             onClick={[Function]}
                             size="small"
@@ -295,32 +276,17 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   size="small"
                                 >
                                   <ButtonLabel
-                                    justify="flex-start"
                                     size="small"
                                   >
                                     <Component
-                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                       size="small"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-o42ntg-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                          justify="flex-start"
-                                        >
-                                          <div
-                                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                                            is={null}
-                                          >
-                                            Reset Configuration
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Reset Configuration
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>

@@ -269,7 +269,6 @@ exports[`Configure should render correctly render() should render platform docs 
                                                     is={null}
                                                   >
                                                     <Button
-                                                      alignLabel="left"
                                                       disabled={false}
                                                       href="/testOrg/project-slug/getting-started/"
                                                       size="small"
@@ -301,32 +300,17 @@ exports[`Configure should render correctly render() should render platform docs 
                                                             size="small"
                                                           >
                                                             <ButtonLabel
-                                                              justify="flex-start"
                                                               size="small"
                                                             >
                                                               <Component
-                                                                className="css-o42ntg-ButtonLabel eqrebog1"
-                                                                justify="flex-start"
+                                                                className="css-7ui8bl-ButtonLabel eqrebog1"
                                                                 size="small"
                                                               >
-                                                                <Flex
-                                                                  align="center"
-                                                                  className="css-o42ntg-ButtonLabel eqrebog1"
-                                                                  justify="flex-start"
+                                                                <span
+                                                                  className="css-7ui8bl-ButtonLabel eqrebog1"
                                                                 >
-                                                                  <Base
-                                                                    align="center"
-                                                                    className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                                    justify="flex-start"
-                                                                  >
-                                                                    <div
-                                                                      className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                                      is={null}
-                                                                    >
-                                                                      &lt; Back
-                                                                    </div>
-                                                                  </Base>
-                                                                </Flex>
+                                                                  &lt; Back
+                                                                </span>
                                                               </Component>
                                                             </ButtonLabel>
                                                           </a>
@@ -348,7 +332,6 @@ exports[`Configure should render correctly render() should render platform docs 
                                                     is={null}
                                                   >
                                                     <Button
-                                                      alignLabel="left"
                                                       disabled={false}
                                                       external={true}
                                                       href="https://docs.getsentry.com/hosted/clients/csharp/"
@@ -396,32 +379,17 @@ exports[`Configure should render correctly render() should render platform docs 
                                                               target="_blank"
                                                             >
                                                               <ButtonLabel
-                                                                justify="flex-start"
                                                                 size="small"
                                                               >
                                                                 <Component
-                                                                  className="css-o42ntg-ButtonLabel eqrebog1"
-                                                                  justify="flex-start"
+                                                                  className="css-7ui8bl-ButtonLabel eqrebog1"
                                                                   size="small"
                                                                 >
-                                                                  <Flex
-                                                                    align="center"
-                                                                    className="css-o42ntg-ButtonLabel eqrebog1"
-                                                                    justify="flex-start"
+                                                                  <span
+                                                                    className="css-7ui8bl-ButtonLabel eqrebog1"
                                                                   >
-                                                                    <Base
-                                                                      align="center"
-                                                                      className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                                      justify="flex-start"
-                                                                    >
-                                                                      <div
-                                                                        className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                                        is={null}
-                                                                      >
-                                                                        Full Documentation
-                                                                      </div>
-                                                                    </Base>
-                                                                  </Flex>
+                                                                    Full Documentation
+                                                                  </span>
                                                                 </Component>
                                                               </ButtonLabel>
                                                             </a>
@@ -610,7 +578,6 @@ exports[`Configure should render correctly render() should render platform docs 
                   className="pull-right"
                 >
                   <Button
-                    alignLabel="left"
                     data-test-id="configure-done"
                     disabled={false}
                     onClick={[Function]}
@@ -643,32 +610,17 @@ exports[`Configure should render correctly render() should render platform docs 
                           role="button"
                         >
                           <ButtonLabel
-                            justify="flex-start"
                             priority="primary"
                           >
                             <Component
-                              className="css-1emshjx-ButtonLabel eqrebog1"
-                              justify="flex-start"
+                              className="css-ga4b18-ButtonLabel eqrebog1"
                               priority="primary"
                             >
-                              <Flex
-                                align="center"
-                                className="css-1emshjx-ButtonLabel eqrebog1"
-                                justify="flex-start"
+                              <span
+                                className="css-ga4b18-ButtonLabel eqrebog1"
                               >
-                                <Base
-                                  align="center"
-                                  className="eqrebog1 css-11rqwwm-ButtonLabel"
-                                  justify="flex-start"
-                                >
-                                  <div
-                                    className="eqrebog1 css-11rqwwm-ButtonLabel"
-                                    is={null}
-                                  >
-                                    All done!
-                                  </div>
-                                </Base>
-                              </Flex>
+                                All done!
+                              </span>
                             </Component>
                           </ButtonLabel>
                         </button>

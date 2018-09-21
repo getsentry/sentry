@@ -70,7 +70,6 @@ exports[`AccountIdentities renders list 1`] = `
             p={2}
           >
             <Button
-              alignLabel="left"
               disabled={false}
               onClick={[Function]}
               size="small"

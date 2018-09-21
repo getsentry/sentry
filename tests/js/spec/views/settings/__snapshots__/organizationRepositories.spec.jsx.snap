@@ -94,7 +94,6 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
               priority="primary"
             >
               <Button
-                alignLabel="left"
                 disabled={false}
                 icon="icon-trash"
                 size="xsmall"
@@ -190,7 +189,6 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       mb={1}
     >
       <Button
-        alignLabel="left"
         disabled={false}
         href="https://docs.sentry.io/learn/releases/"
       >
@@ -283,7 +281,6 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       mb={1}
     >
       <Button
-        alignLabel="left"
         disabled={false}
         href="https://docs.sentry.io/learn/releases/"
       >

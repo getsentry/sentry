@@ -45,7 +45,6 @@ exports[`Confirm renders 1`] = `
       className="modal-footer"
     >
       <Button
-        alignLabel="left"
         disabled={false}
         onClick={[Function]}
         style={
@@ -57,7 +56,6 @@ exports[`Confirm renders 1`] = `
         Cancel
       </Button>
       <Button
-        alignLabel="left"
         autoFocus={true}
         data-test-id="confirm-modal"
         disabled={false}

@@ -8,7 +8,6 @@ exports[`ApiTokens renders empty result 1`] = `
     <SettingsPageHeading
       action={
         <Button
-          alignLabel="left"
           className="ref-create-token"
           disabled={false}
           priority="primary"
@@ -100,7 +99,6 @@ exports[`ApiTokens renders with result 1`] = `
     <SettingsPageHeading
       action={
         <Button
-          alignLabel="left"
           className="ref-create-token"
           disabled={false}
           priority="primary"
