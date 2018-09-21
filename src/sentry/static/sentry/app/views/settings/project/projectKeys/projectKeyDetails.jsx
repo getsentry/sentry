@@ -410,7 +410,7 @@ const KeySettings = createReactClass({
                   inline={false}
                   flexibleControlStateSize
                 >
-                  <TextCopyInput>{`<script src='${loaderLink}'></script>`}</TextCopyInput>
+                  <TextCopyInput>{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
                 </Field>
                 <SelectField
                   name="browserSdkVersion"
