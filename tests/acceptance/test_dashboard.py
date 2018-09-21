@@ -20,7 +20,7 @@ class DashboardTest(AcceptanceTestCase):
         self.project = self.create_project(
             organization=self.org,
             teams=[self.team],
-            name='Bengal',
+            name='Bengal-Elephant-Giraffe-Tree-House',
         )
         self.create_member(
             user=self.user,
