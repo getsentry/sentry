@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import responses
+import six
 
 from exam import fixture
 from django.test import RequestFactory
@@ -214,3 +215,32 @@ class VstsIssueSycnTest(TestCase):
         work_id = 345
         url = self.integration.get_issue_url(work_id)
         assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'
+
+    @responses.activate
+    def test_default_project(self):
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_apis/projects',
+            body=b"""{
+                "value": [
+                    {"id": "1", "name": "project_1"},
+                    {"id": "2", "name": "project_2"}
+                ]
+            }""",
+            content_type='application/json',
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        self.integration.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'project': '2#project_2'}
+            }
+        }
+        self.integration.org_integration.save()
+        fields = self.integration.get_create_issue_config(group)
+
+        for field in fields:
+            if field['name'] == 'project':
+                project_field = field
+                break
+        assert project_field['defaultValue'] == '2#project_2'

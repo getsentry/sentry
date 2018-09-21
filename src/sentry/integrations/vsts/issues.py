@@ -20,6 +20,9 @@ class VstsIssueSync(IssueSyncMixin):
     issue_fields = frozenset(['id', 'title', 'url'])
     done_categories = frozenset(['Resolved', 'Completed'])
 
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         client = self.get_client()
@@ -29,22 +32,26 @@ class VstsIssueSync(IssueSyncMixin):
             self.raise_error(e)
 
         project_choices = []
-        initial_project = ('', '')
+
+        default_project = self.get_project_defaults(group.project_id).get('project')
+        try:
+            default_project_name = default_project.split('#')[1]
+        except AttributeError:
+            default_project_name = None
+
         for project in projects:
             project_id_and_name = '%s#%s' % (project['id'], project['name'])
             project_choices.append((project_id_and_name, project['name']))
-            # TODO(lb): Properly handle default project after it has been implemented.
-            if project_id_and_name == self.default_project:
-                initial_project = project['name']
+
         return [
             {
                 'name': 'project',
                 'required': True,
                 'type': 'choice',
                 'choices': project_choices,
-                'defaultValue': initial_project,
+                'defaultValue': default_project or ('', ''),
                 'label': _('Project'),
-                'placeholder': initial_project or _('MyProject'),
+                'placeholder': default_project_name or _('MyProject'),
             }
         ] + fields
 
