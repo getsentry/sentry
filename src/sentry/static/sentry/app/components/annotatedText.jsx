@@ -2,12 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 const Redaction = styled.span`
   background: rgba(255, 0, 0, 0.05);
-  cursor: pointer;
+`;
+
+const RedactionIcon = styled(InlineSvg)`
+  color: ${props => props.theme.redDark};
 `;
 
 class AnnotatedText extends React.Component {
@@ -25,10 +29,13 @@ class AnnotatedText extends React.Component {
     let content = this.props.renderWith(chunk.text);
 
     if (chunk.type === 'redaction') {
-      let title = t('Redacted PII (rule "%s")', chunk.rule_id);
+      let title = t('Redacted due to PII rule "%s"', chunk.rule_id);
       return (
         <Tooltip title={title}>
-          <Redaction>{content}</Redaction>
+          <span>
+            <Redaction>{content}</Redaction>{' '}
+            <RedactionIcon src="icon-circle-exclamation" />
+          </span>
         </Tooltip>
       );
     }
