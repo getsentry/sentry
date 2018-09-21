@@ -1,4 +1,3 @@
-import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
@@ -6,26 +5,18 @@ import {uniq} from 'lodash';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import Button from 'app/components/button';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import NumberField from 'app/components/forms/numberField';
-import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
-import Aggregations from './aggregations';
-import Conditions from './conditions';
 import Result from './result';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
-import SavedQueries from './savedQueries';
+import QueryFields from './sidebar/queryFields';
+import SavedQueries from './sidebar/savedQueries';
 
-import {
-  getQueryStringFromQuery,
-  getQueryFromQueryString,
-  getOrderByOptions,
-} from './utils';
+import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {
@@ -36,10 +27,6 @@ import {
   Sidebar,
   SidebarTabs,
   PageTitle,
-  Fieldset,
-  PlaceholderText,
-  SidebarLabel,
-  ButtonSpinner,
 } from './styles';
 
 import {trackQuery} from './analytics';
@@ -180,22 +167,6 @@ export default class OrganizationDiscover extends React.Component {
     }
   };
 
-  getSummarizePlaceholder = () => {
-    const {queryBuilder} = this.props;
-    const query = queryBuilder.getInternal();
-    const text =
-      query.aggregations.length > 0
-        ? t('Select fields')
-        : t('No fields selected, showing all');
-    return <PlaceholderText>{text}</PlaceholderText>;
-  };
-
-  reset = () => {
-    browserHistory.push({
-      pathname: `/organizations/${this.props.organization.slug}/discover/`,
-    });
-  };
-
   renderSidebarNav() {
     const {view} = this.state;
     const views = [
@@ -214,19 +185,17 @@ export default class OrganizationDiscover extends React.Component {
     );
   }
 
+  reset = () => {
+    browserHistory.push({
+      pathname: `/organizations/${this.props.organization.slug}/discover/`,
+    });
+  };
+
   render() {
     const {data, query, chartData, chartQuery, isFetchingQuery, view} = this.state;
     const {queryBuilder, organization} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
-    const columns = queryBuilder.getColumns();
-    // Do not allow conditions on projectID field
-    const columnsForConditions = columns.filter(({name}) => name !== 'project_id');
-
-    const fieldOptions = columns.map(({name}) => ({
-      value: name,
-      label: name,
-    }));
 
     return (
       <Discover>
@@ -234,78 +203,13 @@ export default class OrganizationDiscover extends React.Component {
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
           {view === 'query' && (
-            <React.Fragment>
-              <Fieldset>
-                <SidebarLabel htmlFor="fields" className="control-label">
-                  {t('Summarize')}
-                </SidebarLabel>
-                <SelectControl
-                  name="fields"
-                  multiple={true}
-                  placeholder={this.getSummarizePlaceholder()}
-                  options={fieldOptions}
-                  value={currentQuery.fields}
-                  onChange={val =>
-                    this.updateField('fields', val.map(({value}) => value))}
-                  clearable={true}
-                />
-              </Fieldset>
-              <Fieldset>
-                <Aggregations
-                  value={currentQuery.aggregations}
-                  columns={columns}
-                  onChange={val => this.updateField('aggregations', val)}
-                />
-              </Fieldset>
-              <Fieldset>
-                <Conditions
-                  value={currentQuery.conditions}
-                  columns={columnsForConditions}
-                  onChange={val => this.updateField('conditions', val)}
-                />
-              </Fieldset>
-              <Fieldset>
-                <SidebarLabel htmlFor="orderby" className="control-label">
-                  {t('Order by')}
-                </SidebarLabel>
-                <SelectControl
-                  name="orderby"
-                  label={t('Order By')}
-                  placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-                  options={getOrderByOptions(queryBuilder)}
-                  value={currentQuery.orderby}
-                  onChange={val => this.updateField('orderby', val.value)}
-                />
-              </Fieldset>
-              <Fieldset>
-                <NumberField
-                  name="limit"
-                  label={<SidebarLabel>{t('Limit')}</SidebarLabel>}
-                  placeholder="#"
-                  value={currentQuery.limit}
-                  onChange={val =>
-                    this.updateField('limit', typeof val === 'number' ? val : null)}
-                />
-              </Fieldset>
-              <Fieldset>
-                <Flex>
-                  <Button
-                    size="xsmall"
-                    onClick={this.runQuery}
-                    priority="primary"
-                    busy={isFetchingQuery}
-                  >
-                    {t('Run')}
-                    {isFetchingQuery && <ButtonSpinner />}
-                  </Button>
-                  <Box ml={1}>
-                    <Button size="xsmall" onClick={this.reset}>
-                      {t('Reset')}
-                    </Button>
-                  </Box>
-                </Flex>
-              </Fieldset>
-            </React.Fragment>
+            <QueryFields
+              queryBuilder={queryBuilder}
+              isFetchingQuery={isFetchingQuery}
+              updateField={this.updateField}
+              runQuery={this.runQuery}
+              reset={this.reset}
+            />
           )}
           {view === 'saved' && <SavedQueries organization={organization} />}
         </Sidebar>
