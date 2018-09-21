@@ -68,6 +68,7 @@ const SidebarDropdown = withApi(
             organization={org}
             user={!org ? user : null}
             size={32}
+            round={false}
           />
         ) : (
           <SentryLink to="/">
