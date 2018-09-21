@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
@@ -57,6 +57,17 @@ class GroupIntegrationDetailsTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org, self.user)
+        config = {
+            'project_issue_defaults': {
+                group.project_id: {'project': '1'}
+            }
+        }
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+        org_integration.config = config
+        org_integration.save()
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
@@ -111,12 +122,63 @@ class GroupIntegrationDetailsTest(APITestCase):
             name='Example',
         )
         integration.add_organization(org, self.user)
+        config = {
+            'project_issue_defaults': {
+                group.project_id: {'project': '2'}
+            }
+        }
+        integration.add_organization(org.id, config=config)
 
         path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
 
         response = self.client.get(path)
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
+        provider = integration.get_provider()
+
+        assert response.data == {
+            'id': six.text_type(integration.id),
+            'name': integration.name,
+            'icon': integration.metadata.get('icon'),
+            'domainName': integration.metadata.get('domain_name'),
+            'accountType': integration.metadata.get('account_type'),
+            'status': integration.get_status_display(),
+            'provider': {
+                'key': provider.key,
+                'name': provider.name,
+                'canAdd': provider.can_add,
+                'canAddProject': provider.can_add_project,
+                'canDisable': provider.can_disable,
+                'features': [f.value for f in provider.features],
+                'aspects': provider.metadata.aspects,
+            },
+            'createIssueConfig': [
+                {
+                    'default': 'message',
+                    'type': 'string',
+                    'name': 'title',
+                    'label': 'Title',
+                    'required': True,
+                }, {
+                    'default': ('%s\n\n```\n'
+                                'Stacktrace (most recent call last):\n\n  '
+                                'File "sentry/models/foo.py", line 29, in build_msg\n    '
+                                'string_max_length=self.string_max_length)\n\nmessage\n```'
+                                ) % (absolute_uri(group.get_absolute_url()),),
+                    'type': 'textarea',
+                    'name': 'description',
+                    'label': 'Description',
+                    'autosize': True,
+                    'maxRows': 10,
+                }, {
+                    'name': 'project',
+                    'label': 'Project',
+                    'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+                    'type': 'select',
+                    'default': '2',
+                }
+            ]
+        }
 
     def test_simple_put(self):
         self.login_as(user=self.user)
@@ -162,7 +224,8 @@ class GroupIntegrationDetailsTest(APITestCase):
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 
         response = self.client.put(path, data={
-            'externalIssue': 'APP-123'
+            'project': '2',
+            'externalIssue': 'APP-123',
         })
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
@@ -209,7 +272,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org, self.user)
+        integration.add_organization(org.id, self.user)
 
         path = u'/api/0/issues/{}/integrations/{}/'.format(group.id, integration.id)
 

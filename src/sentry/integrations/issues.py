@@ -96,6 +96,61 @@ class IssueBasicMixin(object):
             }
         ]
 
+    def get_persisted_default_config_fields(self):
+        """
+        Returns a list of field names that should have their last used values
+        persisted on a per-project basis.
+        """
+        return []
+
+    def store_issue_last_defaults(self, project_id, data):
+        """
+        Stores the last used field defaults on a per-project basis. This
+        accepts a dict of values that will be filtered to keys returned by
+        ``get_persisted_default_config_fields`` which will automatically be
+        merged into the associated field config object as the default.
+
+        >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
+
+        When the integration is serialized these values will automatically be
+        merged into the field configuration objects.
+
+        NOTE: These are currently stored for both link and create issue, no
+              differentiation is made between the two field configs.
+        """
+        persisted_fields = self.get_persisted_default_config_fields()
+
+        if not persisted_fields:
+            return
+
+        defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+
+        self.org_integration.config.update({
+            'project_issue_defaults': {project_id: defaults},
+        })
+        self.org_integration.save()
+
+    def merge_issue_config_defaults(self, project_id, config):
+        # project_id is a long, but stored in the config as a string
+        project_id = six.text_type(project_id)
+        defaults = self.get_project_defaults(project_id)
+
+        if not defaults:
+            return config
+
+        updated_configs = [f.copy() for f in config]
+        for field in updated_configs:
+            if field['name'] not in defaults:
+                continue
+            field.update({'default': defaults[field['name']]})
+
+        return updated_configs
+
+    def get_project_defaults(self, project_id):
+        return self.org_integration.config \
+            .get('project_issue_defaults', {}) \
+            .get(six.text_type(project_id), {})
+
     def create_issue(self, data, **kwargs):
         """
         Create an issue via the provider's API and return the issue key,
