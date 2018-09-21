@@ -33,7 +33,7 @@ class AnnotatedText extends React.Component {
       );
     }
 
-    return content;
+    return <span>{content}</span>;
   }
 
   render() {
