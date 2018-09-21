@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 import mock
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -26,6 +27,39 @@ SAMPLE_CREATE_META_RESPONSE = """
         "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10000&avatarId=10011",
         "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10000&avatarId=10011",
         "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10000&avatarId=10011"
+      },
+      "issuetypes": [
+        {
+          "self": "http://www.example.com/jira/rest/api/2/issueType/1",
+          "id": "1",
+          "description": "An error in the code",
+          "iconUrl": "http://www.example.com/jira/images/icons/issuetypes/bug.png",
+          "name": "Bug",
+          "subtask": false,
+          "fields": {
+            "issuetype": {
+              "required": true,
+              "name": "Issue Type",
+              "key": "issuetype",
+              "hasDefaultValue": false,
+              "operations": [
+                "set"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "self": "http://www.example.com/jira/rest/api/2/project/ABC",
+      "id": "10001",
+      "key": "ABC",
+      "name": "ABC Example Project",
+      "avatarUrls": {
+        "48x48": "http://www.example.com/jira/secure/projectavatar?pid=10001&avatarId=10011",
+        "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10001&avatarId=10011",
+        "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10001&avatarId=10011",
+        "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10001&avatarId=10011"
       },
       "issuetypes": [
         {
@@ -417,6 +451,43 @@ class JiraIntegrationTest(APITestCase):
                 'label': 'Issue Type',
                 'updatesForm': True,
             }]
+
+    def test_get_create_issue_config_with_default(self):
+        org = self.organization
+        self.login_as(self.user)
+        group = self.create_group()
+        self.create_event(group=group)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        org_integration = integration.add_organization(org, self.user)
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'project': '10001'}
+            }
+        }
+        org_integration.save()
+        installation = integration.get_installation(org.id)
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, 'get_client', get_client):
+            fields = installation.get_create_issue_config(group)
+            for field in fields:
+                if field['name'] == 'project':
+                    project_field = field
+                    break
+            assert project_field == {
+                'default': '10001',
+                'choices': [('10000', 'EX'), ('10001', 'ABC')],
+                'type': 'select',
+                'name': 'project',
+                'label': 'Jira Project',
+                'updatesForm': True,
+            }
 
     def test_get_link_issue_config(self):
         org = self.organization

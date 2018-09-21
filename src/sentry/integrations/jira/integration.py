@@ -253,6 +253,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return '%s/browse/%s' % (self.model.metadata['base_url'], key)
 
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             u'Sentry Issue: [{}|{}]'.format(
@@ -381,13 +384,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
+
         params = kwargs.get('params', {})
-
-        # TODO(jess): update if we allow saving a default project key
-
+        default_project = self.get_project_defaults(group.project_id).get('project')
         client = self.get_client()
+
         try:
-            resp = client.get_create_meta(params.get('project'))
+            resp = client.get_create_meta(default_project)
         except ApiUnauthorized:
             raise IntegrationError(
                 'Jira returned: Unauthorized. '
@@ -395,7 +398,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
 
         try:
+            # TODO(lb): I have no idea what meta is here; just going off tests
             meta = resp['projects'][0]
+            for project in resp['projects']:
+                if project['id'] == default_project:
+                    meta = project
         except IndexError:
             raise IntegrationError(
                 'Error in Jira configuration, no projects found.'
