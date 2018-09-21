@@ -4,7 +4,7 @@ jest.unmock('app/utils/recreateRoute');
 
 const routes = [
   {path: '/', childRoutes: []},
-  {newnew: true, path: '/settings/', name: 'Settings'},
+  {path: '/settings/', name: 'Settings'},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
   {childRoutes: []},
   {path: 'api-keys/', name: 'API Key'},
@@ -12,7 +12,7 @@ const routes = [
 
 const projectRoutes = [
   {path: '/', childRoutes: []},
-  {newnew: true, path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
+  {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
   {name: 'Projects', path: ':projectId/', childRoutes: []},
   {name: 'Alerts', path: 'alerts/'},
