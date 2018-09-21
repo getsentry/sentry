@@ -13,6 +13,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         super(OrganizationDiscoverSavedQueryDetailTest, self).setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
+        self.org_without_access = self.create_organization()
         self.project_ids = [
             self.create_project(organization=self.org).id,
             self.create_project(organization=self.org).id
@@ -45,3 +46,14 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data['fields'] == ['test']
         assert response.data['conditions'] == []
         assert response.data['limit'] == 10
+
+    def test_get_org_without_access(self):
+        with self.feature('organizations:discover'):
+            url = reverse(
+                'sentry-api-0-organization-discover-saved-query-detail',
+                args=[
+                    self.org_without_access.slug,
+                    self.query_id])
+            response = self.client.get(url)
+
+        assert response.status_code == 403, response.content
