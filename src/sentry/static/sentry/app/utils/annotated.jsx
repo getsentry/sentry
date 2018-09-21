@@ -5,12 +5,25 @@ import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import utils from 'app/utils';
 
 const Chunks = styled.span`
   span {
     display: inline;
+  }
+`;
+
+const Placeholder = styled.span`
+  background: rgba(255, 0, 0, 0.05);
+  cursor: default;
+  font-style: italic;
+
+  :before {
+    content: '<';
+  }
+  :after {
+    content: '>';
   }
 `;
 
@@ -34,9 +47,10 @@ const REMARKS = {
 
 class AnnotatedSpan extends React.Component {
   static propTypes = {
-    value: PropTypes.any,
+    value: PropTypes.string,
     chunks: PropTypes.array,
     errors: PropTypes.array,
+    remarks: PropTypes.array,
     renderWith: PropTypes.func,
   };
 
@@ -59,11 +73,11 @@ class AnnotatedSpan extends React.Component {
     return <span>{content}</span>;
   }
 
-  renderValue() {
-    let {value, chunks, renderWith} = this.props;
+  renderChunks(chunks) {
+    let {renderWith} = this.props;
 
-    if (!chunks || !chunks.length) {
-      return renderWith(value);
+    if (chunks.length === 1) {
+      return renderWith(chunks[0].text);
     }
 
     let spans = chunks.map((chunk, key) =>
@@ -73,6 +87,29 @@ class AnnotatedSpan extends React.Component {
     return <Chunks>{spans}</Chunks>;
   }
 
+  renderValue() {
+    let {value, chunks, remarks, errors, renderWith} = this.props;
+    if (chunks && chunks.length) {
+      return this.renderChunks(chunks);
+    }
+
+    let element = null;
+    if (!_.isNull(value)) {
+      element = renderWith(value);
+    } else if (errors && errors.length) {
+      element = <Placeholder>invalid</Placeholder>;
+    } else if (remarks && remarks.length) {
+      element = <Placeholder>redacted</Placeholder>;
+    }
+
+    if (remarks && remarks.length) {
+      let title = t('%s due to PII rule "%s"', REMARKS[remarks[0][1]], remarks[0][0]);
+      element = <Tooltip title={title}>{element}</Tooltip>;
+    }
+
+    return element;
+  }
+
   renderErrors() {
     let {errors} = this.props;
     if (!errors || !errors.length) {
@@ -80,10 +117,12 @@ class AnnotatedSpan extends React.Component {
     }
 
     let tooltip = `
-      <strong>Processing Errors:</strong>
+    <div style="text-align: left">
+      <strong>${tn('Processing Error:', 'Processing Errors:', errors.length)}</strong>
       <ul>
         ${errors.map(e => `<li>${utils.escape(e)}</li>`)}
       </ul>
+    </div>
     `;
 
     return (
@@ -96,8 +135,7 @@ class AnnotatedSpan extends React.Component {
   render() {
     return (
       <span>
-        {this.renderValue()}
-        {this.renderErrors()}
+        {this.renderValue()} {this.renderErrors()}
       </span>
     );
   }
@@ -128,7 +166,8 @@ class Annotated {
     let meta = this.meta && this.meta[''];
     if (_.isEmpty(meta)) return null;
     if (!_.isEmpty(meta.chunks)) return meta;
-    if (!_.isEmpty(meta.errors)) return meta;
+    if (!_.isEmpty(meta.rem)) return meta;
+    if (!_.isEmpty(meta.err)) return meta;
     return null;
   }
 
@@ -139,7 +178,8 @@ class Annotated {
         <AnnotatedSpan
           value={this.value}
           chunks={renderMeta.chunks}
-          errors={renderMeta.errors}
+          remarks={renderMeta.rem}
+          errors={renderMeta.err}
           renderWith={callback}
         />
       );
