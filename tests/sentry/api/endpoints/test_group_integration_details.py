@@ -39,12 +39,20 @@ class GroupIntegrationDetailsTest(APITestCase):
                     'features': [f.value for f in provider.features],
                     'aspects': provider.metadata.aspects,
                 },
-                'linkIssueConfig': [{
-                    'default': '',
-                    'type': 'string',
-                    'name': 'externalIssue',
-                    'label': 'Issue',
-                }]
+                'linkIssueConfig': [
+                    {
+                        'default': '',
+                        'type': 'string',
+                        'name': 'externalIssue',
+                        'label': 'Issue',
+                    },
+                    {
+                        'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+                        'label': 'Project',
+                        'name': 'project',
+                        'type': 'select'
+                    }
+                ]
             }
 
     def test_simple_get_create(self):
@@ -291,6 +299,21 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
 
     def test_default_project(self):
+        def assert_default_project(path, action, expected_project_field):
+            response = self.client.get(path)
+            assert response.status_code == 200
+            if action == 'create':
+                fields = response.data['createIssueConfig']
+            else:
+                fields = response.data['linkIssueConfig']
+            assert response.data['id'] == six.text_type(integration.id)
+            for field in fields:
+                if field['name'] == 'project':
+                    project_field = field
+                    break
+
+            assert project_field == expected_project_field
+
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -306,18 +329,17 @@ class GroupIntegrationDetailsTest(APITestCase):
             }
         }
         org_integration.save()
-        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+        create_path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(
+            group.id, integration.id)
+        link_path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(
+            group.id, integration.id)
+        project_field = {
+            'name': 'project',
+            'label': 'Project',
+            'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+            'type': 'select',
+            'default': '2',
+        }
         with self.feature('organizations:integrations-issue-basic'):
-            response = self.client.get(path)
-            assert response.status_code == 200
-            data = response.data
-            assert response.data['id'] == six.text_type(integration.id)
-            for field in data['createIssueConfig']:
-                if field['name'] == 'project':
-                    assert field == {
-                        'name': 'project',
-                        'label': 'Project',
-                        'choices': [('1', 'Project 1'), ('2', 'Project 2')],
-                        'type': 'select',
-                        'default': '2',
-                    }
+            assert_default_project(create_path, 'create', project_field)
+            assert_default_project(link_path, 'link', project_field)

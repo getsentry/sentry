@@ -89,7 +89,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super(ExampleIntegration, self).get_link_issue_config(group, **kwargs)
-        return fields
+        default = self.get_project_defaults(group.project_id)
+        example_project_field = self.generate_example_project_field(default)
+        return fields + [example_project_field]
 
     def create_issue(self, data, **kwargs):
         if 'assignee' not in data:
