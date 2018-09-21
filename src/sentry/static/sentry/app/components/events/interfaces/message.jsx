@@ -1,24 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import AnnotatedText from 'app/components/annotatedText';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import utils from 'app/utils';
 import {t} from 'app/locale';
-
-function renderPre(chunk) {
-  // TODO(ja): This causes wrong margins. Fix
-  return (
-    <pre
-      style={{display: 'inline'}}
-      className="plain"
-      dangerouslySetInnerHTML={{
-        __html: utils.nl2br(utils.escape(chunk)),
-      }}
-    />
-  );
-}
+import Annotated from 'app/utils/annotated';
 
 class MessageInterface extends React.Component {
   static propTypes = {
@@ -34,6 +20,7 @@ class MessageInterface extends React.Component {
 
   render() {
     let {data, meta} = this.props;
+    let annotated = new Annotated(data, meta.data);
 
     return (
       <EventDataSection
@@ -42,19 +29,9 @@ class MessageInterface extends React.Component {
         type="message"
         title={t('Message')}
       >
-        {data.formatted ? (
-          <AnnotatedText
-            text={data.formatted}
-            meta={meta.get('formatted')}
-            renderWith={renderPre}
-          />
-        ) : (
-          <AnnotatedText
-            text={data.message}
-            meta={meta.get('message')}
-            renderWith={renderPre}
-          />
-        )}
+        <pre className="plain">
+          {annotated.render('formatted') || annotated.render('message')}
+        </pre>
 
         {data.params &&
           !data.formatted && (
