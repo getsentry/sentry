@@ -84,6 +84,7 @@ def get_react_config(context):
     if 'request' in context:
         user = getattr(context['request'], 'user', None) or AnonymousUser()
         messages = get_messages(context['request'])
+        session = getattr(context['request'], 'session', None)
         try:
             is_superuser = context['request'].is_superuser()
         except AttributeError:
@@ -131,6 +132,10 @@ def get_react_config(context):
         'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
         'termsUrl': settings.TERMS_URL,
         'privacyUrl': settings.PRIVACY_URL,
+        # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
+        # It should only be used on a fresh browser nav to a path where an
+        # organization is not in context
+        'lastOrganization': session['activeorg'] if session and 'activeorg' in session else None,
     }
     if user and user.is_authenticated():
         context.update({
