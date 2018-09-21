@@ -605,6 +605,8 @@ function routes() {
           )}
       />
 
+      <Redirect from="/account/" to="/settings/account/details/" />
+
       <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
           getComponent={(loc, cb) =>
