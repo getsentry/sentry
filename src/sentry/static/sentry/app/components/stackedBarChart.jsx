@@ -209,7 +209,7 @@ class StackedBarChart extends React.Component {
     );
   }
 
-  renderMarker(marker) {
+  renderMarker(marker, index, pointWidth) {
     let timeLabel = moment(marker.x * 1000).format('lll');
     let title =
       '<div style="width:130px">' + marker.label + '<br/>' + timeLabel + '</div>';
@@ -220,7 +220,11 @@ class StackedBarChart extends React.Component {
 
     return (
       <Tooltip title={title} key={key} tooltipOptions={{html: true, placement: 'bottom'}}>
-        <a data-test-id="chart-column" className={className} style={{height: '100%'}}>
+        <a
+          data-test-id="chart-column"
+          className={className}
+          style={{height: '100%', left: index * pointWidth + '%'}}
+        >
           <span>{marker.label}</span>
         </a>
       </Tooltip>
@@ -304,6 +308,7 @@ class StackedBarChart extends React.Component {
 
     let maxval = this.maxPointValue();
     let markers = this.props.markers.slice();
+    let markerChildren = [];
 
     // group points, then resort
     let points = Object.keys(pointIndex)
@@ -322,7 +327,7 @@ class StackedBarChart extends React.Component {
     let children = [];
     points.forEach((point, index) => {
       while (markers.length && markers[0].x <= point.x) {
-        children.push(this.renderMarker(markers.shift()));
+        markerChildren.push(this.renderMarker(markers.shift(), index, pointWidth));
       }
 
       children.push(
@@ -333,10 +338,23 @@ class StackedBarChart extends React.Component {
     // in bizarre case where markers never got rendered, render them last
     // NOTE: should this ever happen?
     markers.forEach(marker => {
-      children.push(this.renderMarker(marker));
+      markerChildren.push(this.renderMarker(marker));
     });
 
-    return children;
+    return (
+      <React.Fragment>
+        <StyledSvg
+          shapeRendering="geometricPrecision"
+          viewBox={'0 0 99.9 99.9'}
+          preserveAspectRatio="none"
+        >
+          {children}
+        </StyledSvg>
+        <div style={{position: 'absolute', bottom: 0, left: 0, height: 0, width: '100%'}}>
+          {markerChildren}
+        </div>
+      </React.Fragment>
+    );
   }
 
   render() {
@@ -350,13 +368,7 @@ class StackedBarChart extends React.Component {
           <Count value={maxval} />
         </span>
         <span className="min-y">0</span>
-        <StyledSvg
-          shapeRendering="geometricPrecision"
-          viewBox={'0 0 99.9 99.9'}
-          preserveAspectRatio="none"
-        >
-          {this.renderChart()}
-        </StyledSvg>
+        {this.renderChart()}
       </figure>
     );
   }

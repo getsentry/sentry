@@ -591,6 +591,17 @@ exports[`ProjectCard renders 1`] = `
                                 </Tooltip>
                               </svg>
                             </StyledSvg>
+                            <div
+                              style={
+                                Object {
+                                  "bottom": 0,
+                                  "height": 0,
+                                  "left": 0,
+                                  "position": "absolute",
+                                  "width": "100%",
+                                }
+                              }
+                            />
                           </figure>
                         </StackedBarChart>
                       </BarChart>
