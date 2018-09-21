@@ -31,7 +31,7 @@ export const PageTitle = styled.h2`
 
 export const Sidebar = styled(Box)`
   border-right: 1px solid ${p => p.theme.borderDark};
-  min-width: 320px;
+  width: 320px;
 `;
 
 export const Body = styled(Flex)``;
