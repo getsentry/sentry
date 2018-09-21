@@ -4,6 +4,7 @@ import {defined} from 'app/utils';
 
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
+import AnnotatedText from 'app/components/annotatedText';
 
 class ExceptionContent extends React.Component {
   static propTypes = {
@@ -12,12 +13,14 @@ class ExceptionContent extends React.Component {
     view: PropTypes.string.isRequired,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    meta: PropTypes.object.isRequired,
   };
 
   render() {
     let stackView = this.props.view;
     let newestFirst = this.props.newestFirst;
     let children = this.props.values.map((exc, excIdx) => {
+      let meta = this.props.meta.in('values', excIdx);
       return (
         <div key={excIdx} className="exception">
           <h5 className="break-word" style={{marginBottom: 5}}>
@@ -25,7 +28,7 @@ class ExceptionContent extends React.Component {
           </h5>
           {exc.value && (
             <pre className="exc-message" style={{marginTop: 0}}>
-              {exc.value}
+              <AnnotatedText text={exc.value} meta={meta.get('value')} />
             </pre>
           )}
           {exc.mechanism && (

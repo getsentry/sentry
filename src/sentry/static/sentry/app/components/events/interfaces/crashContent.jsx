@@ -16,10 +16,11 @@ class CrashContent extends React.Component {
     newestFirst: PropTypes.bool.isRequired,
     exception: PropTypes.object,
     stacktrace: PropTypes.object,
+    meta: PropTypes.object.isRequired,
   };
 
   renderException = () => {
-    const {event, stackView, stackType, newestFirst, exception} = this.props;
+    const {event, stackView, stackType, newestFirst, exception, meta} = this.props;
     return stackView === 'raw' ? (
       <RawExceptionContent
         eventId={event.id}
@@ -34,6 +35,7 @@ class CrashContent extends React.Component {
         values={exception.values}
         platform={event.platform}
         newestFirst={newestFirst}
+        meta={meta}
       />
     );
   };

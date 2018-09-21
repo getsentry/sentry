@@ -13,6 +13,7 @@ class ExceptionInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    meta: PropTypes.object.isRequired,
   };
 
   constructor(...args) {
@@ -32,6 +33,7 @@ class ExceptionInterface extends React.Component {
     let group = this.props.group;
     let event = this.props.event;
     let data = this.props.data;
+    let meta = this.props.meta;
     let stackView = this.state.stackView;
     let stackType = this.state.stackType;
     let newestFirst = this.state.newestFirst;
@@ -73,6 +75,7 @@ class ExceptionInterface extends React.Component {
           stackView={stackView}
           newestFirst={newestFirst}
           exception={data}
+          meta={meta}
         />
       </GroupEventDataSection>
     );
