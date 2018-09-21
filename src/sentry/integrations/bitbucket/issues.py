@@ -20,25 +20,23 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         repo, issue_id = key.split('#')
         return u'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
 
-    def get_repo_choices(self, **kwargs):
+    def get_persisted_default_config_fields(self):
+        return ['repo']
+
+    def get_repo_choices(self, group):
         try:
             repos = self.get_repositories()
         except ApiError:
             return [], None
 
         repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-        params = kwargs.get('params', {})
 
-        try:
-            default_repo = params.get('repo', repo_choices[0][0])
-        except IndexError:
-            return repo_choices, None
-
+        default_repo = self.get_project_defaults(group.project_id).get('repo')
         return repo_choices, default_repo
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
-        repo_choices, default_repo = self.get_repo_choices(**kwargs)
+        repo_choices, default_repo = self.get_repo_choices(group)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -72,7 +70,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         ]
 
     def get_link_issue_config(self, group, **kwargs):
-        repo_choices, default_repo = self.get_repo_choices(**kwargs)
+        repo_choices, default_repo = self.get_repo_choices(group)
 
         org = group.organization
         autocomplete_url = reverse(
