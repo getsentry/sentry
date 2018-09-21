@@ -76,8 +76,36 @@ class BitbucketIssueTest(APITestCase):
         payload = json.loads(request.body)
         assert payload == {'content': {'raw': comment['comment']}}
 
+    @responses.activate
     def test_default_repo_link_fields(self):
-        pass
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": [
+                    {"full_name": "myaccount/repo1"},
+                    {"full_name": "myaccount/repo2"}
+                ]
+            }""",
+            content_type='application/json',
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.add_organization(self.organization.id)
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'myaccount/repo1'}
+            }
+        }
+        org_integration.save()
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_link_issue_config(group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['default'] == 'myaccount/repo1'
+        assert repo_field['defaultLabel'] == 'myaccount/repo1'
 
     @responses.activate
     def test_default_repo_create_fields(self):
