@@ -30,12 +30,11 @@ import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {
   Discover,
-  Sidebar,
   Body,
   BodyContent,
   TopBar,
-  SidebarHeader,
-  SidebarTitle,
+  Sidebar,
+  SidebarTabs,
   PageTitle,
   Fieldset,
   PlaceholderText,
@@ -59,7 +58,7 @@ export default class OrganizationDiscover extends React.Component {
       chartData: null,
       chartQuery: null,
       isFetchingQuery: false,
-      showSavedQueries: false,
+      view: 'query',
     };
   }
 
@@ -197,21 +196,26 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
 
-  toggleSidebar = () => {
-    this.setState(state => ({
-      showSavedQueries: !state.showSavedQueries,
-    }));
-  };
+  renderSidebarNav() {
+    const {view} = this.state;
+    const views = [
+      {id: 'query', title: t('Query')},
+      // {id: 'saved', title: t('Saved queries')},
+    ];
+
+    return (
+      <SidebarTabs underlined={true}>
+        {views.map(({id, title}) => (
+          <li key={id} className={view === id ? 'active' : ''}>
+            <a onClick={() => this.setState({view: id})}>{title}</a>
+          </li>
+        ))}
+      </SidebarTabs>
+    );
+  }
 
   render() {
-    const {
-      data,
-      query,
-      chartData,
-      chartQuery,
-      isFetchingQuery,
-      showSavedQueries,
-    } = this.state;
+    const {data, query, chartData, chartQuery, isFetchingQuery, view} = this.state;
     const {queryBuilder, organization} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
@@ -228,27 +232,9 @@ export default class OrganizationDiscover extends React.Component {
       <Discover>
         <Sidebar>
           <PageTitle>{t('Discover')}</PageTitle>
-          {!showSavedQueries && (
+          {this.renderSidebarNav()}
+          {view === 'query' && (
             <React.Fragment>
-              <SidebarHeader>
-                <SidebarTitle>{t('Query')}</SidebarTitle>
-                <Flex>
-                  <Box mr={1}>
-                    <Button size="xsmall" onClick={this.reset}>
-                      {t('Reset')}
-                    </Button>
-                  </Box>
-                  <Button
-                    size="xsmall"
-                    onClick={this.runQuery}
-                    priority="primary"
-                    busy={isFetchingQuery}
-                  >
-                    {t('Run')}
-                    {isFetchingQuery && <ButtonSpinner />}
-                  </Button>
-                </Flex>
-              </SidebarHeader>
               <Fieldset>
                 <SidebarLabel htmlFor="fields" className="control-label">
                   {t('Summarize')}
@@ -302,19 +288,26 @@ export default class OrganizationDiscover extends React.Component {
                 />
               </Fieldset>
               <Fieldset>
-                {/**<SidebarToggle onClick={this.toggleSidebar}>
-                  {t('View saved queries')}
-                  </SidebarToggle>**/}
+                <Flex>
+                  <Button
+                    size="xsmall"
+                    onClick={this.runQuery}
+                    priority="primary"
+                    busy={isFetchingQuery}
+                  >
+                    {t('Run')}
+                    {isFetchingQuery && <ButtonSpinner />}
+                  </Button>
+                  <Box ml={1}>
+                    <Button size="xsmall" onClick={this.reset}>
+                      {t('Reset')}
+                    </Button>
+                  </Box>
+                </Flex>
               </Fieldset>
             </React.Fragment>
           )}
-          {showSavedQueries && (
-            <SavedQueries
-              organization={organization}
-              queryBuilder={queryBuilder}
-              toggleSidebar={this.toggleSidebar}
-            />
-          )}
+          {view === 'saved' && <SavedQueries organization={organization} />}
         </Sidebar>
         <Body direction="column" flex="1">
           <TopBar>

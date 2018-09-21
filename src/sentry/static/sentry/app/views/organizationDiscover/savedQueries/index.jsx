@@ -1,40 +1,73 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+// import PropTypes from 'prop-types';
 
-// import SentryTypes from 'app/sentryTypes';
+import SentryTypes from 'app/sentryTypes';
 
+import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 
-import {SidebarHeader, SidebarTitle, SidebarToggle, Fieldset} from '../styles';
+import {fetchSavedQueries} from '../utils';
+import {Fieldset, SavedQueryList, SavedQueryListItem} from '../styles';
 
 export default class SavedQueries extends React.Component {
   static propTypes = {
-    // organization: SentryTypes.Organization.isRequired,
-    // queryBuilder: PropTypes.object.isRequired,
-    toggleSidebar: PropTypes.func.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
+  constructor() {
+    super();
+    this.state = {isLoading: true};
+  }
+
+  componentWillMount() {
+    fetchSavedQueries(this.props.organization)
+      .then(data => {
+        this.setState({isLoading: false, data});
+      })
+      .catch(err => {
+        this.setState({isLoading: false});
+      });
+  }
+
   renderLoading() {
-    return <LoadingIndicator />;
+    return (
+      <Fieldset>
+        <LoadingIndicator mini />
+      </Fieldset>
+    );
   }
 
   renderEmpty() {
     return <Fieldset>{t('No saved searches')}</Fieldset>;
   }
 
-  render() {
-    const {toggleSidebar} = this.props;
+  renderList() {
+    const {organization} = this.props;
+    const {data} = this.state;
+
+    if (!data.length) {
+      return this.renderEmpty();
+    }
 
     return (
+      <SavedQueryList>
+        {data.map(({id, name}) => (
+          <SavedQueryListItem key={id}>
+            <Link to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
+              {name}
+            </Link>
+          </SavedQueryListItem>
+        ))}
+      </SavedQueryList>
+    );
+  }
+
+  render() {
+    const {isLoading} = this.state;
+    return (
       <React.Fragment>
-        <SidebarHeader>
-          <SidebarTitle>{t('Saved Queries')}</SidebarTitle>
-        </SidebarHeader>
-        {this.renderEmpty()}
-        <Fieldset>
-          <SidebarToggle onClick={toggleSidebar}>{t('View query builder')}</SidebarToggle>
-        </Fieldset>
+        {isLoading ? this.renderEmpty() : this.renderList()}
       </React.Fragment>
     );
   }

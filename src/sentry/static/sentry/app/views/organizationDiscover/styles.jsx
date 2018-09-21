@@ -1,11 +1,12 @@
+import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
 
-import Link from 'app/components/link';
 import Panel from 'app/components/panels/panel';
+import NavTabs from 'app/components/navTabs';
 
 export const Discover = styled(Flex)`
   min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
@@ -48,18 +49,8 @@ export const TopBar = styled(Flex)`
   height: 60px;
 `;
 
-export const SidebarHeader = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  padding: ${space(1.5)} ${space(4)};
-`;
-
-export const SidebarTitle = styled(Box)`
-  flex: 1;
-  align-items: center;
-  font-size: 18px;
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
+export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
+  padding: 20px 30px 0;
 `;
 
 export const PlaceholderText = styled.div`
@@ -86,11 +77,6 @@ export const SidebarLabel = styled.label`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray3};
-`;
-
-export const SidebarToggle = styled(Link)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-decoration: underline;
 `;
 
 export const AddText = styled.span`
@@ -138,4 +124,14 @@ export const ChartNote = styled(Box)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray3};
   margin-bottom: ${space(3)};
+`;
+
+export const SavedQueryList = styled('ul')`
+  list-style-type: none;
+  padding: 0;
+`;
+
+export const SavedQueryListItem = styled('li')`
+  padding: ${space(3)} ${space(4)};
+  border-bottom: 1px solid ${p => p.theme.borderLighter};
 `;
