@@ -21,6 +21,8 @@ import HealthRequest from './util/healthRequest';
 import HealthTableChart from './styles/healthTableChart';
 import withHealth from './util/withHealth';
 
+const filterEmpty = val => !!val;
+
 class OrganizationHealthErrors extends React.Component {
   static propTypes = {
     actions: PropTypes.object,
@@ -33,6 +35,11 @@ class OrganizationHealthErrors extends React.Component {
 
   render() {
     let {organization} = this.props;
+
+    const tooltipOptions = {
+      filter: filterEmpty,
+      confine: true,
+    };
 
     return (
       <React.Fragment>
@@ -123,14 +130,39 @@ class OrganizationHealthErrors extends React.Component {
               return (
                 <HealthPanelChart
                   height={200}
-                  title={t('Releases')}
+                  title={t('Releases (most recent)')}
                   series={timeseriesData}
                 >
-                  {props => <AreaChart isGroupedByDate {...props} />}
+                  {props => (
+                    <AreaChart isGroupedByDate tooltip={tooltipOptions} {...props} />
+                  )}
                 </HealthPanelChart>
               );
             }}
           </ReleasesRequest>
+        </Flex>
+
+        <Flex>
+          <HealthRequest
+            tag="release"
+            includeTimeseries
+            interval="1d"
+            showLoading
+            limit={10}
+            getCategory={({shortVersion}) => shortVersion}
+          >
+            {({timeseriesData}) => {
+              return (
+                <HealthPanelChart
+                  height={200}
+                  title={t('Releases (most in period)')}
+                  series={timeseriesData}
+                >
+                  {props => <AreaChart tooltip={tooltipOptions} {...props} />}
+                </HealthPanelChart>
+              );
+            }}
+          </HealthRequest>
         </Flex>
 
         <Flex>
@@ -140,7 +172,7 @@ class OrganizationHealthErrors extends React.Component {
               return (
                 <HealthPanelChart
                   height={200}
-                  title={t('Releases')}
+                  title={t('Releases (most recent)')}
                   series={timeseriesData}
                 >
                   {props => <PercentageBarChart isGroupedByDate {...props} />}
@@ -161,7 +193,7 @@ class OrganizationHealthErrors extends React.Component {
               return (
                 <HealthPanelChart
                   height={200}
-                  title={t('Releases')}
+                  title={t('Releases (most in period)')}
                   series={timeseriesData}
                 >
                   {props => <PercentageBarChart isGroupedByDate {...props} />}
