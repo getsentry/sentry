@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -15,7 +15,6 @@ import Link from 'app/components/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 import Chart from './chart';
@@ -66,24 +65,20 @@ class ProjectCard extends React.Component {
       <ProjectCardWrapper data-test-id={slug} width={['100%', '50%', '33%', '25%']}>
         {stats ? (
           <StyledProjectCard>
-            <Flex justify="space-between" align="center">
-              <Box ml={2}>
-                <IdBadge
-                  project={project}
-                  avatarSize={24}
-                  displayName={
-                    <StyledTitle>
-                      {hasProjectAccess ? (
-                        <Link to={`/${params.orgId}/${slug}/`}>
-                          <strong>{slug}</strong>
-                        </Link>
-                      ) : (
-                        <div>{slug}</div>
-                      )}
-                    </StyledTitle>
-                  }
-                />
-              </Box>
+            <StyledProjectCardHeader>
+              <StyledIdBadge
+                project={project}
+                avatarSize={24}
+                displayName={
+                  hasProjectAccess ? (
+                    <Link to={`/${params.orgId}/${slug}/`}>
+                      <strong>{slug}</strong>
+                    </Link>
+                  ) : (
+                    <span>{slug}</span>
+                  )
+                }
+              />
               <Tooltip title={bookmarkText}>
                 <Star
                   active={isBookmarked}
@@ -91,7 +86,7 @@ class ProjectCard extends React.Component {
                   onClick={this.toggleProjectBookmark}
                 />
               </Tooltip>
-            </Flex>
+            </StyledProjectCardHeader>
             <ChartContainer>
               <Chart stats={stats} noEvents={!firstEvent} />
               {!firstEvent && <NoEvents />}
@@ -150,9 +145,11 @@ const ChartContainer = styled.div`
   padding-top: ${space(1)};
 `;
 
-const StyledTitle = styled.div`
-  ${overflowEllipsis};
-  padding: 16px 4px;
+const StyledProjectCardHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 12px ${space(2)};
 `;
 
 const ProjectCardWrapper = styled(Box)`
@@ -168,7 +165,7 @@ const StyledProjectCard = styled.div`
 
 const Star = styled.a`
   color: ${p => (p.active ? p.theme.yellowOrange : p.theme.gray6)};
-  margin-right: 16px;
+  margin-left: ${space(1)};
   &:hover {
     color: ${p => p.theme.yellowOrange};
     opacity: 0.6;
@@ -179,6 +176,11 @@ const LoadingCard = styled('div')`
   border: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
   height: 210px;
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 export {ProjectCard};
