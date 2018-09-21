@@ -264,3 +264,20 @@ class Http(Interface):
             'inferredContentType': self.inferred_content_type,
         }
         return data
+
+    def get_api_meta(self, meta, is_public=False):
+        if is_public:
+            return None
+
+        return {
+            'method': meta.get('method'),
+            'url': meta.get('url'),
+            'query': meta.get('query_string'),
+            'data': meta.get('data'),
+            'env': meta.get('env'),
+
+            # NOTE: Headers and cookies are a sorted list of lists in the API
+            # context, but remain a dictionary here.
+            'headers': meta.get('headers'),
+            'cookies': meta.get('cookies'),
+        }

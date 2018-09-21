@@ -119,6 +119,16 @@ class User(Interface):
             'data': self.data,
         }
 
+    def get_api_meta(self, meta, is_public=False):
+        return {
+            'id': meta.get('id'),
+            'email': meta.get('email'),
+            'username': meta.get('username'),
+            'ipAddress': meta.get('ip_address'),
+            'name': meta.get('name'),
+            'data': meta.get('data'),
+        }
+
     def get_path(self):
         return 'sentry.interfaces.User'
 
