@@ -46,7 +46,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <SettingsPageHeading
       action={
         <Button
-          alignLabel="left"
           disabled={false}
           icon="icon-circle-add"
           priority="primary"
@@ -86,7 +85,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 </Title>
                 <div>
                   <Button
-                    alignLabel="left"
                     disabled={false}
                     icon="icon-circle-add"
                     priority="primary"
@@ -119,90 +117,64 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           size="small"
                         >
                           <ButtonLabel
-                            justify="flex-start"
                             priority="primary"
                             size="small"
                           >
                             <Component
-                              className="css-o42ntg-ButtonLabel eqrebog1"
-                              justify="flex-start"
+                              className="css-7ui8bl-ButtonLabel eqrebog1"
                               priority="primary"
                               size="small"
                             >
-                              <Flex
-                                align="center"
-                                className="css-o42ntg-ButtonLabel eqrebog1"
-                                justify="flex-start"
+                              <span
+                                className="css-7ui8bl-ButtonLabel eqrebog1"
                               >
-                                <Base
-                                  align="center"
-                                  className="eqrebog1 css-gzxb22-ButtonLabel"
-                                  justify="flex-start"
+                                <Icon
+                                  hasChildren={true}
+                                  size="small"
                                 >
-                                  <div
-                                    className="eqrebog1 css-gzxb22-ButtonLabel"
-                                    is={null}
+                                  <Component
+                                    className="css-1vdnsie-Icon eqrebog2"
+                                    hasChildren={true}
+                                    size="small"
                                   >
-                                    <Icon
-                                      hasChildren={true}
+                                    <span
+                                      className="css-1vdnsie-Icon eqrebog2"
                                       size="small"
                                     >
-                                      <Component
-                                        className="css-1vdnsie-Icon eqrebog2"
-                                        hasChildren={true}
-                                        size="small"
+                                      <StyledInlineSvg
+                                        size="12px"
+                                        src="icon-circle-add"
                                       >
-                                        <Box
-                                          className="css-1vdnsie-Icon eqrebog2"
-                                          size="small"
+                                        <InlineSvg
+                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                          size="12px"
+                                          src="icon-circle-add"
                                         >
-                                          <Base
-                                            className="eqrebog2 css-nk081r-Icon"
-                                            size="small"
+                                          <StyledSvg
+                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            height="12px"
+                                            viewBox={Object {}}
+                                            width="12px"
                                           >
-                                            <div
-                                              className="eqrebog2 css-nk081r-Icon"
-                                              is={null}
-                                              size="small"
+                                            <svg
+                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              height="12px"
+                                              viewBox={Object {}}
+                                              width="12px"
                                             >
-                                              <StyledInlineSvg
-                                                size="12px"
-                                                src="icon-circle-add"
-                                              >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                  size="12px"
-                                                  src="icon-circle-add"
-                                                >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                    height="12px"
-                                                    viewBox={Object {}}
-                                                    width="12px"
-                                                  >
-                                                    <svg
-                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="12px"
-                                                      viewBox={Object {}}
-                                                      width="12px"
-                                                    >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                      </Component>
-                                    </Icon>
-                                    New API Key
-                                  </div>
-                                </Base>
-                              </Flex>
+                                              <use
+                                                href="#test"
+                                                xlinkHref="#test"
+                                              />
+                                            </svg>
+                                          </StyledSvg>
+                                        </InlineSvg>
+                                      </StyledInlineSvg>
+                                    </span>
+                                  </Component>
+                                </Icon>
+                                New API Key
+                              </span>
                             </Component>
                           </ButtonLabel>
                         </button>
