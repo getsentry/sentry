@@ -117,7 +117,6 @@ const ProjectSelector = withRouter(
           menuFooter={
             !hasProjects && hasProjectWrite ? (
               <CreateProjectButton
-                alignLabel="center"
                 priority="primary"
                 size="small"
                 to={`${this.urlPrefix()}/projects/new/`}

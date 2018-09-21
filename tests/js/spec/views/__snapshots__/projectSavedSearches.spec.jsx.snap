@@ -355,7 +355,6 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           priority="primary"
                                         >
                                           <Button
-                                            alignLabel="left"
                                             disabled={false}
                                             icon="icon-trash"
                                             onClick={[Function]}
@@ -382,87 +381,61 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                   size="small"
                                                 >
                                                   <ButtonLabel
-                                                    justify="flex-start"
                                                     size="small"
                                                   >
                                                     <Component
-                                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                                      justify="flex-start"
+                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                                       size="small"
                                                     >
-                                                      <Flex
-                                                        align="center"
-                                                        className="css-o42ntg-ButtonLabel eqrebog1"
-                                                        justify="flex-start"
+                                                      <span
+                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                                       >
-                                                        <Base
-                                                          align="center"
-                                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                          justify="flex-start"
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="small"
                                                         >
-                                                          <div
-                                                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                            is={null}
+                                                          <Component
+                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            hasChildren={false}
+                                                            size="small"
                                                           >
-                                                            <Icon
-                                                              hasChildren={false}
+                                                            <span
+                                                              className="css-ljhpxy-Icon eqrebog2"
                                                               size="small"
                                                             >
-                                                              <Component
-                                                                className="css-ljhpxy-Icon eqrebog2"
-                                                                hasChildren={false}
-                                                                size="small"
+                                                              <StyledInlineSvg
+                                                                size="12px"
+                                                                src="icon-trash"
                                                               >
-                                                                <Box
-                                                                  className="css-ljhpxy-Icon eqrebog2"
-                                                                  size="small"
+                                                                <InlineSvg
+                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  size="12px"
+                                                                  src="icon-trash"
                                                                 >
-                                                                  <Base
-                                                                    className="eqrebog2 css-7mohvl-Icon"
-                                                                    size="small"
+                                                                  <StyledSvg
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    height="12px"
+                                                                    viewBox={Object {}}
+                                                                    width="12px"
                                                                   >
-                                                                    <div
-                                                                      className="eqrebog2 css-7mohvl-Icon"
-                                                                      is={null}
-                                                                      size="small"
+                                                                    <svg
+                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      height="12px"
+                                                                      viewBox={Object {}}
+                                                                      width="12px"
                                                                     >
-                                                                      <StyledInlineSvg
-                                                                        size="12px"
-                                                                        src="icon-trash"
-                                                                      >
-                                                                        <InlineSvg
-                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                          size="12px"
-                                                                          src="icon-trash"
-                                                                        >
-                                                                          <StyledSvg
-                                                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                            height="12px"
-                                                                            viewBox={Object {}}
-                                                                            width="12px"
-                                                                          >
-                                                                            <svg
-                                                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                              height="12px"
-                                                                              viewBox={Object {}}
-                                                                              width="12px"
-                                                                            >
-                                                                              <use
-                                                                                href="#test"
-                                                                                xlinkHref="#test"
-                                                                              />
-                                                                            </svg>
-                                                                          </StyledSvg>
-                                                                        </InlineSvg>
-                                                                      </StyledInlineSvg>
-                                                                    </div>
-                                                                  </Base>
-                                                                </Box>
-                                                              </Component>
-                                                            </Icon>
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
+                                                                      <use
+                                                                        href="#test"
+                                                                        xlinkHref="#test"
+                                                                      />
+                                                                    </svg>
+                                                                  </StyledSvg>
+                                                                </InlineSvg>
+                                                              </StyledInlineSvg>
+                                                            </span>
+                                                          </Component>
+                                                        </Icon>
+                                                      </span>
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
@@ -693,7 +666,6 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           priority="primary"
                                         >
                                           <Button
-                                            alignLabel="left"
                                             disabled={false}
                                             icon="icon-trash"
                                             onClick={[Function]}
@@ -720,87 +692,61 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                   size="small"
                                                 >
                                                   <ButtonLabel
-                                                    justify="flex-start"
                                                     size="small"
                                                   >
                                                     <Component
-                                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                                      justify="flex-start"
+                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                                       size="small"
                                                     >
-                                                      <Flex
-                                                        align="center"
-                                                        className="css-o42ntg-ButtonLabel eqrebog1"
-                                                        justify="flex-start"
+                                                      <span
+                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                                       >
-                                                        <Base
-                                                          align="center"
-                                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                          justify="flex-start"
+                                                        <Icon
+                                                          hasChildren={false}
+                                                          size="small"
                                                         >
-                                                          <div
-                                                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                                                            is={null}
+                                                          <Component
+                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            hasChildren={false}
+                                                            size="small"
                                                           >
-                                                            <Icon
-                                                              hasChildren={false}
+                                                            <span
+                                                              className="css-ljhpxy-Icon eqrebog2"
                                                               size="small"
                                                             >
-                                                              <Component
-                                                                className="css-ljhpxy-Icon eqrebog2"
-                                                                hasChildren={false}
-                                                                size="small"
+                                                              <StyledInlineSvg
+                                                                size="12px"
+                                                                src="icon-trash"
                                                               >
-                                                                <Box
-                                                                  className="css-ljhpxy-Icon eqrebog2"
-                                                                  size="small"
+                                                                <InlineSvg
+                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  size="12px"
+                                                                  src="icon-trash"
                                                                 >
-                                                                  <Base
-                                                                    className="eqrebog2 css-7mohvl-Icon"
-                                                                    size="small"
+                                                                  <StyledSvg
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    height="12px"
+                                                                    viewBox={Object {}}
+                                                                    width="12px"
                                                                   >
-                                                                    <div
-                                                                      className="eqrebog2 css-7mohvl-Icon"
-                                                                      is={null}
-                                                                      size="small"
+                                                                    <svg
+                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      height="12px"
+                                                                      viewBox={Object {}}
+                                                                      width="12px"
                                                                     >
-                                                                      <StyledInlineSvg
-                                                                        size="12px"
-                                                                        src="icon-trash"
-                                                                      >
-                                                                        <InlineSvg
-                                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                          size="12px"
-                                                                          src="icon-trash"
-                                                                        >
-                                                                          <StyledSvg
-                                                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                            height="12px"
-                                                                            viewBox={Object {}}
-                                                                            width="12px"
-                                                                          >
-                                                                            <svg
-                                                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                              height="12px"
-                                                                              viewBox={Object {}}
-                                                                              width="12px"
-                                                                            >
-                                                                              <use
-                                                                                href="#test"
-                                                                                xlinkHref="#test"
-                                                                              />
-                                                                            </svg>
-                                                                          </StyledSvg>
-                                                                        </InlineSvg>
-                                                                      </StyledInlineSvg>
-                                                                    </div>
-                                                                  </Base>
-                                                                </Box>
-                                                              </Component>
-                                                            </Icon>
-                                                          </div>
-                                                        </Base>
-                                                      </Flex>
+                                                                      <use
+                                                                        href="#test"
+                                                                        xlinkHref="#test"
+                                                                      />
+                                                                    </svg>
+                                                                  </StyledSvg>
+                                                                </InlineSvg>
+                                                              </StyledInlineSvg>
+                                                            </span>
+                                                          </Component>
+                                                        </Icon>
+                                                      </span>
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>

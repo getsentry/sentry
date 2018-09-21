@@ -392,7 +392,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
-                          alignLabel="left"
                           disabled={true}
                           onClick={[Function]}
                           size="small"
@@ -447,32 +446,17 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 to={null}
                               >
                                 <ButtonLabel
-                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel eqrebog1"
-                                    justify="flex-start"
+                                    className="css-7ui8bl-ButtonLabel eqrebog1"
                                     size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <span
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="eqrebog1 css-gzxb22-ButtonLabel"
-                                        justify="flex-start"
-                                      >
-                                        <div
-                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                          is={null}
-                                        >
-                                          Compare
-                                        </div>
-                                      </Base>
-                                    </Flex>
+                                      Compare
+                                    </span>
                                   </Component>
                                 </ButtonLabel>
                               </button>
@@ -491,7 +475,6 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                     >
                       <div>
                         <Button
-                          alignLabel="left"
                           className="toggle-collapse-all"
                           disabled={false}
                           onClick={[Function]}
@@ -522,32 +505,17 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 size="small"
                               >
                                 <ButtonLabel
-                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel eqrebog1"
-                                    justify="flex-start"
+                                    className="css-7ui8bl-ButtonLabel eqrebog1"
                                     size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <span
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="eqrebog1 css-gzxb22-ButtonLabel"
-                                        justify="flex-start"
-                                      >
-                                        <div
-                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                          is={null}
-                                        >
-                                          Collapse All
-                                        </div>
-                                      </Base>
-                                    </Flex>
+                                      Collapse All
+                                    </span>
                                   </Component>
                                 </ButtonLabel>
                               </button>
@@ -1861,7 +1829,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                           </Confirm>
                         </LinkWithConfirmation>
                         <Button
-                          alignLabel="left"
                           disabled={true}
                           onClick={[Function]}
                           size="small"
@@ -1916,32 +1883,17 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 to={null}
                               >
                                 <ButtonLabel
-                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel eqrebog1"
-                                    justify="flex-start"
+                                    className="css-7ui8bl-ButtonLabel eqrebog1"
                                     size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <span
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="eqrebog1 css-gzxb22-ButtonLabel"
-                                        justify="flex-start"
-                                      >
-                                        <div
-                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                          is={null}
-                                        >
-                                          Compare
-                                        </div>
-                                      </Base>
-                                    </Flex>
+                                      Compare
+                                    </span>
                                   </Component>
                                 </ButtonLabel>
                               </button>
@@ -1960,7 +1912,6 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                     >
                       <div>
                         <Button
-                          alignLabel="left"
                           className="toggle-collapse-all"
                           disabled={false}
                           onClick={[Function]}
@@ -1991,32 +1942,17 @@ exports[`Issues -> Merged View renders with mocked data 2`] = `
                                 size="small"
                               >
                                 <ButtonLabel
-                                  justify="flex-start"
                                   size="small"
                                 >
                                   <Component
-                                    className="css-o42ntg-ButtonLabel eqrebog1"
-                                    justify="flex-start"
+                                    className="css-7ui8bl-ButtonLabel eqrebog1"
                                     size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="css-o42ntg-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <span
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="eqrebog1 css-gzxb22-ButtonLabel"
-                                        justify="flex-start"
-                                      >
-                                        <div
-                                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                                          is={null}
-                                        >
-                                          Collapse All
-                                        </div>
-                                      </Base>
-                                    </Flex>
+                                      Collapse All
+                                    </span>
                                   </Component>
                                 </ButtonLabel>
                               </button>
