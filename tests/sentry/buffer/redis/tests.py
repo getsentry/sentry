@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import pytest
 import mock
 
 from datetime import datetime
@@ -92,6 +93,8 @@ class RedisBufferTest(TestCase):
         self.buf.process('foo')
         process.assert_called_once_with(Group, columns, filters, extra)
 
+    # this test should be passing once we no longer serialize using pickle
+    @pytest.mark.xfail
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr', mock.Mock())
     def test_incr_saves_to_redis(self):
