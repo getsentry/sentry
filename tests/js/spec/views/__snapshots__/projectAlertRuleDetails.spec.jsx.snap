@@ -17,7 +17,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
       Object {
         "indexRoute": Object {},
         "name": "Settings",
-        "newnew": true,
         "path": "/settings/",
       },
       Object {
@@ -140,7 +139,6 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
             Object {
               "indexRoute": Object {},
               "name": "Settings",
-              "newnew": true,
               "path": "/settings/",
             },
             Object {
@@ -2465,7 +2463,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
       Object {
         "indexRoute": Object {},
         "name": "Settings",
-        "newnew": true,
         "path": "/settings/",
       },
       Object {
@@ -2587,7 +2584,6 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
             Object {
               "indexRoute": Object {},
               "name": "Settings",
-              "newnew": true,
               "path": "/settings/",
             },
             Object {
