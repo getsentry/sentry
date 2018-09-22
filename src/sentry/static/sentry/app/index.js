@@ -126,7 +126,7 @@ export default {
     FormState: require('app/components/forms/index').FormState,
     GuideAnchor: require('app/components/assistant/guideAnchor').default,
     HookStore: require('app/stores/hookStore').default,
-    HoverCard: require('app/components/hovercard').default,
+    Hovercard: require('app/components/hovercard').default,
     Indicators: require('app/components/indicators').default,
     IndicatorStore: require('app/stores/indicatorStore').default,
     InlineSvg: require('app/components/inlineSvg').default,
