@@ -26,6 +26,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             'projects': [project.id for project in obj.projects.all()],
             'dateCreated': obj.date_created,
             'dateUpdated': obj.date_updated,
+            'createdBy': six.text_type(obj.created_by.id) if obj.created_by else None,
         }
 
         for key in query_keys:

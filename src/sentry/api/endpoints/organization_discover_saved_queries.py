@@ -108,6 +108,7 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             organization=organization,
             name=data['name'],
             query=data['query'],
+            created_by=request.user,
         )
 
         model.add_projects(data['project_ids'])
