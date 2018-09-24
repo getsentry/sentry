@@ -810,7 +810,6 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
-            alignLabel="left"
             className="css-po7kq7-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
@@ -849,89 +848,63 @@ exports[`Project Ownership Input renders 1`] = `
                   to={null}
                 >
                   <ButtonLabel
-                    justify="flex-start"
                     priority="primary"
                     size="small"
                   >
                     <Component
-                      className="css-o42ntg-ButtonLabel eqrebog1"
-                      justify="flex-start"
+                      className="css-7ui8bl-ButtonLabel eqrebog1"
                       priority="primary"
                       size="small"
                     >
-                      <Flex
-                        align="center"
-                        className="css-o42ntg-ButtonLabel eqrebog1"
-                        justify="flex-start"
+                      <span
+                        className="css-7ui8bl-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="eqrebog1 css-gzxb22-ButtonLabel"
-                          justify="flex-start"
+                        <Icon
+                          hasChildren={false}
+                          size="small"
                         >
-                          <div
-                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                            is={null}
+                          <Component
+                            className="css-ljhpxy-Icon eqrebog2"
+                            hasChildren={false}
+                            size="small"
                           >
-                            <Icon
-                              hasChildren={false}
+                            <span
+                              className="css-ljhpxy-Icon eqrebog2"
                               size="small"
                             >
-                              <Component
-                                className="css-ljhpxy-Icon eqrebog2"
-                                hasChildren={false}
-                                size="small"
+                              <StyledInlineSvg
+                                size="12px"
+                                src="icon-circle-add"
                               >
-                                <Box
-                                  className="css-ljhpxy-Icon eqrebog2"
-                                  size="small"
+                                <InlineSvg
+                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                  size="12px"
+                                  src="icon-circle-add"
                                 >
-                                  <Base
-                                    className="eqrebog2 css-7mohvl-Icon"
-                                    size="small"
+                                  <StyledSvg
+                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                    height="12px"
+                                    viewBox={Object {}}
+                                    width="12px"
                                   >
-                                    <div
-                                      className="eqrebog2 css-7mohvl-Icon"
-                                      is={null}
-                                      size="small"
+                                    <svg
+                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                      height="12px"
+                                      viewBox={Object {}}
+                                      width="12px"
                                     >
-                                      <StyledInlineSvg
-                                        size="12px"
-                                        src="icon-circle-add"
-                                      >
-                                        <InlineSvg
-                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                          size="12px"
-                                          src="icon-circle-add"
-                                        >
-                                          <StyledSvg
-                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                            height="12px"
-                                            viewBox={Object {}}
-                                            width="12px"
-                                          >
-                                            <svg
-                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
-                                            >
-                                              <use
-                                                href="#test"
-                                                xlinkHref="#test"
-                                              />
-                                            </svg>
-                                          </StyledSvg>
-                                        </InlineSvg>
-                                      </StyledInlineSvg>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </Component>
-                            </Icon>
-                          </div>
-                        </Base>
-                      </Flex>
+                                      <use
+                                        href="#test"
+                                        xlinkHref="#test"
+                                      />
+                                    </svg>
+                                  </StyledSvg>
+                                </InlineSvg>
+                              </StyledInlineSvg>
+                            </span>
+                          </Component>
+                        </Icon>
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -1010,7 +983,6 @@ url:http://example.com/settings/* #product"
               className="css-5zvod-SaveButton en3n9di1"
             >
               <Button
-                alignLabel="left"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
@@ -1043,34 +1015,19 @@ url:http://example.com/settings/* #product"
                       size="small"
                     >
                       <ButtonLabel
-                        justify="flex-start"
                         priority="primary"
                         size="small"
                       >
                         <Component
-                          className="css-o42ntg-ButtonLabel eqrebog1"
-                          justify="flex-start"
+                          className="css-7ui8bl-ButtonLabel eqrebog1"
                           priority="primary"
                           size="small"
                         >
-                          <Flex
-                            align="center"
-                            className="css-o42ntg-ButtonLabel eqrebog1"
-                            justify="flex-start"
+                          <span
+                            className="css-7ui8bl-ButtonLabel eqrebog1"
                           >
-                            <Base
-                              align="center"
-                              className="eqrebog1 css-gzxb22-ButtonLabel"
-                              justify="flex-start"
-                            >
-                              <div
-                                className="eqrebog1 css-gzxb22-ButtonLabel"
-                                is={null}
-                              >
-                                Save Changes
-                              </div>
-                            </Base>
-                          </Flex>
+                            Save Changes
+                          </span>
                         </Component>
                       </ButtonLabel>
                     </button>

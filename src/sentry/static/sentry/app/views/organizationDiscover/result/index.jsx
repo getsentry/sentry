@@ -1,19 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import styled from 'react-emotion';
 import {Box, Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 
 import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
 import Table from './table';
-import {Heading} from '../styles';
+import {Heading, ResultSummary, ChartWrapper, ChartNote} from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
@@ -99,14 +97,16 @@ export default class Result extends React.Component {
     const summaryData = baseViews.includes(this.state.view) ? data : chartData;
 
     return (
-      <Summary>
+      <ResultSummary>
         query time: {summaryData.timing.duration_ms} ms, {summaryData.data.length} rows
-      </Summary>
+      </ResultSummary>
     );
   }
 
   renderNote() {
-    return <Note>{t(`Displaying up to ${NUMBER_OF_SERIES_BY_DAY} results`)}</Note>;
+    return (
+      <ChartNote>{t(`Displaying up to ${NUMBER_OF_SERIES_BY_DAY} results`)}</ChartNote>
+    );
   }
 
   render() {
@@ -117,13 +117,17 @@ export default class Result extends React.Component {
 
     const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
 
+    const legendData = byDayChartData
+      ? {data: byDayChartData.map(entry => entry.seriesName)}
+      : null;
+
     const tooltipOptions = {
       filter: value => value !== null,
       truncate: 80,
     };
 
     return (
-      <div>
+      <Box flex="1">
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
             <Heading>{t('Result')}</Heading>
@@ -134,17 +138,35 @@ export default class Result extends React.Component {
         {view === 'table' && <Table data={data} query={query} />}
         {view === 'line' && (
           <ChartWrapper>
-            <LineChart series={basicChartData} height={300} tooltip={tooltipOptions} />
+            <LineChart
+              series={basicChartData}
+              height={300}
+              tooltip={tooltipOptions}
+              legend={{data: [query.aggregations[0][2]]}}
+              renderer="canvas"
+            />
           </ChartWrapper>
         )}
         {view === 'bar' && (
           <ChartWrapper>
-            <BarChart series={basicChartData} height={300} tooltip={tooltipOptions} />
+            <BarChart
+              series={basicChartData}
+              height={300}
+              tooltip={tooltipOptions}
+              legend={{data: [query.aggregations[0][2]]}}
+              renderer="canvas"
+            />
           </ChartWrapper>
         )}
         {view === 'line-by-day' && (
           <ChartWrapper>
-            <LineChart series={byDayChartData} height={300} tooltip={tooltipOptions} />
+            <LineChart
+              series={byDayChartData}
+              height={300}
+              tooltip={tooltipOptions}
+              legend={legendData}
+              renderer="canvas"
+            />
             {this.renderNote()}
           </ChartWrapper>
         )}
@@ -155,30 +177,14 @@ export default class Result extends React.Component {
               stacked={true}
               height={300}
               tooltip={tooltipOptions}
+              legend={legendData}
+              renderer="canvas"
             />
             {this.renderNote()}
           </ChartWrapper>
         )}
         {this.renderSummary()}
-      </div>
+      </Box>
     );
   }
 }
-
-const ChartWrapper = styled(Panel)`
-  padding-left: ${space(3)};
-  padding-right: ${space(3)};
-`;
-
-const Summary = styled(Box)`
-  color: ${p => p.theme.gray6};
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(3)};
-`;
-
-const Note = styled(Box)`
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
-  margin-bottom: ${space(3)};
-`;

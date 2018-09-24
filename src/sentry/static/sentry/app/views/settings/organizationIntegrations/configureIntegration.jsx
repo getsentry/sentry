@@ -21,7 +21,9 @@ export default class ConfigureIntegration extends AsyncView {
   }
 
   getTitle() {
-    return this.state.integration ? this.state.integration.name : 'Configure Integration';
+    return this.state.integration
+      ? this.state.integration.provider.name
+      : 'Configure Integration';
   }
 
   renderBody() {
@@ -35,7 +37,7 @@ export default class ConfigureIntegration extends AsyncView {
 
     return (
       <React.Fragment>
-        <BreadcrumbTitle routes={this.props.routes} title={integration.name} />
+        <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
         <SettingsPageHeader noTitleStyles title={title} />
 
         {integration.configOrganization.length > 0 && (
@@ -54,7 +56,7 @@ export default class ConfigureIntegration extends AsyncView {
           </Form>
         )}
 
-        {provider.features.includes('alert_rule') && (
+        {provider.features.includes('alert-rule') && (
           <IntegrationAlertRules integration={integration} />
         )}
 

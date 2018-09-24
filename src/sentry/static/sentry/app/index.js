@@ -126,6 +126,7 @@ export default {
     FormState: require('app/components/forms/index').FormState,
     GuideAnchor: require('app/components/assistant/guideAnchor').default,
     HookStore: require('app/stores/hookStore').default,
+    Hovercard: require('app/components/hovercard').default,
     Indicators: require('app/components/indicators').default,
     IndicatorStore: require('app/stores/indicatorStore').default,
     InlineSvg: require('app/components/inlineSvg').default,
@@ -165,6 +166,7 @@ export default {
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
+    Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,

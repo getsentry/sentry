@@ -21,12 +21,18 @@ import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
 import SavedQueries from './savedQueries';
 
+import {
+  getQueryStringFromQuery,
+  getQueryFromQueryString,
+  getOrderByOptions,
+} from './utils';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {
   Discover,
   Sidebar,
   Body,
+  BodyContent,
   TopBar,
   SidebarHeader,
   SidebarTitle,
@@ -37,7 +43,6 @@ import {
   ButtonSpinner,
 } from './styles';
 
-import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {trackQuery} from './analytics';
 
 export default class OrganizationDiscover extends React.Component {
@@ -176,49 +181,6 @@ export default class OrganizationDiscover extends React.Component {
     }
   };
 
-  getOrderbyOptions = () => {
-    const {queryBuilder} = this.props;
-    const columns = queryBuilder.getColumns();
-    const query = queryBuilder.getInternal();
-
-    // If there are valid aggregations, only allow summarized fields and aggregations in orderby
-    const validAggregations = query.aggregations.filter(agg =>
-      isValidAggregation(agg, columns)
-    );
-
-    const hasAggregations = validAggregations.length > 0;
-
-    const hasFields = query.fields.length > 0;
-
-    const columnOptions = columns.reduce((acc, {name}) => {
-      if (hasAggregations) {
-        const isInvalidField = hasFields && !query.fields.includes(name);
-        if (!hasFields || isInvalidField) {
-          return acc;
-        }
-      }
-
-      return [
-        ...acc,
-        {value: name, label: `${name} asc`},
-        {value: `-${name}`, label: `${name} desc`},
-      ];
-    }, []);
-
-    const aggregationOptions = [
-      // Ensure aggregations are unique (since users might input duplicates)
-      ...new Set(validAggregations.map(aggregation => aggregation[2])),
-    ].reduce((acc, agg) => {
-      return [
-        ...acc,
-        {value: agg, label: `${agg} asc`},
-        {value: `-${agg}`, label: `${agg} desc`},
-      ];
-    }, []);
-
-    return [...columnOptions, ...aggregationOptions];
-  };
-
   getSummarizePlaceholder = () => {
     const {queryBuilder} = this.props;
     const query = queryBuilder.getInternal();
@@ -324,7 +286,7 @@ export default class OrganizationDiscover extends React.Component {
                   name="orderby"
                   label={t('Order By')}
                   placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-                  options={this.getOrderbyOptions()}
+                  options={getOrderByOptions(queryBuilder)}
                   value={currentQuery.orderby}
                   onChange={val => this.updateField('orderby', val.value)}
                 />
@@ -373,9 +335,10 @@ export default class OrganizationDiscover extends React.Component {
               onUpdate={this.runQuery}
             />
           </TopBar>
-          <Flex flex="1" direction="column" p={3}>
+          <BodyContent>
             {data && (
               <Result
+                flex="1"
                 data={data}
                 query={query}
                 chartData={chartData}
@@ -384,7 +347,7 @@ export default class OrganizationDiscover extends React.Component {
             )}
             {!data && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
-          </Flex>
+          </BodyContent>
         </Body>
       </Discover>
     );

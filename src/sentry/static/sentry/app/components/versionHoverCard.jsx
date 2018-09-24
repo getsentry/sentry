@@ -5,6 +5,8 @@ import _ from 'lodash';
 
 import AvatarList from 'app/components/avatar/avatarList';
 
+import {Box} from 'grid-emotion';
+import Button from 'app/components/button';
 import LastCommit from 'app/components/lastCommit';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
@@ -115,16 +117,16 @@ const VersionHoverCard = createReactClass({
     let {orgId} = this.props;
     return {
       body: (
-        <div className="version-hovercard blankslate m-a-0 p-x-1 p-y-1 align-center">
+        <Box p={2} className="align-center">
           <h5>Releases are better with commit data!</h5>
           <p>
             Connect a repository to see commit info, files changed, and authors involved
             in future releases.
           </p>
-          <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
+          <Button href={`/organizations/${orgId}/repos/`} priority="primary">
             Connect a repository
-          </a>
-        </div>
+          </Button>
+        </Box>
       ),
     };
   },

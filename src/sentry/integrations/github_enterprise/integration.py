@@ -8,7 +8,7 @@ from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github_enterprise import get_user_info
-from sentry.integrations import IntegrationMetadata, IntegrationInstallation
+from sentry.integrations import IntegrationMetadata, IntegrationInstallation, FeatureDescription, IntegrationFeatures
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
@@ -27,15 +27,27 @@ instances. Take a step towards augmenting your sentry issues with commits from
 your repositories ([using releases](https://docs.sentry.io/learn/releases/))
 and linking up your GitHub issues and pull requests directly to issues in
 Sentry.
-
- * Create and link Sentry issue groups directly to a GitHub issue or pull
-   request in any of your repositories, providing a quick way to jump from
-   Sentry bug to tracked issue or PR!
-
- * Authorize repositories to be added to your Sentry organization to augmenting
-   sentry issues with commit data with [deployment
-   tracking](https://docs.sentry.io/learn/releases/).
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Authorize repositories to be added to your Sentry organization to augmenting
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+]
+
 
 disable_dialog = {
     'actionText': 'Visit GitHub Enterprise',
@@ -63,6 +75,7 @@ setup_alert = {
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
@@ -89,6 +102,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
             integration=self.model,
             private_key=self.model.metadata['installation']['private_key'],
             app_id=self.model.metadata['installation']['id'],
+            verify_ssl=self.model.metadata['installation']['verify_ssl'],
         )
 
     def get_repositories(self, query=None):
@@ -145,6 +159,14 @@ class InstallationForm(forms.Form):
             attrs={'placeholder': _('our-sentry-app')}
         )
     )
+    verify_ssl = forms.BooleanField(
+        label=_("Verify SSL"),
+        help_text=_('By default, we verify SSL certificates '
+                    'when delivering payloads to your GitHub '
+                    'Enterprise instance'),
+        widget=forms.CheckboxInput(),
+        required=False
+    )
     webhook_secret = forms.CharField(
         label="GitHub App Webhook Secret",
         help_text=_('We require a webhook secret to be '
@@ -185,6 +207,7 @@ class InstallationForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(InstallationForm, self).__init__(*args, **kwargs)
+        self.fields['verify_ssl'].initial = True
 
 
 class InstallationConfigView(PipelineView):
@@ -201,6 +224,7 @@ class InstallationConfigView(PipelineView):
                 "authorize_url": u"https://{}/login/oauth/authorize".format(form_data.get('url')),
                 "client_id": form_data.get('client_id'),
                 "client_secret": form_data.get('client_secret'),
+                "verify_ssl": form_data.get('verify_ssl'),
             })
 
             return pipeline.next_step()
@@ -232,7 +256,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         identity_pipeline_config = dict(
             oauth_scopes=(),
             redirect_url=absolute_uri('/extensions/github-enterprise/setup/'),
-            verify_ssl=False,
             **self.pipeline.fetch_state('oauth_config_information')
         )
 
@@ -264,7 +287,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 'Authorization': 'Bearer %s' % get_jwt(github_id=installation_data['id'], github_private_key=installation_data['private_key']),
                 'Accept': 'application/vnd.github.machine-man-preview+json',
             },
-            verify=False
+            verify=installation_data['verify_ssl']
         )
         resp.raise_for_status()
         installation_resp = resp.json()
@@ -273,7 +296,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             u'https://{}/api/v3/user/installations'.format(installation_data['url']),
             params={'access_token': access_token},
             headers={'Accept': 'application/vnd.github.machine-man-preview+json'},
-            verify=False
+            verify=installation_data['verify_ssl']
         )
         resp.raise_for_status()
         user_installations_resp = resp.json()

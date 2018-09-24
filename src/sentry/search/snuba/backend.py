@@ -5,33 +5,23 @@ import six
 import logging
 import math
 import pytz
-from collections import defaultdict, OrderedDict
+import time
+from collections import defaultdict
 from datetime import timedelta, datetime
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.api.paginator import SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment, GroupHash
 from sentry.search.django import backend as ds
 from sentry.utils import snuba, metrics
 from sentry.utils.dates import to_timestamp
-from sentry.utils.iterators import chunked
 
 
 logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
-
-
-# maximum number of GroupHashes to send down to Snuba,
-# if more GroupHash candidates are found, a "bare" Snuba
-# search is performed and the result groups are then
-# post-filtered via queries to the Sentry DB
-MAX_PRE_SNUBA_CANDIDATES = 500
-
-# maximum number of Groups (resulting from a Snuba query)
-# to post-filter via a query to the Sentry DB at one time
-MAX_POST_SNUBA_CHUNK = 10000
 
 
 # TODO: Would be nice if this was handled in the Snuba abstraction, but that
@@ -170,8 +160,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         now = timezone.now()
         end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
         # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the future, but apparently
-        #       `retention_window_start` can be None?
+        #       which may be higher than 90 days in the past, but apparently
+        #       `retention_window_start` can be None(?), so we need a fallback.
         start = max(
             filter(None, [
                 retention_window_start,
@@ -231,76 +221,158 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 parameters,
             )
 
-        # pre-filter query
-        candidate_hashes = dict(
-            GroupHash.objects.filter(
-                group__in=group_queryset
-            ).values_list(
-                'hash', 'group_id'
-            )[:MAX_PRE_SNUBA_CANDIDATES + 1]
-        )
-        metrics.timing('snuba.search.num_candidates', len(candidate_hashes))
+        # maximum number of GroupHashes to send down to Snuba,
+        # if more GroupHash candidates are found, a "bare" Snuba
+        # search is performed and the result groups are then
+        # post-filtered via queries to the Sentry DB
+        max_pre_snuba_candidates = options.get('snuba.search.max-pre-snuba-candidates')
 
-        if not candidate_hashes:
-            # no matches could possibly be found from this point on
-            metrics.incr('snuba.search.no_candidates')
-            return Paginator(Group.objects.none()).get_result()
-        elif len(candidate_hashes) > MAX_PRE_SNUBA_CANDIDATES:
-            # If the pre-filter query didn't include anything to significantly
-            # filter down the number of results (from 'first_release', 'query',
-            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-            # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-            # might have surpassed the MAX_PRE_SNUBA_CANDIDATES. In this case,
-            # we *don't* want to pass candidates down to Snuba, and instead we
-            # want Snuba to do all the filtering/sorting it can and *then* apply
-            # this queryset to the results from Snuba, which we call
-            # post-filtering.
-            metrics.incr('snuba.search.too_many_candidates')
-            candidate_hashes = None
+        # pre-filter query
+        candidate_hashes = None
+        if max_pre_snuba_candidates and limit <= max_pre_snuba_candidates:
+            candidate_hashes = dict(
+                GroupHash.objects.filter(
+                    group__in=group_queryset
+                ).values_list(
+                    'hash', 'group_id'
+                )[:max_pre_snuba_candidates + 1]
+            )
+            metrics.timing('snuba.search.num_candidates', len(candidate_hashes))
+
+            if not candidate_hashes:
+                # no matches could possibly be found from this point on
+                metrics.incr('snuba.search.no_candidates')
+                return Paginator(Group.objects.none()).get_result()
+            elif len(candidate_hashes) > max_pre_snuba_candidates:
+                # If the pre-filter query didn't include anything to significantly
+                # filter down the number of results (from 'first_release', 'query',
+                # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+                # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
+                # might have surpassed the `max_pre_snuba_candidates`. In this case,
+                # we *don't* want to pass candidates down to Snuba, and instead we
+                # want Snuba to do all the filtering/sorting it can and *then* apply
+                # this queryset to the results from Snuba, which we call
+                # post-filtering.
+                metrics.incr('snuba.search.too_many_candidates')
+                candidate_hashes = None
 
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
 
-        # {group_id: group_score, ...}
-        snuba_groups = snuba_search(
-            project_id=project.id,
-            environment_id=environment and environment.id,
-            tags=tags,
-            start=start,
-            end=end,
-            sort=sort,
-            extra_aggregations=extra_aggregations,
-            score_fn=score_fn,
-            candidate_hashes=candidate_hashes,
-            **parameters
-        )
-        metrics.timing('snuba.search.num_snuba_results', len(snuba_groups))
+        chunk_growth = options.get('snuba.search.chunk-growth-rate')
+        max_chunk_size = options.get('snuba.search.max-chunk-size')
+        chunk_limit = limit
+        offset = 0
+        num_chunks = 0
 
-        if candidate_hashes:
-            # pre-filtered candidates were passed down to Snuba,
-            # so we're finished with filtering
-            result_groups = snuba_groups.items()
-        else:
-            # pre-filtered candidates were *not* passed down to Snuba,
-            # so we need to do post-filtering to verify Sentry DB predicates
-            result_groups = []
-            i = 0
-            for i, chunk in enumerate(chunked(snuba_groups.items(), MAX_POST_SNUBA_CHUNK), 1):
+        paginator_results = Paginator(Group.objects.none()).get_result()
+        result_groups = []
+        result_group_ids = set()
+        min_score = float('inf')
+        max_score = -1
+
+        max_time = options.get('snuba.search.max-total-chunk-time-seconds')
+        time_start = time.time()
+
+        # Do smaller searches in chunks until we have enough results
+        # to answer the query (or hit the end of possible results). We do
+        # this because a common case for search is to return 100 groups
+        # sorted by `last_seen`, and we want to avoid returning all of
+        # a project's hashes and then post-sorting them all in Postgres
+        # when typically the first N results will do.
+        while (time.time() - time_start) < max_time:
+            num_chunks += 1
+
+            # grow the chunk size on each iteration to account for huge projects
+            # and weird queries, up to a max size
+            chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
+            # but if we have candidate_hashes always query for at least that many items
+            chunk_limit = max(chunk_limit, len(candidate_hashes) if candidate_hashes else 0)
+
+            # {group_id: group_score, ...}
+            snuba_groups, more_results = snuba_search(
+                project_id=project.id,
+                environment_id=environment and environment.id,
+                tags=tags,
+                start=start,
+                end=end,
+                sort=sort,
+                extra_aggregations=extra_aggregations,
+                score_fn=score_fn,
+                candidate_hashes=candidate_hashes,
+                limit=chunk_limit,
+                offset=offset,
+                **parameters
+            )
+            metrics.timing('snuba.search.num_snuba_results', len(snuba_groups))
+            offset += len(snuba_groups)
+
+            if not snuba_groups:
+                break
+
+            if candidate_hashes:
+                # pre-filtered candidates were passed down to Snuba,
+                # so we're finished with filtering and these are the
+                # only results
+                result_groups = snuba_groups
+            else:
+                # pre-filtered candidates were *not* passed down to Snuba,
+                # so we need to do post-filtering to verify Sentry DB predicates
                 filtered_group_ids = group_queryset.filter(
-                    id__in=[gid for gid, _ in chunk]
+                    id__in=[gid for gid, _ in snuba_groups]
                 ).values_list('id', flat=True)
 
-                result_groups.extend(
-                    (group_id, snuba_groups[group_id])
-                    for group_id in filtered_group_ids
-                )
+                group_to_score = dict(snuba_groups)
+                for group_id in filtered_group_ids:
+                    if group_id in result_group_ids:
+                        # because we're doing multiple Snuba queries, which
+                        # happen outside of a transaction, there is a small possibility
+                        # of groups moving around in the sort scoring underneath us,
+                        # so we at least want to protect against duplicates
+                        continue
 
-            metrics.timing('snuba.search.num_post_filters', i)
+                    group_score = group_to_score[group_id]
+                    result_group_ids.add(group_id)
+                    result_groups.append((group_id, group_score))
 
-        paginator_results = SequencePaginator(
-            [(score, id) for (id, score) in result_groups],
-            reverse=True,
-            **paginator_options
-        ).get_result(limit, cursor, count_hits=count_hits)
+                    # used for cursor logic
+                    min_score = min(min_score, group_score)
+                    max_score = max(max_score, group_score)
+
+            # HACK: If a cursor is being used and there may be more results available
+            # in Snuba, we need to detect whether the cursor's value will be
+            # found in the result groups. If it isn't in the results yet we need to
+            # continue querying before we hand off to the paginator to decide whether
+            # enough results are found or not, otherwise the paginator will happily
+            # return `limit` worth of results that don't take the cursor into account
+            # at all, since it can't know there are more results available.
+            # TODO: If chunked search works in practice we should probably extend the
+            # paginator to throw something if the cursor value is never found, or do
+            # something other than partially leak internal paginator logic up to here.
+            # Or make separate Paginator implementation just for Snuba search?
+            if cursor is not None \
+                    and not candidate_hashes \
+                    and more_results:
+                if cursor.is_prev and min_score < cursor.value:
+                    continue
+                elif not cursor.is_prev and max_score > cursor.value:
+                    continue
+
+            paginator_results = SequencePaginator(
+                [(score, id) for (id, score) in result_groups],
+                reverse=True,
+                **paginator_options
+            ).get_result(limit, cursor, count_hits=False)
+
+            # break the query loop for one of three reasons:
+            # * we started with Postgres candidates and so only do one Snuba query max
+            # * the paginator is returning enough results to satisfy the query (>= the limit)
+            # * there are no more groups in Snuba to post-filter
+            if candidate_hashes \
+                    or len(paginator_results.results) >= limit \
+                    or not more_results:
+                break
+
+        metrics.timing('snuba.search.num_chunks', num_chunks)
 
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
@@ -309,13 +381,16 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 
 def snuba_search(project_id, environment_id, tags, start, end,
-                 sort, extra_aggregations, score_fn, candidate_hashes, **parameters):
+                 sort, extra_aggregations, score_fn, candidate_hashes,
+                 limit, offset, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
     query method above, but the query method is already large and this function at least
     extracts most of the Snuba-specific logic.
 
-    Returns an OrderedDict of {group_id: group_score, ...} sorted descending by score.
+    Returns a tuple of:
+     * a sorted list of (group_id, group_score) tuples sorted descending by score,
+     * a boolean indicating whether there are more result groups to iterate over
     """
 
     from sentry.search.base import ANY
@@ -376,8 +451,11 @@ def snuba_search(project_id, environment_id, tags, start, end,
         aggregations=aggregations,
         orderby='-' + sort,
         referrer='search',
+        limit=limit + 1,
+        offset=offset,
     )
     metrics.timing('snuba.search.num_result_hashes', len(snuba_results.keys()))
+    more_results = len(snuba_results) == limit + 1
 
     # {hash -> group_id, ...}
     if candidate_hashes is not None:
@@ -428,7 +506,11 @@ def snuba_search(project_id, environment_id, tags, start, end,
                 },
             )
 
-    return OrderedDict(
-        sorted(((gid, score_fn(data))
-                for gid, data in group_data.items()), key=lambda t: t[1], reverse=True)
+    return (
+        list(
+            sorted(
+                ((gid, score_fn(data)) for gid, data in group_data.items()),
+                key=lambda t: t[1], reverse=True
+            )
+        )[:limit], more_results
     )

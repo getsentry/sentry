@@ -16,7 +16,6 @@ describe('ProjectAlertRuleDetails', function() {
       path: '/',
     },
     {
-      newnew: true,
       path: '/settings/',
       name: 'Settings',
       indexRoute: {},

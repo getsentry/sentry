@@ -12,7 +12,8 @@ import {
   removeIndicator,
 } from 'app/actionCreators/indicator';
 import {getOrganizationState} from 'app/mixins/organizationState';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
@@ -20,6 +21,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
@@ -338,6 +340,10 @@ const KeySettings = createReactClass({
       project,
     } = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    const loaderLink = getDynamicText({
+      value: data.dsn.cdn,
+      fixed: '__JS_SDK_LOADER_URL__',
+    });
 
     return (
       <React.Fragment>
@@ -391,12 +397,20 @@ const KeySettings = createReactClass({
               <PanelHeader>{t('CDN')}</PanelHeader>
               <PanelBody>
                 <Field
-                  help={t('Copy this into your website and you are good to go')}
+                  help={tct(
+                    'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                          What does the script provide?
+                        </ExternalLink>
+                      ),
+                    }
+                  )}
                   inline={false}
                   flexibleControlStateSize
                 >
-                  <TextCopyInput>{`<script src='${data.dsn
-                    .cdn}'></script>`}</TextCopyInput>
+                  <TextCopyInput>{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
                 </Field>
                 <SelectField
                   name="browserSdkVersion"

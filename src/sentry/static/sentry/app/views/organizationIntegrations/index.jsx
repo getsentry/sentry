@@ -11,14 +11,9 @@ import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 export default class OrganizationIntegrations extends AsyncComponent {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
   reloadOnVisible = true;
@@ -120,19 +115,21 @@ export default class OrganizationIntegrations extends AsyncComponent {
   // Rendering
 
   renderBody() {
-    const providers = this.providers.map(provider => (
-      <ProviderRow
-        key={provider.key}
-        provider={provider}
-        orgId={this.props.params.orgId}
-        integrations={provider.integrations}
-        onInstall={this.onInstall}
-        onRemove={this.onRemove}
-        onDisable={this.onDisable}
-        onReinstall={this.onInstall}
-        enabledPlugins={this.enabledPlugins}
-      />
-    ));
+    const providers = this.providers
+      .sort((a, b) => b.isInstalled - a.isInstalled)
+      .map(provider => (
+        <ProviderRow
+          key={provider.key}
+          provider={provider}
+          orgId={this.props.params.orgId}
+          integrations={provider.integrations}
+          onInstall={this.onInstall}
+          onRemove={this.onRemove}
+          onDisable={this.onDisable}
+          onReinstall={this.onInstall}
+          enabledPlugins={this.enabledPlugins}
+        />
+      ));
 
     return (
       <React.Fragment>

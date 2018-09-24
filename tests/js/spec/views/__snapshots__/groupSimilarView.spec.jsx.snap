@@ -889,7 +889,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     className="auto-select-text"
                                                     onClick={[Function]}
                                                   >
-                                                    INTERNAL-4G
+                                                    <span>
+                                                      INTERNAL-4G
+                                                    </span>
                                                   </div>
                                                 </AutoSelectText>
                                               </div>

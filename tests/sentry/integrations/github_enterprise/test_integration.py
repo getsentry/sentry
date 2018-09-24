@@ -21,7 +21,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         'client_id': 'client_id',
         'client_secret': 'client_secret',
         'webhook_secret': 'webhook_secret',
-        'private_key': 'private_key'
+        'private_key': 'private_key',
+        'verify_ssl': True,
     }
 
     @patch('sentry.integrations.github_enterprise.integration.get_jwt', return_value='jwt_token_1')
@@ -150,6 +151,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 u'private_key': u'private_key',
                 u'url': u'35.232.149.196',
                 u'webhook_secret': u'webhook_secret',
+                u'verify_ssl': True,
             }
         }
         oi = OrganizationIntegration.objects.get(

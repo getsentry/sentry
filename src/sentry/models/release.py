@@ -423,6 +423,8 @@ class Release(Model):
                             update_kwargs['message'] = defaults['message']
                         if commit.author_id is None and defaults['author'] is not None:
                             update_kwargs['author'] = defaults['author']
+                        if defaults.get('date_added') is not None:
+                            update_kwargs['date_added'] = defaults['date_added']
                         if update_kwargs:
                             commit.update(**update_kwargs)
 

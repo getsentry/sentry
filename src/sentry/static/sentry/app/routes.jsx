@@ -402,7 +402,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
-      <Route path="plugins/" name="Integrations">
+      <Route path="plugins/" name="Legacy Integrations">
         <IndexRoute component={errorHandler(ProjectPlugins)} />
         <Route
           path=":pluginId/"
@@ -590,6 +590,12 @@ function routes() {
           import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
         component={errorHandler(LazyLoad)}
       />
+      <Route
+        path="/extensions/external-install/:installationId"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/integrationInstallation')}
+        component={errorHandler(LazyLoad)}
+      />
 
       <Route
         path="/extensions/vsts/link/"
@@ -599,7 +605,7 @@ function routes() {
           )}
       />
 
-      <Route newnew path="/settings/" name="Settings" component={SettingsWrapper}>
+      <Route path="/settings/" name="Settings" component={SettingsWrapper}>
         <IndexRoute
           getComponent={(loc, cb) =>
             import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(

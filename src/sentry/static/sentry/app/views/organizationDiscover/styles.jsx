@@ -5,6 +5,7 @@ import {keyframes} from 'emotion';
 import space from 'app/styles/space';
 
 import Link from 'app/components/link';
+import Panel from 'app/components/panels/panel';
 
 export const Discover = styled(Flex)`
   min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
@@ -30,10 +31,16 @@ export const PageTitle = styled.h2`
 
 export const Sidebar = styled(Box)`
   border-right: 1px solid ${p => p.theme.borderDark};
-  min-width: 320px;
+  width: 320px;
 `;
 
-export const Body = styled(Box)``;
+export const Body = styled(Flex)``;
+
+export const BodyContent = styled(Flex)`
+  flex: 1;
+  flex-direction: column;
+  padding: ${space(1.5)} 32px 32px 32px;
+`;
 
 export const TopBar = styled(Flex)`
   padding: 0 ${space(4)};
@@ -114,4 +121,21 @@ export const ButtonSpinner = styled.div`
   border-bottom: 2px solid ${p => p.theme.borderLight};
   border-left: 2px solid ${p => p.theme.purple};
   margin-left: 4px;
+`;
+
+export const ResultSummary = styled(Box)`
+  color: ${p => p.theme.gray6};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(3)};
+`;
+
+export const ChartWrapper = styled(Panel)`
+  padding: ${space(3)} ${space(2)};
+`;
+
+export const ChartNote = styled(Box)`
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray3};
+  margin-bottom: ${space(3)};
 `;

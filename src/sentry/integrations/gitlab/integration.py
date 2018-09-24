@@ -18,8 +18,11 @@ DESCRIPTION = """
 Fill me out
 """
 
+FEATURES = []
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/',

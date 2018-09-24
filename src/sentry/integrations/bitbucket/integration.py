@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider,
+    IntegrationMetadata, FeatureDescription,
+)
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -17,14 +20,41 @@ from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
 
 DESCRIPTION = """
-With the Bitbucket integration, you can:
- * Track commits and releases (learn more [here](https://docs.sentry.io/learn/releases/))
- * Create Bitbucket issues from Sentry
- * Link Sentry issues to existing Bitbucket issues
- * Resolve Sentry issues via Bitbucket commits and pull requests by including `Fixes PROJ-ID` in the message
+Connect your Sentry organization to Bitbucket, enabling the following features:
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Track commits and releases (learn more
+        [here](https://docs.sentry.io/learn/releases/))
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Resolve Sentry issues via Bitbucket commits and pull requests by
+        including `Fixes PROJ-ID` in the message
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create Bitbucket issues from Sentry
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link Sentry issues to existing Bitbucket issues
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+]
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations',
@@ -138,6 +168,11 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         if state.get('publicKey'):
             principal_data = state['principal']
+
+            domain = principal_data['links']['html']['href'] \
+                .replace('https://', '') \
+                .rstrip('/')
+
             return {
                 'provider': self.key,
                 'external_id': state['clientKey'],
@@ -146,7 +181,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     'public_key': state['publicKey'],
                     'shared_secret': state['sharedSecret'],
                     'base_url': state['baseApiUrl'],
-                    'domain_name': principal_data['links']['html']['href'].replace('https://', ''),
+                    'domain_name': domain,
                     'icon': principal_data['links']['avatar']['href'],
                     'scopes': self.scopes,
                     'uuid': principal_data['uuid'],

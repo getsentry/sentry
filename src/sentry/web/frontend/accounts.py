@@ -80,16 +80,17 @@ def recover(request):
 
     if form.is_valid():
         email = form.cleaned_data['user']
-        password_hash = LostPasswordHash.for_user(email)
-        password_hash.send_email(request)
+        if email:
+            password_hash = LostPasswordHash.for_user(email)
+            password_hash.send_email(request)
 
-        extra['passwordhash_id'] = password_hash.id
-        extra['user_id'] = password_hash.user_id
+            extra['passwordhash_id'] = password_hash.id
+            extra['user_id'] = password_hash.user_id
 
-        logger.info('recover.sent', extra=extra)
+            logger.info('recover.sent', extra=extra)
 
         tpl = 'sentry/account/recover/sent.html'
-        context = {'email': password_hash.user.email}
+        context = {'email': email}
 
         return render_to_response(tpl, context, request)
 

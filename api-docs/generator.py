@@ -240,13 +240,15 @@ def output_markdown(sections, scenarios, section_mapping):
             if len(endpoint['params'].get('auth', [])):
                 auth = endpoint['params']['auth'][0]['description']
             payload = dict(
-                title=title,
+                title=endpoint['title'],
                 sidebar_order=i,
-                description=''.join(endpoint['text']),
+                description='\n'.join(endpoint['text']).strip(),
+                warning=endpoint['warning'],
                 method=endpoint['method'],
+                api_path=endpoint['path'],
                 query_parameters=endpoint['params'].get('query'),
                 path_parameters=endpoint['params'].get('path'),
-                parameters=endpoint['params'].get('params'),
+                parameters=endpoint['params'].get('param'),
                 authentication=auth,
                 example_request=format_request(endpoint, scenarios),
                 example_response=format_response(endpoint, scenarios)
