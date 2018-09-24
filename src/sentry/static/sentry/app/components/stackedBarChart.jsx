@@ -42,7 +42,7 @@ class StackedBarChart extends React.Component {
     tooltip: PropTypes.func,
     barClasses: PropTypes.array,
     minHeights: PropTypes.arrayOf(PropTypes.number),
-    allottedGapSpace: PropTypes.number,
+    gap: PropTypes.number,
   };
 
   static defaultProps = {
@@ -54,7 +54,7 @@ class StackedBarChart extends React.Component {
     markers: [],
     width: null,
     barClasses: ['chart-bar'],
-    allottedGapSpace: 20,
+    gap: 2,
   };
 
   constructor(props) {
@@ -263,7 +263,6 @@ class StackedBarChart extends React.Component {
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
     let prevPct = 0;
-    let space = this.props.allottedGapSpace / (totalPoints - 1); // were alloting 20% of the viewport to white space.
     let pts = point.y.map((y, i) => {
       let pct = Math.max(
         totalY && this.floatFormat(y / totalY * totalPct * 99, 2),
@@ -273,10 +272,10 @@ class StackedBarChart extends React.Component {
       let pt = (
         <rect
           key={i}
-          x={index * pointWidth}
-          y={100 - pct - prevPct}
-          width={pointWidth - space}
-          height={pct}
+          x={index * pointWidth + '%'}
+          y={100 - pct - prevPct + '%'}
+          width={pointWidth + '%'}
+          height={pct + '%'}
           fill={this.state.series[i].color}
           className={cx(this.props.barClasses[i], 'barchart-rect')}
         >
@@ -293,10 +292,22 @@ class StackedBarChart extends React.Component {
     return (
       <Tooltip
         title={tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
-        key={point.x}
         tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
+        key={point.x}
       >
-        <g data-test-id="chart-column">{pts}</g>
+        <g>
+          <clipPath id={'mask-' + index}>
+            <rect
+              x={index * pointWidth + '%'}
+              width={pointWidth + '%'}
+              height="100%"
+              transform={'translate(-' + this.props.gap + ', 0)'}
+            />
+          </clipPath>
+          <g data-test-id="chart-column" clipPath={'url(#mask-' + index + ')'}>
+            {pts}
+          </g>
+        </g>
       </Tooltip>
     );
   }
@@ -343,13 +354,9 @@ class StackedBarChart extends React.Component {
 
     return (
       <React.Fragment>
-        <StyledSvg
-          shapeRendering="geometricPrecision"
-          viewBox={'0 0 99.9 99.9'}
-          preserveAspectRatio="none"
-        >
-          {children}
-        </StyledSvg>
+        <SvgContainer>
+          <StyledSvg gap={this.props.gap}>{children}</StyledSvg>
+        </SvgContainer>
         <div style={{position: 'absolute', bottom: 0, left: 0, height: 0, width: '100%'}}>
           {markerChildren}
         </div>
@@ -375,6 +382,14 @@ class StackedBarChart extends React.Component {
 }
 
 const StyledSvg = styled('svg')`
+  width: calc(100% + ${p => p.gap + 0.5}px);
+  height: 100%;
+`;
+
+const SvgContainer = styled('figure')`
+  display: block;
+  overflow: hidden;
+  position: relative;
   width: 100%;
   height: 100%;
 `;
