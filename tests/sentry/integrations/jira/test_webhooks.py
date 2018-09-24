@@ -85,6 +85,8 @@ SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS = """
 }
 """
 
+SAMPLE_MISSING_CHANGELOG = '{}'
+
 
 class JiraWebhooksTest(APITestCase):
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
@@ -177,3 +179,22 @@ class JiraWebhooksTest(APITestCase):
                     }, u'key': u'APP-123',
                 },
             })
+
+    def test_missing_changelog(self):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            resp = self.client.post(
+                path,
+                data=json.loads(SAMPLE_MISSING_CHANGELOG.strip()),
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200
