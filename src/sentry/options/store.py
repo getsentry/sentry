@@ -14,6 +14,7 @@ from collections import namedtuple
 from time import time
 from random import random
 
+from django.db.utils import ProgrammingError
 from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry.db.models.query import create_or_update
@@ -163,7 +164,7 @@ class OptionsStore(object):
         """
         try:
             value = self.model.objects.get(key=key.name).value
-        except self.model.DoesNotExist:
+        except (self.model.DoesNotExist, ProgrammingError):
             value = None
         except Exception:
             if not silent:
