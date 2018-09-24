@@ -103,6 +103,7 @@ export default {
       DefaultIssuePlugin: plugins.DefaultIssuePlugin,
     },
 
+    Alert: require('app/components/alert').default,
     Alerts: require('app/components/alerts').default,
     AlertActions: require('app/actions/alertActions').default,
     AsyncComponent: require('app/components/asyncComponent').default,
