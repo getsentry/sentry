@@ -65,10 +65,6 @@ export default class SavedQueries extends React.Component {
 
   render() {
     const {isLoading} = this.state;
-    return (
-      <React.Fragment>
-        {isLoading ? this.renderEmpty() : this.renderList()}
-      </React.Fragment>
-    );
+    return isLoading ? this.renderEmpty() : this.renderList();
   }
 }
