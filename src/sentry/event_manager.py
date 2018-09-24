@@ -937,7 +937,7 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send_robust(project=project, group=group, sender=Project)
 
-        eventstream.publish(
+        eventstream.insert(
             group=group,
             event=event,
             is_new=is_new,

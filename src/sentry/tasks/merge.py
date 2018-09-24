@@ -13,10 +13,10 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
+from sentry import eventstream
 from sentry.app import tsdb
 from sentry.similarity import features
-from sentry.tasks.base import instrumented_task, retry
-from sentry.tasks.deletion import delete_group
+from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger('sentry.merge')
 delete_logger = logging.getLogger('sentry.deletions.async')
@@ -190,42 +190,7 @@ def merge_group(
     except DataError:
         pass
 
-
-@instrumented_task(
-    name='sentry.tasks.merge.rehash_group_events',
-    queue='merge',
-    default_retry_delay=60 * 5,
-    max_retries=None
-)
-@retry
-def rehash_group_events(group_id, transaction_id=None, **kwargs):
-    from sentry.models import Group, GroupHash
-
-    group = Group.objects.get(id=group_id)
-
-    # Clear out existing hashes to preempt new events being added
-    # This can cause the new groups to be created before we get to them, but
-    # its a tradeoff we're willing to take
-    GroupHash.objects.filter(group=group).delete()
-    has_more = _rehash_group_events(group)
-
-    if has_more:
-        rehash_group_events.delay(
-            group_id=group.id,
-            transaction_id=transaction_id,
-        )
-        return
-
-    delete_logger.info(
-        'object.delete.bulk_executed',
-        extra={
-            'group_id': group.id,
-            'transaction_id': transaction_id,
-            'model': GroupHash.__name__,
-        }
-    )
-
-    delete_group.delay(group.id, transaction_id=transaction_id)
+    eventstream.merge(group.project_id, previous_group_id, new_group.id)
 
 
 def _get_event_environment(event, project, cache):
@@ -250,53 +215,6 @@ def _get_event_environment(event, project, cache):
         cache[environment_name] = environment
 
     return cache[environment_name]
-
-
-def _rehash_group_events(group, limit=100):
-    from sentry.event_manager import (
-        EventManager, get_hashes_from_fingerprint, generate_culprit, md5_from_hash
-    )
-    from sentry.models import Event, Group
-
-    environment_cache = {}
-    project = group.project
-    event_list = list(Event.objects.filter(group_id=group.id)[:limit])
-    Event.objects.bind_nodes(event_list, 'data')
-
-    for event in event_list:
-        fingerprint = event.data.get('fingerprint', ['{{ default }}'])
-        if fingerprint and not isinstance(fingerprint, (list, tuple)):
-            fingerprint = [fingerprint]
-        elif not fingerprint:
-            fingerprint = ['{{ default }}']
-
-        manager = EventManager({})
-
-        group_kwargs = {
-            'message': event.message,
-            'platform': event.platform,
-            'culprit': generate_culprit(event.data),
-            'logger': event.get_tag('logger') or group.logger,
-            'level': group.level,
-            'last_seen': event.datetime,
-            'first_seen': event.datetime,
-            'data': group.data,
-        }
-
-        # XXX(dcramer): doesnt support checksums as they're not stored
-        hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
-        for hash in hashes:
-            new_group, _, _, _ = manager._save_aggregate(
-                event=event, hashes=hashes, release=None, **group_kwargs
-            )
-            event.update(group_id=new_group.id)
-            if event.data.get('tags'):
-                Group.objects.add_tags(
-                    new_group,
-                    _get_event_environment(event, project, environment_cache),
-                    event.data['tags'])
-
-    return bool(event_list)
 
 
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
