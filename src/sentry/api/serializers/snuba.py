@@ -145,7 +145,7 @@ def zerofill(data, start, end, rollup):
     start = ((int(to_timestamp(start)) / rollup) * rollup) - rollup
     end = ((int(to_timestamp(end)) / rollup) * rollup) + rollup
     i = 0
-    for key in xrange(start, end, rollup):
+    for key in six.moves.xrange(start, end, rollup):
         try:
             if data[i][0] == key:
                 rv.append(data[i])
