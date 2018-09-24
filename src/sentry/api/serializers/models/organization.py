@@ -12,6 +12,17 @@ from sentry.models import (
     OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
 )
 
+# org option default values
+PROJECT_RATE_LIMIT_DEFAULT = 100
+ACCOUNT_RATE_LIMIT_DEFAULT = 0
+REQUIRE_SCRUB_DATA_DEFAULT = False
+REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
+SENSITIVE_FIELDS_DEFAULT = None
+SAFE_FIELDS_DEFAULT = None
+STORE_CRASH_REPORTS_DEFAULT = False
+REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
+SCRAPE_JAVASCRIPT_DEFAULT = True
+
 
 @register(Organization)
 class OrganizationSerializer(Serializer):
@@ -167,14 +178,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 OrganizationOption.objects.get_value(
                     organization=obj,
                     key='sentry:account-rate-limit',
-                    default=0,
+                    default=ACCOUNT_RATE_LIMIT_DEFAULT,
                 )
             ),
             'projectLimit': int(
                 OrganizationOption.objects.get_value(
                     organization=obj,
                     key='sentry:project-rate-limit',
-                    default=100,
+                    default=PROJECT_RATE_LIMIT_DEFAULT,
                 )
             ),
         }
@@ -190,13 +201,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'require2FA': bool(obj.flags.require_2fa),
             'allowSharedIssues': not obj.flags.disable_shared_issues,
             'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
-            'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),
-            'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', False)),
-            'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
-            'safeFields': obj.get_option('sentry:safe_fields', None) or [],
-            'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', False)),
-            'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
-            'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', True)),
+            'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', REQUIRE_SCRUB_DATA_DEFAULT)),
+            'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', REQUIRE_SCRUB_DEFAULTS_DEFAULT)),
+            'sensitiveFields': obj.get_option('sentry:sensitive_fields', SENSITIVE_FIELDS_DEFAULT) or [],
+            'safeFields': obj.get_option('sentry:safe_fields', SAFE_FIELDS_DEFAULT) or [],
+            'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', STORE_CRASH_REPORTS_DEFAULT)),
+            'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)),
+            'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', SCRAPE_JAVASCRIPT_DEFAULT)),
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())

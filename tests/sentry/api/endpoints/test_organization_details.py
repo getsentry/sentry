@@ -173,10 +173,7 @@ class OrganizationUpdateTest(APITestCase):
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
         initial = org.get_audit_log_data()
-
-        # clear logs
-        for log in AuditLogEntry.objects.filter(organization=org):
-            log.delete()
+        AuditLogEntry.objects.filter(organization=org).delete()
 
         self.login_as(user=self.user)
         url = reverse(
@@ -246,6 +243,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
         assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
         assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
+        assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
