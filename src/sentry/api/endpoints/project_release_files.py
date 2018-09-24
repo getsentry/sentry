@@ -92,8 +92,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     @attach_scenarios([upload_file_scenario])
     def post(self, request, project, version):
         """
-        Upload a New File
-        `````````````````
+        Upload a New Project Release File
+        `````````````````````````````````
 
         Upload a new file for the given release.
 
