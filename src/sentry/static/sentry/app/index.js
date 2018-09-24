@@ -106,7 +106,7 @@ export default {
     Alerts: require('app/components/alerts').default,
     AlertActions: require('app/actions/alertActions').default,
     AsyncComponent: require('app/components/asyncComponent').default,
-    AsyncView: require('app/views/asyncView').default
+    AsyncView: require('app/views/asyncView').default,
     Avatar: require('app/components/avatar').default,
     addSuccessMessage: require('app/actionCreators/indicator').addSuccessMessage,
     addErrorMessage: require('app/actionCreators/indicator').addErrorMessage,
