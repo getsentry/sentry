@@ -12,8 +12,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializer)
+from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.providers.saml2 import SAML2Provider
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
@@ -31,15 +30,18 @@ ERR_NO_USER = 'This request requires an authenticated user.'
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
-    ('projectRateLimit', 'sentry:project-rate-limit', int, 100),
-    ('accountRateLimit', 'sentry:account-rate-limit', int, 0),
-    ('dataScrubber', 'sentry:require_scrub_data', bool, False),
-    ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool, False),
-    ('sensitiveFields', 'sentry:sensitive_fields', list, None),
-    ('safeFields', 'sentry:safe_fields', list, None),
-    ('storeCrashReports', 'sentry:store_crash_reports', bool, False),
-    ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool, False),
-    ('scrapeJavaScript', 'sentry:scrape_javascript', bool, True),
+    ('projectRateLimit', 'sentry:project-rate-limit', int, org_serializers.PROJECT_RATE_LIMIT_DEFAULT),
+    ('accountRateLimit', 'sentry:account-rate-limit', int, org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT),
+    ('dataScrubber', 'sentry:require_scrub_data', bool, org_serializers.REQUIRE_SCRUB_DATA_DEFAULT),
+    ('sensitiveFields', 'sentry:sensitive_fields', list, org_serializers.SENSITIVE_FIELDS_DEFAULT),
+    ('safeFields', 'sentry:safe_fields', list, org_serializers.SAFE_FIELDS_DEFAULT),
+    ('scrapeJavaScript', 'sentry:scrape_javascript', bool, org_serializers.SCRAPE_JAVASCRIPT_DEFAULT),
+    ('dataScrubberDefaults', 'sentry:require_scrub_defaults',
+     bool, org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT),
+    ('storeCrashReports', 'sentry:store_crash_reports',
+     bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
+    ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
+     bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -295,7 +297,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializer(),
         )
         return self.respond(context)
 
@@ -362,7 +364,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 serialize(
                     organization,
                     request.user,
-                    DetailedOrganizationSerializer(),
+                    org_serializers.DetailedOrganizationSerializer(),
                 )
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -432,6 +434,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializer(),
         )
         return self.respond(context, status=202)
