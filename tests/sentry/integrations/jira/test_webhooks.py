@@ -113,6 +113,29 @@ class JiraWebhooksTest(APITestCase):
             )
 
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
+    def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
+            data['issue']['fields']['assignee'].pop('emailAddress')
+            resp = self.client.post(
+                path,
+                data=data,
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200
+            assert not mock_sync_group_assignee_inbound.called
+
+    @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
     def test_simple_deassign(self, mock_sync_group_assignee_inbound):
         org = self.organization
 
