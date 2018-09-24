@@ -28,6 +28,15 @@ class JiraIssueUpdatedWebhook(Endpoint):
                 integration, None, issue_key, assign=False,
             )
         else:
+            if not assignee.get('emailAddress'):
+                logger.info(
+                    'missing-assignee-email', extra={
+                        'issue_key': issue_key,
+                        'integration_id': integration.id,
+                    }
+                )
+                return
+
             sync_group_assignee_inbound(
                 integration, assignee['emailAddress'], issue_key, assign=True,
             )
