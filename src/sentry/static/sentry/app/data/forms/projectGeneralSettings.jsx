@@ -203,6 +203,14 @@ export const fields = {
       }
     ),
     visible: ({features}) => features.has('relay'),
+    validate: ({id, form}) => {
+      try {
+        JSON.parse(form[id]);
+      } catch (e) {
+        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+      }
+      return [];
+    },
   },
 
   allowedDomains: {
