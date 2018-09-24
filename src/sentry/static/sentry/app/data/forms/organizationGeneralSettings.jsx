@@ -216,7 +216,7 @@ const formGroups = [
         multiline: true,
         autosize: true,
         maxRows: 10,
-        placeholder: t('paste the relay public keys here'),
+        placeholder: t('Paste the relay public keys here'),
         label: t('Trusted Relays'),
         help: t(
           'The list of relay public keys that should be trusted. Any relay in this list will be permitted to access org and project configs. Separate multiple entries with a newline.'
