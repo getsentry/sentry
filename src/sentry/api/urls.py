@@ -387,7 +387,7 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-discover-saved-queries'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)$',
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)/$',
         OrganizationDiscoverSavedQueryDetailEndpoint.as_view(),
         name='sentry-api-0-organization-discover-saved-query-detail'
     ),
