@@ -37,12 +37,11 @@ describe('StackedBarChart', function() {
 
       expect(columns).toHaveProperty('length', 5);
 
-      // NOTE: markers are placed *before* corresponding chart column
-      expect(columns.at(0).text()).toEqual('first seen');
-      expect(columns.at(1).text()).toEqual('10');
-      expect(columns.at(2).text()).toEqual('20');
-      expect(columns.at(3).text()).toEqual('last seen');
-      expect(columns.at(4).text()).toEqual('30');
+      expect(columns.at(0).text()).toEqual('10');
+      expect(columns.at(1).text()).toEqual('20');
+      expect(columns.at(2).text()).toEqual('30');
+      expect(columns.at(3).text()).toEqual('first seen');
+      expect(columns.at(4).text()).toEqual('last seen');
     });
 
     it('renders with points and markers, when first and last seen are same data point', function() {
@@ -57,10 +56,9 @@ describe('StackedBarChart', function() {
 
       expect(columns).toHaveProperty('length', 3);
 
-      // NOTE: markers are placed *before* corresponding chart column
-      expect(columns.at(0).text()).toEqual('first seen');
-      expect(columns.at(1).text()).toEqual('last seen');
-      expect(columns.at(2).text()).toEqual('30');
+      expect(columns.at(0).text()).toEqual('30');
+      expect(columns.at(1).text()).toEqual('first seen');
+      expect(columns.at(2).text()).toEqual('last seen');
     });
   });
 });

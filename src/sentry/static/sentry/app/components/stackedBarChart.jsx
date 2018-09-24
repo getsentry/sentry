@@ -8,6 +8,7 @@ import cx from 'classnames';
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
 import ConfigStore from 'app/stores/configStore';
+import theme from 'app/utils/theme';
 
 class StackedBarChart extends React.Component {
   static propTypes = {
@@ -213,20 +214,29 @@ class StackedBarChart extends React.Component {
     let timeLabel = moment(marker.x * 1000).format('lll');
     let title =
       '<div style="width:130px">' + marker.label + '<br/>' + timeLabel + '</div>';
-    let className = 'chart-marker ' + (marker.className || '');
 
     // example key: m-last-seen-22811123, m-first-seen-228191
     let key = ['m', marker.className, marker.x].join('-');
+    let markerOffset = marker.offset || 0;
 
     return (
-      <Tooltip title={title} key={key} tooltipOptions={{html: true, placement: 'bottom'}}>
-        <a
+      <Tooltip
+        title={title}
+        key={key}
+        tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
+      >
+        <circle
           data-test-id="chart-column"
-          className={className}
-          style={{height: '100%', left: index * pointWidth + '%'}}
+          cx={index * pointWidth + '%'}
+          transform={`translate(${markerOffset}, 0)`}
+          cy="100%"
+          r="4"
+          fill={marker.fill || theme.gray2}
+          stroke="#fff"
+          strokeWidth={2}
         >
-          <span>{marker.label}</span>
-        </a>
+          {marker.label}
+        </circle>
       </Tooltip>
     );
   }
@@ -273,7 +283,7 @@ class StackedBarChart extends React.Component {
         <rect
           key={i}
           x={index * pointWidth + '%'}
-          y={100 - pct - prevPct + '%'}
+          y={98.5 - pct - prevPct + '%'}
           width={pointWidth + '%'}
           height={pct + '%'}
           fill={this.state.series[i].color}
@@ -288,6 +298,7 @@ class StackedBarChart extends React.Component {
 
     let pointIdx = point.x;
     let tooltipFunc = this.props.tooltip || this.renderTooltip;
+    let maskId = `path-${pointWidth}-${index}`; /* an ID in SVG is global just like html. */
 
     return (
       <Tooltip
@@ -296,15 +307,15 @@ class StackedBarChart extends React.Component {
         key={point.x}
       >
         <g>
-          <clipPath id={'mask-' + index}>
+          <clipPath id={maskId}>
             <rect
               x={index * pointWidth + '%'}
               width={pointWidth + '%'}
-              height="100%"
-              transform={'translate(-' + this.props.gap + ', 0)'}
+              height="98.5%"
+              transform={`translate(-${this.props.gap}, 0)`}
             />
           </clipPath>
-          <g data-test-id="chart-column" clipPath={'url(#mask-' + index + ')'}>
+          <g data-test-id="chart-column" clipPath={`url(#${maskId})`}>
             {pts}
           </g>
         </g>
@@ -319,7 +330,6 @@ class StackedBarChart extends React.Component {
 
     let maxval = this.maxPointValue();
     let markers = this.props.markers.slice();
-    let markerChildren = [];
 
     // group points, then resort
     let points = Object.keys(pointIndex)
@@ -336,6 +346,7 @@ class StackedBarChart extends React.Component {
     });
 
     let children = [];
+    let markerChildren = [];
     points.forEach((point, index) => {
       while (markers.length && markers[0].x <= point.x) {
         markerChildren.push(this.renderMarker(markers.shift(), index, pointWidth));
@@ -354,12 +365,10 @@ class StackedBarChart extends React.Component {
 
     return (
       <React.Fragment>
-        <SvgContainer>
-          <StyledSvg gap={this.props.gap}>{children}</StyledSvg>
-        </SvgContainer>
-        <div style={{position: 'absolute', bottom: 0, left: 0, height: 0, width: '100%'}}>
-          {markerChildren}
-        </div>
+        <StyledSvg gap={this.props.gap} overflow="visible">
+          {children}
+          {markerChildren.length ? markerChildren : null}
+        </StyledSvg>
       </React.Fragment>
     );
   }
@@ -370,13 +379,13 @@ class StackedBarChart extends React.Component {
     let maxval = this.maxPointValue();
 
     return (
-      <figure className={figureClass} style={{height, width, ...style}}>
+      <SvgContainer className={figureClass} style={{height, width, ...style}}>
         <span className="max-y">
           <Count value={maxval} />
         </span>
         <span className="min-y">0</span>
         {this.renderChart()}
-      </figure>
+      </SvgContainer>
     );
   }
 }
@@ -384,11 +393,11 @@ class StackedBarChart extends React.Component {
 const StyledSvg = styled('svg')`
   width: calc(100% + ${p => p.gap + 0.5}px);
   height: 100%;
+  overflow: visible !important; /* overrides global declaration */
 `;
 
 const SvgContainer = styled('figure')`
   display: block;
-  overflow: hidden;
   position: relative;
   width: 100%;
   height: 100%;

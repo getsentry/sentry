@@ -6,6 +6,7 @@ import StackedBarChart from 'app/components/stackedBarChart';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {escape, intcomma} from 'app/utils';
+import theme from 'app/utils/theme';
 
 const GroupReleaseChart = createReactClass({
   displayName: 'GroupReleaseChart',
@@ -118,6 +119,8 @@ const GroupReleaseChart = createReactClass({
           label: t('First seen'),
           x: firstSeenX,
           className: 'first-seen',
+          offset: -7.5,
+          fill: theme.pink,
         });
       }
     }
@@ -129,6 +132,7 @@ const GroupReleaseChart = createReactClass({
           label: t('Last seen'),
           x: lastSeenX,
           className: 'last-seen',
+          fill: theme.green,
         });
       }
     }
