@@ -34,7 +34,6 @@ class SentryInternalClient(DjangoClient):
 
     @cached_property
     def project_key(self):
-        from django.db import IntegrityError
         from sentry.models import ProjectKey
 
         if not settings.SENTRY_PROJECT:
@@ -49,7 +48,7 @@ class SentryInternalClient(DjangoClient):
                 )
             else:
                 key = ProjectKey.get_default(settings.SENTRY_PROJECT)
-        except (ProjectKey.DoesNotExist, IntegrityError) as exc:
+        except Exception as exc:
             # if the relation fails to query or is missing completely, lets handle
             # it gracefully
             self.error_logger.warn('internal-error.unable-to-fetch-project', extra={
