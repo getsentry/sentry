@@ -64,39 +64,92 @@ exports[`ProjectCard renders 1`] = `
           <div
             className="css-18be1td-StyledProjectCard efesc7i3"
           >
-            <Flex
-              align="center"
-              justify="space-between"
-            >
-              <Base
-                align="center"
-                className="css-v7pzd9"
-                justify="space-between"
+            <StyledProjectCardHeader>
+              <div
+                className="css-v59cbs-StyledProjectCardHeader efesc7i1"
               >
-                <div
-                  className="css-v7pzd9"
-                  is={null}
+                <StyledIdBadge
+                  avatarSize={24}
+                  displayName={
+                    <span>
+                      project-slug
+                    </span>
+                  }
+                  project={
+                    Object {
+                      "hasAccess": true,
+                      "id": "2",
+                      "isBookmarked": false,
+                      "isMember": true,
+                      "name": "Project Name",
+                      "platforms": Array [
+                        "javascript",
+                      ],
+                      "slug": "project-slug",
+                      "stats": Array [
+                        Array [
+                          1525042800,
+                          1,
+                        ],
+                        Array [
+                          1525046400,
+                          2,
+                        ],
+                      ],
+                      "teams": Array [],
+                    }
+                  }
                 >
-                  <Box
-                    ml={2}
+                  <IdBadge
+                    avatarSize={24}
+                    className="css-1gy4gs4-StyledIdBadge efesc7i6"
+                    displayName={
+                      <span>
+                        project-slug
+                      </span>
+                    }
+                    project={
+                      Object {
+                        "hasAccess": true,
+                        "id": "2",
+                        "isBookmarked": false,
+                        "isMember": true,
+                        "name": "Project Name",
+                        "platforms": Array [
+                          "javascript",
+                        ],
+                        "slug": "project-slug",
+                        "stats": Array [
+                          Array [
+                            1525042800,
+                            1,
+                          ],
+                          Array [
+                            1525046400,
+                            2,
+                          ],
+                        ],
+                        "teams": Array [],
+                      }
+                    }
                   >
-                    <Base
-                      className="css-1dvsqd3"
-                      ml={2}
+                    <InlineErrorBoundary
+                      mini={true}
                     >
-                      <div
-                        className="css-1dvsqd3"
-                        is={null}
+                      <ErrorBoundary
+                        className="css-otlbo1-InlineErrorBoundary e83vi020"
+                        mini={true}
                       >
-                        <IdBadge
+                        <ProjectBadge
                           avatarSize={24}
+                          className="css-1gy4gs4-StyledIdBadge efesc7i6"
                           displayName={
-                            <StyledTitle>
-                              <div>
-                                project-slug
-                              </div>
-                            </StyledTitle>
+                            <span>
+                              project-slug
+                            </span>
                           }
+                          hideAvatar={false}
+                          hideOverflow={true}
                           project={
                             Object {
                               "hasAccess": true,
@@ -122,298 +175,251 @@ exports[`ProjectCard renders 1`] = `
                             }
                           }
                         >
-                          <InlineErrorBoundary
-                            mini={true}
+                          <BaseBadge
+                            avatarProps={Object {}}
+                            avatarSize={24}
+                            className="css-1gy4gs4-StyledIdBadge efesc7i6"
+                            displayName={
+                              <span>
+                                project-slug
+                              </span>
+                            }
+                            hideAvatar={false}
+                            project={
+                              Object {
+                                "hasAccess": true,
+                                "id": "2",
+                                "isBookmarked": false,
+                                "isMember": true,
+                                "name": "Project Name",
+                                "platforms": Array [
+                                  "javascript",
+                                ],
+                                "slug": "project-slug",
+                                "stats": Array [
+                                  Array [
+                                    1525042800,
+                                    1,
+                                  ],
+                                  Array [
+                                    1525046400,
+                                    2,
+                                  ],
+                                ],
+                                "teams": Array [],
+                              }
+                            }
                           >
-                            <ErrorBoundary
-                              className="css-otlbo1-InlineErrorBoundary e83vi020"
-                              mini={true}
+                            <Flex
+                              align="center"
+                              className="css-1gy4gs4-StyledIdBadge efesc7i6"
                             >
-                              <ProjectBadge
-                                avatarSize={24}
-                                displayName={
-                                  <StyledTitle>
-                                    <div>
-                                      project-slug
-                                    </div>
-                                  </StyledTitle>
-                                }
-                                hideAvatar={false}
-                                hideOverflow={true}
-                                project={
-                                  Object {
-                                    "hasAccess": true,
-                                    "id": "2",
-                                    "isBookmarked": false,
-                                    "isMember": true,
-                                    "name": "Project Name",
-                                    "platforms": Array [
-                                      "javascript",
-                                    ],
-                                    "slug": "project-slug",
-                                    "stats": Array [
-                                      Array [
-                                        1525042800,
-                                        1,
-                                      ],
-                                      Array [
-                                        1525046400,
-                                        2,
-                                      ],
-                                    ],
-                                    "teams": Array [],
-                                  }
-                                }
+                              <Base
+                                align="center"
+                                className="efesc7i6 css-v2wlq8-StyledIdBadge"
                               >
-                                <BaseBadge
-                                  avatarProps={Object {}}
-                                  avatarSize={24}
-                                  displayName={
-                                    <StyledTitle>
-                                      <div>
-                                        project-slug
-                                      </div>
-                                    </StyledTitle>
-                                  }
-                                  hideAvatar={false}
-                                  project={
-                                    Object {
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "platforms": Array [
-                                        "javascript",
-                                      ],
-                                      "slug": "project-slug",
-                                      "stats": Array [
-                                        Array [
-                                          1525042800,
-                                          1,
-                                        ],
-                                        Array [
-                                          1525046400,
-                                          2,
-                                        ],
-                                      ],
-                                      "teams": Array [],
-                                    }
-                                  }
+                                <div
+                                  className="efesc7i6 css-v2wlq8-StyledIdBadge"
+                                  is={null}
                                 >
-                                  <Flex
-                                    align="center"
+                                  <StyledAvatar
+                                    className="css-0"
+                                    project={
+                                      Object {
+                                        "hasAccess": true,
+                                        "id": "2",
+                                        "isBookmarked": false,
+                                        "isMember": true,
+                                        "name": "Project Name",
+                                        "platforms": Array [
+                                          "javascript",
+                                        ],
+                                        "slug": "project-slug",
+                                        "stats": Array [
+                                          Array [
+                                            1525042800,
+                                            1,
+                                          ],
+                                          Array [
+                                            1525046400,
+                                            2,
+                                          ],
+                                        ],
+                                        "teams": Array [],
+                                      }
+                                    }
+                                    size={24}
                                   >
-                                    <Base
-                                      align="center"
-                                      className="css-5ipae5"
+                                    <Avatar
+                                      className="css-robds0-StyledAvatar e165dl3i0"
+                                      hasTooltip={false}
+                                      project={
+                                        Object {
+                                          "hasAccess": true,
+                                          "id": "2",
+                                          "isBookmarked": false,
+                                          "isMember": true,
+                                          "name": "Project Name",
+                                          "platforms": Array [
+                                            "javascript",
+                                          ],
+                                          "slug": "project-slug",
+                                          "stats": Array [
+                                            Array [
+                                              1525042800,
+                                              1,
+                                            ],
+                                            Array [
+                                              1525046400,
+                                              2,
+                                            ],
+                                          ],
+                                          "teams": Array [],
+                                        }
+                                      }
+                                      size={24}
                                     >
-                                      <div
-                                        className="css-5ipae5"
-                                        is={null}
+                                      <ProjectAvatar
+                                        className="css-robds0-StyledAvatar e165dl3i0"
+                                        hasTooltip={false}
+                                        project={
+                                          Object {
+                                            "hasAccess": true,
+                                            "id": "2",
+                                            "isBookmarked": false,
+                                            "isMember": true,
+                                            "name": "Project Name",
+                                            "platforms": Array [
+                                              "javascript",
+                                            ],
+                                            "slug": "project-slug",
+                                            "stats": Array [
+                                              Array [
+                                                1525042800,
+                                                1,
+                                              ],
+                                              Array [
+                                                1525046400,
+                                                2,
+                                              ],
+                                            ],
+                                            "teams": Array [],
+                                          }
+                                        }
+                                        size={24}
                                       >
-                                        <StyledAvatar
-                                          className="css-0"
-                                          project={
-                                            Object {
-                                              "hasAccess": true,
-                                              "id": "2",
-                                              "isBookmarked": false,
-                                              "isMember": true,
-                                              "name": "Project Name",
-                                              "platforms": Array [
-                                                "javascript",
-                                              ],
-                                              "slug": "project-slug",
-                                              "stats": Array [
-                                                Array [
-                                                  1525042800,
-                                                  1,
-                                                ],
-                                                Array [
-                                                  1525046400,
-                                                  2,
-                                                ],
-                                              ],
-                                              "teams": Array [],
-                                            }
+                                        <PlatformList
+                                          className="css-robds0-StyledAvatar e165dl3i0"
+                                          consistentWidth={false}
+                                          direction="right"
+                                          hasTooltip={false}
+                                          max={3}
+                                          platforms={
+                                            Array [
+                                              "javascript",
+                                            ]
                                           }
                                           size={24}
                                         >
-                                          <Avatar
-                                            className="css-robds0-StyledAvatar e165dl3i0"
-                                            hasTooltip={false}
-                                            project={
-                                              Object {
-                                                "hasAccess": true,
-                                                "id": "2",
-                                                "isBookmarked": false,
-                                                "isMember": true,
-                                                "name": "Project Name",
-                                                "platforms": Array [
-                                                  "javascript",
-                                                ],
-                                                "slug": "project-slug",
-                                                "stats": Array [
-                                                  Array [
-                                                    1525042800,
-                                                    1,
-                                                  ],
-                                                  Array [
-                                                    1525046400,
-                                                    2,
-                                                  ],
-                                                ],
-                                                "teams": Array [],
-                                              }
-                                            }
+                                          <PlatformIcons
+                                            consistentWidth={false}
+                                            direction="right"
+                                            max={3}
                                             size={24}
                                           >
-                                            <ProjectAvatar
-                                              className="css-robds0-StyledAvatar e165dl3i0"
-                                              hasTooltip={false}
-                                              project={
-                                                Object {
-                                                  "hasAccess": true,
-                                                  "id": "2",
-                                                  "isBookmarked": false,
-                                                  "isMember": true,
-                                                  "name": "Project Name",
-                                                  "platforms": Array [
-                                                    "javascript",
-                                                  ],
-                                                  "slug": "project-slug",
-                                                  "stats": Array [
-                                                    Array [
-                                                      1525042800,
-                                                      1,
-                                                    ],
-                                                    Array [
-                                                      1525046400,
-                                                      2,
-                                                    ],
-                                                  ],
-                                                  "teams": Array [],
-                                                }
-                                              }
+                                            <div
+                                              className="css-12u7e6y-PlatformIcons ezvce7z0"
+                                              direction="right"
+                                              max={3}
                                               size={24}
                                             >
-                                              <PlatformList
-                                                className="css-robds0-StyledAvatar e165dl3i0"
-                                                consistentWidth={false}
-                                                direction="right"
-                                                hasTooltip={false}
-                                                max={3}
-                                                platforms={
-                                                  Array [
-                                                    "javascript",
-                                                  ]
-                                                }
+                                              <StyledPlatformIcon
+                                                key="javascript"
+                                                platform="javascript"
                                                 size={24}
                                               >
-                                                <PlatformIcons
-                                                  consistentWidth={false}
-                                                  direction="right"
-                                                  max={3}
+                                                <Component
+                                                  className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                  platform="javascript"
                                                   size={24}
                                                 >
-                                                  <div
-                                                    className="css-zaq10o-PlatformIcons ezvce7z0"
-                                                    direction="right"
-                                                    max={3}
-                                                    size={24}
+                                                  <Platformicon
+                                                    className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                    platform="javascript"
+                                                    size="24px"
                                                   >
-                                                    <StyledPlatformIcon
-                                                      key="javascript"
-                                                      platform="javascript"
-                                                      size={24}
-                                                    >
-                                                      <Component
-                                                        className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
-                                                        platform="javascript"
-                                                        size={24}
-                                                      >
-                                                        <Platformicon
-                                                          className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
-                                                          platform="javascript"
-                                                          size="24px"
-                                                        >
-                                                          <img
-                                                            className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
-                                                            height="24px"
-                                                            src={
-                                                              Object {
-                                                                "default": Object {
-                                                                  "id": "test",
-                                                                  "viewBox": Object {},
-                                                                },
-                                                              }
-                                                            }
-                                                            width="24px"
-                                                          />
-                                                        </Platformicon>
-                                                      </Component>
-                                                    </StyledPlatformIcon>
-                                                  </div>
-                                                </PlatformIcons>
-                                              </PlatformList>
-                                            </ProjectAvatar>
-                                          </Avatar>
-                                        </StyledAvatar>
-                                        <DisplayNameAndDescription>
-                                          <Base
-                                            className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
-                                          >
-                                            <div
-                                              className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
-                                              is={null}
-                                            >
-                                              <div
-                                                data-test-id="badge-display-name"
-                                              >
-                                                <StyledTitle>
-                                                  <div
-                                                    className="css-25y8kw-StyledTitle efesc7i1"
-                                                  >
-                                                    <div>
-                                                      project-slug
-                                                    </div>
-                                                  </div>
-                                                </StyledTitle>
-                                              </div>
+                                                    <img
+                                                      className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                      height="24px"
+                                                      src={
+                                                        Object {
+                                                          "default": Object {
+                                                            "id": "test",
+                                                            "viewBox": Object {},
+                                                          },
+                                                        }
+                                                      }
+                                                      width="24px"
+                                                    />
+                                                  </Platformicon>
+                                                </Component>
+                                              </StyledPlatformIcon>
                                             </div>
-                                          </Base>
-                                        </DisplayNameAndDescription>
+                                          </PlatformIcons>
+                                        </PlatformList>
+                                      </ProjectAvatar>
+                                    </Avatar>
+                                  </StyledAvatar>
+                                  <DisplayNameAndDescription>
+                                    <Base
+                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                    >
+                                      <div
+                                        className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
+                                        is={null}
+                                      >
+                                        <DisplayName
+                                          data-test-id="badge-display-name"
+                                        >
+                                          <span
+                                            className="css-1wwlq08-DisplayName e165dl3i2"
+                                            data-test-id="badge-display-name"
+                                          >
+                                            <span>
+                                              project-slug
+                                            </span>
+                                          </span>
+                                        </DisplayName>
                                       </div>
                                     </Base>
-                                  </Flex>
-                                </BaseBadge>
-                              </ProjectBadge>
-                            </ErrorBoundary>
-                          </InlineErrorBoundary>
-                        </IdBadge>
-                      </div>
-                    </Base>
-                  </Box>
-                  <Tooltip
+                                  </DisplayNameAndDescription>
+                                </div>
+                              </Base>
+                            </Flex>
+                          </BaseBadge>
+                        </ProjectBadge>
+                      </ErrorBoundary>
+                    </InlineErrorBoundary>
+                  </IdBadge>
+                </StyledIdBadge>
+                <Tooltip
+                  title="Add to bookmarks"
+                >
+                  <Star
+                    active={false}
+                    className="tip project-select-bookmark icon icon-star-solid"
+                    onClick={[Function]}
                     title="Add to bookmarks"
                   >
-                    <Star
-                      active={false}
-                      className="tip project-select-bookmark icon icon-star-solid"
+                    <a
+                      className="tip project-select-bookmark icon icon-star-solid css-1gdf7jd-Star efesc7i4"
                       onClick={[Function]}
                       title="Add to bookmarks"
-                    >
-                      <a
-                        className="tip project-select-bookmark icon icon-star-solid css-9lfgnk-Star efesc7i4"
-                        onClick={[Function]}
-                        title="Add to bookmarks"
-                      />
-                    </Star>
-                  </Tooltip>
-                </div>
-              </Base>
-            </Flex>
+                    />
+                  </Star>
+                </Tooltip>
+              </div>
+            </StyledProjectCardHeader>
             <ChartContainer>
               <div
                 className="css-1s8o1vf-ChartContainer efesc7i0"
