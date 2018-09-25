@@ -42,34 +42,40 @@
       </a>
     </div>
   {% else %}
-    {% if completed %}
-    <div class="aui-message aui-message-success">
-      <p class="title">
-        <strong>Saved!</strong>
-      </p>
-      <p>
-        The Sentry Jira integration is now enabled for the selected
-        organizations. Return to your sentry organization to configure the Jira
-        integration for your organization.
-      </p>
-    </div>
-    {% endif %}
-
-    <form class="aui top-label" action="" method="post">
-      {% csrf_token %}
-      {% for field in form %}
-        <div class="field-group top-label">
-          {{ field.errors }}
-          {{ field.label_tag }} {{ field }}
-          <div class="description">{{ field.help_text }}</div>
-        </div>
-      {% endfor %}
-      <div class="field-group">
-        <button class="aui-button aui-button-primary" type="submit">
-            Save Settings
-        </button>
+    {% if refresh_required %}
+      <div class="aui-message aui-message-info">
+        <p>This page has expired, please refresh to configure your Sentry integration</p>
       </div>
-    </form>
+    {% else %}
+      {% if completed %}
+      <div class="aui-message aui-message-success">
+        <p class="title">
+          <strong>Saved!</strong>
+        </p>
+        <p>
+          The Sentry Jira integration is now enabled for the selected
+          organizations. Return to your sentry organization to configure the Jira
+          integration for your organization.
+        </p>
+      </div>
+      {% endif %}
+
+      <form class="aui top-label" action="" method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="field-group top-label">
+            {{ field.errors }}
+            {{ field.label_tag }} {{ field }}
+            <div class="description">{{ field.help_text }}</div>
+          </div>
+        {% endfor %}
+        <div class="field-group">
+          <button class="aui-button aui-button-primary" type="submit">
+              Save Settings
+          </button>
+        </div>
+      </form>
+    {% endif %}
   {% endif %}
 </body>
 {% if login_required %}
