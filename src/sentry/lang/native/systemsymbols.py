@@ -5,7 +5,7 @@ import logging
 from requests.exceptions import RequestException
 
 from sentry import options
-from sentry.http import Session
+from sentry.net.http import Session
 from sentry.lang.native.utils import sdk_info_to_sdk_id
 
 MAX_ATTEMPTS = 3

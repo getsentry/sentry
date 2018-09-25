@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import ipaddress
 import platform
 import responses
 import pytest
@@ -8,22 +7,11 @@ import tempfile
 
 from django.core.exceptions import SuspiciousOperation
 from mock import patch
+from urllib3.util.connection import HAS_IPV6
 
 from sentry import http
 from sentry.testutils import TestCase
-
-
-def stub_blacklist(ip_addresses):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            disallowed_ips = set(http.DISALLOWED_IPS)
-            http.DISALLOWED_IPS = set(
-                ipaddress.ip_network(ip) for ip in ip_addresses
-            )
-            func(*args, **kwargs)
-            http.DISALLOWED_IPS = disallowed_ips
-        return wrapper
-    return decorator
+from sentry.testutils.helpers import override_blacklist
 
 
 class HttpTest(TestCase):
@@ -43,8 +31,8 @@ class HttpTest(TestCase):
 
     # XXX(dcramer): we can't use responses here as it hooks Session.send
     # @responses.activate
-    @stub_blacklist([u'127.0.0.1', u'::1', u'10.0.0.0/8'])
-    def test_ip_blacklist(self):
+    @override_blacklist('127.0.0.1', '::1', '10.0.0.0/8')
+    def test_ip_blacklist_ipv4(self):
         with pytest.raises(SuspiciousOperation):
             http.safe_urlopen('http://127.0.0.1')
         with pytest.raises(SuspiciousOperation):
@@ -52,21 +40,32 @@ class HttpTest(TestCase):
         with pytest.raises(SuspiciousOperation):
             # '2130706433' is dword for '127.0.0.1'
             http.safe_urlopen('http://2130706433')
+
+    @pytest.mark.skipif(not HAS_IPV6, reason='needs ipv6')
+    @override_blacklist('::1')
+    def test_ip_blacklist_ipv6(self):
         with pytest.raises(SuspiciousOperation):
-            # ipv6
+            http.safe_urlopen('http://[::1]')
+
+    @pytest.mark.skipif(HAS_IPV6, reason='stub for non-ipv6 systems')
+    @override_blacklist('::1')
+    @patch('socket.getaddrinfo')
+    def test_ip_blacklist_ipv6_fallback(self, mock_getaddrinfo):
+        mock_getaddrinfo.return_value = [(10, 1, 6, '', ('::1', 0, 0, 0))]
+        with pytest.raises(SuspiciousOperation):
             http.safe_urlopen('http://[::1]')
 
     @pytest.mark.skipif(
         platform.system() == 'Darwin',
         reason='macOS is always broken, see comment in sentry/http.py'
     )
-    @stub_blacklist([u'127.0.0.1'])
+    @override_blacklist('127.0.0.1')
     def test_garbage_ip(self):
         with pytest.raises(SuspiciousOperation):
             # '0177.0000.0000.0001' is an octal for '127.0.0.1'
             http.safe_urlopen('http://0177.0000.0000.0001')
 
-    @stub_blacklist([u'127.0.0.1'])
+    @override_blacklist('127.0.0.1')
     def test_safe_socket_connect(self):
         with pytest.raises(SuspiciousOperation):
             http.safe_socket_connect(('127.0.0.1', 80))
