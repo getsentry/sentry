@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
 import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
@@ -23,7 +23,6 @@ describe('OrganizationAuditLog', function() {
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
-
     wrapper.setState({loading: false});
     wrapper.update();
     setTimeout(() => {
@@ -31,5 +30,24 @@ describe('OrganizationAuditLog', function() {
       expect(wrapper).toMatchSnapshot();
       done();
     });
+  });
+
+  it('displays whether an action was done by a superuser', function() {
+    let wrapper = mount(
+      <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
+      TestStubs.routerContext()
+    );
+    expect(
+      wrapper
+        .find('div[data-test-id="actor-name"]')
+        .at(0)
+        .text()
+    ).toEqual(expect.stringContaining('(Sentry Staff)'));
+    expect(
+      wrapper
+        .find('div[data-test-id="actor-name"]')
+        .at(1)
+        .text()
+    ).toEqual(expect.not.stringContaining('(Sentry Staff)'));
   });
 });
