@@ -42,6 +42,7 @@ ORG_OPTIONS = (
      bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
      bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
+    ('trustedRelays', 'sentry:trusted-relays', list, org_serializers.TRUSTED_RELAYS_DEFAULT),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -94,6 +95,7 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    trustedRelays = ListField(child=serializers.CharField(), required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -154,6 +156,23 @@ class OrganizationSerializer(serializers.Serializer):
         if value and self._has_saml_enabled():
             raise serializers.ValidationError(
                 'Cannot require two-factor authentication with SAML SSO enabled')
+        return attrs
+
+    def validate_trustedRelays(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+
+        organization = self.context['organization']
+        request = self.context["request"]
+        has_relays = features.has('organizations:relay',
+                                  organization,
+                                  actor=request.user)
+        if not has_relays:
+            raise serializers.ValidationError(
+                'Organization does not have the relay feature enabled'
+            )
         return attrs
 
     def validate_accountRateLimit(self, attrs, source):

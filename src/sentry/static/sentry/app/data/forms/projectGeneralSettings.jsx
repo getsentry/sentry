@@ -186,6 +186,32 @@ export const fields = {
     ),
     visible: ({features}) => features.has('event-attachments'),
   },
+  relayPiiConfig: {
+    name: 'relayPiiConfig',
+    type: 'string',
+    label: t('Custom Relay PII Config'),
+    placeholder: t(
+      'Paste a relay JSON PII config here. Leave empty to generate a default based on the above settings.'
+    ),
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    help: tct(
+      'If you put a custom JSON relay PII config here it overrides the default generated config.  This is pushed to all trusted relays.  [learn_more:Learn more]',
+      {
+        learn_more: <a href="https://docs.sentry.io/relay/pii-config/" />,
+      }
+    ),
+    visible: ({features}) => features.has('relay'),
+    validate: ({id, form}) => {
+      try {
+        JSON.parse(form[id]);
+      } catch (e) {
+        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+      }
+      return [];
+    },
+  },
 
   allowedDomains: {
     name: 'allowedDomains',
