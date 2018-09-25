@@ -536,7 +536,7 @@ exports[`ProjectCard renders 1`] = `
                                 overflow="visible"
                               >
                                 <svg
-                                  className="css-11agq87-StyledSvg e5t71580"
+                                  className="css-j6bjhn-StyledSvg e5t71580"
                                   overflow="visible"
                                 >
                                   <Tooltip
@@ -558,7 +558,7 @@ exports[`ProjectCard renders 1`] = `
                                         id="path-50-0"
                                       >
                                         <rect
-                                          height="98.5%"
+                                          height="100%"
                                           transform="translate(-4, 0)"
                                           width="50%"
                                           x="0%"
@@ -574,7 +574,7 @@ exports[`ProjectCard renders 1`] = `
                                           key="0"
                                           width="50%"
                                           x="0%"
-                                          y="88.6%"
+                                          y="90.1%"
                                         >
                                           1
                                         </rect>
@@ -600,7 +600,7 @@ exports[`ProjectCard renders 1`] = `
                                         id="path-50-1"
                                       >
                                         <rect
-                                          height="98.5%"
+                                          height="100%"
                                           transform="translate(-4, 0)"
                                           width="50%"
                                           x="50%"
@@ -616,7 +616,7 @@ exports[`ProjectCard renders 1`] = `
                                           key="0"
                                           width="50%"
                                           x="50%"
-                                          y="78.7%"
+                                          y="80.2%"
                                         >
                                           2
                                         </rect>

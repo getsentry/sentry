@@ -235,7 +235,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     overflow="visible"
                   >
                     <svg
-                      className="css-spxnbk-StyledSvg e5t71580"
+                      className="css-v8214s-StyledSvg e5t71580"
                       overflow="visible"
                     >
                       <Tooltip
@@ -257,7 +257,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-0"
                           >
                             <rect
-                              height="98.5%"
+                              height="100%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="0%"
@@ -269,11 +269,11 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="0%"
+                              height="1%"
                               key="0"
                               width="50%"
                               x="0%"
-                              y="98.5%"
+                              y="99%"
                             >
                               0
                             </rect>
@@ -283,17 +283,17 @@ exports[`GroupReleaseStats renders 1`] = `
                               key="1"
                               width="50%"
                               x="0%"
-                              y="78.7%"
+                              y="79.2%"
                             >
                               2
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="4%"
+                              height="1%"
                               key="2"
                               width="50%"
                               x="0%"
-                              y="74.7%"
+                              y="78.2%"
                             >
                               0
                             </rect>
@@ -319,7 +319,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-1"
                           >
                             <rect
-                              height="98.5%"
+                              height="100%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="50%"
@@ -331,11 +331,11 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="0%"
+                              height="1%"
                               key="0"
                               width="50%"
                               x="50%"
-                              y="98.5%"
+                              y="99%"
                             >
                               0
                             </rect>
@@ -345,17 +345,17 @@ exports[`GroupReleaseStats renders 1`] = `
                               key="1"
                               width="50%"
                               x="50%"
-                              y="88.6%"
+                              y="89.1%"
                             >
                               1
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="4%"
+                              height="1%"
                               key="2"
                               width="50%"
                               x="50%"
-                              y="84.6%"
+                              y="88.1%"
                             >
                               0
                             </rect>
@@ -518,7 +518,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     overflow="visible"
                   >
                     <svg
-                      className="css-spxnbk-StyledSvg e5t71580"
+                      className="css-v8214s-StyledSvg e5t71580"
                       overflow="visible"
                     >
                       <Tooltip
@@ -540,7 +540,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-0"
                           >
                             <rect
-                              height="98.5%"
+                              height="100%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="0%"
@@ -552,31 +552,31 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="0%"
+                              height="1%"
                               key="0"
                               width="50%"
                               x="0%"
-                              y="98.5%"
+                              y="99%"
                             >
                               0
                             </rect>
                             <rect
                               className="environment barchart-rect"
-                              height="0.81%"
+                              height="1%"
                               key="1"
                               width="50%"
                               x="0%"
-                              y="97.69%"
+                              y="98%"
                             >
                               1
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="4%"
+                              height="1%"
                               key="2"
                               width="50%"
                               x="0%"
-                              y="93.69%"
+                              y="97%"
                             >
                               0
                             </rect>
@@ -602,7 +602,7 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-1"
                           >
                             <rect
-                              height="98.5%"
+                              height="100%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="50%"
@@ -614,11 +614,11 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="0%"
+                              height="1%"
                               key="0"
                               width="50%"
                               x="50%"
-                              y="98.5%"
+                              y="99%"
                             >
                               0
                             </rect>
@@ -628,17 +628,17 @@ exports[`GroupReleaseStats renders 1`] = `
                               key="1"
                               width="50%"
                               x="50%"
-                              y="-0.5%"
+                              y="0%"
                             >
                               122
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="4%"
+                              height="1%"
                               key="2"
                               width="50%"
                               x="50%"
-                              y="-4.5%"
+                              y="-1%"
                             >
                               0
                             </rect>

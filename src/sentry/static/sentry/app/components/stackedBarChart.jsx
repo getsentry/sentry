@@ -228,7 +228,7 @@ class StackedBarChart extends React.Component {
         <circle
           data-test-id="chart-column"
           cx={index * pointWidth + '%'}
-          transform={`translate(${markerOffset}, 0)`}
+          transform={`translate(${markerOffset || 0}, 0)`}
           cy="100%"
           r="4"
           fill={marker.fill || theme.gray2}
@@ -266,7 +266,7 @@ class StackedBarChart extends React.Component {
     let {minHeights} = this.props;
     return minHeights && (minHeights[index] || minHeights[index] == 0)
       ? this.props.minHeights[index]
-      : index == pointLength - 1 ? 4 : 0;
+      : 1;
   }
 
   renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
@@ -283,7 +283,7 @@ class StackedBarChart extends React.Component {
         <rect
           key={i}
           x={index * pointWidth + '%'}
-          y={98.5 - pct - prevPct + '%'}
+          y={100.0 - pct - prevPct + '%'}
           width={pointWidth + '%'}
           height={pct + '%'}
           fill={this.state.series[i].color}
@@ -311,7 +311,7 @@ class StackedBarChart extends React.Component {
             <rect
               x={index * pointWidth + '%'}
               width={pointWidth + '%'}
-              height="98.5%"
+              height="100%"
               transform={`translate(-${this.props.gap}, 0)`}
             />
           </clipPath>
@@ -391,7 +391,7 @@ class StackedBarChart extends React.Component {
 }
 
 const StyledSvg = styled('svg')`
-  width: calc(100% + ${p => p.gap + 0.5}px);
+  width: calc(100% + ${p => p.gap}px);
   height: 100%;
   overflow: visible !important; /* overrides global declaration */
 `;
