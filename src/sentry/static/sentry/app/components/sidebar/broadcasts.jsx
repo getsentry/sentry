@@ -36,8 +36,10 @@ const Broadcasts = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
+
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   },
 
   componentWillUnmount() {
@@ -45,10 +47,11 @@ const Broadcasts = createReactClass({
       window.clearTimeout(this.timer);
       this.timer = null;
     }
+
     if (this.poller) {
-      window.clearTimeout(this.poller);
-      this.poller = null;
+      this.stopPoll();
     }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   },
 
   remountComponent() {
@@ -57,8 +60,9 @@ const Broadcasts = createReactClass({
 
   fetchData() {
     if (this.poller) {
-      window.clearTimeout(this.poller);
+      this.stopPoll();
     }
+
     this.api.request('/broadcasts/', {
       method: 'GET',
       success: data => {
@@ -66,16 +70,37 @@ const Broadcasts = createReactClass({
           broadcasts: data || [],
           loading: false,
         });
-        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+        this.startPoll();
       },
       error: () => {
         this.setState({
           loading: false,
           error: true,
         });
-        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+        this.startPoll();
       },
     });
+  },
+
+  startPoll() {
+    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+  },
+
+  stopPoll() {
+    window.clearTimeout(this.poller);
+    this.poller = null;
+  },
+
+  /**
+   * If tab/window loses visiblity (note: this is different than focus), stop polling for broadcasts data, otherwise,
+   * if it gains visibility, start polling again.
+   */
+  handleVisibilityChange() {
+    if (document.hidden) {
+      this.stopPoll();
+    } else {
+      this.startPoll();
+    }
   },
 
   handleShowPanel() {
