@@ -12,7 +12,7 @@ import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
 
 const MARK_SEEN_DELAY = 1000;
-const POLLER_DELAY = 60000;
+const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
 const Broadcasts = createReactClass({
   displayName: 'Broadcasts',
