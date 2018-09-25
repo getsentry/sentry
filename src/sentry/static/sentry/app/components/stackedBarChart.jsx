@@ -367,7 +367,7 @@ class StackedBarChart extends React.Component {
     // in bizarre case where markers never got rendered, render them last
     // NOTE: should this ever happen?
     markers.forEach(marker => {
-      markerChildren.push(this.renderMarker(marker));
+      markerChildren.push(this.renderMarker(marker, points.length, pointWidth));
     });
 
     return (
