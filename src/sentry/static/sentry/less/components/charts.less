@@ -43,42 +43,6 @@
       fill: @gray-lighter;
     }
   }
-
-  .chart-marker {
-    display: block;
-    position: relative;
-    float: left;
-    width: 0;
-    bottom: -5px;
-    transform: translateX(-5px);
-
-    &:hover {
-      > span {
-        background-color: gray;
-        border-color: #fff;
-      }
-    }
-
-    &.first-seen {
-      transform: translateX(-13px);
-      > span {
-        background: @pink;
-      }
-    }
-
-    &.last-seen > span {
-      background: @green;
-    }
-
-    > span {
-      z-index: 2;
-      position: absolute;
-      border: 2px solid #fff;
-      .square(10px);
-      background: gray;
-      border-radius: 8px;
-    }
-  }
 }
 
 .standard-barchart {
