@@ -15,6 +15,7 @@ class GitLabApiClientPath(object):
     members = u'/projects/{project}/members'
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
+    projects = u'/projects'
     user = u'/user'
 
     @staticmethod
@@ -66,6 +67,9 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
                 project=quote(project, safe='')
             )
         )
+
+    def get_projects(self):
+        return self.get(GitLabApiClientPath.projects)
 
     def get_issue(self, project, issue_id):
         try:

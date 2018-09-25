@@ -1,26 +1,23 @@
 from __future__ import absolute_import
 
+import re
+
 from django.core.urlresolvers import reverse
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
-from sentry.utils.http import absolute_uri
-from .client import build_api_url, GitLabApiClientPath
 
 
 class GitlabIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        # return u'{}#{}'.format(data['project'], data['key'])
-        pass
+        return u'{}:{}#{}'.format(self.model.metadata['domain_name'], data['project'], data['key'])
 
     def get_issue_url(self, key):
-        base_url = self.model.metadata['base_url']
-        project, issue_id = key.split('#')
-        return build_api_url(
-            base_url,
-            GitLabApiClientPath.issue.format(
-                project=project,
-                issue=issue_id,
-            ),
+        match = re.match(r'.+:(.+)#(.+)', key)
+        project, issue_id = match.group(1), match.group(2)
+        return u'{}/{}/issues/{}'.format(
+            self.model.metadata['base_url'],
+            project,
+            issue_id,
         )
 
     def after_link_issue(self, external_issue, **kwargs):
@@ -59,7 +56,6 @@ class GitlabIssueBasic(IssueBasicMixin):
 
         params = kwargs.get('params', {})
         default_project = params.get('project', project_choices[0][0])
-        assignees = self.get_allowed_assignees(default_project)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -69,24 +65,15 @@ class GitlabIssueBasic(IssueBasicMixin):
         return [
             {
                 'name': 'project',
-                'label': 'GitHub Repository',
+                'label': 'Gitlab Project',
                 'type': 'select',
                 'default': default_project,
-                'defaultLabel': default_project.split('/')[1],
+                'defaultLabel': default_project,
                 'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
             }
-        ] + fields + [
-            {
-                'name': 'assignee',
-                'label': 'Assignee',
-                'default': '',
-                'type': 'select',
-                'required': False,
-                'choices': assignees,
-            }
-        ]
+        ] + fields
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()
@@ -102,7 +89,6 @@ class GitlabIssueBasic(IssueBasicMixin):
                 data={
                     'title': data['title'],
                     'body': data['description'],
-                    'assignee': data.get('assignee'),
                 })
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
@@ -137,7 +123,7 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'label': 'Gitlab Project',
                 'type': 'select',
                 'default': default_project,
-                'defaultLabel': default_project.split('/')[1],
+                'defaultLabel': default_project,
                 'url': autocomplete_url,
                 'required': True,
                 'updatesForm': True,
@@ -150,18 +136,6 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'url': autocomplete_url,
                 'required': True,
             },
-            {
-                'name': 'comment',
-                'label': 'Comment',
-                'default': u'Sentry issue: [{issue_id}]({url})'.format(
-                    url=absolute_uri(group.get_absolute_url()),
-                    issue_id=group.qualified_short_id,
-                ),
-                'type': 'textarea',
-                'required': False,
-                'help': ('Leave blank if you don\'t want to '
-                         'add a comment to the GitHub issue.'),
-            }
         ]
 
     def get_issue(self, issue_id, **kwargs):

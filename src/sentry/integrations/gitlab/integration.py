@@ -14,6 +14,7 @@ from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
 from .client import GitLabApiClient, GitLabApiClientPath
+from .issues import GitlabIssueBasic
 
 DESCRIPTION = """
 Fill me out
@@ -32,7 +33,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(IntegrationInstallation):
+class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic):
 
     def __init__(self, *args, **kwargs):
         super(GitlabIntegration, self).__init__(*args, **kwargs)
@@ -43,6 +44,9 @@ class GitlabIntegration(IntegrationInstallation):
             self.default_identity = self.get_default_identity()
 
         return GitLabApiClient(self)
+
+    def get_projects(self):
+        return self.get_client().get_projects()
 
 
 class InstallationForm(forms.Form):
