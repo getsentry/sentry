@@ -253,6 +253,12 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="tip"
                           title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
                         >
+                          <rect
+                            height="100%"
+                            opacity="0"
+                            width="50%"
+                            x="0%"
+                          />
                           <clipPath
                             id="path-50-0"
                           >
@@ -315,6 +321,12 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="tip"
                           title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                         >
+                          <rect
+                            height="100%"
+                            opacity="0"
+                            width="50%"
+                            x="50%"
+                          />
                           <clipPath
                             id="path-50-1"
                           >
@@ -536,6 +548,12 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="tip"
                           title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                         >
+                          <rect
+                            height="100%"
+                            opacity="0"
+                            width="50%"
+                            x="0%"
+                          />
                           <clipPath
                             id="path-50-0"
                           >
@@ -598,6 +616,12 @@ exports[`GroupReleaseStats renders 1`] = `
                           className="tip"
                           title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                         >
+                          <rect
+                            height="100%"
+                            opacity="0"
+                            width="50%"
+                            x="50%"
+                          />
                           <clipPath
                             id="path-50-1"
                           >

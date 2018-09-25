@@ -307,6 +307,12 @@ class StackedBarChart extends React.Component {
         key={point.x}
       >
         <g>
+          <rect
+            x={index * pointWidth + '%'}
+            width={pointWidth + '%'}
+            height="100%"
+            opacity="0"
+          />
           <clipPath id={maskId}>
             <rect
               x={index * pointWidth + '%'}
