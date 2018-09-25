@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from django.db import models
+from django.db import models, transaction
 from jsonfield import JSONField
 from sentry.db.models import (
     Model, FlexibleForeignKey, sane_repr
@@ -38,20 +38,21 @@ class DiscoverSavedQuery(Model):
     __repr__ = sane_repr('organization_id', 'name')
 
     def set_projects(self, project_ids):
-        DiscoverSavedQueryProject.objects.filter(
-            discover_saved_query=self,
-        ).exclude(project__in=project_ids).delete()
+        with transaction.atomic():
+            DiscoverSavedQueryProject.objects.filter(
+                discover_saved_query=self,
+            ).exclude(project__in=project_ids).delete()
 
-        existing_project_ids = DiscoverSavedQueryProject.objects.filter(
-            discover_saved_query=self,
-        ).values('project')
+            existing_project_ids = DiscoverSavedQueryProject.objects.filter(
+                discover_saved_query=self,
+            ).values('project')
 
-        new_project_ids = list(set(project_ids) - set(existing_project_ids))
+            new_project_ids = list(set(project_ids) - set(existing_project_ids))
 
-        DiscoverSavedQueryProject.objects.bulk_create(
-            [
-                DiscoverSavedQueryProject(
-                    project_id=project_id, discover_saved_query=self)
-                for project_id in new_project_ids
-            ]
-        )
+            DiscoverSavedQueryProject.objects.bulk_create(
+                [
+                    DiscoverSavedQueryProject(
+                        project_id=project_id, discover_saved_query=self)
+                    for project_id in new_project_ids
+                ]
+            )
