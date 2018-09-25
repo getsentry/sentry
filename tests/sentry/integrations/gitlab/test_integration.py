@@ -99,6 +99,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             u'icon': u'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
             u'domain_name': u'gitlab.example.com/groups/cool-group',
             u'verify_ssl': True,
+            u'base_url': 'https://gitlab.example.com'
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,
