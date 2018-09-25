@@ -97,7 +97,9 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == 'args[]':
-            args.append(v.decode('utf-8', 'replace'))
+            if isinstance(v, six.binary_type):
+                v = v.decode('utf-8', 'replace')
+            args.append(v)
 
     # Due to truncated error messages we sometimes might not be able to
     # get all arguments.  In that case we fill up missing parameters for
