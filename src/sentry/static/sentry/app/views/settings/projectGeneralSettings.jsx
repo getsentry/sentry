@@ -276,6 +276,7 @@ class ProjectGeneralSettings extends AsyncView {
               fields.sensitiveFields,
               fields.safeFields,
               fields.storeCrashReports,
+              fields.relayPiiConfig,
             ]}
           />
 

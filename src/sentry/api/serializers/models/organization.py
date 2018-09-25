@@ -22,6 +22,7 @@ SAFE_FIELDS_DEFAULT = None
 STORE_CRASH_REPORTS_DEFAULT = False
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
+TRUSTED_RELAYS_DEFAULT = None
 
 
 @register(Organization)
@@ -208,6 +209,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', STORE_CRASH_REPORTS_DEFAULT)),
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)),
             'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', SCRAPE_JAVASCRIPT_DEFAULT)),
+            'trustedRelays': obj.get_option('sentry:trusted-relays', TRUSTED_RELAYS_DEFAULT) or [],
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
         context['projects'] = serialize(project_list, user, ProjectSummarySerializer())

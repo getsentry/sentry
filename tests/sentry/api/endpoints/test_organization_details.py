@@ -245,6 +245,48 @@ class OrganizationUpdateTest(APITestCase):
         assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
         assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
 
+    def test_setting_trusted_relays_forbidden(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        data = {
+            'trustedRelays': [u'key1', u'key2']
+        }
+
+        response = self.client.put(url, data=data)
+        assert response.status_code == 400
+        assert 'feature' in response.content
+
+    def test_setting_trusted_relays(self):
+        org = self.create_organization(owner=self.user)
+        AuditLogEntry.objects.filter(organization=org).delete()
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        data = {'trustedRelays': [u'key1', u'key2']}
+
+        with self.feature("organizations:relay"):
+            response = self.client.put(url, data=data)
+            assert response.status_code == 200
+
+        option, = OrganizationOption.objects.filter(
+            organization=org,
+            key="sentry:trusted-relays"
+        )
+
+        assert option.value == data['trustedRelays']
+        log = AuditLogEntry.objects.get(organization=org)
+        assert 'to {}'.format(data['trustedRelays']) in log.data['trustedRelays']
+
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
