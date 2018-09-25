@@ -172,6 +172,13 @@ exports[`GroupReleaseStats renders 1`] = `
               height={40}
               label="events"
               markers={Array []}
+              minHeights={
+                Array [
+                  0,
+                  0,
+                  4,
+                ]
+              }
               points={
                 Array [
                   Object {
@@ -263,10 +270,11 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-0"
                           >
                             <rect
-                              height="100%"
+                              height="105%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="0%"
+                              y="-5%"
                             />
                           </clipPath>
                           <g
@@ -275,11 +283,11 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="1%"
+                              height="0%"
                               key="0"
                               width="50%"
                               x="0%"
-                              y="99%"
+                              y="100%"
                             >
                               0
                             </rect>
@@ -289,17 +297,17 @@ exports[`GroupReleaseStats renders 1`] = `
                               key="1"
                               width="50%"
                               x="0%"
-                              y="79.2%"
+                              y="80.2%"
                             >
                               2
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="1%"
+                              height="4%"
                               key="2"
                               width="50%"
                               x="0%"
-                              y="78.2%"
+                              y="76.2%"
                             >
                               0
                             </rect>
@@ -331,10 +339,11 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-1"
                           >
                             <rect
-                              height="100%"
+                              height="105%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="50%"
+                              y="-5%"
                             />
                           </clipPath>
                           <g
@@ -343,11 +352,11 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="1%"
+                              height="0%"
                               key="0"
                               width="50%"
                               x="50%"
-                              y="99%"
+                              y="100%"
                             >
                               0
                             </rect>
@@ -357,17 +366,17 @@ exports[`GroupReleaseStats renders 1`] = `
                               key="1"
                               width="50%"
                               x="50%"
-                              y="89.1%"
+                              y="90.1%"
                             >
                               1
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="1%"
+                              height="4%"
                               key="2"
                               width="50%"
                               x="50%"
-                              y="88.1%"
+                              y="86.1%"
                             >
                               0
                             </rect>
@@ -467,6 +476,13 @@ exports[`GroupReleaseStats renders 1`] = `
               height={40}
               label="events"
               markers={Array []}
+              minHeights={
+                Array [
+                  0,
+                  0,
+                  4,
+                ]
+              }
               points={
                 Array [
                   Object {
@@ -558,10 +574,11 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-0"
                           >
                             <rect
-                              height="100%"
+                              height="105%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="0%"
+                              y="-5%"
                             />
                           </clipPath>
                           <g
@@ -570,31 +587,31 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="1%"
+                              height="0%"
                               key="0"
                               width="50%"
                               x="0%"
-                              y="99%"
+                              y="100%"
                             >
                               0
                             </rect>
                             <rect
                               className="environment barchart-rect"
-                              height="1%"
+                              height="0.81%"
                               key="1"
                               width="50%"
                               x="0%"
-                              y="98%"
+                              y="99.19%"
                             >
                               1
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="1%"
+                              height="4%"
                               key="2"
                               width="50%"
                               x="0%"
-                              y="97%"
+                              y="95.19%"
                             >
                               0
                             </rect>
@@ -626,10 +643,11 @@ exports[`GroupReleaseStats renders 1`] = `
                             id="path-50-1"
                           >
                             <rect
-                              height="100%"
+                              height="105%"
                               transform="translate(-2, 0)"
                               width="50%"
                               x="50%"
+                              y="-5%"
                             />
                           </clipPath>
                           <g
@@ -638,11 +656,11 @@ exports[`GroupReleaseStats renders 1`] = `
                           >
                             <rect
                               className="release barchart-rect"
-                              height="1%"
+                              height="0%"
                               key="0"
                               width="50%"
                               x="50%"
-                              y="99%"
+                              y="100%"
                             >
                               0
                             </rect>
@@ -652,17 +670,17 @@ exports[`GroupReleaseStats renders 1`] = `
                               key="1"
                               width="50%"
                               x="50%"
-                              y="0%"
+                              y="1%"
                             >
                               122
                             </rect>
                             <rect
                               className="inactive barchart-rect"
-                              height="1%"
+                              height="4%"
                               key="2"
                               width="50%"
                               x="50%"
-                              y="-1%"
+                              y="-3%"
                             >
                               0
                             </rect>

@@ -317,7 +317,8 @@ class StackedBarChart extends React.Component {
             <rect
               x={index * pointWidth + '%'}
               width={pointWidth + '%'}
-              height="100%"
+              height="105%"
+              y="-5%"
               transform={`translate(-${this.props.gap}, 0)`}
             />
           </clipPath>

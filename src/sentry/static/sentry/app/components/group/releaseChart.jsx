@@ -149,6 +149,7 @@ const GroupReleaseChart = createReactClass({
           markers={markers}
           barClasses={['release', 'environment', 'inactive']}
           tooltip={this.renderTooltip}
+          minHeights={[0, 0, 4]}
         />
       </div>
     );
