@@ -148,6 +148,23 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         return attrs
 
+    def validate_relayPiiConfig(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_relays = features.has('organizations:relay',
+                                  organization,
+                                  actor=request.user)
+        if not has_relays:
+            raise serializers.ValidationError(
+                'Organization does not have the relay feature enabled'
+            )
+        return attrs
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
