@@ -179,8 +179,8 @@ const LoadingCard = styled('div')`
 `;
 
 const StyledIdBadge = styled(IdBadge)`
-  white-space: nowrap;
   overflow: hidden;
+  white-space: nowrap;
 `;
 
 export {ProjectCard};

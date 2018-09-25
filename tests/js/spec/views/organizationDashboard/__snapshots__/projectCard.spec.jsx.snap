@@ -102,7 +102,7 @@ exports[`ProjectCard renders 1`] = `
                 >
                   <IdBadge
                     avatarSize={24}
-                    className="css-7zhm7y-StyledIdBadge efesc7i6"
+                    className="css-1gy4gs4-StyledIdBadge efesc7i6"
                     displayName={
                       <span>
                         project-slug
@@ -142,7 +142,7 @@ exports[`ProjectCard renders 1`] = `
                       >
                         <ProjectBadge
                           avatarSize={24}
-                          className="css-7zhm7y-StyledIdBadge efesc7i6"
+                          className="css-1gy4gs4-StyledIdBadge efesc7i6"
                           displayName={
                             <span>
                               project-slug
@@ -178,7 +178,7 @@ exports[`ProjectCard renders 1`] = `
                           <BaseBadge
                             avatarProps={Object {}}
                             avatarSize={24}
-                            className="css-7zhm7y-StyledIdBadge efesc7i6"
+                            className="css-1gy4gs4-StyledIdBadge efesc7i6"
                             displayName={
                               <span>
                                 project-slug
@@ -212,14 +212,14 @@ exports[`ProjectCard renders 1`] = `
                           >
                             <Flex
                               align="center"
-                              className="css-7zhm7y-StyledIdBadge efesc7i6"
+                              className="css-1gy4gs4-StyledIdBadge efesc7i6"
                             >
                               <Base
                                 align="center"
-                                className="efesc7i6 css-16xfyz0-StyledIdBadge"
+                                className="efesc7i6 css-v2wlq8-StyledIdBadge"
                               >
                                 <div
-                                  className="efesc7i6 css-16xfyz0-StyledIdBadge"
+                                  className="efesc7i6 css-v2wlq8-StyledIdBadge"
                                   is={null}
                                 >
                                   <StyledAvatar
@@ -328,7 +328,7 @@ exports[`ProjectCard renders 1`] = `
                                             size={24}
                                           >
                                             <div
-                                              className="css-zaq10o-PlatformIcons ezvce7z0"
+                                              className="css-12u7e6y-PlatformIcons ezvce7z0"
                                               direction="right"
                                               max={3}
                                               size={24}
@@ -372,19 +372,24 @@ exports[`ProjectCard renders 1`] = `
                                   </StyledAvatar>
                                   <DisplayNameAndDescription>
                                     <Base
-                                      className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                     >
                                       <div
-                                        className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                        className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                         is={null}
                                       >
-                                        <div
+                                        <DisplayName
                                           data-test-id="badge-display-name"
                                         >
-                                          <span>
-                                            project-slug
+                                          <span
+                                            className="css-1wwlq08-DisplayName e165dl3i2"
+                                            data-test-id="badge-display-name"
+                                          >
+                                            <span>
+                                              project-slug
+                                            </span>
                                           </span>
-                                        </div>
+                                        </DisplayName>
                                       </div>
                                     </Base>
                                   </DisplayNameAndDescription>

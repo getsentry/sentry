@@ -79,7 +79,9 @@ class BaseBadge extends React.Component {
         )}
 
         <DisplayNameAndDescription>
-          {!hideName && <div data-test-id="badge-display-name">{displayName}</div>}
+          {!hideName && (
+            <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
+          )}
           {!!description && <Description>{description}</Description>}
         </DisplayNameAndDescription>
       </Flex>
@@ -97,6 +99,12 @@ const StyledAvatar = styled(Avatar)`
 const DisplayNameAndDescription = styled(Flex)`
   flex-direction: column;
   line-height: 1;
+  overflow: hidden;
+`;
+
+const DisplayName = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Description = styled('div')`

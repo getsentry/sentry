@@ -523,31 +523,36 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                               >
                                                 <DisplayNameAndDescription>
                                                   <Base
-                                                    className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                                   >
                                                     <div
-                                                      className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                                       is={null}
                                                     >
-                                                      <div
+                                                      <DisplayName
                                                         data-test-id="badge-display-name"
                                                       >
-                                                        <BadgeDisplayName
-                                                          hideOverflow={true}
+                                                        <span
+                                                          className="css-1wwlq08-DisplayName e165dl3i2"
+                                                          data-test-id="badge-display-name"
                                                         >
-                                                          <Component
-                                                            className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                          <BadgeDisplayName
                                                             hideOverflow={true}
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                              hideOverflow={true}
                                                             >
-                                                              #
-                                                              bar
-                                                            </span>
-                                                          </Component>
-                                                        </BadgeDisplayName>
-                                                      </div>
+                                                              <span
+                                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                              >
+                                                                #
+                                                                bar
+                                                              </span>
+                                                            </Component>
+                                                          </BadgeDisplayName>
+                                                        </span>
+                                                      </DisplayName>
                                                     </div>
                                                   </Base>
                                                 </DisplayNameAndDescription>
@@ -671,31 +676,36 @@ exports[`CreateProject should render roles when available and allowed, and handl
                                               >
                                                 <DisplayNameAndDescription>
                                                   <Base
-                                                    className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                    className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                                   >
                                                     <div
-                                                      className="css-1eifx5k-DisplayNameAndDescription e165dl3i1"
+                                                      className="css-1h9j57p-DisplayNameAndDescription e165dl3i1"
                                                       is={null}
                                                     >
-                                                      <div
+                                                      <DisplayName
                                                         data-test-id="badge-display-name"
                                                       >
-                                                        <BadgeDisplayName
-                                                          hideOverflow={true}
+                                                        <span
+                                                          className="css-1wwlq08-DisplayName e165dl3i2"
+                                                          data-test-id="badge-display-name"
                                                         >
-                                                          <Component
-                                                            className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                          <BadgeDisplayName
                                                             hideOverflow={true}
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                              hideOverflow={true}
                                                             >
-                                                              #
-                                                              foo
-                                                            </span>
-                                                          </Component>
-                                                        </BadgeDisplayName>
-                                                      </div>
+                                                              <span
+                                                                className="css-1boiawc-BadgeDisplayName eeoia0v0"
+                                                              >
+                                                                #
+                                                                foo
+                                                              </span>
+                                                            </Component>
+                                                          </BadgeDisplayName>
+                                                        </span>
+                                                      </DisplayName>
                                                     </div>
                                                   </Base>
                                                 </DisplayNameAndDescription>
