@@ -7,23 +7,16 @@ sentry.utils.http
 """
 from __future__ import absolute_import
 
-import sentry
-
-import ipaddress
 import six
-import socket
-import requests
 import warnings
 import time
 import logging
-from ssl import wrap_socket
 
 from sentry import options
 from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from django.conf import settings
-from requests.adapters import HTTPAdapter
-from requests.exceptions import SSLError, RequestException, Timeout, ReadTimeout
+from requests.exceptions import RequestException, Timeout, ReadTimeout
 from six.moves.urllib.parse import urlparse
 
 from sentry.models import EventError
@@ -31,6 +24,10 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.strings import truncatechars
+
+# Importing for backwards compatible API
+from sentry.net.socket import safe_socket_connect, is_valid_url, is_safe_hostname  # NOQA
+from sentry.net.http import SafeSession
 
 logger = logging.getLogger(__name__)
 
@@ -55,15 +52,6 @@ except ImportError:
         pass
 
 
-USER_AGENT = u'sentry/{version} (https://sentry.io)'.format(
-    version=sentry.VERSION,
-)
-
-DISALLOWED_IPS = {
-    ipaddress.ip_network(six.text_type(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
-}
-
-
 class BadSource(Exception):
     error_type = EventError.UNKNOWN_ERROR
 
@@ -81,103 +69,6 @@ class CannotFetch(BadSource):
 
 def get_server_hostname():
     return urlparse(options.get('system.url-prefix')).hostname
-
-
-def is_valid_url(url):
-    """
-    Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
-    """
-    return is_safe_hostname(urlparse(url).hostname)
-
-
-def is_safe_hostname(hostname):
-    """
-    Tests a hostname to ensure it doesn't appear to be a blacklisted IP range.
-    """
-    # If we have no disallowed ips, we can skip any further validation
-    # and there's no point in doing a DNS lookup to validate against
-    # an empty list.
-    if not DISALLOWED_IPS:
-        return True
-
-    if not hostname:
-        return False
-
-    server_hostname = get_server_hostname()
-
-    if hostname == server_hostname:
-        return True
-
-    # NOTE: The use of `socket.gethostbyname` is slightly flawed.
-    # `gethostbyname` doesn't handle octal IP addresses correctly, nor
-    # does it fetch all of the IP addresses for the record.
-    # `getaddrinfo` does the correct thing with octals here, and also returns all
-    # ip addresses for the hostname.
-    #
-    # WARNING: This behavior is only correct on Linux. On OSX, `getaddrinfo` also
-    # returns the wrong IP.
-    #
-    # The following should all technically resolve to `127.0.0.1`:
-    # Python 2.7.11 Linux
-    # >>> socket.gethostbyname('0177.0000.0000.0001')
-    # '177.0.0.1'
-    # >>> socket.getaddrinfo('0177.0000.0000.0001', 0)[0]
-    # (2, 1, 6, '', ('127.0.0.1', 0))
-    # Python 2.7.11 macOS
-    # >>> socket.gethostbyname('0177.0000.0000.0001')
-    # '177.0.0.1'
-    # >>> socket.getaddrinfo('0177.0000.0000.0001', None)[0]
-    # (2, 2, 17, '', ('177.0.0.1', 0))
-    try:
-        ip_addresses = set(addr for _, _, _, _, addr in socket.getaddrinfo(hostname, 0))
-    except socket.gaierror:
-        return False
-
-    for addr in ip_addresses:
-        ip_address = addr[0]
-        if ip_address == server_hostname:
-            return True
-
-        ip_address = ipaddress.ip_address(six.text_type(ip_address))
-        for ip_network in DISALLOWED_IPS:
-            if ip_address in ip_network:
-                return False
-
-    return True
-
-
-class BlacklistAdapter(HTTPAdapter):
-    def send(self, request, *args, **kwargs):
-        if not is_valid_url(request.url):
-            raise RestrictedIPAddress('%s matches the URL blacklist' % (request.url, ))
-        return super(BlacklistAdapter, self).send(request, *args, **kwargs)
-
-
-class Session(requests.Session):
-    def request(self, *args, **kwargs):
-        kwargs.setdefault('timeout', 30)
-        try:
-            response = requests.Session.request(self, *args, **kwargs)
-        # Our version of requests does not transform ZeroReturnError into an
-        # appropriately generically catchable exception
-        except ZeroReturnError as exc:
-            import sys
-            exc_tb = sys.exc_info()[2]
-            six.reraise(SSLError, exc, exc_tb)
-            del exc_tb
-        # requests' attempts to use chardet internally when no encoding is found
-        # and we want to avoid that slow behavior
-        if not response.encoding:
-            response.encoding = 'utf-8'
-        return response
-
-
-class SafeSession(Session):
-    def __init__(self):
-        requests.Session.__init__(self)
-        self.headers.update({'User-Agent': USER_AGENT})
-        self.mount('https://', BlacklistAdapter())
-        self.mount('http://', BlacklistAdapter())
 
 
 build_session = SafeSession
@@ -275,7 +166,7 @@ def fetch_file(
 
     logger.debug('Fetching %r from the internet', url)
 
-    http_session = build_session()
+    http_session = SafeSession()
     response = None
 
     try:
@@ -374,18 +265,3 @@ def fetch_file(
             response.close()
 
     return UrlResult(url, result[0], result[1], result[2], result[3])
-
-
-def safe_socket_connect(address, timeout=30, ssl=False):
-    """
-    Creates a socket and connects to address, but prevents connecting to
-    our disallowed IP blocks.
-    """
-    if not is_safe_hostname(address[0]):
-        raise RestrictedIPAddress('%s matches the hostname blacklist' % address[0])
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(timeout)
-    s.connect(address)
-    if not ssl:
-        return s
-    return wrap_socket(s)
