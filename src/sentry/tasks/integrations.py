@@ -21,7 +21,7 @@ logger = logging.getLogger('sentry.tasks.integrations')
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def post_comment(external_issue_id, data, **kwargs):
+def post_comment(external_issue_id, data, user, **kwargs):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
@@ -37,12 +37,13 @@ def post_comment(external_issue_id, data, **kwargs):
     )
     if installation.should_sync('comment'):
         installation.create_comment(
-            external_issue.key, data['text'])
+            external_issue.key, '%s wrote:\n\n%s' % (user.name, data['text']))
         analytics.record(
             'integration.issue.comments.synced',
             provider=integration.provider,
             id=integration.id,
             organization_id=external_issue.organization_id,
+            user_id=user.id,
         )
 
 

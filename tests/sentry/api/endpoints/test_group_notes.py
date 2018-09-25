@@ -211,6 +211,8 @@ class GroupNoteCreateTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
+        self.user.name = 'Sentry Admin'
+        self.user.save()
         self.login_as(user=self.user)
 
         url = u'/api/0/issues/{}/comments/'.format(group.id)
@@ -231,4 +233,5 @@ class GroupNoteCreateTest(APITestCase):
                 assert activity.user == self.user
                 assert activity.group == group
                 assert activity.data == {'text': 'hello world'}
-                mock_create_comment.assert_called_with('APP-123', 'hello world')
+                mock_create_comment.assert_called_with(
+                    'APP-123', 'Sentry Admin wrote:\n\nhello world')
