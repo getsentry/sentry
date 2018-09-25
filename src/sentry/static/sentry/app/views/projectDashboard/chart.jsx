@@ -128,7 +128,6 @@ const ProjectChart = createReactClass({
           markers={markers}
           label="events"
           height={150}
-          gap={2}
           className="standard-barchart"
         />
         <small className="date-legend">
