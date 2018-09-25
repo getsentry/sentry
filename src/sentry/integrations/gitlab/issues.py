@@ -48,7 +48,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
         try:
-            projects = self.get_projects()
+            projects = self.get_repos()
         except ApiError:
             project_choices = [(' ', ' ')]
         else:
@@ -88,22 +88,23 @@ class GitlabIssueBasic(IssueBasicMixin):
                 project=project,
                 data={
                     'title': data['title'],
-                    'body': data['description'],
+                    'description': data['description'],
                 })
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
         return {
-            'key': issue['number'],
+            'key': issue['iid'],
             'title': issue['title'],
-            'description': issue['body'],
-            'url': issue['html_url'],
+            'description': issue['description'],
+            'url': issue['web_url'],
             'project': project,
         }
 
     def get_link_issue_config(self, group, **kwargs):
         try:
-            projects = self.get_projects()
+            # repos are called projects in gitlab
+            projects = self.get_repos()
         except ApiError:
             project_choices = [(' ', ' ')]
         else:
@@ -156,10 +157,10 @@ class GitlabIssueBasic(IssueBasicMixin):
             raise IntegrationError(self.message_from_error(e))
 
         return {
-            'key': issue['number'],
+            'key': issue['iid'],
             'title': issue['title'],
-            'description': issue['body'],
-            'url': issue['html_url'],
+            'description': issue['description'],
+            'url': issue['web_url'],
             'project': project,
         }
 

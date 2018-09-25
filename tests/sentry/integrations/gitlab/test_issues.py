@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import responses
 
 from time import time
 
@@ -90,8 +91,17 @@ class GitlabIssuesTest(APITestCase):
             }
         ]
 
+    @responses.activate
     def test_get_link_issue_config(self):
-        default_project = ' '
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects',
+            json=[{
+                'path_with_namespace': 'project/project',
+                'id': 1
+            }],
+        )
+        default_project = 'project/project'
         autocomplete_url = '/extensions/gitlab/search/baz/%d/' % self.installation.model.id
         assert self.installation.get_link_issue_config(self.group) == [
             {
@@ -114,8 +124,45 @@ class GitlabIssuesTest(APITestCase):
             },
         ]
 
+    @responses.activate
     def test_create_issue(self):
-        pass
+        responses.add(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/project%2Fproject/issues',
+            json={'id': 8, 'iid': 1, 'title': 'hello', 'description': 'This is the description',
+                  'web_url': 'https://example.gitlab.com/project/project/issues/1'}
+        )
+        form_data = {
+            'project': 'project/project',
+            'title': 'hello',
+            'description': 'This is the description',
+        }
 
+        assert self.installation.create_issue(form_data) == {
+            'key': 1,
+            'description': 'This is the description',
+            'title': 'hello',
+            'url': 'https://example.gitlab.com/project/project/issues/1',
+            'project': 'project/project',
+        }
+
+    @responses.activate
     def test_link_issue(self):
-        pass
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/projects/project%2Fproject/issues/1',
+            json={'id': 8, 'iid': 1, 'title': 'hello', 'description': 'This is the description',
+                  'web_url': 'https://example.gitlab.com/project/project/issues/1'}
+        )
+        form_data = {
+            'project': 'project/project',
+            'externalIssue': 1,
+        }
+
+        assert self.installation.get_issue(issue_id=1, data=form_data) == {
+            'key': 1,
+            'description': 'This is the description',
+            'title': 'hello',
+            'url': 'https://example.gitlab.com/project/project/issues/1',
+            'project': 'project/project',
+        }
