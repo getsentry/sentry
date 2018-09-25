@@ -7,7 +7,7 @@ from sentry.identity.oauth2 import OAuth2Provider
 def get_user_info(access_token, installation_data):
     session = http.build_session()
     resp = session.get(
-        u'https://{}/api/v4/user'.format(installation_data['url']),
+        u'{}/api/v4/user'.format(installation_data['url']),
         headers={
             'Accept': 'application/json',
             'Authorization': 'Bearer %s' % access_token,
