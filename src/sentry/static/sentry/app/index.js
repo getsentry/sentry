@@ -1,5 +1,6 @@
 /* global module */
 import 'app/utils/emotion-setup';
+import 'babel-polyfill'; // XXX(webpack4): because this was defined in vendor bundle previously
 
 import {AppContainer} from 'react-hot-loader';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -23,7 +24,7 @@ import {metric} from 'app/utils/analytics';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as api from 'app/api';
-import * as il8n from 'app/locale';
+import * as il8n from 'app/locale'; // XXX(webpack4): Currently all locales get bundled, would be good to have this async?
 import plugins from 'app/plugins';
 
 // Used for operational metrics to determine that the application js
@@ -55,6 +56,10 @@ if (module.hot) {
     render(Main);
   });
 }
+
+// XXX(webpack4): this used to be done in layout.html
+window.Raven = Raven;
+window.$ = jQuery;
 
 export default {
   jQuery,

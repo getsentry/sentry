@@ -6,13 +6,13 @@ function convertToDjangoLocaleFormat(language) {
 
 export function getTranslations(language) {
   language = convertToDjangoLocaleFormat(language);
-  return import('sentry-locale/' + language + '/LC_MESSAGES/django.po');
+  return require('sentry-locale/' + language + '/LC_MESSAGES/django.po');
 }
 
 export function translationsExist(language) {
   language = convertToDjangoLocaleFormat(language);
   try {
-    import('sentry-locale/' + language + '/LC_MESSAGES/django.po');
+    require('sentry-locale/' + language + '/LC_MESSAGES/django.po');
   } catch (e) {
     return false;
   }

@@ -96,6 +96,7 @@ process.traceDeprecation = true;
  * Main Webpack config for Sentry React SPA.
  */
 var appConfig = {
+  mode: 'development',
   entry: appEntry,
   context: path.join(__dirname, staticPrefix),
   module: {
@@ -223,13 +224,19 @@ var appConfig = {
   output: {
     path: distPath,
     filename: '[name].js',
-    libraryTarget: 'var',
+    libraryTarget: 'window',
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
   optimization: {
     splitChunks: {
-      chunks: 'all',
+      // chunks: 'async', // 'all' is harder to get working
+      chunks(chunk) {
+        // exclude `my-excluded-chunk`
+        console.log(chunk.name);
+        return chunk.name && !chunk.name.includes('locale');
+        return chunk.name !== 'my-excluded-chunk';
+      },
     },
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-module-eval-source-map',

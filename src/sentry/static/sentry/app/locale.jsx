@@ -24,8 +24,8 @@ export function setLocaleDebug(value) {
 
 let i18n = null;
 
-export async function setLocale(locale) {
-  let translations = await getTranslations(locale);
+export function setLocale(locale) {
+  let translations = getTranslations(locale);
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: function(key) {},
@@ -35,7 +35,11 @@ export async function setLocale(locale) {
   });
 }
 
-setLocale('en');
+if (window.__langaugeCode) {
+  setLocale(window.__languageCode);
+} else {
+  setLocale('en');
+}
 
 function formatForReact(formatString, args) {
   let rv = [];
