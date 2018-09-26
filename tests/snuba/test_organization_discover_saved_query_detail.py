@@ -27,7 +27,7 @@ class OrganizationDiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         model = DiscoverSavedQuery.objects.create(
             organization=self.org, name="Test query", query=query)
 
-        model.add_projects(self.project_ids)
+        model.set_projects(self.project_ids)
 
         self.query_id = model.id
 
