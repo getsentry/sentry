@@ -152,7 +152,7 @@ class Annotated {
     let meta = this.meta;
 
     while (_.isObject(value) && path.length) {
-      let key = String(path.shift());
+      let key = path.shift();
       value = value[key];
       if (_.isObject(meta)) {
         meta = meta[key];
@@ -160,6 +160,24 @@ class Annotated {
     }
 
     return new Annotated(value, meta);
+  }
+
+  raw(...path) {
+    return this.get(...path).value;
+  }
+
+  map(callback) {
+    if (_.isNil(this.value)) {
+      return [];
+    }
+
+    if (!_.isArray(this.value)) {
+      return new Error('');
+    }
+
+    return this.value.map((item, index, ...args) =>
+      callback(this.get(index), index, ...args)
+    );
   }
 
   _getRenderMeta() {
