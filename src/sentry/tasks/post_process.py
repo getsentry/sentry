@@ -66,7 +66,7 @@ def check_event_already_post_processed(event):
         nx=True,
     )
 
-    return not result.value
+    return not result
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
