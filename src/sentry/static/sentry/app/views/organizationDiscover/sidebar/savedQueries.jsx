@@ -1,14 +1,20 @@
 import React from 'react';
-// import PropTypes from 'prop-types';
+import moment from 'moment';
 
 import SentryTypes from 'app/sentryTypes';
 
-import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 
 import {fetchSavedQueries} from '../utils';
-import {Fieldset, SavedQueryList, SavedQueryListItem} from '../styles';
+import {
+  Fieldset,
+  SavedQuery,
+  SavedQueryList,
+  SavedQueryListItem,
+  SavedQueryLink,
+  SavedQueryUpdated,
+} from '../styles';
 
 export default class SavedQueries extends React.Component {
   static propTypes = {
@@ -52,11 +58,18 @@ export default class SavedQueries extends React.Component {
 
     return (
       <SavedQueryList>
-        {data.map(({id, name}) => (
+        {data.map(({id, name, dateUpdated}) => (
           <SavedQueryListItem key={id}>
-            <Link to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
+            <SavedQueryLink
+              to={`/organizations/${organization.slug}/discover/saved/${id}/`}
+            >
               {name}
-            </Link>
+            </SavedQueryLink>
+            <SavedQueryUpdated>
+              {tct('Updated [date] (UTC)', {
+                date: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
+              })}
+            </SavedQueryUpdated>
           </SavedQueryListItem>
         ))}
       </SavedQueryList>
@@ -65,6 +78,6 @@ export default class SavedQueries extends React.Component {
 
   render() {
     const {isLoading} = this.state;
-    return isLoading ? this.renderEmpty() : this.renderList();
+    return <SavedQuery>{isLoading ? this.renderEmpty() : this.renderList()}</SavedQuery>;
   }
 }
