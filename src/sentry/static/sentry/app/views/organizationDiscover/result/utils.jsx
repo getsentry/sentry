@@ -246,3 +246,12 @@ function disableMacros(value) {
 
   return value;
 }
+
+/**
+ * Generate a saved query name based on the current timestamp
+ *
+ * @returns {String}
+ */
+export function generateQueryName() {
+  return `Result - ${moment.utc().format('MMM DD HH:mm:ss')}`;
+}
