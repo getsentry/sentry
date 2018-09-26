@@ -110,6 +110,6 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             query=data['query'],
         )
 
-        model.add_projects(data['project_ids'])
+        model.set_projects(data['project_ids'])
 
         return Response(serialize(model), status=201)
