@@ -97,8 +97,13 @@ describe('GuideStore', function() {
   });
 
   it('should render tip', async function() {
-    data.Guide2.seen = true;
-    GuideStore.onFetchSucceeded(data);
+    GuideStore.onFetchSucceeded({
+      ...data,
+      Guide2: {
+        ...data.Guide2,
+        seen: true,
+      },
+    });
     expect(GuideStore.state.currentGuide).toEqual(null);
     let spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
     GuideStore.onSetActiveOrganization({id: 1, slug: 'org'});
