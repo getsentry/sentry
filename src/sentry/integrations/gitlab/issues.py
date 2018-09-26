@@ -20,31 +20,6 @@ class GitlabIssueBasic(IssueBasicMixin):
             issue_id,
         )
 
-    def after_link_issue(self, external_issue, **kwargs):
-        # data = kwargs['data']
-        # client = self.get_client()
-
-        # project, issue_num = external_issue.key.split('#')
-        # if not project:
-        #     raise IntegrationError('project must be provided')
-
-        # if not issue_num:
-        #     raise IntegrationError('issue number must be provided')
-
-        # comment = data.get('comment')
-        # if comment:
-        #     try:
-        #         client.create_comment(
-        #             project=project,
-        #             issue_id=issue_num,
-        #             data={
-        #                 'body': comment,
-        #             },
-        #         )
-        #     except ApiError as e:
-        #         raise IntegrationError(self.message_from_error(e))
-        pass
-
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
         try:
@@ -99,20 +74,12 @@ class GitlabIssueBasic(IssueBasicMixin):
             'description': issue['description'],
             'url': issue['web_url'],
             'project': project,
+            'metadata': {
+                'display_name': '%s#%s' % (project['path_with_namespace'], issue['id']),
+            }
         }
 
     def get_link_issue_config(self, group, **kwargs):
-        try:
-            # repos are called projects in gitlab
-            projects = self.get_repos()
-        except ApiError:
-            project_choices = [(' ', ' ')]
-        else:
-            project_choices = [(project['identifier'], project['name']) for project in projects]
-
-        params = kwargs.get('params', {})
-        default_project = params.get('project', project_choices[0][0])
-
         org = group.organization
         autocomplete_url = reverse(
             'sentry-extensions-gitlab-search', args=[org.slug, self.model.id],
@@ -120,39 +87,30 @@ class GitlabIssueBasic(IssueBasicMixin):
 
         return [
             {
-                'name': 'project',
-                'label': 'Gitlab Project',
-                'type': 'select',
-                'default': default_project,
-                'defaultLabel': default_project,
-                'url': autocomplete_url,
-                'required': True,
-                'updatesForm': True,
-            },
-            {
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
                 'url': autocomplete_url,
                 'required': True,
+                'updatesForm': True,
             },
         ]
 
     def get_issue(self, issue_id, **kwargs):
         data = kwargs['data']
-        project = data.get('project')
-        issue_num = data.get('externalIssue')
+        project_id, issue_num = data.get('externalIssue').split('#')
         client = self.get_client()
 
-        if not project:
+        if not project_id:
             raise IntegrationError('project must be provided')
 
         if not issue_num:
             raise IntegrationError('issue must be provided')
 
         try:
-            issue = client.get_issue(project, issue_num)
+            issue = client.get_issue(project_id, issue_num)
+            project = client.get_project(project_id)
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
@@ -161,27 +119,13 @@ class GitlabIssueBasic(IssueBasicMixin):
             'title': issue['title'],
             'description': issue['description'],
             'url': issue['web_url'],
-            'project': project,
+            'project': project_id,
+            'metadata': {
+                'display_name': '%s#%s' % (project['path_with_namespace'], issue['id']),
+            }
         }
 
-    def get_allowed_assignees(self, project):
-        client = self.get_client()
-        try:
-            response = client.get_assignees(project)
-        except Exception as e:
-            self.raise_error(e)
-
-        users = tuple((u['login'], u['login']) for u in response)
-
-        return (('', 'Unassigned'), ) + users
-
-    def get_project_issues(self, project):
-        client = self.get_client()
-        try:
-            response = client.get_issues(project)
-        except Exception as e:
-            self.raise_error(e)
-
-        issues = tuple((i['number'], u'#{} {}'.format(i['number'], i['title'])) for i in response)
-
-        return issues
+    def get_issue_display_name(self, external_issue):
+        if external_issue.metadata is None:
+            return ''
+        return external_issue.metadata['display_name']

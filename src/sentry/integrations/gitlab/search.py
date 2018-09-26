@@ -32,10 +32,10 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
             if not query:
                 return Response([])
 
-            response = installation.get_client().search_issues(installation.name, query)
-            return Response(issues=[{
-                'text': '(#%s) %s' % (i['number'], i['title']),
-                'id': i['number']
-            } for i in response.get('items', [])])
+            response = installation.get_client().search_issues(query)
+            return Response([{
+                'label': '(#%s) %s' % (i['id'], i['title']),
+                'value': '%s#%s' % (i['project_id'], i['id'])
+            } for i in response])
 
         return Response(status=400)

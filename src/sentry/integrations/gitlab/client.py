@@ -12,6 +12,7 @@ class GitLabApiClientPath(object):
     group = u'/groups/{group}'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
+    issues_search = u'/issues'
     members = u'/projects/{project}/members'
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
@@ -42,7 +43,7 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
     def metadata(self):
         return self.installation.model.metadata
 
-    def request(self, method, path, data=None, params=None, api_preview=False):
+    def request(self, method, path, data=None, params=None):
         # TODO(lb): Refresh auth
         # self.check_auth(redirect_url=self.oauth_redirect_url)
         access_token = self.identity.data['access_token']
@@ -88,6 +89,15 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
                 project=quote(project, safe='')
             ),
             data=data,
+        )
+
+    def search_issues(self, query):
+        return self.get(
+            GitLabApiClientPath.issues_search,
+            params={
+                'scope': 'all',
+                'search': query
+            }
         )
 
     def create_note(self, project, issue_iid, data):
