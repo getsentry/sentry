@@ -35,7 +35,8 @@ class PipelineAdvancerView(BaseView):
             if pipeline:
                 break
 
-        if provider_id in FORWARD_INSTALL_FOR and request.GET.get('setup_action') == 'install':
+        if provider_id in FORWARD_INSTALL_FOR and request.GET.get(
+                'setup_action') == 'install' and pipeline is None:
             installation_id = request.GET.get('installation_id')
             return self.redirect(reverse('integration-installation', args=[installation_id]))
 
