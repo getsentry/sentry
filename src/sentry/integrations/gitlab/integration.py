@@ -45,22 +45,6 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic):
 
         return GitLabApiClient(self)
 
-    def get_repos(self, query=None):
-        # Note: gitlab projects are the same things as repos everywhere else
-        def get_repo_list(resp):
-            return [{
-                'identifier': repo['path_with_namespace'],
-                'name': repo['path_with_namespace'],
-            } for repo in resp]
-        if not query:
-            resp = self.get_client().get_projects()
-            return get_repo_list(resp)
-
-        # TODO(lb): look up how to search gitlab projects
-        full_query = (u'name~"%s"' % (query)).encode('utf-8')
-        resp = self.get_client().search_projects(self.username, full_query)
-        return get_repo_list(resp)
-
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
