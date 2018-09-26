@@ -213,13 +213,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
+        domain_name = '%s/%s' % (base_url.replace('https://', ''), group['path'])
 
         integration = {
             'name': group['name'],
             'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': group['web_url'].replace('https://', ''),
+                'domain_name': domain_name,
                 'scopes': scopes,
                 'verify_ssl': state['installation_data']['verify_ssl'],
                 'base_url': base_url,

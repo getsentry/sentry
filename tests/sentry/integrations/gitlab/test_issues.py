@@ -22,7 +22,7 @@ class GitlabIssuesTest(APITestCase):
             name='Example Gitlab',
             metadata={
                 'base_url': 'https://example.gitlab.com',
-                'domain_name': 'example.gitlab.com',
+                'domain_name': 'example.gitlab.com/sentry-group',
                 'verify_ssl': False,
             }
         )
@@ -42,11 +42,14 @@ class GitlabIssuesTest(APITestCase):
         self.installation = integration.get_installation(self.organization.id)
 
     def test_make_external_key(self):
+        project_name = 'getsentry/sentry'
+        issue_iid = '7'
+        external_key = '%s#%s' % (project_name, issue_iid)
+        domain_name = self.installation.model.metadata['domain_name']
         data = {
-            'key': '7',
-            'project': 'project/project'
+            'key': external_key,
         }
-        assert self.installation.make_external_key(data) == 'example.gitlab.com:project/project#7'
+        assert self.installation.make_external_key(data) == '%s:%s' % (domain_name, external_key)
 
     def test_get_issue_url(self):
         issue_id = 'example.gitlab.com:project/project#7'
@@ -108,6 +111,7 @@ class GitlabIssuesTest(APITestCase):
         issue_iid = '1'
         project_id = '10'
         project_name = 'getsentry/sentry'
+        key = '%s#%s' % (project_name, issue_iid)
         responses.add(
             responses.POST,
             u'https://example.gitlab.com/api/v4/projects/%s/issues' % project_id,
@@ -126,13 +130,13 @@ class GitlabIssuesTest(APITestCase):
         }
 
         assert self.installation.create_issue(form_data) == {
-            'key': issue_iid,
+            'key': key,
             'description': 'This is the description',
             'title': 'hello',
             'url': 'https://example.gitlab.com/%s/issues/%s' % (project_name, issue_iid),
             'project': project_id,
             'metadata': {
-                'display_name': '%s#%s' % (project_name, issue_iid),
+                'display_name': key,
             }
         }
 
@@ -141,6 +145,7 @@ class GitlabIssuesTest(APITestCase):
         project_id = '12'
         project_name = 'getsentry/sentry'
         issue_iid = '13'
+        key = '%s#%s' % (project_name, issue_iid)
         responses.add(
             responses.GET,
             u'https://example.gitlab.com/api/v4/projects/%s/issues/%s' % (project_id, issue_iid),
@@ -154,12 +159,12 @@ class GitlabIssuesTest(APITestCase):
         )
 
         assert self.installation.get_issue(issue_id='%s#%s' % (project_id, issue_iid), data={}) == {
-            'key': issue_iid,
+            'key': key,
             'description': 'This is the description',
             'title': 'hello',
             'url': 'https://example.gitlab.com/%s/issues/%s' % (project_name, issue_iid),
             'project': project_id,
             'metadata': {
-                'display_name': '%s#%s' % (project_name, issue_iid),
+                'display_name': key,
             }
         }

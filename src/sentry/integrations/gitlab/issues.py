@@ -6,13 +6,15 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
 
+ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r'.+:(.+)#(.+)')
+
 
 class GitlabIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return u'{}:{}#{}'.format(self.model.metadata['domain_name'], data['project'], data['key'])
+        return u'{}:{}'.format(self.model.metadata['domain_name'], data['key'])
 
     def get_issue_url(self, key):
-        match = re.match(r'.+:(.+)#(.+)', key)
+        match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
         project, issue_id = match.group(1), match.group(2)
         return u'{}/{}/issues/{}'.format(
             self.model.metadata['base_url'],
@@ -59,14 +61,15 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
+        project_and_issue_iid = '%s#%s' % (project['path_with_namespace'], issue['iid'])
         return {
-            'key': issue['iid'],
+            'key': project_and_issue_iid,
             'title': issue['title'],
             'description': issue['description'],
             'url': issue['web_url'],
             'project': project_id,
             'metadata': {
-                'display_name': '%s#%s' % (project['path_with_namespace'], issue['iid']),
+                'display_name': project_and_issue_iid,
             }
         }
 
@@ -104,18 +107,17 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
+        project_and_issue_iid = '%s#%s' % (project['path_with_namespace'], issue['iid'])
         return {
-            'key': issue['iid'],
+            'key': project_and_issue_iid,
             'title': issue['title'],
             'description': issue['description'],
             'url': issue['web_url'],
             'project': project_id,
             'metadata': {
-                'display_name': '%s#%s' % (project['path_with_namespace'], issue['iid']),
+                'display_name': project_and_issue_iid,
             }
         }
 
     def get_issue_display_name(self, external_issue):
-        if external_issue.metadata is None:
-            return ''
         return external_issue.metadata['display_name']

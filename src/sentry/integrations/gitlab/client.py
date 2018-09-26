@@ -70,8 +70,8 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_projects(self, query, simple=False):
-        # simple returns limited fields for the project.
-        # Really useful, because we often don't need most of the project infomration
+        # simple param returns limited fields for the project.
+        # Really useful, because we often don't need most of the project information
         return self.get(
             GitLabApiClientPath.projects,
             params={
