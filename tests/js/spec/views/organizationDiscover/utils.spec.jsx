@@ -2,6 +2,7 @@ import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
   getOrderByOptions,
+  parseSavedQuery,
 } from 'app/views/organizationDiscover/utils';
 
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
@@ -68,5 +69,27 @@ describe('getOrderByOptions()', function() {
       {label: 'count asc', value: 'count'},
       {label: 'count desc', value: '-count'},
     ]);
+  });
+});
+
+describe('parseSavedQuery', function() {
+  it('strips metadata', function() {
+    const queryFromApi = {
+      id: '1',
+      name: 'Test query',
+      dateCreated: '2018-09-25T00:14:04.914Z',
+      dateUpdated: '2018-09-25T00:14:04.914Z',
+      fields: [],
+      projects: [],
+      conditions: [],
+      limit: 10,
+    };
+
+    expect(parseSavedQuery(queryFromApi)).toEqual({
+      fields: [],
+      projects: [],
+      conditions: [],
+      limit: 10,
+    });
   });
 });

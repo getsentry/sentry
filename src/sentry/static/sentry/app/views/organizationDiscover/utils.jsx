@@ -70,6 +70,28 @@ export function getOrderByOptions(queryBuilder) {
   return [...columnOptions, ...aggregationOptions];
 }
 
+/**
+ * Takes a saved query and strips associated query metadata in order to match
+ * our internal representation of queries.
+ *
+ * @param {Object} savedQuery
+ * @returns {Object}
+ */
+export function parseSavedQuery(savedQuery) {
+  // eslint-disable-next-line no-unused-vars
+  const {id, name, dateCreated, dateUpdated, createdBy, ...query} = savedQuery;
+  return query;
+}
+
+export function fetchSavedQuery(organization, queryId) {
+  const api = new Client();
+  const endpoint = `/organizations/${organization.slug}/discover/saved/${queryId}/`;
+
+  return api.requestPromise(endpoint, {
+    method: 'GET',
+  });
+}
+
 export function fetchSavedQueries(organization) {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/`;
@@ -79,7 +101,7 @@ export function fetchSavedQueries(organization) {
   });
 }
 
-export function createQuery(organization, data) {
+export function createSavedQuery(organization, data) {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/`;
 
@@ -89,12 +111,21 @@ export function createQuery(organization, data) {
   });
 }
 
-export function updateQuery(organization, id, data) {
+export function updateSavedQuery(organization, id, data) {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/${id}/`;
 
   return api.requestPromise(endpoint, {
-    method: 'POST',
+    method: 'PUT',
     data,
+  });
+}
+
+export function deleteSavedQuery(organization, id) {
+  const api = new Client();
+  const endpoint = `/organizations/${organization.slug}/discover/saved/${id}/`;
+
+  return api.requestPromise(endpoint, {
+    method: 'DELETE',
   });
 }
