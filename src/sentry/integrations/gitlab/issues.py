@@ -89,8 +89,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         ]
 
     def get_issue(self, issue_id, **kwargs):
-        data = kwargs['data']
-        project_id, issue_num = data.get('externalIssue').split('#')
+        project_id, issue_num = issue_id.split('#')
         client = self.get_client()
 
         if not project_id:

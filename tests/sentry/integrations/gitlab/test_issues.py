@@ -68,9 +68,7 @@ class GitlabIssuesTest(APITestCase):
                 'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
                 'updatesForm': True,
                 'name': 'project',
-                'default': ' ',
                 'required': True,
-                'defaultLabel': ' ',
                 'type': 'select',
                 'label': 'Gitlab Project'
             },
@@ -93,76 +91,75 @@ class GitlabIssuesTest(APITestCase):
 
     @responses.activate
     def test_get_link_issue_config(self):
-        responses.add(
-            responses.GET,
-            'https://example.gitlab.com/api/v4/projects',
-            json=[{
-                'path_with_namespace': 'project/project',
-                'id': 1
-            }],
-        )
-        default_project = 'project/project'
-        autocomplete_url = '/extensions/gitlab/search/baz/%d/' % self.installation.model.id
         assert self.installation.get_link_issue_config(self.group) == [
-            {
-                'name': 'project',
-                'label': 'Gitlab Project',
-                'type': 'select',
-                'default': default_project,
-                'defaultLabel': default_project,
-                'url': autocomplete_url,
-                'required': True,
-                'updatesForm': True,
-            },
             {
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
-                'url': autocomplete_url,
+                'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
                 'required': True,
+                'updatesForm': True,
             },
         ]
 
     @responses.activate
     def test_create_issue(self):
+        issue_iid = '1'
+        project_id = '10'
+        project_name = 'getsentry/sentry'
         responses.add(
             responses.POST,
-            u'https://example.gitlab.com/api/v4/projects/project%2Fproject/issues',
-            json={'id': 8, 'iid': 1, 'title': 'hello', 'description': 'This is the description',
-                  'web_url': 'https://example.gitlab.com/project/project/issues/1'}
+            u'https://example.gitlab.com/api/v4/projects/%s/issues' % project_id,
+            json={'id': 8, 'iid': issue_iid, 'title': 'hello', 'description': 'This is the description',
+                  'web_url': 'https://example.gitlab.com/%s/issues/%s' % (project_name, issue_iid)}
+        )
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/projects/%s' % project_id,
+            json={'path_with_namespace': project_name}
         )
         form_data = {
-            'project': 'project/project',
+            'project': project_id,
             'title': 'hello',
             'description': 'This is the description',
         }
 
         assert self.installation.create_issue(form_data) == {
-            'key': 1,
+            'key': issue_iid,
             'description': 'This is the description',
             'title': 'hello',
-            'url': 'https://example.gitlab.com/project/project/issues/1',
-            'project': 'project/project',
+            'url': 'https://example.gitlab.com/%s/issues/%s' % (project_name, issue_iid),
+            'project': project_id,
+            'metadata': {
+                'display_name': '%s#%s' % (project_name, issue_iid),
+            }
         }
 
     @responses.activate
-    def test_link_issue(self):
+    def test_get_issue(self):
+        project_id = '12'
+        project_name = 'getsentry/sentry'
+        issue_iid = '13'
         responses.add(
             responses.GET,
-            u'https://example.gitlab.com/api/v4/projects/project%2Fproject/issues/1',
-            json={'id': 8, 'iid': 1, 'title': 'hello', 'description': 'This is the description',
-                  'web_url': 'https://example.gitlab.com/project/project/issues/1'}
+            u'https://example.gitlab.com/api/v4/projects/%s/issues/%s' % (project_id, issue_iid),
+            json={'id': 18, 'iid': issue_iid, 'title': 'hello', 'description': 'This is the description',
+                  'web_url': 'https://example.gitlab.com/%s/issues/%s' % (project_name, issue_iid)}
         )
-        form_data = {
-            'project': 'project/project',
-            'externalIssue': 1,
-        }
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/projects/%s' % project_id,
+            json={'path_with_namespace': project_name}
+        )
 
-        assert self.installation.get_issue(issue_id=1, data=form_data) == {
-            'key': 1,
+        assert self.installation.get_issue(issue_id='%s#%s' % (project_id, issue_iid), data={}) == {
+            'key': issue_iid,
             'description': 'This is the description',
             'title': 'hello',
-            'url': 'https://example.gitlab.com/project/project/issues/1',
-            'project': 'project/project',
+            'url': 'https://example.gitlab.com/%s/issues/%s' % (project_name, issue_iid),
+            'project': project_id,
+            'metadata': {
+                'display_name': '%s#%s' % (project_name, issue_iid),
+            }
         }
