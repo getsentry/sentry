@@ -5,11 +5,16 @@ import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
 
-import Panel from 'app/components/panels/panel';
+import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
+import Link from 'app/components/link';
+
+const FOOTER_HEIGHT = 87;
+const HEADER_HEIGHT = 60;
+const TABS_HEIGHT = 55;
 
 export const Discover = styled(Flex)`
-  min-height: calc(100vh - 87px); /* 100% viewport height - footer height */
+  min-height: calc(100vh - ${FOOTER_HEIGHT}px);
 
   margin-bottom: -20px;
 
@@ -27,10 +32,11 @@ export const PageTitle = styled.h2`
   align-items: center;
   padding-left: 30px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  height: 60px;
+  height: ${HEADER_HEIGHT}px;
 `;
 
-export const Sidebar = styled(Box)`
+export const Sidebar = styled(Flex)`
+  flex-direction: column;
   border-right: 1px solid ${p => p.theme.borderDark};
   width: 320px;
 `;
@@ -46,11 +52,12 @@ export const BodyContent = styled(Flex)`
 export const TopBar = styled(Flex)`
   padding: 0 ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  height: 60px;
+  height: ${HEADER_HEIGHT}px;
 `;
 
 export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
   padding: 20px 30px 0;
+  margin: 0;
 `;
 
 export const PlaceholderText = styled.div`
@@ -126,12 +133,26 @@ export const ChartNote = styled(Box)`
   margin-bottom: ${space(3)};
 `;
 
-export const SavedQueryList = styled('ul')`
-  list-style-type: none;
-  padding: 0;
+export const SavedQuery = styled(Box)`
+  height: calc(100vh - ${FOOTER_HEIGHT + HEADER_HEIGHT + TABS_HEIGHT}px);
+  overflow: scroll;
 `;
 
-export const SavedQueryListItem = styled('li')`
-  padding: ${space(3)} ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.borderLighter};
+export const SavedQueryList = styled(Panel)`
+  margin: 0;
+  border: 0;
+`;
+
+export const SavedQueryListItem = styled(PanelItem)`
+  flex-direction: column;
+  padding: ${space(2)} ${space(4)};
+`;
+
+export const SavedQueryLink = styled(Link)`
+  font-weight: 600;
+`;
+
+export const SavedQueryUpdated = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray6};
 `;
