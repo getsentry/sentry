@@ -100,6 +100,7 @@ class OrganizationStats extends React.Component {
                 className="standard-barchart b-a-0 m-b-0"
                 barClasses={['accepted', 'rate-limited', 'black-listed']}
                 minHeights={[2, 0, 0]}
+                gap={0.25}
                 tooltip={this.renderTooltip}
               />
             </Panel>

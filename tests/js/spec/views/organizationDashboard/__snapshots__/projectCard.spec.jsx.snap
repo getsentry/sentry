@@ -435,6 +435,7 @@ exports[`ProjectCard renders 1`] = `
                 >
                   <div>
                     <StyledBarChart
+                      gap={1.5}
                       height={60}
                       label="events"
                       points={
@@ -452,6 +453,7 @@ exports[`ProjectCard renders 1`] = `
                     >
                       <BarChart
                         className="css-h6aoq0-StyledBarChart e1wib7610"
+                        gap={1.5}
                         height={60}
                         label="events"
                         points={
@@ -474,7 +476,7 @@ exports[`ProjectCard renders 1`] = `
                             ]
                           }
                           className="css-h6aoq0-StyledBarChart e1wib7610"
-                          gap={4}
+                          gap={1.5}
                           height={60}
                           label="events"
                           markers={Array []}
@@ -536,11 +538,10 @@ exports[`ProjectCard renders 1`] = `
                                   className="css-1jg1opr-SvgContainer e5t71582"
                                 >
                                   <StyledSvg
-                                    gap={4}
                                     overflow="visible"
                                   >
                                     <svg
-                                      className="css-j6bjhn-StyledSvg e5t71580"
+                                      className="css-1ob8vbo-StyledSvg e5t71580"
                                       overflow="visible"
                                     >
                                       <Tooltip
@@ -561,36 +562,20 @@ exports[`ProjectCard renders 1`] = `
                                           <rect
                                             height="100%"
                                             opacity="0"
-                                            transform="translate(-4, 0)"
-                                            width="50%"
-                                            x="0%"
+                                            width="52.3%"
+                                            x="-1.5%"
                                           />
-                                          <clipPath
-                                            id="path-50-0"
-                                          >
-                                            <rect
-                                              height="105%"
-                                              transform="translate(-4, 0)"
-                                              width="50%"
-                                              x="0%"
-                                              y="-5%"
-                                            />
-                                          </clipPath>
-                                          <g
-                                            clipPath="url(#path-50-0)"
+                                          <rect
+                                            className="chart-bar barchart-rect"
                                             data-test-id="chart-column"
+                                            height="9.9%"
+                                            key="0"
+                                            width="49.3%"
+                                            x="0%"
+                                            y="90.1%"
                                           >
-                                            <rect
-                                              className="chart-bar barchart-rect"
-                                              height="9.9%"
-                                              key="0"
-                                              width="50%"
-                                              x="0%"
-                                              y="90.1%"
-                                            >
-                                              1
-                                            </rect>
-                                          </g>
+                                            1
+                                          </rect>
                                         </g>
                                       </Tooltip>
                                       <Tooltip
@@ -611,36 +596,20 @@ exports[`ProjectCard renders 1`] = `
                                           <rect
                                             height="100%"
                                             opacity="0"
-                                            transform="translate(-4, 0)"
-                                            width="50%"
-                                            x="50%"
+                                            width="52.3%"
+                                            x="49.3%"
                                           />
-                                          <clipPath
-                                            id="path-50-1"
-                                          >
-                                            <rect
-                                              height="105%"
-                                              transform="translate(-4, 0)"
-                                              width="50%"
-                                              x="50%"
-                                              y="-5%"
-                                            />
-                                          </clipPath>
-                                          <g
-                                            clipPath="url(#path-50-1)"
+                                          <rect
+                                            className="chart-bar barchart-rect"
                                             data-test-id="chart-column"
+                                            height="19.8%"
+                                            key="0"
+                                            width="49.3%"
+                                            x="50.8%"
+                                            y="80.2%"
                                           >
-                                            <rect
-                                              className="chart-bar barchart-rect"
-                                              height="19.8%"
-                                              key="0"
-                                              width="50%"
-                                              x="50%"
-                                              y="80.2%"
-                                            >
-                                              2
-                                            </rect>
-                                          </g>
+                                            2
+                                          </rect>
                                         </g>
                                       </Tooltip>
                                     </svg>

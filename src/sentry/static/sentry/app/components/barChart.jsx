@@ -33,7 +33,7 @@ class BarChart extends React.Component {
       return {x: point.x, y: [point.y]};
     });
     let props = Object.assign({}, this.props, {points});
-    return <StackedBarChart gap={4} {...props} />;
+    return <StackedBarChart {...props} />;
   }
 }
 

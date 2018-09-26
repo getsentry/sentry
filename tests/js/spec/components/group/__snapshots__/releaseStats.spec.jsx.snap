@@ -168,7 +168,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 ]
               }
               className="sparkline"
-              gap={2}
+              gap={0.75}
               height={40}
               label="events"
               markers={Array []}
@@ -176,7 +176,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 Array [
                   0,
                   0,
-                  4,
+                  5,
                 ]
               }
               points={
@@ -242,11 +242,10 @@ exports[`GroupReleaseStats renders 1`] = `
                       className="css-1jg1opr-SvgContainer e5t71582"
                     >
                       <StyledSvg
-                        gap={2}
                         overflow="visible"
                       >
                         <svg
-                          className="css-v8214s-StyledSvg e5t71580"
+                          className="css-1ob8vbo-StyledSvg e5t71580"
                           overflow="visible"
                         >
                           <Tooltip
@@ -267,56 +266,42 @@ exports[`GroupReleaseStats renders 1`] = `
                               <rect
                                 height="100%"
                                 opacity="0"
-                                transform="translate(-2, 0)"
-                                width="50%"
-                                x="0%"
+                                width="51.17%"
+                                x="-0.75%"
                               />
-                              <clipPath
-                                id="path-50-0"
-                              >
-                                <rect
-                                  height="105%"
-                                  transform="translate(-2, 0)"
-                                  width="50%"
-                                  x="0%"
-                                  y="-5%"
-                                />
-                              </clipPath>
-                              <g
-                                clipPath="url(#path-50-0)"
+                              <rect
+                                className="release barchart-rect"
                                 data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="0%"
+                                y="100%"
                               >
-                                <rect
-                                  className="release barchart-rect"
-                                  height="0%"
-                                  key="0"
-                                  width="50%"
-                                  x="0%"
-                                  y="100%"
-                                >
-                                  0
-                                </rect>
-                                <rect
-                                  className="environment barchart-rect"
-                                  height="19.8%"
-                                  key="1"
-                                  width="50%"
-                                  x="0%"
-                                  y="80.2%"
-                                >
-                                  2
-                                </rect>
-                                <rect
-                                  className="inactive barchart-rect"
-                                  height="4%"
-                                  key="2"
-                                  width="50%"
-                                  x="0%"
-                                  y="76.2%"
-                                >
-                                  0
-                                </rect>
-                              </g>
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="19.8%"
+                                key="1"
+                                width="49.67%"
+                                x="0%"
+                                y="80.2%"
+                              >
+                                2
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="0%"
+                                y="75.2%"
+                              >
+                                0
+                              </rect>
                             </g>
                           </Tooltip>
                           <Tooltip
@@ -337,56 +322,42 @@ exports[`GroupReleaseStats renders 1`] = `
                               <rect
                                 height="100%"
                                 opacity="0"
-                                transform="translate(-2, 0)"
-                                width="50%"
-                                x="50%"
+                                width="51.17%"
+                                x="49.67%"
                               />
-                              <clipPath
-                                id="path-50-1"
-                              >
-                                <rect
-                                  height="105%"
-                                  transform="translate(-2, 0)"
-                                  width="50%"
-                                  x="50%"
-                                  y="-5%"
-                                />
-                              </clipPath>
-                              <g
-                                clipPath="url(#path-50-1)"
+                              <rect
+                                className="release barchart-rect"
                                 data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="50.42%"
+                                y="100%"
                               >
-                                <rect
-                                  className="release barchart-rect"
-                                  height="0%"
-                                  key="0"
-                                  width="50%"
-                                  x="50%"
-                                  y="100%"
-                                >
-                                  0
-                                </rect>
-                                <rect
-                                  className="environment barchart-rect"
-                                  height="9.9%"
-                                  key="1"
-                                  width="50%"
-                                  x="50%"
-                                  y="90.1%"
-                                >
-                                  1
-                                </rect>
-                                <rect
-                                  className="inactive barchart-rect"
-                                  height="4%"
-                                  key="2"
-                                  width="50%"
-                                  x="50%"
-                                  y="86.1%"
-                                >
-                                  0
-                                </rect>
-                              </g>
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="9.9%"
+                                key="1"
+                                width="49.67%"
+                                x="50.42%"
+                                y="90.1%"
+                              >
+                                1
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="50.42%"
+                                y="85.1%"
+                              >
+                                0
+                              </rect>
                             </g>
                           </Tooltip>
                         </svg>
@@ -480,7 +451,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 ]
               }
               className="sparkline"
-              gap={2}
+              gap={0.75}
               height={40}
               label="events"
               markers={Array []}
@@ -488,7 +459,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 Array [
                   0,
                   0,
-                  4,
+                  5,
                 ]
               }
               points={
@@ -554,11 +525,10 @@ exports[`GroupReleaseStats renders 1`] = `
                       className="css-1jg1opr-SvgContainer e5t71582"
                     >
                       <StyledSvg
-                        gap={2}
                         overflow="visible"
                       >
                         <svg
-                          className="css-v8214s-StyledSvg e5t71580"
+                          className="css-1ob8vbo-StyledSvg e5t71580"
                           overflow="visible"
                         >
                           <Tooltip
@@ -579,56 +549,42 @@ exports[`GroupReleaseStats renders 1`] = `
                               <rect
                                 height="100%"
                                 opacity="0"
-                                transform="translate(-2, 0)"
-                                width="50%"
-                                x="0%"
+                                width="51.17%"
+                                x="-0.75%"
                               />
-                              <clipPath
-                                id="path-50-0"
-                              >
-                                <rect
-                                  height="105%"
-                                  transform="translate(-2, 0)"
-                                  width="50%"
-                                  x="0%"
-                                  y="-5%"
-                                />
-                              </clipPath>
-                              <g
-                                clipPath="url(#path-50-0)"
+                              <rect
+                                className="release barchart-rect"
                                 data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="0%"
+                                y="100%"
                               >
-                                <rect
-                                  className="release barchart-rect"
-                                  height="0%"
-                                  key="0"
-                                  width="50%"
-                                  x="0%"
-                                  y="100%"
-                                >
-                                  0
-                                </rect>
-                                <rect
-                                  className="environment barchart-rect"
-                                  height="0.81%"
-                                  key="1"
-                                  width="50%"
-                                  x="0%"
-                                  y="99.19%"
-                                >
-                                  1
-                                </rect>
-                                <rect
-                                  className="inactive barchart-rect"
-                                  height="4%"
-                                  key="2"
-                                  width="50%"
-                                  x="0%"
-                                  y="95.19%"
-                                >
-                                  0
-                                </rect>
-                              </g>
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="0.81%"
+                                key="1"
+                                width="49.67%"
+                                x="0%"
+                                y="99.19%"
+                              >
+                                1
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="0%"
+                                y="94.19%"
+                              >
+                                0
+                              </rect>
                             </g>
                           </Tooltip>
                           <Tooltip
@@ -649,56 +605,42 @@ exports[`GroupReleaseStats renders 1`] = `
                               <rect
                                 height="100%"
                                 opacity="0"
-                                transform="translate(-2, 0)"
-                                width="50%"
-                                x="50%"
+                                width="51.17%"
+                                x="49.67%"
                               />
-                              <clipPath
-                                id="path-50-1"
-                              >
-                                <rect
-                                  height="105%"
-                                  transform="translate(-2, 0)"
-                                  width="50%"
-                                  x="50%"
-                                  y="-5%"
-                                />
-                              </clipPath>
-                              <g
-                                clipPath="url(#path-50-1)"
+                              <rect
+                                className="release barchart-rect"
                                 data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="50.42%"
+                                y="100%"
                               >
-                                <rect
-                                  className="release barchart-rect"
-                                  height="0%"
-                                  key="0"
-                                  width="50%"
-                                  x="50%"
-                                  y="100%"
-                                >
-                                  0
-                                </rect>
-                                <rect
-                                  className="environment barchart-rect"
-                                  height="99%"
-                                  key="1"
-                                  width="50%"
-                                  x="50%"
-                                  y="1%"
-                                >
-                                  122
-                                </rect>
-                                <rect
-                                  className="inactive barchart-rect"
-                                  height="4%"
-                                  key="2"
-                                  width="50%"
-                                  x="50%"
-                                  y="-3%"
-                                >
-                                  0
-                                </rect>
-                              </g>
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="99%"
+                                key="1"
+                                width="49.67%"
+                                x="50.42%"
+                                y="1%"
+                              >
+                                122
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="50.42%"
+                                y="-4%"
+                              >
+                                0
+                              </rect>
                             </g>
                           </Tooltip>
                         </svg>

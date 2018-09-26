@@ -55,7 +55,7 @@ class StackedBarChart extends React.Component {
     markers: [],
     width: null,
     barClasses: ['chart-bar'],
-    gap: 2,
+    gap: 0.5,
   };
 
   constructor(props) {
@@ -229,7 +229,7 @@ class StackedBarChart extends React.Component {
           left={index * pointWidth}
           offset={markerOffset || 0}
           viewBox="0 0 10 10"
-          size={12}
+          size={10}
         >
           <circle
             data-test-id="chart-column"
@@ -290,7 +290,8 @@ class StackedBarChart extends React.Component {
           key={i}
           x={index * pointWidth + '%'}
           y={100.0 - pct - prevPct + '%'}
-          width={pointWidth + '%'}
+          width={pointWidth - this.props.gap + '%'}
+          data-test-id="chart-column"
           height={pct + '%'}
           fill={this.state.series[i].color}
           className={cx(this.props.barClasses[i], 'barchart-rect')}
@@ -304,7 +305,6 @@ class StackedBarChart extends React.Component {
 
     let pointIdx = point.x;
     let tooltipFunc = this.props.tooltip || this.renderTooltip;
-    let maskId = `path-${pointWidth}-${index}`; /* an ID in SVG is global just like html. */
 
     return (
       <Tooltip
@@ -314,24 +314,12 @@ class StackedBarChart extends React.Component {
       >
         <g>
           <rect
-            x={index * pointWidth + '%'}
-            width={pointWidth + '%'}
+            x={index * pointWidth - this.props.gap + '%'}
+            width={pointWidth + this.props.gap + '%'}
             height="100%"
             opacity="0"
-            transform={`translate(-${this.props.gap}, 0)`}
           />
-          <clipPath id={maskId}>
-            <rect
-              x={index * pointWidth + '%'}
-              width={pointWidth + '%'}
-              height="105%"
-              y="-5%"
-              transform={`translate(-${this.props.gap}, 0)`}
-            />
-          </clipPath>
-          <g data-test-id="chart-column" clipPath={`url(#${maskId})`}>
-            {pts}
-          </g>
+          {pts}
         </g>
       </Tooltip>
     );
@@ -340,7 +328,7 @@ class StackedBarChart extends React.Component {
   renderChart() {
     let {pointIndex, series} = this.state;
     let totalPoints = Math.max(...series.map(s => s.data.length));
-    let pointWidth = this.floatFormat(100.0 / totalPoints, 2);
+    let pointWidth = this.floatFormat((100.0 + this.props.gap + 0.1) / totalPoints, 2);
 
     let maxval = this.maxPointValue();
     let markers = this.props.markers.slice();
@@ -379,9 +367,7 @@ class StackedBarChart extends React.Component {
 
     return (
       <SvgContainer>
-        <StyledSvg gap={this.props.gap} overflow="visible">
-          {children}
-        </StyledSvg>
+        <StyledSvg overflow="visible">{children}</StyledSvg>
         {markerChildren.length ? markerChildren : null}
       </SvgContainer>
     );
@@ -405,7 +391,7 @@ class StackedBarChart extends React.Component {
 }
 
 const StyledSvg = styled('svg')`
-  width: calc(100% + ${p => p.gap}px);
+  width: 100%;
   height: 100%;
   overflow: visible !important; /* overrides global declaration */
 `;
@@ -430,6 +416,10 @@ const CircleSvg = styled('svg')`
   bottom: -${p => p.size / 2}px;
   transform: translate(${p => (p.offset || 0) - p.size / 2}px, 0);
   left: ${p => p.left}%;
+
+  &:hover circle {
+    fill: ${p => p.theme.purple};
+  }
 `;
 
 export default StackedBarChart;
