@@ -156,6 +156,10 @@ describe('Utils', function() {
         input: ['one', 'two', 'three'],
         expectedText: '["one","two","three"]',
       },
+      {
+        input: 1000000,
+        expectedText: '1,000,000',
+      },
     ];
 
     testData.forEach(({input, expectedText}) => {
@@ -177,6 +181,10 @@ describe('Utils', function() {
       {
         input: ['one', 'two', 'three'],
         expectedText: '["one","two","three"]',
+      },
+      {
+        input: 1000000,
+        expectedText: '1,000,000',
       },
     ];
 
