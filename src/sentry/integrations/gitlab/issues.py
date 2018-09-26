@@ -22,15 +22,7 @@ class GitlabIssueBasic(IssueBasicMixin):
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
-        try:
-            projects = self.get_repos()
-        except ApiError:
-            project_choices = [(' ', ' ')]
-        else:
-            project_choices = [(project['identifier'], project['name']) for project in projects]
-
-        params = kwargs.get('params', {})
-        default_project = params.get('project', project_choices[0][0])
+        # TODO(lb): Add Default Project Functionality when avaliable
 
         org = group.organization
         autocomplete_url = reverse(
@@ -42,8 +34,6 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'name': 'project',
                 'label': 'Gitlab Project',
                 'type': 'select',
-                'default': default_project,
-                'defaultLabel': default_project,
                 'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
@@ -53,18 +43,19 @@ class GitlabIssueBasic(IssueBasicMixin):
     def create_issue(self, data, **kwargs):
         client = self.get_client()
 
-        project = data.get('project')
+        project_id = data.get('project')
 
-        if not project:
+        if not project_id:
             raise IntegrationError('project kwarg must be provided')
 
         try:
             issue = client.create_issue(
-                project=project,
+                project=project_id,
                 data={
                     'title': data['title'],
                     'description': data['description'],
                 })
+            project = client.get_project(project_id)
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
@@ -73,7 +64,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             'title': issue['title'],
             'description': issue['description'],
             'url': issue['web_url'],
-            'project': project,
+            'project': project_id,
             'metadata': {
                 'display_name': '%s#%s' % (project['path_with_namespace'], issue['iid']),
             }

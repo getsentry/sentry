@@ -69,8 +69,16 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             )
         )
 
-    def get_projects(self):
-        return self.get(GitLabApiClientPath.projects)
+    def get_projects(self, query, simple=False):
+        # simple returns limited fields for the project.
+        # Really useful, because we often don't need most of the project infomration
+        return self.get(
+            GitLabApiClientPath.projects,
+            params={
+                'search': query,
+                'simple': simple,
+            }
+        )
 
     def get_issue(self, project, issue_id):
         try:

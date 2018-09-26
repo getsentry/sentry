@@ -38,4 +38,14 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
                 'value': '%s#%s' % (i['project_id'], i['iid'])
             } for i in response])
 
+        if field == 'project':
+            if not query:
+                return Response([])
+
+            response = installation.get_client().get_projects(query=query, simple=True)
+            return Response([{
+                'label': project['name_with_namespace'],
+                'value': project['path_with_namespace'],
+            } for project in response])
+
         return Response(status=400)
