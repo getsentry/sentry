@@ -69,6 +69,7 @@ const getOverlapWidth = size => Math.round(size / 4);
 const PlatformIcons = styled('div')`
   margin-right: ${space(0.5)};
   display: flex;
+  flex-shrink: 0;
   flex-direction: row;
   justify-content: ${p => (p.direction === 'right' ? 'flex-end' : 'flex-start')};
   ${p =>

@@ -182,4 +182,10 @@
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
+
+  if (!lazy) {
+    setTimeout(function() {
+      injectSdk(onLoadCallback);
+    });
+  }
 })(window, document, "script", "onerror", "onunhandledrejection", "Sentry", "{{ publicKey|safe }}", "{{ jsSdkUrl|safe }}", {{ config|to_json|safe }});

@@ -94,6 +94,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
+    relayPiiConfig = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
@@ -144,6 +145,23 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if other is not None:
             raise serializers.ValidationError(
                 'Another project (%s) is already using that slug' % other.name
+            )
+        return attrs
+
+    def validate_relayPiiConfig(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_relays = features.has('organizations:relay',
+                                  organization,
+                                  actor=request.user)
+        if not has_relays:
+            raise serializers.ValidationError(
+                'Organization does not have the relay feature enabled'
             )
         return attrs
 
@@ -353,6 +371,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('storeCrashReports') is not None:
             if project.update_option('sentry:store_crash_reports', result['storeCrashReports']):
                 changed_proj_settings['sentry:store_crash_reports'] = result['storeCrashReports']
+        if result.get('relayPiiConfig') is not None:
+            if project.update_option('sentry:relay_pii_config', result['relayPiiConfig']):
+                changed_proj_settings['sentry:relay_pii_config'] = result['relayPiiConfig'].strip(
+                ) or None
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')
@@ -408,6 +430,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'sentry:store_crash_reports' in options:
                 project.update_option('sentry:store_crash_reports', bool(
                     options['sentry:store_crash_reports']))
+            if 'sentry:relay_pii_config' in options:
+                project.update_option('sentry:relay_pii_config',
+                                      options['sentry:relay_pii_config'].strip() or None)
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',

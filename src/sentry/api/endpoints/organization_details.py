@@ -12,8 +12,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializer)
+from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.providers.saml2 import SAML2Provider
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
@@ -30,16 +29,20 @@ ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
 ERR_NO_USER = 'This request requires an authenticated user.'
 
 ORG_OPTIONS = (
-    # serializer field name, option key name, type
-    ('projectRateLimit', 'sentry:project-rate-limit', int),
-    ('accountRateLimit', 'sentry:account-rate-limit', int),
-    ('dataScrubber', 'sentry:require_scrub_data', bool),
-    ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool),
-    ('sensitiveFields', 'sentry:sensitive_fields', list),
-    ('safeFields', 'sentry:safe_fields', list),
-    ('storeCrashReports', 'sentry:store_crash_reports', bool),
-    ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
-    ('scrapeJavaScript', 'sentry:scrape_javascript', bool),
+    # serializer field name, option key name, type, default value
+    ('projectRateLimit', 'sentry:project-rate-limit', int, org_serializers.PROJECT_RATE_LIMIT_DEFAULT),
+    ('accountRateLimit', 'sentry:account-rate-limit', int, org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT),
+    ('dataScrubber', 'sentry:require_scrub_data', bool, org_serializers.REQUIRE_SCRUB_DATA_DEFAULT),
+    ('sensitiveFields', 'sentry:sensitive_fields', list, org_serializers.SENSITIVE_FIELDS_DEFAULT),
+    ('safeFields', 'sentry:safe_fields', list, org_serializers.SAFE_FIELDS_DEFAULT),
+    ('scrapeJavaScript', 'sentry:scrape_javascript', bool, org_serializers.SCRAPE_JAVASCRIPT_DEFAULT),
+    ('dataScrubberDefaults', 'sentry:require_scrub_defaults',
+     bool, org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT),
+    ('storeCrashReports', 'sentry:store_crash_reports',
+     bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
+    ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
+     bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
+    ('trustedRelays', 'sentry:trusted-relays', list, org_serializers.TRUSTED_RELAYS_DEFAULT),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -92,6 +95,7 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    trustedRelays = ListField(child=serializers.CharField(), required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -154,6 +158,23 @@ class OrganizationSerializer(serializers.Serializer):
                 'Cannot require two-factor authentication with SAML SSO enabled')
         return attrs
 
+    def validate_trustedRelays(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+
+        organization = self.context['organization']
+        request = self.context["request"]
+        has_relays = features.has('organizations:relay',
+                                  organization,
+                                  actor=request.user)
+        if not has_relays:
+            raise serializers.ValidationError(
+                'Organization does not have the relay feature enabled'
+            )
+        return attrs
+
     def validate_accountRateLimit(self, attrs, source):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
@@ -185,7 +206,7 @@ class OrganizationSerializer(serializers.Serializer):
         org = self.context['organization']
         changed_data = {}
 
-        for key, option, type_ in ORG_OPTIONS:
+        for key, option, type_, default_value in ORG_OPTIONS:
             if key not in self.init_data:
                 continue
             try:
@@ -197,10 +218,8 @@ class OrganizationSerializer(serializers.Serializer):
                     key=option,
                     value=type_(self.init_data[key]),
                 )
-                # TODO(kelly): This will not work if new ORG_OPTIONS are added and their
-                # default value evaluates as truthy, but this should work for now with the
-                # current ORG_OPTIONS (assumes ORG_OPTIONS are falsy)
-                if type_(self.init_data[key]):
+
+                if self.init_data[key] != default_value:
                     changed_data[key] = u'to {}'.format(self.init_data[key])
             else:
                 option_inst.value = self.init_data[key]
@@ -297,7 +316,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializer(),
         )
         return self.respond(context)
 
@@ -351,7 +370,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'model': Organization.__name__,
                     }
                 )
-            else:
+            elif changed_data:
                 self.create_audit_entry(
                     request=request,
                     organization=organization,
@@ -364,7 +383,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 serialize(
                     organization,
                     request.user,
-                    DetailedOrganizationSerializer(),
+                    org_serializers.DetailedOrganizationSerializer(),
                 )
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -434,6 +453,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializer(),
         )
         return self.respond(context, status=202)

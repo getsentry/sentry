@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from django.conf import settings
 from mock import Mock, patch
 from raven.contrib.django.models import client
 from raven.base import Client
@@ -16,9 +17,11 @@ class SentryInternalClientTest(TestCase):
         assert client.__class__ is SentryInternalClient
 
         with self.tasks():
-            client.captureMessage('internal client test')
+            event_id = client.captureMessage('internal client test')
 
         event = Event.objects.get()
+        assert event.project_id == settings.SENTRY_PROJECT
+        assert event.event_id == event_id
         assert event.data['sentry.interfaces.Message']['message'] == \
             'internal client test'
         assert send.call_count == 0
@@ -29,9 +32,11 @@ class SentryInternalClientTest(TestCase):
         with self.dsn('http://foo:bar@example.com/1'):
             with self.options({'sentry:install-id': 'abc123'}):
                 with self.tasks():
-                    client.captureMessage('internal client test')
+                    event_id = client.captureMessage('internal client test')
 
                 event = Event.objects.get()
+                assert event.project_id == settings.SENTRY_PROJECT
+                assert event.event_id == event_id
                 assert event.data['sentry.interfaces.Message']['message'] == \
                     'internal client test'
 
@@ -59,5 +64,6 @@ class SentryInternalClientTest(TestCase):
             })
 
         event = Event.objects.get()
+        assert event.project_id == settings.SENTRY_PROJECT
         assert event.data['sentry.interfaces.Message']['message'] == 'check the req'
         assert 'NotJSONSerializable' in event.data['extra']['request']

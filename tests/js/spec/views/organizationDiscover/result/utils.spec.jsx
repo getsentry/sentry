@@ -6,6 +6,7 @@ import {
   getDisplayValue,
   getDisplayText,
   downloadAsCsv,
+  generateQueryName,
 } from 'app/views/organizationDiscover/result/utils';
 
 describe('Utils', function() {
@@ -156,6 +157,10 @@ describe('Utils', function() {
         input: ['one', 'two', 'three'],
         expectedText: '["one","two","three"]',
       },
+      {
+        input: 1000000,
+        expectedText: '1,000,000',
+      },
     ];
 
     testData.forEach(({input, expectedText}) => {
@@ -177,6 +182,10 @@ describe('Utils', function() {
       {
         input: ['one', 'two', 'three'],
         expectedText: '["one","two","three"]',
+      },
+      {
+        input: 1000000,
+        expectedText: '1,000,000',
       },
     ];
 
@@ -230,5 +239,9 @@ describe('Utils', function() {
         )
       );
     });
+  });
+
+  it('generateQueryName()', function() {
+    expect(generateQueryName()).toBe('Result - Oct 17 02:41:20');
   });
 });

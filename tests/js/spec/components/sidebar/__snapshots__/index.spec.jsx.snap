@@ -1191,7 +1191,6 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
         </div>
         <div>
           <Button
-            alignLabel="left"
             disabled={false}
             external={true}
             href="https://status.sentry.io"
@@ -1239,32 +1238,17 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     target="_blank"
                   >
                     <ButtonLabel
-                      justify="flex-start"
                       size="small"
                     >
                       <Component
-                        className="css-o42ntg-ButtonLabel eqrebog1"
-                        justify="flex-start"
+                        className="css-7ui8bl-ButtonLabel eqrebog1"
                         size="small"
                       >
-                        <Flex
-                          align="center"
-                          className="css-o42ntg-ButtonLabel eqrebog1"
-                          justify="flex-start"
+                        <span
+                          className="css-7ui8bl-ButtonLabel eqrebog1"
                         >
-                          <Base
-                            align="center"
-                            className="eqrebog1 css-gzxb22-ButtonLabel"
-                            justify="flex-start"
-                          >
-                            <div
-                              className="eqrebog1 css-gzxb22-ButtonLabel"
-                              is={null}
-                            >
-                              Learn more
-                            </div>
-                          </Base>
-                        </Flex>
+                          Learn more
+                        </span>
                       </Component>
                     </ButtonLabel>
                   </a>

@@ -95,7 +95,7 @@ def load_fixture(name):
 
 class AssertHandler(logging.Handler):
     def emit(self, entry):
-        raise AssertionError(entry.message)
+        raise AssertionError(entry.msg)
 
 
 class RavenIntegrationTest(TransactionTestCase):

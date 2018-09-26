@@ -321,7 +321,6 @@ exports[`FormField + model renders with Form 1`] = `
     >
       <Observer>
         <Button
-          alignLabel="left"
           data-test-id="form-submit"
           disabled={false}
           priority="primary"
@@ -357,32 +356,17 @@ exports[`FormField + model renders with Form 1`] = `
                 type="submit"
               >
                 <ButtonLabel
-                  justify="flex-start"
                   priority="primary"
                 >
                   <Component
-                    className="css-1emshjx-ButtonLabel eqrebog1"
-                    justify="flex-start"
+                    className="css-ga4b18-ButtonLabel eqrebog1"
                     priority="primary"
                   >
-                    <Flex
-                      align="center"
-                      className="css-1emshjx-ButtonLabel eqrebog1"
-                      justify="flex-start"
+                    <span
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                     >
-                      <Base
-                        align="center"
-                        className="eqrebog1 css-11rqwwm-ButtonLabel"
-                        justify="flex-start"
-                      >
-                        <div
-                          className="eqrebog1 css-11rqwwm-ButtonLabel"
-                          is={null}
-                        >
-                          Save Changes
-                        </div>
-                      </Base>
-                    </Flex>
+                      Save Changes
+                    </span>
                   </Component>
                 </ButtonLabel>
               </button>

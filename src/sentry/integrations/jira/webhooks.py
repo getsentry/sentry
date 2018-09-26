@@ -28,6 +28,15 @@ class JiraIssueUpdatedWebhook(Endpoint):
                 integration, None, issue_key, assign=False,
             )
         else:
+            if not assignee.get('emailAddress'):
+                logger.info(
+                    'missing-assignee-email', extra={
+                        'issue_key': issue_key,
+                        'integration_id': integration.id,
+                    }
+                )
+                return
+
             sync_group_assignee_inbound(
                 integration, assignee['emailAddress'], issue_key, assign=True,
             )
@@ -41,7 +50,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
             )
         except StopIteration:
             logger.info(
-                'missing-changelog', extra={
+                'missing-changelog-status', extra={
                     'issue_key': issue_key,
                     'integration_id': integration.id,
                 }
@@ -62,7 +71,23 @@ class JiraIssueUpdatedWebhook(Endpoint):
         except (KeyError, IndexError):
             return self.respond(status=400)
 
+        try:
+            integration = get_integration_from_jwt(
+                token, request.path, 'jira', request.GET, method='POST'
+            )
+        except AtlassianConnectValidationError:
+            return self.respond(status=400)
+
         data = request.DATA
+
+        if not data.get('changelog'):
+            logger.info(
+                'missing-changelog', extra={
+                    'integration_id': integration.id,
+                    'data': data,
+                }
+            )
+            return self.respond()
 
         assignee_changed = any(
             item for item in data['changelog']['items'] if item['field'] == 'assignee'
@@ -73,13 +98,6 @@ class JiraIssueUpdatedWebhook(Endpoint):
         )
 
         if assignee_changed or status_changed:
-            try:
-                integration = get_integration_from_jwt(
-                    token, request.path, 'jira', request.GET, method='POST'
-                )
-            except AtlassianConnectValidationError:
-                return self.respond(status=400)
-
             if assignee_changed:
                 self.handle_assignee_change(integration, data)
 

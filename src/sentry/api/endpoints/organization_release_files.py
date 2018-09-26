@@ -58,8 +58,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
     def post(self, request, organization, version):
         """
-        Upload a New File
-        `````````````````
+        Upload a New Organization Release File
+        ``````````````````````````````````````
 
         Upload a new file for the given release.
 
