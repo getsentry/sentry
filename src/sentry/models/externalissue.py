@@ -24,3 +24,7 @@ class ExternalIssue(Model):
         unique_together = (('organization_id', 'integration_id', 'key'), )
 
     __repr__ = sane_repr('organization_id', 'integration_id', 'key')
+
+    @staticmethod
+    def get_delete_lock_key(external_issue_id):
+        return 'external_issue_delete:%s' % external_issue_id

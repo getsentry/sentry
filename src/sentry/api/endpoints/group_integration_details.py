@@ -8,10 +8,12 @@ from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
+from sentry.app import locks
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.signals import integration_issue_created, integration_issue_linked
+from sentry.utils.retries import TimedRetryPolicy
 
 MISSING_FEATURE_MESSAGE = 'Your organization does not have access to this feature.'
 
@@ -264,12 +266,15 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 relationship=GroupLink.Relationship.references,
             ).delete()
 
-            # check if other groups reference this external issue
-            # and delete if not
-            if not GroupLink.objects.filter(
-                linked_type=GroupLink.LinkedType.issue,
-                linked_id=external_issue_id,
-            ).exists():
-                external_issue.delete()
+            lock_key = ExternalIssue.get_delete_lock_key(external_issue.id)
+            lock = locks.get(lock_key, duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
+                # check if other groups reference this external issue
+                # and delete if not
+                if not GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.issue,
+                    linked_id=external_issue.id,
+                ).exists():
+                    external_issue.delete()
 
         return Response(status=204)
