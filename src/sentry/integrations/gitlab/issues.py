@@ -75,7 +75,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             'url': issue['web_url'],
             'project': project,
             'metadata': {
-                'display_name': '%s#%s' % (project['path_with_namespace'], issue['id']),
+                'display_name': '%s#%s' % (project['path_with_namespace'], issue['iid']),
             }
         }
 
@@ -121,7 +121,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             'url': issue['web_url'],
             'project': project_id,
             'metadata': {
-                'display_name': '%s#%s' % (project['path_with_namespace'], issue['id']),
+                'display_name': '%s#%s' % (project['path_with_namespace'], issue['iid']),
             }
         }
 

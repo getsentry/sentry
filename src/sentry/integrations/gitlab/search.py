@@ -34,8 +34,8 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
 
             response = installation.get_client().search_issues(query)
             return Response([{
-                'label': '(#%s) %s' % (i['id'], i['title']),
-                'value': '%s#%s' % (i['project_id'], i['id'])
+                'label': '(#%s) %s' % (i['iid'], i['title']),
+                'value': '%s#%s' % (i['project_id'], i['iid'])
             } for i in response])
 
         return Response(status=400)
