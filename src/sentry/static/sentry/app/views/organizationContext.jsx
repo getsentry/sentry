@@ -12,6 +12,7 @@ import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFoundMachine from 'app/views/notFoundMachine';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
@@ -162,11 +163,9 @@ const OrganizationContext = createReactClass({
       switch (this.state.errorType) {
         case ERROR_TYPES.ORG_NOT_FOUND:
           return (
-            <div className="container">
-              <div className="alert alert-block">
-                {t('The organization you were looking for was not found.')}
-              </div>
-            </div>
+            <NotFoundMachine
+              message={t('The organization you were looking for was not found.')}
+            />
           );
         default:
           return <LoadingError onRetry={this.remountComponent} />;
