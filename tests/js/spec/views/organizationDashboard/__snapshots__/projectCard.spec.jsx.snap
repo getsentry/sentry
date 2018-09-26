@@ -557,6 +557,7 @@ exports[`ProjectCard renders 1`] = `
                                       <rect
                                         height="100%"
                                         opacity="0"
+                                        transform="translate(-4, 0)"
                                         width="50%"
                                         x="0%"
                                       />
@@ -606,6 +607,7 @@ exports[`ProjectCard renders 1`] = `
                                       <rect
                                         height="100%"
                                         opacity="0"
+                                        transform="translate(-4, 0)"
                                         width="50%"
                                         x="50%"
                                       />

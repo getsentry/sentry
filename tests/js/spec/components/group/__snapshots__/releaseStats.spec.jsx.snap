@@ -263,6 +263,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           <rect
                             height="100%"
                             opacity="0"
+                            transform="translate(-2, 0)"
                             width="50%"
                             x="0%"
                           />
@@ -332,6 +333,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           <rect
                             height="100%"
                             opacity="0"
+                            transform="translate(-2, 0)"
                             width="50%"
                             x="50%"
                           />
@@ -567,6 +569,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           <rect
                             height="100%"
                             opacity="0"
+                            transform="translate(-2, 0)"
                             width="50%"
                             x="0%"
                           />
@@ -636,6 +639,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           <rect
                             height="100%"
                             opacity="0"
+                            transform="translate(-2, 0)"
                             width="50%"
                             x="50%"
                           />
