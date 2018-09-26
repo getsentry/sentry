@@ -46,32 +46,32 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 var appEntry = {
   app: ['app'],
   // vendor: [
-    // 'babel-polyfill',
-    // // Yes this is included in prod builds, but has no effect on render and build size in prod
-    // 'react-hot-loader/patch',
-    // 'bootstrap/js/dropdown',
-    // 'bootstrap/js/tab',
-    // 'bootstrap/js/tooltip',
-    // 'bootstrap/js/alert',
-    // 'create-react-class',
-    // 'jed',
-    // 'jquery',
-    // 'marked',
-    // 'moment',
-    // 'moment-timezone',
-    // 'raven-js',
-    // 'react',
-    // 'react-dom',
-    // 'react-dom/server',
-    // 'react-document-title',
-    // 'react-router',
-    // 'react-bootstrap/lib/Modal',
-    // 'reflux',
-    // 'vendor/simple-slider/simple-slider',
-    // 'emotion',
-    // 'react-emotion',
-    // 'grid-emotion',
-    // 'emotion-theming',
+  // 'babel-polyfill',
+  // // Yes this is included in prod builds, but has no effect on render and build size in prod
+  // 'react-hot-loader/patch',
+  // 'bootstrap/js/dropdown',
+  // 'bootstrap/js/tab',
+  // 'bootstrap/js/tooltip',
+  // 'bootstrap/js/alert',
+  // 'create-react-class',
+  // 'jed',
+  // 'jquery',
+  // 'marked',
+  // 'moment',
+  // 'moment-timezone',
+  // 'raven-js',
+  // 'react',
+  // 'react-dom',
+  // 'react-dom/server',
+  // 'react-document-title',
+  // 'react-router',
+  // 'react-bootstrap/lib/Modal',
+  // 'reflux',
+  // 'vendor/simple-slider/simple-slider',
+  // 'emotion',
+  // 'react-emotion',
+  // 'grid-emotion',
+  // 'emotion-theming',
   // ],
 };
 
@@ -172,32 +172,15 @@ var appConfig = {
     ],
   },
   plugins: [
-<<<<<<< HEAD
-    new LodashModuleReplacementPlugin({
-      collections: true,
-      currying: true, // these are enabled to support lodash/fp/ features
-      flattening: true, // used by a dependency of react-mentions
-      shorthands: true,
-    }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
-    }),
-||||||| parent of 8c142a0658... wip: webpack4
-    new LodashModuleReplacementPlugin({
-      collections: true,
-      currying: true, // these are enabled to support lodash/fp/ features
-      flattening: true, // used by a dependency of react-mentions
-    }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
-    }),
-=======
     // new LodashModuleReplacementPlugin({
     // collections: true,
     // currying: true, // these are enabled to support lodash/fp/ features
     // flattening: true, // used by a dependency of react-mentions
+    // shorthands: true,
     // }),
->>>>>>> 8c142a0658... wip: webpack4
+    // new webpack.optimize.CommonsChunkPlugin({
+    // names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
+    // }),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
