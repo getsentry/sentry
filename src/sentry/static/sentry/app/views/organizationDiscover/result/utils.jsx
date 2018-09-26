@@ -157,6 +157,10 @@ export function getDisplayValue(val, idx) {
     return <DarkGray key={idx}>{`"${val}"`}</DarkGray>;
   }
 
+  if (typeof val === 'number') {
+    return <span>{val.toLocaleString()}</span>;
+  }
+
   if (val === null) {
     return <LightGray key={idx}>null</LightGray>;
   }
@@ -192,6 +196,10 @@ export function getDisplayValue(val, idx) {
 export function getDisplayText(val) {
   if (typeof val === 'string') {
     return `"${val}"`;
+  }
+
+  if (typeof val === 'number') {
+    return val.toLocaleString();
   }
 
   if (val === null) {
