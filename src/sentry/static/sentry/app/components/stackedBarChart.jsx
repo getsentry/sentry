@@ -225,18 +225,24 @@ class StackedBarChart extends React.Component {
         key={key}
         tooltipOptions={{html: true, placement: 'bottom', container: 'body'}}
       >
-        <circle
-          data-test-id="chart-column"
-          cx={index * pointWidth + '%'}
-          transform={`translate(${markerOffset || 0}, 0)`}
-          cy="100%"
-          r="4"
-          fill={marker.fill || theme.gray2}
-          stroke="#fff"
-          strokeWidth={2}
+        <CircleSvg
+          left={index * pointWidth}
+          offset={markerOffset || 0}
+          viewBox="0 0 10 10"
+          size={12}
         >
-          {marker.label}
-        </circle>
+          <circle
+            data-test-id="chart-column"
+            r="4"
+            cx="50%"
+            cy="50%"
+            fill={marker.fill || theme.gray2}
+            stroke="#fff"
+            strokeWidth="2"
+          >
+            {marker.label}
+          </circle>
+        </CircleSvg>
       </Tooltip>
     );
   }
@@ -372,12 +378,12 @@ class StackedBarChart extends React.Component {
     });
 
     return (
-      <React.Fragment>
+      <SvgContainer>
         <StyledSvg gap={this.props.gap} overflow="visible">
           {children}
-          {markerChildren.length ? markerChildren : null}
         </StyledSvg>
-      </React.Fragment>
+        {markerChildren.length ? markerChildren : null}
+      </SvgContainer>
     );
   }
 
@@ -387,13 +393,13 @@ class StackedBarChart extends React.Component {
     let maxval = this.maxPointValue();
 
     return (
-      <SvgContainer className={figureClass} style={{height, width, ...style}}>
+      <StyledFigure className={figureClass} style={{height, width, ...style}}>
         <span className="max-y">
           <Count value={maxval} />
         </span>
         <span className="min-y">0</span>
         {this.renderChart()}
-      </SvgContainer>
+      </StyledFigure>
     );
   }
 }
@@ -404,11 +410,26 @@ const StyledSvg = styled('svg')`
   overflow: visible !important; /* overrides global declaration */
 `;
 
-const SvgContainer = styled('figure')`
+const StyledFigure = styled('figure')`
   display: block;
   position: relative;
   width: 100%;
   height: 100%;
+`;
+
+const SvgContainer = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const CircleSvg = styled('svg')`
+  width: ${p => p.size}px;
+  height: ${p => p.size}px;
+  position: absolute;
+  bottom: -${p => p.size / 2}px;
+  transform: translate(${p => (p.offset || 0) - p.size / 2}px, 0);
+  left: ${p => p.left}%;
 `;
 
 export default StackedBarChart;

@@ -497,7 +497,7 @@ exports[`ProjectCard renders 1`] = `
                           series={Array []}
                           width={null}
                         >
-                          <SvgContainer
+                          <StyledFigure
                             className="css-h6aoq0-StyledBarChart e1wib7610 barchart"
                             style={
                               Object {
@@ -507,7 +507,7 @@ exports[`ProjectCard renders 1`] = `
                             }
                           >
                             <figure
-                              className="e1wib7610 barchart css-12vrsos-SvgContainer-StyledBarChart e5t71581"
+                              className="e1wib7610 barchart css-1563gow-StyledFigure-StyledBarChart e5t71581"
                               style={
                                 Object {
                                   "height": 60,
@@ -531,118 +531,124 @@ exports[`ProjectCard renders 1`] = `
                               >
                                 0
                               </span>
-                              <StyledSvg
-                                gap={4}
-                                overflow="visible"
-                              >
-                                <svg
-                                  className="css-j6bjhn-StyledSvg e5t71580"
-                                  overflow="visible"
+                              <SvgContainer>
+                                <div
+                                  className="css-1jg1opr-SvgContainer e5t71582"
                                 >
-                                  <Tooltip
-                                    key="1525042800"
-                                    title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                    tooltipOptions={
-                                      Object {
-                                        "container": "body",
-                                        "html": true,
-                                        "placement": "bottom",
-                                      }
-                                    }
+                                  <StyledSvg
+                                    gap={4}
+                                    overflow="visible"
                                   >
-                                    <g
-                                      className="tip"
-                                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                    <svg
+                                      className="css-j6bjhn-StyledSvg e5t71580"
+                                      overflow="visible"
                                     >
-                                      <rect
-                                        height="100%"
-                                        opacity="0"
-                                        transform="translate(-4, 0)"
-                                        width="50%"
-                                        x="0%"
-                                      />
-                                      <clipPath
-                                        id="path-50-0"
+                                      <Tooltip
+                                        key="1525042800"
+                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                        tooltipOptions={
+                                          Object {
+                                            "container": "body",
+                                            "html": true,
+                                            "placement": "bottom",
+                                          }
+                                        }
                                       >
-                                        <rect
-                                          height="105%"
-                                          transform="translate(-4, 0)"
-                                          width="50%"
-                                          x="0%"
-                                          y="-5%"
-                                        />
-                                      </clipPath>
-                                      <g
-                                        clipPath="url(#path-50-0)"
-                                        data-test-id="chart-column"
-                                      >
-                                        <rect
-                                          className="chart-bar barchart-rect"
-                                          height="9.9%"
-                                          key="0"
-                                          width="50%"
-                                          x="0%"
-                                          y="90.1%"
+                                        <g
+                                          className="tip"
+                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
                                         >
-                                          1
-                                        </rect>
-                                      </g>
-                                    </g>
-                                  </Tooltip>
-                                  <Tooltip
-                                    key="1525046400"
-                                    title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                    tooltipOptions={
-                                      Object {
-                                        "container": "body",
-                                        "html": true,
-                                        "placement": "bottom",
-                                      }
-                                    }
-                                  >
-                                    <g
-                                      className="tip"
-                                      title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                    >
-                                      <rect
-                                        height="100%"
-                                        opacity="0"
-                                        transform="translate(-4, 0)"
-                                        width="50%"
-                                        x="50%"
-                                      />
-                                      <clipPath
-                                        id="path-50-1"
+                                          <rect
+                                            height="100%"
+                                            opacity="0"
+                                            transform="translate(-4, 0)"
+                                            width="50%"
+                                            x="0%"
+                                          />
+                                          <clipPath
+                                            id="path-50-0"
+                                          >
+                                            <rect
+                                              height="105%"
+                                              transform="translate(-4, 0)"
+                                              width="50%"
+                                              x="0%"
+                                              y="-5%"
+                                            />
+                                          </clipPath>
+                                          <g
+                                            clipPath="url(#path-50-0)"
+                                            data-test-id="chart-column"
+                                          >
+                                            <rect
+                                              className="chart-bar barchart-rect"
+                                              height="9.9%"
+                                              key="0"
+                                              width="50%"
+                                              x="0%"
+                                              y="90.1%"
+                                            >
+                                              1
+                                            </rect>
+                                          </g>
+                                        </g>
+                                      </Tooltip>
+                                      <Tooltip
+                                        key="1525046400"
+                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                        tooltipOptions={
+                                          Object {
+                                            "container": "body",
+                                            "html": true,
+                                            "placement": "bottom",
+                                          }
+                                        }
                                       >
-                                        <rect
-                                          height="105%"
-                                          transform="translate(-4, 0)"
-                                          width="50%"
-                                          x="50%"
-                                          y="-5%"
-                                        />
-                                      </clipPath>
-                                      <g
-                                        clipPath="url(#path-50-1)"
-                                        data-test-id="chart-column"
-                                      >
-                                        <rect
-                                          className="chart-bar barchart-rect"
-                                          height="19.8%"
-                                          key="0"
-                                          width="50%"
-                                          x="50%"
-                                          y="80.2%"
+                                        <g
+                                          className="tip"
+                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
                                         >
-                                          2
-                                        </rect>
-                                      </g>
-                                    </g>
-                                  </Tooltip>
-                                </svg>
-                              </StyledSvg>
+                                          <rect
+                                            height="100%"
+                                            opacity="0"
+                                            transform="translate(-4, 0)"
+                                            width="50%"
+                                            x="50%"
+                                          />
+                                          <clipPath
+                                            id="path-50-1"
+                                          >
+                                            <rect
+                                              height="105%"
+                                              transform="translate(-4, 0)"
+                                              width="50%"
+                                              x="50%"
+                                              y="-5%"
+                                            />
+                                          </clipPath>
+                                          <g
+                                            clipPath="url(#path-50-1)"
+                                            data-test-id="chart-column"
+                                          >
+                                            <rect
+                                              className="chart-bar barchart-rect"
+                                              height="19.8%"
+                                              key="0"
+                                              width="50%"
+                                              x="50%"
+                                              y="80.2%"
+                                            >
+                                              2
+                                            </rect>
+                                          </g>
+                                        </g>
+                                      </Tooltip>
+                                    </svg>
+                                  </StyledSvg>
+                                </div>
+                              </SvgContainer>
                             </figure>
-                          </SvgContainer>
+                          </StyledFigure>
                         </StackedBarChart>
                       </BarChart>
                     </StyledBarChart>

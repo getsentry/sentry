@@ -203,7 +203,7 @@ exports[`GroupReleaseStats renders 1`] = `
               tooltip={[Function]}
               width={null}
             >
-              <SvgContainer
+              <StyledFigure
                 className="sparkline barchart"
                 style={
                   Object {
@@ -213,7 +213,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 }
               >
                 <figure
-                  className="sparkline barchart css-14dnxoy-SvgContainer e5t71581"
+                  className="sparkline barchart css-na17se-StyledFigure e5t71581"
                   style={
                     Object {
                       "height": 40,
@@ -237,158 +237,164 @@ exports[`GroupReleaseStats renders 1`] = `
                   >
                     0
                   </span>
-                  <StyledSvg
-                    gap={2}
-                    overflow="visible"
-                  >
-                    <svg
-                      className="css-v8214s-StyledSvg e5t71580"
-                      overflow="visible"
+                  <SvgContainer>
+                    <div
+                      className="css-1jg1opr-SvgContainer e5t71582"
                     >
-                      <Tooltip
-                        key="1517281200"
-                        title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
+                      <StyledSvg
+                        gap={2}
+                        overflow="visible"
                       >
-                        <g
-                          className="tip"
-                          title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                        <svg
+                          className="css-v8214s-StyledSvg e5t71580"
+                          overflow="visible"
                         >
-                          <rect
-                            height="100%"
-                            opacity="0"
-                            transform="translate(-2, 0)"
-                            width="50%"
-                            x="0%"
-                          />
-                          <clipPath
-                            id="path-50-0"
+                          <Tooltip
+                            key="1517281200"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
                           >
-                            <rect
-                              height="105%"
-                              transform="translate(-2, 0)"
-                              width="50%"
-                              x="0%"
-                              y="-5%"
-                            />
-                          </clipPath>
-                          <g
-                            clipPath="url(#path-50-0)"
-                            data-test-id="chart-column"
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                            >
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                transform="translate(-2, 0)"
+                                width="50%"
+                                x="0%"
+                              />
+                              <clipPath
+                                id="path-50-0"
+                              >
+                                <rect
+                                  height="105%"
+                                  transform="translate(-2, 0)"
+                                  width="50%"
+                                  x="0%"
+                                  y="-5%"
+                                />
+                              </clipPath>
+                              <g
+                                clipPath="url(#path-50-0)"
+                                data-test-id="chart-column"
+                              >
+                                <rect
+                                  className="release barchart-rect"
+                                  height="0%"
+                                  key="0"
+                                  width="50%"
+                                  x="0%"
+                                  y="100%"
+                                >
+                                  0
+                                </rect>
+                                <rect
+                                  className="environment barchart-rect"
+                                  height="19.8%"
+                                  key="1"
+                                  width="50%"
+                                  x="0%"
+                                  y="80.2%"
+                                >
+                                  2
+                                </rect>
+                                <rect
+                                  className="inactive barchart-rect"
+                                  height="4%"
+                                  key="2"
+                                  width="50%"
+                                  x="0%"
+                                  y="76.2%"
+                                >
+                                  0
+                                </rect>
+                              </g>
+                            </g>
+                          </Tooltip>
+                          <Tooltip
+                            key="1517310000"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
                           >
-                            <rect
-                              className="release barchart-rect"
-                              height="0%"
-                              key="0"
-                              width="50%"
-                              x="0%"
-                              y="100%"
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
                             >
-                              0
-                            </rect>
-                            <rect
-                              className="environment barchart-rect"
-                              height="19.8%"
-                              key="1"
-                              width="50%"
-                              x="0%"
-                              y="80.2%"
-                            >
-                              2
-                            </rect>
-                            <rect
-                              className="inactive barchart-rect"
-                              height="4%"
-                              key="2"
-                              width="50%"
-                              x="0%"
-                              y="76.2%"
-                            >
-                              0
-                            </rect>
-                          </g>
-                        </g>
-                      </Tooltip>
-                      <Tooltip
-                        key="1517310000"
-                        title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
-                      >
-                        <g
-                          className="tip"
-                          title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                        >
-                          <rect
-                            height="100%"
-                            opacity="0"
-                            transform="translate(-2, 0)"
-                            width="50%"
-                            x="50%"
-                          />
-                          <clipPath
-                            id="path-50-1"
-                          >
-                            <rect
-                              height="105%"
-                              transform="translate(-2, 0)"
-                              width="50%"
-                              x="50%"
-                              y="-5%"
-                            />
-                          </clipPath>
-                          <g
-                            clipPath="url(#path-50-1)"
-                            data-test-id="chart-column"
-                          >
-                            <rect
-                              className="release barchart-rect"
-                              height="0%"
-                              key="0"
-                              width="50%"
-                              x="50%"
-                              y="100%"
-                            >
-                              0
-                            </rect>
-                            <rect
-                              className="environment barchart-rect"
-                              height="9.9%"
-                              key="1"
-                              width="50%"
-                              x="50%"
-                              y="90.1%"
-                            >
-                              1
-                            </rect>
-                            <rect
-                              className="inactive barchart-rect"
-                              height="4%"
-                              key="2"
-                              width="50%"
-                              x="50%"
-                              y="86.1%"
-                            >
-                              0
-                            </rect>
-                          </g>
-                        </g>
-                      </Tooltip>
-                    </svg>
-                  </StyledSvg>
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                transform="translate(-2, 0)"
+                                width="50%"
+                                x="50%"
+                              />
+                              <clipPath
+                                id="path-50-1"
+                              >
+                                <rect
+                                  height="105%"
+                                  transform="translate(-2, 0)"
+                                  width="50%"
+                                  x="50%"
+                                  y="-5%"
+                                />
+                              </clipPath>
+                              <g
+                                clipPath="url(#path-50-1)"
+                                data-test-id="chart-column"
+                              >
+                                <rect
+                                  className="release barchart-rect"
+                                  height="0%"
+                                  key="0"
+                                  width="50%"
+                                  x="50%"
+                                  y="100%"
+                                >
+                                  0
+                                </rect>
+                                <rect
+                                  className="environment barchart-rect"
+                                  height="9.9%"
+                                  key="1"
+                                  width="50%"
+                                  x="50%"
+                                  y="90.1%"
+                                >
+                                  1
+                                </rect>
+                                <rect
+                                  className="inactive barchart-rect"
+                                  height="4%"
+                                  key="2"
+                                  width="50%"
+                                  x="50%"
+                                  y="86.1%"
+                                >
+                                  0
+                                </rect>
+                              </g>
+                            </g>
+                          </Tooltip>
+                        </svg>
+                      </StyledSvg>
+                    </div>
+                  </SvgContainer>
                 </figure>
-              </SvgContainer>
+              </StyledFigure>
             </StackedBarChart>
           </div>
         </GroupReleaseChart>
@@ -509,7 +515,7 @@ exports[`GroupReleaseStats renders 1`] = `
               tooltip={[Function]}
               width={null}
             >
-              <SvgContainer
+              <StyledFigure
                 className="sparkline barchart"
                 style={
                   Object {
@@ -519,7 +525,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 }
               >
                 <figure
-                  className="sparkline barchart css-14dnxoy-SvgContainer e5t71581"
+                  className="sparkline barchart css-na17se-StyledFigure e5t71581"
                   style={
                     Object {
                       "height": 40,
@@ -543,158 +549,164 @@ exports[`GroupReleaseStats renders 1`] = `
                   >
                     0
                   </span>
-                  <StyledSvg
-                    gap={2}
-                    overflow="visible"
-                  >
-                    <svg
-                      className="css-v8214s-StyledSvg e5t71580"
-                      overflow="visible"
+                  <SvgContainer>
+                    <div
+                      className="css-1jg1opr-SvgContainer e5t71582"
                     >
-                      <Tooltip
-                        key="1514764800"
-                        title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
+                      <StyledSvg
+                        gap={2}
+                        overflow="visible"
                       >
-                        <g
-                          className="tip"
-                          title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                        <svg
+                          className="css-v8214s-StyledSvg e5t71580"
+                          overflow="visible"
                         >
-                          <rect
-                            height="100%"
-                            opacity="0"
-                            transform="translate(-2, 0)"
-                            width="50%"
-                            x="0%"
-                          />
-                          <clipPath
-                            id="path-50-0"
+                          <Tooltip
+                            key="1514764800"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
                           >
-                            <rect
-                              height="105%"
-                              transform="translate(-2, 0)"
-                              width="50%"
-                              x="0%"
-                              y="-5%"
-                            />
-                          </clipPath>
-                          <g
-                            clipPath="url(#path-50-0)"
-                            data-test-id="chart-column"
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            >
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                transform="translate(-2, 0)"
+                                width="50%"
+                                x="0%"
+                              />
+                              <clipPath
+                                id="path-50-0"
+                              >
+                                <rect
+                                  height="105%"
+                                  transform="translate(-2, 0)"
+                                  width="50%"
+                                  x="0%"
+                                  y="-5%"
+                                />
+                              </clipPath>
+                              <g
+                                clipPath="url(#path-50-0)"
+                                data-test-id="chart-column"
+                              >
+                                <rect
+                                  className="release barchart-rect"
+                                  height="0%"
+                                  key="0"
+                                  width="50%"
+                                  x="0%"
+                                  y="100%"
+                                >
+                                  0
+                                </rect>
+                                <rect
+                                  className="environment barchart-rect"
+                                  height="0.81%"
+                                  key="1"
+                                  width="50%"
+                                  x="0%"
+                                  y="99.19%"
+                                >
+                                  1
+                                </rect>
+                                <rect
+                                  className="inactive barchart-rect"
+                                  height="4%"
+                                  key="2"
+                                  width="50%"
+                                  x="0%"
+                                  y="95.19%"
+                                >
+                                  0
+                                </rect>
+                              </g>
+                            </g>
+                          </Tooltip>
+                          <Tooltip
+                            key="1515024000"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
                           >
-                            <rect
-                              className="release barchart-rect"
-                              height="0%"
-                              key="0"
-                              width="50%"
-                              x="0%"
-                              y="100%"
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
                             >
-                              0
-                            </rect>
-                            <rect
-                              className="environment barchart-rect"
-                              height="0.81%"
-                              key="1"
-                              width="50%"
-                              x="0%"
-                              y="99.19%"
-                            >
-                              1
-                            </rect>
-                            <rect
-                              className="inactive barchart-rect"
-                              height="4%"
-                              key="2"
-                              width="50%"
-                              x="0%"
-                              y="95.19%"
-                            >
-                              0
-                            </rect>
-                          </g>
-                        </g>
-                      </Tooltip>
-                      <Tooltip
-                        key="1515024000"
-                        title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
-                      >
-                        <g
-                          className="tip"
-                          title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
-                        >
-                          <rect
-                            height="100%"
-                            opacity="0"
-                            transform="translate(-2, 0)"
-                            width="50%"
-                            x="50%"
-                          />
-                          <clipPath
-                            id="path-50-1"
-                          >
-                            <rect
-                              height="105%"
-                              transform="translate(-2, 0)"
-                              width="50%"
-                              x="50%"
-                              y="-5%"
-                            />
-                          </clipPath>
-                          <g
-                            clipPath="url(#path-50-1)"
-                            data-test-id="chart-column"
-                          >
-                            <rect
-                              className="release barchart-rect"
-                              height="0%"
-                              key="0"
-                              width="50%"
-                              x="50%"
-                              y="100%"
-                            >
-                              0
-                            </rect>
-                            <rect
-                              className="environment barchart-rect"
-                              height="99%"
-                              key="1"
-                              width="50%"
-                              x="50%"
-                              y="1%"
-                            >
-                              122
-                            </rect>
-                            <rect
-                              className="inactive barchart-rect"
-                              height="4%"
-                              key="2"
-                              width="50%"
-                              x="50%"
-                              y="-3%"
-                            >
-                              0
-                            </rect>
-                          </g>
-                        </g>
-                      </Tooltip>
-                    </svg>
-                  </StyledSvg>
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                transform="translate(-2, 0)"
+                                width="50%"
+                                x="50%"
+                              />
+                              <clipPath
+                                id="path-50-1"
+                              >
+                                <rect
+                                  height="105%"
+                                  transform="translate(-2, 0)"
+                                  width="50%"
+                                  x="50%"
+                                  y="-5%"
+                                />
+                              </clipPath>
+                              <g
+                                clipPath="url(#path-50-1)"
+                                data-test-id="chart-column"
+                              >
+                                <rect
+                                  className="release barchart-rect"
+                                  height="0%"
+                                  key="0"
+                                  width="50%"
+                                  x="50%"
+                                  y="100%"
+                                >
+                                  0
+                                </rect>
+                                <rect
+                                  className="environment barchart-rect"
+                                  height="99%"
+                                  key="1"
+                                  width="50%"
+                                  x="50%"
+                                  y="1%"
+                                >
+                                  122
+                                </rect>
+                                <rect
+                                  className="inactive barchart-rect"
+                                  height="4%"
+                                  key="2"
+                                  width="50%"
+                                  x="50%"
+                                  y="-3%"
+                                >
+                                  0
+                                </rect>
+                              </g>
+                            </g>
+                          </Tooltip>
+                        </svg>
+                      </StyledSvg>
+                    </div>
+                  </SvgContainer>
                 </figure>
-              </SvgContainer>
+              </StyledFigure>
             </StackedBarChart>
           </div>
         </GroupReleaseChart>
