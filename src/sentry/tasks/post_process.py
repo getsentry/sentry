@@ -11,6 +11,7 @@ from __future__ import absolute_import, print_function
 import logging
 import time
 
+from django.conf import settings
 from raven.contrib.django.models import client as Raven
 
 from sentry import features
@@ -18,7 +19,8 @@ from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics, redis
+from sentry.utils import metrics
+from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger('sentry')
@@ -51,20 +53,28 @@ def _capture_stats(event, is_new):
     metrics.timing('events.size.data', event.size, tags={'platform': platform})
 
 
+def check_event_already_post_processed(event):
+    cluster_key = getattr(settings, 'SENTRY_POST_PROCESSING_LOCK_REDIS_CLUSTER', None)
+    if cluster_key is None:
+        return
+
+    client = redis_clusters.get(cluster_key)
+    result = client.set(
+        u'pp:{}/{}'.format(event.project_id, event.event_id),
+        u'{:.0f}'.format(time.time()),
+        ex=60 * 60,
+        nx=True,
+    )
+
+    return not result.value
+
+
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
 def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    with redis.clusters.get('default').map() as client:
-        result = client.set(
-            u'pp:{}/{}'.format(event.project_id, event.event_id),
-            u'{:.0f}'.format(time.time()),
-            ex=60 * 60,
-            nx=True,
-        )
-
-    if not result.value:
+    if check_event_already_post_processed(event):
         logger.info('post_process.skipped', extra={
             'project_id': event.project_id,
             'event_id': event.event_id,
