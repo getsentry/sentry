@@ -5,6 +5,393 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
   class="app"
 >
   <div
+    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+  >
+    <div
+      class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
+    >
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <div
+          class="css-jdsvwb-SidebarDropdownRoot e1fowdfw3"
+        >
+          <div
+            class="css-1d9hpgj-SidebarDropdownActor e1fowdfw7"
+            data-test-id="sidebar-dropdown"
+          >
+            <div
+              style="display:flex;align-items:flex-start"
+            >
+              <span
+                class="avatar e1fowdfw8 css-yd0wz3-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                style="width:32px;height:32px"
+              >
+                <svg
+                  class="css-123ijso-Svg e1knxa8x0"
+                  viewBox="0 0 120 120"
+                >
+                  <rect
+                    fill="#4674ca"
+                    height="120"
+                    rx="15"
+                    ry="15"
+                    width="120"
+                    x="0"
+                    y="0"
+                  />
+                  <text
+                    fill="#FFFFFF"
+                    font-size="65"
+                    style="dominant-baseline:central"
+                    text-anchor="middle"
+                    x="50%"
+                    y="50%"
+                  >
+                    OS
+                  </text>
+                </svg>
+              </span>
+              <div
+                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+              >
+                <div
+                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                >
+                  Organization Name 
+                  <i
+                    class="icon-arrow-down"
+                  />
+                </div>
+                <div
+                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                >
+                  Foo Bar
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Projects
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Assigned to me
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Bookmarked issues
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Recently viewed
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Activity
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Stats
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div
+      class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
+    >
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <div
+          class="css-1dvxhjs-HelpRoot e1q2bb9t0"
+        >
+          <div
+            class="css-d4wreg-HelpActor e1q2bb9t1"
+          >
+            <a
+              class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+            >
+              <div
+                class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+              >
+                <span
+                  class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+                >
+                  <svg
+                    class="css-ryh69w-StyledSvg e2idor0"
+                    height="1em"
+                    viewBox="[object Object]"
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+                >
+                  <div
+                    class="css-179hf69-TextOverflow e8qi82q0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          data-test-id="sidebar-broadcasts"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="22px"
+                viewBox="[object Object]"
+                width="22px"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                What's new
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-1j3ay2q-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      />
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="e1sgxx354 css-7c155y-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
+          data-test-id="sidebar-collapse"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="e1sgxx353 css-coblwz-StyledSvg-StyledInlineSvg-ExpandedIcon e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div
     class="app"
   >
     <div
@@ -54,6 +441,393 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
 <div
   class="app"
 >
+  <div
+    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+  >
+    <div
+      class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
+    >
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <div
+          class="css-jdsvwb-SidebarDropdownRoot e1fowdfw3"
+        >
+          <div
+            class="css-1d9hpgj-SidebarDropdownActor e1fowdfw7"
+            data-test-id="sidebar-dropdown"
+          >
+            <div
+              style="display:flex;align-items:flex-start"
+            >
+              <span
+                class="avatar e1fowdfw8 css-yd0wz3-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                style="width:32px;height:32px"
+              >
+                <svg
+                  class="css-123ijso-Svg e1knxa8x0"
+                  viewBox="0 0 120 120"
+                >
+                  <rect
+                    fill="#4674ca"
+                    height="120"
+                    rx="15"
+                    ry="15"
+                    width="120"
+                    x="0"
+                    y="0"
+                  />
+                  <text
+                    fill="#FFFFFF"
+                    font-size="65"
+                    style="dominant-baseline:central"
+                    text-anchor="middle"
+                    x="50%"
+                    y="50%"
+                  >
+                    OS
+                  </text>
+                </svg>
+              </span>
+              <div
+                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+              >
+                <div
+                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                >
+                  Organization Name 
+                  <i
+                    class="icon-arrow-down"
+                  />
+                </div>
+                <div
+                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                >
+                  Foo Bar
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Projects
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Assigned to me
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Bookmarked issues
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Recently viewed
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Activity
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Stats
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div
+      class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
+    >
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <div
+          class="css-1dvxhjs-HelpRoot e1q2bb9t0"
+        >
+          <div
+            class="css-d4wreg-HelpActor e1q2bb9t1"
+          >
+            <a
+              class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+            >
+              <div
+                class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+              >
+                <span
+                  class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+                >
+                  <svg
+                    class="css-ryh69w-StyledSvg e2idor0"
+                    height="1em"
+                    viewBox="[object Object]"
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+                >
+                  <div
+                    class="css-179hf69-TextOverflow e8qi82q0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          data-test-id="sidebar-broadcasts"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="22px"
+                viewBox="[object Object]"
+                width="22px"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                What's new
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-1j3ay2q-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      />
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="e1sgxx354 css-7c155y-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
+          data-test-id="sidebar-collapse"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="e1sgxx353 css-coblwz-StyledSvg-StyledInlineSvg-ExpandedIcon e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
   <div
     class="app"
   >
@@ -131,6 +905,393 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
 <div
   class="app"
 >
+  <div
+    class="css-11c8i4p-StyledSidebar-responsiveFlex e1sgxx350"
+  >
+    <div
+      class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
+    >
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <div
+          class="css-jdsvwb-SidebarDropdownRoot e1fowdfw3"
+        >
+          <div
+            class="css-1d9hpgj-SidebarDropdownActor e1fowdfw7"
+            data-test-id="sidebar-dropdown"
+          >
+            <div
+              style="display:flex;align-items:flex-start"
+            >
+              <span
+                class="avatar e1fowdfw8 css-yd0wz3-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                style="width:32px;height:32px"
+              >
+                <svg
+                  class="css-123ijso-Svg e1knxa8x0"
+                  viewBox="0 0 120 120"
+                >
+                  <rect
+                    fill="#4674ca"
+                    height="120"
+                    rx="15"
+                    ry="15"
+                    width="120"
+                    x="0"
+                    y="0"
+                  />
+                  <text
+                    fill="#FFFFFF"
+                    font-size="65"
+                    style="dominant-baseline:central"
+                    text-anchor="middle"
+                    x="50%"
+                    y="50%"
+                  >
+                    OS
+                  </text>
+                </svg>
+              </span>
+              <div
+                class="css-a5a05a-NameAndOrgWrapper e1fowdfw4"
+              >
+                <div
+                  class="css-1cbli9p-TextOverflow-DropdownOrgName e1fowdfw5"
+                >
+                  Organization Name 
+                  <i
+                    class="icon-arrow-down"
+                  />
+                </div>
+                <div
+                  class="css-1djvv1k-TextOverflow-DropdownUserName e1fowdfw6"
+                >
+                  Foo Bar
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Projects
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Assigned to me
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Bookmarked issues
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Recently viewed
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Activity
+              </div>
+            </span>
+          </div>
+        </a>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Stats
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div
+      class="css-1uxlgm0-SidebarSectionGroup-responsiveFlex e1sgxx351"
+    >
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <div
+          class="css-1dvxhjs-HelpRoot e1q2bb9t0"
+        >
+          <div
+            class="css-d4wreg-HelpActor e1q2bb9t1"
+          >
+            <a
+              class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+            >
+              <div
+                class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+              >
+                <span
+                  class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+                >
+                  <svg
+                    class="css-ryh69w-StyledSvg e2idor0"
+                    height="1em"
+                    viewBox="[object Object]"
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+                >
+                  <div
+                    class="css-179hf69-TextOverflow e8qi82q0"
+                  >
+                    Help
+                  </div>
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <a
+          class="css-1l9toro-StyledSidebarItem e1qdnaq70"
+          data-test-id="sidebar-broadcasts"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="css-ryh69w-StyledSvg e2idor0"
+                height="22px"
+                viewBox="[object Object]"
+                width="22px"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                What's new
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+      <div
+        class="css-1j3ay2q-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      />
+      <div
+        class="css-tlukoq-SidebarSectionGroup-responsiveFlex-SidebarSection e1sgxx352"
+      >
+        <a
+          class="e1sgxx354 css-7c155y-StyledSidebarItem-SidebarCollapseItem e1qdnaq70"
+          data-test-id="sidebar-collapse"
+        >
+          <div
+            class="css-gn87gt-SidebarItemWrapper e1qdnaq71"
+          >
+            <span
+              class="css-1murlm5-SidebarItemIcon e1qdnaq72"
+            >
+              <svg
+                class="e1sgxx353 css-coblwz-StyledSvg-StyledInlineSvg-ExpandedIcon e2idor0"
+                height="1em"
+                viewBox="[object Object]"
+                width="1em"
+              >
+                <use
+                  href="#test"
+                />
+              </svg>
+            </span>
+            <span
+              class="css-1wgok4l-SidebarItemLabel e1qdnaq73"
+            >
+              <div
+                class="css-179hf69-TextOverflow e8qi82q0"
+              >
+                Collapse
+              </div>
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
   <div
     class="app"
   >
