@@ -27,7 +27,7 @@ import taiga from 'app/../images/integrations/taiga-logo.png';
 import teamwork from 'app/../images/integrations/teamwork-logo.png';
 import trello from 'app/../images/integrations/trello-logo.png';
 import twilio from 'app/../images/integrations/twilio-logo.png';
-import vsts from 'app/../images/integrations/vsts-logo.svg';
+import vsts from 'app/../images/integrations/azure-devops.png';
 import youtrack from 'app/../images/integrations/youtrack-logo.png';
 
 // Map of plugin id -> logo filename
