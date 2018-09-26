@@ -38,9 +38,11 @@ class KafkaEventStream(EventStream):
 
     def delivery_callback(self, error, message):
         if error is not None:
-            logger.warning('Could not publish event (error: %s): %r', error, message)
+            logger.warning('Could not publish message (error: %s): %r', error, message)
 
-    def _send(self, project_id, _type, *data):
+    def _send(self, project_id, _type, extra_data=()):
+        assert isinstance(extra_data, tuple)
+
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
         # to be delivered) and the corresponding callback being fired is
@@ -58,7 +60,7 @@ class KafkaEventStream(EventStream):
                 self.publish_topic,
                 key=key.encode('utf-8'),
                 value=json.dumps(
-                    (EVENT_PROTOCOL_VERSION, _type) + data
+                    (EVENT_PROTOCOL_VERSION, _type) + extra_data
                 ),
                 on_delivery=self.delivery_callback,
             )
@@ -73,7 +75,7 @@ class KafkaEventStream(EventStream):
             organization=Organization(project.organization_id)
         )
 
-        self._send(project.id, 'insert', {
+        self._send(project.id, 'insert', extra_data=({
             'group_id': event.group_id,
             'event_id': event.event_id,
             'organization_id': project.organization_id,
@@ -89,30 +91,30 @@ class KafkaEventStream(EventStream):
             'is_sample': is_sample,
             'is_regression': is_regression,
             'is_new_group_environment': is_new_group_environment,
-        })
+        },))
 
     def unmerge(self, project_id, new_group_id, event_ids):
         if not event_ids:
             return
 
-        self._send(project_id, 'unmerge', {
+        self._send(project_id, 'unmerge', extra_data=({
             'project_id': project_id,
             'new_group_id': new_group_id,
             'event_ids': event_ids,
-        })
+        },))
 
     def delete_groups(self, project_id, group_ids):
         if not group_ids:
             return
 
-        self._send(project_id, 'delete_groups', {
+        self._send(project_id, 'delete_groups', extra_data=({
             'project_id': project_id,
             'group_ids': group_ids,
-        })
+        },))
 
     def merge(self, project_id, previous_group_id, new_group_id):
-        self._send(project_id, 'merge', {
+        self._send(project_id, 'merge', extra_data=({
             'project_id': project_id,
             'previous_group_id': previous_group_id,
             'new_group_id': new_group_id,
-        })
+        },))
