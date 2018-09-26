@@ -20,7 +20,6 @@ class EventSerializer(Serializer):
 
         meta = event.data.get('_meta') or {}
         interface_list = []
-        meta_dict = {}
 
         for key, interface in six.iteritems(event.interfaces):
             # we treat user as a special contextual item
@@ -37,19 +36,19 @@ class EventSerializer(Serializer):
                 'type': interface.get_alias(),
             }
 
-            interface_list.append((interface, entry))
+            api_meta = None
+            if meta.get(key):
+                api_meta = interface.get_api_meta(meta[key], is_public=is_public)
 
-            if not meta.get(key):
-                continue
-
-            api_meta = interface.get_api_meta(meta[key], is_public=is_public)
-            if api_meta:
-                meta_dict[interface.get_alias()] = meta_with_chunks(data, api_meta)
+            interface_list.append((interface, entry, api_meta))
 
         interface_list.sort(
             key=lambda x: x[0].get_display_score(), reverse=True)
 
-        return ([i[1] for i in interface_list], meta_dict)
+        return (
+            [i[1] for i in interface_list],
+            {k: {'data': i[2]} for k, i in enumerate(interface_list)}
+        )
 
     def _get_interface_with_meta(self, event, name, is_public=False):
         interface = event.interfaces.get(name)
