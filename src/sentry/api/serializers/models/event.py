@@ -39,6 +39,7 @@ class EventSerializer(Serializer):
             api_meta = None
             if meta.get(key):
                 api_meta = interface.get_api_meta(meta[key], is_public=is_public)
+                api_meta = meta_with_chunks(data, api_meta)
 
             interface_list.append((interface, entry, api_meta))
 
@@ -47,7 +48,7 @@ class EventSerializer(Serializer):
 
         return (
             [i[1] for i in interface_list],
-            {k: {'data': i[2]} for k, i in enumerate(interface_list)}
+            {k: {'data': i[2]} for k, i in enumerate(interface_list) if i[2]}
         )
 
     def _get_interface_with_meta(self, event, name, is_public=False):
@@ -79,8 +80,17 @@ class EventSerializer(Serializer):
             key=lambda x: x['key']
         )
 
-        tags_meta = {six.text_type(i): {'value': e.pop('_meta')} for i, e in enumerate(tags)}
-        return (tags, tags_meta)
+        tags_meta = {
+            six.text_type(i): {'value': e.pop('_meta')}
+            for i, e in enumerate(tags) if e.get('meta')
+        }
+
+        return (tags, meta_with_chunks(tags, tags_meta))
+
+    def _get_attr_with_meta(self, event, attr, default=None):
+        value = event.data.get(attr, default)
+        meta = (event.data.get('_meta') or {}).get('tags')
+        return (value, meta_with_chunks(value, meta))
 
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
@@ -109,8 +119,6 @@ class EventSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user):
-        meta = obj.data.get('_meta') or {}
-
         errors = []
         for error in obj.data.get('errors', []):
             message = EventError.get_message(error)
@@ -122,6 +130,8 @@ class EventSerializer(Serializer):
             errors.append(error_result)
 
         (tags, tags_meta) = self._get_tags_with_meta(obj)
+        (context, context_meta) = self._get_attr_with_meta(obj, 'extra', {})
+        (packages, packages_meta) = self._get_attr_with_meta(obj, 'modules', {})
 
         received = obj.data.get('received')
         if received:
@@ -153,8 +163,8 @@ class EventSerializer(Serializer):
             'contexts': attrs['contexts'],
             'sdk': attrs['sdk'],
             # TODO(dcramer): move into contexts['extra']
-            'context': obj.data.get('extra', {}),
-            'packages': obj.data.get('modules', {}),
+            'context': context,
+            'packages': packages,
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),
             'tags': tags,
@@ -171,8 +181,8 @@ class EventSerializer(Serializer):
                 'user': attrs['_meta']['user'],
                 'contexts': attrs['_meta']['contexts'],
                 'sdk': attrs['_meta']['sdk'],
-                'context': meta.get('extra', None),
-                'packages': meta.get('modules', None),
+                'context': context_meta,
+                'packages': packages_meta,
                 'tags': tags_meta,
             },
         }
