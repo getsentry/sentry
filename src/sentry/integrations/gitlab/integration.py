@@ -12,6 +12,7 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -35,17 +36,37 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic):
+class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMixin):
+    repo_search = True
 
     def __init__(self, *args, **kwargs):
         super(GitlabIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None
+
+    def get_group_id(self):
+        return self.model.external_id.split(':')[1]
 
     def get_client(self):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
         return GitLabApiClient(self)
+
+    def get_repositories(self, query=None):
+        # Note: gitlab projects are the same things as repos everywhere else
+        def get_repo_list(resp):
+            return [{
+                'identifier': repo['id'],
+                'name': repo['name_with_namespace'],
+            } for repo in resp]
+
+        group = self.get_group_id()
+        if not query:
+            resp = self.get_client().get_group_projects(group, simple=True)
+            return get_repo_list(resp)
+
+        resp = self.get_client().get_group_projects(group, query, simple=True)
+        return get_repo_list(resp)
 
 
 class InstallationForm(forms.Form):
@@ -137,6 +158,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     features = frozenset([
         IntegrationFeatures.ISSUE_BASIC,
+        IntegrationFeatures.COMMITS,
     ])
 
     setup_dialog_config = {

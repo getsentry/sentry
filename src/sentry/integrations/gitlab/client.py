@@ -10,6 +10,7 @@ API_VERSION = u'/api/v4'
 
 class GitLabApiClientPath(object):
     group = u'/groups/{group}'
+    group_projects = u'/groups/{group}/projects'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
     issues_search = u'/issues'
@@ -61,6 +62,19 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
 
     def get_user(self):
         return self.get(GitLabApiClientPath.user)
+
+    def get_group_projects(self, group, query=None, simple=False):
+        # simple param returns limited fields for the project.
+        # Really useful, because we often don't need most of the project information
+        return self.get(
+            GitLabApiClientPath.group_projects.format(
+                group=group,
+            ),
+            params={
+                'search': query,
+                'simple': simple,
+            }
+        )
 
     def get_project(self, project):
         return self.get(
