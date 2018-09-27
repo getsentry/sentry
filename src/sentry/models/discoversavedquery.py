@@ -26,6 +26,7 @@ class DiscoverSavedQuery(Model):
 
     projects = models.ManyToManyField('sentry.Project', through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey('sentry.Organization')
+    created_by = FlexibleForeignKey('sentry.User', null=True, on_delete=models.SET_NULL)
     name = models.CharField(max_length=255)
     query = JSONField()
     date_created = models.DateTimeField(auto_now_add=True)
@@ -35,7 +36,7 @@ class DiscoverSavedQuery(Model):
         app_label = 'sentry'
         db_table = 'sentry_discoversavedquery'
 
-    __repr__ = sane_repr('organization_id', 'name')
+    __repr__ = sane_repr('organization_id', 'created_by', 'name')
 
     def set_projects(self, project_ids):
         with transaction.atomic():
