@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
-from sentry import features
-from sentry.models import DiscoverSavedQuery
+
 from sentry.api.serializers import serialize
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry.api.bases import OrganizationEndpoint
+from sentry.models import DiscoverSavedQuery, Project, ProjectStatus
+from sentry import features
 
 
 class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
@@ -32,7 +33,9 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not features.has('organizations:discover', organization, actor=request.user):
             return self.respond(status=404)
 
-        serializer = DiscoverSavedQuerySerializer(data=request.DATA)
+        serializer = DiscoverSavedQuerySerializer(data=request.DATA, context={
+            'organization': organization,
+        })
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

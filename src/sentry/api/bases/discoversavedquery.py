@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 from rest_framework import serializers
 from sentry.api.serializers.rest_framework import ListField
+from rest_framework.exceptions import PermissionDenied
+from sentry.models import Project, ProjectStatus
 
 
 class DiscoverSavedQuerySerializer(serializers.Serializer):
@@ -38,6 +40,20 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+
+    def validate_projects(self, attrs, source):
+        organization = self.context['organization']
+        projects = attrs[source]
+
+        org_projects = set(Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).values_list('id', flat=True))
+
+        if not set(projects).issubset(org_projects):
+            raise PermissionDenied
+
+        return attrs
 
     def validate(self, data):
         query = {}
