@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-import json
-
 from django.contrib.auth.models import AnonymousUser
+from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -82,9 +81,11 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     """
 
     def authenticate(self, request):
-        data = json.loads(request.body)
-        client_id = data.get('client_id')
-        client_secret = data.get('client_secret')
+        if not request.json_body:
+            raise AuthenticationFailed('Invalid request')
+
+        client_id = request.json_body.get('client_id')
+        client_secret = request.json_body.get('client_secret')
 
         invalid_pair_error = AuthenticationFailed('Invalid Client ID / Secret pair')
 
