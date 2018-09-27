@@ -338,6 +338,7 @@ class Release(Model):
             ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
+        from sentry.tasks.integrations import kick_off_status_syncs
         # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
@@ -504,7 +505,15 @@ class Release(Model):
 
         user_by_author = {None: None}
 
-        for group_id, author in itertools.chain(commit_group_authors, pull_request_group_authors):
+        commits_and_prs = list(
+            itertools.chain(commit_group_authors, pull_request_group_authors),
+        )
+
+        group_project_lookup = dict(Group.objects.filter(
+            id__in=[group_id for group_id, _ in commits_and_prs],
+        ).values_list('id', 'project_id'))
+
+        for group_id, author in commits_and_prs:
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
@@ -525,3 +534,8 @@ class Release(Model):
                 Group.objects.filter(
                     id=group_id,
                 ).update(status=GroupStatus.RESOLVED)
+
+            kick_off_status_syncs.apply_async(kwargs={
+                'project_id': group_project_lookup[group_id],
+                'group_id': group_id,
+            })
