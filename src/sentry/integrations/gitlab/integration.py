@@ -18,6 +18,7 @@ from sentry.utils.http import absolute_uri
 
 from .client import GitLabApiClient, GitLabApiClientPath
 from .issues import GitlabIssueBasic
+from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
 Fill me out
@@ -258,3 +259,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
         }
 
         return integration
+
+    def setup(self):
+        from sentry.plugins import bindings
+        bindings.add(
+            'integration-repository.provider',
+            GitlabRepositoryProvider,
+            id='integrations:gitlab',
+        )

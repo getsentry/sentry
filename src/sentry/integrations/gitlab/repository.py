@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.plugins import providers
 from sentry.models import Integration
 
@@ -28,7 +30,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         instance = installation.model.metadata['domain_name']
 
         try:
-            repo = client.get_project(repo_id)
+            repo = client.get_project(six.text_type(repo_id))
         except Exception as e:
             installation.raise_error(e)
         config.update({
@@ -36,7 +38,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             'path': repo['path_with_namespace'],
             'name': repo['name_with_namespace'],
             'repo_id': repo['id'],
-            'external_id': '%s:%s' % (instance, repo['path_with_namespace']),
+            'external_id': '%s:%s' % (instance, repo['path']),
             'url': repo['web_url'],
         })
         return config
