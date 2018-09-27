@@ -76,6 +76,7 @@ const ContentContainerWrapper = styled(Box)`
 const SidebarWrapper = styled(Box)`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
+  margin-top: 7px;
 `;
 
 /**
