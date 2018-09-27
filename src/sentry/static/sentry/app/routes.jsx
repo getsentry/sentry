@@ -605,7 +605,11 @@ function routes() {
           )}
       />
 
+
+      <Redirect from="/account/" to="/settings/account/details/" />
+
       <Route path="/settings/" name="Settings" component={SettingsWrapper}>
+
         <IndexRoute
           getComponent={(loc, cb) =>
             import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
