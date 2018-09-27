@@ -62,6 +62,7 @@ const backend = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-awslambda',
   'ruby',
   'ruby-rails',
   'ruby-rack',
