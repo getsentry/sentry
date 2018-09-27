@@ -34,6 +34,7 @@ const PLATFORM_TO_ICON = {
   'php-symfony2': 'php',
   python: 'python',
   'python-flask': 'flask',
+  'python-sanic': 'python',
   'python-bottle': 'bottle',
   'python-celery': 'python',
   'python-django': 'django',
