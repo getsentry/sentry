@@ -8,7 +8,11 @@ from django.utils import timezone
 from sentry.models import EventUser, GroupStatus, Team, User
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
-from sentry.search.utils import parse_query, get_numeric_field_value
+from sentry.search.utils import (
+    parse_query,
+    get_numeric_field_value,
+    InvalidQuery
+)
 
 
 def test_get_numeric_field_value():
@@ -49,6 +53,11 @@ def test_get_numeric_field_value():
         'foo_upper': -3.5,
         'foo_upper_inclusive': True,
     }
+
+
+def test_get_numeric_field_value_invalid():
+    with pytest.raises(InvalidQuery):
+        get_numeric_field_value('foo', '>=1k')
 
 
 class ParseQueryTest(TestCase):

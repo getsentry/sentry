@@ -54,6 +54,21 @@ class GroupListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group1.id)
 
+    def test_invalid_query(self):
+        now = timezone.now()
+        self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            u'{}?sort_by=date&query=timesSeen:>1k'.format(self.path),
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'could not' in response.data['detail']
+
     def test_simple_pagination(self):
         now = timezone.now().replace(microsecond=0)
         group1 = self.create_group(
@@ -64,10 +79,6 @@ class GroupListTest(APITestCase):
             checksum='b' * 32,
             last_seen=now,
         )
-        # group3 = self.create_group(
-        #     checksum='c' * 32,
-        #     last_seen=now - timedelta(seconds=1),
-        # )
 
         self.login_as(user=self.user)
         response = self.client.get(

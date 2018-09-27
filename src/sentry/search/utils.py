@@ -234,16 +234,20 @@ numeric_modifiers = [
 
 
 def get_numeric_field_value(field, raw_value, type=int):
-    for modifier, function in numeric_modifiers:
-        if raw_value.startswith(modifier):
-            return function(
-                field,
-                type(raw_value[len(modifier):]),
-            )
-    else:
-        return {
-            field: type(raw_value),
-        }
+    try:
+        for modifier, function in numeric_modifiers:
+            if raw_value.startswith(modifier):
+                return function(
+                    field,
+                    type(raw_value[len(modifier):]),
+                )
+        else:
+            return {
+                field: type(raw_value),
+            }
+    except ValueError:
+        msg = u'"{}" could not be converted to a number.'.format(raw_value)
+        raise InvalidQuery(msg)
 
 
 def tokenize_query(query):
