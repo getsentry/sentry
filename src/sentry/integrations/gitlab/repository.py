@@ -5,8 +5,6 @@ import six
 from sentry.plugins import providers
 from sentry.models import Integration
 
-MAX_COMMIT_DATA_REQUESTS = 90
-
 
 class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = 'Gitlab'
