@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
-import 'app/../less/components/scoreBar.less';
+import styled from 'react-emotion';
 
 class ScoreBar extends React.Component {
   static propTypes = {
@@ -11,32 +10,19 @@ class ScoreBar extends React.Component {
     palette: PropTypes.arrayOf(PropTypes.string),
     /** Array of classNames whose index maps to score */
     paletteClassNames: PropTypes.arrayOf(PropTypes.string),
-    /** Default controlled by CSS */
     size: PropTypes.number,
     thickness: PropTypes.number,
   };
 
   static defaultProps = {
-    palette: [],
-    paletteClassNames: ['low', 'low-med', 'med', 'med-high', 'high'],
+    size: 40,
+    thickness: 4,
+    palette: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
   };
 
   render() {
-    let {
-      className,
-      vertical,
-      palette,
-      paletteClassNames,
-      score,
-      size,
-      thickness,
-    } = this.props;
-    let useCss = !!paletteClassNames.length && !palette.length;
-    let maxScore = useCss ? paletteClassNames.length : palette.length;
-    let cx = classNames('score-bar', className, {
-      vertical,
-      horizontal: !vertical,
-    });
+    let {className, vertical, palette, score, size, thickness} = this.props;
+    let maxScore = palette.length;
 
     // Make sure score is between 0 and maxScore
     let scoreInBounds = score >= maxScore ? maxScore : score <= 0 ? 0 : score;
@@ -44,39 +30,43 @@ class ScoreBar extends React.Component {
     let paletteIndex = scoreInBounds - 1;
 
     // Size of bar, depends on orientation, although we could just apply a transformation via css
-    let sizeStyle = {
-      [vertical ? 'width' : 'height']: size,
-      [vertical ? 'height' : 'width']: thickness,
-    };
-
-    let style = {
-      ...sizeStyle,
-      ...(!useCss
-        ? {
-            backgroundColor: palette[paletteIndex],
-          }
-        : {}),
+    const barProps = {
+      vertical,
+      thickness,
+      size,
     };
 
     return (
-      <div className={cx}>
+      <div className={className}>
         {[...Array(scoreInBounds)].map((j, i) => {
-          let paletteClassName = (useCss && paletteClassNames[paletteIndex]) || '';
-          let barCx = classNames('score-bar-bar', {
-            [paletteClassName]: !!paletteClassName,
-          });
-          return <div key={i} style={style} className={barCx} />;
+          return <Bar {...barProps} key={i} color={palette[paletteIndex]} />;
         })}
         {[...Array(maxScore - scoreInBounds)].map((j, i) => (
-          <div
-            style={{...sizeStyle}}
-            key={`empty-${i}`}
-            className="score-bar-bar empty"
-          />
+          <Bar key={`empty-${i}`} {...barProps} empty />
         ))}
       </div>
     );
   }
 }
 
-export default ScoreBar;
+const StyledScoreBar = styled(ScoreBar)`
+  display: flex;
+
+  ${p =>
+    p.vertical &&
+    `
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+  `};
+`;
+
+const Bar = styled('div')`
+  border-radius: 3px;
+  margin: 2px;
+  ${p => p.empty && 'background-color: #e2dee6;'};
+  ${p => p.color && `background-color: ${p.color};`};
+
+  width: ${p => (!p.vertical ? p.thickness : p.size)}px;
+  height: ${p => (!p.vertical ? p.size : p.thickness)}px;
+`;
+export default StyledScoreBar;
