@@ -9,6 +9,7 @@ sentry.rules.conditions.tagged_event
 from __future__ import absolute_import
 
 import json
+import six
 
 from collections import OrderedDict
 from django import forms
@@ -120,7 +121,6 @@ class EventAttributeCondition(EventCondition):
 
     def _get_attribute_values(self, event, attr):
         # TODO(dcramer): we should validate attributes (when we can) before
-
         path = attr.split('.')
 
         if path[0] in ('message', 'platform'):
@@ -221,7 +221,11 @@ class EventAttributeCondition(EventCondition):
         except KeyError:
             attribute_values = []
 
-        attribute_values = [v.lower() for v in attribute_values if v is not None]
+        attribute_values = [
+            six.text_type(v).lower()
+            for v in attribute_values
+            if v is not None
+        ]
 
         if match == MatchType.EQUAL:
             for a_value in attribute_values:
