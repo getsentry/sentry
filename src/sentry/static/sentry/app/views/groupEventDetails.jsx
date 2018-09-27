@@ -1,5 +1,6 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
+
 import ApiMixin from 'app/mixins/apiMixin';
 import EventEntries from 'app/components/events/eventEntries';
 import GroupEventToolbar from 'app/views/groupDetails/eventToolbar';
@@ -10,6 +11,7 @@ import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetai
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ResolutionBox from 'app/components/resolutionBox';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import DataGroup from 'app/components/events/meta/dataGroup';
 
 const GroupEventDetails = createReactClass({
   displayName: 'GroupEventDetails',
@@ -75,17 +77,17 @@ const GroupEventDetails = createReactClass({
 
   render() {
     let group = this.getGroup();
-    let evt = this.state.event;
+    let {_meta, ...event} = this.state.event || {};
     let params = this.props.params;
 
     return (
       <div>
         <div className="event-details-container">
           <div className="primary">
-            {evt && (
+            {this.state.event && (
               <GroupEventToolbar
                 group={group}
-                event={evt}
+                event={event}
                 orgId={params.orgId}
                 projectId={params.projectId}
               />
@@ -105,16 +107,18 @@ const GroupEventDetails = createReactClass({
             ) : this.state.error ? (
               <GroupEventDetailsLoadingError onRetry={this.fetchData} />
             ) : (
-              <EventEntries
-                group={group}
-                event={evt}
-                orgId={params.orgId}
-                project={this.getProject()}
-              />
+              <DataGroup data={event} meta={_meta}>
+                <EventEntries
+                  group={group}
+                  event={event}
+                  orgId={params.orgId}
+                  project={this.getProject()}
+                />
+              </DataGroup>
             )}
           </div>
           <div className="secondary">
-            <GroupSidebar group={group} event={evt} />
+            <GroupSidebar group={group} event={event} />
           </div>
         </div>
       </div>

@@ -32,6 +32,7 @@ import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import GenericInterface from 'app/components/events/interfaces/generic';
 import ThreadsInterface from 'app/components/events/interfaces/threads';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
+import DataGroup from 'app/components/events/meta/dataGroup';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -112,20 +113,23 @@ const EventEntries = createReactClass({
             console.error('Unregistered interface: ' + entry.type);
           return null;
         }
+
         return (
-          <Component
-            key={'entry-' + entryIdx}
-            group={group}
-            event={event}
-            type={entry.type}
-            data={entry.data}
-            isShare={isShare}
-          />
+          <DataGroup key={entry.type} path={['entries', entryIdx, 'data']}>
+            <Component
+              group={group}
+              event={event}
+              type={entry.type}
+              data={entry.data}
+              isShare={isShare}
+            />
+          </DataGroup>
         );
       } catch (ex) {
         logException(ex);
         return (
           <EventDataSection
+            key={entry.type}
             group={group}
             event={event}
             type={entry.type}
