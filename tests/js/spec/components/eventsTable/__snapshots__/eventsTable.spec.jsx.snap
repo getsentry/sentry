@@ -119,7 +119,6 @@ exports[`EventsTable renders 1`] = `
       orgId="orgId"
       projectId="projectId"
       tagList={Array []}
-      truncate={false}
     />
     <EventsTableRow
       event={
@@ -225,7 +224,6 @@ exports[`EventsTable renders 1`] = `
       orgId="orgId"
       projectId="projectId"
       tagList={Array []}
-      truncate={false}
     />
   </tbody>
 </table>

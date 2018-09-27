@@ -41,7 +41,6 @@ exports[`groupEvents renders 1`] = `
             },
           ]
         }
-        fixedDimensions={false}
         params={
           Object {
             "groupId": "1",
