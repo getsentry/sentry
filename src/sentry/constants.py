@@ -274,6 +274,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "koa": "node-koa",
     "django": "python-django",
     "flask": "python-flask",
+    "sanic": "python-sanic",
     "tornado": "python-tornado",
     "celery": "python-celery",
     "rq": "python-rq",

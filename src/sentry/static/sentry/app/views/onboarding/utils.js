@@ -56,6 +56,7 @@ const backend = [
   'python',
   'python-django',
   'python-flask',
+  'python-sanic',
   'python-celery',
   'python-bottle',
   'python-pylons',
