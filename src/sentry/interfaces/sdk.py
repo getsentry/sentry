@@ -34,9 +34,15 @@ class Sdk(Interface):
     The SDK used to transmit this event.
 
     >>> {
-    >>>     "name": "sentry-java",
-    >>>     "version": "1.0",
-    >>>     "integrations": ["log4j"]
+    >>>     "name": "sentry.java",
+    >>>     "version": "1.7.10",
+    >>>     "integrations": ["log4j"],
+    >>>     "packages": [
+    >>>         {
+    >>>             "name": "maven:io.sentry.sentry",
+    >>>             "version": "1.7.10",
+    >>>         }
+    >>>     ]
     >>> }
     """
 
@@ -54,17 +60,23 @@ class Sdk(Interface):
         if integrations and not isinstance(integrations, list):
             raise InterfaceValidationError("'integrations' must be a list")
 
+        packages = data.get('packages')
+        if packages and not isinstance(packages, list):
+            raise InterfaceValidationError("'packages' must be a list")
+
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
             'integrations': integrations,
+            'packages': packages,
         }
+
         return cls(**kwargs)
 
     def get_path(self):
         return 'sdk'
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)
         newest_name = get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
         if newest_version is not None:
@@ -88,4 +100,10 @@ class Sdk(Interface):
                 'isNewer': is_newer,
                 'url': get_with_prefix(settings.SDK_URLS, newest_name),
             },
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        return {
+            'name': meta.get('name'),
+            'version': meta.get('version'),
         }
