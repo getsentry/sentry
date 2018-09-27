@@ -453,7 +453,19 @@ class AccountConfigView(PipelineView):
         access_token = state['data']['access_token']
         user = get_user_info(access_token)
 
-        accounts = self.get_accounts(access_token, user['uuid'])['value']
+        accounts = self.get_accounts(access_token, user['uuid'])
+        self.logger(
+            'vsts.get_accounts',
+            extra={
+                # TODO(lb): I feel like there was a get org
+                # from the request user but I can't remember at all where it is
+                # 'organization_id': organization.id,
+                'user_id': request.user.id,
+                'accounts': accounts,
+            }
+
+        )
+        accounts = accounts['value']
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
