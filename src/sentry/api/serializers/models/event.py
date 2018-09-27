@@ -67,6 +67,21 @@ class EventSerializer(Serializer):
 
         return (data, meta_with_chunks(data, api_meta))
 
+    def _get_tags_with_meta(self, event):
+        meta = (event.data.get('_meta') or {}).get('tags') or {}
+
+        tags = sorted(
+            [{
+                'key': k.split('sentry:', 1)[-1],
+                'value': v,
+                '_meta': meta.get(k, None),
+            } for k, v in event.get_tags()],
+            key=lambda x: x['key']
+        )
+
+        tags_meta = {six.text_type(i): {'value': e.pop('_meta')} for i, e in enumerate(tags)}
+        return (tags, tags_meta)
+
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
@@ -94,6 +109,8 @@ class EventSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user):
+        meta = obj.data.get('_meta') or {}
+
         errors = []
         for error in obj.data.get('errors', []):
             message = EventError.get_message(error)
@@ -104,13 +121,7 @@ class EventSerializer(Serializer):
             }
             errors.append(error_result)
 
-        tags = sorted(
-            [{
-                'key': k.split('sentry:', 1)[-1],
-                'value': v
-            } for k, v in obj.get_tags()],
-            key=lambda x: x['key']
-        )
+        (tags, tags_meta) = self._get_tags_with_meta(obj)
 
         received = obj.data.get('received')
         if received:
@@ -155,7 +166,15 @@ class EventSerializer(Serializer):
                 md5_from_hash(h)
                 for h in get_hashes_from_fingerprint(obj, obj.data.get('fingerprint', ['{{ default }}']))
             ],
-            '_meta': dict(**attrs['_meta'])
+            '_meta': {
+                'entries': attrs['_meta']['entries'],
+                'user': attrs['_meta']['user'],
+                'contexts': attrs['_meta']['contexts'],
+                'sdk': attrs['_meta']['sdk'],
+                'context': meta.get('extra', None),
+                'packages': meta.get('modules', None),
+                'tags': tags_meta,
+            },
         }
         return d
 
