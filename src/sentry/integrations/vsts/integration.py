@@ -284,8 +284,11 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         except KeyError:
             return None
 
-    def create_comment(self, issue_id, comment):
-        self.get_client().update_work_item(self.instance, issue_id, comment=comment)
+    def create_comment(self, issue_id, attribution, comment):
+        # VSTS uses markdown or xml
+        # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
 
 class VstsIntegrationProvider(IntegrationProvider):

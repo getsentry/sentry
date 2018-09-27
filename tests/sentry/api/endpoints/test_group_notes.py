@@ -222,9 +222,10 @@ class GroupNoteCreateTest(APITestCase):
             'organizations:internal-catchall': True,
         }):
             with self.tasks():
+                comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
                 response = self.client.post(
                     url, format='json', data={
-                        'text': 'hello world',
+                        'text': comment,
                     }
                 )
                 assert response.status_code == 201, response.content
@@ -234,4 +235,4 @@ class GroupNoteCreateTest(APITestCase):
                 assert activity.group == group
                 assert activity.data == {'text': 'hello world'}
                 mock_create_comment.assert_called_with(
-                    'APP-123', 'Sentry Admin wrote:\n\nhello world')
+                    'APP-123', 'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment)

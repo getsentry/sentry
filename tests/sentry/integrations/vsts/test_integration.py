@@ -386,3 +386,8 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         domain_name = integration.model.metadata['domain_name']
         assert domain_name == account_uri
         assert Integration.objects.get(provider='vsts').metadata['domain_name'] == account_uri
+
+    def test_create_comment(self):
+        # comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        # assert quoted_comment == 'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment
+        pass

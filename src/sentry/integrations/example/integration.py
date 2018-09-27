@@ -61,8 +61,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key):
         return u'https://example/issues/{}'.format(key)
 
-    def create_comment(self):
-        pass
+    def create_comment(self, issue_id, attribution, comment):
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        return quoted_comment
 
     def create_issue(self, data, **kwargs):
         if 'assignee' not in data:
