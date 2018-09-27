@@ -77,9 +77,11 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+logger = logging.getLogger('sentry.integrations')
+
 
 class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
-    logger = logging.getLogger('sentry.integrations')
+    logger = logger
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
     inbound_status_key = 'sync_status_reverse'
@@ -453,7 +455,17 @@ class AccountConfigView(PipelineView):
         access_token = state['data']['access_token']
         user = get_user_info(access_token)
 
-        accounts = self.get_accounts(access_token, user['uuid'])['value']
+        accounts = self.get_accounts(access_token, user['uuid'])
+        logger.info(
+            'vsts.get_accounts',
+            extra={
+                'organization_id': pipeline.organization.id,
+                'user_id': request.user.id,
+                'accounts': accounts,
+            }
+
+        )
+        accounts = accounts['value']
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
