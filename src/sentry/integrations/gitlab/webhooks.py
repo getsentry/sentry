@@ -11,6 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
 from simplejson import JSONDecodeError
+from uuid import uuid4
+
 from sentry.models import (Commit, CommitAuthor, Organization, Repository)
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
@@ -18,6 +20,12 @@ from sentry.utils import json
 logger = logging.getLogger('sentry.webhooks')
 
 PROVIDER_NAME = 'integrations:gitlab'
+
+
+def create_webhook_secret(self):
+    # following this example
+    # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
+    return uuid4().hex + uuid4().hex
 
 
 class Webhook(object):
