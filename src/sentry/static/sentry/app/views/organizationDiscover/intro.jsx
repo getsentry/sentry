@@ -82,7 +82,7 @@ export default class Intro extends React.Component {
             {tct(
               `To learn more about how to use the query builder, see the
               [docs:docs].`,
-              {docs: <ExternalLink href="" />}
+              {docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />}
             )}
           </TextBlock>
         </Box>
