@@ -77,9 +77,11 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+logger = logging.getLogger('sentry.integrations')
+
 
 class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
-    logger = logging.getLogger('sentry.integrations')
+    logger = logger
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
     inbound_status_key = 'sync_status_reverse'
@@ -454,12 +456,10 @@ class AccountConfigView(PipelineView):
         user = get_user_info(access_token)
 
         accounts = self.get_accounts(access_token, user['uuid'])
-        self.logger(
+        logger.info(
             'vsts.get_accounts',
             extra={
-                # TODO(lb): I feel like there was a get org
-                # from the request user but I can't remember at all where it is
-                # 'organization_id': organization.id,
+                'organization_id': pipeline.organization.id,
                 'user_id': request.user.id,
                 'accounts': accounts,
             }
