@@ -232,4 +232,9 @@ theme.charts = {
   previousPeriod: theme.gray1,
 };
 
+// Similarity spectrum used in "Similar Issues" in group details
+theme.similarity = {
+  colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
+};
+
 export default theme;

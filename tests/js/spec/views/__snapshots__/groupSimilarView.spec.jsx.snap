@@ -320,33 +320,57 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 </div>
               </QueryCount>
             </h2>
-            <SimilarSpectrum>
-              <div
-                className="similar-spectrum"
+            <StyledSimilarSpectrum>
+              <SimilarSpectrum
+                className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
               >
-                <span>
-                  Similar
-                </span>
-                <span
-                  className="similar-spectrum-box high"
-                />
-                <span
-                  className="similar-spectrum-box med-high"
-                />
-                <span
-                  className="similar-spectrum-box med"
-                />
-                <span
-                  className="similar-spectrum-box low-med"
-                />
-                <span
-                  className="similar-spectrum-box low"
-                />
-                <span>
-                  Not Similar
-                </span>
-              </div>
-            </SimilarSpectrum>
+                <div
+                  className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
+                >
+                  <span>
+                    Similar
+                  </span>
+                  <SpectrumItem
+                    colorIndex={4}
+                  >
+                    <span
+                      className="css-1m9e7bp-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={3}
+                  >
+                    <span
+                      className="css-1tn9u0a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={2}
+                  >
+                    <span
+                      className="css-zgizhk-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={1}
+                  >
+                    <span
+                      className="css-1p9s53a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={0}
+                  >
+                    <span
+                      className="css-pvajr0-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <span>
+                    Not Similar
+                  </span>
+                </div>
+              </SimilarSpectrum>
+            </StyledSimilarSpectrum>
           </div>
         </SpreadLayout>
         <SimilarToolbar

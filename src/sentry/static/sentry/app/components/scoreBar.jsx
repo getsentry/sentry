@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import theme from 'app/utils/theme';
+
 class ScoreBar extends React.Component {
   static propTypes = {
     vertical: PropTypes.bool,
@@ -17,7 +19,7 @@ class ScoreBar extends React.Component {
   static defaultProps = {
     size: 40,
     thickness: 4,
-    palette: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
+    palette: theme.similarity.colors,
   };
 
   render() {
