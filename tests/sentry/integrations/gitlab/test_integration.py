@@ -111,7 +111,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         identity = Identity.objects.get(
             idp=idp,
             user=self.user,
-            external_id='user_id_1',
+            external_id='gitlab.example.com:user_id_1',
         )
         assert identity.status == IdentityStatus.VALID
         assert identity.data == {
