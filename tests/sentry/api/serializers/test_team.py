@@ -29,7 +29,20 @@ class TeamSerializerTest(TestCase):
                 'avatarType': 'letter_avatar',
                 'avatarUuid': None,
             },
+            'memberCount': 0,
         }
+
+    def test_member_count(self):
+        user = self.create_user(username='foo')
+        other_user = self.create_user(username='bar')
+        third_user = self.create_user(username='baz')
+
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization,
+                                members=[user, other_user, third_user])
+
+        result = serialize(team, user)
+        assert 3 == result['memberCount']
 
     def test_member_access(self):
         user = self.create_user(username='foo')
@@ -163,4 +176,5 @@ class TeamWithProjectsSerializerTest(TestCase):
                 'avatarType': 'letter_avatar',
                 'avatarUuid': None,
             },
+            'memberCount': 0
         }

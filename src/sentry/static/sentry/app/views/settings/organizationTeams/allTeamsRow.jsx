@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import {t, tct} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import {PanelItem} from 'app/components/panels';
 import IdBadge from 'app/components/idBadge';
@@ -125,6 +125,9 @@ const AllTeamsRow = createReactClass({
           ) : (
             display
           )}
+        </Box>
+        <Box flex="1" p={2}>
+          {tn('%d Member', '%d Members', team.memberCount)}
         </Box>
         <Box p={2}>
           {this.state.loading ? (

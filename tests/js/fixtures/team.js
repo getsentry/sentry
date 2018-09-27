@@ -4,6 +4,7 @@ export function Team(params) {
     slug: 'team-slug',
     name: 'Team Name',
     isMember: true,
+    memberCount: 0,
     ...params,
   };
 }
