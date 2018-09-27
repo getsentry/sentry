@@ -27,6 +27,11 @@ from sentry.testutils import APITestCase, TwoFactorAPITestCase
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
+        self.create_team(
+            name='appy',
+            organization=org,
+            members=[self.user])
+
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
@@ -37,6 +42,7 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(org.id)
+        assert len(response.data['teams']) == 1
 
         for i in range(5):
             self.create_project(organization=org)
@@ -48,7 +54,7 @@ class OrganizationDetailsTest(APITestCase):
         )
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(28, using='default'):
+        with self.assertNumQueries(33, using='default'):
             from django.db import connections
             response = self.client.get(url, format='json')
             pprint(connections['default'].queries)
