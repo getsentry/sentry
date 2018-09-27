@@ -65,7 +65,7 @@ const StyledScoreBar = styled(ScoreBar)`
 const Bar = styled('div')`
   border-radius: 3px;
   margin: 2px;
-  ${p => p.empty && 'background-color: #e2dee6;'};
+  ${p => p.empty && `background-color: ${p.theme.similarity.empty};`};
   ${p => p.color && `background-color: ${p.color};`};
 
   width: ${p => (!p.vertical ? p.thickness : p.size)}px;
