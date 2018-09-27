@@ -41,6 +41,7 @@ const PLATFORM_TO_ICON = {
   'python-pyramid': 'python',
   'python-rq': 'python',
   'python-tornado': 'python',
+  'python-awslambda': 'python',
   'react-native': 'apple',
   ruby: 'ruby',
   'ruby-rack': 'ruby',
