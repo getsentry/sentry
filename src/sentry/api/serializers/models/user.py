@@ -75,6 +75,7 @@ class UserSerializer(Serializer):
             'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
             'lastActive': obj.last_active,
+            'isSuperuser': obj.is_superuser,
         }
 
         if obj == user:

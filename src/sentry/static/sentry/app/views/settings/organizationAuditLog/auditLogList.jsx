@@ -51,7 +51,6 @@ class AuditLogList extends React.Component {
   render() {
     let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
     let hasEntries = entries && entries.length > 0;
-
     let options = [
       {value: '', label: t('Any action'), clearableVaue: false},
       ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
@@ -102,7 +101,11 @@ class AuditLogList extends React.Component {
                         )}
                       </div>
                       <NameContainer>
-                        <Name>{entry.actor.name}</Name>
+                        <Name data-test-id="actor-name">
+                          {entry.actor.isSuperuser
+                            ? `${entry.actor.name} (Sentry Staff)`
+                            : entry.actor.name}
+                        </Name>
                         <Note>{entry.note}</Note>
                       </NameContainer>
                     </UserInfo>
