@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+
 import Button from 'app/components/button';
+import {t} from 'app/locale';
 import {SelectField, NumberField, TextField} from 'app/components/forms';
 
 class RuleNode extends React.Component {
@@ -20,7 +22,7 @@ class RuleNode extends React.Component {
     // If it's not yet defined, call handlePropertyChange to make sure the value is set on state
 
     let initialVal;
-    if (this.props.data[name] === undefined) {
+    if (this.props.data[name] === undefined && !!data.choices.length) {
       initialVal = data.choices[0][0];
       this.props.handlePropertyChange(name, initialVal);
     } else {
@@ -30,6 +32,8 @@ class RuleNode extends React.Component {
     return (
       <SelectField
         clearable={false}
+        placeholder={t('Select integration')}
+        noResultsText={t('No integrations available')}
         name={name}
         value={initialVal}
         choices={data.choices}
@@ -144,6 +148,10 @@ const RuleNodeForm = styled('div')`
   .Select {
     line-height: 26px;
     min-width: 150px;
+  }
+  .Select-placeholder {
+    height: 26px;
+    line-height: 26px;
   }
   .Select-control {
     height: 24px;
