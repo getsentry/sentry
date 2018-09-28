@@ -95,6 +95,7 @@ export default class Intro extends React.Component {
 const IntroContainer = styled(Panel)`
   width: 100%;
   height: 100%;
+  margin-top: 20px;
 `;
 
 const IntroBody = styled(Flex)`
