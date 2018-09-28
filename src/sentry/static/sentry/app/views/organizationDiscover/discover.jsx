@@ -50,22 +50,25 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search, action}} = nextProps;
+    const {queryBuilder, location: {search}} = nextProps;
     const currentSearch = this.props.location.search;
 
-    if (currentSearch === search || action === 'REPLACE') {
+    if (currentSearch === search) {
       return;
     }
 
-    const newQuery = getQueryFromQueryString(search);
-    queryBuilder.reset(newQuery);
+    // Clear data only if location.search is empty (reset has been called)
+    if (!search) {
+      const newQuery = getQueryFromQueryString(search);
+      queryBuilder.reset(newQuery);
 
-    this.setState({
-      data: null,
-      query: null,
-      chartData: null,
-      chartQuery: null,
-    });
+      this.setState({
+        data: null,
+        query: null,
+        chartData: null,
+        chartQuery: null,
+      });
+    }
   }
 
   updateField = (field, value) => {
