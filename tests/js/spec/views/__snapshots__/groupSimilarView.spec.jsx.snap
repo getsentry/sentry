@@ -320,33 +320,57 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 </div>
               </QueryCount>
             </h2>
-            <SimilarSpectrum>
-              <div
-                className="similar-spectrum"
+            <StyledSimilarSpectrum>
+              <SimilarSpectrum
+                className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
               >
-                <span>
-                  Similar
-                </span>
-                <span
-                  className="similar-spectrum-box high"
-                />
-                <span
-                  className="similar-spectrum-box med-high"
-                />
-                <span
-                  className="similar-spectrum-box med"
-                />
-                <span
-                  className="similar-spectrum-box low-med"
-                />
-                <span
-                  className="similar-spectrum-box low"
-                />
-                <span>
-                  Not Similar
-                </span>
-              </div>
-            </SimilarSpectrum>
+                <div
+                  className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
+                >
+                  <span>
+                    Similar
+                  </span>
+                  <SpectrumItem
+                    colorIndex={4}
+                  >
+                    <span
+                      className="css-1m9e7bp-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={3}
+                  >
+                    <span
+                      className="css-1tn9u0a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={2}
+                  >
+                    <span
+                      className="css-zgizhk-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={1}
+                  >
+                    <span
+                      className="css-1p9s53a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={0}
+                  >
+                    <span
+                      className="css-pvajr0-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <span>
+                    Not Similar
+                  </span>
+                </div>
+              </SimilarSpectrum>
+            </StyledSimilarSpectrum>
           </div>
         </SpreadLayout>
         <SimilarToolbar
@@ -605,12 +629,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           <Checkbox
                             checked={false}
                             id="271"
+                            onChange={[Function]}
                             value="271"
                           >
                             <input
                               checked={false}
                               className="chk-select"
                               id="271"
+                              onChange={[Function]}
                               type="checkbox"
                               value="271"
                             />
@@ -1032,75 +1058,96 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
-                        <ScoreBar
-                          palette={Array []}
-                          paletteClassNames={
-                            Array [
-                              "low",
-                              "low-med",
-                              "med",
-                              "med-high",
-                              "high",
-                            ]
-                          }
+                        <StyledScoreBar
                           score={4}
                           vertical={true}
                         >
-                          <div
-                            className="score-bar vertical"
+                          <ScoreBar
+                            className="css-omtyju-StyledScoreBar eecxaw40"
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
+                            score={4}
+                            size={40}
+                            thickness={4}
+                            vertical={true}
                           >
                             <div
-                              className="score-bar-bar med-high"
-                              key="0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="1"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="2"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="3"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                          </div>
-                        </ScoreBar>
+                              className="css-omtyju-StyledScoreBar eecxaw40"
+                            >
+                              <Bar
+                                color="#98b480"
+                                key="0"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                color="#98b480"
+                                key="1"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                color="#98b480"
+                                key="2"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                color="#98b480"
+                                key="3"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-0"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                            </div>
+                          </ScoreBar>
+                        </StyledScoreBar>
                       </span>
                     </Hovercard>
                   </div>
@@ -1117,75 +1164,92 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
-                        <ScoreBar
-                          palette={Array []}
-                          paletteClassNames={
-                            Array [
-                              "low",
-                              "low-med",
-                              "med",
-                              "med-high",
-                              "high",
-                            ]
-                          }
+                        <StyledScoreBar
                           score={0}
                           vertical={true}
                         >
-                          <div
-                            className="score-bar vertical"
+                          <ScoreBar
+                            className="css-omtyju-StyledScoreBar eecxaw40"
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
+                            score={0}
+                            size={40}
+                            thickness={4}
+                            vertical={true}
                           >
                             <div
-                              className="score-bar-bar empty"
-                              key="empty-0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-1"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-2"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-3"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-4"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                          </div>
-                        </ScoreBar>
+                              className="css-omtyju-StyledScoreBar eecxaw40"
+                            >
+                              <Bar
+                                empty={true}
+                                key="empty-0"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-1"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-2"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-3"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-4"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                            </div>
+                          </ScoreBar>
+                        </StyledScoreBar>
                       </span>
                     </Hovercard>
                   </div>

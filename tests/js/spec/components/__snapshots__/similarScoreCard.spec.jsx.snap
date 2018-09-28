@@ -3,52 +3,38 @@
 exports[`SimilarScoreCard renders 1`] = `""`;
 
 exports[`SimilarScoreCard renders with score list 1`] = `
-<div
-  className="similar-score-card"
->
-  <SpreadLayout
-    center={true}
-    className="similar-score-card-row"
+<div>
+  <Wrapper
     key="exception,message,character-shingles"
-    responsive={false}
   >
     <div />
-    <div
-      className="similar-score-quantity empty"
+    <Score
+      score={null}
     />
-  </SpreadLayout>
-  <SpreadLayout
-    center={true}
-    className="similar-score-card-row"
+  </Wrapper>
+  <Wrapper
     key="exception,stacktrace,application-chunks"
-    responsive={false}
   >
     <div />
-    <div
-      className="similar-score-quantity med-high"
+    <Score
+      score={4}
     />
-  </SpreadLayout>
-  <SpreadLayout
-    center={true}
-    className="similar-score-card-row"
+  </Wrapper>
+  <Wrapper
     key="exception,stacktrace,pairs"
-    responsive={false}
   >
     <div />
-    <div
-      className="similar-score-quantity high"
+    <Score
+      score={5}
     />
-  </SpreadLayout>
-  <SpreadLayout
-    center={true}
-    className="similar-score-card-row"
+  </Wrapper>
+  <Wrapper
     key="message,message,character-shingles"
-    responsive={false}
   >
     <div />
-    <div
-      className="similar-score-quantity med"
+    <Score
+      score={3}
     />
-  </SpreadLayout>
+  </Wrapper>
 </div>
 `;
