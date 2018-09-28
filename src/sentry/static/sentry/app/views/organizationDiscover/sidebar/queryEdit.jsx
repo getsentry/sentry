@@ -12,7 +12,7 @@ import Conditions from '../conditions';
 import {getOrderByOptions} from '../utils';
 import {Fieldset, PlaceholderText, SidebarLabel, ButtonSpinner} from '../styles';
 
-export default class QueryFields extends React.Component {
+export default class QueryEdit extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
     isFetchingQuery: PropTypes.bool.isRequired,
