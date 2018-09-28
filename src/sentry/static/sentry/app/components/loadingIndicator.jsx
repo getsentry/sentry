@@ -15,6 +15,7 @@ function LoadingIndicator(props) {
     style,
     relative,
     size,
+    hideSpinner,
   } = props;
   let cx = classNames(className, {
     overlay,
@@ -40,9 +41,11 @@ function LoadingIndicator(props) {
 
   return (
     <div className={cx} style={style}>
-      <div className={loadingCx} style={loadingStyle}>
-        {finished ? <div className="checkmark draw" /> : null}
-      </div>
+      {!hideSpinner && (
+        <div className={loadingCx} style={loadingStyle}>
+          {finished ? <div className="checkmark draw" /> : null}
+        </div>
+      )}
 
       {!hideMessage && <div className="loading-message">{children}</div>}
     </div>
@@ -58,6 +61,7 @@ LoadingIndicator.propTypes = {
   relative: PropTypes.bool,
   hideMessage: PropTypes.bool,
   size: PropTypes.number,
+  hideSpinner: PropTypes.bool,
 };
 
 export default LoadingIndicator;
