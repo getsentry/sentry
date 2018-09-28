@@ -400,7 +400,7 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
 @retry(exclude=(DeleteAborted, ))
 def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
-    from sentry.models import OrganizationIntegration
+    from sentry.models import OrganizationIntegration, Repository
 
     try:
         instance = OrganizationIntegration.objects.get(id=object_id)
@@ -409,6 +409,14 @@ def delete_organization_integration(object_id, transaction_id=None, actor_id=Non
 
     if instance.status == ObjectStatus.VISIBLE:
         raise DeleteAborted
+
+    # dissociate repos from that integration
+    Repository.objects.filter(
+        organization_id=instance.organization_id,
+        integration_id=instance.integration_id,
+    ).update(
+        integration_id=None,
+    )
 
     task = deletions.get(
         model=OrganizationIntegration,
