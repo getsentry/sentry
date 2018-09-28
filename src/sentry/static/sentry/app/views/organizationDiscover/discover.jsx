@@ -205,8 +205,8 @@ export default class OrganizationDiscover extends React.Component {
             <QueryEdit
               queryBuilder={queryBuilder}
               isFetchingQuery={isFetchingQuery}
-              updateField={this.updateField}
-              runQuery={this.runQuery}
+              onUpdateField={this.updateField}
+              onRunQuery={this.runQuery}
               reset={this.reset}
             />
           )}

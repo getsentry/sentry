@@ -16,8 +16,8 @@ export default class QueryEdit extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
     isFetchingQuery: PropTypes.bool.isRequired,
-    updateField: PropTypes.func.isRequired,
-    runQuery: PropTypes.func.isRequired,
+    onUpdateField: PropTypes.func.isRequired,
+    onRunQuery: PropTypes.func.isRequired,
     reset: PropTypes.func.isRequired,
   };
 
@@ -32,7 +32,7 @@ export default class QueryEdit extends React.Component {
   };
 
   render() {
-    const {queryBuilder, isFetchingQuery, updateField, runQuery, reset} = this.props;
+    const {queryBuilder, isFetchingQuery, onUpdateField, onRunQuery, reset} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
@@ -56,7 +56,7 @@ export default class QueryEdit extends React.Component {
             placeholder={this.getSummarizePlaceholder()}
             options={fieldOptions}
             value={currentQuery.fields}
-            onChange={val => updateField('fields', val.map(({value}) => value))}
+            onChange={val => onUpdateField('fields', val.map(({value}) => value))}
             clearable={true}
           />
         </Fieldset>
@@ -64,14 +64,14 @@ export default class QueryEdit extends React.Component {
           <Aggregations
             value={currentQuery.aggregations}
             columns={columns}
-            onChange={val => updateField('aggregations', val)}
+            onChange={val => onUpdateField('aggregations', val)}
           />
         </Fieldset>
         <Fieldset>
           <Conditions
             value={currentQuery.conditions}
             columns={columnsForConditions}
-            onChange={val => updateField('conditions', val)}
+            onChange={val => onUpdateField('conditions', val)}
           />
         </Fieldset>
         <Fieldset>
@@ -84,7 +84,7 @@ export default class QueryEdit extends React.Component {
             placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
             options={getOrderByOptions(queryBuilder)}
             value={currentQuery.orderby}
-            onChange={val => updateField('orderby', val.value)}
+            onChange={val => onUpdateField('orderby', val.value)}
           />
         </Fieldset>
         <Fieldset>
@@ -93,14 +93,14 @@ export default class QueryEdit extends React.Component {
             label={<SidebarLabel>{t('Limit')}</SidebarLabel>}
             placeholder="#"
             value={currentQuery.limit}
-            onChange={val => updateField('limit', typeof val === 'number' ? val : null)}
+            onChange={val => onUpdateField('limit', typeof val === 'number' ? val : null)}
           />
         </Fieldset>
         <Fieldset>
           <Flex>
             <Button
               size="xsmall"
-              onClick={runQuery}
+              onClick={onRunQuery}
               priority="primary"
               busy={isFetchingQuery}
             >

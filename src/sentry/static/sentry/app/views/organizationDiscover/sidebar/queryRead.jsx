@@ -13,7 +13,7 @@ export default class QueryRead extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
     isFetchingQuery: PropTypes.bool.isRequired,
-    runQuery: PropTypes.func.isRequired,
+    onRunQuery: PropTypes.func.isRequired,
   };
 
   renderAggregations(aggregations) {
@@ -41,7 +41,7 @@ export default class QueryRead extends React.Component {
   }
 
   render() {
-    const {queryBuilder, runQuery, isFetchingQuery} = this.props;
+    const {queryBuilder, onRunQuery, isFetchingQuery} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
 
@@ -78,7 +78,7 @@ export default class QueryRead extends React.Component {
           <Flex>
             <Button
               size="xsmall"
-              onClick={runQuery}
+              onClick={onRunQuery}
               priority="primary"
               busy={isFetchingQuery}
             >
