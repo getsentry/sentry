@@ -133,9 +133,8 @@ export default class OrganizationDiscover extends React.Component {
         this.setState({data, query: queryCopy, isFetchingQuery: false});
 
         browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
-            query
-          )}`,
+          pathname: `/organizations/${organization.slug}/discover/`,
+          search: getQueryStringFromQuery(query),
         });
       },
       err => {

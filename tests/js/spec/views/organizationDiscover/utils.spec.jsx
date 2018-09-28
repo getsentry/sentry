@@ -11,6 +11,9 @@ import {COLUMNS} from 'app/views/organizationDiscover/data';
 const queryString =
   '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22uniq%22%2C%22os_build%22%2C%22uniq_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22event_id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22';
 
+const queryStringWithInvalidKey =
+  '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22uniq%22%2C%22os_build%22%2C%22uniq_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22event_id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22&invalid=true';
+
 const query = {
   aggregations: [['count()', null, 'count'], ['uniq', 'os_build', 'uniq_os_build']],
   conditions: [],
@@ -29,6 +32,10 @@ describe('getQueryFromQueryString()', function() {
 
   it('handles aggregations', function() {
     expect(getQueryFromQueryString(queryString)).toEqual(query);
+  });
+
+  it('strips invalid keys', function() {
+    expect(getQueryFromQueryString(queryStringWithInvalidKey)).toEqual(query);
   });
 });
 

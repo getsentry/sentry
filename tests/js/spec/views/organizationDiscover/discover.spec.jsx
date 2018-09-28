@@ -75,10 +75,10 @@ describe('Discover', function() {
   describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
-      browserHistory.push.mockImplementation(function(url) {
+      browserHistory.push.mockImplementation(function({search}) {
         wrapper.setProps({
           location: {
-            search: url.pathname.replace('/organizations/org-slug/discover/', ''),
+            search: search || '',
             action: 'PUSH',
           },
         });

@@ -3,17 +3,27 @@ import {Client} from 'app/api';
 import {isValidAggregation} from './aggregations/utils';
 
 export function getQueryFromQueryString(queryString) {
-  if (!queryString) {
-    return {};
-  }
+  const validQueryKeys = new Set([
+    'projects',
+    'fields',
+    'conditions',
+    'aggregations',
+    'range',
+    'start',
+    'end',
+    'orderby',
+    'limit',
+  ]);
+
+  const result = {};
   let parsedQuery = queryString;
-  let result = {};
   parsedQuery = parsedQuery.replace(/^\?|\/$/g, '').split('&');
   parsedQuery.forEach(item => {
     if (item.includes('=')) {
-      let key = item.split('=')[0];
-      let value = JSON.parse(decodeURIComponent(item.split('=')[1]));
-      result[key] = value;
+      const [key, value] = item.split('=');
+      if (validQueryKeys.has(key)) {
+        result[key] = JSON.parse(decodeURIComponent(value));
+      }
     }
   });
 
