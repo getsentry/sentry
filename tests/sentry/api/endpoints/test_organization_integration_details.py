@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import APITestCase
 
 
@@ -17,6 +17,13 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             name='Example',
         )
         self.integration.add_organization(self.org, self.user)
+
+        self.repo = Repository.objects.create(
+            provider='example',
+            name='getsentry/sentry',
+            organization_id=self.org.id,
+            integration_id=self.integration.id,
+        )
 
         self.path = u'/api/0/organizations/{}/integrations/{}/'.format(
             self.org.slug, self.integration.id)
@@ -39,6 +46,9 @@ class OrganizationIntegrationDetailsTest(APITestCase):
                 integration=self.integration,
                 organization=self.org,
             ).exists()
+
+            # make sure repo is dissociated from integration
+            assert Repository.objects.get(id=self.repo.id).integration_id is None
 
     def test_update_config(self):
         config = {
