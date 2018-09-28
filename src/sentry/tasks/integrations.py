@@ -215,7 +215,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
 @instrumented_task(
     name='sentry.tasks.integrations.kickoff_vsts_subscription_check',
     queue='integrations',
-    default_retry_delay=60 * 5,  # TODO(lb): not sure what this should be
+    default_retry_delay=60 * 5,
     max_retries=5,
 )
 @retry()
@@ -239,7 +239,7 @@ def kickoff_vsts_subscription_check():
 
         vsts_subscription_check.apply_async(
             kwargs={
-                'integration': integration,
+                'integration_id': integration.id,
                 'organization_id': organization_id,
             }
         )
@@ -248,11 +248,12 @@ def kickoff_vsts_subscription_check():
 @instrumented_task(
     name='sentry.tasks.integrations.vsts_subscription_check',
     queue='integrations',
-    default_retry_delay=60 * 5,  # TODO(lb): not sure what this should be
+    default_retry_delay=60 * 5,
     max_retries=5,
 )
-@retry(exclude=(ApiError, ApiUnauthorized))
-def vsts_subscription_check(integration, organization_id, **kwargs):
+@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
+def vsts_subscription_check(integration_id, organization_id, **kwargs):
+    integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
     client = installation.get_client()
     subscription_id = integration.metadata['subscription']['id']

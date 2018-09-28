@@ -610,7 +610,7 @@ CELERYBEAT_SCHEDULE = {
         'task': 'sentry.tasks.integrations.kickoff_vsts_subscription_check',
         'schedule': timedelta(hours=6),
         'options': {
-            'expires': 60 * 25,  # TODO(lb): What does this mean exactly? what expires?
+            'expires': 60 * 25,
         }
     }
 }
