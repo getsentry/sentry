@@ -10,6 +10,10 @@ from sentry.models import (
     ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
     ObjectStatus, OrganizationIntegration, Repository, User
 )
+<< << << < HEAD
+== == == =
+from sentry.mediators.plugins import Migrator
+>>>>>> > fixed merge mistakes.
 
 from sentry.mediators.plugins import Migrator
 from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
@@ -212,6 +216,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
             organization=Organization.objects.get(id=organization_id),
         )
 
+
 @instrumented_task(
     name='sentry.tasks.integrations.kickoff_vsts_subscription_check',
     queue='integrations',
@@ -262,7 +267,6 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
         subscription_id=subscription_id,
     )
 
-    # TODO(lb): looked at 'onProbation' status cannot tell how/if it affects functionality
     # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
     if subscription['status'] == 'disabledBySystem':
         client.update_subscription(
