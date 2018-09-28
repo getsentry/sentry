@@ -547,6 +547,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   },
                                                   "smallBadgeSize": "11px",
                                                 },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
+                                                },
                                                 "success": "#57be8c",
                                                 "text": Object {
                                                   "family": "\\"Rubik\\", \\"Avenir Next\\", sans-serif",
@@ -791,6 +801,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {
@@ -1862,6 +1882,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   },
                                                   "smallBadgeSize": "11px",
                                                 },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
+                                                },
                                                 "success": "#57be8c",
                                                 "text": Object {
                                                   "family": "\\"Rubik\\", \\"Avenir Next\\", sans-serif",
@@ -2106,6 +2136,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {
@@ -3310,6 +3350,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   },
                                                   "smallBadgeSize": "11px",
                                                 },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
+                                                },
                                                 "success": "#57be8c",
                                                 "text": Object {
                                                   "family": "\\"Rubik\\", \\"Avenir Next\\", sans-serif",
@@ -3554,6 +3604,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {
@@ -4027,6 +4087,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   },
                                                   "smallBadgeSize": "11px",
                                                 },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
+                                                },
                                                 "success": "#57be8c",
                                                 "text": Object {
                                                   "family": "\\"Rubik\\", \\"Avenir Next\\", sans-serif",
@@ -4271,6 +4341,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {

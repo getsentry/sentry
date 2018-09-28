@@ -1,29 +1,38 @@
 import React from 'react';
-import classNames from 'classnames';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import 'app/../less/components/similarSpectrum.less';
 
 class SimilarSpectrum extends React.Component {
-  static propTypes = {};
-  static defaultProps = {};
-
   render() {
     let {className} = this.props;
-    let cx = classNames('similar-spectrum', className);
 
     return (
-      <div className={cx}>
+      <div className={className}>
         <span>{t('Similar')}</span>
-        <span className="similar-spectrum-box high" />
-        <span className="similar-spectrum-box med-high" />
-        <span className="similar-spectrum-box med" />
-        <span className="similar-spectrum-box low-med" />
-        <span className="similar-spectrum-box low" />
+        <SpectrumItem colorIndex={4} />
+        <SpectrumItem colorIndex={3} />
+        <SpectrumItem colorIndex={2} />
+        <SpectrumItem colorIndex={1} />
+        <SpectrumItem colorIndex={0} />
         <span>{t('Not Similar')}</span>
       </div>
     );
   }
 }
 
-export default SimilarSpectrum;
+const StyledSimilarSpectrum = styled(SimilarSpectrum)`
+  display: flex;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const SpectrumItem = styled('span')`
+  border-radius: 2px;
+  margin: 5px;
+  width: 14px;
+  ${p =>
+    typeof p.colorIndex !== 'undefined' &&
+    `background-color: ${p.theme.similarity.colors[p.colorIndex]};`};
+`;
+
+export default StyledSimilarSpectrum;
