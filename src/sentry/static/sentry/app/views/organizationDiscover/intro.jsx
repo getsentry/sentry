@@ -7,6 +7,7 @@ import {tct, t} from 'app/locale';
 
 import ExternalLink from 'app/components/externalLink';
 import Link from 'app/components/link';
+import Panel from 'app/components/panels/panel';
 
 export default class Intro extends React.Component {
   static propTypes = {
@@ -50,50 +51,60 @@ export default class Intro extends React.Component {
 
   render() {
     return (
-      <IntroContainer
-        style={{width: '100%', height: '100%'}}
-        align="center"
-        justify="center"
-      >
-        <Box w={500}>
-          <TextBlock>
-            {tct(
-              `Welcome to [discover:Discover]. Discover lets you query raw
+      <IntroContainer>
+        <IntroBody>
+          <Box w={500}>
+            <TextBlock>
+              {tct(
+                `Welcome to [discover:Discover]. Discover lets you query raw
               event data in Sentry.`,
-              {
-                discover: <strong />,
-              }
-            )}
-          </TextBlock>
-          <TextBlock>
-            {t(
-              `Getting started? Try running one of the example queries below.
+                {
+                  discover: <strong />,
+                }
+              )}
+            </TextBlock>
+            <TextBlock>
+              {t(
+                `Getting started? Try running one of the example queries below.
               Select the query you want to make, then click "Run Query".`
-            )}
-            <ul>
-              {this.getExampleQueries().map(({query, description}, idx) => (
-                <li key={idx}>
-                  <Link onClick={() => this.props.updateQuery(query)}>{description}</Link>
-                </li>
-              ))}
-            </ul>
-          </TextBlock>
-          <TextBlock>
-            {tct(
-              `To learn more about how to use the query builder, see the
+              )}
+              <ul>
+                {this.getExampleQueries().map(({query, description}, idx) => (
+                  <li key={idx}>
+                    <Link onClick={() => this.props.updateQuery(query)}>
+                      {description}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </TextBlock>
+            <TextBlock>
+              {tct(
+                `To learn more about how to use the query builder, see the
               [docs:docs].`,
-              {docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />}
-            )}
-          </TextBlock>
-        </Box>
+                {docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />}
+              )}
+            </TextBlock>
+          </Box>
+        </IntroBody>
       </IntroContainer>
     );
   }
 }
 
-const IntroContainer = styled(Flex)`
+const IntroContainer = styled(Panel)`
+  width: 100%;
+  height: 100%;
+  margin-top: 20px;
+`;
+
+const IntroBody = styled(Flex)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray5};
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
 `;
 
 const TextBlock = styled('div')`
