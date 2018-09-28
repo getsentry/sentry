@@ -26,7 +26,7 @@ export default class SavedQueries extends React.Component {
     this.state = {isLoading: true};
   }
 
-  componentWillMount() {
+  componentDidMount() {
     fetchSavedQueries(this.props.organization)
       .then(data => {
         this.setState({isLoading: false, data});
@@ -45,7 +45,7 @@ export default class SavedQueries extends React.Component {
   }
 
   renderEmpty() {
-    return <Fieldset>{t('No saved searches')}</Fieldset>;
+    return <Fieldset>{t('No saved queries')}</Fieldset>;
   }
 
   renderList() {
@@ -78,6 +78,8 @@ export default class SavedQueries extends React.Component {
 
   render() {
     const {isLoading} = this.state;
-    return <SavedQuery>{isLoading ? this.renderEmpty() : this.renderList()}</SavedQuery>;
+    return (
+      <SavedQuery>{isLoading ? this.renderLoading() : this.renderList()}</SavedQuery>
+    );
   }
 }
