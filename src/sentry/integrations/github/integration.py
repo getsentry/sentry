@@ -173,7 +173,8 @@ class GitHubIntegrationProvider(IntegrationProvider):
     def post_install(self, integration, organization):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
-            provider='github',
+            provider__in=['github', 'integrations:github'],
+            integration_id__isnull=True,
         ).values_list('id', flat=True)
 
         for repo_id in repo_ids:
