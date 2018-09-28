@@ -35,10 +35,11 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
-export const Sidebar = styled(Flex)`
-  flex-direction: column;
+export const Sidebar = styled(props => (
+  <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
+))`
   border-right: 1px solid ${p => p.theme.borderDark};
-  width: 320px;
+  min-width: 320px;
 `;
 
 export const Body = styled(Flex)``;
