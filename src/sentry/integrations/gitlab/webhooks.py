@@ -113,6 +113,9 @@ class GitlabWebhookEndpoint(View):
         if request.method != 'POST':
             return HttpResponse(status=405)
 
+        # if not self.check_secret(request):
+        #     raise Exception???
+
         return super(GitlabWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, organization_id):
@@ -165,3 +168,6 @@ class GitlabWebhookEndpoint(View):
 
         handler()(organization, event)
         return HttpResponse(status=204)
+
+    def check_secret(self, request):
+        pass
