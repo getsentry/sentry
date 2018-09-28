@@ -321,7 +321,8 @@ class VstsIntegrationProvider(IntegrationProvider):
     def post_install(self, integration, organization):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
-            provider='visualstudio',
+            provider__in=['visualstudio', 'integrations:vsts'],
+            integration_id__isnull=True,
         ).values_list('id', flat=True)
 
         for repo_id in repo_ids:
