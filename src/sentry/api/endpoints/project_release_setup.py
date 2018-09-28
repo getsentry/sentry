@@ -32,7 +32,6 @@ class ProjectReleaseSetupEndpoint(ProjectEndpoint):
             release__projects=project.id,
         ).exists()
 
-        # [2] see if any repos have been linked for this org
         repo = Repository.objects.filter(
             organization_id=project.organization_id,
         ).exists()
