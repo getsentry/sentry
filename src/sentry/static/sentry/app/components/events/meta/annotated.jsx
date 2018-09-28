@@ -14,11 +14,13 @@ class Annotated {
       let key = path.shift();
       value = value[key];
       if (_.isObject(meta)) {
-        meta = meta[key];
+        meta = meta[key] || null;
       }
     }
 
-    return new Annotated(value, meta);
+    return path.length === 0
+      ? new Annotated(value, meta)
+      : new Annotated(undefined, null);
   }
 
   annotated() {
