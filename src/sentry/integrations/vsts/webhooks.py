@@ -34,7 +34,7 @@ class WorkItemWebhook(Endpoint):
             try:
                 self.check_webhook_secret(request, integration)
             except AssertionError:
-                raven.captureException(request=request)
+                raven.captureException()
                 return self.respond(status=401)
             self.handle_updated_workitem(data, integration)
         return self.respond()

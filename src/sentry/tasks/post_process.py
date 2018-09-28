@@ -12,9 +12,9 @@ import logging
 import time
 
 from django.conf import settings
-from raven.contrib.django.models import client as Raven
 
 from sentry import features
+from sentry.app import raven
 from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
@@ -96,7 +96,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     event.group_id = event.group.id
 
     project_id = event.group.project_id
-    Raven.tags_context({
+    raven.tags_context({
         'project': project_id,
     })
 
@@ -174,7 +174,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    Raven.tags_context({
+    raven.tags_context({
         'project': event.project_id,
     })
     plugin = plugins.get(plugin_slug)
@@ -191,7 +191,7 @@ def index_event_tags(organization_id, project_id, event_id, tags,
                      group_id, environment_id, date_added=None, **kwargs):
     from sentry import tagstore
 
-    Raven.tags_context({
+    raven.tags_context({
         'project': project_id,
     })
 

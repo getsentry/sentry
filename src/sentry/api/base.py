@@ -89,7 +89,7 @@ class Endpoint(APIView):
             import sys
             import traceback
             sys.stderr.write(traceback.format_exc())
-            event_id = raven.captureException(request=request)
+            event_id = raven.captureException()
             context = {
                 'detail': 'Internal Error',
                 'errorId': event_id,
@@ -144,13 +144,6 @@ class Endpoint(APIView):
                     return self.response
 
             self.initial(request, *args, **kwargs)
-
-            if getattr(request, 'user', None) and request.user.is_authenticated():
-                raven.user_context({
-                    'id': request.user.id,
-                    'username': request.user.username,
-                    'email': request.user.email,
-                })
 
             # Get the appropriate handler method
             if request.method.lower() in self.http_method_names:

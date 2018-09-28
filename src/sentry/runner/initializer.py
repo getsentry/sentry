@@ -14,6 +14,7 @@ import six
 from django.conf import settings
 
 from sentry.utils import warnings
+from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -317,6 +318,8 @@ def initialize_app(config, skip_service_validation=False):
     initialize_receivers()
 
     validate_options(settings)
+
+    configure_sdk()
 
     setup_services(validate=not skip_service_validation)
 

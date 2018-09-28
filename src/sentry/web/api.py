@@ -25,10 +25,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
-from raven.contrib.django.models import client as Raven
 from symbolic import ProcessMinidumpError
 
 from sentry import features, quotas, tsdb
+from sentry.app import raven
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
@@ -199,7 +199,7 @@ class APIView(BaseView):
         project = self._get_project_from_id(project_id)
         if project:
             helper.context.bind_project(project)
-            Raven.tags_context(helper.context.get_tags_context())
+            raven.tags_context(helper.context.get_tags_context())
 
         if origin is not None:
             # This check is specific for clients who need CORS support
@@ -226,7 +226,7 @@ class APIView(BaseView):
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
-            Raven.tags_context(helper.context.get_tags_context())
+            raven.tags_context(helper.context.get_tags_context())
 
             # Explicitly bind Organization so we don't implicitly query it later
             # this just allows us to comfortably assure that `project.organization` is safe.
@@ -526,7 +526,7 @@ class MinidumpView(StoreView):
 
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
-        Raven.tags_context(helper.context.get_tags_context())
+        raven.tags_context(helper.context.get_tags_context())
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -538,7 +538,7 @@ class MinidumpView(StoreView):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
-        Raven.tags_context(helper.context.get_tags_context())
+        raven.tags_context(helper.context.get_tags_context())
 
         return super(APIView, self).dispatch(
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
@@ -697,7 +697,7 @@ class SecurityReportView(StoreView):
 
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
-        Raven.tags_context(helper.context.get_tags_context())
+        raven.tags_context(helper.context.get_tags_context())
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -709,7 +709,7 @@ class SecurityReportView(StoreView):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
-        Raven.tags_context(helper.context.get_tags_context())
+        raven.tags_context(helper.context.get_tags_context())
 
         return super(APIView, self).dispatch(
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
