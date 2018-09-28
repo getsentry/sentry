@@ -1,17 +1,16 @@
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import FlowLayout from 'app/components/flowLayout';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
-import SpreadLayout from 'app/components/spreadLayout';
-
-import 'app/../less/components/mergedItem.less';
+import space from 'app/styles/space';
 
 const MergedItem = createReactClass({
   displayName: 'MergedItem',
@@ -74,53 +73,51 @@ const MergedItem = createReactClass({
     GroupingActions.toggleUnmerge([fingerprint, event.id]);
   },
 
+  handleCheckClick() {
+    // noop because of react warning about being a controlled input without `onChange`
+    // we handle change via row click
+  },
+
   render() {
     let {disabled, event, orgId, fingerprint, projectId} = this.props;
     let checkboxDisabled = disabled || this.state.disabled;
-    let cx = classNames('merged-group', {
-      expanded: !this.state.collapsed,
-      busy: this.state.busy,
-    });
 
     // `event` can be null if last event w/ fingerprint is not within retention period
     return (
-      <div className={cx}>
-        <SpreadLayout className="merged-controls" responsive>
+      <MergedGroup busy={this.state.busy}>
+        <Controls expanded={!this.state.collapsed}>
           <FlowLayout onClick={this.handleToggle}>
-            <div className="action-column">
+            <ActionColumn>
               <Checkbox
                 id={fingerprint}
                 value={fingerprint}
                 checked={this.state.checked}
                 disabled={checkboxDisabled}
+                onChange={this.handleCheckClick}
               />
-            </div>
+            </ActionColumn>
 
-            <label
-              onClick={this.handleLabelClick}
-              htmlFor={fingerprint}
-              className="truncate fingerprint"
-            >
+            <Fingerprint onClick={this.handleLabelClick} htmlFor={fingerprint}>
               {fingerprint}
-            </label>
+            </Fingerprint>
           </FlowLayout>
 
           <div>
             <span />
-            <span className="merged-collapse" onClick={this.handleToggleEvents}>
+            <Collapse onClick={this.handleToggleEvents}>
               {this.state.collapsed ? (
                 <i className="icon-arrow-down" />
               ) : (
                 <i className="icon-arrow-up" />
               )}
-            </span>
+            </Collapse>
           </div>
-        </SpreadLayout>
+        </Controls>
 
         {!this.state.collapsed && (
-          <div className="merged-events-list event-list">
+          <MergedEventList className="event-list">
             {event && (
-              <SpreadLayout className="event-details" responsive>
+              <EventDetails className="event-details">
                 <FlowLayout>
                   <EventOrGroupHeader
                     orgId={orgId}
@@ -130,13 +127,74 @@ const MergedItem = createReactClass({
                     hideLevel
                   />
                 </FlowLayout>
-              </SpreadLayout>
+              </EventDetails>
             )}
-          </div>
+          </MergedEventList>
         )}
-      </div>
+      </MergedGroup>
     );
   },
 });
+
+const MergedGroup = styled('div')`
+  ${p => p.busy && 'opacity: 0.2'};
+`;
+
+const ActionColumn = styled(Flex)`
+  padding: 0 10px;
+  align-items: center;
+
+  input {
+    margin: 0;
+  }
+`;
+
+const Controls = styled(({expanded, ...props}) => (
+  <Flex justify="space-between" {...props} />
+))`
+  border-top: 1px solid ${p => p.theme.borderLight};
+  background-color: #f3f1f6;
+  padding: ${space(0.5)} 0;
+  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.borderLight}`};
+
+  ${MergedGroup}:first-child & {
+    border-top: none;
+  }
+  ${MergedGroup}:last-child & {
+    border-top: none;
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
+`;
+
+const Fingerprint = styled('label')`
+  font-family: Monaco, monospace;
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${Controls} & {
+    font-weight: normal;
+    margin: 0;
+  }
+`;
+
+const Collapse = styled('span')`
+  cursor: pointer;
+  padding: 0 10px;
+`;
+
+const MergedEventList = styled('div')`
+  overflow: hidden;
+  border: none;
+`;
+
+const EventDetails = styled(Flex)`
+  justify-content: space-between;
+
+  .event-list & {
+    padding: 10px;
+  }
+
+  .event-message {
+    margin-bottom: 0;
+  }
+`;
 
 export default MergedItem;
