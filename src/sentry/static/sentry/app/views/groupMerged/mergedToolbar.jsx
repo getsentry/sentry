@@ -1,16 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import _ from 'lodash';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import GroupingStore from 'app/stores/groupingStore';
 import {openDiffModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
 import Button from 'app/components/button';
+import GroupingStore from 'app/stores/groupingStore';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
-import Toolbar from 'app/components/toolbar';
 import SpreadLayout from 'app/components/spreadLayout';
+import Toolbar from 'app/components/toolbar';
+import space from 'app/styles/space';
 
 const MergedToolbar = createReactClass({
   displayName: 'MergedToolbar',
@@ -75,10 +77,10 @@ const MergedToolbar = createReactClass({
     let unmergeCount = (this.state.unmergeList && this.state.unmergeList.size) || 0;
 
     return (
-      <Toolbar className="merged-toolbar">
-        <SpreadLayout responsive>
+      <StyledToolbar>
+        <SpreadLayout>
           <SpreadLayout>
-            <div className="merged-toolbar-actions">
+            <div>
               <LinkWithConfirmation
                 disabled={this.state.unmergeDisabled}
                 title={t(`Unmerging ${unmergeCount} events`)}
@@ -91,31 +93,34 @@ const MergedToolbar = createReactClass({
                 {t('Unmerge')} ({unmergeCount || 0})
               </LinkWithConfirmation>
 
-              <Button
-                style={{marginLeft: 10}}
+              <CompareButton
                 size="small"
                 disabled={!this.state.enableFingerprintCompare}
                 onClick={this.handleShowDiff}
               >
                 {t('Compare')}
-              </Button>
+              </CompareButton>
             </div>
           </SpreadLayout>
           <SpreadLayout>
             <div>
-              <Button
-                className="toggle-collapse-all"
-                size="small"
-                onClick={onToggleCollapse}
-              >
+              <Button size="small" onClick={onToggleCollapse}>
                 {this.state.unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
               </Button>
             </div>
           </SpreadLayout>
         </SpreadLayout>
-      </Toolbar>
+      </StyledToolbar>
     );
   },
 });
+
+const CompareButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
+
+const StyledToolbar = styled(Toolbar)`
+  padding: ${space(0.5)} ${space(1)};
+`;
 
 export default MergedToolbar;
