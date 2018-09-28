@@ -160,56 +160,58 @@ const EventEntries = createReactClass({
     }
 
     return (
-      <div className="entries">
-        {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} />
-        )}{' '}
-        {!isShare &&
-          features.has('suggested-commits') && (
-            <EventCause event={event} orgId={orgId} projectId={project.slug} />
-          )}
-        {event.userReport && (
-          <EventUserFeedback
-            report={event.userReport}
-            orgId={orgId}
-            projectId={project.slug}
-            issueId={group.id}
-          />
-        )}
-        {hasContext && <EventContextSummary group={group} event={event} />}
-        <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
-        {this.renderEntries()}
-        {hasContext && <EventContexts group={group} event={event} />}
-        {!utils.objectIsEmpty(event.context) && (
-          <EventExtraData group={group} event={event} />
-        )}
-        {!utils.objectIsEmpty(event.packages) && (
-          <EventPackageData group={group} event={event} />
-        )}
-        {!utils.objectIsEmpty(event.device) && (
-          <EventDevice group={group} event={event} />
-        )}
-        {!isShare &&
-          features.has('event-attachments') && (
-            <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
-          )}
-        {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
-        {!utils.objectIsEmpty(event.sdk) &&
-          event.sdk.upstream.isNewer && (
-            <div className="alert-block alert-info box">
-              <span className="icon-exclamation" />
-              {t(
-                'This event was reported with an old version of the %s SDK.',
-                event.platform
-              )}
-              {event.sdk.upstream.url && (
-                <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
-                  {t('Learn More')}
-                </a>
-              )}
-            </div>
+      <DataGroup data={event} meta={event._meta}>
+        <div className="entries">
+          {!utils.objectIsEmpty(event.errors) && (
+            <EventErrors group={group} event={event} />
           )}{' '}
-      </div>
+          {!isShare &&
+            features.has('suggested-commits') && (
+              <EventCause event={event} orgId={orgId} projectId={project.slug} />
+            )}
+          {event.userReport && (
+            <EventUserFeedback
+              report={event.userReport}
+              orgId={orgId}
+              projectId={project.slug}
+              issueId={group.id}
+            />
+          )}
+          {hasContext && <EventContextSummary group={group} event={event} />}
+          <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
+          {this.renderEntries()}
+          {hasContext && <EventContexts group={group} event={event} />}
+          {!utils.objectIsEmpty(event.context) && (
+            <EventExtraData group={group} event={event} />
+          )}
+          {!utils.objectIsEmpty(event.packages) && (
+            <EventPackageData group={group} event={event} />
+          )}
+          {!utils.objectIsEmpty(event.device) && (
+            <EventDevice group={group} event={event} />
+          )}
+          {!isShare &&
+            features.has('event-attachments') && (
+              <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+            )}
+          {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
+          {!utils.objectIsEmpty(event.sdk) &&
+            event.sdk.upstream.isNewer && (
+              <div className="alert-block alert-info box">
+                <span className="icon-exclamation" />
+                {t(
+                  'This event was reported with an old version of the %s SDK.',
+                  event.platform
+                )}
+                {event.sdk.upstream.url && (
+                  <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
+                    {t('Learn More')}
+                  </a>
+                )}
+              </div>
+            )}{' '}
+        </div>
+      </DataGroup>
     );
   },
 });
