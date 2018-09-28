@@ -13,8 +13,8 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Result from './result';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
-import QueryFields from './sidebar/queryFields';
-import SavedQueries from './sidebar/savedQueries';
+import QueryEdit from './sidebar/queryEdit';
+import SavedQueryList from './sidebar/savedQueryList';
 
 import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {isValidCondition} from './conditions/utils';
@@ -202,15 +202,15 @@ export default class OrganizationDiscover extends React.Component {
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
           {view === 'query' && (
-            <QueryFields
+            <QueryEdit
               queryBuilder={queryBuilder}
               isFetchingQuery={isFetchingQuery}
-              updateField={this.updateField}
-              runQuery={this.runQuery}
+              onUpdateField={this.updateField}
+              onRunQuery={this.runQuery}
               reset={this.reset}
             />
           )}
-          {view === 'saved' && <SavedQueries organization={organization} />}
+          {view === 'saved' && <SavedQueryList organization={organization} />}
         </Sidebar>
         <Body direction="column" flex="1">
           <TopBar>
