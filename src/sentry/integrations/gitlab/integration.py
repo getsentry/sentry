@@ -18,7 +18,12 @@ from sentry.utils.http import absolute_uri
 
 from .client import GitLabApiClient, GitLabApiClientPath
 from .issues import GitlabIssueBasic
+<<<<<<< HEAD
 from .repository import GitlabRepositoryProvider
+=======
+from .webhooks import create_webhook_secret
+
+>>>>>>> Added webhook creation to gitlab integration provider.
 
 DESCRIPTION = """
 Fill me out
@@ -232,6 +237,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
         domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
+        verify_ssl = state['installation_data']['verify_ssl']
+
+        webhook_id, webhook_secret = self.create_webhook(base_url, data['access_token'], verify_ssl)
 
         integration = {
             'name': group['name'],
@@ -240,8 +248,12 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'icon': group['avatar_url'],
                 'domain_name': domain_name,
                 'scopes': scopes,
-                'verify_ssl': state['installation_data']['verify_ssl'],
+                'verify_ssl': verify_ssl,
                 'base_url': base_url,
+                'webhook': {
+                    'secret': webhook_secret,
+                    'id': webhook_id,
+                }
             },
             'user_identity': {
                 'type': 'gitlab',
@@ -260,3 +272,27 @@ class GitlabIntegrationProvider(IntegrationProvider):
             GitlabRepositoryProvider,
             id='integrations:gitlab',
         )
+
+    def create_webhook(self, base_url, access_token, verify_ssl):
+        webhook_secret = create_webhook_secret()
+        session = http.build_session()
+        resp = session.get(
+            GitLabApiClientPath.build_api_url(
+                base_url=base_url,
+                path=GitLabApiClientPath.hooks,
+            ),
+            headers={
+                'Accept': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            },
+            verify=verify_ssl,
+            data={
+                'url': absolute_uri('/extensions/gitlab/webhooks/'),
+                'token': webhook_secret,
+                'merge_requests_events': True,
+            },
+        )
+
+        resp.raise_for_status()
+        return resp.json()['id'], webhook_secret
+>>>>>>> Added webhook creation to gitlab integration provider.

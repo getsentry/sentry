@@ -4,7 +4,7 @@ from six.moves.urllib.parse import quote
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
-from sentry.utils.http import absolute_uri
+
 
 API_VERSION = u'/api/v4'
 
@@ -131,17 +131,6 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
                 issue=issue_iid,
             ),
             data=data,
-        )
-
-    def create_system_hook(self, secret):
-        return self.post(
-            GitLabApiClientPath.post,
-            data={
-                'url': absolute_uri('/extensions/gitlab/webhooks/'),
-                'token': secret,
-                'merge_requests_events': True,
-                # 'enable_ssl_verification': ?
-            }
         )
 
     def list_project_members(self, project):
