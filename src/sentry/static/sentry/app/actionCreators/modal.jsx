@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from 'react-emotion';
 
 import ModalActions from 'app/actions/modalActions';
 
@@ -30,11 +31,33 @@ export function openSudo({onClose, ...args} = {}) {
 export function openDiffModal(options) {
   import(/* webpackChunkName: "DiffModal" */ '../components/modals/diffModal')
     .then(mod => mod.default)
-    .then(Modal =>
+    .then(Modal => {
+      // This is the only way to style the different Modal children
+      const diffModalCss = css`
+        .modal-dialog {
+          display: flex;
+          margin: 0;
+          left: 10px;
+          right: 10px;
+          top: 10px;
+          bottom: 10px;
+          width: auto;
+        }
+        .modal-content {
+          display: flex;
+          flex: 1;
+        }
+        .modal-body {
+          display: flex;
+          overflow: hidden;
+          flex: 1;
+        }
+      `;
+
       openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'diff-modal',
-      })
-    );
+        modalClassName: diffModalCss,
+      });
+    });
 }
 
 /**
