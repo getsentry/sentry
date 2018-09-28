@@ -1,8 +1,7 @@
-/* eslint-env jest */
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {mount, shallow} from 'enzyme';
+import {shallow} from 'enzyme';
 
 import GroupMergedView from 'app/views/groupMerged/groupMergedView';
 import {Client} from 'app/api';
@@ -45,7 +44,7 @@ describe('Issues -> Merged View', function() {
   });
 
   it('renders initially with loading component', function() {
-    let component = shallow(
+    let wrapper = shallow(
       <GroupMergedView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
@@ -53,31 +52,32 @@ describe('Issues -> Merged View', function() {
       TestStubs.routerContext()
     );
 
-    expect(component).toMatchSnapshot();
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('renders with mocked data', function(done) {
-    let wrapper = mount(
+  it('renders with mocked data', async function() {
+    let wrapper = shallow(
       <GroupMergedView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
       />,
-      TestStubs.routerContext([
-        {
-          group: context,
-        },
-        {
-          group: PropTypes.object,
-        },
-      ])
+      {
+        ...TestStubs.routerContext([
+          {
+            group: context,
+          },
+          {
+            group: PropTypes.object,
+          },
+        ]),
+        disableLifecycleMethods: false,
+      }
     );
 
-    wrapper.instance().componentDidUpdate = jest.fn(() => {
-      if (!wrapper.state('loading')) {
-        wrapper.update();
-        expect(wrapper).toMatchSnapshot();
-        done();
-      }
-    });
+    await tick();
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(wrapper).toMatchSnapshot();
   });
 });
