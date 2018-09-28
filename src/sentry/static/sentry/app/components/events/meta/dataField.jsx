@@ -9,10 +9,12 @@ function DataField({children, path, required}) {
   return (
     <DataContext.Consumer>
       {context => {
-        let parts = _.isString(path) ? path.split('.') : path || [];
+        let parts = _.isString(path) ? path.split('.') : _.castArray(path);
         let data = context.get(...parts);
         let meta = data.annotated() ? data.meta[''] : null;
-        return required && _.isNil(data) && !meta ? null : children(data.value, meta);
+        return required && _.isNil(data.value) && !meta
+          ? null
+          : children(data.value, meta);
       }}
     </DataContext.Consumer>
   );
