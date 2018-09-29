@@ -458,40 +458,26 @@ class Frame(Interface):
 
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
-            'filename':
-            self.filename,
-            'absPath':
-            self.abs_path,
-            'module':
-            self.module,
-            'package':
-            self.package,
-            'platform':
-            self.platform,
-            'instructionAddr':
-            pad_hex_addr(self.instruction_addr, pad_addr),
-            'symbolAddr':
-            pad_hex_addr(self.symbol_addr, pad_addr),
-            'function':
-            self.function,
-            'symbol':
-            self.symbol,
-            'context':
-            get_context(
+            'filename': self.filename,
+            'absPath': self.abs_path,
+            'module': self.module,
+            'package': self.package,
+            'platform': self.platform,
+            'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
+            'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
+            'function': self.function,
+            'symbol': self.symbol,
+            'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
                 filename=self.filename or self.module,
             ),
-            'lineNo':
-            self.lineno,
-            'colNo':
-            self.colno,
-            'inApp':
-            self.in_app,
-            'errors':
-            self.errors,
+            'lineNo': self.lineno,
+            'colNo': self.colno,
+            'inApp': self.in_app,
+            'errors': self.errors,
         }
         if not is_public:
             data['vars'] = self.vars
@@ -511,6 +497,33 @@ class Frame(Interface):
                 data['mapUrl'] = self.data['sourcemap']
 
         return data
+
+    def get_meta_context(self, meta, is_public=False):
+        if not meta:
+            return
+
+        return {
+            'filename': meta.get('filename'),
+            'absPath': meta.get('abs_path'),
+            'module': meta.get('module'),
+            'package': meta.get('package'),
+            'platform': meta.get('platform'),
+            'instructionAddr': meta.get('instruction_addr'),
+            'symbolAddr': meta.get('symbol_addr'),
+            'function': meta.get('function'),
+            'symbol': meta.get('symbol'),
+            'context': get_context(
+                lineno=meta.get('lineno'),
+                context_line=meta.get('context_line'),
+                pre_context=meta.get('pre_context'),
+                post_context=meta.get('post_context'),
+                filename=meta.get('filename') if self.filename else meta.get('module'),
+            ),
+            'lineNo': meta.get('lineno'),
+            'colNo': meta.get('colno'),
+            'inApp': meta.get('in_app'),
+            'errors': meta.get('errors'),
+        }
 
     def is_url(self):
         if not self.abs_path:
@@ -748,6 +761,21 @@ class Stacktrace(Interface):
             'framesOmitted': self.frames_omitted,
             'registers': self.registers,
             'hasSystemFrames': self.get_has_system_frames(),
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        if not meta:
+            return meta
+
+        frame_meta = {}
+        for index, value in six.iteritems(meta.get('frames', {})):
+            frame = self.frames[int(index)]
+            frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
+
+        return {
+            'frames': frame_meta,
+            'framesOmitted': meta.get('frames_omitted'),
+            'registers': meta.get('registers'),
         }
 
     def to_json(self):

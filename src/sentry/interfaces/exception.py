@@ -907,7 +907,8 @@ class SingleException(Interface):
 
     def get_api_context(self, is_public=False):
         mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.to_json() or self.mechanism or None
+            self.mechanism.get_api_context(is_public=is_public) or \
+            self.mechanism or None
 
         if self.stacktrace:
             stacktrace = self.stacktrace.get_api_context(is_public=is_public)
@@ -927,6 +928,24 @@ class SingleException(Interface):
             'module': self.module,
             'stacktrace': stacktrace,
             'rawStacktrace': raw_stacktrace,
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        mechanism_meta = self.mechanism.get_api_meta(meta['mechanism'], is_public=is_public) \
+            if isinstance(self.mechanism, Mechanism) and meta.get('mechanism') \
+            else None
+
+        stacktrace_meta = self.stacktrace.get_api_meta(meta, is_public=is_public) \
+            if self.stacktrace and meta.get('stacktrace') \
+            else None
+
+        return {
+            'type': meta.get('type'),
+            'value': meta.get('value'),
+            'mechanism': mechanism_meta,
+            'threadId': meta.get('thread_id'),
+            'module': meta.get('module'),
+            'stacktrace': stacktrace_meta,
         }
 
     def get_alias(self):
@@ -1072,6 +1091,18 @@ class Exception(Interface):
             'excOmitted':
             self.exc_omitted,
         }
+
+    def get_api_meta(self, meta, is_public=False):
+        if not meta:
+            return meta
+
+        result = {}
+        values = meta.get('values', meta)
+        for index, value in six.iteritems(values):
+            exc = self.values[int(index)]
+            result[index] = exc.get_api_meta(value, is_public=is_public)
+
+        return {'values': result}
 
     def to_string(self, event, is_public=False, **kwargs):
         if not self.values:

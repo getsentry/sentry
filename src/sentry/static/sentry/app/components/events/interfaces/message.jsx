@@ -3,18 +3,25 @@ import React from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import utils from 'app/utils';
 import {t} from 'app/locale';
+import Annotated from 'app/utils/annotated';
 
 class MessageInterface extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
+    meta: PropTypes.object.isRequired,
+  };
+
+  static defaultProps = {
+    meta: {},
   };
 
   render() {
-    let data = this.props.data;
+    let {data, meta} = this.props;
+    let annotated = new Annotated(data, meta.data);
+
     return (
       <EventDataSection
         group={this.props.group}
@@ -22,12 +29,10 @@ class MessageInterface extends React.Component {
         type="message"
         title={t('Message')}
       >
-        <pre
-          className="plain"
-          dangerouslySetInnerHTML={{
-            __html: utils.nl2br(utils.escape(data.formatted || data.message)),
-          }}
-        />
+        <pre className="plain">
+          {annotated.render('formatted') || annotated.render('message')}
+        </pre>
+
         {data.params &&
           !data.formatted && (
             <div>
