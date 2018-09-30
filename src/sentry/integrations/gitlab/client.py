@@ -115,6 +115,8 @@ class GitLabApiClient(ApiClient):
             )
 
     def update_auth(self):
+        # TODO(lb): This is hard to find.
+        # The docs for whatever reason do not cover refresh!
         pass
 
     def get_user(self):
