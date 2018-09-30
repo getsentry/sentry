@@ -14,7 +14,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration
+from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient
@@ -285,8 +285,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             'description': issue['fields']['description'],
         }
 
-    def create_comment(self, issue_id, comment):
-        return self.get_client().create_comment(issue_id, comment)
+    def create_comment(self, issue_id, user_id, comment):
+        # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
+        user = User.objects.get(id=user_id).value('name')
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s{quote}%s{quote}' % (attribution, comment)
+        return self.get_client().create_comment(issue_id, quoted_comment)
 
     def search_issues(self, query):
         return self.get_client().search_issues(query)
