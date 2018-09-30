@@ -203,7 +203,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = GitlabIntegration
 
-    expires_time = 7200
     needs_default_identity = True
 
     features = frozenset([
@@ -253,7 +252,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         if 'token_type' in payload:
             data['token_type'] = payload['token_type']
         if 'created_at' in payload:
-            data['expires'] = int(payload['created_at']) + self.expires_time
+            data['created_at'] = int(payload['created_at'])
 
         return data
 
