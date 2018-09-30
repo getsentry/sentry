@@ -36,8 +36,7 @@ def post_comment(external_issue_id, data, user, **kwargs):
         organization_id=external_issue.organization_id,
     )
     if installation.should_sync('comment'):
-        attirbution_text = '%s wrote:\n\n' % user.name
-        installation.create_comment(external_issue.key, attirbution_text, data['text'])
+        installation.create_comment(external_issue.key, user.id, data['text'])
         analytics.record(
             'integration.issue.comments.synced',
             provider=integration.provider,
