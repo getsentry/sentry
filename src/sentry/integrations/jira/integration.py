@@ -287,7 +287,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def create_comment(self, issue_id, user_id, comment):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
-        user = User.objects.get(id=user_id).value('name')
+        user = User.objects.get(id=user_id)
         attribution = '%s wrote:\n\n' % user.name
         quoted_comment = '%s{quote}%s{quote}' % (attribution, comment)
         return self.get_client().create_comment(issue_id, quoted_comment)
