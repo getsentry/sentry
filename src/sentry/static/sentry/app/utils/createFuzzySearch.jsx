@@ -1,7 +1,7 @@
 import {DEFAULT_FUSE_OPTIONS} from 'app/constants';
 
 export function loadFuzzySearch() {
-  return import('fuse.js');
+  return import(/*webpackChunkName: "fuse.js"*/ 'fuse.js');
 }
 
 export function createFuzzySearch(objects, options = {}) {
