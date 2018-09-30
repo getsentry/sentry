@@ -2,9 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-import mock
-
-from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (
     Activity, GroupLink, GroupSubscription, GroupSubscriptionReason,
     ExternalIssue, Integration, OrganizationIntegration
@@ -174,8 +171,7 @@ class GroupNoteCreateTest(APITestCase):
                 group=group,
                 reason=GroupSubscriptionReason.team_mentioned)) == 1
 
-    @mock.patch.object(ExampleIntegration, 'create_comment')
-    def test_with_group_link(self, mock_create_comment):
+    def test_with_group_link(self):
         group = self.group
 
         integration = Integration.objects.create(
@@ -222,7 +218,7 @@ class GroupNoteCreateTest(APITestCase):
             'organizations:internal-catchall': True,
         }):
             with self.tasks():
-                comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+                comment = 'hello world'
                 response = self.client.post(
                     url, format='json', data={
                         'text': comment,
@@ -233,6 +229,4 @@ class GroupNoteCreateTest(APITestCase):
                 activity = Activity.objects.get(id=response.data['id'])
                 assert activity.user == self.user
                 assert activity.group == group
-                assert activity.data == {'text': 'hello world'}
-                mock_create_comment.assert_called_with(
-                    'APP-123', 'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment)
+                assert activity.data == {'text': comment}
