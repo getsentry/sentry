@@ -10,7 +10,7 @@ from sentry import http, features
 from sentry.constants import ObjectStatus
 from sentry.models import (
     Integration as IntegrationModel, IntegrationExternalProject, Organization,
-    OrganizationIntegration,
+    OrganizationIntegration, User
 )
 from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription
 from sentry.integrations.exceptions import ApiError, IntegrationError
@@ -286,8 +286,14 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         except KeyError:
             return None
 
-    def create_comment(self, issue_id, comment):
-        self.get_client().update_work_item(self.instance, issue_id, comment=comment)
+    def create_comment(self, issue_id, user_id, comment):
+        # VSTS uses markdown or xml
+        # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
 
 class VstsIntegrationProvider(IntegrationProvider):

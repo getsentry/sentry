@@ -114,6 +114,7 @@ class GroupNotesEndpoint(GroupEndpoint):
                 kwargs={
                     'external_issue_id': external_issue_id,
                     'data': data,
+                    'user_id': request.user.id,
                 }
             )
         return Response(serialize(activity, request.user), status=201)
