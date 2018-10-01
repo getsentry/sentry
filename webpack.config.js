@@ -173,12 +173,12 @@ var appConfig = {
     ],
   },
   plugins: [
-    // new LodashModuleReplacementPlugin({
-    // collections: true,
-    // currying: true, // these are enabled to support lodash/fp/ features
-    // flattening: true, // used by a dependency of react-mentions
-    // shorthands: true,
-    // }),
+    new LodashModuleReplacementPlugin({
+      collections: true,
+      currying: true, // these are enabled to support lodash/fp/ features
+      flattening: true, // used by a dependency of react-mentions
+      shorthands: true,
+    }),
     // new webpack.optimize.CommonsChunkPlugin({
     // names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
     // }),
@@ -264,6 +264,9 @@ var pwConfig = {
     sourceMapFilename: '[name].js.map',
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map',
+  performance: {
+    hints: false,
+  },
 };
 
 /**
