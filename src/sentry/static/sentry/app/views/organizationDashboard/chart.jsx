@@ -18,7 +18,7 @@ export default class Chart extends React.Component {
 
     return (
       <div>
-        <StyledBarChart points={data} label="events" height={60} />
+        <StyledBarChart points={data} label="events" height={60} gap={1.5} />
       </div>
     );
   }
