@@ -49,7 +49,7 @@ const GuideDrawer = createReactClass({
       messageVariables: {
         orgSlug: data.org && data.org.slug,
         projectSlug: data.project && data.project.slug,
-        numEvents: data.project && data.projectStats[parseInt(data.project.id, 10)],
+        numEvents: data.project && data.projectStats.get(parseInt(data.project.id, 10)),
       },
     });
   },
