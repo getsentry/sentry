@@ -64,8 +64,9 @@ describe('GuideStore', function() {
     sandbox.restore();
   });
 
-  it('should move through the steps in the guide', function() {
+  it('should move through the steps in the guide', async function() {
     GuideStore.onFetchSucceeded(data);
+    await tick();
     let guide = GuideStore.state.currentGuide;
     // Should pick the first non-seen guide in alphabetic order.
     expect(guide.id).toEqual(2);
@@ -73,32 +74,42 @@ describe('GuideStore', function() {
     GuideStore.onNextStep();
     expect(GuideStore.state.currentStep).toEqual(1);
     GuideStore.onCloseGuide();
+    await tick();
     guide = GuideStore.state.currentGuide;
     // We don't have the alert reminder guide's data yet, so we can't show it.
     expect(guide).toEqual(null);
   });
 
-  it('should not show a guide if the user is not in the experiment', function() {
+  it('should not show a guide if the user is not in the experiment', async function() {
     ConfigStore.get('features').delete('assistant');
     GuideStore.onFetchSucceeded(data);
+    await tick();
     expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
-  it('should force show a guide', function() {
+  it('should force show a guide', async function() {
     GuideStore.onFetchSucceeded(data);
+    await tick();
     window.location.hash = '#assistant';
     GuideStore.onURLChange();
+    await tick();
     expect(GuideStore.state.currentGuide.id).toEqual(1);
     // Should prune steps that don't have anchors.
     expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
     GuideStore.onCloseGuide();
+    await tick();
     expect(GuideStore.state.currentGuide.id).toEqual(2);
     window.location.hash = '';
   });
 
   it('should render tip', async function() {
-    data.Guide2.seen = true;
-    GuideStore.onFetchSucceeded(data);
+    GuideStore.onFetchSucceeded({
+      ...data,
+      Guide2: {
+        ...data.Guide2,
+        seen: true,
+      },
+    });
     expect(GuideStore.state.currentGuide).toEqual(null);
     let spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
     GuideStore.onSetActiveOrganization({id: 1, slug: 'org'});
@@ -108,22 +119,25 @@ describe('GuideStore', function() {
     spy.mockRestore();
   });
 
-  it('should record analytics events when guide is cued', function() {
+  it('should record analytics events when guide is cued', async function() {
     let spy = jest.spyOn(GuideStore, 'recordCue');
 
     GuideStore.onFetchSucceeded(data);
+    await tick();
     expect(spy).toHaveBeenCalledWith(data.Guide2.id, data.Guide2.cue);
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
 
-  it('should not send multiple cue analytics events for same guide', function() {
+  it('should not send multiple cue analytics events for same guide', async function() {
     let spy = jest.spyOn(GuideStore, 'recordCue');
 
     GuideStore.onFetchSucceeded(data);
+    await tick();
     expect(spy).toHaveBeenCalledWith(data.Guide2.id, data.Guide2.cue);
     expect(spy).toHaveBeenCalledTimes(1);
     GuideStore.updateCurrentGuide();
+    await tick();
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
