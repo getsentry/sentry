@@ -814,7 +814,7 @@ urlpatterns = patterns(
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/completion/$',
         ProjectReleaseSetupCompletionEndpoint.as_view(),
-        name='sentry-api-0-project-releases-status'
+        name='sentry-api-0-project-releases-completion-status'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
