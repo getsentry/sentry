@@ -16,6 +16,9 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
             self.create_project(organization=self.org).id,
             self.create_project(organization=self.org).id
         ]
+        self.project_ids_without_access = [
+            self.create_project().id
+        ]
         query = {
             'fields': ['test'],
             'conditions': [],
@@ -60,3 +63,19 @@ class OrganizationDiscoverSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data['range'] == '24h'
         assert not hasattr(response.data, 'start')
         assert not hasattr(response.data, 'end')
+
+    def test_post_invalid_projects(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-saved-queries', args=[self.org.slug])
+            response = self.client.post(url, {
+                'name': 'New query',
+                'projects': self.project_ids_without_access,
+                'fields': [],
+                'range': '24h',
+                'limit': 20,
+                'conditions': [],
+                'aggregations': [],
+                'orderby': '-time',
+            })
+
+        assert response.status_code == 403, response.content
