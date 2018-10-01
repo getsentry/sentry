@@ -441,6 +441,7 @@ exports[`ProjectCard renders 1`] = `
                 >
                   <div>
                     <StyledBarChart
+                      gap={1.5}
                       height={60}
                       label="events"
                       points={
@@ -458,6 +459,7 @@ exports[`ProjectCard renders 1`] = `
                     >
                       <BarChart
                         className="css-h6aoq0-StyledBarChart e1wib7610"
+                        gap={1.5}
                         height={60}
                         label="events"
                         points={
@@ -480,6 +482,7 @@ exports[`ProjectCard renders 1`] = `
                             ]
                           }
                           className="css-h6aoq0-StyledBarChart e1wib7610"
+                          gap={1.5}
                           height={60}
                           label="events"
                           markers={Array []}
@@ -502,7 +505,7 @@ exports[`ProjectCard renders 1`] = `
                           series={Array []}
                           width={null}
                         >
-                          <figure
+                          <StyledFigure
                             className="css-h6aoq0-StyledBarChart e1wib7610 barchart"
                             style={
                               Object {
@@ -511,95 +514,120 @@ exports[`ProjectCard renders 1`] = `
                               }
                             }
                           >
-                            <span
-                              className="max-y"
-                            >
-                              <count
-                                value={10}
-                              >
-                                <span>
-                                  10
-                                </span>
-                              </count>
-                            </span>
-                            <span
-                              className="min-y"
-                            >
-                              0
-                            </span>
-                            <span>
-                              <Tooltip
-                                key="1525042800"
-                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                tooltipOptions={
-                                  Object {
-                                    "html": true,
-                                    "placement": "bottom",
-                                  }
+                            <figure
+                              className="e1wib7610 barchart css-1563gow-StyledFigure-StyledBarChart e5t71581"
+                              style={
+                                Object {
+                                  "height": 60,
+                                  "width": null,
                                 }
+                              }
+                            >
+                              <span
+                                className="max-y"
                               >
-                                <a
-                                  className="tip chart-column"
-                                  style={
-                                    Object {
-                                      "height": "100%",
-                                      "width": "50%",
-                                    }
-                                  }
-                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                <count
+                                  value={10}
                                 >
-                                  <span
-                                    className="chart-bar"
-                                    key="0"
-                                    style={
-                                      Object {
-                                        "backgroundColor": null,
-                                        "bottom": "0%",
-                                        "height": "9.9%",
-                                      }
-                                    }
-                                  >
-                                    1
+                                  <span>
+                                    10
                                   </span>
-                                </a>
-                              </Tooltip>
-                              <Tooltip
-                                key="1525046400"
-                                title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                tooltipOptions={
-                                  Object {
-                                    "html": true,
-                                    "placement": "bottom",
-                                  }
-                                }
+                                </count>
+                              </span>
+                              <span
+                                className="min-y"
                               >
-                                <a
-                                  className="tip chart-column"
-                                  style={
-                                    Object {
-                                      "height": "100%",
-                                      "width": "50%",
-                                    }
-                                  }
-                                  title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                0
+                              </span>
+                              <SvgContainer>
+                                <div
+                                  className="css-1jg1opr-SvgContainer e5t71582"
                                 >
-                                  <span
-                                    className="chart-bar"
-                                    key="0"
-                                    style={
-                                      Object {
-                                        "backgroundColor": null,
-                                        "bottom": "0%",
-                                        "height": "19.8%",
-                                      }
-                                    }
+                                  <StyledSvg
+                                    overflow="visible"
+                                    preserveAspectRatio="none"
+                                    viewBox="0 0 100 400"
                                   >
-                                    2
-                                  </span>
-                                </a>
-                              </Tooltip>
-                            </span>
-                          </figure>
+                                    <svg
+                                      className="css-1vaz76z-StyledSvg e5t71580"
+                                      overflow="visible"
+                                      preserveAspectRatio="none"
+                                      viewBox="0 0 100 400"
+                                    >
+                                      <Tooltip
+                                        key="1525042800"
+                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                        tooltipOptions={
+                                          Object {
+                                            "container": "body",
+                                            "html": true,
+                                            "placement": "bottom",
+                                          }
+                                        }
+                                      >
+                                        <g
+                                          className="tip"
+                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
+                                        >
+                                          <rect
+                                            height="100%"
+                                            opacity="0"
+                                            width="52.3%"
+                                            x="-1.5%"
+                                          />
+                                          <rect
+                                            className="chart-bar barchart-rect"
+                                            data-test-id="chart-column"
+                                            height="9.9%"
+                                            key="0"
+                                            width="49.3%"
+                                            x="0%"
+                                            y="90.1%"
+                                          >
+                                            1
+                                          </rect>
+                                        </g>
+                                      </Tooltip>
+                                      <Tooltip
+                                        key="1525046400"
+                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                        tooltipOptions={
+                                          Object {
+                                            "container": "body",
+                                            "html": true,
+                                            "placement": "bottom",
+                                          }
+                                        }
+                                      >
+                                        <g
+                                          className="tip"
+                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
+                                        >
+                                          <rect
+                                            height="100%"
+                                            opacity="0"
+                                            width="52.3%"
+                                            x="49.3%"
+                                          />
+                                          <rect
+                                            className="chart-bar barchart-rect"
+                                            data-test-id="chart-column"
+                                            height="19.8%"
+                                            key="0"
+                                            width="49.3%"
+                                            x="50.8%"
+                                            y="80.2%"
+                                          >
+                                            2
+                                          </rect>
+                                        </g>
+                                      </Tooltip>
+                                    </svg>
+                                  </StyledSvg>
+                                </div>
+                              </SvgContainer>
+                            </figure>
+                          </StyledFigure>
                         </StackedBarChart>
                       </BarChart>
                     </StyledBarChart>
