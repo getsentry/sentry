@@ -23,7 +23,6 @@ hiredis>=0.1.0,<0.2.0
 honcho>=1.0.0,<1.1.0
 ipaddress>=1.0.16,<1.1.0
 jsonschema==2.6.0
-jsonschema==2.6.0
 kombu==3.0.35
 loremipsum>=1.0.5,<1.1.0
 lxml>=3.4.1
