@@ -17,6 +17,10 @@ class InvalidQuery(Exception):
     pass
 
 
+class InvalidSorting(Exception):
+    pass
+
+
 def get_user_tag(project, key, value):
     # TODO(dcramer): do something with case of multiple matches
     try:
