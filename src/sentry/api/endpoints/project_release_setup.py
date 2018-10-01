@@ -10,7 +10,7 @@ class ProjectReleaseSetupEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         """
-        Checks how set up a project is on releases.
+        Get list with release setup progress for a project
         1. tag an error
         2. link a repo
         3. associate commits
@@ -36,7 +36,19 @@ class ProjectReleaseSetupEndpoint(ProjectEndpoint):
             organization_id=project.organization_id,
         ).exists()
 
-        return Response({'tag': tag,
-                         'commit': commit,
-                         'repo': repo,
-                         'deploy': deploy})
+        return Response([
+            {
+                'step': 'tag',
+                'complete': bool(tag)
+            },
+            {
+                'step': 'commit',
+                'complete': bool(commit)
+            },
+            {'step': 'deploy',
+             'complete': bool(deploy)
+             },
+            {'step': 'repo',
+             'complete': bool(repo)
+             }
+        ])
