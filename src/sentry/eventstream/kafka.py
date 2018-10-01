@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
-import six
+from datetime import datetime
 import logging
+import pytz
+import six
 
 from confluent_kafka import Producer
 from django.utils.functional import cached_property
@@ -101,6 +103,7 @@ class KafkaEventStream(EventStream):
             'project_id': project_id,
             'new_group_id': new_group_id,
             'event_ids': event_ids,
+            'datetime': datetime.now(tz=pytz.utc),
         },))
 
     def delete_groups(self, project_id, group_ids):
@@ -110,6 +113,7 @@ class KafkaEventStream(EventStream):
         self._send(project_id, 'delete_groups', extra_data=({
             'project_id': project_id,
             'group_ids': group_ids,
+            'datetime': datetime.now(tz=pytz.utc),
         },))
 
     def merge(self, project_id, previous_group_id, new_group_id):
@@ -117,4 +121,5 @@ class KafkaEventStream(EventStream):
             'project_id': project_id,
             'previous_group_id': previous_group_id,
             'new_group_id': new_group_id,
+            'datetime': datetime.now(tz=pytz.utc),
         },))
