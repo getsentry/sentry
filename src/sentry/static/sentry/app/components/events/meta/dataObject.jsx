@@ -36,7 +36,7 @@ function DataObject({children, path, required}) {
   return (
     <DataContext.Consumer>
       {context => {
-        let parts = _.isString(path) ? path.split('.') : path || [];
+        let parts = _.isString(path) ? path.split('.') : _.castArray(path);
         let value = convert(context.get(...parts));
         return required && _.isEmpty(value) && value !== '' && value !== 0
           ? null
