@@ -1,6 +1,7 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
 import moment from 'moment-timezone';
+import {uniq} from 'lodash';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -43,6 +44,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     getExternal,
     updateField,
     fetch,
+    getQueryByType,
     getColumns,
     load,
     reset,
@@ -191,6 +193,38 @@ export default function createQueryBuilder(initial = {}, organization) {
       .catch(() => {
         throw new Error(t('An error occurred'));
       });
+  }
+
+  /**
+   * Get the actual query to be run for each visualization type
+   *
+   * @param {Object} originalQuery Original query input by user (external query representation)
+   * @param {String} Type to fetch - currently either byDay or base
+   * @returns {Object} Modified query to be run for that type
+   */
+  function getQueryByType(originalQuery, type) {
+    if (type === 'byDayQuery') {
+      return {
+        ...originalQuery,
+        groupby: ['time'],
+        rollup: 60 * 60 * 24,
+        orderby: 'time',
+        limit: 1000,
+      };
+    }
+
+    // If there are no aggregations, always ensure we fetch event ID and
+    // project ID so we can display the link to event
+    if (type === 'baseQuery') {
+      return !originalQuery.aggregations.length && originalQuery.fields.length
+        ? {
+            ...originalQuery,
+            fields: uniq([...originalQuery.fields, 'event_id', 'project_id']),
+          }
+        : originalQuery;
+    }
+
+    throw new Error('Invalid query type');
   }
 
   /**
