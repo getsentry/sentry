@@ -61,10 +61,6 @@ const StyledBarChart = styled(BarChart)`
     &:not(:last-child) {
       border-right: 2px solid transparent;
     }
-    > span {
-      left: 0;
-      right: 0;
-    }
   }
 `;
 
