@@ -40,10 +40,20 @@ class Webhook(object):
         if host:
             external_id = u'{}:{}'.format(host, event['installation']['id'])
 
-        integration = Integration.objects.get(
-            external_id=external_id,
-            provider=self.provider,
-        )
+        try:
+            integration = Integration.objects.get(
+                external_id=external_id,
+                provider=self.provider,
+            )
+        except Integration.DoesNotExist:
+            logger.info(
+                'github.missing-integration',
+                extra={
+                    'event_data': event,
+                    'external_id': external_id,
+                }
+            )
+            return
 
         if 'repository' in event:
 
@@ -75,11 +85,21 @@ class InstallationEventWebhook(Webhook):
             external_id = event['installation']['id']
             if host:
                 external_id = u'{}:{}'.format(host, event['installation']['id'])
-            integration = Integration.objects.get(
-                external_id=external_id,
-                provider=self.provider,
-            )
-            self._handle_delete(event, integration)
+            try:
+                integration = Integration.objects.get(
+                    external_id=external_id,
+                    provider=self.provider,
+                )
+            except Integration.DoesNotExist:
+                logger.info(
+                    'github.deletion-missing-integration',
+                    extra={
+                        'event_data': event,
+                        'external_id': external_id,
+                    }
+                )
+            else:
+                self._handle_delete(event, integration)
 
     def _handle_delete(self, event, integration):
 
