@@ -42,7 +42,7 @@ class StackedBarChart extends React.Component {
     tooltip: PropTypes.func,
     barClasses: PropTypes.array,
     /* Some bars need to be visible and interactable even if they are
-    empty. Each min height will be a single point within the view box */
+    empty. Use minHeights for that. Units are in svg points */
     minHeights: PropTypes.arrayOf(PropTypes.number),
     /* the amount of space between bars. Also represents an svg point */
     gap: PropTypes.number,
