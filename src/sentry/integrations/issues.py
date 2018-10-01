@@ -109,10 +109,13 @@ class IssueBasicMixin(object):
         accepts a dict of values that will be filtered to keys returned by
         ``get_persisted_default_config_fields`` which will automatically be
         merged into the associated field config object as the default.
-         >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
-         When the integration is serialized these values will automatically be
+
+        >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
+
+        When the integration is serialized these values will automatically be
         merged into the field configuration objects.
-         NOTE: These are currently stored for both link and create issue, no
+
+        NOTE: These are currently stored for both link and create issue, no
               differentiation is made between the two field configs.
         """
         persisted_fields = self.get_persisted_default_config_fields()
