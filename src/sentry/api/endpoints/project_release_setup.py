@@ -39,16 +39,18 @@ class ProjectReleaseSetupEndpoint(ProjectEndpoint):
         return Response([
             {
                 'step': 'tag',
-                'complete': bool(tag)
+                'complete': bool(tag),
             },
             {
                 'step': 'commit',
-                'complete': bool(commit)
+                'complete': bool(commit),
             },
-            {'step': 'deploy',
-             'complete': bool(deploy)
-             },
-            {'step': 'repo',
-             'complete': bool(repo)
-             }
+            {
+                'step': 'deploy',
+                'complete': bool(deploy),
+            },
+            {
+                'step': 'repo',
+                'complete': bool(repo),
+            }
         ])
