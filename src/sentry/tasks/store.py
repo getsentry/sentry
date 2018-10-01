@@ -271,7 +271,11 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     # modifications to take place.
     delete_raw_event(project_id, event_id)
     data = default_cache.get(cache_key)
-    if data is None:
+
+    # This used to be an if `data` is None check but there have been cases
+    # where empty data (an empty dictionary) has been inserted into the
+    # raw event.
+    if not data:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'})
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return True
