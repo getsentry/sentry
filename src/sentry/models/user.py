@@ -211,7 +211,7 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             Activity, AuditLogEntry, AuthIdentity, Authenticator, GroupAssignee, GroupBookmark, GroupSeen,
-            GroupShare, GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar,
+            GroupShare, GroupSubscription, Identity, OrganizationMember, OrganizationMemberTeam, UserAvatar,
             UserEmail, UserOption,
         )
 
@@ -249,7 +249,7 @@ class User(BaseModel, AbstractBaseUser):
 
         model_list = (
             Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupShare,
-            GroupSubscription, UserAvatar, UserEmail, UserOption,
+            GroupSubscription, Identity, UserAvatar, UserEmail, UserOption,
         )
 
         for model in model_list:
