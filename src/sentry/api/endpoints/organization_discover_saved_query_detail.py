@@ -39,7 +39,9 @@ class OrganizationDiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = DiscoverSavedQuerySerializer(data=request.DATA)
+        serializer = DiscoverSavedQuerySerializer(data=request.DATA, context={
+            'organization': organization,
+        })
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
