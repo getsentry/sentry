@@ -16,7 +16,7 @@ from sentry.api.paginator import SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment, GroupHash
 from sentry.search.django import backend as ds
-from sentry.search.utils import InvalidSorting
+from sentry.search.utils import InvalidSort
 from sentry.utils import snuba, metrics
 from sentry.utils.dates import to_timestamp
 
@@ -258,7 +258,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 candidate_hashes = None
 
         if sort_by not in sort_strategies:
-            raise InvalidSorting(sort_by)
+            raise InvalidSort(sort_by)
         sort, extra_aggregations, score_fn = sort_strategies[sort_by]
 
         chunk_growth = options.get('snuba.search.chunk-growth-rate')

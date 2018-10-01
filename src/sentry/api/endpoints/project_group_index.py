@@ -29,7 +29,7 @@ from sentry.models import (
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
-from sentry.search.utils import InvalidQuery, InvalidSorting, parse_query
+from sentry.search.utils import InvalidQuery, InvalidSort, parse_query
 from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -241,7 +241,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         else:
             try:
                 result = search.query(**query_kwargs)
-            except InvalidSorting:
+            except InvalidSort:
                 raise ValidationError('Unsupported sort order')
         return result, query_kwargs
 

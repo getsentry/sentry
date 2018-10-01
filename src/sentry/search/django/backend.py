@@ -18,7 +18,7 @@ from django.utils import timezone
 from sentry import quotas, tagstore
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.search.base import ANY, SearchBackend
-from sentry.search.utils import InvalidSorting
+from sentry.search.utils import InvalidSort
 from sentry.search.django.constants import (
     MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES, SORT_CLAUSES,
     SQLITE_SORT_CLAUSES
@@ -328,7 +328,7 @@ class DjangoSearchBackend(SearchBackend):
                 )
 
             if sort_by not in sort_strategies:
-                raise InvalidSorting(sort_by)
+                raise InvalidSort(sort_by)
 
             _, group_queryset_sort_clause = sort_strategies[sort_by]
             group_queryset = QuerySetBuilder({

@@ -15,6 +15,7 @@ from sentry.models import (
 )
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend, get_latest_release
+from sentry.search.utils import InvalidSort
 from sentry.tagstore.v2.backend import AGGREGATE_ENVIRONMENT_ID
 from sentry.testutils import TestCase
 
@@ -350,6 +351,10 @@ class DjangoSearchBackendTest(TestCase):
     def test_bookmarked_by(self):
         results = self.backend.query(self.project, bookmarked_by=self.user)
         assert set(results) == set([self.group2])
+
+    def test_invalid_sort(self):
+        with pytest.raises(InvalidSort):
+            self.backend.query(self.project, sort='invalid')
 
     def test_bookmarked_by_with_environment(self):
         results = self.backend.query(
