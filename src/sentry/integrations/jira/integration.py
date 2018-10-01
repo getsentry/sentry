@@ -399,9 +399,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         try:
             meta = resp['projects'][0]
-            for project in resp['projects']:
-                if project['id'] == default_project:
-                    meta = project
         except IndexError:
             raise IntegrationError(
                 'Error in Jira configuration, no projects found.'

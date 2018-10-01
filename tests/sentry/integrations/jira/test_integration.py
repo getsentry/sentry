@@ -49,39 +49,6 @@ SAMPLE_CREATE_META_RESPONSE = """
           }
         }
       ]
-    },
-    {
-      "self": "http://www.example.com/jira/rest/api/2/project/ABC",
-      "id": "10001",
-      "key": "ABC",
-      "name": "ABC Example Project",
-      "avatarUrls": {
-        "48x48": "http://www.example.com/jira/secure/projectavatar?pid=10001&avatarId=10011",
-        "24x24": "http://www.example.com/jira/secure/projectavatar?size=small&pid=10001&avatarId=10011",
-        "16x16": "http://www.example.com/jira/secure/projectavatar?size=xsmall&pid=10001&avatarId=10011",
-        "32x32": "http://www.example.com/jira/secure/projectavatar?size=medium&pid=10001&avatarId=10011"
-      },
-      "issuetypes": [
-        {
-          "self": "http://www.example.com/jira/rest/api/2/issueType/1",
-          "id": "1",
-          "description": "An error in the code",
-          "iconUrl": "http://www.example.com/jira/images/icons/issuetypes/bug.png",
-          "name": "Bug",
-          "subtask": false,
-          "fields": {
-            "issuetype": {
-              "required": true,
-              "name": "Issue Type",
-              "key": "issuetype",
-              "hasDefaultValue": false,
-              "operations": [
-                "set"
-              ]
-            }
-          }
-        }
-      ]
     }
   ]
 }
@@ -373,7 +340,10 @@ SAMPLE_TRANSITION_RESPONSE = """
 
 class MockJiraApiClient(object):
     def get_create_meta(self, project=None):
-        return json.loads(SAMPLE_CREATE_META_RESPONSE)
+        resp = json.loads(SAMPLE_CREATE_META_RESPONSE)
+        if project == '10001':
+            resp['projects'][0]['id'] = '10001'
+        return resp
 
     def get_create_meta_for_project(self, project):
         return self.get_create_meta()['projects'][0]
