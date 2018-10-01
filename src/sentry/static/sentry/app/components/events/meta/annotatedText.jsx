@@ -20,8 +20,6 @@ const Redaction = styled.span`
 `;
 
 const Placeholder = styled(Redaction)`
-  background: rgba(255, 0, 0, 0.05);
-  cursor: default;
   font-style: italic;
 
   :before {
