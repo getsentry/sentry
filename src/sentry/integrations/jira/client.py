@@ -40,7 +40,7 @@ class JiraApiClient(ApiClient):
     def __init__(self, base_url, shared_secret):
         self.base_url = base_url
         self.shared_secret = shared_secret
-        super(JiraApiClient, self).__init__(verify_ssl=False)
+        super(JiraApiClient, self).__init__(verify_ssl=True)
 
     def request(self, method, path, data=None, params=None, **kwargs):
         # handle params that are already part of the path
