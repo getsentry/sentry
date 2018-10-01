@@ -797,6 +797,320 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               />
             </div>
           </div>
+          <div
+            className="new-project-team"
+          >
+            <h4>
+              Team:
+            </h4>
+            <div>
+              <SelectField
+                clearable={false}
+                disabled={false}
+                hideErrorMessage={false}
+                multiple={false}
+                name="select-team"
+                onChange={[Function]}
+                options={
+                  Array [
+                    Object {
+                      "label": "#test",
+                      "value": "test",
+                    },
+                  ]
+                }
+                required={false}
+                style={
+                  Object {
+                    "marginBottom": 0,
+                    "width": 180,
+                  }
+                }
+                value="test"
+              >
+                <div
+                  className=""
+                  style={
+                    Object {
+                      "marginBottom": 0,
+                      "width": 180,
+                    }
+                  }
+                >
+                  <div
+                    className="controls"
+                  >
+                    <StyledSelectControl
+                      clearable={false}
+                      disabled={false}
+                      id="id-select-team"
+                      multiple={false}
+                      name="select-team"
+                      onChange={[Function]}
+                      options={
+                        Array [
+                          Object {
+                            "label": "#test",
+                            "value": "test",
+                          },
+                        ]
+                      }
+                      required={false}
+                      value="test"
+                    >
+                      <SelectControl
+                        className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                        clearable={false}
+                        disabled={false}
+                        height={36}
+                        id="id-select-team"
+                        multiple={false}
+                        name="select-team"
+                        onChange={[Function]}
+                        options={
+                          Array [
+                            Object {
+                              "label": "#test",
+                              "value": "test",
+                            },
+                          ]
+                        }
+                        required={false}
+                        value="test"
+                      >
+                        <StyledSelect
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
+                          className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                          clearable={false}
+                          deleteRemoves={false}
+                          disabled={false}
+                          height={36}
+                          id="id-select-team"
+                          multiple={false}
+                          name="select-team"
+                          onChange={[Function]}
+                          options={
+                            Array [
+                              Object {
+                                "label": "#test",
+                                "value": "test",
+                              },
+                            ]
+                          }
+                          required={false}
+                          value="test"
+                        >
+                          <SelectPicker
+                            arrowRenderer={[Function]}
+                            backspaceRemoves={false}
+                            className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                            clearable={false}
+                            deleteRemoves={false}
+                            disabled={false}
+                            height={36}
+                            id="id-select-team"
+                            multiple={false}
+                            name="select-team"
+                            onChange={[Function]}
+                            options={
+                              Array [
+                                Object {
+                                  "label": "#test",
+                                  "value": "test",
+                                },
+                              ]
+                            }
+                            required={false}
+                            value="test"
+                          >
+                            <Select
+                              arrowRenderer={[Function]}
+                              autosize={true}
+                              backspaceRemoves={false}
+                              backspaceToRemoveMessage="Press backspace to remove {label}"
+                              className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                              clearAllText="Clear all"
+                              clearRenderer={[Function]}
+                              clearValueText="Clear value"
+                              clearable={false}
+                              closeOnSelect={true}
+                              deleteRemoves={false}
+                              delimiter=","
+                              disabled={false}
+                              escapeClearsValue={true}
+                              filterOptions={[Function]}
+                              height={36}
+                              id="id-select-team"
+                              ignoreAccents={true}
+                              ignoreCase={true}
+                              inputProps={Object {}}
+                              isLoading={false}
+                              joinValues={false}
+                              labelKey="label"
+                              matchPos="any"
+                              matchProp="any"
+                              menuBuffer={0}
+                              menuRenderer={[Function]}
+                              multi={false}
+                              multiple={false}
+                              name="select-team"
+                              noResultsText="No results found"
+                              onBlurResetsInput={true}
+                              onChange={[Function]}
+                              onCloseResetsInput={true}
+                              onSelectResetsInput={true}
+                              openOnClick={true}
+                              optionComponent={[Function]}
+                              options={
+                                Array [
+                                  Object {
+                                    "label": "#test",
+                                    "value": "test",
+                                  },
+                                ]
+                              }
+                              pageSize={5}
+                              placeholder="Select..."
+                              removeSelected={true}
+                              required={false}
+                              rtl={false}
+                              scrollMenuIntoView={true}
+                              searchable={true}
+                              simpleValue={false}
+                              tabSelectsValue={true}
+                              trimFilter={true}
+                              value="test"
+                              valueComponent={[Function]}
+                              valueKey="value"
+                            >
+                              <div
+                                className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                              >
+                                <input
+                                  disabled={false}
+                                  key="hidden.0"
+                                  name="select-team"
+                                  type="hidden"
+                                  value="test"
+                                />
+                                <div
+                                  className="Select-control"
+                                  onKeyDown={[Function]}
+                                  onMouseDown={[Function]}
+                                  onTouchEnd={[Function]}
+                                  onTouchMove={[Function]}
+                                  onTouchStart={[Function]}
+                                >
+                                  <span
+                                    className="Select-multi-value-wrapper"
+                                    id="react-select-4--value"
+                                  >
+                                    <Value
+                                      disabled={false}
+                                      id="react-select-4--value-item"
+                                      instancePrefix="react-select-4-"
+                                      onClick={null}
+                                      placeholder="Select..."
+                                      value={
+                                        Object {
+                                          "label": "#test",
+                                          "value": "test",
+                                        }
+                                      }
+                                    >
+                                      <div
+                                        className="Select-value"
+                                      >
+                                        <span
+                                          aria-selected="true"
+                                          className="Select-value-label"
+                                          id="react-select-4--value-item"
+                                          role="option"
+                                        >
+                                          #test
+                                        </span>
+                                      </div>
+                                    </Value>
+                                    <AutosizeInput
+                                      aria-activedescendant="react-select-4--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      className="Select-input"
+                                      id="id-select-team"
+                                      injectStyles={true}
+                                      minWidth="5"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      value=""
+                                    >
+                                      <div
+                                        className="Select-input"
+                                        style={
+                                          Object {
+                                            "display": "inline-block",
+                                          }
+                                        }
+                                      >
+                                        <input
+                                          aria-activedescendant="react-select-4--value"
+                                          aria-expanded="false"
+                                          aria-haspopup="false"
+                                          aria-owns=""
+                                          id="id-select-team"
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onFocus={[Function]}
+                                          required={false}
+                                          role="combobox"
+                                          style={
+                                            Object {
+                                              "boxSizing": "content-box",
+                                              "width": "5px",
+                                            }
+                                          }
+                                          value=""
+                                        />
+                                        <div
+                                          style={
+                                            Object {
+                                              "height": 0,
+                                              "left": 0,
+                                              "overflow": "scroll",
+                                              "position": "absolute",
+                                              "top": 0,
+                                              "visibility": "hidden",
+                                              "whiteSpace": "pre",
+                                            }
+                                          }
+                                        />
+                                      </div>
+                                    </AutosizeInput>
+                                  </span>
+                                  <span
+                                    className="Select-arrow-zone"
+                                    onMouseDown={[Function]}
+                                  >
+                                    <span
+                                      className="icon-arrow-down"
+                                    />
+                                  </span>
+                                </div>
+                              </div>
+                            </Select>
+                          </SelectPicker>
+                        </StyledSelect>
+                      </SelectControl>
+                    </StyledSelectControl>
+                  </div>
+                </div>
+              </SelectField>
+            </div>
+          </div>
           <div>
             <button
               className="btn btn-primary new-project-submit"
@@ -1193,6 +1507,320 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 type="text"
                 value="Ruby"
               />
+            </div>
+          </div>
+          <div
+            className="new-project-team"
+          >
+            <h4>
+              Team:
+            </h4>
+            <div>
+              <SelectField
+                clearable={false}
+                disabled={false}
+                hideErrorMessage={false}
+                multiple={false}
+                name="select-team"
+                onChange={[Function]}
+                options={
+                  Array [
+                    Object {
+                      "label": "#test",
+                      "value": "test",
+                    },
+                  ]
+                }
+                required={false}
+                style={
+                  Object {
+                    "marginBottom": 0,
+                    "width": 180,
+                  }
+                }
+                value="test"
+              >
+                <div
+                  className=""
+                  style={
+                    Object {
+                      "marginBottom": 0,
+                      "width": 180,
+                    }
+                  }
+                >
+                  <div
+                    className="controls"
+                  >
+                    <StyledSelectControl
+                      clearable={false}
+                      disabled={false}
+                      id="id-select-team"
+                      multiple={false}
+                      name="select-team"
+                      onChange={[Function]}
+                      options={
+                        Array [
+                          Object {
+                            "label": "#test",
+                            "value": "test",
+                          },
+                        ]
+                      }
+                      required={false}
+                      value="test"
+                    >
+                      <SelectControl
+                        className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                        clearable={false}
+                        disabled={false}
+                        height={36}
+                        id="id-select-team"
+                        multiple={false}
+                        name="select-team"
+                        onChange={[Function]}
+                        options={
+                          Array [
+                            Object {
+                              "label": "#test",
+                              "value": "test",
+                            },
+                          ]
+                        }
+                        required={false}
+                        value="test"
+                      >
+                        <StyledSelect
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
+                          className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                          clearable={false}
+                          deleteRemoves={false}
+                          disabled={false}
+                          height={36}
+                          id="id-select-team"
+                          multiple={false}
+                          name="select-team"
+                          onChange={[Function]}
+                          options={
+                            Array [
+                              Object {
+                                "label": "#test",
+                                "value": "test",
+                              },
+                            ]
+                          }
+                          required={false}
+                          value="test"
+                        >
+                          <SelectPicker
+                            arrowRenderer={[Function]}
+                            backspaceRemoves={false}
+                            className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                            clearable={false}
+                            deleteRemoves={false}
+                            disabled={false}
+                            height={36}
+                            id="id-select-team"
+                            multiple={false}
+                            name="select-team"
+                            onChange={[Function]}
+                            options={
+                              Array [
+                                Object {
+                                  "label": "#test",
+                                  "value": "test",
+                                },
+                              ]
+                            }
+                            required={false}
+                            value="test"
+                          >
+                            <Select
+                              arrowRenderer={[Function]}
+                              autosize={true}
+                              backspaceRemoves={false}
+                              backspaceToRemoveMessage="Press backspace to remove {label}"
+                              className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                              clearAllText="Clear all"
+                              clearRenderer={[Function]}
+                              clearValueText="Clear value"
+                              clearable={false}
+                              closeOnSelect={true}
+                              deleteRemoves={false}
+                              delimiter=","
+                              disabled={false}
+                              escapeClearsValue={true}
+                              filterOptions={[Function]}
+                              height={36}
+                              id="id-select-team"
+                              ignoreAccents={true}
+                              ignoreCase={true}
+                              inputProps={Object {}}
+                              isLoading={false}
+                              joinValues={false}
+                              labelKey="label"
+                              matchPos="any"
+                              matchProp="any"
+                              menuBuffer={0}
+                              menuRenderer={[Function]}
+                              multi={false}
+                              multiple={false}
+                              name="select-team"
+                              noResultsText="No results found"
+                              onBlurResetsInput={true}
+                              onChange={[Function]}
+                              onCloseResetsInput={true}
+                              onSelectResetsInput={true}
+                              openOnClick={true}
+                              optionComponent={[Function]}
+                              options={
+                                Array [
+                                  Object {
+                                    "label": "#test",
+                                    "value": "test",
+                                  },
+                                ]
+                              }
+                              pageSize={5}
+                              placeholder="Select..."
+                              removeSelected={true}
+                              required={false}
+                              rtl={false}
+                              scrollMenuIntoView={true}
+                              searchable={true}
+                              simpleValue={false}
+                              tabSelectsValue={true}
+                              trimFilter={true}
+                              value="test"
+                              valueComponent={[Function]}
+                              valueKey="value"
+                            >
+                              <div
+                                className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                              >
+                                <input
+                                  disabled={false}
+                                  key="hidden.0"
+                                  name="select-team"
+                                  type="hidden"
+                                  value="test"
+                                />
+                                <div
+                                  className="Select-control"
+                                  onKeyDown={[Function]}
+                                  onMouseDown={[Function]}
+                                  onTouchEnd={[Function]}
+                                  onTouchMove={[Function]}
+                                  onTouchStart={[Function]}
+                                >
+                                  <span
+                                    className="Select-multi-value-wrapper"
+                                    id="react-select-3--value"
+                                  >
+                                    <Value
+                                      disabled={false}
+                                      id="react-select-3--value-item"
+                                      instancePrefix="react-select-3-"
+                                      onClick={null}
+                                      placeholder="Select..."
+                                      value={
+                                        Object {
+                                          "label": "#test",
+                                          "value": "test",
+                                        }
+                                      }
+                                    >
+                                      <div
+                                        className="Select-value"
+                                      >
+                                        <span
+                                          aria-selected="true"
+                                          className="Select-value-label"
+                                          id="react-select-3--value-item"
+                                          role="option"
+                                        >
+                                          #test
+                                        </span>
+                                      </div>
+                                    </Value>
+                                    <AutosizeInput
+                                      aria-activedescendant="react-select-3--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      className="Select-input"
+                                      id="id-select-team"
+                                      injectStyles={true}
+                                      minWidth="5"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      value=""
+                                    >
+                                      <div
+                                        className="Select-input"
+                                        style={
+                                          Object {
+                                            "display": "inline-block",
+                                          }
+                                        }
+                                      >
+                                        <input
+                                          aria-activedescendant="react-select-3--value"
+                                          aria-expanded="false"
+                                          aria-haspopup="false"
+                                          aria-owns=""
+                                          id="id-select-team"
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onFocus={[Function]}
+                                          required={false}
+                                          role="combobox"
+                                          style={
+                                            Object {
+                                              "boxSizing": "content-box",
+                                              "width": "5px",
+                                            }
+                                          }
+                                          value=""
+                                        />
+                                        <div
+                                          style={
+                                            Object {
+                                              "height": 0,
+                                              "left": 0,
+                                              "overflow": "scroll",
+                                              "position": "absolute",
+                                              "top": 0,
+                                              "visibility": "hidden",
+                                              "whiteSpace": "pre",
+                                            }
+                                          }
+                                        />
+                                      </div>
+                                    </AutosizeInput>
+                                  </span>
+                                  <span
+                                    className="Select-arrow-zone"
+                                    onMouseDown={[Function]}
+                                  >
+                                    <span
+                                      className="icon-arrow-down"
+                                    />
+                                  </span>
+                                </div>
+                              </div>
+                            </Select>
+                          </SelectPicker>
+                        </StyledSelect>
+                      </SelectControl>
+                    </StyledSelectControl>
+                  </div>
+                </div>
+              </SelectField>
             </div>
           </div>
           <div>
@@ -1981,6 +2609,320 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 type="text"
                 value="another"
               />
+            </div>
+          </div>
+          <div
+            className="new-project-team"
+          >
+            <h4>
+              Team:
+            </h4>
+            <div>
+              <SelectField
+                clearable={false}
+                disabled={false}
+                hideErrorMessage={false}
+                multiple={false}
+                name="select-team"
+                onChange={[Function]}
+                options={
+                  Array [
+                    Object {
+                      "label": "#test",
+                      "value": "test",
+                    },
+                  ]
+                }
+                required={false}
+                style={
+                  Object {
+                    "marginBottom": 0,
+                    "width": 180,
+                  }
+                }
+                value="test"
+              >
+                <div
+                  className=""
+                  style={
+                    Object {
+                      "marginBottom": 0,
+                      "width": 180,
+                    }
+                  }
+                >
+                  <div
+                    className="controls"
+                  >
+                    <StyledSelectControl
+                      clearable={false}
+                      disabled={false}
+                      id="id-select-team"
+                      multiple={false}
+                      name="select-team"
+                      onChange={[Function]}
+                      options={
+                        Array [
+                          Object {
+                            "label": "#test",
+                            "value": "test",
+                          },
+                        ]
+                      }
+                      required={false}
+                      value="test"
+                    >
+                      <SelectControl
+                        className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                        clearable={false}
+                        disabled={false}
+                        height={36}
+                        id="id-select-team"
+                        multiple={false}
+                        name="select-team"
+                        onChange={[Function]}
+                        options={
+                          Array [
+                            Object {
+                              "label": "#test",
+                              "value": "test",
+                            },
+                          ]
+                        }
+                        required={false}
+                        value="test"
+                      >
+                        <StyledSelect
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
+                          className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                          clearable={false}
+                          deleteRemoves={false}
+                          disabled={false}
+                          height={36}
+                          id="id-select-team"
+                          multiple={false}
+                          name="select-team"
+                          onChange={[Function]}
+                          options={
+                            Array [
+                              Object {
+                                "label": "#test",
+                                "value": "test",
+                              },
+                            ]
+                          }
+                          required={false}
+                          value="test"
+                        >
+                          <SelectPicker
+                            arrowRenderer={[Function]}
+                            backspaceRemoves={false}
+                            className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                            clearable={false}
+                            deleteRemoves={false}
+                            disabled={false}
+                            height={36}
+                            id="id-select-team"
+                            multiple={false}
+                            name="select-team"
+                            onChange={[Function]}
+                            options={
+                              Array [
+                                Object {
+                                  "label": "#test",
+                                  "value": "test",
+                                },
+                              ]
+                            }
+                            required={false}
+                            value="test"
+                          >
+                            <Select
+                              arrowRenderer={[Function]}
+                              autosize={true}
+                              backspaceRemoves={false}
+                              backspaceToRemoveMessage="Press backspace to remove {label}"
+                              className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                              clearAllText="Clear all"
+                              clearRenderer={[Function]}
+                              clearValueText="Clear value"
+                              clearable={false}
+                              closeOnSelect={true}
+                              deleteRemoves={false}
+                              delimiter=","
+                              disabled={false}
+                              escapeClearsValue={true}
+                              filterOptions={[Function]}
+                              height={36}
+                              id="id-select-team"
+                              ignoreAccents={true}
+                              ignoreCase={true}
+                              inputProps={Object {}}
+                              isLoading={false}
+                              joinValues={false}
+                              labelKey="label"
+                              matchPos="any"
+                              matchProp="any"
+                              menuBuffer={0}
+                              menuRenderer={[Function]}
+                              multi={false}
+                              multiple={false}
+                              name="select-team"
+                              noResultsText="No results found"
+                              onBlurResetsInput={true}
+                              onChange={[Function]}
+                              onCloseResetsInput={true}
+                              onSelectResetsInput={true}
+                              openOnClick={true}
+                              optionComponent={[Function]}
+                              options={
+                                Array [
+                                  Object {
+                                    "label": "#test",
+                                    "value": "test",
+                                  },
+                                ]
+                              }
+                              pageSize={5}
+                              placeholder="Select..."
+                              removeSelected={true}
+                              required={false}
+                              rtl={false}
+                              scrollMenuIntoView={true}
+                              searchable={true}
+                              simpleValue={false}
+                              tabSelectsValue={true}
+                              trimFilter={true}
+                              value="test"
+                              valueComponent={[Function]}
+                              valueKey="value"
+                            >
+                              <div
+                                className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                              >
+                                <input
+                                  disabled={false}
+                                  key="hidden.0"
+                                  name="select-team"
+                                  type="hidden"
+                                  value="test"
+                                />
+                                <div
+                                  className="Select-control"
+                                  onKeyDown={[Function]}
+                                  onMouseDown={[Function]}
+                                  onTouchEnd={[Function]}
+                                  onTouchMove={[Function]}
+                                  onTouchStart={[Function]}
+                                >
+                                  <span
+                                    className="Select-multi-value-wrapper"
+                                    id="react-select-2--value"
+                                  >
+                                    <Value
+                                      disabled={false}
+                                      id="react-select-2--value-item"
+                                      instancePrefix="react-select-2-"
+                                      onClick={null}
+                                      placeholder="Select..."
+                                      value={
+                                        Object {
+                                          "label": "#test",
+                                          "value": "test",
+                                        }
+                                      }
+                                    >
+                                      <div
+                                        className="Select-value"
+                                      >
+                                        <span
+                                          aria-selected="true"
+                                          className="Select-value-label"
+                                          id="react-select-2--value-item"
+                                          role="option"
+                                        >
+                                          #test
+                                        </span>
+                                      </div>
+                                    </Value>
+                                    <AutosizeInput
+                                      aria-activedescendant="react-select-2--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      className="Select-input"
+                                      id="id-select-team"
+                                      injectStyles={true}
+                                      minWidth="5"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      value=""
+                                    >
+                                      <div
+                                        className="Select-input"
+                                        style={
+                                          Object {
+                                            "display": "inline-block",
+                                          }
+                                        }
+                                      >
+                                        <input
+                                          aria-activedescendant="react-select-2--value"
+                                          aria-expanded="false"
+                                          aria-haspopup="false"
+                                          aria-owns=""
+                                          id="id-select-team"
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onFocus={[Function]}
+                                          required={false}
+                                          role="combobox"
+                                          style={
+                                            Object {
+                                              "boxSizing": "content-box",
+                                              "width": "5px",
+                                            }
+                                          }
+                                          value=""
+                                        />
+                                        <div
+                                          style={
+                                            Object {
+                                              "height": 0,
+                                              "left": 0,
+                                              "overflow": "scroll",
+                                              "position": "absolute",
+                                              "top": 0,
+                                              "visibility": "hidden",
+                                              "whiteSpace": "pre",
+                                            }
+                                          }
+                                        />
+                                      </div>
+                                    </AutosizeInput>
+                                  </span>
+                                  <span
+                                    className="Select-arrow-zone"
+                                    onMouseDown={[Function]}
+                                  >
+                                    <span
+                                      className="icon-arrow-down"
+                                    />
+                                  </span>
+                                </div>
+                              </div>
+                            </Select>
+                          </SelectPicker>
+                        </StyledSelect>
+                      </SelectControl>
+                    </StyledSelectControl>
+                  </div>
+                </div>
+              </SelectField>
             </div>
           </div>
           <div>
