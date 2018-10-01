@@ -1,42 +1,35 @@
---
-name: 🐞 Bug Report
-about: Report a bug to help improve Sentry
+---
+name: Bug report
+about: Create a report to help us improve
 
 ---
 
-<!--
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-Do you want to ask a question? Are you looking for support? The Sentry message
-board is the best place for getting support: https://forum.sentry.io
--->
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-## Important Details
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-How are you running Sentry?
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-* [ ] On-Premise docker [Version xyz]
-* [ ] Saas (sentry.io)
-* [ ] Other [briefly describe your environment]
+**Desktop (please complete the following information):**
+ - OS: [e.g. iOS]
+ - Browser [e.g. chrome, safari]
+ - Version [e.g. 22]
 
-## Description
+**Smartphone (please complete the following information):**
+ - Device: [e.g. iPhone6]
+ - OS: [e.g. iOS8.1]
+ - Browser [e.g. stock browser, safari]
+ - Version [e.g. 22]
 
-[What happened]
-
-## Steps to Reproduce
-
-1. [First Step]
-2. [Second Step]
-3. and so on.
-
-Good items to include here include:
-
-- Include a stacktrace or other logs when relevant
-- Include a redacted version of your configuration when relevant
-
-### What you expected to happen
-
-[What you think should be happening]
-
-### Possible Solution
-
-[If you have an idea on how this could be solved include that detail here.]
+**Additional context**
+Add any other context about the problem here.
