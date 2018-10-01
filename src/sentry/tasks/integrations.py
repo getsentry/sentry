@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from time import time, mktime
+from time import time
 from datetime import timedelta
 
 import logging
@@ -226,7 +226,7 @@ def kickoff_vsts_subscription_check():
         integration__status=ObjectStatus.VISIBLE,
         status=ObjectStatus.VISIBLE,
     ).select_related('integration')
-    six_hours_ago = time() - mktime(timedelta(hours=6).timetuple())
+    six_hours_ago = time() - timedelta(hours=6).seconds
     for org_integration in organization_integrations:
         organization_id = org_integration.organization_id
         integration = org_integration.integration
