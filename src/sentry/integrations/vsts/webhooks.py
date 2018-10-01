@@ -45,11 +45,11 @@ class WorkItemWebhook(Endpoint):
         assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
 
     def handle_updated_workitem(self, data, integration):
+        external_issue_key = data['resource']['workItemId']
+        project = data['resourceContainers']['project']['id']
         try:
-            external_issue_key = data['resource']['workItemId']
             assigned_to = data['resource']['fields'].get('System.AssignedTo')
             status_change = data['resource']['fields'].get('System.State')
-            project = data['resourceContainers']['project']['id']
         except KeyError:
             logger.info(
                 'vsts.updated-workitem-fields-not-passed',
