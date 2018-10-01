@@ -34,9 +34,15 @@ class Sdk(Interface):
     The SDK used to transmit this event.
 
     >>> {
-    >>>     "name": "sentry-java",
-    >>>     "version": "1.0",
-    >>>     "integrations": ["log4j"]
+    >>>     "name": "sentry.java",
+    >>>     "version": "1.7.10",
+    >>>     "integrations": ["log4j"],
+    >>>     "packages": [
+    >>>         {
+    >>>             "name": "maven:io.sentry.sentry",
+    >>>             "version": "1.7.10",
+    >>>         }
+    >>>     ]
     >>> }
     """
 
@@ -54,10 +60,15 @@ class Sdk(Interface):
         if integrations and not isinstance(integrations, list):
             raise InterfaceValidationError("'integrations' must be a list")
 
+        packages = data.get('packages')
+        if packages and not isinstance(packages, list):
+            raise InterfaceValidationError("'packages' must be a list")
+
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
             'integrations': integrations,
+            'packages': packages,
         }
         return cls(**kwargs)
 
