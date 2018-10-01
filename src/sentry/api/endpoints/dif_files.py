@@ -85,7 +85,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             dif = ProjectDSymFile.objects.filter(
                 project=project,
                 file__checksum=checksum
-            ).first()
+            ).select_related('file').first()
             if dif is not None:
                 file_response[checksum] = {
                     'state': ChunkFileState.OK,

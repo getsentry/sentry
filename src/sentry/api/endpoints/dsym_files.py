@@ -184,8 +184,13 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             data={'name': data['name']},
             platform=DSYM_PLATFORMS[data['platform']],
         )
+
+        # There can be concurrent deletes on the underlying file object
+        # that the project dsym file references.  This means that we can
+        # get errors if we don't prefetch this when serializing.  Additionally
+        # performance wise it's a better idea to fetch this in one go.
         dsym_files = ProjectDSymFile.objects.find_by_checksums(
-            data['checksums'], project)
+            data['checksums'], project).select_related('file')
 
         for dsym_file in dsym_files:
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(

@@ -319,7 +319,8 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
                 with transaction.atomic():
                     rv = ProjectDSymFile.objects.create(**kwargs)
             except IntegrityError:
-                rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+                rv = ProjectDSymFile.objects.select_related('file') \
+                    .get(debug_id=debug_id, project=project)
                 oldfile = rv.file
                 rv.update(**kwargs)
                 oldfile.delete()
@@ -329,7 +330,8 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
             oldfile.delete()
     else:
         try:
-            rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+            rv = ProjectDSymFile.objects.select_related('file') \
+                .get(debug_id=debug_id, project=project)
         except ProjectDSymFile.DoesNotExist:
             try:
                 with transaction.atomic():
@@ -341,7 +343,8 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
                         project=project,
                     )
             except IntegrityError:
-                rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+                rv = ProjectDSymFile.objects.select_related('file') \
+                    .get(debug_id=debug_id, project=project)
                 oldfile = rv.file
                 rv.update(file=file)
                 oldfile.delete()
