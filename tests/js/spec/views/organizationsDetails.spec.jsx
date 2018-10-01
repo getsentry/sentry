@@ -10,6 +10,10 @@ describe('OrganizationDetails', function() {
       url: '/broadcasts/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats/',
+      body: [],
+    });
   });
 
   describe('render()', function() {

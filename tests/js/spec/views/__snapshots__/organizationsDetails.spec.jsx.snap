@@ -272,6 +272,39 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
             </span>
           </div>
         </a>
+        <div
+          class="css-64be24-OrganizationStatsChartWrapper e15rip1h0"
+        >
+          Last 24h
+          <figure
+            class="e15rip1h1 barchart css-17kok3h-StyledFigure-StyledBarChart e5t71581"
+            style="height:60px"
+          >
+            <span
+              class="max-y"
+            >
+              <span>
+                10
+              </span>
+            </span>
+            <span
+              class="min-y"
+            >
+              0
+            </span>
+            <div
+              class="css-1jg1opr-SvgContainer e5t71582"
+            >
+              <svg
+                class="css-1vaz76z-StyledSvg e5t71580"
+                overflow="visible"
+                preserveAspectRatio="none"
+                viewBox="0 0 100 400"
+              />
+            </div>
+          </figure>
+           
+        </div>
       </div>
     </div>
     <div
@@ -713,6 +746,39 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             </span>
           </div>
         </a>
+        <div
+          class="css-64be24-OrganizationStatsChartWrapper e15rip1h0"
+        >
+          Last 24h
+          <figure
+            class="e15rip1h1 barchart css-17kok3h-StyledFigure-StyledBarChart e5t71581"
+            style="height:60px"
+          >
+            <span
+              class="max-y"
+            >
+              <span>
+                10
+              </span>
+            </span>
+            <span
+              class="min-y"
+            >
+              0
+            </span>
+            <div
+              class="css-1jg1opr-SvgContainer e5t71582"
+            >
+              <svg
+                class="css-1vaz76z-StyledSvg e5t71580"
+                overflow="visible"
+                preserveAspectRatio="none"
+                viewBox="0 0 100 400"
+              />
+            </div>
+          </figure>
+           
+        </div>
       </div>
     </div>
     <div
@@ -1181,6 +1247,39 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             </span>
           </div>
         </a>
+        <div
+          class="css-64be24-OrganizationStatsChartWrapper e15rip1h0"
+        >
+          Last 24h
+          <figure
+            class="e15rip1h1 barchart css-17kok3h-StyledFigure-StyledBarChart e5t71581"
+            style="height:60px"
+          >
+            <span
+              class="max-y"
+            >
+              <span>
+                10
+              </span>
+            </span>
+            <span
+              class="min-y"
+            >
+              0
+            </span>
+            <div
+              class="css-1jg1opr-SvgContainer e5t71582"
+            >
+              <svg
+                class="css-1vaz76z-StyledSvg e5t71580"
+                overflow="visible"
+                preserveAspectRatio="none"
+                viewBox="0 0 100 400"
+              />
+            </div>
+          </figure>
+           
+        </div>
       </div>
     </div>
     <div
