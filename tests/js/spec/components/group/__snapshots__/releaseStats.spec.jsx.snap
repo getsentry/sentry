@@ -243,10 +243,14 @@ exports[`GroupReleaseStats renders 1`] = `
                     >
                       <StyledSvg
                         overflow="visible"
+                        preserveAspectRatio="none"
+                        viewBox="0 0 100 400"
                       >
                         <svg
-                          className="css-1ob8vbo-StyledSvg e5t71580"
+                          className="css-1vaz76z-StyledSvg e5t71580"
                           overflow="visible"
+                          preserveAspectRatio="none"
+                          viewBox="0 0 100 400"
                         >
                           <Tooltip
                             key="1517281200"
@@ -526,10 +530,14 @@ exports[`GroupReleaseStats renders 1`] = `
                     >
                       <StyledSvg
                         overflow="visible"
+                        preserveAspectRatio="none"
+                        viewBox="0 0 100 400"
                       >
                         <svg
-                          className="css-1ob8vbo-StyledSvg e5t71580"
+                          className="css-1vaz76z-StyledSvg e5t71580"
                           overflow="visible"
+                          preserveAspectRatio="none"
+                          viewBox="0 0 100 400"
                         >
                           <Tooltip
                             key="1514764800"

@@ -2,8 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import _ from 'lodash';
-import styled from 'react-emotion';
-import cx from 'classnames';
+import styled, {cx} from 'react-emotion';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
@@ -42,7 +41,10 @@ class StackedBarChart extends React.Component {
     ),
     tooltip: PropTypes.func,
     barClasses: PropTypes.array,
+    /* Some bars need to be visible and interactable even if they are
+    empty. Each min height will be a single point within the view box */
     minHeights: PropTypes.arrayOf(PropTypes.number),
+    /* the amount of space between bars. Also represents an svg point */
     gap: PropTypes.number,
   };
 
@@ -278,10 +280,13 @@ class StackedBarChart extends React.Component {
   renderChartColumn(point, maxval, pointWidth, index, totalPoints) {
     let totalY = point.y.reduce((a, b) => a + b);
     let totalPct = totalY / maxval;
+    // we leave a little extra space for bars with min-heights.
+    let maxPercentage = 99;
+
     let prevPct = 0;
     let pts = point.y.map((y, i) => {
       let pct = Math.max(
-        totalY && this.floatFormat(y / totalY * totalPct * 99, 2),
+        totalY && this.floatFormat(y / totalY * totalPct * maxPercentage, 2),
         this.getMinHeight(i, point.y.length)
       );
 
@@ -328,7 +333,9 @@ class StackedBarChart extends React.Component {
   renderChart() {
     let {pointIndex, series} = this.state;
     let totalPoints = Math.max(...series.map(s => s.data.length));
-    let pointWidth = this.floatFormat((100.0 + this.props.gap + 0.1) / totalPoints, 2);
+    // we expand the graph just a hair beyond 100% prevent a subtle white line on the edge
+    let nudge = 0.1;
+    let pointWidth = this.floatFormat((100.0 + this.props.gap + nudge) / totalPoints, 2);
 
     let maxval = this.maxPointValue();
     let markers = this.props.markers.slice();
@@ -367,7 +374,9 @@ class StackedBarChart extends React.Component {
 
     return (
       <SvgContainer>
-        <StyledSvg overflow="visible">{children}</StyledSvg>
+        <StyledSvg viewBox="0 0 100 400" preserveAspectRatio="none" overflow="visible">
+          {children}
+        </StyledSvg>
         {markerChildren.length ? markerChildren : null}
       </SvgContainer>
     );
@@ -393,7 +402,11 @@ class StackedBarChart extends React.Component {
 const StyledSvg = styled('svg')`
   width: 100%;
   height: 100%;
-  overflow: visible !important; /* overrides global declaration */
+  /* currently, min-heights are not calculated into maximum bar height, so
+  we need the svg to allow elements to exceed the container. This overrides
+  the global overflow: hidden declaration. Eventually, we should factor minimum
+  bar heights into the overall chart height and remove this */
+  overflow: visible !important;
 `;
 
 const StyledFigure = styled('figure')`
