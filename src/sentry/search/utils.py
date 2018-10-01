@@ -17,7 +17,7 @@ class InvalidQuery(Exception):
     pass
 
 
-class InvalidSorting(Exception):
+class InvalidSort(Exception):
     pass
 
 
