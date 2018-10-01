@@ -25,7 +25,7 @@ describe('Discover', function() {
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
-      expect(wrapper.state().data).toEqual(mockResponse);
+      expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
     it('always requests event_id and project_id for basic queries', async function() {
@@ -38,7 +38,7 @@ describe('Discover', function() {
           fields: ['message', 'event_id', 'project_id'],
         })
       );
-      expect(wrapper.state().data).toEqual(mockResponse);
+      expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
     it('removes incomplete conditions', async function() {
@@ -109,11 +109,11 @@ describe('Discover', function() {
     it('resets query builder and state', function() {
       wrapper.instance().reset();
       expect(queryBuilder.reset).toHaveBeenCalled();
-      const {data, query, chartData, chartQuery} = wrapper.instance().state;
-      expect(data).toBeNull();
-      expect(query).toBeNull();
-      expect(chartData).toBeNull();
-      expect(chartQuery).toBeNull();
+      const {data: {baseQuery, byDayQuery}} = wrapper.instance().state;
+      expect(baseQuery.query).toBeNull();
+      expect(baseQuery.data).toBeNull();
+      expect(byDayQuery.query).toBeNull();
+      expect(byDayQuery.data).toBeNull();
     });
 
     it('resets "fields"', function() {
