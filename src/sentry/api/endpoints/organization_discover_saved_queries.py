@@ -6,7 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry.api.bases import OrganizationEndpoint
-from sentry.models import DiscoverSavedQuery, Project, ProjectStatus
+from sentry.models import DiscoverSavedQuery
 from sentry import features
 
 

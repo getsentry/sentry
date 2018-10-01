@@ -47,10 +47,11 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
         org_projects = set(Project.objects.filter(
             organization=organization,
+            id__in=projects,
             status=ProjectStatus.VISIBLE,
         ).values_list('id', flat=True))
 
-        if not set(projects).issubset(org_projects):
+        if set(projects) != org_projects:
             raise PermissionDenied
 
         return attrs
