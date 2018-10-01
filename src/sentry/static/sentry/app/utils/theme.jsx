@@ -232,6 +232,13 @@ theme.charts = {
   previousPeriod: theme.gray1,
 };
 
+theme.diff = {
+  removedRow: '#fcefee',
+  addedRow: '#f5fbf8',
+  removed: '#f7ceca',
+  added: '#d8f0e4',
+};
+
 // Similarity spectrum used in "Similar Issues" in group details
 theme.similarity = {
   empty: '#e2dee6',
