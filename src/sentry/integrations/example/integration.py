@@ -8,6 +8,7 @@ from sentry.integrations import (
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
+from sentry.models import User
 from sentry.pipeline import PipelineView
 
 
@@ -61,8 +62,11 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key):
         return u'https://example/issues/{}'.format(key)
 
-    def create_comment(self):
-        pass
+    def create_comment(self, issue_id, user_id, comment):
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        return quoted_comment
 
     def create_issue(self, data, **kwargs):
         if 'assignee' not in data:

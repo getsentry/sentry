@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from mock import patch
 
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.exceptions import IntegrationError
@@ -386,3 +387,17 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         domain_name = integration.model.metadata['domain_name']
         assert domain_name == account_uri
         assert Integration.objects.get(provider='vsts').metadata['domain_name'] == account_uri
+
+    @patch('sentry.integrations.vsts.client.VstsApiClient.update_work_item')
+    def test_create_comment(self, mock_update_work_item):
+        self.assert_installation()
+        integration = Integration.objects.get(provider='vsts')
+        installation = integration.get_installation(self.organization.id)
+
+        comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        self.user.name = 'Sentry Admin'
+        self.user.save()
+        installation.create_comment(1, self.user.id, comment)
+
+        assert mock_update_work_item.call_args[1]['comment'] == \
+            'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment

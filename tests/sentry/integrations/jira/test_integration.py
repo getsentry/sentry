@@ -350,6 +350,9 @@ class MockJiraApiClient(object):
     def get_issue(self, issue_key):
         return json.loads(SAMPLE_GET_ISSUE_RESPONSE.strip())
 
+    def create_comment(self, issue_id, comment):
+        return comment
+
     def create_issue(self, data):
         return {'key': 'APP-123'}
 
@@ -684,3 +687,27 @@ class JiraIntegrationTest(APITestCase):
                 },
             },
         }
+
+    def test_create_comment(self):
+        org = self.organization
+
+        self.user.name = 'Sentry Admin'
+        self.user.save()
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+        installation = integration.get_installation(org.id)
+
+        comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        with mock.patch.object(MockJiraApiClient, 'create_comment') as mock_create_comment:
+            def get_client():
+                return MockJiraApiClient()
+
+            with mock.patch.object(installation, 'get_client', get_client):
+                installation.create_comment(1, self.user.id, comment)
+                assert mock_create_comment.call_args[0][1] == \
+                    'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment
