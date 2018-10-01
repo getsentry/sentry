@@ -7,6 +7,7 @@ import entries from '../../mocks/entries';
 jest.mock('app/api');
 
 describe('IssueDiff', function() {
+  let routerContext = TestStubs.routerContext();
   let api = new MockApiClient();
 
   it('is loading when initially rendering', function() {
@@ -32,7 +33,8 @@ describe('IssueDiff', function() {
 
     // Need `mount` because of componentDidMount in <IssueDiff>
     let wrapper = mount(
-      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />
+      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
+      routerContext
     );
 
     await tick();
@@ -59,7 +61,8 @@ describe('IssueDiff', function() {
 
     // Need `mount` because of componentDidMount in <IssueDiff>
     let wrapper = mount(
-      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />
+      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
+      routerContext
     );
 
     await tick();
