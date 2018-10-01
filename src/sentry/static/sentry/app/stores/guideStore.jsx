@@ -29,12 +29,11 @@ const GuideStore = Reflux.createStore({
       forceShow: false,
       // The previously shown guide.
       prevGuide: null,
+      // Total events received in the project in the last 30 days. id (int) -> int.
+      projectStats: new Map(),
+      // Whether the project has customized alert rules. id (int) -> bool.
+      projectRules: new Map(),
     };
-
-    // Total events received in the project in the last 30 days. id (int) -> int.
-    this.projectStats = new Map();
-    // Whether the project has customized alert rules. id (int) -> bool.
-    this.projectRules = new Map();
 
     this.api = new Client();
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
@@ -141,8 +140,7 @@ const GuideStore = Reflux.createStore({
   },
 
   async getProjectStats(projectId) {
-    let {projectStats} = this;
-    let {org, project} = this.state;
+    let {org, project, projectStats} = this.state;
 
     if (projectStats.has(projectId)) {
       return Promise.resolve(projectStats.get(projectId));
@@ -164,8 +162,7 @@ const GuideStore = Reflux.createStore({
   },
 
   async getProjectRules(projectId) {
-    let {projectRules} = this;
-    let {org, project} = this.state;
+    let {org, project, projectRules} = this.state;
 
     if (projectRules.has(projectId)) {
       return Promise.resolve(projectRules.get(projectId));
