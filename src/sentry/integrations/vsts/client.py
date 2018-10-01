@@ -272,7 +272,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def delete_subscription(self, instance, subscription_id):
-        self.delete(
+        return self.delete(
             VstsApiPath.subscription.format(
                 instance=instance,
                 subscription_id=subscription_id,
@@ -280,7 +280,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def update_subscription(self, instance, subscription_id):
-        self.put(
+        return self.put(
             VstsApiPath.subscription.format(
                 instance=instance,
                 subscription_id=subscription_id,
