@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/barChart';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class OrganizationStatsChart extends AsyncComponent {
   static propTypes = {
