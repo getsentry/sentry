@@ -19,10 +19,28 @@ logger = logging.getLogger(__name__)
 # Beware! Changing this, or the message format/fields themselves requires
 # consideration of all downstream consumers.
 # Version 1 format: (1, TYPE, [...REST...])
-#   Insert: (1, 'insert', {...event json...}, {...state for post-processing...})
-#   Delete Groups: (1, 'delete_groups', {'project_id': id, 'group_ids': [id1, id2, id3]})
-#   Unmerge: (1, 'unmerge', {'project_id': id, 'new_group_id': id, 'event_ids': [id1, id2]})
-#   Merge: (1, 'merge', {'project_id': id, 'previous_group_id': id, 'new_group_id': id})
+#   Insert: (1, 'insert', {
+#       ...event json...
+#   }, {
+#       ...state for post-processing...
+#   })
+#   Delete Groups: (1, 'delete_groups', {
+#       'project_id': id,
+#       'group_ids': [id1, id2, id3],
+#       'datetime': timestamp,
+#   })
+#   Unmerge: (1, 'unmerge', {
+#       'project_id': id,
+#       'new_group_id': id,
+#       'event_ids': [id1, id2]
+#       'datetime': timestamp,
+#   })
+#   Merge: (1, 'merge', {
+#       'project_id': id,
+#       'previous_group_id': id,
+#       'new_group_id': id,
+#       'datetime': timestamp,
+#   })
 EVENT_PROTOCOL_VERSION = 1
 
 
