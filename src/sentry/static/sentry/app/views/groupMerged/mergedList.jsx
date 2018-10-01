@@ -1,20 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
-import {Event} from 'app/sentryTypes';
+import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MergedItem from 'app/views/groupMerged/mergedItem';
 import MergedToolbar from 'app/views/groupMerged/mergedToolbar';
 import Pagination from 'app/components/pagination';
 import QueryCount from 'app/components/queryCount';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel} from 'app/components/panels';
+import SentryTypes from 'app/sentryTypes';
 
 class MergedList extends React.Component {
   static propTypes = {
     onUnmerge: PropTypes.func.isRequired,
     onToggleCollapse: PropTypes.func.isRequired,
-    items: PropTypes.arrayOf(Event),
+    items: PropTypes.arrayOf(SentryTypes.Event),
     pageLinks: PropTypes.string,
   };
 
@@ -36,7 +37,7 @@ class MergedList extends React.Component {
     }
 
     return (
-      <div className="merged-list-container">
+      <div>
         <h2>
           <span>{t('Merged fingerprints with latest event')}</span>
           <QueryCount count={itemsWithLatestEvent.length} />
@@ -48,7 +49,7 @@ class MergedList extends React.Component {
           onUnmerge={onUnmerge}
         />
 
-        <div className="merged-list">
+        <MergedItems>
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
             <MergedItem
               key={id}
@@ -59,7 +60,8 @@ class MergedList extends React.Component {
               itemCount={items.length}
             />
           ))}
-        </div>
+        </MergedItems>
+
         <Pagination pageLinks={pageLinks} />
       </div>
     );
@@ -67,3 +69,8 @@ class MergedList extends React.Component {
 }
 
 export default MergedList;
+
+const MergedItems = styled('div')`
+  border: 1px solid ${p => p.theme.borderLight};
+  border-top: none;
+`;

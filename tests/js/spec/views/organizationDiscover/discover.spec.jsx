@@ -75,10 +75,10 @@ describe('Discover', function() {
   describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
-      browserHistory.push.mockImplementation(function(url) {
+      browserHistory.push.mockImplementation(function({search}) {
         wrapper.setProps({
           location: {
-            search: url.pathname.replace('/organizations/org-slug/discover/', ''),
+            search: search || '',
             action: 'PUSH',
           },
         });
@@ -137,7 +137,7 @@ describe('Discover', function() {
       expect(wrapper.find('NumberField[name="limit"]').prop('value')).toBe(1000);
     });
 
-    it('does not reset on location replace', function() {
+    it('does not reset if location.search is empty', function() {
       const prevCallCount = queryBuilder.reset.mock.calls.length;
       wrapper.setProps({
         location: {

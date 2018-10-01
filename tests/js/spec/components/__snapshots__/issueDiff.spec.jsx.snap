@@ -8,11 +8,11 @@ exports[`IssueDiff can diff message 1`] = `
   targetEventId="latest"
   targetIssueId="target"
 >
-  <IssueDiffWrapper
+  <StyledIssueDiff
     loading={false}
   >
     <div
-      className="css-no1ym5-IssueDiffWrapper e1mqtsvu0"
+      className="css-1ap3513-StyledIssueDiff e1mqtsvu0"
     >
       <SplitDiff
         base="Foo World"
@@ -123,7 +123,7 @@ exports[`IssueDiff can diff message 1`] = `
         </SplitTable>
       </SplitDiff>
     </div>
-  </IssueDiffWrapper>
+  </StyledIssueDiff>
 </IssueDiff>
 `;
 
@@ -135,11 +135,11 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
   targetEventId="latest"
   targetIssueId="target"
 >
-  <IssueDiffWrapper
+  <StyledIssueDiff
     loading={false}
   >
     <div
-      className="css-no1ym5-IssueDiffWrapper e1mqtsvu0"
+      className="css-1ap3513-StyledIssueDiff e1mqtsvu0"
     >
       <SplitDiff
         base="SyntaxError: Unexpected token else
@@ -379,14 +379,14 @@ exports[`IssueDiff can dynamically import SplitDiff 1`] = `
         </SplitTable>
       </SplitDiff>
     </div>
-  </IssueDiffWrapper>
+  </StyledIssueDiff>
 </IssueDiff>
 `;
 
 exports[`IssueDiff is loading when initially rendering 1`] = `
-<IssueDiffWrapper
+<StyledIssueDiff
   loading={true}
 >
   <LoadingIndicator />
-</IssueDiffWrapper>
+</StyledIssueDiff>
 `;

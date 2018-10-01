@@ -49,16 +49,20 @@ export default class CombinedSelector extends React.Component {
       relative,
     };
 
-    if (prop === 'relative' && val === 'custom') {
-      // Convert previous relative range to absolute values
-      const statsPeriod = parseStatsPeriod(relative);
-      onChange({
-        relative: null,
-        start: statsPeriod.start,
-        end: statsPeriod.end,
-      });
+    if (prop === 'relative') {
+      if (val === 'custom') {
+        // Convert previous relative range to absolute values
+        const statsPeriod = parseStatsPeriod(relative);
+        onChange({
+          relative: null,
+          start: statsPeriod.start,
+          end: statsPeriod.end,
+        });
+      } else {
+        onChange({relative: val, start: null, end: null});
+      }
     } else {
-      onChange({...prev, [prop]: val});
+      onChange({...prev, relative: null, [prop]: val});
     }
   }
 

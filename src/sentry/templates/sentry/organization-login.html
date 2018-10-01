@@ -38,16 +38,15 @@
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block auth_main %}
-<div style="padding-bottom: 10px">
-  <div class="align-center">
+{% block auth_container %}
+<div>
+  <div class="align-center p-t-2">
     <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
-
     <h3>{{ organization.name }}</h3>
   </div>
 
   {% if provider_name %}
-    <form class="form-stacked" action="" method="post" autocomplete="off">
+    <form class="form-stacked m-b-2" action="" method="post" autocomplete="off">
       {% csrf_token %}
       <input type="hidden" name="init" value="1" />
 
@@ -66,54 +65,60 @@
       </div>
     </form>
   {% else %}
-    <ul class="nav nav-tabs auth-toggle">
-      <li{% if op == "login" %} class="active"{% endif %}>
-        <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
-      </li>
-      {% if CAN_REGISTER %}
-        <li{% if op == "register" %} class="active"{% endif %}>
-          <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+    <div class="auth-container p-t-0 border-bottom">
+      <ul class="nav nav-tabs auth-toggle m-b-0">
+        <li{% if op == "login" %} class="active"{% endif %}>
+          <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
         </li>
-      {% endif %}
-    </ul>
+        {% if CAN_REGISTER %}
+          <li{% if op == "register" %} class="active"{% endif %}>
+            <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
 
     <div class="tab-content basic-login">
       <div class="tab-pane{% if op == "login" %} active{% endif %}" id="login">
-        <form class="form-stacked" action="" method="post" autocomplete="off">
-          {% csrf_token %}
+        <div class="auth-container">
+          <div class="auth-form-column">
+            <form class="form-stacked" action="" method="post" autocomplete="off">
+              {% csrf_token %}
 
-          <input type="hidden" name="op" value="login" />
+              <input type="hidden" name="op" value="login" />
 
-          {{ login_form|as_crispy_errors }}
+              {{ login_form|as_crispy_errors }}
 
-          {% for field in login_form %}
-            {{ field|as_crispy_field }}
-          {% endfor %}
+              {% for field in login_form %}
+                {{ field|as_crispy_field }}
+              {% endfor %}
 
-          <fieldset class="form-actions" style="text-align: center">
-            <button type="submit" class="btn btn-primary" style="width: 50%">{% trans "Login" %}</button>
-          </fieldset>
+              <div class="auth-footer m-t-1">
+                <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
+                <a class="secondary" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+              </div>
+            </form>
+          </div>
+          {% if github_login_link or vsts_login_link %}
+          <div class="auth-provider-column">
+            {% if github_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">
+                  <span class="provider-logo github"></span> Sign in with GitHub
+                </a>
+              </p>
+            {% endif %}
 
-          {% if github_login_link %}
-            <p style="text-align: center">
-              <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="width: 50%">
-                <span class="provider-logo github"></span> Sign in with GitHub
-              </a>
-            </p>
-          {% endif %}
-
-          {% if vsts_login_link %}
-            <p style="text-align: center">
-              <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="width: 50%">
-                <span class="provider-logo vsts"></span> Sign in with Azure DevOps
-              </a>
-            </p>
-          {% endif %}
-
-          <p style="text-align: center">
-            <a style="margin-top: 9px; width: 50%; color: gray" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
-          </p>
-        </form>
+            {% if vsts_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="display: block">
+                  <span class="provider-logo vsts"></span> Sign in with Azure DevOps
+                </a>
+              </p>
+            {% endif %}
+          </div>
+        {% endif %}
+        </div>
       </div>
       <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
         <form class="form-stacked" action="" method="post" autocomplete="off">

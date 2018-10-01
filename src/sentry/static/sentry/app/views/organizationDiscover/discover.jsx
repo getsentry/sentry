@@ -13,8 +13,8 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Result from './result';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
-import QueryFields from './sidebar/queryFields';
-import SavedQueries from './sidebar/savedQueries';
+import QueryEdit from './sidebar/queryEdit';
+import SavedQueryList from './sidebar/savedQueryList';
 
 import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {isValidCondition} from './conditions/utils';
@@ -50,22 +50,25 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search, action}} = nextProps;
+    const {queryBuilder, location: {search}} = nextProps;
     const currentSearch = this.props.location.search;
 
-    if (currentSearch === search || action === 'REPLACE') {
+    if (currentSearch === search) {
       return;
     }
 
-    const newQuery = getQueryFromQueryString(search);
-    queryBuilder.reset(newQuery);
+    // Clear data only if location.search is empty (reset has been called)
+    if (!search) {
+      const newQuery = getQueryFromQueryString(search);
+      queryBuilder.reset(newQuery);
 
-    this.setState({
-      data: null,
-      query: null,
-      chartData: null,
-      chartQuery: null,
-    });
+      this.setState({
+        data: null,
+        query: null,
+        chartData: null,
+        chartQuery: null,
+      });
+    }
   }
 
   updateField = (field, value) => {
@@ -133,9 +136,8 @@ export default class OrganizationDiscover extends React.Component {
         this.setState({data, query: queryCopy, isFetchingQuery: false});
 
         browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
-            query
-          )}`,
+          pathname: `/organizations/${organization.slug}/discover/`,
+          search: getQueryStringFromQuery(query),
         });
       },
       err => {
@@ -203,15 +205,15 @@ export default class OrganizationDiscover extends React.Component {
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
           {view === 'query' && (
-            <QueryFields
+            <QueryEdit
               queryBuilder={queryBuilder}
               isFetchingQuery={isFetchingQuery}
-              updateField={this.updateField}
-              runQuery={this.runQuery}
+              onUpdateField={this.updateField}
+              onRunQuery={this.runQuery}
               reset={this.reset}
             />
           )}
-          {view === 'saved' && <SavedQueries organization={organization} />}
+          {view === 'saved' && <SavedQueryList organization={organization} />}
         </Sidebar>
         <Body direction="column" flex="1">
           <TopBar>

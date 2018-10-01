@@ -35,10 +35,11 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
-export const Sidebar = styled(Flex)`
-  flex-direction: column;
+export const Sidebar = styled(props => (
+  <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
+))`
   border-right: 1px solid ${p => p.theme.borderDark};
-  width: 320px;
+  min-width: 320px;
 `;
 
 export const Body = styled(Flex)``;
@@ -58,6 +59,16 @@ export const TopBar = styled(Flex)`
 export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
   padding: 20px 30px 0;
   margin: 0;
+`;
+
+export const SavedQueryName = styled(Flex)`
+  justify-content: space-between;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1.5)} ${space(4)};
+  color: ${p => p.theme.gray4};
+  font-weight: 600;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
 export const PlaceholderText = styled.div`
