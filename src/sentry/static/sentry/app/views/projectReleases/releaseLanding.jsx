@@ -67,14 +67,15 @@ const ReleaseLanding = createReactClass({
   handleClick() {
     let {stepId} = this.state;
 
-    // see docs as last step? push to the docs for more info
     if (stepId >= cards.length - 1) return;
-    this.setState({stepId: stepId + 1});
+    this.setState(state => ({
+      stepId: state.stepId + 1,
+    }));
   },
 
   getCard(stepId) {
-    let displayCard = cards.filter(card => card.id === stepId);
-    return displayCard[0];
+    let displayCard = cards.find(card => card.id === stepId);
+    return displayCard;
   },
 
   render() {
@@ -85,10 +86,10 @@ const ReleaseLanding = createReactClass({
       <div className="container">
         <div className="row">
           <ReleaseLandingCard
-            className="landing-card"
             onClick={this.handleClick}
             card={card}
             step={stepId}
+            cardsLength={cards.length}
           />
         </div>
       </div>

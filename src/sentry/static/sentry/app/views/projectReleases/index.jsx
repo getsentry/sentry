@@ -18,7 +18,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import ReleaseList from 'app/views/projectReleases/releaseList';
-import ReleaseLanding from 'app/views/projectReleases/releaseLanding.jsx';
+import ReleaseLanding from 'app/views/projectReleases/releaseLanding';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const DEFAULT_QUERY = '';

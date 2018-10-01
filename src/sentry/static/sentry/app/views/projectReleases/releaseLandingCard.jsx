@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
+import {t} from 'app/locale';
 
 import Button from 'app/components/button';
 
@@ -11,15 +12,16 @@ const ReleaseLandingCard = createReactClass({
 
   propTypes: {
     card: PropTypes.object.isRequired,
+    cardsLength: PropTypes.number.isRequired,
     step: PropTypes.number.isRequired,
     onClick: PropTypes.func.isRequired,
   },
 
   getMessage() {
-    let {step} = this.props;
+    let {cardsLength, step} = this.props;
     if (step == 0) {
       return 'Tell Me More';
-    } else if (step < 4) {
+    } else if (step < cardsLength - 1) {
       return 'Next';
     } else {
       return 'See Docs for Setup';
@@ -27,28 +29,33 @@ const ReleaseLandingCard = createReactClass({
   },
 
   render() {
-    let {card} = this.props;
+    let {card, cardsLength, step} = this.props;
     let CardComponent = card.component;
+    let finalStep = step === cardsLength - 1;
     return (
       <div className="row">
         <div className="col-md-6">
-          <StyledBox className="align-center">
+          <StyledBox>
             <CardComponent />
           </StyledBox>
         </div>
 
         <div className="col-md-6">
-          <StyledBox className="align-left">
-            <h3> {card.title}</h3>
-            <p> {card.message}</p>
-            <div className="align-left">
-              <Button
-                href={this.props.step === 4 && 'https://docs.sentry.io/learn/releases/'}
+          <StyledBox>
+            <h3> {t(card.title)}</h3>
+            <p> {t(card.message)}</p>
+            {finalStep ? (
+              <StyledButton
+                href={'https://docs.sentry.io/learn/releases/'}
                 onClick={this.props.onClick}
               >
-                {this.getMessage()}
-              </Button>
-            </div>
+                {t(this.getMessage())}
+              </StyledButton>
+            ) : (
+              <StyledButton onClick={this.props.onClick}>
+                {t(this.getMessage())}
+              </StyledButton>
+            )}
           </StyledBox>
         </div>
       </div>
@@ -59,5 +66,9 @@ const ReleaseLandingCard = createReactClass({
 const StyledBox = styled(Box)`
   padding: 80px;
   align-items: center;
+`;
+
+const StyledButton = styled(Button)`
+  align-items: left;
 `;
 export default ReleaseLandingCard;
