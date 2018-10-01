@@ -58,14 +58,14 @@ class VstsSubscriptionCheckTest(TestCase):
                 }
             }
         )
-        integration1.add_organization(self.organization.id, default_auth_id=self.identity.id)
+        integration1.add_organization(self.organization, default_auth_id=self.identity.id)
         integration2 = Integration.objects.create(
             provider='vsts',
             name='vsts2',
             external_id='vsts2',
             metadata={},
         )
-        integration2.add_organization(self.organization.id, default_auth_id=self.identity.id)
+        integration2.add_organization(self.organization, default_auth_id=self.identity.id)
         integration3 = Integration.objects.create(
             provider='vsts',
             name='vsts3',
@@ -77,7 +77,7 @@ class VstsSubscriptionCheckTest(TestCase):
                 }
             }
         )
-        integration3.add_organization(self.organization.id, default_auth_id=self.identity.id)
+        integration3.add_organization(self.organization, default_auth_id=self.identity.id)
 
         with self.tasks():
             kickoff_vsts_subscription_check()
