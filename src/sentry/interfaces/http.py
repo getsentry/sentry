@@ -284,6 +284,7 @@ class Http(Interface):
                 cookies[''] = cookies_meta
 
         return {
+            '': meta.get(''),
             'method': meta.get('method'),
             'url': meta.get('url'),
             'query': meta.get('query_string'),

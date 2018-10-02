@@ -121,6 +121,7 @@ class User(Interface):
 
     def get_api_meta(self, meta, is_public=False):
         return {
+            '': meta.get(''),
             'id': meta.get('id'),
             'email': meta.get('email'),
             'username': meta.get('username'),

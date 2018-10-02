@@ -940,6 +940,7 @@ class SingleException(Interface):
             else None
 
         return {
+            '': meta.get(''),
             'type': meta.get('type'),
             'value': meta.get('value'),
             'mechanism': mechanism_meta,

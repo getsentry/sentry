@@ -773,6 +773,7 @@ class Stacktrace(Interface):
             frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
 
         return {
+            '': meta.get(''),
             'frames': frame_meta,
             'framesOmitted': meta.get('frames_omitted'),
             'registers': meta.get('registers'),

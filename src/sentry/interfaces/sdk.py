@@ -104,6 +104,7 @@ class Sdk(Interface):
 
     def get_api_meta(self, meta, is_public=False):
         return {
+            '': meta.get(''),
             'name': meta.get('name'),
             'version': meta.get('version'),
         }

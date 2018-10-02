@@ -108,6 +108,7 @@ class Template(Interface):
 
     def get_api_meta(self, meta, is_public=False):
         return {
+            '': meta.get(''),
             'lineNo': meta.get('lineno'),
             'filename': meta.get('filename'),
             'context': get_context(
