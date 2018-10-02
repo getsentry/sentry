@@ -1,13 +1,15 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
+
+import {decorateEvent} from 'app/components/events/meta/metaProxy';
 import ApiMixin from 'app/mixins/apiMixin';
 import EventEntries from 'app/components/events/eventEntries';
+import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupEventToolbar from 'app/views/groupDetails/eventToolbar';
 import GroupSidebar from 'app/components/group/sidebar';
 import GroupState from 'app/mixins/groupState';
-import MutedBox from 'app/components/mutedBox';
-import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
@@ -75,7 +77,7 @@ const GroupEventDetails = createReactClass({
 
   render() {
     let group = this.getGroup();
-    let evt = this.state.event;
+    let evt = decorateEvent(this.state.event);
     let params = this.props.params;
 
     return (
