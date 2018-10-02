@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {uniq} from 'lodash';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -37,8 +36,8 @@ export default class OrganizationDiscover extends React.Component {
     queryBuilder: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
+  constructor() {
+    super();
     this.state = {
       data: null,
       query: null,
@@ -118,18 +117,10 @@ export default class OrganizationDiscover extends React.Component {
 
     clearIndicators();
 
-    // If there are no aggregations, always ensure we fetch event ID and
-    // project ID so we can display the link to event
     const externalQuery = queryBuilder.getExternal();
-    const queryToFetch =
-      !externalQuery.aggregations.length && externalQuery.fields.length
-        ? {
-            ...externalQuery,
-            fields: uniq([...externalQuery.fields, 'event_id', 'project_id']),
-          }
-        : externalQuery;
+    const baseQuery = queryBuilder.getQueryByType(externalQuery, 'baseQuery');
 
-    queryBuilder.fetch(queryToFetch).then(
+    queryBuilder.fetch(baseQuery).then(
       data => {
         const query = queryBuilder.getInternal();
         const queryCopy = {...query};
@@ -147,14 +138,8 @@ export default class OrganizationDiscover extends React.Component {
     );
 
     // If there are aggregations, get data for chart
-    if (queryBuilder.getInternal().aggregations.length > 0) {
-      const chartQuery = {
-        ...queryBuilder.getExternal(),
-        groupby: ['time'],
-        rollup: 60 * 60 * 24,
-        orderby: 'time',
-        limit: 1000,
-      };
+    if (externalQuery.aggregations.length > 0) {
+      const chartQuery = queryBuilder.getQueryByType(externalQuery, 'byDayQuery');
 
       queryBuilder.fetch(chartQuery).then(
         chartData => {

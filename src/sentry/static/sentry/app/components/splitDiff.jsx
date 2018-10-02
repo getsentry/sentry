@@ -1,9 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import styled from 'react-emotion';
 import {diffChars, diffWords, diffLines} from 'diff';
-
-import 'app/../less/components/splitDiff.less';
 
 const diffFnMap = {
   chars: diffChars,
@@ -24,7 +22,6 @@ class SplitDiff extends React.Component {
 
   render() {
     let {className, type, base, target} = this.props;
-    let cx = classNames('split-diff', className);
     let diffFn = diffFnMap[type];
 
     if (typeof diffFn !== 'function') return null;
@@ -40,64 +37,79 @@ class SplitDiff extends React.Component {
     );
 
     return (
-      <table className={cx}>
-        <tbody>
+      <SplitTable className={className}>
+        <SplitBody>
           {results.map((line, j) => {
             let highlightAdded = line.find(result => result.added);
             let highlightRemoved = line.find(result => result.removed);
 
             return (
               <tr key={j}>
-                <td
-                  className={classNames('split-view-cell', {
-                    'removed-row': highlightRemoved,
-                  })}
-                >
-                  <div className="split-diff-row">
+                <Cell isRemoved={highlightRemoved}>
+                  <Line>
                     {line.filter(result => !result.added).map((result, i) => {
                       return (
-                        <span
-                          key={i}
-                          className={classNames('split-view-word', {
-                            removed: result.removed,
-                          })}
-                        >
+                        <Word key={i} isRemoved={result.removed}>
                           {result.value}
-                        </span>
+                        </Word>
                       );
                     })}
-                  </div>
-                </td>
+                  </Line>
+                </Cell>
 
-                <td style={{width: 20}} />
+                <Gap />
 
-                <td
-                  className={classNames('split-view-cell', {
-                    'added-row': highlightAdded,
-                  })}
-                >
-                  <div className="split-diff-row">
+                <Cell isAdded={highlightAdded}>
+                  <Line>
                     {line.filter(result => !result.removed).map((result, i) => {
                       return (
-                        <span
-                          key={i}
-                          className={classNames('split-view-word', {
-                            added: result.added,
-                          })}
-                        >
+                        <Word key={i} isAdded={result.added}>
                           {result.value}
-                        </span>
+                        </Word>
                       );
                     })}
-                  </div>
-                </td>
+                  </Line>
+                </Cell>
               </tr>
             );
           })}
-        </tbody>
-      </table>
+        </SplitBody>
+      </SplitTable>
     );
   }
 }
+
+const SplitTable = styled('table')`
+  table-layout: fixed;
+  border-collapse: collapse;
+  width: 100%;
+`;
+
+const SplitBody = styled('tbody')`
+  font-family: Monaco, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+`;
+
+const Cell = styled('td')`
+  vertical-align: top;
+  ${p => p.isRemoved && `background-color: ${p.theme.diff.removedRow}`};
+  ${p => p.isAdded && `background-color: ${p.theme.diff.addedRow}`};
+`;
+
+const Gap = styled('td')`
+  width: 20px;
+`;
+
+const Line = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+`;
+
+const Word = styled('span')`
+  white-space: pre-wrap;
+  word-break: break-all;
+  ${p => p.isRemoved && `background-color: ${p.theme.diff.removed}`};
+  ${p => p.isAdded && `background-color: ${p.theme.diff.added}`};
+`;
 
 export default SplitDiff;

@@ -204,7 +204,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :pparam string project_slug: the slug of the project to retrieve.
         :auth: required
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
@@ -228,7 +228,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :pparam string project_slug: the slug of the project to update.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
         :param string team: the slug of new team for the project. Note, will be deprecated

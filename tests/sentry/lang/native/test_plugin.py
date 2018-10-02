@@ -1618,3 +1618,10 @@ class MinidumpIntegrationTest(TestCase):
         assert not Event.objects.filter(event_id=event.event_id).exists()
         assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
         assert not File.objects.filter(id=file.id).exists()
+
+    def test_empty_minidump(self):
+        f = BytesIO()
+        f.name = 'empty.dmp'
+        response = self._postMinidumpWithHeader(f)
+        assert response.status_code == 400
+        assert response.content == '{"error":"Empty minidump upload received"}'
