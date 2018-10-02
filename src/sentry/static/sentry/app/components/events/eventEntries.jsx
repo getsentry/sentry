@@ -103,6 +103,51 @@ const EventEntries = createReactClass({
   renderEntries() {
     let {event, group, isShare} = this.props;
 
+    return (
+      <DataGroup path="entries">
+        {({data}) =>
+          data.map((entry, entryIdx) => {
+            try {
+              let Component = this.interfaces[entry.type];
+              if (!Component) {
+                // eslint-disable-next-line no-console
+                window.console &&
+                  // eslint-disable-next-line no-console
+                  console.error &&
+                  // eslint-disable-next-line no-console
+                  console.error('Unregistered interface: ' + entry.type);
+                return null;
+              }
+
+              return (
+                <DataGroup key={entry.type} path={['entries', entryIdx, 'data']}>
+                  <Component
+                    group={group}
+                    event={event}
+                    type={entry.type}
+                    data={entry.data}
+                    isShare={isShare}
+                  />
+                </DataGroup>
+              );
+            } catch (ex) {
+              logException(ex);
+              return (
+                <EventDataSection
+                  key={entry.type}
+                  group={group}
+                  event={event}
+                  type={entry.type}
+                  title={entry.type}
+                >
+                  <p>{t('There was an error rendering this data.')}</p>
+                </EventDataSection>
+              );
+            }
+          })}
+      </DataGroup>
+    );
+
     return event.entries.map((entry, entryIdx) => {
       try {
         let Component = this.interfaces[entry.type];
