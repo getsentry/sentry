@@ -120,8 +120,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         else:
             external_issue.update(**defaults)
 
+        installation.store_issue_last_defaults(group.project_id, request.DATA)
         try:
-            installation.store_issue_last_defaults(group.project_id, request.DATA)
             installation.after_link_issue(external_issue, data=request.DATA)
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
