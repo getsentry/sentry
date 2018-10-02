@@ -213,7 +213,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 }
               >
                 <figure
-                  className="sparkline barchart css-na17se-StyledFigure e5t71581"
+                  className="sparkline barchart css-lg2nde-StyledFigure e5t71581"
                   style={
                     Object {
                       "height": 40,
@@ -500,7 +500,7 @@ exports[`GroupReleaseStats renders 1`] = `
                 }
               >
                 <figure
-                  className="sparkline barchart css-na17se-StyledFigure e5t71581"
+                  className="sparkline barchart css-lg2nde-StyledFigure e5t71581"
                   style={
                     Object {
                       "height": 40,
