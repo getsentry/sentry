@@ -184,8 +184,14 @@ class GitHubIssueBasicTest(TestCase):
             json=[{'login': 'MeredithAnya'}]
         )
 
+        # create an issue
         data = {'params': {'repo': 'getsentry/hello'}}
         resp = self.integration.get_create_issue_config(group=self.group, **data)
+        assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
+                                      (u'getsentry/sentry', u'sentry')]
+        # link an issue
+        data = {'params': {'repo': 'getsentry/hello'}}
+        resp = self.integration.get_link_issue_config(group=self.group, **data)
         assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
                                       (u'getsentry/sentry', u'sentry')]
 
