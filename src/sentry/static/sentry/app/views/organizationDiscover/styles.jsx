@@ -7,6 +7,7 @@ import space from 'app/styles/space';
 
 import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
+import TextField from 'app/components/forms/textField';
 import Link from 'app/components/link';
 
 const FOOTER_HEIGHT = 87;
@@ -66,7 +67,7 @@ export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true}
   margin: 0;
 `;
 
-export const SavedQueryName = styled(Flex)`
+export const SavedQueryTitle = styled(Flex)`
   justify-content: space-between;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -147,6 +148,19 @@ export const ChartNote = styled(Box)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray3};
   margin-bottom: ${space(3)};
+`;
+
+export const EditableName = styled(({value, ...props}) => (
+  <TextField value={value} inputStyle={{height: 24, padding: 2}} {...props} />
+))`
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
+export const SavedQueryAction = styled(Link)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(2)};
 `;
 
 export const SavedQuery = styled(Box)`

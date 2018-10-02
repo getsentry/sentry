@@ -1,28 +1,45 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {Box, Flex} from 'grid-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 
-import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
+import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+
+import {getChartData, getChartDataByDay, downloadAsCsv, generateQueryName} from './utils';
+import {createSavedQuery} from '../utils';
 import Table from './table';
-import {Heading, ResultSummary, ChartWrapper, ChartNote} from '../styles';
+import {
+  Heading,
+  EditableName,
+  ResultSummary,
+  ChartWrapper,
+  ChartNote,
+  SavedQueryAction,
+} from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization,
     data: PropTypes.object,
+    queryBuilder: PropTypes.object,
+    savedQuery: PropTypes.object, // Provided if it's a saved search
   };
 
   constructor() {
     super();
     this.state = {
       view: 'table',
+      isEditMode: false,
+      savedQueryName: null,
     };
   }
 
@@ -43,7 +60,47 @@ export default class Result extends React.Component {
         view: 'table',
       });
     }
+
+    this.setState({
+      isEditMode: false,
+      savedQueryName: null,
+    });
   }
+
+  toggleEditMode = () => {
+    const {savedQuery} = this.props;
+    this.setState(state => {
+      const isEditMode = !state.isEditMode;
+      return {
+        isEditMode,
+        savedQueryName: isEditMode
+          ? savedQuery ? savedQuery.name : generateQueryName()
+          : null,
+      };
+    });
+  };
+
+  confirmSave = () => {
+    const {organization, queryBuilder} = this.props;
+    const {savedQueryName} = this.state;
+    const data = {...queryBuilder.getInternal(), name: savedQueryName};
+
+    createSavedQuery(organization, data)
+      .then(savedQuery => {
+        addSuccessMessage(t(`Successfully saved query ${savedQuery.name}`));
+        browserHistory.push({
+          pathname: `/organizations/${this.props.organization
+            .slug}/discover/saved/${savedQuery.id}/`,
+        });
+      })
+      .catch(() => {
+        addErrorMessage(t('Could not save query'));
+      });
+  };
+
+  updateSavedQueryName = val => {
+    this.setState({savedQueryName: val});
+  };
 
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
@@ -64,7 +121,7 @@ export default class Result extends React.Component {
     const linkClasses = 'btn btn-default btn-sm';
 
     return (
-      <Flex justify="flex-end">
+      <Flex flex="1" justify="flex-end">
         <div className="btn-group">
           {options.map(opt => {
             const active = opt.id === this.state.view;
@@ -110,8 +167,42 @@ export default class Result extends React.Component {
     );
   }
 
+  renderSavedQueryHeader() {
+    return (
+      <Flex>
+        <Heading>{this.props.savedQuery.name}</Heading>
+      </Flex>
+    );
+  }
+
+  renderQueryResultHeader() {
+    const {isEditMode, savedQueryName} = this.state;
+
+    return (
+      <React.Fragment>
+        {!isEditMode && (
+          <Flex>
+            <Heading>{t('Result')}</Heading>
+            <SavedQueryAction onClick={this.toggleEditMode}>{t('Save')}</SavedQueryAction>
+          </Flex>
+        )}
+        {isEditMode && (
+          <Flex>
+            <EditableName value={savedQueryName} onChange={this.updateSavedQueryName} />
+            <SavedQueryAction onClick={this.confirmSave}>
+              {t('Confirm save')}
+            </SavedQueryAction>
+            <SavedQueryAction onClick={this.toggleEditMode}>
+              {t('Cancel')}
+            </SavedQueryAction>
+          </Flex>
+        )}
+      </React.Fragment>
+    );
+  }
+
   render() {
-    const {baseQuery, byDayQuery} = this.props.data;
+    const {data: {baseQuery, byDayQuery}, savedQuery} = this.props;
     const {view} = this.state;
 
     const basicChartData = getChartData(baseQuery.data.data, baseQuery.query);
@@ -132,7 +223,7 @@ export default class Result extends React.Component {
       <Box flex="1">
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
-            <Heading>{t('Result')}</Heading>
+            {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </Box>
           {this.renderToggle()}
         </Flex>
