@@ -164,6 +164,10 @@ export default class OrganizationDiscover extends React.Component {
 
     const shouldDisplayResult = resultManager.shouldDisplayResult();
 
+    const projects = organization.projects.filter(
+      project => (project.isMember ? project : null)
+    );
+
     return (
       <Discover>
         <Sidebar>
@@ -184,7 +188,7 @@ export default class OrganizationDiscover extends React.Component {
           <TopBar>
             <MultipleProjectSelector
               value={currentQuery.projects}
-              projects={organization.projects}
+              projects={projects}
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
             />
