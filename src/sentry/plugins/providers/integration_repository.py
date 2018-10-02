@@ -118,7 +118,7 @@ class IntegrationRepositoryProvider(object):
         """
         raise NotImplementedError
 
-    def delete_repository_webhook(self, repo):
+    def on_delete_repository(self, repo):
         pass
 
     def compare_commits(self, repo, start_sha, end_sha):

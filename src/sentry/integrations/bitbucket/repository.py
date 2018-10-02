@@ -84,7 +84,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'integration_id': data['installation'],
             }
 
-    def delete_repository_webhook(self, repo):
+    def on_delete_repository(self, repo):
         # TODO(lb): So, I believe this is to delete the external repo aka webhook.
         # But need to confim
         installation = self.get_installation(repo.integration_id, repo.organization_id)

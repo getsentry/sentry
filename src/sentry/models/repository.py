@@ -83,7 +83,7 @@ def on_delete(instance, actor=None, **kwargs):
 
     if instance.has_integration_provider():
         try:
-            instance.get_provider().delete_repository_webhook(repo=instance)
+            instance.get_provider().on_delete_repository(repo=instance)
         except Exception as exc:
             handle_exception(exc)
     else:
