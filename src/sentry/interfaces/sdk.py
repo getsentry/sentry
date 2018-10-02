@@ -70,12 +70,13 @@ class Sdk(Interface):
             'integrations': integrations,
             'packages': packages,
         }
+
         return cls(**kwargs)
 
     def get_path(self):
         return 'sdk'
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)
         newest_name = get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
         if newest_version is not None:
@@ -99,4 +100,11 @@ class Sdk(Interface):
                 'isNewer': is_newer,
                 'url': get_with_prefix(settings.SDK_URLS, newest_name),
             },
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        return {
+            '': meta.get(''),
+            'name': meta.get('name'),
+            'version': meta.get('version'),
         }
