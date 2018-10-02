@@ -680,6 +680,11 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'sentry_sdk.errors': {
+            'handlers': ['console'],
+            'level': "INFO",
+            'propagate': False,
+        },
         'sentry.rules': {
             'handlers': ['console'],
             'propagate': False,
@@ -1284,6 +1289,7 @@ def get_sentry_sdk_config():
         'in_app_include': [
             'sentry',
         ],
+        'debug': True
     }
 
 
