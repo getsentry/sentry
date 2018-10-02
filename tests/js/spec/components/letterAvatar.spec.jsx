@@ -31,6 +31,14 @@ describe('LetterAvatar', function() {
     identifier: 'janedoe@example.com',
     displayName: ' ',
   };
+  const USER_8 = {
+    identifier: 'janedoe@example.com',
+    displayName: '\u2603super \u2603duper',
+  };
+  const USER_9 = {
+    identifier: 'janedoe@example.com',
+    displayName: 'jane austen doe',
+  };
 
   describe('getInitials()', function() {
     it('should get initials based on name', function() {
@@ -60,6 +68,16 @@ describe('LetterAvatar', function() {
 
     it('should get initials based on name even if there are trailing spaces', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_6} />);
+      expect(letterAvatar.getInitials()).toEqual('JD');
+    });
+
+    it('should not slice multibyte characters in half', function() {
+      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_8} />);
+      expect(letterAvatar.getInitials()).toEqual('\u2603\u2603');
+    });
+
+    it('should pick most last name', function() {
+      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_9} />);
       expect(letterAvatar.getInitials()).toEqual('JD');
     });
   });
