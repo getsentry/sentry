@@ -193,7 +193,7 @@ const ProjectFiltersChart = createReactClass({
                 barClasses={classes}
                 className="standard-barchart filtered-stats-barchart"
                 tooltip={this.renderTooltip}
-                minHeights={classes.map((p, i) => i == 0 ? 1 : 0)}
+                minHeights={classes.map(p => i == "error-message" ? 1 : 0)}
               />
             )}
           {hasLoaded &&
