@@ -54,6 +54,9 @@ class BaseChart extends React.Component {
     // Chart legend
     legend: SentryTypes.EChartsLegend,
 
+    // Chart legend truncate labels
+    legendTruncate: PropTypes.bool,
+
     // Chart height
     height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 
@@ -108,6 +111,7 @@ class BaseChart extends React.Component {
     renderer: 'svg',
     notMerge: true,
     lazyUpdate: false,
+    legendTruncate: true,
     onChartReady: () => {},
     options: {},
 
@@ -137,6 +141,7 @@ class BaseChart extends React.Component {
       grid,
       tooltip,
       legend,
+      legendTruncate,
       series,
       yAxis,
       xAxis,
@@ -182,7 +187,7 @@ class BaseChart extends React.Component {
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
           tooltip: tooltip !== null ? Tooltip({isGroupedByDate, ...tooltip}) : null,
-          legend: legend ? Legend(legend) : null,
+          legend: legend ? Legend({...legend, legendTruncate}) : null,
           yAxis: yAxis !== null ? YAxis(yAxis) : null,
           xAxis:
             xAxis !== null
