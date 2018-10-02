@@ -44,7 +44,6 @@ class CreateTeamModal extends React.Component {
             {...props}
             onSubmit={this.handleSubmit}
             onSuccess={this.handleSuccess}
-            formProps={{footerClass: 'modal-footer'}}
           />
         </Body>
       </React.Fragment>
