@@ -62,6 +62,9 @@ export default class OrganizationDiscover extends React.Component {
       const newQuery = getQueryFromQueryString(search);
       queryBuilder.reset(newQuery);
       resultManager.reset();
+      this.setState({
+        data: resultManager.getAll(),
+      });
     }
   }
 

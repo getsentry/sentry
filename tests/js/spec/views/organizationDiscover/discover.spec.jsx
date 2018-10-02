@@ -75,18 +75,18 @@ describe('Discover', function() {
   describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
+      const mockResponse = {timing: {}, data: [], meta: []};
       browserHistory.push.mockImplementation(function({search}) {
         wrapper.setProps({
           location: {
             search: search || '',
-            action: 'PUSH',
           },
         });
       });
 
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       queryBuilder = createQueryBuilder({}, organization);
-      queryBuilder.fetch = jest.fn(() => Promise.resolve());
+      queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
       queryBuilder.reset = jest.fn(queryBuilder.reset);
 
       wrapper = mount(
@@ -142,7 +142,6 @@ describe('Discover', function() {
       wrapper.setProps({
         location: {
           search: '?fields=[]',
-          action: 'REPLACE',
         },
       });
       expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount);
