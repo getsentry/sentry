@@ -75,21 +75,21 @@ class EventSerializer(Serializer):
             [{
                 'key': k.split('sentry:', 1)[-1],
                 'value': v,
-                '_meta': meta.get(k, None),
-            } for k, v in event.get_tags()],
+                '_meta': meta.get(k) or meta.get(six.text_type(i), {}).get('1') or None,
+            } for i, (k, v) in enumerate(event.data.get('tags') or ())],
             key=lambda x: x['key']
         )
 
         tags_meta = {
             six.text_type(i): {'value': e.pop('_meta')}
-            for i, e in enumerate(tags) if e.get('meta')
+            for i, e in enumerate(tags) if e.get('_meta')
         }
 
         return (tags, meta_with_chunks(tags, tags_meta))
 
     def _get_attr_with_meta(self, event, attr, default=None):
         value = event.data.get(attr, default)
-        meta = (event.data.get('_meta') or {}).get('tags')
+        meta = (event.data.get('_meta') or {}).get(attr)
         return (value, meta_with_chunks(value, meta))
 
     def get_attrs(self, item_list, user, is_public=False):

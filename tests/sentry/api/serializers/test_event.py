@@ -35,6 +35,56 @@ class EventSerializerTest(TestCase):
         assert u'ü' in result['errors'][0]['message']
         assert result['errors'][0]['data'] == {'name': u'ü'}
 
+    def test_tags_tuples(self):
+        event = self.create_event(
+            data={
+                'tags': [
+                    ['foo', 'foo'],
+                    ['bar', 'bar'],
+                ],
+                '_meta': {
+                    'tags': {
+                        '0': {
+                            '1': {'': {'err': ['foo error']}},
+                        },
+                        '1': {
+                            '1': {'': {'err': ['bar error']}},
+                        },
+                    },
+                },
+            }
+        )
+
+        result = serialize(event)
+        assert result['tags'][0]['value'] == 'bar'
+        assert result['tags'][1]['value'] == 'foo'
+        assert result['_meta']['tags']['0']['value'] == {'': {'err': ['bar error']}}
+        assert result['_meta']['tags']['1']['value'] == {'': {'err': ['foo error']}}
+
+    def test_tags_dict(self):
+        event = self.create_event(
+            data={
+                # Sentry normalizes this internally, it is actually passed in as
+                # object {"foo": "foo", "bar": "bar"}
+                'tags': [
+                    ['foo', 'foo'],
+                    ['bar', 'bar'],
+                ],
+                '_meta': {
+                    'tags': {
+                        'foo': {'': {'err': ['foo error']}},
+                        'bar': {'': {'err': ['bar error']}},
+                    },
+                },
+            }
+        )
+
+        result = serialize(event)
+        assert result['tags'][0]['value'] == 'bar'
+        assert result['tags'][1]['value'] == 'foo'
+        assert result['_meta']['tags']['0']['value'] == {'': {'err': ['bar error']}}
+        assert result['_meta']['tags']['1']['value'] == {'': {'err': ['foo error']}}
+
 
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
