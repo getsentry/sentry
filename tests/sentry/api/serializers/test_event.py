@@ -35,6 +35,25 @@ class EventSerializerTest(TestCase):
         assert u'ü' in result['errors'][0]['message']
         assert result['errors'][0]['data'] == {'name': u'ü'}
 
+    def test_renamed_attributes(self):
+        # Only includes meta for simple top-level attributes
+        event = self.create_event(
+            data={
+                'extra': {'extra': True},
+                'modules': {'modules': True},
+                '_meta': {
+                    'extra': {'': {'err': ['extra error']}},
+                    'modules': {'': {'err': ['modules error']}},
+                }
+            }
+        )
+
+        result = serialize(event)
+        assert result['context'] == {'extra': True}
+        assert result['_meta']['context'] == {'': {'err': ['extra error']}}
+        assert result['packages'] == {'modules': True}
+        assert result['_meta']['packages'] == {'': {'err': ['modules error']}}
+
     def test_message_interface(self):
         event = self.create_event(
             data={
