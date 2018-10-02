@@ -4,7 +4,8 @@ import logging
 
 from sentry import analytics, features
 from sentry.models import (
-    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization, Repository, User
+    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
+    ObjectStatus, Repository, User
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.mediators.plugins import Migrator
@@ -189,6 +190,9 @@ def migrate_repo(repo_id, integration_id, organization_id):
 
         repo.integration_id = integration_id
         repo.provider = 'integrations:%s' % (integration.provider,)
+        # check against disabled specifically -- don't want to accidentally un-delete repos
+        if repo.status == ObjectStatus.DISABLED:
+            repo.status = ObjectStatus.VISIBLE
         repo.save()
         logger.info(
             'repo.migrated',
