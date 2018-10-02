@@ -176,6 +176,7 @@ const ProjectFiltersChart = createReactClass({
     let isLoading = loading || !this.state.formattedData;
     let hasError = !isLoading && error;
     let hasLoaded = !isLoading && !error;
+    let classes = Object.keys(this.getStatOpts());
 
     return (
       <Panel>
@@ -189,9 +190,10 @@ const ProjectFiltersChart = createReactClass({
               <StackedBarChart
                 series={this.state.formattedData}
                 label="events"
-                barClasses={Object.keys(this.getStatOpts())}
+                barClasses={classes}
                 className="standard-barchart filtered-stats-barchart"
                 tooltip={this.renderTooltip}
+                minHeights={classes.map((p, i) => i == 0 ? 1 : 0)}
               />
             )}
           {hasLoaded &&
