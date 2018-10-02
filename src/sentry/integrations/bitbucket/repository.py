@@ -27,7 +27,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
+    def add_repository_data(self, organization, config):
         installation = self.get_installation(config['installation'], organization.id)
         client = installation.get_client()
         try:
@@ -56,7 +56,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 )
         return secret
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         installation = self.get_installation(data['installation'], organization.id)
         client = installation.get_client()
         try:
@@ -84,7 +84,9 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'integration_id': data['installation'],
             }
 
-    def delete_repository(self, repo):
+    def delete_repository_webhook(self, repo):
+        # TODO(lb): So, I believe this is to delete the external repo aka webhook.
+        # But need to confim
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 

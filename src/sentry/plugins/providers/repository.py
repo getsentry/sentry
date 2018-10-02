@@ -19,6 +19,12 @@ logger = getLogger('sentry.integrations')
 
 
 class RepositoryProvider(ProviderMixin):
+    """
+    Plugin Repository Provider
+    Includes all plugins such as those in sentry-plugins repo
+    as well as any outside plugin respoitories (i.e. Trello, Youtrack).
+    Does not include the integrations in the sentry respoitory.
+    """
     name = None
 
     def __init__(self, id):

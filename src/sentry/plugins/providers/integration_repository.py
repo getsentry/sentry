@@ -21,12 +21,12 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
-            config = self.validate_config(organization, request.DATA)
+            config = self.add_repository_data(organization, request.DATA)
         except Exception as e:
             return self.handle_api_error(e)
 
         try:
-            result = self.create_repository(
+            result = self.build_repository_config(
                 organization=organization,
                 data=config,
             )
@@ -62,7 +62,7 @@ class IntegrationRepositoryProvider(object):
                     provider=self.id,
                     integration_id=result.get('integration_id'),
                 )
-                self.delete_repository(repo)
+                self.delete_external_repository(repo)
             except IntegrationError:
                 pass
             return Response(
@@ -102,13 +102,19 @@ class IntegrationRepositoryProvider(object):
     def get_config(self, organization):
         raise NotImplementedError
 
-    def validate_config(self, organization, config):
+    def add_repository_data(self, organization, config):
+        """
+        Gets the necessary repository data through the integration's API
+        """
         return config
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
+        """
+        Builds final dict containing all necessary data to create the repository
+        """
         raise NotImplementedError
 
-    def delete_repository(self, repo):
+    def delete_repository_webhook(self, repo):
         pass
 
     def compare_commits(self, repo, start_sha, end_sha):
