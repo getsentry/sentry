@@ -204,7 +204,9 @@ def register_extensions():
 
     from sentry import integrations
     from sentry.integrations.bitbucket import BitbucketIntegrationProvider
-    from sentry.integrations.example import ExampleIntegrationProvider, AliasedIntegrationProvider
+    from sentry.integrations.example import (
+        ExampleIntegrationProvider, AliasedIntegrationProvider, ExampleRepositoryProvider
+    )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
     from sentry.integrations.gitlab import GitlabIntegrationProvider
@@ -227,6 +229,10 @@ def register_extensions():
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
     bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
+    bindings.add(
+        'integration-repository.provider',
+        ExampleRepositoryProvider,
+        id='integrations:example')
 
 
 def pytest_runtest_teardown(item):
