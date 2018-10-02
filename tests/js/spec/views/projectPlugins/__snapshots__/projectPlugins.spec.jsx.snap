@@ -69,6 +69,7 @@ exports[`ProjectPlugins renders 1`] = `
         }
         canDisable={false}
         enabled={true}
+        hasConfiguration={false}
         id="github"
         name="GitHub"
         params={
