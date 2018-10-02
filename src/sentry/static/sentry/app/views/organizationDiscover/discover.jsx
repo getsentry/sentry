@@ -15,6 +15,7 @@ import EarlyAdopterMessage from './earlyAdopterMessage';
 import QueryEdit from './sidebar/queryEdit';
 import SavedQueryList from './sidebar/savedQueryList';
 
+import createResultManager from './resultManager';
 import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
@@ -36,13 +37,12 @@ export default class OrganizationDiscover extends React.Component {
     queryBuilder: PropTypes.object,
   };
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
+    const resultManager = createResultManager(props.queryBuilder);
     this.state = {
-      data: null,
-      query: null,
-      chartData: null,
-      chartQuery: null,
+      resultManager,
+      data: resultManager.getAll(),
       isFetchingQuery: false,
       view: 'query',
     };
@@ -51,6 +51,7 @@ export default class OrganizationDiscover extends React.Component {
   componentWillReceiveProps(nextProps) {
     const {queryBuilder, location: {search}} = nextProps;
     const currentSearch = this.props.location.search;
+    const {resultManager} = this.state;
 
     if (currentSearch === search) {
       return;
@@ -60,12 +61,9 @@ export default class OrganizationDiscover extends React.Component {
     if (!search) {
       const newQuery = getQueryFromQueryString(search);
       queryBuilder.reset(newQuery);
-
+      resultManager.reset();
       this.setState({
-        data: null,
-        query: null,
-        chartData: null,
-        chartQuery: null,
+        data: resultManager.getAll(),
       });
     }
   }
@@ -91,6 +89,7 @@ export default class OrganizationDiscover extends React.Component {
 
   runQuery = () => {
     const {queryBuilder, organization} = this.props;
+    const {resultManager} = this.state;
 
     // Track query for analytics
     trackQuery(organization, queryBuilder.getExternal());
@@ -117,41 +116,20 @@ export default class OrganizationDiscover extends React.Component {
 
     clearIndicators();
 
-    const externalQuery = queryBuilder.getExternal();
-    const baseQuery = queryBuilder.getQueryByType(externalQuery, 'baseQuery');
-
-    queryBuilder.fetch(baseQuery).then(
-      data => {
-        const query = queryBuilder.getInternal();
-        const queryCopy = {...query};
-        this.setState({data, query: queryCopy, isFetchingQuery: false});
+    resultManager
+      .fetchAll()
+      .then(data => {
+        this.setState({data, isFetchingQuery: false});
 
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/discover/`,
-          search: getQueryStringFromQuery(query),
+          search: getQueryStringFromQuery(queryBuilder.getInternal()),
         });
-      },
-      err => {
+      })
+      .catch(err => {
         addErrorMessage(err.message);
-        this.setState({data: null, query: null, isFetchingQuery: false});
-      }
-    );
-
-    // If there are aggregations, get data for chart
-    if (externalQuery.aggregations.length > 0) {
-      const chartQuery = queryBuilder.getQueryByType(externalQuery, 'byDayQuery');
-
-      queryBuilder.fetch(chartQuery).then(
-        chartData => {
-          this.setState({chartData, chartQuery});
-        },
-        () => {
-          this.setState({chartData: null, chartQuery: null});
-        }
-      );
-    } else {
-      this.setState({chartData: null, chartQuery: null});
-    }
+        this.setState({data: null, isFetchingQuery: false});
+      });
   };
 
   renderSidebarNav() {
@@ -179,10 +157,12 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   render() {
-    const {data, query, chartData, chartQuery, isFetchingQuery, view} = this.state;
+    const {data, isFetchingQuery, view, resultManager} = this.state;
     const {queryBuilder, organization} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
+
+    const shouldDisplayResult = resultManager.shouldDisplayResult();
 
     return (
       <Discover>
@@ -220,16 +200,8 @@ export default class OrganizationDiscover extends React.Component {
             />
           </TopBar>
           <BodyContent>
-            {data && (
-              <Result
-                flex="1"
-                data={data}
-                query={query}
-                chartData={chartData}
-                chartQuery={chartQuery}
-              />
-            )}
-            {!data && <Intro updateQuery={this.updateFields} />}
+            {shouldDisplayResult && <Result flex="1" data={data} />}
+            {!shouldDisplayResult && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>
