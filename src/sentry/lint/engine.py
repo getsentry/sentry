@@ -85,7 +85,6 @@ def get_less_files(file_list=None):
     if file_list is None:
         file_list = ['src/sentry/static/sentry/less', 'src/sentry/static/sentry/app']
     return [x for x in get_files_for_list(file_list) if x.endswith(('.less'))]
-    return file_list
 
 
 def get_python_files(file_list=None):
