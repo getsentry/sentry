@@ -164,9 +164,7 @@ export default class OrganizationDiscover extends React.Component {
 
     const shouldDisplayResult = resultManager.shouldDisplayResult();
 
-    const projects = organization.projects.filter(
-      project => (project.isMember ? project : null)
-    );
+    const projects = organization.projects.filter(project => project.isMember);
 
     return (
       <Discover>
