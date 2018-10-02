@@ -25,6 +25,9 @@ class memoize(object):
     """
 
     def __init__(self, func):
+        if isinstance(func, classmethod) or isinstance(func, staticmethod):
+            func = func.__func__
+
         self.__name__ = func.__name__
         self.__module__ = func.__module__
         self.__doc__ = func.__doc__
