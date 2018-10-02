@@ -267,7 +267,6 @@ class FetchCommitsTest(TestCase):
         assert msg.to == [self.user.email]
         assert 'You can read me' in msg.body
 
-    # @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits')
     def test_fetch_error_random_exception_integration(self):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name='baz')
