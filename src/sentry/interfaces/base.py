@@ -67,7 +67,7 @@ class Interface(object):
         self._data = data or {}
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        if not isinstance(self, type(other)):
             return False
         return self._data == other._data
 
@@ -94,6 +94,9 @@ class Interface(object):
 
     def get_api_context(self, is_public=False):
         return self.to_json()
+
+    def get_api_meta(self, meta, is_public=False):
+        return meta
 
     def to_json(self):
         # eliminate empty values for serialization to compress the keyspace

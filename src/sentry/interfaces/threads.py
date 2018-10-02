@@ -75,6 +75,12 @@ class Threads(Interface):
             'values': [export_thread(x) for x in self.values],
         }
 
+    def get_meta_context(self, meta, is_public=False):
+        if meta and 'values' not in meta:
+            return {'values': meta}
+        else:
+            return meta
+
     def get_path(self):
         return 'threads'
 

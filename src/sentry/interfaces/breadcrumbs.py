@@ -130,3 +130,9 @@ class Breadcrumbs(Interface):
         return {
             'values': [_convert(v) for v in self.values],
         }
+
+    def get_api_meta(self, meta, is_public=False):
+        if meta and 'values' not in meta:
+            return {'values': meta}
+        else:
+            return meta

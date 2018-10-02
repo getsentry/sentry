@@ -95,16 +95,27 @@ class Template(Interface):
 
     def get_api_context(self, is_public=False):
         return {
-            'lineNo':
-            self.lineno,
-            'filename':
-            self.filename,
-            'context':
-            get_context(
+            'lineNo': self.lineno,
+            'filename': self.filename,
+            'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
                 filename=self.filename,
+            ),
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        return {
+            '': meta.get(''),
+            'lineNo': meta.get('lineno'),
+            'filename': meta.get('filename'),
+            'context': get_context(
+                lineno=meta.get('lineno'),
+                context_line=meta.get('context_line'),
+                pre_context=meta.get('pre_context'),
+                post_context=meta.get('post_context'),
+                filename=meta.get('filename'),
             ),
         }

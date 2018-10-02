@@ -358,9 +358,20 @@ class EventManager(object):
         # See GH-3248
         msg_str = data.pop('message', None)
         if msg_str:
-            msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
+            msg_if = data.get('logentry')
+            msg_meta = data.get('_meta', {}).get('message')
+
+            if not msg_if:
+                msg_if = data['logentry'] = {'message': msg_str}
+                if msg_meta:
+                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+
             if msg_if.get('message') != msg_str:
-                msg_if.setdefault('formatted', msg_str)
+                if not msg_if.get('formatted'):
+                    msg_if['formatted'] = msg_str
+                    if msg_meta:
+                        data.setdefault('_meta', {}).setdefault(
+                            'logentry', {})['formatted'] = msg_meta
 
         # Fill in ip addresses marked as {{auto}}
         client_ip = request_env.get('client_ip')
