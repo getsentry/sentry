@@ -62,6 +62,14 @@ const FieldWrapper = styled(p => <Flex {...p} />, {
   ${inlineStyle};
   ${highlightedStyle};
 
+  /* Better padding with form inside of a modal */
+  ${p =>
+    !p.hasControlState
+      ? `.modal-content & {
+      padding-right: 0;
+    }`
+      : ''};
+
   &:last-child {
     border-bottom: none;
     ${p => (p.stacked ? 'padding-bottom: 0' : '')};

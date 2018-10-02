@@ -5,7 +5,6 @@ exports[`FormField + model renders with Form 1`] = `
   allowUndo={false}
   cancelLabel="Cancel"
   className="form-stacked"
-  footerClass="form-actions align-right"
   model={
     FormModel {
       "api": Client {},
@@ -72,6 +71,7 @@ exports[`FormField + model renders with Form 1`] = `
               alignRight={false}
               disabled={false}
               field={[Function]}
+              flexibleControlStateSize={false}
               id="fieldName"
               inline={true}
               name="fieldName"
@@ -84,16 +84,16 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <Component
-                  className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                  className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                 >
                   <Flex
-                    className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                    className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                   >
                     <Base
-                      className="etqqcs20 css-11jhx2k-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                      className="etqqcs20 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
                     >
                       <div
-                        className="etqqcs20 css-11jhx2k-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                        className="etqqcs20 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
                         is={null}
                       >
                         <FieldControl
@@ -311,33 +311,19 @@ exports[`FormField + model renders with Form 1`] = `
         </InputField>
       </TextField>
     </div>
-    <div
-      className="form-actions align-right"
-      style={
-        Object {
-          "marginTop": 25,
-        }
-      }
-    >
-      <Observer>
-        <Button
-          data-test-id="form-submit"
-          disabled={false}
-          priority="primary"
-          type="submit"
-        >
-          <StyledButton
-            aria-label="Save Changes"
+    <StyledFooter>
+      <div
+        className="css-1nstjwf-StyledFooter e1jxgbzp0"
+      >
+        <Observer>
+          <Button
             data-test-id="form-submit"
             disabled={false}
-            onClick={[Function]}
             priority="primary"
-            role="button"
             type="submit"
           >
-            <Component
+            <StyledButton
               aria-label="Save Changes"
-              className="css-1msljz8-StyledButton-getColors eqrebog0"
               data-test-id="form-submit"
               disabled={false}
               onClick={[Function]}
@@ -345,7 +331,7 @@ exports[`FormField + model renders with Form 1`] = `
               role="button"
               type="submit"
             >
-              <button
+              <Component
                 aria-label="Save Changes"
                 className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="form-submit"
@@ -355,26 +341,37 @@ exports[`FormField + model renders with Form 1`] = `
                 role="button"
                 type="submit"
               >
-                <ButtonLabel
+                <button
+                  aria-label="Save Changes"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
+                  data-test-id="form-submit"
+                  disabled={false}
+                  onClick={[Function]}
                   priority="primary"
+                  role="button"
+                  type="submit"
                 >
-                  <Component
-                    className="css-ga4b18-ButtonLabel eqrebog1"
+                  <ButtonLabel
                     priority="primary"
                   >
-                    <span
+                    <Component
                       className="css-ga4b18-ButtonLabel eqrebog1"
+                      priority="primary"
                     >
-                      Save Changes
-                    </span>
-                  </Component>
-                </ButtonLabel>
-              </button>
-            </Component>
-          </StyledButton>
-        </Button>
-      </Observer>
-    </div>
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
+                      >
+                        Save Changes
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
+        </Observer>
+      </div>
+    </StyledFooter>
   </form>
 </Form>
 `;

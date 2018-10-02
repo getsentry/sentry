@@ -83,16 +83,18 @@ export default {
     forms: {
       // we dont yet export all form field classes as they're not
       // all needed by sentry.io
-      ApiForm: require('app/components/forms/apiForm').default,
-      BooleanField: require('app/components/forms/booleanField').default,
-      DateTimeField: require('app/components/forms/dateTimeField').default,
-      EmailField: require('app/components/forms/emailField').default,
-      Form: require('app/components/forms/form').default,
-      RadioBooleanField: require('app/components/forms/radioBooleanField').default,
-      RangeField: require('app/components/forms/rangeField').default,
-      SelectField: require('app/components/forms/selectField').default,
-      TextField: require('app/components/forms/textField').default,
-      TextareaField: require('app/components/forms/textareaField').default,
+      ApiForm: require('app/views/settings/components/forms/apiForm').default,
+      BooleanField: require('app/views/settings/components/forms/booleanField').default,
+      DateTimeField: require('app/views/settings/components/forms/dateTimeField').default,
+      EmailField: require('app/views/settings/components/forms/emailField').default,
+      Form: require('app/views/settings/components/forms/form').default,
+      RadioBooleanField: require('app/views/settings/components/forms/radioBooleanField')
+        .default,
+      RadioGroupField: require('app/views/settings/components/forms/radioField').default,
+      RangeField: require('app/views/settings/components/forms/rangeField').default,
+      SelectField: require('app/views/settings/components/forms/selectField').default,
+      TextField: require('app/views/settings/components/forms/textField').default,
+      TextareaField: require('app/views/settings/components/forms/textareaField').default,
     },
     plugins: {
       add: plugins.add,
@@ -101,11 +103,14 @@ export default {
       DefaultIssuePlugin: plugins.DefaultIssuePlugin,
     },
 
+    Alert: require('app/components/alert').default,
     Alerts: require('app/components/alerts').default,
     AlertActions: require('app/actions/alertActions').default,
     AsyncComponent: require('app/components/asyncComponent').default,
     AsyncView: require('app/views/asyncView').default,
     Avatar: require('app/components/avatar').default,
+    addSuccessMessage: require('app/actionCreators/indicator').addSuccessMessage,
+    addErrorMessage: require('app/actionCreators/indicator').addErrorMessage,
     Button: require('app/components/button').default,
     mixins: {
       ApiMixin: require('app/mixins/apiMixin').default,
@@ -120,6 +125,7 @@ export default {
     DropdownLink: require('app/components/dropdownLink').default,
     DynamicWrapper: require('app/components/dynamicWrapper').default,
     ErrorBoundary: require('app/components/errorBoundary').default,
+    Field: require('app/views/settings/components/forms/field').default,
     Form: require('app/components/forms/form').default,
     FormState: require('app/components/forms/index').FormState,
     GuideAnchor: require('app/components/assistant/guideAnchor').default,
@@ -153,6 +159,7 @@ export default {
 
     Sidebar: require('app/components/sidebar').default,
     StackedBarChart: require('app/components/stackedBarChart').default,
+    Text: require('app/components/text').default,
     TextBlock: require('app/views/settings/components/text/textBlock').default,
     TimeSince: require('app/components/timeSince').default,
     TodoList: require('app/components/onboardingWizard/todos').default,

@@ -39,6 +39,8 @@ export default createReactClass({
           submitLabel="Continue"
         >
           <RadioBooleanField
+            p={0}
+            inline={false}
             key="subscribed"
             name="subscribed"
             label="Email Updates"

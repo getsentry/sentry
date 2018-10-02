@@ -1,7 +1,8 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
 import {RadioBooleanField} from 'app/components/forms';
+import NewRadioBooleanField from 'app/views/settings/components/forms/radioBooleanField';
 
 describe('RadioBooleanField', function() {
   describe('render()', function() {
@@ -27,6 +28,31 @@ describe('RadioBooleanField', function() {
         }
       );
       expect(wrapper).toMatchSnapshot();
+    });
+
+    it('renders new field without form context', function() {
+      let wrapper = mount(
+        <NewRadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
+      );
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('can change values', function() {
+      let mock = jest.fn();
+      let wrapper = mount(
+        <NewRadioBooleanField
+          onChange={mock}
+          name="fieldName"
+          yesLabel="Yes"
+          noLabel="No"
+        />
+      );
+
+      wrapper.find('input[value="true"]').simulate('change');
+      expect(mock).toHaveBeenCalledWith(true, expect.anything());
+
+      wrapper.find('input[value="false"]').simulate('change');
+      expect(mock).toHaveBeenCalledWith(false, expect.anything());
     });
   });
 });
