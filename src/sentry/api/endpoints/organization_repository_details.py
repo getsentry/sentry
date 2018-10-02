@@ -27,6 +27,7 @@ class RepositorySerializer(serializers.Serializer):
         ('visible', 'visible'),
         ('active', 'active'),
     ))
+    integrationId = serializers.IntegerField(required=False)
 
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
@@ -49,13 +50,21 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         serializer = RepositorySerializer(data=request.DATA, partial=True)
 
-        if serializer.is_valid():
-            result = serializer.object
-            if result.get('status'):
-                if result['status'] in ('visible', 'active'):
-                    repo.update(status=ObjectStatus.VISIBLE)
-                else:
-                    raise NotImplementedError
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        result = serializer.object
+        update_kwargs = {}
+        if result.get('status'):
+            if result['status'] in ('visible', 'active'):
+                update_kwargs['status'] = ObjectStatus.VISIBLE
+            else:
+                raise NotImplementedError
+        if result.get('integrationId'):
+            update_kwargs['integration_id'] = result['integrationId']
+
+        if update_kwargs:
+            repo.update(**update_kwargs)
 
         return Response(serialize(repo, request.user))
 

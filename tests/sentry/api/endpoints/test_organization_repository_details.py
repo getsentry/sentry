@@ -155,3 +155,30 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             },
             countdown=3600,
         )
+
+    def test_put(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name='baz')
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=org.id,
+            status=ObjectStatus.DISABLED,
+        )
+
+        url = reverse(
+            'sentry-api-0-organization-repository-details', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
+        response = self.client.put(url, data={
+            'status': 'visible',
+            'integrationId': '123',
+        })
+
+        assert response.status_code == 200
+
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.status == ObjectStatus.VISIBLE
+        assert repo.integration_id == 123
