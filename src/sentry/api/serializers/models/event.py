@@ -92,6 +92,21 @@ class EventSerializer(Serializer):
         meta = (event.data.get('_meta') or {}).get(attr)
         return (value, meta_with_chunks(value, meta))
 
+    def _get_message_with_meta(self, event):
+        meta = event.data.get('_meta') or {}
+
+        if 'logentry' not in event.data:
+            message = event.message
+            msg_meta = meta.get('message')
+        elif 'formatted' in event.data['logentry']:
+            message = event.data['logentry']['formatted']
+            msg_meta = meta.get('logentry', {}).get('formatted')
+        else:
+            message = event.data['logentry']['message']
+            msg_meta = meta.get('logentry', {}).get('message')
+
+        return (message, meta_with_chunks(message, msg_meta))
+
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
@@ -129,6 +144,7 @@ class EventSerializer(Serializer):
             }
             errors.append(error_result)
 
+        (message, message_meta) = self._get_message_with_meta(obj)
         (tags, tags_meta) = self._get_tags_with_meta(obj)
         (context, context_meta) = self._get_attr_with_meta(obj, 'extra', {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, 'modules', {})
@@ -158,7 +174,7 @@ class EventSerializer(Serializer):
             'entries': attrs['entries'],
             'dist': obj.dist,
             # See GH-3248
-            'message': obj.get_legacy_message(),
+            'message': message,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
             'sdk': attrs['sdk'],
@@ -178,6 +194,7 @@ class EventSerializer(Serializer):
             ],
             '_meta': {
                 'entries': attrs['_meta']['entries'],
+                'message': message_meta,
                 'user': attrs['_meta']['user'],
                 'contexts': attrs['_meta']['contexts'],
                 'sdk': attrs['_meta']['sdk'],

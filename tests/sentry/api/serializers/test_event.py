@@ -35,6 +35,57 @@ class EventSerializerTest(TestCase):
         assert u'ü' in result['errors'][0]['message']
         assert result['errors'][0]['data'] == {'name': u'ü'}
 
+    def test_message_interface(self):
+        event = self.create_event(
+            data={
+                'logentry': {'message': 'bar'},
+                '_meta': {
+                    'logentry': {
+                        'message': {'': {'err': ['some error']}},
+                    },
+                },
+            }
+        )
+
+        result = serialize(event)
+        assert result['message'] == 'bar'
+        assert result['_meta']['message'] == {'': {'err': ['some error']}}
+
+    def test_message_formatted(self):
+        event = self.create_event(
+            data={
+                'logentry': {'message': 'bar', 'formatted': 'baz'},
+                '_meta': {
+                    'logentry': {
+                        'formatted': {'': {'err': ['some error']}},
+                    },
+                },
+            }
+        )
+
+        result = serialize(event)
+        assert result['message'] == 'baz'
+        assert result['_meta']['message'] == {'': {'err': ['some error']}}
+
+    def test_message_legacy(self):
+        # TODO: This test case can be removed once validation is implemented by
+        # libsemaphore and enforced on all payloads
+        event = self.create_event(
+            data={
+                'message': 'foo',
+                '_meta': {
+                    'message': {'': {'err': ['some error']}},
+                },
+            }
+        )
+
+        # create_event automatically creates the logentry interface
+        del event.data['logentry']
+
+        result = serialize(event)
+        assert result['message'] == 'foo'
+        assert result['_meta']['message'] == {'': {'err': ['some error']}}
+
     def test_tags_tuples(self):
         event = self.create_event(
             data={
