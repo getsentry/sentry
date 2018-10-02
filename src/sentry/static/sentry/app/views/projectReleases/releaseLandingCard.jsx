@@ -1,23 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 
 import Button from 'app/components/button';
 
-const ReleaseLandingCard = createReactClass({
-  displayName: 'ReleaseLandingCard',
-
-  propTypes: {
+class ReleaseLandingCard extends React.Component {
+  static propTypes = {
     card: PropTypes.object.isRequired,
     cardsLength: PropTypes.number.isRequired,
     step: PropTypes.number.isRequired,
     onClick: PropTypes.func.isRequired,
-  },
+  };
 
-  getMessage() {
+  getMessage = () => {
     let {cardsLength, step} = this.props;
     if (step == 0) {
       return 'Tell Me More';
@@ -26,7 +23,7 @@ const ReleaseLandingCard = createReactClass({
     } else {
       return 'See Docs for Setup';
     }
-  },
+  };
 
   render() {
     let {card, cardsLength, step} = this.props;
@@ -60,8 +57,8 @@ const ReleaseLandingCard = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 const StyledBox = styled(Box)`
   padding: 80px;

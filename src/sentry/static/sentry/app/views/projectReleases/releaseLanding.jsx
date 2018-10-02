@@ -1,6 +1,5 @@
 import React from 'react';
 import {t} from 'app/locale';
-import createReactClass from 'create-react-class';
 import {
   BashCard,
   Issues,
@@ -8,10 +7,9 @@ import {
   Emails,
   Contributors,
 } from 'sentry-dreamy-components';
-import ApiMixin from 'app/mixins/apiMixin';
 import ReleaseLandingCard from 'app/views/projectReleases/releaseLandingCard';
+import withApi from 'app/utils/withApi.jsx';
 
-//move to utils
 const cards = [
   {
     id: 0,
@@ -53,48 +51,47 @@ const cards = [
   },
 ];
 
-const ReleaseLanding = createReactClass({
-  displayName: 'ReleaseLanding',
+const ReleaseLanding = withApi(
+  class ReleaseLanding extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {
+        stepId: 0,
+      };
+    }
 
-  mixins: [ApiMixin],
+    handleClick = () => {
+      let {stepId} = this.state;
 
-  getInitialState() {
-    return {
-      stepId: 0,
+      if (stepId >= cards.length - 1) return;
+      this.setState(state => ({
+        stepId: state.stepId + 1,
+      }));
     };
-  },
 
-  handleClick() {
-    let {stepId} = this.state;
+    getCard = stepId => {
+      let displayCard = cards.find(card => card.id === stepId);
+      return displayCard;
+    };
 
-    if (stepId >= cards.length - 1) return;
-    this.setState(state => ({
-      stepId: state.stepId + 1,
-    }));
-  },
+    render() {
+      let {stepId} = this.state;
+      let card = this.getCard(stepId);
 
-  getCard(stepId) {
-    let displayCard = cards.find(card => card.id === stepId);
-    return displayCard;
-  },
-
-  render() {
-    let {stepId} = this.state;
-    let card = this.getCard(stepId);
-
-    return (
-      <div className="container">
-        <div className="row">
-          <ReleaseLandingCard
-            onClick={this.handleClick}
-            card={card}
-            step={stepId}
-            cardsLength={cards.length}
-          />
+      return (
+        <div className="container">
+          <div className="row">
+            <ReleaseLandingCard
+              onClick={this.handleClick}
+              card={card}
+              step={stepId}
+              cardsLength={cards.length}
+            />
+          </div>
         </div>
-      </div>
-    );
-  },
-});
+      );
+    }
+  }
+);
 
 export default ReleaseLanding;
