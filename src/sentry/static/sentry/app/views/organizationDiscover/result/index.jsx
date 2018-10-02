@@ -95,7 +95,7 @@ export default class Result extends React.Component {
     const baseViews = ['table', 'line', 'bar'];
     const summaryData = baseViews.includes(this.state.view)
       ? baseQuery.data
-      : byDayQuery.chartData;
+      : byDayQuery.data;
 
     return (
       <ResultSummary>
@@ -144,7 +144,7 @@ export default class Result extends React.Component {
               series={basicChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={{data: [baseQuery.aggregations[0][2]]}}
+              legend={{data: [baseQuery.query.aggregations[0][2]]}}
               renderer="canvas"
             />
           </ChartWrapper>
@@ -155,7 +155,7 @@ export default class Result extends React.Component {
               series={basicChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={{data: [baseQuery.aggregations[0][2]]}}
+              legend={{data: [baseQuery.query.aggregations[0][2]]}}
               renderer="canvas"
             />
           </ChartWrapper>
