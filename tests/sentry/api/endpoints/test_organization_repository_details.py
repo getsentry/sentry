@@ -5,7 +5,7 @@ from mock import patch
 from django.core.urlresolvers import reverse
 
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Repository
+from sentry.models import Commit, Integration, Repository
 from sentry.testutils import APITestCase
 
 
@@ -160,6 +160,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name='baz')
+        integration = Integration.objects.create(
+            provider='example',
+            name='example',
+        )
+        integration.add_organization(org)
+
         repo = Repository.objects.create(
             name='example',
             organization_id=org.id,
@@ -174,11 +180,66 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         )
         response = self.client.put(url, data={
             'status': 'visible',
-            'integrationId': '123',
+            'integrationId': integration.id,
         })
 
         assert response.status_code == 200
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.VISIBLE
-        assert repo.integration_id == 123
+        assert repo.integration_id == 1
+        assert repo.provider == 'integrations:example'
+
+    def test_put_bad_integration_org(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name='baz')
+        integration = Integration.objects.create(
+            provider='example',
+            name='example',
+        )
+
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=org.id,
+        )
+
+        url = reverse(
+            'sentry-api-0-organization-repository-details', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
+        # integration isn't linked to org
+        response = self.client.put(url, data={
+            'status': 'visible',
+            'integrationId': integration.id,
+        })
+
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Invalid integration id'
+
+    def test_put_bad_integration_id(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            organization_id=org.id,
+        )
+
+        url = reverse(
+            'sentry-api-0-organization-repository-details', args=[
+                org.slug,
+                repo.id,
+            ]
+        )
+        # integration isn't linked to org
+        response = self.client.put(url, data={
+            'status': 'visible',
+            'integrationId': 'notanumber',
+        })
+
+        assert response.status_code == 400
+        assert response.data == {'integrationId': ['Enter a whole number.']}

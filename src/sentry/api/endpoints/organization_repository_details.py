@@ -11,7 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Repository
+from sentry.models import Commit, Integration, Repository
 from sentry.tasks.deletion import delete_repository
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -61,7 +61,16 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             else:
                 raise NotImplementedError
         if result.get('integrationId'):
-            update_kwargs['integration_id'] = result['integrationId']
+            try:
+                integration = Integration.objects.get(
+                    id=result['integrationId'],
+                    organizations=organization,
+                )
+            except Integration.DoesNotExist:
+                return Response({'detail': 'Invalid integration id'}, status=400)
+
+            update_kwargs['integration_id'] = integration.id
+            update_kwargs['provider'] = 'integrations:%s' % (integration.provider,)
 
         if update_kwargs:
             repo.update(**update_kwargs)
