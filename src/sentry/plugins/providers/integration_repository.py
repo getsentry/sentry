@@ -12,6 +12,10 @@ from sentry.signals import repo_linked
 
 
 class IntegrationRepositoryProvider(object):
+    """
+    Repository Provider for Integrations in the Sentry Repository.
+    Does not include plugins.
+    """
     name = None
     logger = None
     repo_provider = None
