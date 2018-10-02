@@ -617,6 +617,9 @@ class MinidumpView(StoreView):
             except KeyError:
                 raise APIError('Missing minidump upload')
 
+        if minidump.size == 0:
+            raise APIError('Empty minidump upload received')
+
         if settings.SENTRY_MINIDUMP_CACHE:
             if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
                 os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
