@@ -66,12 +66,13 @@ def recover(request):
         limit=5,
         window=60,  # 5 per minute should be enough for anyone
     ):
+        logger.warning('recover.rate-limited', extra=extra)
+
         return HttpResponse(
             'You have made too many password recovery attempts. Please try again later.',
             content_type='text/plain',
             status=429,
         )
-        logger.warning('recover.rate-limited', extra=extra)
 
     prefill = {'user': request.GET.get('email')}
 
