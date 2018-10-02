@@ -515,7 +515,7 @@ exports[`ProjectCard renders 1`] = `
                             }
                           >
                             <figure
-                              className="e1wib7610 barchart css-1563gow-StyledFigure-StyledBarChart e5t71581"
+                              className="e1wib7610 barchart css-caakmb-StyledFigure-StyledBarChart e5t71581"
                               style={
                                 Object {
                                   "height": 60,
