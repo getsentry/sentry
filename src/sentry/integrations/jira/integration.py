@@ -204,9 +204,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def merge_issue_config_defaults(self, project_id, config):
-        return config
-
     def get_config_data(self):
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
