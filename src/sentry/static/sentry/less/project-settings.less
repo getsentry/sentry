@@ -12,11 +12,14 @@
 * ============================================================================
 */
 
-.filtered-stats-barchart {
+figure.filtered-stats-barchart {
   height: 100px;
 
-  a {
-    > span {
+  a,
+  g {
+    > span,
+    > rect,
+    &:hover > rect {
       left: 2px;
       right: 2px;
 
