@@ -128,7 +128,9 @@ class GitHubIssueBasic(IssueBasicMixin):
         else:
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
-        default_repo = self.get_project_defaults(group.project_id).get('repo') or repo_choices[0][0]
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
 
         # If a repo has been selected outside of the default 100-limit list of
         # repos, stick it onto the front of the list so that it can be
