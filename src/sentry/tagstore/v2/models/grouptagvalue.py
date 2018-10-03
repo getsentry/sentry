@@ -105,7 +105,7 @@ class GroupTagValue(Model):
         except TagValue.DoesNotExist:
             # Data got inconsistent, I must delete myself.
             self.delete()
-            return None
+            return ''
 
         # cache for future calls
         self.value = tv
