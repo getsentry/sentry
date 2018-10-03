@@ -115,7 +115,12 @@ const AllTeamsRow = createReactClass({
 
   render() {
     let {access, team, urlPrefix, openMembership} = this.props;
-    let display = <IdBadge team={team} />;
+    let display = (
+      <IdBadge
+        team={team}
+        description={tn('%d Member', '%d Members', team.memberCount)}
+      />
+    );
 
     return (
       <PanelItem p={0} align="center">
@@ -125,9 +130,6 @@ const AllTeamsRow = createReactClass({
           ) : (
             display
           )}
-        </Box>
-        <Box flex="1" p={2}>
-          {tn('%d Member', '%d Members', team.memberCount)}
         </Box>
         <Box p={2}>
           {this.state.loading ? (
