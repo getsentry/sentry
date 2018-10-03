@@ -184,8 +184,8 @@ export default class IntegrationRepos extends AsyncComponent {
         </DropdownButton>
       );
     }
-    const repositories = new Set(this.state.itemList.map(i => i.name));
-    const repositoryOptions = (this.state.integrationRepos.repos || []).filter(
+    const repositories = new Set(this.state.itemList.filter(item => item.integrationId !== "None").map(i => i.name));
+    let repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)
     );
     let items = repositoryOptions.map(repo => {
