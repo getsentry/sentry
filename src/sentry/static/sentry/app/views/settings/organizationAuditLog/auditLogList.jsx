@@ -103,7 +103,7 @@ class AuditLogList extends React.Component {
                       <NameContainer>
                         <Name data-test-id="actor-name">
                           {entry.actor.isSuperuser
-                            ? `${entry.actor.name} (Sentry Staff)`
+                            ? t('%s (Sentry Staff)', entry.actor.name)
                             : entry.actor.name}
                         </Name>
                         <Note>{entry.note}</Note>
