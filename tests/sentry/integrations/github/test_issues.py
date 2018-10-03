@@ -255,7 +255,6 @@ class GitHubIssueBasicTest(TestCase):
                 repo_field = field
                 break
         assert repo_field['default'] == 'getsentry/sentry'
-        assert repo_field['defaultLabel'] == 'sentry'
 
     @responses.activate
     @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
@@ -294,4 +293,3 @@ class GitHubIssueBasicTest(TestCase):
                 repo_field = field
                 break
         assert repo_field['default'] == 'getsentry/sentry'
-        assert repo_field['defaultLabel'] == 'sentry'
