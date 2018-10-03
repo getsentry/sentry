@@ -447,7 +447,7 @@ class ValidateDataTest(BaseAPITest):
         })
         assert not data.get('environment')
         assert len(data['errors']) == 1
-        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['type'] == 'invalid_environment'
         assert data['errors'][0]['name'] == 'environment'
         assert data['errors'][0]['value'] == 'a/b'
 

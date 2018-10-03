@@ -795,7 +795,12 @@ def validate_and_default_interface(data, interface, name=None,
     for key, group in groupby(keyed_errors, lambda e: e.path[0]):
         ve = six.next(group)
         is_max = ve.validator.startswith('max')
-        error_type = EventError.VALUE_TOO_LONG if is_max else EventError.INVALID_DATA
+        if is_max:
+            error_type = EventError.VALUE_TOO_LONG
+        elif key == 'environment':
+            error_type = EventError.INVALID_ENVIRONMENT
+        else:
+            error_type = EventError.INVALID_DATA
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:
