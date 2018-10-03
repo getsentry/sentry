@@ -277,7 +277,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         >
           Last 24h
           <figure
-            class="sparkline barchart css-na17se-StyledFigure e5t71581"
+            class="sparkline barchart css-lg2nde-StyledFigure e5t71581"
             style="height:60px"
           >
             <span
@@ -751,7 +751,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         >
           Last 24h
           <figure
-            class="sparkline barchart css-na17se-StyledFigure e5t71581"
+            class="sparkline barchart css-lg2nde-StyledFigure e5t71581"
             style="height:60px"
           >
             <span
@@ -1252,7 +1252,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         >
           Last 24h
           <figure
-            class="sparkline barchart css-na17se-StyledFigure e5t71581"
+            class="sparkline barchart css-lg2nde-StyledFigure e5t71581"
             style="height:60px"
           >
             <span
