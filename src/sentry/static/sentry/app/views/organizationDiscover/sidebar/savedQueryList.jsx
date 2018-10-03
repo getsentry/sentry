@@ -23,7 +23,7 @@ export default class SavedQueries extends React.Component {
 
   constructor() {
     super();
-    this.state = {isLoading: true};
+    this.state = {isLoading: true, data: []};
   }
 
   componentDidMount() {
@@ -31,7 +31,7 @@ export default class SavedQueries extends React.Component {
       .then(data => {
         this.setState({isLoading: false, data});
       })
-      .catch(err => {
+      .catch(() => {
         this.setState({isLoading: false});
       });
   }
