@@ -23,7 +23,7 @@ class RepositoryProvider(ProviderMixin):
     Plugin Repository Provider
     Includes all plugins such as those in sentry-plugins repo
     as well as any outside plugin respoitories (i.e. Trello, Youtrack).
-    Does not include the integrations in the sentry respoitory.
+    Does not include the integrations in the sentry repository.
     """
     name = None
 
