@@ -86,7 +86,7 @@ class VstsSubscriptionCheckTest(TestCase):
             provider='vsts',
             external_id='vsts1',
         ).metadata['subscription']
-        # TODO(lb): what to do if there's no subscription stored?
+
         assert integration3_check_time == Integration.objects.get(
             provider='vsts',
             external_id='vsts3',
