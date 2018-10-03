@@ -35,7 +35,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return repo_data
 
-    def add_repository_data(self, organization, config):
+    def get_repository_data(self, organization, config):
         integration = Integration.objects.get(
             id=config['installation'], organizations=organization)
         installation = integration.get_installation(organization.id)

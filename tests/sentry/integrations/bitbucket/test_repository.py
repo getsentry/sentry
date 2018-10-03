@@ -104,7 +104,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             'identifier': full_repo_name,
             'installation': integration.id,
         }
-        data = self.provider.add_repository_data(organization, data)
+        data = self.provider.get_repository_data(organization, data)
         assert data == {
             'provider': 'integrations:bitbucket',
             'identifier': full_repo_name,

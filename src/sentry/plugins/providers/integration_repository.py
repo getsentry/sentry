@@ -25,7 +25,7 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
-            config = self.add_repository_data(organization, request.DATA)
+            config = self.get_repository_data(organization, request.DATA)
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -106,7 +106,7 @@ class IntegrationRepositoryProvider(object):
     def get_config(self, organization):
         raise NotImplementedError
 
-    def add_repository_data(self, organization, config):
+    def get_repository_data(self, organization, config):
         """
         Gets the necessary repository data through the integration's API
         """

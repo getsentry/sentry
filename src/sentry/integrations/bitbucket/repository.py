@@ -27,7 +27,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return integration_model.get_installation(organization_id)
 
-    def add_repository_data(self, organization, config):
+    def get_repository_data(self, organization, config):
         installation = self.get_installation(config['installation'], organization.id)
         client = installation.get_client()
         try:
