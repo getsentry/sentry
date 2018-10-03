@@ -11,10 +11,14 @@ logger = logging.getLogger(__name__)
 
 class EventStream(Service):
     __all__ = (
-        'publish',
+        'insert',
+        'unmerge',
+        'delete_groups',
+        'merge',
     )
 
-    def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
+    def insert(self, group, event, is_new, is_sample, is_regression,
+               is_new_group_environment, primary_hash, skip_consume=False):
         if skip_consume:
             logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
         else:
@@ -27,3 +31,12 @@ class EventStream(Service):
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
             )
+
+    def unmerge(self, project_id, new_group_id, event_ids):
+        pass
+
+    def delete_groups(self, project_id, group_ids):
+        pass
+
+    def merge(self, project_id, previous_group_id, new_group_id):
+        pass
