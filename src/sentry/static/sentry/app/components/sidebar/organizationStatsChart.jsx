@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/barChart';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 class OrganizationStatsChart extends AsyncComponent {
   static propTypes = {
@@ -36,32 +37,21 @@ class OrganizationStatsChart extends AsyncComponent {
     const {data} = this.state;
     if (!data) return null;
 
-    let points = data.map(d => ({x: d[0], y: d[1]}));
+    let series = data.map(d => ({data: [{x: d[0], y: d[1]}], label: 'events'})) || [];
     return (
       <OrganizationStatsChartWrapper>
         {t('Last 24h')}
-        <StyledBarChart points={points} label="events" height={60} />{' '}
+        <BarChart series={series} height={60} />{' '}
       </OrganizationStatsChartWrapper>
     );
   }
 }
 
 const OrganizationStatsChartWrapper = styled('div')`
-  font-size: 10px;
-  margin-top: 24px;
-  padding-left: 4px;
-  padding-right: 4px;
-`;
-
-const StyledBarChart = styled(BarChart)`
-  a {
-    &:not(:first-child) {
-      border-left: 2px solid transparent;
-    }
-    &:not(:last-child) {
-      border-right: 2px solid transparent;
-    }
-  }
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: ${space(3)};
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
 `;
 
 export default OrganizationStatsChart;
