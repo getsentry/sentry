@@ -187,7 +187,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.VISIBLE
-        assert repo.integration_id == 1
+        assert repo.integration_id == integration.id
         assert repo.provider == 'integrations:example'
 
     def test_put_bad_integration_org(self):
