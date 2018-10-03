@@ -96,7 +96,8 @@ def serialize_field(project, plugin, field):
         'choices': field.get('choices'),
         'readonly': field.get('readonly', False),
         'defaultValue': field.get('default'),
-        'value': None
+        'value': None,
+        'disabledReason': six.text_type(field.get('disabledReason') or None)
     }
     if field.get('type') != 'secret':
         data['value'] = plugin.get_option(field['name'], project)

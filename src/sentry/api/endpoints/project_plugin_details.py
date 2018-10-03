@@ -136,7 +136,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             key = field['name']
             value = request.DATA.get(key)
 
-            if field.get('required') and not value:
+            if field.get('required') and not (value or field.get('readonly')):
                 errors[key] = ERR_FIELD_REQUIRED
 
             try:
