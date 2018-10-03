@@ -22,7 +22,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         return GitHubRepositoryProvider('integrations:github')
 
     @responses.activate
-    def test_create_repository(self):
+    def test_build_repository_config(self):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='github',
@@ -34,7 +34,7 @@ class GitHubAppsProviderTest(PluginTestCase):
             'external_id': '654321',
             'integration_id': integration.id,
         }
-        data = self.provider.create_repository(organization, data)
+        data = self.provider.build_repository_config(organization, data)
         assert data == {
             'config': {
                 'name': 'getsentry/example-repo',

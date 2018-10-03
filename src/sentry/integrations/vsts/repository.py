@@ -22,7 +22,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
+    def get_repository_data(self, organization, config):
         installation = self.get_installation(config['installation'], organization.id)
         client = installation.get_client()
         instance = installation.instance
@@ -42,7 +42,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         })
         return config
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         return {
             'name': data['name'],
             'external_id': data['external_id'],

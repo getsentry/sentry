@@ -74,7 +74,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         ]
 
     @responses.activate
-    def test_create_repository(self):
+    def test_build_repository_config(self):
         full_repo_name = 'laurynsentry/helloworld'
         webhook_id = 'web-hook-id'
         responses.add(
@@ -104,7 +104,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             'identifier': full_repo_name,
             'installation': integration.id,
         }
-        data = self.provider.validate_config(organization, data)
+        data = self.provider.get_repository_data(organization, data)
         assert data == {
             'provider': 'integrations:bitbucket',
             'identifier': full_repo_name,
@@ -112,7 +112,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             'external_id': REPO['uuid'],
             'name': full_repo_name,
         }
-        data = self.provider.create_repository(organization, data)
+        data = self.provider.build_repository_config(organization, data)
 
         assert data == {
             'name': full_repo_name,
