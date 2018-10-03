@@ -19,6 +19,7 @@ class SnubaTest(SnubaTestCase):
         events = [{
             'event_id': 'x' * 32,
             'primary_hash': '1' * 32,
+            'group_id': 1,
             'project_id': self.project.id,
             'message': 'message',
             'platform': 'python',
@@ -74,6 +75,7 @@ class SnubaTest(SnubaTestCase):
         self.snuba_insert({
             'event_id': uuid.uuid4().hex,
             'primary_hash': hash,
+            'group_id': int(hash[:16], 16),
             'project_id': self.project.id,
             'message': 'message',
             'platform': 'python',
