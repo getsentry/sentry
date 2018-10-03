@@ -66,6 +66,12 @@ class AuthVerifyEndpointTest(APITestCase):
         })
         assert response.status_code == 403
 
+    def test_no_password_no_u2f(self):
+        user = self.create_user('foo@example.com')
+        self.login_as(user)
+        response = self.client.put(self.path, data={})
+        assert response.status_code == 400
+
 
 class AuthLogoutEndpointTest(APITestCase):
     path = '/api/0/auth/'
