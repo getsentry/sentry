@@ -150,8 +150,8 @@ export const ChartNote = styled(Box)`
   margin-bottom: ${space(3)};
 `;
 
-export const EditableName = styled(({value, ...props}) => (
-  <TextField value={value} inputStyle={{height: 24, padding: 2}} {...props} />
+export const EditableName = styled(props => (
+  <TextField inputStyle={{height: 24, padding: 2}} {...props} />
 ))`
   color: ${p => p.theme.gray4};
   margin: 0;
