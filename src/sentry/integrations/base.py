@@ -236,9 +236,6 @@ class IntegrationInstallation(object):
         """
         return []
 
-    def get_config_data(self):
-        return self.org_integration.config
-
     def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
@@ -247,12 +244,8 @@ class IntegrationInstallation(object):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def get_project_config(self):
-        """
-        Provides configuration for the integration on a per-project
-        level. See ``get_config_organization``.
-        """
-        return []
+    def get_config_data(self):
+        return self.org_integration.config
 
     def get_client(self):
         # Return the api client for a given provider
