@@ -8,7 +8,7 @@ import {
   clearIndicators,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
@@ -188,7 +188,11 @@ export default class OrganizationDiscover extends React.Component {
     const {organization, savedQuery} = this.props;
     deleteSavedQuery(organization, savedQuery.id)
       .then(() => {
-        addSuccessMessage(t(`Successfully deleted query ${savedQuery.name}`));
+        addSuccessMessage(
+          tct('Successfully deleted query [name]', {
+            name: savedQuery.name,
+          })
+        );
         browserHistory.push({
           pathname: `/organizations/${this.props.organization.slug}/discover/`,
           query: {view: 'saved'},

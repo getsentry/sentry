@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import {Box, Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
@@ -87,7 +87,9 @@ export default class Result extends React.Component {
 
     createSavedQuery(organization, data)
       .then(savedQuery => {
-        addSuccessMessage(t(`Successfully saved query ${savedQuery.name}`));
+        addSuccessMessage(
+          tct('Successfully saved query [name]', {name: savedQuery.name})
+        );
         browserHistory.push({
           pathname: `/organizations/${this.props.organization
             .slug}/discover/saved/${savedQuery.id}/`,
