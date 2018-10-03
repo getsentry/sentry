@@ -66,7 +66,7 @@ class IntegrationRepositoryProvider(object):
                     provider=self.id,
                     integration_id=result.get('integration_id'),
                 )
-                self.delete_external_repository(repo)
+                self.on_delete_repository(repo)
             except IntegrationError:
                 pass
             return Response(
