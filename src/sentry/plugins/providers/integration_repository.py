@@ -115,6 +115,16 @@ class IntegrationRepositoryProvider(object):
     def build_repository_config(self, organization, data):
         """
         Builds final dict containing all necessary data to create the repository
+
+            >>> {
+            >>>    'name': data['name'],
+            >>>    'external_id': data['external_id'],
+            >>>    'url': data['url'],
+            >>>    'config': {
+            >>>        # Any additional data
+            >>>    },
+            >>>    'integration_id': data['installation'],
+            >>> }
         """
         raise NotImplementedError
 
