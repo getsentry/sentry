@@ -293,7 +293,8 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
         fileobj.seek(0, 0)
 
         try:
-            rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+            rv = ProjectDSymFile.objects.select_related('file') \
+                .get(debug_id=debug_id, project=project)
             if rv.file.checksum == checksum:
                 return rv, False
         except ProjectDSymFile.DoesNotExist:
