@@ -123,6 +123,7 @@ from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
+from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
@@ -809,6 +810,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/token/$',
         ProjectReleasesTokenEndpoint.as_view(),
         name='sentry-api-0-project-releases-token'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/completion/$',
+        ProjectReleaseSetupCompletionEndpoint.as_view(),
+        name='sentry-api-0-project-releases-completion-status'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
