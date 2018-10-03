@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from .client import VstsApiClient
 
+import logging
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from sentry.app import raven
@@ -11,6 +12,7 @@ import re
 UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
 EMAIL_PARSER = re.compile(r'<(.*)>')
+logger = logging.getLogger('sentry.integrations')
 
 
 class WorkItemWebhook(Endpoint):
@@ -44,9 +46,19 @@ class WorkItemWebhook(Endpoint):
 
     def handle_updated_workitem(self, data, integration):
         external_issue_key = data['resource']['workItemId']
-        assigned_to = data['resource']['fields'].get('System.AssignedTo')
-        status_change = data['resource']['fields'].get('System.State')
         project = data['resourceContainers']['project']['id']
+        try:
+            assigned_to = data['resource']['fields'].get('System.AssignedTo')
+            status_change = data['resource']['fields'].get('System.State')
+        except KeyError:
+            logger.info(
+                'vsts.updated-workitem-fields-not-passed',
+                extra={
+                    'payload': data,
+                    'integration_id': integration.id
+                }
+            )
+            return  # In the case that there are no fields sent, no syncing can be done
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(
             integration,
