@@ -567,9 +567,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             'key': issue_key,
         }
 
-    def merge_issue_config_defaults(self, project_id, config):
-        return config
-
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
         Propagate a sentry issue's assignee to a jira issue's assignee
