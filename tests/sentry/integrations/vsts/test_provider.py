@@ -93,7 +93,10 @@ class TestAccountConfigView(TestCase):
         responses.add(
             responses.GET,
             'https://app.vssps.visualstudio.com/_apis/accounts',
-            json=self.accounts,
+            json={
+                'value': self.accounts,
+                'count': len(self.accounts),
+            },
             status=200,
 
         )
@@ -137,6 +140,20 @@ class TestAccountConfigView(TestCase):
         account_form = AccountForm(self.accounts)
         assert account_form.fields['account'].choices == [
             ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
+
+    @responses.activate
+    def test_no_accounts_recieved(self):
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/accounts',
+            json={
+                'value': [],
+                'count': 0,
+            },
+            status=200,
+        )
+        # import pdb; pdb.set_trace()
+        # view = AccountConfigView()
 
 
 class VstsIdentityProviderTest(TestCase):

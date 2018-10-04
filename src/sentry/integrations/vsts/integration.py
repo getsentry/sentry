@@ -473,12 +473,21 @@ class AccountConfigView(PipelineView):
 
         )
         accounts = accounts['value']
+        if len(accounts) is 0:
+            return render_to_response(
+                template='sentry/integrations/vsts-config.html',
+                context={
+                    'no_accounts': True,
+                },
+                request=request,
+            )
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
             template='sentry/integrations/vsts-config.html',
             context={
                 'form': account_form,
+                'no_accounts': False,
             },
             request=request,
         )
