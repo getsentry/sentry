@@ -20,11 +20,11 @@ logger = logging.getLogger('sentry.integrations.slack')
 # Attachment colors used for issues with no actions take
 ACTIONED_ISSUE_COLOR = '#EDEEEF'
 LEVEL_TO_COLOR = {
-  'debug': '#fbe14f',
-  'info': '#2788ce',
-  'warning': '#f18500',
-  'error': '#E03E2F',
-  'fatal': '#d20f2a',
+    'debug': '#fbe14f',
+    'info': '#2788ce',
+    'warning': '#f18500',
+    'error': '#E03E2F',
+    'fatal': '#d20f2a',
 }
 
 
