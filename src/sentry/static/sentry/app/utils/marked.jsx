@@ -54,4 +54,11 @@ marked.setOptions({
   sanitize: true,
 });
 
+const noParagraphRenderer = new Renderer();
+noParagraphRenderer.paragraph = s => s;
+
+const singleLineRenderer = (text, options) =>
+  marked(text, {...options, renderer: noParagraphRenderer});
+
 export default marked;
+export {singleLineRenderer};
