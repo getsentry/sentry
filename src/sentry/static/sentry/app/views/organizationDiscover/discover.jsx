@@ -68,6 +68,12 @@ export default class OrganizationDiscover extends React.Component {
     };
   }
 
+  componentWillMount() {
+    if (this.props.savedQuery) {
+      this.runQuery();
+    }
+  }
+
   componentWillReceiveProps(nextProps) {
     const {queryBuilder, location: {search}} = nextProps;
     const currentSearch = this.props.location.search;
@@ -223,6 +229,7 @@ export default class OrganizationDiscover extends React.Component {
           addSuccessMessage(t('Updated query'));
           this.toggleEditMode();
           this.props.updateSavedQueryData(resp);
+          this.runQuery();
         })
         .catch(() => {
           addErrorMessage(t('Could not update query'));
