@@ -116,13 +116,7 @@ class SelectAsyncControl extends React.Component {
   }
 }
 
-export default SelectAsyncControl;
+const forwardRef = (p, ref) => <SelectAsyncControl {...p} ref={ref} />;
+forwardRef.displayName = 'SelectAsyncControl';
 
-// TODO: This needs an enzyme update or else it breaks tests
-
-// function forwardRef(props, ref) {
-// return <SelectAsyncControl {...props} forwardedRef={ref} />;
-// }
-// forwardRef.displayName = 'forwardRef(SelectAsyncField)';
-
-// export default React.forwardRef(forwardRef);
+export default React.forwardRef(forwardRef);
