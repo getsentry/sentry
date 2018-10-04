@@ -852,13 +852,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint
         if result.get('merge') and len(group_list) > 1:
-            primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
-            children = []
+            group_list_by_times_seen = sorted(group_list, key=lambda x: x.times_seen, reverse=True)
+            primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
+
+            eventstream.merge(group.project_id, [g.id for g in groups_to_merge], primary_group.id)
+
             transaction_id = uuid4().hex
-            for group in group_list:
-                if group == primary_group:
-                    continue
-                children.append(group)
+            for group in groups_to_merge:
                 group.update(status=GroupStatus.PENDING_MERGE)
                 merge_group.delay(
                     from_object_id=group.id,
@@ -874,13 +874,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 data={
                     'issues': [{
                         'id': c.id
-                    } for c in children],
+                    } for c in groups_to_merge],
                 },
             )
 
             result['merge'] = {
                 'parent': six.text_type(primary_group.id),
-                'children': [six.text_type(g.id) for g in children],
+                'children': [six.text_type(g.id) for g in groups_to_merge],
             }
 
         return Response(result)

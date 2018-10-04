@@ -13,7 +13,6 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
-from sentry import eventstream
 from sentry.app import tsdb
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -189,8 +188,6 @@ def merge_group(
         )
     except DataError:
         pass
-
-    eventstream.merge(group.project_id, previous_group_id, new_group.id)
 
 
 def _get_event_environment(event, project, cache):

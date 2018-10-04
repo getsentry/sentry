@@ -118,14 +118,14 @@ class KafkaEventStream(EventStream):
             'is_new_group_environment': is_new_group_environment,
         },))
 
-    def unmerge(self, project_id, new_group_id, event_ids):
-        if not event_ids:
+    def unmerge(self, project_id, hashes, new_group_id):
+        if not hashes:
             return
 
         self._send(project_id, 'unmerge', extra_data=({
             'project_id': project_id,
             'new_group_id': new_group_id,
-            'event_ids': event_ids,
+            'hashes': hashes,
             'datetime': datetime.now(tz=pytz.utc),
         },), asynchronous=False)
 
@@ -139,10 +139,13 @@ class KafkaEventStream(EventStream):
             'datetime': datetime.now(tz=pytz.utc),
         },), asynchronous=False)
 
-    def merge(self, project_id, previous_group_id, new_group_id):
+    def merge(self, project_id, previous_group_ids, new_group_id):
+        if not previous_group_ids:
+            return
+
         self._send(project_id, 'merge', extra_data=({
             'project_id': project_id,
-            'previous_group_id': previous_group_id,
+            'previous_group_ids': previous_group_ids,
             'new_group_id': new_group_id,
             'datetime': datetime.now(tz=pytz.utc),
         },), asynchronous=False)

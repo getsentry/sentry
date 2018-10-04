@@ -177,6 +177,9 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
         destination_id = destination.id
 
+        # TODO: This blocks on having each event's full hash list as an array in ClickHouse
+        eventstream.unmerge(project.id, fingerprints, destination_id)
+
         # Move the group hashes to the destination.
         GroupHash.objects.filter(
             project_id=project.id,
@@ -211,8 +214,6 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
     event_id_set = set(event.id for event in events)
-
-    eventstream.unmerge(project.id, destination_id, [event.event_id for event in events])
 
     Event.objects.filter(
         project_id=project.id,

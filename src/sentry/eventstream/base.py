@@ -32,11 +32,11 @@ class EventStream(Service):
                 primary_hash=primary_hash,
             )
 
-    def unmerge(self, project_id, new_group_id, event_ids):
+    def unmerge(self, project_id, hashes, new_group_id):
         pass
 
     def delete_groups(self, project_id, group_ids):
         pass
 
-    def merge(self, project_id, previous_group_id, new_group_id):
+    def merge(self, project_id, previous_group_ids, new_group_id):
         pass
