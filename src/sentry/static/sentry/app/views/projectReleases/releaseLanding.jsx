@@ -8,7 +8,7 @@ import {
   Contributors,
 } from 'sentry-dreamy-components';
 import ReleaseLandingCard from 'app/views/projectReleases/releaseLandingCard';
-import withApi from 'app/utils/withApi.jsx';
+import withApi from 'app/utils/withApi';
 
 const cards = [
   {
