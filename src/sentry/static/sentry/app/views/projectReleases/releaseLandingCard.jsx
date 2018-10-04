@@ -17,11 +17,11 @@ class ReleaseLandingCard extends React.Component {
   getMessage = () => {
     let {cardsLength, step} = this.props;
     if (step == 0) {
-      return 'Tell Me More';
+      return t('Tell Me More');
     } else if (step < cardsLength - 1) {
-      return 'Next';
+      return t('Next');
     } else {
-      return 'See Docs for Setup';
+      return t('See Docs for Setup');
     }
   };
 
@@ -50,7 +50,7 @@ class ReleaseLandingCard extends React.Component {
               </StyledButton>
             ) : (
               <StyledButton onClick={this.props.onClick}>
-                {t(this.getMessage())}
+                {this.getMessage()}
               </StyledButton>
             )}
           </StyledBox>

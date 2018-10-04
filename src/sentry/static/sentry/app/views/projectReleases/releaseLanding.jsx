@@ -12,7 +12,6 @@ import withApi from 'app/utils/withApi.jsx';
 
 const cards = [
   {
-    id: 0,
     title: t("You Haven't Set Up Releases!"),
     message: t(
       'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced for the first time'
@@ -20,7 +19,6 @@ const cards = [
     component: Contributors,
   },
   {
-    id: 1,
     title: t('Suspect Commits'),
     message: t(
       'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
@@ -28,7 +26,6 @@ const cards = [
     component: SuggestedAssignees,
   },
   {
-    id: 2,
     title: t('Release Stats'),
     message: t(
       'Set the commits in each release, and which issues were introduced or fixed in the release.'
@@ -36,7 +33,6 @@ const cards = [
     component: Issues,
   },
   {
-    id: 3,
     title: t('Easy Resolution'),
     message: t(
       'Automatically resolve issues by including the issue number in your commit message.'
@@ -44,7 +40,6 @@ const cards = [
     component: BashCard,
   },
   {
-    id: 4,
     title: t('Deploy Emails'),
     message: t('Receive email notifications when your code gets deployed.'),
     component: Emails,
@@ -70,8 +65,7 @@ const ReleaseLanding = withApi(
     };
 
     getCard = stepId => {
-      let displayCard = cards.find(card => card.id === stepId);
-      return displayCard;
+      return cards[stepId];
     };
 
     render() {
