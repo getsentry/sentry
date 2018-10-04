@@ -61,21 +61,21 @@ class DebugFilesClearTest(APITestCase):
         assert response.data[0]['cpuName'] == 'any'
         assert response.data[0]['symbolType'] == 'proguard'
 
-        dsyms = ProjectDebugFile.dsymcache.fetch_dsyms(
+        dsyms = ProjectDebugFile.difcache.fetch_dsyms(
             project=project,
             debug_ids=[PROGUARD_UUID])
         assert len(dsyms) == 1
         assert os.path.isfile(dsyms[PROGUARD_UUID])
 
         # if we clear now, nothing happens
-        ProjectDebugFile.dsymcache.clear_old_entries()
+        ProjectDebugFile.difcache.clear_old_entries()
         assert os.path.isfile(dsyms[PROGUARD_UUID])
 
         # Put the time into the future
         real_time = time.time
         time.time = lambda: real_time() + 60 * 60 * 48
         try:
-            ProjectDebugFile.dsymcache.clear_old_entries()
+            ProjectDebugFile.difcache.clear_old_entries()
         finally:
             time.time = real_time
 
@@ -104,7 +104,7 @@ class SymCacheTest(TestCase):
             debug_id=debug_id,
         )
 
-        symcaches = ProjectDebugFile.dsymcache.get_symcaches(self.project, [debug_id])
+        symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         symcache = symcaches['67e9247c-814e-392b-a027-dbde6748fcbf']
 
         assert symcache.id == debug_id
@@ -148,7 +148,7 @@ class SymCacheTest(TestCase):
             version=1,
         )
 
-        symcaches = ProjectDebugFile.dsymcache.get_symcaches(self.project, [debug_id])
+        symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         symcache = symcaches['67e9247c-814e-392b-a027-dbde6748fcbf']
 
         assert symcache.id == debug_id

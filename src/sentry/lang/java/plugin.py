@@ -41,7 +41,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        dsym_paths = ProjectDebugFile.dsymcache.fetch_dsyms(self.project, self.images)
+        dsym_paths = ProjectDebugFile.difcache.fetch_dsyms(self.project, self.images)
         self.mapping_views = []
 
         for debug_id in self.images:

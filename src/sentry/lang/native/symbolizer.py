@@ -122,7 +122,7 @@ class Symbolizer(object):
         self.object_lookup = object_lookup
 
         self.symcaches, self.symcaches_conversion_errors = \
-            ProjectDebugFile.dsymcache.get_symcaches(
+            ProjectDebugFile.difcache.get_symcaches(
                 project, referenced_images,
                 on_dsym_file_referenced=on_dsym_file_referenced,
                 with_conversion_errors=True)

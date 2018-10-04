@@ -61,7 +61,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             # This way we can also capture down the error if we need
             # to.
             if dsym.supports_symcache:
-                symcache, error = ProjectDebugFile.dsymcache.generate_symcache(
+                symcache, error = ProjectDebugFile.difcache.generate_symcache(
                     project, dsym, temp_file)
                 if error is not None:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,

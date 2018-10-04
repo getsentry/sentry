@@ -476,7 +476,7 @@ def find_dsym_file(project, debug_id):
         pass
 
 
-class DSymCache(object):
+class DIFCache(object):
     @property
     def cache_path(self):
         return options.get('dsym.cache-path')
@@ -485,7 +485,7 @@ class DSymCache(object):
         return os.path.join(self.cache_path, six.text_type(project.id))
 
     def update_symcaches(self, project, debug_ids):
-        """Given some debug ids of dsyms this will update the symcaches for
+        """Given some debug ids of DIFs this will update the symcaches for
         all of these if a symcache is supported for that symbol.
         """
         self._get_symcaches_impl(project, debug_ids)
@@ -718,4 +718,4 @@ class DSymCache(object):
                         pass
 
 
-ProjectDebugFile.dsymcache = DSymCache()
+ProjectDebugFile.difcache = DIFCache()

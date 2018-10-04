@@ -15,4 +15,4 @@ def symcache_update(project_id, debug_ids, **kwargs):
     except Project.DoesNotExist:
         return
 
-    ProjectDebugFile.dsymcache.update_symcaches(project, debug_ids)
+    ProjectDebugFile.difcache.update_symcaches(project, debug_ids)

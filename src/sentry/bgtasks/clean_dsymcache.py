@@ -6,4 +6,4 @@ from sentry.models import ProjectDebugFile
 
 @bgtask()
 def clean_dsymcache():
-    ProjectDebugFile.dsymcache.clear_old_entries()
+    ProjectDebugFile.difcache.clear_old_entries()
