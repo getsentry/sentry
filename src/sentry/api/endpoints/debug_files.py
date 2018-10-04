@@ -16,7 +16,7 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
-    VersionDSymFile, DSymApp, DSYM_PLATFORMS, create_files_from_dif_zip, \
+    VersionDSymFile, DSymApp, DIF_PLATFORMS, create_files_from_dif_zip, \
     get_assemble_status, set_assemble_status
 from sentry.utils import json
 
@@ -34,8 +34,8 @@ ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
 class AssociateDsymSerializer(serializers.Serializer):
     checksums = ListField(child=serializers.CharField(max_length=40))
     platform = serializers.ChoiceField(choices=zip(
-        DSYM_PLATFORMS.keys(),
-        DSYM_PLATFORMS.keys(),
+        DIF_PLATFORMS.keys(),
+        DIF_PLATFORMS.keys(),
     ))
     name = serializers.CharField(max_length=250)
     appId = serializers.CharField(max_length=250)
@@ -183,7 +183,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             app_id=data['appId'],
             project=project,
             data={'name': data['name']},
-            platform=DSYM_PLATFORMS[data['platform']],
+            platform=DIF_PLATFORMS[data['platform']],
         )
 
         # There can be concurrent deletes on the underlying file object

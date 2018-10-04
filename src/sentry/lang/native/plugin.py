@@ -9,7 +9,7 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
 
 from sentry import options
 from django.db import transaction, IntegrityError
-from sentry.models import VersionDSymFile, DSymPlatform, DSymApp
+from sentry.models import VersionDSymFile, DifPlatform, DSymApp
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.utils import \
@@ -144,7 +144,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     app_id=app_info.id,
                     project=self.project,
                     data={'name': app_info.name},
-                    platform=DSymPlatform.APPLE,
+                    platform=DifPlatform.APPLE,
                     no_fetch=True
                 )
                 try:
