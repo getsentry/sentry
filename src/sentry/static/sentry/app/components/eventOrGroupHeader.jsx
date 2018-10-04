@@ -136,7 +136,6 @@ const Title = styled.div`
 const Message = styled.div`
   ${truncateStyles};
   font-size: 14px;
-  margin: 0 0 5px;
 `;
 
 const iconStyles = css`
