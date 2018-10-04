@@ -63,7 +63,6 @@ class GitHubIssueBasic(IssueBasicMixin):
         except StopIteration:
             repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
 
-
         assignees = self.get_allowed_assignees(default_repo)
 
         org = group.organization
