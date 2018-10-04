@@ -1,6 +1,6 @@
 """
-sentry.models.release
-~~~~~~~~~~~~~~~~~~~~~
+sentry.models.environment
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -10,9 +10,16 @@ from __future__ import absolute_import, print_function
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from sentry.constants import (
+    ENVIRONMENT_NAME_PATTERN,
+    ENVIRONMENT_NAME_MAX_LENGTH
+)
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+import re
+
+OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
 class EnvironmentProject(Model):
@@ -44,6 +51,17 @@ class Environment(Model):
         unique_together = (('organization_id', 'name'), )
 
     __repr__ = sane_repr('organization_id', 'name')
+
+    @classmethod
+    def is_valid_name(cls, value):
+        """Limit length and reject problematic bytes
+
+        If you change the rules here also update the event ingestion schema
+        in sentry.interfaces.schemas
+        """
+        if len(value) > ENVIRONMENT_NAME_MAX_LENGTH:
+            return False
+        return OK_NAME_PATTERN.match(value) is not None
 
     @classmethod
     def get_cache_key(cls, organization_id, name):

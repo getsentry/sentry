@@ -1,6 +1,6 @@
 """
 sentry.interfaces.schemas
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -20,6 +20,8 @@ from sentry.constants import (
     MAX_TAG_KEY_LENGTH,
     MAX_TAG_VALUE_LENGTH,
     VALID_PLATFORMS,
+    ENVIRONMENT_NAME_MAX_LENGTH,
+    ENVIRONMENT_NAME_PATTERN,
 )
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
@@ -417,7 +419,8 @@ EVENT_SCHEMA = {
         },
         'environment': {
             'type': 'string',
-            'maxLength': 64,
+            'maxLength': ENVIRONMENT_NAME_MAX_LENGTH,
+            'pattern': ENVIRONMENT_NAME_PATTERN,
         },
         'modules': {'type': 'object'},
         'extra': {'type': 'object'},
@@ -781,7 +784,6 @@ def validate_and_default_interface(data, interface, name=None,
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
-                    # TODO raise as shortcut?
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
     validator_errors = list(validator.iter_errors(data))
@@ -793,7 +795,12 @@ def validate_and_default_interface(data, interface, name=None,
     for key, group in groupby(keyed_errors, lambda e: e.path[0]):
         ve = six.next(group)
         is_max = ve.validator.startswith('max')
-        error_type = EventError.VALUE_TOO_LONG if is_max else EventError.INVALID_DATA
+        if is_max:
+            error_type = EventError.VALUE_TOO_LONG
+        elif key == 'environment':
+            error_type = EventError.INVALID_ENVIRONMENT
+        else:
+            error_type = EventError.INVALID_DATA
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:
