@@ -48,7 +48,7 @@ export default function createResultManager(queryBuilder) {
     }
 
     return Promise.all(promises).then(resp => {
-      data.baseQuery.query = baseQuery;
+      data.baseQuery.query = query;
       data.baseQuery.data = resp[0];
 
       if (hasAggregations) {
