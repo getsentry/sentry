@@ -120,7 +120,7 @@ export default class Result extends React.Component {
       byDayQuery.data && getChartDataByDay(byDayQuery.data.data, byDayQuery.query);
 
     const legendData = byDayChartData
-      ? {data: byDayChartData.map(entry => entry.seriesName)}
+      ? {data: byDayChartData.map(entry => entry.seriesName), truncate: 80}
       : null;
 
     const tooltipOptions = {
@@ -144,7 +144,7 @@ export default class Result extends React.Component {
               series={basicChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]]}}
+              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
               renderer="canvas"
             />
           </ChartWrapper>
@@ -155,7 +155,7 @@ export default class Result extends React.Component {
               series={basicChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]]}}
+              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
               renderer="canvas"
             />
           </ChartWrapper>
