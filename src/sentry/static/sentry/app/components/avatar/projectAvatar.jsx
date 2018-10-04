@@ -13,7 +13,16 @@ class ProjectAvatar extends React.Component {
   render() {
     let {project, ...props} = this.props;
 
-    return <PlatformList platforms={(project && project.platforms) || []} {...props} />;
+    return (
+      <PlatformList
+        platforms={
+          (project && project.platforms && project.platforms.length > 0
+            ? project.platforms
+            : project.platform && [project.platform]) || []
+        }
+        {...props}
+      />
+    );
   }
 }
 export default ProjectAvatar;
