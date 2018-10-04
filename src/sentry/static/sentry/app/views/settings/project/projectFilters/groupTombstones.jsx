@@ -11,6 +11,7 @@ import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import Tooltip from 'app/components/tooltip';
 import {Panel, PanelItem} from 'app/components/panels';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 class GroupTombstoneRow extends React.Component {
   static propTypes = {
@@ -92,33 +93,33 @@ class GroupTombstones extends AsyncComponent {
   };
 
   renderEmpty() {
-    return <div className="box empty">{t('You have no discarded issues')}</div>;
+    return (
+      <Panel>
+        <EmptyMessage>{t('You have no discarded issues')}</EmptyMessage>
+      </Panel>
+    );
   }
 
   renderBody() {
     let {orgId, projectId} = this.props;
     let {tombstones} = this.state;
 
-    return (
-      <div className="discarded-groups">
-        {tombstones.length ? (
-          <Panel>
-            {tombstones.map(data => {
-              return (
-                <GroupTombstoneRow
-                  key={data.id}
-                  data={data}
-                  orgId={orgId}
-                  projectId={projectId}
-                  onUndiscard={this.handleUndiscard}
-                />
-              );
-            })}
-          </Panel>
-        ) : (
-          this.renderEmpty()
-        )}
-      </div>
+    return tombstones.length ? (
+      <Panel>
+        {tombstones.map(data => {
+          return (
+            <GroupTombstoneRow
+              key={data.id}
+              data={data}
+              orgId={orgId}
+              projectId={projectId}
+              onUndiscard={this.handleUndiscard}
+            />
+          );
+        })}
+      </Panel>
+    ) : (
+      this.renderEmpty()
     );
   }
 }
