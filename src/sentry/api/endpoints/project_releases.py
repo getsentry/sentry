@@ -16,8 +16,6 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
 from sentry.signals import release_created
 
-BAD_RELEASE_CHARS = '\n\f\t/'
-
 
 class ReleaseSerializer(serializers.Serializer):
     version = serializers.CharField(max_length=VERSION_LENGTH, required=True)

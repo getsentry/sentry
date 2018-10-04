@@ -28,6 +28,7 @@ class EventError(object):
     RESTRICTED_IP = 'restricted_ip'
     FUTURE_TIMESTAMP = 'future_timestamp'
     PAST_TIMESTAMP = 'past_timestamp'
+    INVALID_ENVIRONMENT = 'invalid_environment'
 
     JS_GENERIC_FETCH_ERROR = 'js_generic_fetch_error'  # deprecated in favor of FETCH_GENERIC_ERROR
     FETCH_GENERIC_ERROR = 'fetch_generic_error'
@@ -67,6 +68,7 @@ class EventError(object):
         RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address on {url}',
         FUTURE_TIMESTAMP: u'Invalid timestamp (in future)',
         PAST_TIMESTAMP: u'Invalid timestamp (too old)',
+        INVALID_ENVIRONMENT: u'Environment cannot contain / or newlines.',
         # deprecated in favor of FETCH_GENERIC_ERROR
         JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',
         FETCH_GENERIC_ERROR: u'Unable to fetch resource: {url}',
