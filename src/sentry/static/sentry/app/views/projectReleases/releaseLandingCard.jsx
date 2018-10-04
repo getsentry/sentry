@@ -39,8 +39,8 @@ class ReleaseLandingCard extends React.Component {
 
         <div className="col-md-6">
           <StyledBox>
-            <h3> {card.title}</h3>
-            <p> {card.message}</p>
+            <h3>{card.title}</h3>
+            <p>{card.message}</p>
             {finalStep ? (
               <StyledButton
                 href={'https://docs.sentry.io/learn/releases/'}
