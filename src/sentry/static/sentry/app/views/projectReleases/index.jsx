@@ -18,7 +18,6 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import ReleaseList from 'app/views/projectReleases/releaseList';
-import ReleaseLanding from 'app/views/projectReleases/releaseLanding';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const DEFAULT_QUERY = '';
@@ -171,7 +170,7 @@ const ProjectReleases = createReactClass({
           env: environment.displayName,
         })
       : t("There don't seem to be any releases yet.");
-    return environment ? (
+    return (
       <EmptyStateWarning>
         <p>{message}</p>
         <p>
@@ -180,8 +179,6 @@ const ProjectReleases = createReactClass({
           </a>
         </p>
       </EmptyStateWarning>
-    ) : (
-      <ReleaseLanding />
     );
   },
 
