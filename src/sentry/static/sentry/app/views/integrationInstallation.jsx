@@ -7,10 +7,11 @@ import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import Field from 'app/views/settings/components/forms/field';
 import HookStore from 'app/stores/hookStore';
+import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
-import IndicatorStore from 'app/stores/indicatorStore';
 
 export default class IntegrationInstallation extends AsyncView {
   state = {
@@ -145,12 +146,16 @@ export default class IntegrationInstallation extends AsyncView {
             </React.Fragment>
           )}
 
-        <SelectControl
-          onChange={this.onSelectOrg}
-          value={selectedOrg}
-          placeholder={t('Select an organization')}
-          options={choices.map(([value, label]) => ({value, label}))}
-        />
+        <Field label={t('Organization')} inline={false} stacked required>
+          {() => (
+            <SelectControl
+              onChange={this.onSelectOrg}
+              value={selectedOrg}
+              placeholder={t('Select an organization')}
+              options={choices.map(([value, label]) => ({value, label}))}
+            />
+          )}
+        </Field>
 
         <div className="form-actions">{this.renderAddButton()}</div>
       </NarrowLayout>
