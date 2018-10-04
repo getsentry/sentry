@@ -42,6 +42,7 @@ import {
   SavedQueryAction,
   PageTitle,
   EditableName,
+  BackToQueryList,
 } from './styles';
 
 import {trackQuery} from './analytics';
@@ -176,6 +177,13 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
 
+  loadSavedQueries = () => {
+    browserHistory.push({
+      pathname: `/organizations/${this.props.organization.slug}/discover/`,
+      query: {view: 'saved'},
+    });
+  };
+
   reset = () => {
     const {savedQuery, queryBuilder, organization} = this.props;
     if (savedQuery) {
@@ -199,10 +207,7 @@ export default class OrganizationDiscover extends React.Component {
             name: savedQuery.name,
           })
         );
-        browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/`,
-          query: {view: 'saved'},
-        });
+        this.loadSavedQueries();
       })
       .catch(() => {
         addErrorMessage(t('Could not delete query'));
@@ -257,30 +262,37 @@ export default class OrganizationDiscover extends React.Component {
           ))}
         </SidebarTabs>
         {savedQuery && (
-          <SavedQueryTitle>
-            {!isEditingSavedQuery && (
-              <React.Fragment>
-                {savedQuery.name}
-                <SavedQueryAction onClick={this.toggleEditMode}>
-                  {t('Edit query')}
-                </SavedQueryAction>
-              </React.Fragment>
-            )}
-            {isEditingSavedQuery && (
-              <React.Fragment>
-                <EditableName
-                  value={savedQuery.name}
-                  onChange={this.updateSavedQueryName}
-                />
-                <SavedQueryAction onClick={this.updateSavedQuery}>
-                  {t('Save changes')}
-                </SavedQueryAction>
-                <SavedQueryAction onClick={this.deleteSavedQuery}>
-                  {t('Delete')}
-                </SavedQueryAction>
-              </React.Fragment>
-            )}
-          </SavedQueryTitle>
+          <React.Fragment>
+            <BackToQueryList>
+              <a onClick={this.loadSavedQueries}>
+                {tct('[arr] Back to saved query list', {arr: '←'})}
+              </a>
+            </BackToQueryList>
+            <SavedQueryTitle>
+              {!isEditingSavedQuery && (
+                <React.Fragment>
+                  {savedQuery.name}
+                  <SavedQueryAction onClick={this.toggleEditMode}>
+                    {t('Edit query')}
+                  </SavedQueryAction>
+                </React.Fragment>
+              )}
+              {isEditingSavedQuery && (
+                <React.Fragment>
+                  <EditableName
+                    value={savedQuery.name}
+                    onChange={this.updateSavedQueryName}
+                  />
+                  <SavedQueryAction onClick={this.updateSavedQuery}>
+                    {t('Save changes')}
+                  </SavedQueryAction>
+                  <SavedQueryAction onClick={this.deleteSavedQuery}>
+                    {t('Delete')}
+                  </SavedQueryAction>
+                </React.Fragment>
+              )}
+            </SavedQueryTitle>
+          </React.Fragment>
         )}
       </React.Fragment>
     );

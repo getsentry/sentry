@@ -150,6 +150,13 @@ export const ChartNote = styled(Box)`
   margin-bottom: ${space(3)};
 `;
 
+export const BackToQueryList = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: ${space(0.5)} ${space(4)};
+  background-color: ${p => p.theme.whiteDark};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
 export const EditableName = styled(props => (
   <TextField inputStyle={{height: 24, padding: 2}} {...props} />
 ))`
