@@ -8,7 +8,7 @@ from django.core.files.base import ContentFile
 
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
 from sentry.models.file import ChunkFileState
-from sentry.models.dsymfile import get_assemble_status, ProjectDSymFile
+from sentry.models.dsymfile import get_assemble_status, ProjectDebugFile
 from sentry.testutils import APITestCase
 from sentry.tasks.assemble import assemble_dif, assemble_file
 
@@ -133,7 +133,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[checksum]['missingChunks'] == []
 
         # Finally, we simulate a successful job
-        ProjectDSymFile.objects.create(
+        ProjectDebugFile.objects.create(
             file=file1,
             object_name='baz.dSYM',
             cpu_name='x86_64',

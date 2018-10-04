@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
 def assemble_dif(project_id, name, checksum, chunks, **kwargs):
     from sentry.models import ChunkFileState, dsymfile, Project, \
-        ProjectDSymFile, set_assemble_status, BadDif
+        ProjectDebugFile, set_assemble_status, BadDif
     from sentry.reprocessing import bump_reprocessing_revision
 
     project = Project.objects.filter(id=project_id).get()
@@ -61,7 +61,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             # This way we can also capture down the error if we need
             # to.
             if dsym.supports_symcache:
-                symcache, error = ProjectDSymFile.dsymcache.generate_symcache(
+                symcache, error = ProjectDebugFile.dsymcache.generate_symcache(
                     project, dsym, temp_file)
                 if error is not None:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,

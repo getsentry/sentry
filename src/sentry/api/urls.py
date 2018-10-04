@@ -149,8 +149,8 @@ from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.dsym_files import DSymFilesEndpoint, \
-    UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
+from .endpoints.dsym_files import DebugFilesEndpoint, \
+    UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.dif_files import DifAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -732,7 +732,7 @@ urlpatterns = patterns(
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
-        DSymFilesEndpoint.as_view(),
+        DebugFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
     ),
     url(
@@ -742,7 +742,7 @@ urlpatterns = patterns(
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',
-        UnknownDSymFilesEndpoint.as_view(),
+        UnknownDebugFilesEndpoint.as_view(),
         name='sentry-api-0-unknown-dsym-files'
     ),
     url(

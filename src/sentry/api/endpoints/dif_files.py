@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import ChunkFileState, ProjectDSymFile, FileBlobOwner, \
+from sentry.models import ChunkFileState, ProjectDebugFile, FileBlobOwner, \
     get_assemble_status, set_assemble_status
 
 
@@ -68,7 +68,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             chunks = file_to_assemble.get('chunks', [])
 
             # First, check the cached assemble status. During assembling, a
-            # ProjectDSymFile will be created and we need to prevent a race
+            # ProjectDebugFile will be created and we need to prevent a race
             # condition.
             state, detail = get_assemble_status(project, checksum)
             if state is not None:
@@ -79,10 +79,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
                 }
                 continue
 
-            # Next, check if this project already owns the DSymFile.
+            # Next, check if this project already owns the ProjectDebugFile.
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
-            dif = ProjectDSymFile.objects.filter(
+            dif = ProjectDebugFile.objects.filter(
                 project=project,
                 file__checksum=checksum
             ).select_related('file').first()

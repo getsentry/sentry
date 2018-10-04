@@ -13,7 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.models import ProjectDSymFile, create_files_from_dsym_zip, \
+from sentry.models import ProjectDebugFile, create_files_from_dsym_zip, \
     VersionDSymFile, DSymApp, DSYM_PLATFORMS
 try:
     from django.http import (
@@ -46,7 +46,7 @@ def upload_from_request(request, project):
     return Response(serialize(files, request.user), status=201)
 
 
-class DSymFilesEndpoint(ProjectEndpoint):
+class DebugFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission, )
 
@@ -69,7 +69,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        debug_file = ProjectDSymFile.objects.filter(
+        debug_file = ProjectDebugFile.objects.filter(
             id=project_dsym_id
         ).first()
 
@@ -113,7 +113,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
             dsym_app=apps
         ).select_related('dsym_file').order_by('-build', 'version')
 
-        file_list = ProjectDSymFile.objects.filter(
+        file_list = ProjectDebugFile.objects.filter(
             project=project,
             versiondsymfile__isnull=True,
         ).select_related('file')[:100]
@@ -154,13 +154,13 @@ class DSymFilesEndpoint(ProjectEndpoint):
         return upload_from_request(request, project=project)
 
 
-class UnknownDSymFilesEndpoint(ProjectEndpoint):
+class UnknownDebugFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project):
         checksums = request.GET.getlist('checksums')
-        missing = ProjectDSymFile.objects.find_missing(
+        missing = ProjectDebugFile.objects.find_missing(
             checksums, project=project)
         return Response({'missing': missing})
 
@@ -189,7 +189,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         # that the project dsym file references.  This means that we can
         # get errors if we don't prefetch this when serializing.  Additionally
         # performance wise it's a better idea to fetch this in one go.
-        dsym_files = ProjectDSymFile.objects.find_by_checksums(
+        dsym_files = ProjectDebugFile.objects.find_by_checksums(
             data['checksums'], project).select_related('file')
 
         for dsym_file in dsym_files:

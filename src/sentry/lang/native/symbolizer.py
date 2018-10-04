@@ -7,7 +7,7 @@ from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
-from sentry.models import EventError, ProjectDSymFile
+from sentry.models import EventError, ProjectDebugFile
 from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
@@ -122,7 +122,7 @@ class Symbolizer(object):
         self.object_lookup = object_lookup
 
         self.symcaches, self.symcaches_conversion_errors = \
-            ProjectDSymFile.dsymcache.get_symcaches(
+            ProjectDebugFile.dsymcache.get_symcaches(
                 project, referenced_images,
                 on_dsym_file_referenced=on_dsym_file_referenced,
                 with_conversion_errors=True)

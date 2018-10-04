@@ -6,7 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.testutils import TestCase
 
 
-class DSymFileSerializerTest(TestCase):
+class DebugFileSerializerTest(TestCase):
     def test_simple(self):
         file = self.create_file(
             name='baz.dSYM',

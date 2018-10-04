@@ -95,7 +95,7 @@ class VersionDSymFile(Model):
     __core__ = False
 
     objects = BaseManager()
-    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile', null=True)
+    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile', null=True)
     dsym_app = FlexibleForeignKey('sentry.DSymApp')
     version = models.CharField(max_length=32)
     build = models.CharField(max_length=32, null=True)
@@ -189,7 +189,7 @@ class DSymApp(Model):
         unique_together = (('project', 'platform', 'app_id'), )
 
 
-class ProjectDSymFileManager(BaseManager):
+class ProjectDebugFileManager(BaseManager):
     def find_missing(self, checksums, project):
         if not checksums:
             return []
@@ -197,7 +197,7 @@ class ProjectDSymFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
-        found = ProjectDSymFile.objects.filter(
+        found = ProjectDebugFile.objects.filter(
             file__checksum__in=checksums, project=project
         ).values('file__checksum')
 
@@ -210,10 +210,10 @@ class ProjectDSymFileManager(BaseManager):
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
-        return ProjectDSymFile.objects.filter(file__checksum__in=checksums, project=project)
+        return ProjectDebugFile.objects.filter(file__checksum__in=checksums, project=project)
 
 
-class ProjectDSymFile(Model):
+class ProjectDebugFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey('sentry.File')
@@ -221,7 +221,7 @@ class ProjectDSymFile(Model):
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey('sentry.Project', null=True)
     debug_id = models.CharField(max_length=64, db_column='uuid')
-    objects = ProjectDSymFileManager()
+    objects = ProjectDebugFileManager()
 
     class Meta:
         unique_together = (('project', 'debug_id'), )
@@ -240,7 +240,7 @@ class ProjectDSymFile(Model):
         return self.dsym_type in ('breakpad', 'macho', 'elf')
 
     def delete(self, *args, **kwargs):
-        super(ProjectDSymFile, self).delete(*args, **kwargs)
+        super(ProjectDebugFile, self).delete(*args, **kwargs)
         self.file.delete()
 
 
@@ -249,7 +249,7 @@ class ProjectSymCacheFile(Model):
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     cache_file = FlexibleForeignKey('sentry.File')
-    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile')
+    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile')
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
@@ -293,11 +293,11 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
         fileobj.seek(0, 0)
 
         try:
-            rv = ProjectDSymFile.objects.select_related('file') \
+            rv = ProjectDebugFile.objects.select_related('file') \
                 .get(debug_id=debug_id, project=project)
             if rv.file.checksum == checksum:
                 return rv, False
-        except ProjectDSymFile.DoesNotExist:
+        except ProjectDebugFile.DoesNotExist:
             rv = None
 
         file = File.objects.create(
@@ -318,9 +318,9 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
         if rv is None:
             try:
                 with transaction.atomic():
-                    rv = ProjectDSymFile.objects.create(**kwargs)
+                    rv = ProjectDebugFile.objects.create(**kwargs)
             except IntegrityError:
-                rv = ProjectDSymFile.objects.select_related('file') \
+                rv = ProjectDebugFile.objects.select_related('file') \
                     .get(debug_id=debug_id, project=project)
                 oldfile = rv.file
                 rv.update(**kwargs)
@@ -331,12 +331,12 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
             oldfile.delete()
     else:
         try:
-            rv = ProjectDSymFile.objects.select_related('file') \
+            rv = ProjectDebugFile.objects.select_related('file') \
                 .get(debug_id=debug_id, project=project)
-        except ProjectDSymFile.DoesNotExist:
+        except ProjectDebugFile.DoesNotExist:
             try:
                 with transaction.atomic():
-                    rv = ProjectDSymFile.objects.create(
+                    rv = ProjectDebugFile.objects.create(
                         file=file,
                         debug_id=debug_id,
                         cpu_name=cpu_name,
@@ -344,7 +344,7 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
                         project=project,
                     )
             except IntegrityError:
-                rv = ProjectDSymFile.objects.select_related('file') \
+                rv = ProjectDebugFile.objects.select_related('file') \
                     .get(debug_id=debug_id, project=project)
                 oldfile = rv.file
                 rv.update(file=file)
@@ -405,7 +405,7 @@ def detect_dif_from_path(path):
 
 
 def create_dsym_from_dif(to_create, project, overwrite_filename=None):
-    """Create a ProjectDSymFile from a dif (Debug Information File) and
+    """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
     rv = []
@@ -468,11 +468,11 @@ def create_files_from_dsym_zip(fileobj, project,
 def find_dsym_file(project, debug_id):
     """Finds a dsym file for the given debug id."""
     try:
-        return ProjectDSymFile.objects \
+        return ProjectDebugFile.objects \
             .filter(debug_id=debug_id.lower(), project=project) \
             .select_related('file') \
             .get()
-    except ProjectDSymFile.DoesNotExist:
+    except ProjectDebugFile.DoesNotExist:
         pass
 
 
@@ -543,7 +543,7 @@ class DSymCache(object):
     def _get_symcaches_impl(self, project, debug_ids, on_dsym_file_referenced=None):
         # Fetch dsym files first and invoke the callback if we need
         debug_ids = list(map(six.text_type, debug_ids))
-        debug_files = [x for x in ProjectDSymFile.objects.filter(
+        debug_files = [x for x in ProjectDebugFile.objects.filter(
             project=project,
             debug_id__in=debug_ids,
         ).select_related('file') if x.supports_symcache]
@@ -718,4 +718,4 @@ class DSymCache(object):
                         pass
 
 
-ProjectDSymFile.dsymcache = DSymCache()
+ProjectDebugFile.dsymcache = DSymCache()

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.models import (
     Commit, CommitAuthor, Environment, EnvironmentProject, Event, EventAttachment, File, Group, GroupAssignee, GroupMeta,
     GroupResolution, Project, Release, ReleaseCommit, Repository, ScheduledDeletion,
-    ProjectDSymFile
+    ProjectDebugFile
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -51,7 +51,7 @@ class DeleteProjectTest(TestCase):
             name='dsym-file',
             type='project.dsym',
         )
-        dsym_file = ProjectDSymFile.objects.create(
+        dsym_file = ProjectDebugFile.objects.create(
             file=file,
             debug_id='uuid',
             cpu_name='cpu',
@@ -85,5 +85,5 @@ class DeleteProjectTest(TestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
-        assert not ProjectDSymFile.objects.filter(id=dsym_file.id).exists()
+        assert not ProjectDebugFile.objects.filter(id=dsym_file.id).exists()
         assert not File.objects.filter(id=file.id).exists()

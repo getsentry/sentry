@@ -27,7 +27,7 @@ from uuid import uuid4
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission, EventAttachment
+    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -645,7 +645,7 @@ class Fixtures(object):
         if project is None:
             project = self.project
 
-        return ProjectDSymFile.objects.create(project=project, **kwargs)
+        return ProjectDebugFile.objects.create(project=project, **kwargs)
 
     def add_user_permission(self, user, permission):
         try:

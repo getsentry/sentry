@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.tasks.base import instrumented_task
-from sentry.models import Project, ProjectDSymFile
+from sentry.models import Project, ProjectDebugFile
 
 
 @instrumented_task(
@@ -15,4 +15,4 @@ def symcache_update(project_id, debug_ids, **kwargs):
     except Project.DoesNotExist:
         return
 
-    ProjectDSymFile.dsymcache.update_symcaches(project, debug_ids)
+    ProjectDebugFile.dsymcache.update_symcaches(project, debug_ids)

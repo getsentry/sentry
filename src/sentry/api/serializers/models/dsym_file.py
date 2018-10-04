@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (ProjectDSymFile, VersionDSymFile, DSymApp, DSYM_PLATFORMS_REVERSE)
+from sentry.models import (ProjectDebugFile, VersionDSymFile, DSymApp, DSYM_PLATFORMS_REVERSE)
 
 
-@register(ProjectDSymFile)
-class DSymFileSerializer(Serializer):
+@register(ProjectDebugFile)
+class DebugFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'id': six.text_type(obj.id),

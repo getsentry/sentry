@@ -5,7 +5,7 @@ import six
 from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
-from sentry.models import ProjectDSymFile, EventError
+from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 
 FRAME_CACHE_VERSION = 2
@@ -41,7 +41,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(self.project, self.images)
+        dsym_paths = ProjectDebugFile.dsymcache.fetch_dsyms(self.project, self.images)
         self.mapping_views = []
 
         for debug_id in self.images:
