@@ -8,6 +8,7 @@ from sentry.integrations import (
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
+from sentry.models import User
 from sentry.pipeline import PipelineView
 
 
@@ -61,8 +62,40 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key):
         return u'https://example/issues/{}'.format(key)
 
-    def create_comment(self):
-        pass
+    def create_comment(self, issue_id, user_id, comment):
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        return quoted_comment
+
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
+    def get_create_issue_config(self, group, **kwargs):
+        fields = super(ExampleIntegration, self).get_create_issue_config(group, **kwargs)
+        default = self.get_project_defaults(group.project_id)
+        example_project_field = self.generate_example_project_field(default)
+        return fields + [example_project_field]
+
+    def generate_example_project_field(self, default_fields):
+        project_field = {
+            'name': 'project',
+            'label': 'Project',
+            'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+            'type': 'select',
+        }
+
+        default_project = default_fields.get('project')
+        if default_project is not None:
+            project_field['default'] = default_project
+
+        return project_field
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(ExampleIntegration, self).get_link_issue_config(group, **kwargs)
+        default = self.get_project_defaults(group.project_id)
+        example_project_field = self.generate_example_project_field(default)
+        return fields + [example_project_field]
 
     def create_issue(self, data, **kwargs):
         if 'assignee' not in data:

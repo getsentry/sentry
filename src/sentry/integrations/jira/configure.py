@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from jwt import ExpiredSignatureError
+
 from django import forms
 from django.core.urlresolvers import reverse
 from django.views.generic import View
@@ -48,6 +50,8 @@ class JiraConfigureView(View):
             integration = get_integration_from_request(request, 'jira')
         except AtlassianConnectValidationError:
             return self.get_response({'error_message': 'Unable to verify installation.'})
+        except ExpiredSignatureError:
+            return self.get_response({'refresh_required': True})
 
         if not request.user.is_authenticated():
             return self.get_response({

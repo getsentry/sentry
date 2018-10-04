@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {uniq} from 'lodash';
 
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -13,9 +12,10 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Result from './result';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
-import QueryFields from './sidebar/queryFields';
-import SavedQueries from './sidebar/savedQueries';
+import QueryEdit from './sidebar/queryEdit';
+import SavedQueryList from './sidebar/savedQueryList';
 
+import createResultManager from './resultManager';
 import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
@@ -39,33 +39,33 @@ export default class OrganizationDiscover extends React.Component {
 
   constructor(props) {
     super(props);
+    const resultManager = createResultManager(props.queryBuilder);
     this.state = {
-      data: null,
-      query: null,
-      chartData: null,
-      chartQuery: null,
+      resultManager,
+      data: resultManager.getAll(),
       isFetchingQuery: false,
       view: 'query',
     };
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search, action}} = nextProps;
+    const {queryBuilder, location: {search}} = nextProps;
     const currentSearch = this.props.location.search;
+    const {resultManager} = this.state;
 
-    if (currentSearch === search || action === 'REPLACE') {
+    if (currentSearch === search) {
       return;
     }
 
-    const newQuery = getQueryFromQueryString(search);
-    queryBuilder.reset(newQuery);
-
-    this.setState({
-      data: null,
-      query: null,
-      chartData: null,
-      chartQuery: null,
-    });
+    // Clear data only if location.search is empty (reset has been called)
+    if (!search) {
+      const newQuery = getQueryFromQueryString(search);
+      queryBuilder.reset(newQuery);
+      resultManager.reset();
+      this.setState({
+        data: resultManager.getAll(),
+      });
+    }
   }
 
   updateField = (field, value) => {
@@ -89,6 +89,7 @@ export default class OrganizationDiscover extends React.Component {
 
   runQuery = () => {
     const {queryBuilder, organization} = this.props;
+    const {resultManager} = this.state;
 
     // Track query for analytics
     trackQuery(organization, queryBuilder.getExternal());
@@ -115,56 +116,20 @@ export default class OrganizationDiscover extends React.Component {
 
     clearIndicators();
 
-    // If there are no aggregations, always ensure we fetch event ID and
-    // project ID so we can display the link to event
-    const externalQuery = queryBuilder.getExternal();
-    const queryToFetch =
-      !externalQuery.aggregations.length && externalQuery.fields.length
-        ? {
-            ...externalQuery,
-            fields: uniq([...externalQuery.fields, 'event_id', 'project_id']),
-          }
-        : externalQuery;
-
-    queryBuilder.fetch(queryToFetch).then(
-      data => {
-        const query = queryBuilder.getInternal();
-        const queryCopy = {...query};
-        this.setState({data, query: queryCopy, isFetchingQuery: false});
+    resultManager
+      .fetchAll()
+      .then(data => {
+        this.setState({data, isFetchingQuery: false});
 
         browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/${getQueryStringFromQuery(
-            query
-          )}`,
+          pathname: `/organizations/${organization.slug}/discover/`,
+          search: getQueryStringFromQuery(queryBuilder.getInternal()),
         });
-      },
-      err => {
+      })
+      .catch(err => {
         addErrorMessage(err.message);
-        this.setState({data: null, query: null, isFetchingQuery: false});
-      }
-    );
-
-    // If there are aggregations, get data for chart
-    if (queryBuilder.getInternal().aggregations.length > 0) {
-      const chartQuery = {
-        ...queryBuilder.getExternal(),
-        groupby: ['time'],
-        rollup: 60 * 60 * 24,
-        orderby: 'time',
-        limit: 1000,
-      };
-
-      queryBuilder.fetch(chartQuery).then(
-        chartData => {
-          this.setState({chartData, chartQuery});
-        },
-        () => {
-          this.setState({chartData: null, chartQuery: null});
-        }
-      );
-    } else {
-      this.setState({chartData: null, chartQuery: null});
-    }
+        this.setState({data: null, isFetchingQuery: false});
+      });
   };
 
   renderSidebarNav() {
@@ -192,10 +157,14 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   render() {
-    const {data, query, chartData, chartQuery, isFetchingQuery, view} = this.state;
+    const {data, isFetchingQuery, view, resultManager} = this.state;
     const {queryBuilder, organization} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
+
+    const shouldDisplayResult = resultManager.shouldDisplayResult();
+
+    const projects = organization.projects.filter(project => project.isMember);
 
     return (
       <Discover>
@@ -203,21 +172,21 @@ export default class OrganizationDiscover extends React.Component {
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
           {view === 'query' && (
-            <QueryFields
+            <QueryEdit
               queryBuilder={queryBuilder}
               isFetchingQuery={isFetchingQuery}
-              updateField={this.updateField}
-              runQuery={this.runQuery}
+              onUpdateField={this.updateField}
+              onRunQuery={this.runQuery}
               reset={this.reset}
             />
           )}
-          {view === 'saved' && <SavedQueries organization={organization} />}
+          {view === 'saved' && <SavedQueryList organization={organization} />}
         </Sidebar>
         <Body direction="column" flex="1">
           <TopBar>
             <MultipleProjectSelector
               value={currentQuery.projects}
-              projects={organization.projects}
+              projects={projects}
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
             />
@@ -233,16 +202,8 @@ export default class OrganizationDiscover extends React.Component {
             />
           </TopBar>
           <BodyContent>
-            {data && (
-              <Result
-                flex="1"
-                data={data}
-                query={query}
-                chartData={chartData}
-                chartQuery={chartQuery}
-              />
-            )}
-            {!data && <Intro updateQuery={this.updateFields} />}
+            {shouldDisplayResult && <Result flex="1" data={data} />}
+            {!shouldDisplayResult && <Intro updateQuery={this.updateFields} />}
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>

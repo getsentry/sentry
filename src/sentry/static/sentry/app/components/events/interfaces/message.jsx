@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import DataText from 'app/components/events/meta/dataText';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import utils from 'app/utils';
 import {t} from 'app/locale';
 
 class MessageInterface extends React.Component {
@@ -13,21 +13,21 @@ class MessageInterface extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
+  static defaultProps = {
+    meta: {},
+  };
+
   render() {
-    let data = this.props.data;
+    let {data, group, event} = this.props;
+
     return (
-      <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
-        type="message"
-        title={t('Message')}
-      >
-        <pre
-          className="plain"
-          dangerouslySetInnerHTML={{
-            __html: utils.nl2br(utils.escape(data.formatted || data.message)),
-          }}
-        />
+      <EventDataSection group={group} event={event} type="message" title={t('Message')}>
+        <pre className="plain">
+          <DataText path="formatted">
+            {formatted => formatted || <DataText path="message" />}
+          </DataText>
+        </pre>
+
         {data.params &&
           !data.formatted && (
             <div>

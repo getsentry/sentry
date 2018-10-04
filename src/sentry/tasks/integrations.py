@@ -4,7 +4,8 @@ import logging
 
 from sentry import analytics, features
 from sentry.models import (
-    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization, Repository, User
+    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
+    ObjectStatus, Repository, User
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.mediators.plugins import Migrator
@@ -21,7 +22,7 @@ logger = logging.getLogger('sentry.tasks.integrations')
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def post_comment(external_issue_id, data, **kwargs):
+def post_comment(external_issue_id, data, user_id, **kwargs):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
@@ -36,13 +37,13 @@ def post_comment(external_issue_id, data, **kwargs):
         organization_id=external_issue.organization_id,
     )
     if installation.should_sync('comment'):
-        installation.create_comment(
-            external_issue.key, data['text'])
+        installation.create_comment(external_issue.key, user_id, data['text'])
         analytics.record(
             'integration.issue.comments.synced',
             provider=integration.provider,
             id=integration.id,
             organization_id=external_issue.organization_id,
+            user_id=user_id,
         )
 
 
@@ -189,6 +190,9 @@ def migrate_repo(repo_id, integration_id, organization_id):
 
         repo.integration_id = integration_id
         repo.provider = 'integrations:%s' % (integration.provider,)
+        # check against disabled specifically -- don't want to accidentally un-delete repos
+        if repo.status == ObjectStatus.DISABLED:
+            repo.status = ObjectStatus.VISIBLE
         repo.save()
         logger.info(
             'repo.migrated',

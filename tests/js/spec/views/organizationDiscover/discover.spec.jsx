@@ -25,7 +25,7 @@ describe('Discover', function() {
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
-      expect(wrapper.state().data).toEqual(mockResponse);
+      expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
     it('always requests event_id and project_id for basic queries', async function() {
@@ -38,7 +38,7 @@ describe('Discover', function() {
           fields: ['message', 'event_id', 'project_id'],
         })
       );
-      expect(wrapper.state().data).toEqual(mockResponse);
+      expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
     it('removes incomplete conditions', async function() {
@@ -75,18 +75,18 @@ describe('Discover', function() {
   describe('reset()', function() {
     let wrapper, queryBuilder;
     beforeEach(function() {
-      browserHistory.push.mockImplementation(function(url) {
+      const mockResponse = {timing: {}, data: [], meta: []};
+      browserHistory.push.mockImplementation(function({search}) {
         wrapper.setProps({
           location: {
-            search: url.pathname.replace('/organizations/org-slug/discover/', ''),
-            action: 'PUSH',
+            search: search || '',
           },
         });
       });
 
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       queryBuilder = createQueryBuilder({}, organization);
-      queryBuilder.fetch = jest.fn(() => Promise.resolve());
+      queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
       queryBuilder.reset = jest.fn(queryBuilder.reset);
 
       wrapper = mount(
@@ -109,11 +109,11 @@ describe('Discover', function() {
     it('resets query builder and state', function() {
       wrapper.instance().reset();
       expect(queryBuilder.reset).toHaveBeenCalled();
-      const {data, query, chartData, chartQuery} = wrapper.instance().state;
-      expect(data).toBeNull();
-      expect(query).toBeNull();
-      expect(chartData).toBeNull();
-      expect(chartQuery).toBeNull();
+      const {data: {baseQuery, byDayQuery}} = wrapper.instance().state;
+      expect(baseQuery.query).toBeNull();
+      expect(baseQuery.data).toBeNull();
+      expect(byDayQuery.query).toBeNull();
+      expect(byDayQuery.data).toBeNull();
     });
 
     it('resets "fields"', function() {
@@ -137,12 +137,11 @@ describe('Discover', function() {
       expect(wrapper.find('NumberField[name="limit"]').prop('value')).toBe(1000);
     });
 
-    it('does not reset on location replace', function() {
+    it('does not reset if location.search is empty', function() {
       const prevCallCount = queryBuilder.reset.mock.calls.length;
       wrapper.setProps({
         location: {
           search: '?fields=[]',
-          action: 'REPLACE',
         },
       });
       expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount);

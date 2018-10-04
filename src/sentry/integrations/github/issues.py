@@ -50,6 +50,15 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
+
+        # If a repo has been selected outside of the default 100-limit list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
+
         assignees = self.get_allowed_assignees(default_repo)
 
         org = group.organization
@@ -63,7 +72,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'defaultLabel': default_repo.split('/')[1],
+                'choices': repo_choices,
                 'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
@@ -117,6 +126,14 @@ class GitHubIssueBasic(IssueBasicMixin):
         params = kwargs.get('params', {})
         default_repo = params.get('repo', repo_choices[0][0])
 
+        # If a repo has been selected outside of the default 100-limit list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
+
         org = group.organization
         autocomplete_url = reverse(
             'sentry-extensions-github-search', args=[org.slug, self.model.id],
@@ -128,7 +145,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'defaultLabel': default_repo.split('/')[1],
+                'choices': repo_choices,
                 'url': autocomplete_url,
                 'required': True,
                 'updatesForm': True,

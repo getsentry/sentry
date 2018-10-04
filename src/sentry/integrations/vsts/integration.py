@@ -10,7 +10,7 @@ from sentry import http, features
 from sentry.constants import ObjectStatus
 from sentry.models import (
     Integration as IntegrationModel, IntegrationExternalProject, Organization,
-    OrganizationIntegration,
+    OrganizationIntegration, User
 )
 from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription
 from sentry.integrations.exceptions import ApiError, IntegrationError
@@ -77,9 +77,11 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+logger = logging.getLogger('sentry.integrations')
+
 
 class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
-    logger = logging.getLogger('sentry.integrations')
+    logger = logger
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
     inbound_status_key = 'sync_status_reverse'
@@ -284,8 +286,14 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         except KeyError:
             return None
 
-    def create_comment(self, issue_id, comment):
-        self.get_client().update_work_item(self.instance, issue_id, comment=comment)
+    def create_comment(self, issue_id, user_id, comment):
+        # VSTS uses markdown or xml
+        # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
 
 class VstsIntegrationProvider(IntegrationProvider):
@@ -313,7 +321,8 @@ class VstsIntegrationProvider(IntegrationProvider):
     def post_install(self, integration, organization):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
-            provider='visualstudio',
+            provider__in=['visualstudio', 'integrations:vsts'],
+            integration_id__isnull=True,
         ).values_list('id', flat=True)
 
         for repo_id in repo_ids:
@@ -453,7 +462,17 @@ class AccountConfigView(PipelineView):
         access_token = state['data']['access_token']
         user = get_user_info(access_token)
 
-        accounts = self.get_accounts(access_token, user['uuid'])['value']
+        accounts = self.get_accounts(access_token, user['uuid'])
+        logger.info(
+            'vsts.get_accounts',
+            extra={
+                'organization_id': pipeline.organization.id,
+                'user_id': request.user.id,
+                'accounts': accounts,
+            }
+
+        )
+        accounts = accounts['value']
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(

@@ -188,6 +188,25 @@ class EventAttributeConditionTest(RuleTestCase):
         })
         self.assertDoesNotPass(rule, event)
 
+    def test_compares_case_insensitive(self):
+        event = self.get_event()
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'PRODUCTION',
+        })
+        self.assertPasses(rule, event)
+
+    def test_compare_int_value(self):
+        event = self.get_event()
+        event.data['extra']['number'] = 1
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.number',
+            'value': '1',
+        })
+        self.assertPasses(rule, event)
+
     def test_http_method(self):
         event = self.get_event()
         rule = self.get_rule(data={

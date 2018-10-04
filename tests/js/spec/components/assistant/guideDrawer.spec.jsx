@@ -1,6 +1,7 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
 import {GuideDrawer} from 'app/components/assistant/guideDrawer';
+import {shallow} from 'enzyme';
 
 describe('GuideDrawer', function() {
   let guides = [
@@ -29,6 +30,7 @@ describe('GuideDrawer', function() {
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/assistant/',
+      body: guides,
     });
     closeMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -57,12 +59,12 @@ describe('GuideDrawer', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders tip', function() {
+  it('renders tip', async function() {
     component.onGuideStateChange({
       currentGuide: guides[1],
       currentStep: 1,
       project: {id: '10', slug: 'testproj'},
-      projectStats: {10: 56},
+      projectStats: new Map([[10, 56]]),
       org: {slug: 'testorg'},
     });
     wrapper.update();

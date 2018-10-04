@@ -153,6 +153,50 @@ class GitHubIssueBasicTest(TestCase):
 
     @responses.activate
     @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def test_repo_dropdown_choices(self, mock_get_jwt):
+        group = self.create_group()
+        self.create_event(group)
+
+        responses.add(
+            responses.POST,
+            'https://api.github.com/installations/github_external_id/access_tokens',
+            json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
+        )
+
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/sentry/assignees',
+            json=[{'login': 'MeredithAnya'}]
+        )
+
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={'repositories': [{'full_name': 'getsentry/sentry', 'name': 'sentry'}]}
+        )
+
+        resp = self.integration.get_create_issue_config(group=self.group)
+        assert resp[0]['choices'] == [(u'getsentry/sentry', u'sentry')]
+
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/hello/assignees',
+            json=[{'login': 'MeredithAnya'}]
+        )
+
+        # create an issue
+        data = {'params': {'repo': 'getsentry/hello'}}
+        resp = self.integration.get_create_issue_config(group=self.group, **data)
+        assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
+                                      (u'getsentry/sentry', u'sentry')]
+        # link an issue
+        data = {'params': {'repo': 'getsentry/hello'}}
+        resp = self.integration.get_link_issue_config(group=self.group, **data)
+        assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
+                                      (u'getsentry/sentry', u'sentry')]
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
     def after_link_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,

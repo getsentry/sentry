@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from django.db import transaction
 
-from sentry import tagstore
+from sentry import eventstream, tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import (
@@ -211,6 +211,8 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
     event_id_set = set(event.id for event in events)
+
+    eventstream.unmerge(project.id, destination_id, [event.event_id for event in events])
 
     Event.objects.filter(
         project_id=project.id,

@@ -490,6 +490,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
                                                 },
+                                                "diff": Object {
+                                                  "added": "#d8f0e4",
+                                                  "addedRow": "#f5fbf8",
+                                                  "removed": "#f7ceca",
+                                                  "removedRow": "#fcefee",
+                                                },
                                                 "disabled": "#ced3d6",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -546,6 +552,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "width": "320px",
                                                   },
                                                   "smallBadgeSize": "11px",
+                                                },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
                                                 },
                                                 "success": "#57be8c",
                                                 "text": Object {
@@ -735,6 +751,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
                                                         },
+                                                        "diff": Object {
+                                                          "added": "#d8f0e4",
+                                                          "addedRow": "#f5fbf8",
+                                                          "removed": "#f7ceca",
+                                                          "removedRow": "#fcefee",
+                                                        },
                                                         "disabled": "#ced3d6",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -791,6 +813,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {
@@ -1805,6 +1837,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
                                                 },
+                                                "diff": Object {
+                                                  "added": "#d8f0e4",
+                                                  "addedRow": "#f5fbf8",
+                                                  "removed": "#f7ceca",
+                                                  "removedRow": "#fcefee",
+                                                },
                                                 "disabled": "#ced3d6",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -1861,6 +1899,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "width": "320px",
                                                   },
                                                   "smallBadgeSize": "11px",
+                                                },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
                                                 },
                                                 "success": "#57be8c",
                                                 "text": Object {
@@ -2050,6 +2098,12 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
                                                         },
+                                                        "diff": Object {
+                                                          "added": "#d8f0e4",
+                                                          "addedRow": "#f5fbf8",
+                                                          "removed": "#f7ceca",
+                                                          "removedRow": "#fcefee",
+                                                        },
                                                         "disabled": "#ced3d6",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -2106,6 +2160,16 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {
@@ -3253,6 +3317,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
                                                 },
+                                                "diff": Object {
+                                                  "added": "#d8f0e4",
+                                                  "addedRow": "#f5fbf8",
+                                                  "removed": "#f7ceca",
+                                                  "removedRow": "#fcefee",
+                                                },
                                                 "disabled": "#ced3d6",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -3309,6 +3379,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "width": "320px",
                                                   },
                                                   "smallBadgeSize": "11px",
+                                                },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
                                                 },
                                                 "success": "#57be8c",
                                                 "text": Object {
@@ -3498,6 +3578,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
                                                         },
+                                                        "diff": Object {
+                                                          "added": "#d8f0e4",
+                                                          "addedRow": "#f5fbf8",
+                                                          "removed": "#f7ceca",
+                                                          "removedRow": "#fcefee",
+                                                        },
                                                         "disabled": "#ced3d6",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -3554,6 +3640,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {
@@ -3970,6 +4066,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
                                                 },
+                                                "diff": Object {
+                                                  "added": "#d8f0e4",
+                                                  "addedRow": "#f5fbf8",
+                                                  "removed": "#f7ceca",
+                                                  "removedRow": "#fcefee",
+                                                },
                                                 "disabled": "#ced3d6",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -4026,6 +4128,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "width": "320px",
                                                   },
                                                   "smallBadgeSize": "11px",
+                                                },
+                                                "similarity": Object {
+                                                  "colors": Array [
+                                                    "#ec5e44",
+                                                    "#f38259",
+                                                    "#f9a66d",
+                                                    "#98b480",
+                                                    "#57be8c",
+                                                  ],
+                                                  "empty": "#e2dee6",
                                                 },
                                                 "success": "#57be8c",
                                                 "text": Object {
@@ -4215,6 +4327,12 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
                                                         },
+                                                        "diff": Object {
+                                                          "added": "#d8f0e4",
+                                                          "addedRow": "#f5fbf8",
+                                                          "removed": "#f7ceca",
+                                                          "removedRow": "#fcefee",
+                                                        },
                                                         "disabled": "#ced3d6",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
@@ -4271,6 +4389,16 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "width": "320px",
                                                           },
                                                           "smallBadgeSize": "11px",
+                                                        },
+                                                        "similarity": Object {
+                                                          "colors": Array [
+                                                            "#ec5e44",
+                                                            "#f38259",
+                                                            "#f9a66d",
+                                                            "#98b480",
+                                                            "#57be8c",
+                                                          ],
+                                                          "empty": "#e2dee6",
                                                         },
                                                         "success": "#57be8c",
                                                         "text": Object {

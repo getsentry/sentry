@@ -32,6 +32,7 @@ import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import GenericInterface from 'app/components/events/interfaces/generic';
 import ThreadsInterface from 'app/components/events/interfaces/threads';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
+import DataGroup from 'app/components/events/meta/dataGroup';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -112,20 +113,23 @@ const EventEntries = createReactClass({
             console.error('Unregistered interface: ' + entry.type);
           return null;
         }
+
         return (
-          <Component
-            key={'entry-' + entryIdx}
-            group={group}
-            event={event}
-            type={entry.type}
-            data={entry.data}
-            isShare={isShare}
-          />
+          <DataGroup key={entry.type} path={['entries', entryIdx, 'data']}>
+            <Component
+              group={group}
+              event={event}
+              type={entry.type}
+              data={entry.data}
+              isShare={isShare}
+            />
+          </DataGroup>
         );
       } catch (ex) {
         logException(ex);
         return (
           <EventDataSection
+            key={entry.type}
             group={group}
             event={event}
             type={entry.type}
@@ -156,56 +160,58 @@ const EventEntries = createReactClass({
     }
 
     return (
-      <div className="entries">
-        {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} />
-        )}{' '}
-        {!isShare &&
-          features.has('suggested-commits') && (
-            <EventCause event={event} orgId={orgId} projectId={project.slug} />
-          )}
-        {event.userReport && (
-          <EventUserFeedback
-            report={event.userReport}
-            orgId={orgId}
-            projectId={project.slug}
-            issueId={group.id}
-          />
-        )}
-        {hasContext && <EventContextSummary group={group} event={event} />}
-        <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
-        {this.renderEntries()}
-        {hasContext && <EventContexts group={group} event={event} />}
-        {!utils.objectIsEmpty(event.context) && (
-          <EventExtraData group={group} event={event} />
-        )}
-        {!utils.objectIsEmpty(event.packages) && (
-          <EventPackageData group={group} event={event} />
-        )}
-        {!utils.objectIsEmpty(event.device) && (
-          <EventDevice group={group} event={event} />
-        )}
-        {!isShare &&
-          features.has('event-attachments') && (
-            <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
-          )}
-        {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
-        {!utils.objectIsEmpty(event.sdk) &&
-          event.sdk.upstream.isNewer && (
-            <div className="alert-block alert-info box">
-              <span className="icon-exclamation" />
-              {t(
-                'This event was reported with an old version of the %s SDK.',
-                event.platform
-              )}
-              {event.sdk.upstream.url && (
-                <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
-                  {t('Learn More')}
-                </a>
-              )}
-            </div>
+      <DataGroup data={event} meta={event._meta}>
+        <div className="entries">
+          {!utils.objectIsEmpty(event.errors) && (
+            <EventErrors group={group} event={event} />
           )}{' '}
-      </div>
+          {!isShare &&
+            features.has('suggested-commits') && (
+              <EventCause event={event} orgId={orgId} projectId={project.slug} />
+            )}
+          {event.userReport && (
+            <EventUserFeedback
+              report={event.userReport}
+              orgId={orgId}
+              projectId={project.slug}
+              issueId={group.id}
+            />
+          )}
+          {hasContext && <EventContextSummary group={group} event={event} />}
+          <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
+          {this.renderEntries()}
+          {hasContext && <EventContexts group={group} event={event} />}
+          {!utils.objectIsEmpty(event.context) && (
+            <EventExtraData group={group} event={event} />
+          )}
+          {!utils.objectIsEmpty(event.packages) && (
+            <EventPackageData group={group} event={event} />
+          )}
+          {!utils.objectIsEmpty(event.device) && (
+            <EventDevice group={group} event={event} />
+          )}
+          {!isShare &&
+            features.has('event-attachments') && (
+              <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+            )}
+          {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
+          {!utils.objectIsEmpty(event.sdk) &&
+            event.sdk.upstream.isNewer && (
+              <div className="alert-block alert-info box">
+                <span className="icon-exclamation" />
+                {t(
+                  'This event was reported with an old version of the %s SDK.',
+                  event.platform
+                )}
+                {event.sdk.upstream.url && (
+                  <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
+                    {t('Learn More')}
+                  </a>
+                )}
+              </div>
+            )}{' '}
+        </div>
+      </DataGroup>
     );
   },
 });

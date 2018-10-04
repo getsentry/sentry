@@ -882,16 +882,19 @@ table.integrations {
 * ============================================================================
 */
 .inbound-filters-stats {
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       &.filtered {
         background: @gray-lightest;
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       &.filtered {
         background: @gray-light;
       }
@@ -1147,45 +1150,54 @@ table.integrations {
     margin-bottom: 20px;
     position: relative;
 
-    a {
+    a,
+    g {
       height: 90px;
       position: relative;
       cursor: default;
 
-      span {
+      span,
+      rect {
         display: block;
         min-height: 2px;
 
         &.accepted {
           background: @gray-lightest;
+          fill: @gray-lightest;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red;
+          fill: @red;
           min-height: 0;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-light;
+          fill: @orange-light;
           min-height: 0;
         }
       }
 
-      &:hover span {
+      &:hover span,
+      &:hover rect {
         &.accepted {
           background: @gray-light;
+          fill: @gray-light;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red-dark;
+          fill: @red-dark;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-dark;
+          fill: @orange-dark;
         }
       }
     }
@@ -2667,6 +2679,9 @@ ul.tag-list {
       content: '\e602';
     }
     &.python-rq .platformicon:before {
+      content: '\e602';
+    }
+    &.python-sanic .platformicon:before {
       content: '\e602';
     }
 

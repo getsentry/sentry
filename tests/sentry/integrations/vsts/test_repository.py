@@ -84,7 +84,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         }]
 
     @responses.activate
-    def test_create_repository(self):
+    def test_build_repository_config(self):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='vsts',
@@ -102,7 +102,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             'project': 'MyFirstProject',
             'installation': integration.id,
         }
-        data = self.provider.create_repository(organization, data)
+        data = self.provider.build_repository_config(organization, data)
 
         assert data == {
             'name': 'MyFirstProject',

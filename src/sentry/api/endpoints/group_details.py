@@ -8,7 +8,7 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb, tagstore
+from sentry import eventstream, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -391,6 +391,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         ]).update(status=GroupStatus.PENDING_DELETION)
         if updated:
             project = group.project
+
+            eventstream.delete_groups(group.project_id, [group.id])
+
             GroupHashTombstone.tombstone_groups(
                 project_id=project.id,
                 group_ids=[group.id],

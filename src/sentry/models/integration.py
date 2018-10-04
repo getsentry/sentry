@@ -105,11 +105,6 @@ class Integration(Model):
 
         Returns False if the OrganizationIntegration was not created
         """
-        # TODO(adhiraj): Remove when callsites in sentry-plugins are updated.
-        if isinstance(organization, int):
-            from sentry.models import Organization
-            organization = Organization.objects.get(id=organization)
-
         try:
             with transaction.atomic():
                 integration = OrganizationIntegration.objects.create(
