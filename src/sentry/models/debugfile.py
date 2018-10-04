@@ -237,6 +237,19 @@ class ProjectDebugFile(Model):
         return KNOWN_DIF_TYPES.get(ct, 'unknown')
 
     @property
+    def file_extension(self):
+        if self.dif_type == 'breakpad':
+            return '.sym'
+        if self.dif_type == 'macho':
+            return '.dSYM'
+        if self.dif_type == 'proguard':
+            return '.txt'
+        if self.dif_type == 'elf':
+            return '.debug'
+
+        return ''
+
+    @property
     def supports_symcache(self):
         return self.dif_type in ('breakpad', 'macho', 'elf')
 

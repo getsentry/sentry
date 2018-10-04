@@ -81,10 +81,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
-        suffix = ".dSYM"
-        if debug_file.dif_type == 'proguard' and debug_file.object_name == 'proguard-mapping':
-            suffix = ".txt"
-
         try:
             fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
@@ -94,7 +90,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             response['Content-Length'] = debug_file.file.size
             response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
                 debug_file.debug_id
-            ), suffix)
+            ), debug_file.file_extension)
             return response
         except IOError:
             raise Http404
