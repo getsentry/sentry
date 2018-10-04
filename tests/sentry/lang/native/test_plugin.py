@@ -12,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
-from sentry.models import Event, EventAttachment, File, ProjectDSymFile
+from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
 from symbolic import parse_addr, Object, SymbolicError
 
@@ -1233,7 +1233,7 @@ class RealResolvingIntegrationTest(TestCase):
         with open(path) as f:
             file.putfile(f)
 
-        ProjectDSymFile.objects.create(
+        ProjectDebugFile.objects.create(
             file=file,
             object_name='crash.pdb',
             cpu_name='x86',

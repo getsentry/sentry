@@ -9,7 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, TestCase
-from sentry.models import File, ProjectDSymFile, ProjectSymCacheFile
+from sentry.models import File, ProjectDebugFile, ProjectSymCacheFile
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -22,7 +22,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 '''
 
 
-class DSymFilesClearTest(APITestCase):
+class DebugFilesClearTest(APITestCase):
     def test_simple_cache_clear(self):
         project = self.create_project(name='foo')
 
@@ -61,26 +61,26 @@ class DSymFilesClearTest(APITestCase):
         assert response.data[0]['cpuName'] == 'any'
         assert response.data[0]['symbolType'] == 'proguard'
 
-        dsyms = ProjectDSymFile.dsymcache.fetch_dsyms(
+        difs = ProjectDebugFile.difcache.fetch_difs(
             project=project,
             debug_ids=[PROGUARD_UUID])
-        assert len(dsyms) == 1
-        assert os.path.isfile(dsyms[PROGUARD_UUID])
+        assert len(difs) == 1
+        assert os.path.isfile(difs[PROGUARD_UUID])
 
         # if we clear now, nothing happens
-        ProjectDSymFile.dsymcache.clear_old_entries()
-        assert os.path.isfile(dsyms[PROGUARD_UUID])
+        ProjectDebugFile.difcache.clear_old_entries()
+        assert os.path.isfile(difs[PROGUARD_UUID])
 
         # Put the time into the future
         real_time = time.time
         time.time = lambda: real_time() + 60 * 60 * 48
         try:
-            ProjectDSymFile.dsymcache.clear_old_entries()
+            ProjectDebugFile.difcache.clear_old_entries()
         finally:
             time.time = real_time
 
         # But it's gone now
-        assert not os.path.isfile(dsyms[PROGUARD_UUID])
+        assert not os.path.isfile(difs[PROGUARD_UUID])
 
 
 class SymCacheTest(TestCase):
@@ -96,7 +96,7 @@ class SymCacheTest(TestCase):
             file.putfile(f)
 
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
-        ProjectDSymFile.objects.create(
+        ProjectDebugFile.objects.create(
             file=file,
             object_name='crash.dSYM',
             cpu_name='x86',
@@ -104,7 +104,7 @@ class SymCacheTest(TestCase):
             debug_id=debug_id,
         )
 
-        symcaches = ProjectDSymFile.dsymcache.get_symcaches(self.project, [debug_id])
+        symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         symcache = symcaches['67e9247c-814e-392b-a027-dbde6748fcbf']
 
         assert symcache.id == debug_id
@@ -122,7 +122,7 @@ class SymCacheTest(TestCase):
             file.putfile(f)
 
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
-        debug_file = ProjectDSymFile.objects.create(
+        debug_file = ProjectDebugFile.objects.create(
             file=file,
             object_name='crash.dSYM',
             cpu_name='x86',
@@ -148,7 +148,7 @@ class SymCacheTest(TestCase):
             version=1,
         )
 
-        symcaches = ProjectDSymFile.dsymcache.get_symcaches(self.project, [debug_id])
+        symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
         symcache = symcaches['67e9247c-814e-392b-a027-dbde6748fcbf']
 
         assert symcache.id == debug_id

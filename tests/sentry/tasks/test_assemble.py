@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif
 from sentry.models import FileBlob
 from sentry.models.file import ChunkFileState
-from sentry.models.dsymfile import get_assemble_status, ProjectDSymFile
+from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
 
 
 class AssembleTest(TestCase):
@@ -61,7 +61,7 @@ class AssembleTest(TestCase):
             chunks=[blob1.checksum],
         )
 
-        dif = ProjectDSymFile.objects.filter(
+        dif = ProjectDebugFile.objects.filter(
             project=self.project,
             file__checksum=total_checksum,
         ).get()

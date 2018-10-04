@@ -20,7 +20,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 '''
 
 
-class DSymFilesUploadTest(APITestCase):
+class DebugFilesUploadTest(APITestCase):
     def test_simple_proguard_upload(self):
         project = self.create_project(name='foo')
 
