@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import DataText from 'app/components/events/meta/dataText';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -13,15 +14,16 @@ class MessageInterface extends React.Component {
   };
 
   render() {
-    let data = this.props.data;
+    let {data, group, event} = this.props;
+
     return (
-      <EventDataSection
-        group={this.props.group}
-        event={this.props.event}
-        type="message"
-        title={t('Message')}
-      >
-        <pre className="plain">{data.formatted || data.message}</pre>
+      <EventDataSection group={group} event={event} type="message" title={t('Message')}>
+        <pre className="plain">
+          <DataText object={data} prop="formatted">
+            {formatted => formatted || <DataText object={data} prop="message" />}
+          </DataText>
+        </pre>
+
         {data.params &&
           !data.formatted && (
             <div>
