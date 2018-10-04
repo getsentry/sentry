@@ -60,9 +60,7 @@ class KafkaEventStream(EventStream):
         if error is not None:
             logger.warning('Could not publish message (error: %s): %r', error, message)
 
-    def _send(self, project_id, _type, extra_data=()):
-        assert isinstance(extra_data, tuple)
-
+    def _send(self, project_id, _type, extra_data=(), asynchronous=True):
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
         # to be delivered) and the corresponding callback being fired is
@@ -71,8 +69,11 @@ class KafkaEventStream(EventStream):
         # into a background thread that can poll more frequently without
         # interfering with request handling. (This does `poll` does not act as
         # a heartbeat for the purposes of any sort of session expiration.)
+        # Note that this call to poll() is *only* dealing with earlier
+        # asynchronous produce() calls from the same process.
         self.producer.poll(0.0)
 
+        assert isinstance(extra_data, tuple)
         key = six.text_type(project_id)
 
         try:
@@ -87,6 +88,10 @@ class KafkaEventStream(EventStream):
         except Exception as error:
             logger.warning('Could not publish message: %s', error, exc_info=True)
             raise
+
+        if not asynchronous:
+            # flush() is a convenience method that calls poll() until len() is zero
+            self.producer.flush()
 
     def insert(self, group, event, is_new, is_sample, is_regression,
                is_new_group_environment, primary_hash, skip_consume=False):
@@ -122,7 +127,7 @@ class KafkaEventStream(EventStream):
             'new_group_id': new_group_id,
             'event_ids': event_ids,
             'datetime': datetime.now(tz=pytz.utc),
-        },))
+        },), asynchronous=False)
 
     def delete_groups(self, project_id, group_ids):
         if not group_ids:
@@ -132,7 +137,7 @@ class KafkaEventStream(EventStream):
             'project_id': project_id,
             'group_ids': group_ids,
             'datetime': datetime.now(tz=pytz.utc),
-        },))
+        },), asynchronous=False)
 
     def merge(self, project_id, previous_group_id, new_group_id):
         self._send(project_id, 'merge', extra_data=({
@@ -140,4 +145,4 @@ class KafkaEventStream(EventStream):
             'previous_group_id': previous_group_id,
             'new_group_id': new_group_id,
             'datetime': datetime.now(tz=pytz.utc),
-        },))
+        },), asynchronous=False)
