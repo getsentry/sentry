@@ -685,6 +685,7 @@ export const EChartsGrid = PropTypes.shape({
 export const EChartsLegend = PropTypes.shape({
   // Show legend on chart
   show: PropTypes.bool,
+  truncate: PropTypes.oneOfType([PropTypes.bool, PropTypes.number]),
 });
 
 export const SeriesUnit = PropTypes.shape({
