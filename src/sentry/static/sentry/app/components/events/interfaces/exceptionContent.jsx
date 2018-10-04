@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {defined} from 'app/utils';
 
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import {defined} from 'app/utils';
+import DataText from 'app/components/events/meta/dataText';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
+import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 
 class ExceptionContent extends React.Component {
   static propTypes = {
@@ -23,11 +24,15 @@ class ExceptionContent extends React.Component {
           <h5 className="break-word" style={{marginBottom: 5}}>
             <span>{exc.type}</span>
           </h5>
-          {exc.value && (
-            <pre className="exc-message" style={{marginTop: 0}}>
-              {exc.value}
-            </pre>
-          )}
+
+          <DataText object={exc} prop="value" required>
+            {value => (
+              <pre className="exc-message" style={{marginTop: 0}}>
+                {value}
+              </pre>
+            )}
+          </DataText>
+
           {exc.mechanism && (
             <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />
           )}

@@ -1,14 +1,13 @@
-import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import DataField from 'app/components/events/meta/dataField';
-import pathShape from 'app/components/events/meta/pathShape';
+import MetaData from 'app/components/events/meta/metaData';
 
-function DataText({children, path, required, ...other}) {
+// TODO: Rename this to maybe Annotated?
+function DataText({children, object, prop, required, ...other}) {
   return (
-    <DataField path={path} required={required}>
+    <MetaData object={object} prop={prop} required={required}>
       {(value, meta) => {
         if (meta) {
           value = (
@@ -20,25 +19,23 @@ function DataText({children, path, required, ...other}) {
               props={other}
             />
           );
-        } else if (!_.isNil(value) && !_.isEmpty(other)) {
-          value = <span {...other}>{value}</span>;
         }
 
         return children(value);
       }}
-    </DataField>
+    </MetaData>
   );
 }
 
 DataText.propTypes = {
-  children: PropTypes.func,
-  path: pathShape,
+  object: PropTypes.object.isRequired,
+  prop: PropTypes.string.isRequired,
   required: PropTypes.bool,
+  children: PropTypes.func,
 };
 
 DataText.defaultProps = {
   children: value => value,
-  path: [],
   required: false,
 };
 

@@ -1,165 +1,158 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
-import Annotated from 'app/components/events/meta/annotated';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
-import DataContext from 'app/components/events/meta/dataContext';
 import DataText from 'app/components/events/meta/dataText';
-
-jest.mock('app/components/events/meta/dataContext', () => {
-  let context = null;
-
-  return {
-    Consumer({children}) {
-      return children(context);
-    },
-    setContext(next) {
-      context = next;
-    },
-  };
-});
-
-function dive(wrapper, context) {
-  DataContext.setContext(context);
-  return (
-    wrapper
-      // 1st dive is to render DataField in DataText
-      .dive()
-      // 2nd dive is to render DataContext.Consumer  in DataField
-      .dive()
-  );
-}
+import {decorateEvent} from 'app/components/events/meta/metaProxy';
 
 describe('DataText', () => {
+  let mock = jest.fn(() => null);
+
+  const createEvent = (value, {err, rem, chunks} = {}) => {
+    return decorateEvent({
+      value,
+      _meta: {
+        value: {
+          '': {
+            err: err || [],
+            rem: rem || [],
+            chunks: chunks || [],
+          },
+        },
+      },
+    });
+  };
+
+  beforeEach(function() {
+    mock.mockClear();
+  });
+
   describe('without meta', () => {
     it('renders a string', () => {
-      let wrapper = dive(shallow(<DataText />), new Annotated('foo', null));
-      expect(wrapper.matchesElement('foo')).toBeTruthy();
+      let obj = {
+        value: 'foo',
+      };
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
+      );
+      expect(mock).toHaveBeenCalledWith('foo');
     });
 
     it('renders a number', () => {
-      let wrapper = dive(shallow(<DataText />), new Annotated(0, null));
-      expect(wrapper.matchesElement(0)).toBeTruthy();
+      let obj = {
+        value: 0,
+      };
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
+      );
+      expect(mock).toHaveBeenCalledWith(0);
     });
 
     it('renders a boolean', () => {
-      let wrapper = dive(shallow(<DataText />), new Annotated(false, null));
-      expect(wrapper.matchesElement(false)).toBeTruthy();
-    });
-
-    it('wraps the content with props', () => {
-      let wrapper = dive(shallow(<DataText id="id" />), new Annotated('foo', null));
-      expect(wrapper.matchesElement(<span id="id">foo</span>)).toBeTruthy();
+      let obj = {
+        value: false,
+      };
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
+      );
+      expect(mock).toHaveBeenCalledWith(false);
     });
 
     it('ignores empty meta data', () => {
-      let meta = {
-        err: [],
-        rem: [],
-        chunks: [],
-      };
+      let obj = decorateEvent({
+        value: 'foo',
+        _meta: {
+          value: {
+            '': {
+              err: [],
+              rem: [],
+              chunks: [],
+            },
+          },
+        },
+      });
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
+      );
+      expect(mock).toHaveBeenCalledWith('foo');
+    });
 
-      let wrapper = dive(shallow(<DataText />), new Annotated('foo', {'': meta}));
-      expect(wrapper.matchesElement('foo')).toBeTruthy();
+    it('does not call render prop if required and value is falsy and no meta', () => {
+      let obj = createEvent(null, {});
+
+      mount(
+        <DataText object={obj} prop="value" required>
+          {mock}
+        </DataText>
+      );
+
+      expect(mock).not.toHaveBeenCalled();
     });
   });
 
   describe('with meta', () => {
     it('annotates errors', () => {
-      let meta = {
-        err: ['something'],
-        rem: [],
-        chunks: [],
-      };
+      let obj = createEvent('foo', {err: ['something']});
 
-      let wrapper = dive(shallow(<DataText />), new Annotated('foo', {'': meta}));
-      expect(
-        wrapper.matchesElement(
-          <AnnotatedText
-            value="foo"
-            chunks={[]}
-            remarks={[]}
-            errors={['something']}
-            props={{}}
-          />
-        )
-      ).toBeTruthy();
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
+      );
+
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: 'foo',
+          chunks: [],
+          remarks: [],
+          errors: ['something'],
+        })
+      );
     });
 
     it('annotates remarks and chunks', () => {
-      let meta = {
-        err: [],
-        rem: [{type: 't'}],
-        chunks: [{text: 'foo'}],
-      };
+      let obj = createEvent('foo', {rem: [{type: 't'}], chunks: [{text: 'foo'}]});
 
-      let wrapper = dive(shallow(<DataText />), new Annotated('foo', {'': meta}));
-      expect(
-        wrapper.matchesElement(
-          <AnnotatedText
-            value="foo"
-            chunks={[{text: 'foo'}]}
-            remarks={[{type: 't'}]}
-            errors={[]}
-            props={{}}
-          />
-        )
-      ).toBeTruthy();
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
+      );
+
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: 'foo',
+          remarks: [{type: 't'}],
+          chunks: [{text: 'foo'}],
+          errors: [],
+        })
+      );
     });
 
     it('annotates redacted text', () => {
-      let meta = {
-        err: ['something'],
-        rem: [],
-        chunks: [],
-      };
+      let obj = createEvent(null, {err: ['something']});
 
-      let wrapper = dive(shallow(<DataText />), new Annotated(null, {'': meta}));
-      expect(
-        wrapper.matchesElement(
-          <AnnotatedText
-            value={null}
-            chunks={[]}
-            remarks={[]}
-            errors={['something']}
-            props={{}}
-          />
-        )
-      ).toBeTruthy();
-    });
-
-    it('passes props explicitly', () => {
-      let meta = {
-        err: ['something'],
-        rem: [],
-        chunks: [],
-      };
-
-      let wrapper = dive(
-        shallow(<DataText id="bar" />),
-        new Annotated('foo', {'': meta})
+      mount(
+        <DataText object={obj} prop="value">
+          {mock}
+        </DataText>
       );
 
-      expect(
-        wrapper.matchesElement(
-          <AnnotatedText
-            value="foo"
-            chunks={[]}
-            remarks={[]}
-            errors={['something']}
-            props={{id: 'bar'}}
-          />
-        )
-      ).toBeTruthy();
+      expect(mock.mock.calls[0][0].props).toEqual(
+        expect.objectContaining({
+          value: null,
+          chunks: [],
+          remarks: [],
+          errors: ['something'],
+        })
+      );
     });
-  });
-
-  it('applies the callback', () => {
-    let wrapper = dive(
-      shallow(<DataText>{value => <span id="test" />}</DataText>),
-      new Annotated('foo', null)
-    );
-
-    expect(wrapper.matchesElement(<span id="test" />)).toBeTruthy();
   });
 });
