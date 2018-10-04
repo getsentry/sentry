@@ -68,7 +68,7 @@ export default class OrganizationDiscover extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     if (this.props.savedQuery) {
       this.runQuery();
     }
@@ -177,7 +177,7 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   reset = () => {
-    const {savedQuery, queryBuilder} = this.props;
+    const {savedQuery, queryBuilder, organization} = this.props;
     if (savedQuery) {
       queryBuilder.reset(savedQuery);
       this.setState({
@@ -185,7 +185,7 @@ export default class OrganizationDiscover extends React.Component {
       });
     } else {
       browserHistory.push({
-        pathname: `/organizations/${this.props.organization.slug}/discover/`,
+        pathname: `/organizations/${organization.slug}/discover/`,
       });
     }
   };
@@ -200,7 +200,7 @@ export default class OrganizationDiscover extends React.Component {
           })
         );
         browserHistory.push({
-          pathname: `/organizations/${this.props.organization.slug}/discover/`,
+          pathname: `/organizations/${organization.slug}/discover/`,
           query: {view: 'saved'},
         });
       })
@@ -227,7 +227,7 @@ export default class OrganizationDiscover extends React.Component {
       updateSavedQuery(organization, savedQuery.id, data)
         .then(resp => {
           addSuccessMessage(t('Updated query'));
-          this.toggleEditMode();
+          this.toggleEditMode(); // Return to read-only mode
           this.props.updateSavedQueryData(resp);
           this.runQuery();
         })
@@ -235,7 +235,7 @@ export default class OrganizationDiscover extends React.Component {
           addErrorMessage(t('Could not update query'));
         });
     } else {
-      this.toggleEditMode();
+      this.toggleEditMode(); // Return to read-only mode
     }
   };
 
