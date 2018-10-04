@@ -18,8 +18,14 @@ from sentry.models import (
 logger = logging.getLogger('sentry.integrations.slack')
 
 # Attachment colors used for issues with no actions take
-NEW_ISSUE_COLOR = '#E03E2F'
 ACTIONED_ISSUE_COLOR = '#EDEEEF'
+LEVEL_TO_COLOR = {
+  'debug': '#fbe14f',
+  'info': '#2788ce',
+  'warning': '#f18500',
+  'error': '#E03E2F',
+  'fatal': '#d20f2a',
+}
 
 
 def format_actor_option(actor):
@@ -152,7 +158,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
-    color = NEW_ISSUE_COLOR
+    color = LEVEL_TO_COLOR.get(event.get_tag('level'), 'error')
 
     text = build_attachment_text(group, event) or ''
 
