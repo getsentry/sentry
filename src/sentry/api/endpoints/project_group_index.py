@@ -855,7 +855,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             group_list_by_times_seen = sorted(group_list, key=lambda x: x.times_seen, reverse=True)
             primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
-            eventstream.merge(group.project_id, [g.id for g in groups_to_merge], primary_group.id)
+            eventstream.merge(
+                primary_group.project_id,
+                [g.id for g in groups_to_merge],
+                primary_group.id
+            )
 
             transaction_id = uuid4().hex
             for group in groups_to_merge:
