@@ -1,7 +1,6 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import marked from 'marked';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
@@ -15,12 +14,9 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag.jsx';
 import space from 'app/styles/space';
+import marked, {singleLineRenderer} from 'app/utils/marked';
 
 const EARLY_ADOPTER_INTEGRATIONS = [];
-
-const noParagraphRenderer = new marked.Renderer();
-noParagraphRenderer.paragraph = s => s;
-const markedSimple = text => marked(text, {renderer: noParagraphRenderer});
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
@@ -132,7 +128,7 @@ class IntegrationDetailsModal extends React.Component {
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
-        <FeatureList {...featureProps} formatter={markedSimple} />
+        <FeatureList {...featureProps} formatter={singleLineRenderer} />
 
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>
@@ -144,7 +140,7 @@ class IntegrationDetailsModal extends React.Component {
 
         {alerts.map((alert, i) => (
           <Alert key={i} type={alert.type} icon={alert.icon}>
-            <span dangerouslySetInnerHTML={{__html: markedSimple(alert.text)}} />
+            <span dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}} />
           </Alert>
         ))}
 
