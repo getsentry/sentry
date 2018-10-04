@@ -39,8 +39,12 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
+    def get_persisted_default_config_fields(self):
+        return ['repo']
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
+        defaults = self.get_project_defaults(group.project_id)
         try:
             repos = self.get_repositories()
         except ApiError:
@@ -49,7 +53,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
 
         # If a repo has been selected outside of the default 100-limit list of
         # repos, stick it onto the front of the list so that it can be
@@ -124,7 +128,8 @@ class GitHubIssueBasic(IssueBasicMixin):
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+        defaults = self.get_project_defaults(group.project_id)
+        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
 
         # If a repo has been selected outside of the default 100-limit list of
         # repos, stick it onto the front of the list so that it can be
