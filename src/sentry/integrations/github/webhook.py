@@ -49,7 +49,8 @@ class Webhook(object):
             logger.info(
                 'github.missing-integration',
                 extra={
-                    'event_data': event,
+                    'action': event['action'],
+                    'repository': event.get('repository'),
                     'external_id': external_id,
                 }
             )
@@ -95,7 +96,8 @@ class InstallationEventWebhook(Webhook):
                 logger.info(
                     'github.deletion-missing-integration',
                     extra={
-                        'event_data': event,
+                        'action': event['action'],
+                        'installation_name': event['account']['login'],
                         'external_id': external_id,
                     }
                 )
