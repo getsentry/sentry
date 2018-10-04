@@ -71,6 +71,22 @@ export const Deploy = PropTypes.shape({
   version: PropTypes.string,
 });
 
+export const DiscoverSavedQuery = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  dateUpdated: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  createdBy: PropTypes.string,
+  projects: PropTypes.arrayOf(PropTypes.number),
+  fields: PropTypes.arrayOf(PropTypes.string),
+  aggregations: PropTypes.arrayOf(PropTypes.array),
+  conditions: PropTypes.arrayOf(PropTypes.array),
+  limit: PropTypes.number,
+  range: PropTypes.string,
+  start: PropTypes.string,
+  end: PropTypes.string,
+});
+
 /**
  * A Member is someone that was invited to Sentry but may
  * not have registered for an account yet
@@ -708,6 +724,7 @@ let SentryTypes = {
   Actor,
   Config,
   Deploy,
+  DiscoverSavedQuery,
   Environment,
   Event,
   Organization: PropTypes.shape({

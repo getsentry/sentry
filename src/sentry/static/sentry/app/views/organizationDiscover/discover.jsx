@@ -50,7 +50,7 @@ export default class OrganizationDiscover extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     queryBuilder: PropTypes.object.isRequired,
-    savedQuery: PropTypes.object, // Provided if it's a saved search
+    savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     updateSavedQueryData: PropTypes.func.isRequired,
     view: PropTypes.oneOf(['query', 'saved']),
   };

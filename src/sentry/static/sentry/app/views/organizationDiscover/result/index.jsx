@@ -31,7 +31,7 @@ export default class Result extends React.Component {
     organization: SentryTypes.Organization,
     data: PropTypes.object,
     queryBuilder: PropTypes.object,
-    savedQuery: PropTypes.object, // Provided if it's a saved search
+    savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
   };
 
   constructor() {
