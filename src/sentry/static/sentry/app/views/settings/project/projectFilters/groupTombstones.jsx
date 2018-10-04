@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import _ from 'lodash';
 import {Box} from 'grid-emotion';
 
@@ -27,14 +28,14 @@ class GroupTombstoneRow extends React.Component {
 
     return (
       <PanelItem align="center">
-        <Box flex="1" style={{minWidth: 0}}>
+        <StyledBox>
           <EventOrGroupHeader
             includeLink={false}
             hideIcons={true}
             className="truncate"
             {..._.omit(this.props, 'undiscard')}
           />
-        </Box>
+        </StyledBox>
         <Box w={20} mx={30}>
           {actor && (
             <Tooltip title={t('Discarded by %s', actor.name || actor.email)}>
@@ -123,5 +124,10 @@ class GroupTombstones extends AsyncComponent {
     );
   }
 }
+
+const StyledBox = styled(Box)`
+  flex: 1;
+  min-width: 0; /* keep child content from stretching flex item */
+`;
 
 export default GroupTombstones;
