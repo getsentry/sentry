@@ -1026,11 +1026,8 @@ class EventManager(object):
         ).exclude(
             group=group,
         )
-
         if not bad_hashes:
             return
-
-        eventstream.merge(group.project_id, [h.group_id for h in bad_hashes], group.id)
 
         for hash in bad_hashes:
             if hash.group_id:

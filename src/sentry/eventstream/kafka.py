@@ -18,30 +18,43 @@ logger = logging.getLogger(__name__)
 
 # Beware! Changing this, or the message format/fields themselves requires
 # consideration of all downstream consumers.
+EVENT_PROTOCOL_VERSION = 2
+
 # Version 1 format: (1, TYPE, [...REST...])
 #   Insert: (1, 'insert', {
 #       ...event json...
 #   }, {
 #       ...state for post-processing...
 #   })
-#   Delete Groups: (1, 'delete_groups', {
+#
+#   Mutations that *should be ignored*: (1, ('delete_groups'|'unmerge'|'merge'), {...})
+#
+#   In short, for protocol version 1 only messages starting with (1, 'insert', ...)
+#   should be processed.
+
+# Version 2 format: (2, TYPE, [...REST...])
+#   Insert: (2, 'insert', {
+#       ...event json...
+#   }, {
+#       ...state for post-processing...
+#   })
+#   Delete Groups: (2, 'delete_groups', {
 #       'project_id': id,
-#       'group_ids': [id1, id2, id3],
+#       'group_ids': [id2, id2, id3],
 #       'datetime': timestamp,
 #   })
-#   Unmerge: (1, 'unmerge', {
+#   Unmerge: (2, 'unmerge', {
 #       'project_id': id,
 #       'new_group_id': id,
-#       'event_ids': [id1, id2]
+#       'hashes': [hash2, hash2]
 #       'datetime': timestamp,
 #   })
-#   Merge: (1, 'merge', {
+#   Merge: (2, 'merge', {
 #       'project_id': id,
-#       'previous_group_id': id,
+#       'previous_group_ids': [id2, id2],
 #       'new_group_id': id,
 #       'datetime': timestamp,
 #   })
-EVENT_PROTOCOL_VERSION = 1
 
 
 class KafkaEventStream(EventStream):
