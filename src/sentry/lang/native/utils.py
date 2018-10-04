@@ -12,13 +12,6 @@ from sentry.interfaces.contexts import DeviceContextType
 
 logger = logging.getLogger(__name__)
 
-KNOWN_DSYM_TYPES = {
-    'iOS': 'macho',
-    'tvOS': 'macho',
-    'macOS': 'macho',
-    'watchOS': 'macho',
-}
-
 # Regular expression to parse OS versions from a minidump OS string
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
