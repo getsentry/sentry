@@ -330,3 +330,40 @@ class SequencePaginator(object):
             hits=min(len(self.scores), MAX_HITS_LIMIT) if count_hits else None,
             max_hits=MAX_HITS_LIMIT if count_hits else None,
         )
+
+
+class SnubaOffsetPaginator(object):
+    """
+    A paginator for getting pages of results for a query using the OFFSET/LIMIT
+    mechanism.
+
+    This class makes the assumption that the query provides a static,
+    totally-ordered view on the data, so that the next page of data can be
+    retrieved by incrementing OFFSET to the next multiple of LIMIT with no
+    overlaps or gaps from the previous page.
+
+    It is potentially less performant than a ranged query solution that might
+    not to have to look at as many rows.
+    """
+
+    def __init__(self, data_fn):
+        self.data_fn = data_fn
+
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset=offset, limit=limit + 1)
+        has_more = (len(data) == limit + 1)
+        if has_more:
+            data.pop()
+
+        # Since we are not issuing ranged queries, our cursors always have
+        # `value=0` (ie. all rows have the same value), and so offset naturally
+        # becomes the absolute row offset from the beginning of the entire
+        # dataset, which is the same meaning as SQLs `OFFSET`.
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset != 0),
+            next=Cursor(0, max(0, offset + limit), True, has_more)
+        )

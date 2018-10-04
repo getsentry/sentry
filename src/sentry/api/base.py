@@ -227,6 +227,8 @@ class Endpoint(APIView):
         # map results based on callback
         if on_results:
             results = on_results(cursor_result.results)
+        else:
+            results = cursor_result.results
 
         response = Response(results)
         self.add_cursor_headers(request, response, cursor_result)

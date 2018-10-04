@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
+from functools32 import partial
 
-from sentry import quotas
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.paginator import DateTimePaginator
-from sentry.models import Event
+from sentry.api.serializers.models.event import SnubaEvent
+from sentry.api.paginator import SnubaOffsetPaginator
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.snuba import raw_query
 
 
 @scenario('ListProjectAvailableSamples')
@@ -39,27 +40,23 @@ class ProjectEventsEndpoint(ProjectEndpoint):
                                      belong to.
         """
 
-        events = Event.objects.filter(
-            project_id=project.id,
-        )
-
         query = request.GET.get('query')
+        conditions = []
         if query:
-            events = events.filter(
-                message__icontains=query,
-            )
+            conditions.append(['message', 'LIKE', '%{}%'.format(query)])
 
-        # filter out events which are beyond the retention period
-        retention = quotas.get_event_retention(organization=project.organization)
-        if retention:
-            events = events.filter(
-                datetime__gte=timezone.now() - timedelta(days=retention)
-            )
+        data_fn = partial(
+            # extract 'data' from raw_query result
+            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+            start=timezone.now() - timedelta(days=90),
+            end=timezone.now(),
+            conditions=conditions,
+            filter_keys={'project_id': [project.id]},
+            selected_columns=SnubaEvent.selected_columns
+        )
 
         return self.paginate(
             request=request,
-            queryset=events,
-            order_by='-datetime',
-            on_results=lambda x: serialize(x, request.user),
-            paginator_cls=DateTimePaginator,
+            on_results=lambda results: serialize([SnubaEvent(row) for row in results], request.user),
+            paginator=SnubaOffsetPaginator(data_fn=data_fn)
         )

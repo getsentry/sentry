@@ -221,3 +221,44 @@ class SharedEventSerializer(EventSerializer):
         result['entries'] = [e for e in result['entries']
                              if e['type'] != 'breadcrumbs']
         return result
+
+
+class SnubaEvent(object):
+    """
+        A simple wrapper class on a row (dict) returned from snuba representing
+        an event. Provides a class name to register a serializer against, and
+        Makes keys accessible as attributes.
+    """
+
+    # The list of columns that we should request from snuba to be able to fill
+    # out a proper event object.
+    selected_columns = [
+        'event_id',
+        'message',
+        'user_id',
+        'username',
+        'email',
+    ]
+
+    def __init__(self, kv):
+        self.__dict__ = kv
+
+
+@register(SnubaEvent)
+class SnubaEventSerializer(Serializer):
+    """
+        A bare-bones version of EventSerializer which uses snuba event rows as
+        the source data but attempts to produce a compatible (subset) of the
+        serialization returned by EventSerializer.
+    """
+    def serialize(self, obj, attrs, user):
+        return {
+            'id': 0,  # This is not relevant for snuba-sourced events, but some things expect it
+            'eventID': six.text_type(obj.event_id),
+            'message': obj.message,
+            'user': {
+                'id': obj.user_id,
+                'email': obj.email,
+                'username': obj.username,
+            }
+        }
