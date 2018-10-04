@@ -54,7 +54,7 @@ marked.setOptions({
   sanitize: true,
 });
 
-const noParagraphRenderer = new marked.Renderer();
+const noParagraphRenderer = new Renderer();
 noParagraphRenderer.paragraph = s => s;
 
 const singleLineRenderer = (text, options) =>
