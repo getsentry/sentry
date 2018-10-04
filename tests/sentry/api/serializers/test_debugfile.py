@@ -15,14 +15,14 @@ class DebugFileSerializerTest(TestCase):
             checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
         )
 
-        dsym_file = self.create_dsym_file(
+        dif = self.create_dif_file(
             debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75',
             object_name='baz.dSYM',
             cpu_name='x86_64',
             file=file,
         )
 
-        result = serialize(dsym_file)
+        result = serialize(dif)
         result.pop('id')
         result.pop('dateCreated')
 
@@ -45,14 +45,14 @@ class DebugFileSerializerTest(TestCase):
             checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
         )
 
-        dsym_file = self.create_dsym_file(
+        dif = self.create_dif_file(
             debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
             object_name='baz.dSYM',
             cpu_name='x86_64',
             file=file,
         )
 
-        result = serialize(dsym_file)
+        result = serialize(dif)
         result.pop('id')
         result.pop('dateCreated')
 

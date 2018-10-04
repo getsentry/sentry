@@ -61,15 +61,15 @@ class DebugFilesClearTest(APITestCase):
         assert response.data[0]['cpuName'] == 'any'
         assert response.data[0]['symbolType'] == 'proguard'
 
-        dsyms = ProjectDebugFile.difcache.fetch_dsyms(
+        difs = ProjectDebugFile.difcache.fetch_difs(
             project=project,
             debug_ids=[PROGUARD_UUID])
-        assert len(dsyms) == 1
-        assert os.path.isfile(dsyms[PROGUARD_UUID])
+        assert len(difs) == 1
+        assert os.path.isfile(difs[PROGUARD_UUID])
 
         # if we clear now, nothing happens
         ProjectDebugFile.difcache.clear_old_entries()
-        assert os.path.isfile(dsyms[PROGUARD_UUID])
+        assert os.path.isfile(difs[PROGUARD_UUID])
 
         # Put the time into the future
         real_time = time.time
@@ -80,7 +80,7 @@ class DebugFilesClearTest(APITestCase):
             time.time = real_time
 
         # But it's gone now
-        assert not os.path.isfile(dsyms[PROGUARD_UUID])
+        assert not os.path.isfile(difs[PROGUARD_UUID])
 
 
 class SymCacheTest(TestCase):

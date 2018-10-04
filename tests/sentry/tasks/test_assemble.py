@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif
 from sentry.models import FileBlob
 from sentry.models.file import ChunkFileState
-from sentry.models.dsymfile import get_assemble_status, ProjectDebugFile
+from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
 
 
 class AssembleTest(TestCase):

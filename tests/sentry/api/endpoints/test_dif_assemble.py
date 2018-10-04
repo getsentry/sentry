@@ -8,7 +8,7 @@ from django.core.files.base import ContentFile
 
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
 from sentry.models.file import ChunkFileState
-from sentry.models.dsymfile import get_assemble_status, ProjectDebugFile
+from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
 from sentry.testutils import APITestCase
 from sentry.tasks.assemble import assemble_dif, assemble_file
 
@@ -253,7 +253,7 @@ class DifAssembleEndpoint(APITestCase):
             }
         )
 
-        file = assemble_file(self.project, 'test', total_checksum, chunks, 'project.dsym')[0]
+        file = assemble_file(self.project, 'test', total_checksum, chunks, 'project.dif')[0]
         assert get_assemble_status(self.project, total_checksum)[0] != ChunkFileState.ERROR
         assert file.checksum == total_checksum
 

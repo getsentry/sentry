@@ -217,8 +217,8 @@ FILTER_MASK = '[Filtered]'
 # Maximum length of a symbol
 MAX_SYM = 256
 
-# Known dsym mimetypes
-KNOWN_DSYM_TYPES = {
+# Known debug information file mimetypes
+KNOWN_DIF_TYPES = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'application/x-elf-binary': 'elf',

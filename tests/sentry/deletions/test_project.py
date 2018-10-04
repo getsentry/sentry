@@ -48,10 +48,10 @@ class DeleteProjectTest(TestCase):
             order=0,
         )
         file = File.objects.create(
-            name='dsym-file',
-            type='project.dsym',
+            name='debug-file',
+            type='project.dif',
         )
-        dsym_file = ProjectDebugFile.objects.create(
+        dif = ProjectDebugFile.objects.create(
             file=file,
             debug_id='uuid',
             cpu_name='cpu',
@@ -85,5 +85,5 @@ class DeleteProjectTest(TestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
-        assert not ProjectDebugFile.objects.filter(id=dsym_file.id).exists()
+        assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()

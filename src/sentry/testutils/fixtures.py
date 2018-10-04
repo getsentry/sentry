@@ -641,7 +641,7 @@ class Fixtures(object):
             **kwargs
         )
 
-    def create_dsym_file(self, project=None, **kwargs):
+    def create_dif_file(self, project=None, **kwargs):
         if project is None:
             project = self.project
 
