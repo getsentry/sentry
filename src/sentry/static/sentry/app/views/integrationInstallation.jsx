@@ -10,19 +10,14 @@ import Button from 'app/components/button';
 import HookStore from 'app/stores/hookStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
+import IndicatorStore from 'app/stores/indicatorStore';
 
-/**
- * Currently the only integration that has a install-from-provider flow is
- * Github, so we hardcode this to ONLY support he github provider at the
- * moment. We'll come back later and handle more later.
- */
-const HARDCODED_PROVIDER = 'github';
-
-class IntegrationInstallation extends AsyncView {
+export default class IntegrationInstallation extends AsyncView {
   state = {
     selectedOrg: null,
     organization: null,
     providers: [],
+    reloading: false,
   };
 
   getEndpoints() {
@@ -34,7 +29,7 @@ class IntegrationInstallation extends AsyncView {
   }
 
   get provider() {
-    return this.state.providers.find(p => p.key === HARDCODED_PROVIDER);
+    return this.state.providers.find(p => p.key === this.props.params.providerId);
   }
 
   onInstall = data => {
@@ -45,23 +40,34 @@ class IntegrationInstallation extends AsyncView {
   };
 
   onSelectOrg = ({value: orgId}) => {
-    this.setState({selectedOrg: orgId});
+    this.setState({selectedOrg: orgId, reloading: true});
+    const reloading = false;
 
     this.api.request(`/organizations/${orgId}/`, {
-      success: organization => this.setState({organization}),
+      success: organization => this.setState({organization, reloading}),
+      error: () => {
+        this.setState({reloading});
+        IndicatorStore.addError(t('Failed to retrieve organization details'));
+      },
     });
 
     this.api.request(`/organizations/${orgId}/config/integrations/`, {
-      success: providers => this.setState({providers: providers.providers}),
+      success: providers => this.setState({providers: providers.providers, reloading}),
+      error: () => {
+        this.setState({reloading});
+        IndicatorStore.addError(t('Failed to retrieve integration provider details'));
+      },
     });
   };
 
+  hasAccess = org => org.access.includes('org:integrations');
+
   renderAddButton() {
-    const {organization} = this.state;
+    const {organization, reloading} = this.state;
     const {installationId} = this.props.params;
 
     const AddButton = p => (
-      <Button priority="primary" {...p}>
+      <Button priority="primary" busy={reloading} {...p}>
         Install Integration
       </Button>
     );
@@ -74,7 +80,7 @@ class IntegrationInstallation extends AsyncView {
       <AddIntegration provider={this.provider} onInstall={this.onInstall}>
         {addIntegration => (
           <AddButton
-            disabled={organization && !organization.access.includes('org:integrations')}
+            disabled={organization && !this.hasAccess(organization)}
             onClick={() => addIntegration({installation_id: installationId})}
           />
         )}
@@ -93,7 +99,7 @@ class IntegrationInstallation extends AsyncView {
 
     return (
       <NarrowLayout>
-        <h3>{t('Select an organization')}</h3>
+        <h3>{t('Finish integration installation')}</h3>
         <p>
           {tct(
             `Please pick a specific [organization:organization] to link with
@@ -106,7 +112,7 @@ class IntegrationInstallation extends AsyncView {
 
         {selectedOrg &&
           organization &&
-          !organization.access.includes('org:integrations') && (
+          !this.hasAccess(organization) && (
             <Alert type="error" icon="icon-circle-exclamation">
               <p>
                 {tct(
@@ -122,18 +128,27 @@ class IntegrationInstallation extends AsyncView {
 
         {this.provider &&
           organization &&
-          organization.access.includes('org:integrations') &&
+          this.hasAccess(organization) &&
           FeatureList && (
-            <FeatureList
-              organization={organization}
-              features={this.provider.metadata.features}
-              formatter={singleLineRenderer}
-            />
+            <React.Fragment>
+              <p>
+                {tct(
+                  'The following features will be availble for [organization] when installed.',
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <FeatureList
+                organization={organization}
+                features={this.provider.metadata.features}
+                formatter={singleLineRenderer}
+              />
+            </React.Fragment>
           )}
 
         <SelectControl
           onChange={this.onSelectOrg}
           value={selectedOrg}
+          placeholder={t('Select an organization')}
           options={choices.map(([value, label]) => ({value, label}))}
         />
 
@@ -147,5 +162,3 @@ const InstallLink = styled('pre')`
   margin-bottom: 0;
   background: #fbe3e1;
 `;
-
-export default IntegrationInstallation;
