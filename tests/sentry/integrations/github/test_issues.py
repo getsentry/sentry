@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import responses
+import six
 
 from mock import patch
 from exam import fixture
@@ -226,3 +227,69 @@ class GitHubIssueBasicTest(TestCase):
         assert request.headers['Authorization'] == 'token token_1'
         payload = json.loads(request.body)
         assert payload == {'body': 'hello'}
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def test_default_repo_link_fields(self, mock_get_jwt):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={
+                'repositories': [
+                    {'name': 'sentry', 'full_name': 'getsentry/sentry'}
+                ]
+            },
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.org_integration
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'getsentry/sentry'}
+            }
+        }
+        org_integration.save()
+        fields = self.integration.get_link_issue_config(group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['default'] == 'getsentry/sentry'
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def test_default_repo_create_fields(self, mock_get_jwt):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={
+                'repositories': [
+                    {'name': 'sentry', 'full_name': 'getsentry/sentry'}
+                ]
+            },
+        )
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/sentry/assignees',
+            json=[{'login': 'MeredithAnya'}]
+        )
+        responses.add(
+            responses.POST,
+            'https://api.github.com/installations/github_external_id/access_tokens',
+            json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.org_integration
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'getsentry/sentry'}
+            }
+        }
+        org_integration.save()
+        fields = self.integration.get_create_issue_config(group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['default'] == 'getsentry/sentry'
