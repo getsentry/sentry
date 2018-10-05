@@ -50,7 +50,7 @@ export const BodyContent = styled(Flex)`
   padding: ${space(1.5)} 32px 32px 32px;
 `;
 
-export const Loading = styled(Flex)`
+export const LoadingContainer = styled(Flex)`
   flex: 1;
   height: calc(100vh - ${FOOTER_HEIGHT}px);
 `;
