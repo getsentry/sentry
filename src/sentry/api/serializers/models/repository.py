@@ -26,5 +26,5 @@ class RepositorySerializer(Serializer):
             'provider': provider,
             'status': obj.get_status_display(),
             'dateCreated': obj.date_added,
-            'integrationId': six.text_type(obj.integration_id),
+            'integrationId': obj.integration_id,
         }
