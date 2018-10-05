@@ -36,7 +36,6 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
