@@ -13,6 +13,7 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
+from sentry import eventstream
 from sentry.app import tsdb
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
@@ -31,7 +32,8 @@ EXTRA_MERGE_MODELS = []
     max_retries=None
 )
 def merge_group(
-    from_object_id=None, to_object_id=None, transaction_id=None, recursed=False, **kwargs
+    from_object_id=None, to_object_id=None, transaction_id=None,
+    recursed=False, eventstream_state=None, **kwargs
 ):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
@@ -111,14 +113,18 @@ def merge_group(
         transaction_id=transaction_id,
     )
 
+    last_task = False
     if has_more:
         merge_group.delay(
             from_object_id=from_object_id,
             to_object_id=to_object_id,
             transaction_id=transaction_id,
             recursed=True,
+            eventstream_state=eventstream_state,
         )
         return
+    else:
+        last_task = True
 
     features.merge(new_group, [group], allow_unsafe=True)
 
@@ -188,6 +194,9 @@ def merge_group(
         )
     except DataError:
         pass
+
+    if last_task and eventstream_state:
+        eventstream.end_merge(eventstream_state)
 
 
 def _get_event_environment(event, project, cache):

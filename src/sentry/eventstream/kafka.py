@@ -4,6 +4,7 @@ from datetime import datetime
 import logging
 import pytz
 import six
+from uuid import uuid4
 
 from confluent_kafka import Producer
 from django.utils.functional import cached_property
@@ -38,18 +39,20 @@ EVENT_PROTOCOL_VERSION = 2
 #   }, {
 #       ...state for post-processing...
 #   })
-#   Delete Groups: (2, 'delete_groups', {
+#   Delete Groups: (2, '(start_delete_groups|end_delete_groups)', {
 #       'project_id': id,
 #       'group_ids': [id2, id2, id3],
 #       'datetime': timestamp,
 #   })
-#   Unmerge: (2, 'unmerge', {
+#   Unmerge: (2, '(start_unmerge|end_unmerge)', {
+#       'transaction_id': uuid,
 #       'project_id': id,
+#       'previous_group_id': id,
 #       'new_group_id': id,
 #       'hashes': [hash2, hash2]
 #       'datetime': timestamp,
 #   })
-#   Merge: (2, 'merge', {
+#   Merge: (2, '(start_merge|end_merge)', {
 #       'project_id': id,
 #       'previous_group_ids': [id2, id2],
 #       'new_group_id': id,
@@ -131,36 +134,90 @@ class KafkaEventStream(EventStream):
             'is_new_group_environment': is_new_group_environment,
         },))
 
-    def unmerge(self, project_id, hashes, previous_group_id, new_group_id):
+    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
         if not hashes:
             return
 
-        # add previous group_id
-        self._send(project_id, 'unmerge', extra_data=({
+        state = {
+            'transaction_id': uuid4().hex,
             'project_id': project_id,
             'previous_group_id': previous_group_id,
             'new_group_id': new_group_id,
             'hashes': hashes,
             'datetime': datetime.now(tz=pytz.utc),
-        },), asynchronous=False)
+        }
 
-    def delete_groups(self, project_id, group_ids):
+        self._send(
+            project_id,
+            'start_unmerge',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+        return state
+
+    def end_unmerge(self, state):
+        state['datetime'] = datetime.now(tz=pytz.utc)
+        self._send(
+            state['project_id'],
+            'end_unmerge',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+    def start_delete_groups(self, project_id, group_ids):
         if not group_ids:
             return
 
-        self._send(project_id, 'delete_groups', extra_data=({
+        state = {
+            'transaction_id': uuid4().hex,
             'project_id': project_id,
             'group_ids': group_ids,
             'datetime': datetime.now(tz=pytz.utc),
-        },), asynchronous=False)
+        }
 
-    def merge(self, project_id, previous_group_ids, new_group_id):
+        self._send(
+            project_id,
+            'delete_groups',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+        return state
+
+    def end_delete_groups(self, state):
+        state['datetime'] = datetime.now(tz=pytz.utc)
+        self._send(
+            state['project_id'],
+            'end_delete_groups',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+    def start_merge(self, project_id, previous_group_ids, new_group_id):
         if not previous_group_ids:
             return
 
-        self._send(project_id, 'merge', extra_data=({
+        state = {
+            'transaction_id': uuid4().hex,
             'project_id': project_id,
             'previous_group_ids': previous_group_ids,
             'new_group_id': new_group_id,
             'datetime': datetime.now(tz=pytz.utc),
-        },), asynchronous=False)
+        }
+
+        self._send(
+            project_id,
+            'merge',
+            extra_data=(state,),
+            asynchronous=False
+        )
+
+    def end_merge(self, state):
+        state['datetime'] = datetime.now(tz=pytz.utc)
+        self._send(
+            state['project_id'],
+            'merge',
+            extra_data=(state,),
+            asynchronous=False
+        )

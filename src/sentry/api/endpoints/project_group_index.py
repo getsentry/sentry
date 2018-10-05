@@ -31,7 +31,7 @@ from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
 from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
-from sentry.tasks.deletion import delete_group
+from sentry.tasks.deletion import delete_groups
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
@@ -855,7 +855,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             group_list_by_times_seen = sorted(group_list, key=lambda x: x.times_seen, reverse=True)
             primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
-            eventstream.merge(
+            eventstream_state = eventstream.start_merge(
                 primary_group.project_id,
                 [g.id for g in groups_to_merge],
                 primary_group.id
@@ -868,6 +868,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
                     transaction_id=transaction_id,
+                    eventstream_state=eventstream_state,
                 )
 
             Activity.objects.create(
@@ -947,6 +948,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         return Response(status=204)
 
     def _delete_groups(self, request, project, group_list, delete_type):
+        if not group_list:
+            return
+
         group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
@@ -956,7 +960,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
 
-        eventstream.delete_groups(project.id, group_ids)
+        eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
 
         GroupHashTombstone.tombstone_groups(
             project_id=project.id,
@@ -965,15 +969,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         transaction_id = uuid4().hex
 
-        for group in group_list:
-            delete_group.apply_async(
-                kwargs={
-                    'object_id': group.id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=3600,
-            )
+        delete_groups.apply_async(
+            kwargs={
+                'object_ids': group_ids,
+                'transaction_id': transaction_id,
+                'eventstream_state': eventstream_state,
+            },
+            countdown=3600,
+        )
 
+        for group in group_list:
             self.create_audit_entry(
                 request=request,
                 organization_id=project.organization_id,
