@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 import zlib
 
+from sentry.utils import metrics
+
 
 class CachedAttachment(object):
     def __init__(self, name=None, content_type=None, type=None, data=None, load=None):
@@ -62,6 +64,11 @@ class BaseAttachmentCache(object):
         for index, attachment in enumerate(attachments):
             compressed = zlib.compress(attachment.data)
             self.inner.set(u'{}:{}'.format(key, index), compressed, timeout, raw=True)
+
+            metrics_tags = {'type': attachment.type}
+            metrics.incr('attachments.received', metrics_tags)
+            metrics.timing('attachments.blob-size.raw', len(attachment.data), metrics_tags)
+            metrics.timing('attachments.blob-size.compressed', len(compressed), metrics_tags)
 
         meta = [attachment.meta() for attachment in attachments]
         self.inner.set(key, meta, timeout, raw=False)
