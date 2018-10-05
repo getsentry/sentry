@@ -17,7 +17,6 @@ from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
-from uuid import uuid4
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb
 from sentry.constants import (
@@ -37,7 +36,6 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
@@ -1016,34 +1014,6 @@ class EventManager(object):
             hash_list,
         )
 
-    def _ensure_hashes_merged(self, group, hash_list):
-        # TODO(dcramer): there is a race condition with selecting/updating
-        # in that another group could take ownership of the hash
-        # XXX: This function is currently unused, and hasn't been updated to
-        # take `GroupHash.state` into account.
-        bad_hashes = GroupHash.objects.filter(
-            id__in=[h.id for h in hash_list],
-        ).exclude(
-            group=group,
-        )
-        if not bad_hashes:
-            return
-
-        for hash in bad_hashes:
-            if hash.group_id:
-                merge_group.delay(
-                    from_object_id=hash.group_id,
-                    to_object_id=group.id,
-                    transaction_id=uuid4().hex,
-                )
-
-        return GroupHash.objects.filter(
-            project=group.project,
-            hash__in=[h.hash for h in bad_hashes],
-        ).update(
-            group=group,
-        )
-
     def _save_aggregate(self, event, hashes, release, **kwargs):
         project = event.project
 
@@ -1098,7 +1068,7 @@ class EventManager(object):
             # add some event(s) to it, and then subsequently have the hash
             # "stolen" by this process. This then "orphans" those events from
             # their "siblings" in the group we've created here. We don't have a
-            # way to fix this, since we can't call `_ensure_hashes_merged`
+            # way to fix this, since we can't update the group on those hashes
             # without filtering on `group_id` (which we can't do due to query
             # planner weirdness.) For more context, see 84c6f75a and d0e22787,
             # as well as GH-5085.
