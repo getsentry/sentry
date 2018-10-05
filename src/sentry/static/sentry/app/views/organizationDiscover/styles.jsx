@@ -50,6 +50,11 @@ export const BodyContent = styled(Flex)`
   padding: ${space(1.5)} 32px 32px 32px;
 `;
 
+export const LoadingContainer = styled(Flex)`
+  flex: 1;
+  height: calc(100vh - ${FOOTER_HEIGHT}px);
+`;
+
 export const TopBar = styled(Flex)`
   padding: 0 ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
