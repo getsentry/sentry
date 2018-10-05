@@ -17,7 +17,6 @@ from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
-from uuid import uuid4
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb
 from sentry.constants import (
