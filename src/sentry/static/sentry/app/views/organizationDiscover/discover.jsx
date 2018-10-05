@@ -76,9 +76,13 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search}} = nextProps;
+    const {queryBuilder, location: {search}, savedQuery} = nextProps;
     const currentSearch = this.props.location.search;
     const {resultManager} = this.state;
+
+    if (savedQuery && savedQuery !== this.props.savedQuery) {
+      this.runQuery();
+    }
 
     if (currentSearch === search) {
       return;
@@ -115,7 +119,7 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   runQuery = () => {
-    const {queryBuilder, organization, savedQuery} = this.props;
+    const {queryBuilder, organization} = this.props;
     const {resultManager} = this.state;
 
     // Track query for analytics
@@ -144,7 +148,7 @@ export default class OrganizationDiscover extends React.Component {
     clearIndicators();
 
     resultManager.fetchAll().then(data => {
-      const shouldRedirect = !savedQuery;
+      const shouldRedirect = !this.props.params.savedQueryId;
 
       if (shouldRedirect) {
         browserHistory.push({

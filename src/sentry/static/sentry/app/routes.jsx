@@ -26,6 +26,7 @@ import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
+import OrganizationDiscover from 'app/views/organizationDiscover';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
@@ -741,12 +742,12 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
           <Route
             path="/organizations/:orgId/discover/"
-            componentPromise={() =>
-              import(/*webpackChunkName:"OrganizationDiscover"*/ './views/organizationDiscover/index')}
-            component={errorHandler(LazyLoad)}
+            /* We do not lazy load discover since it causes the components
+            * to be unnecessarily remounted when navigating between the
+            * /discover and /discover/saved/:id routes */
+            component={errorHandler(OrganizationDiscover)}
           />
           <Redirect
             path="/organizations/:orgId/discover/saved/"
@@ -754,9 +755,7 @@ function routes() {
           />
           <Route
             path="/organizations/:orgId/discover/saved/:savedQueryId/"
-            componentPromise={() =>
-              import(/*webpackChunkName:"OrganizationDiscover"*/ './views/organizationDiscover/index')}
-            component={errorHandler(LazyLoad)}
+            component={errorHandler(OrganizationDiscover)}
           />
 
           <Route

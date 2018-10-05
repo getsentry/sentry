@@ -91,8 +91,7 @@ export default class Result extends React.Component {
           tct('Successfully saved query [name]', {name: savedQuery.name})
         );
         browserHistory.push({
-          pathname: `/organizations/${this.props.organization
-            .slug}/discover/saved/${savedQuery.id}/`,
+          pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
         });
       })
       .catch(() => {
