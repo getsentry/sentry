@@ -14,8 +14,9 @@ import ReleaseLandingCard from 'app/views/projectReleases/releaseLandingCard';
 import withApi from 'app/utils/withApi';
 
 const StyledSuggestedAssignees = styled(SuggestedAssignees)`
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
+  padding-left: 250px;
 `;
 
 const cards = [
