@@ -11,7 +11,6 @@ from sentry.models import (
     ObjectStatus, OrganizationIntegration, Repository, User
 )
 
-from sentry.mediators.plugins import Migrator
 from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.tasks.base import instrumented_task, retry
 
@@ -207,6 +206,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
             }
         )
 
+        from sentry.mediators.plugins import Migrator
         Migrator.run(
             integration=integration,
             organization=Organization.objects.get(id=organization_id),

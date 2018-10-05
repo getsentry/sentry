@@ -9,6 +9,7 @@ from django.template.defaultfilters import slugify
 
 from sentry.constants import SentryAppStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
+from sentry.models import Organization
 from sentry.models.apiscopes import HasApiScopes
 
 
@@ -51,9 +52,31 @@ class SentryApp(ParanoidModel, HasApiScopes):
         app_label = 'sentry'
         db_table = 'sentry_sentryapp'
 
+    @property
+    def organizations(self):
+        if not self.pk:
+            return Organization.objects.none()
+
+        return Organization \
+            .objects \
+            .select_related('sentry_app_installations') \
+            .filter(sentry_app_installations__sentry_app_id=self.id)
+
+    @property
+    def teams(self):
+        from sentry.models import Team
+
+        if not self.pk:
+            return Team.objects.none()
+
+        return Team.objects.filter(organization__in=self.organizations)
+
     def save(self, *args, **kwargs):
         self._set_slug()
         return super(SentryApp, self).save(*args, **kwargs)
+
+    def is_installed_on(self, organization):
+        return self.organizations.filter(pk=organization.pk).exists()
 
     def _set_slug(self):
         """
