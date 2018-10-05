@@ -177,7 +177,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
         destination_id = destination.id
 
-        eventstream.unmerge(project.id, fingerprints, destination_id)
+        eventstream.unmerge(project.id, fingerprints, source_id, destination_id)
 
         # Move the group hashes to the destination.
         GroupHash.objects.filter(
