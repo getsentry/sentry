@@ -8,39 +8,38 @@ import {TagDistributionMeter} from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
   let sandbox;
-  let stubbedApiRequest;
   let element;
+  let emptyElement;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
 
-    stubbedApiRequest = sandbox.stub(Client.prototype, 'request');
-
     element = TestUtils.renderIntoDocument(
       <TagDistributionMeter
+        key="element"
         tag="browser"
         group={{id: '1337'}}
         orgId="123"
         projectId="456"
+        totalValues={TestStubs.Tags()[0].totalValues}
+        topValues={TestStubs.TagValues()[0].topValues}
+      />
+    );
+
+    emptyElement = TestUtils.renderIntoDocument(
+      <TagDistributionMeter
+        key="emptyElement"
+        tag="browser"
+        group={{id: '1337'}}
+        orgId="123"
+        projectId="456"
+        totalValues={0}
       />
     );
   });
 
   afterEach(function() {
     sandbox.restore();
-  });
-
-  describe('fetchData()', function() {
-    it('should make a request to the groups/tags endpoint', function() {
-      // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
-      //       reset the request stub so that we can get an accurate count
-      stubbedApiRequest.reset();
-
-      element.fetchData();
-
-      expect(stubbedApiRequest.callCount).toEqual(1);
-      expect(stubbedApiRequest.getCall(0).args[0]).toEqual('/issues/1337/tags/browser/');
-    });
   });
 
   describe('renderBody()', function() {
@@ -71,16 +70,13 @@ describe('TagDistributionMeter', function() {
     });
 
     it('should return "no recent data" if no total values present', function(done) {
-      element.setState(
+      emptyElement.setState(
         {
           error: false,
           loading: false,
-          data: {
-            totalValues: 0,
-          },
         },
         () => {
-          let out = element.renderBody();
+          let out = emptyElement.renderBody();
           expect(ReactDOMServer.renderToStaticMarkup(out)).toEqual(
             '<p>No recent data.</p>'
           );
@@ -96,9 +92,6 @@ describe('TagDistributionMeter', function() {
         {
           error: false,
           loading: false,
-          data: {
-            totalValues: 100,
-          },
         },
         () => {
           element.renderBody();
