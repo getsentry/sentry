@@ -8,6 +8,7 @@ import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
 
 import {getQueryFromQueryString} from './utils';
+import {Loading} from './styles';
 
 const OrganizationDiscoverContainer = createReactClass({
   displayName: 'OrganizationDiscoverContainer',
@@ -41,9 +42,9 @@ const OrganizationDiscoverContainer = createReactClass({
 
   renderLoading: function() {
     return (
-      <div>
+      <Loading>
         <LoadingIndicator />
-      </div>
+      </Loading>
     );
   },
 
