@@ -12,7 +12,7 @@ describe('Result manager', function() {
     resultManager = createResultManager(queryBuilder);
 
     discoverMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/query/',
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
       method: 'POST',
       body: {
         data: [],
@@ -36,7 +36,7 @@ describe('Result manager', function() {
       await resultManager.fetchAll();
       expect(discoverMock).toHaveBeenCalledTimes(1);
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/query/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data: expect.objectContaining({
             fields: ['event_id', 'project_id', 'message'],
@@ -50,7 +50,7 @@ describe('Result manager', function() {
       await resultManager.fetchAll();
       expect(discoverMock).toHaveBeenCalledTimes(2);
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/query/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data: expect.objectContaining({
             aggregations: [['count()', null, 'count']],

@@ -234,7 +234,7 @@ class Endpoint(APIView):
         else:
             input_cursor = None
 
-        assert per_page <= max(100, default_per_page)
+        assert per_page <= max(1000, default_per_page)
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)

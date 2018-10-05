@@ -15,6 +15,7 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 import {getChartData, getChartDataByDay, downloadAsCsv, generateQueryName} from './utils';
 import {createSavedQuery} from '../utils';
+import Pagination from './pagination';
 import Table from './table';
 import {
   Heading,
@@ -32,6 +33,7 @@ export default class Result extends React.Component {
     data: PropTypes.object.isRequired,
     queryBuilder: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
+    onFetchPage: PropTypes.func.isRequired,
   };
 
   constructor() {
@@ -206,7 +208,12 @@ export default class Result extends React.Component {
   }
 
   render() {
-    const {data: {baseQuery, byDayQuery}, savedQuery} = this.props;
+    const {
+      data: {baseQuery, byDayQuery},
+      savedQuery,
+      onFetchPage,
+    } = this.props;
+
     const {view} = this.state;
 
     const basicChartData = getChartData(baseQuery.data.data, baseQuery.query);
@@ -232,7 +239,19 @@ export default class Result extends React.Component {
           {this.renderToggle()}
         </Flex>
 
-        {view === 'table' && <Table data={baseQuery.data} query={baseQuery.query} />}
+        {view === 'table' && (
+          <div>
+            <Table data={baseQuery.data} query={baseQuery.query} />
+            {!baseQuery.query.aggregations.length && (
+              <Pagination
+                previous={baseQuery.previous}
+                next={baseQuery.next}
+                getNextPage={() => onFetchPage('next')}
+                getPreviousPage={() => onFetchPage('previous')}
+              />
+            )}
+          </div>
+        )}
         {view === 'line' && (
           <ChartWrapper>
             <LineChart

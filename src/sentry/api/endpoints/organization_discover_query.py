@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import re
 import six
+from functools32 import partial
 from copy import deepcopy
 
 from django.utils import timezone
@@ -16,6 +17,7 @@ from sentry.utils.dates import (
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
 from sentry import roles
@@ -170,31 +172,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDiscoverQueryPermission, )
 
-    def do_query(self, projects, **kwargs):
-        requested_query = deepcopy(kwargs)
-
-        selected_columns = kwargs['selected_columns']
-        groupby_columns = kwargs['groupby']
-
-        if 'project_name' in requested_query['selected_columns']:
-            selected_columns.remove('project_name')
-            if 'project_id' not in selected_columns:
-                selected_columns.append('project_id')
-
-        if 'project_name' in requested_query['groupby']:
-            groupby_columns.remove('project_name')
-            if 'project_id' not in groupby_columns:
-                groupby_columns.append('project_id')
-
-        for aggregation in kwargs['aggregations']:
-            if aggregation[1] == 'project_name':
-                aggregation[1] = 'project_id'
-
-        snuba_results = snuba.raw_query(
-            referrer='discover',
-            **kwargs
-        )
-
+    def handle_results(self, snuba_results, requested_query, projects):
         if 'project_name' in requested_query['selected_columns']:
             project_name_index = requested_query['selected_columns'].index('project_name')
             snuba_results['meta'].insert(project_name_index, {'name': 'project_name'})
@@ -221,10 +199,51 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 if 'project_id' not in requested_query['groupby']:
                     del result['project_id']
 
-        # Only return the meta propety "name"
+        # Only return the meta property "name"
         snuba_results['meta'] = [{'name': field['name']} for field in snuba_results['meta']]
-
         return snuba_results
+
+    def do_query(self, projects, request, **kwargs):
+        requested_query = deepcopy(kwargs)
+
+        selected_columns = kwargs['selected_columns']
+        groupby_columns = kwargs['groupby']
+
+        if 'project_name' in requested_query['selected_columns']:
+            selected_columns.remove('project_name')
+            if 'project_id' not in selected_columns:
+                selected_columns.append('project_id')
+
+        if 'project_name' in requested_query['groupby']:
+            groupby_columns.remove('project_name')
+            if 'project_id' not in groupby_columns:
+                groupby_columns.append('project_id')
+
+        for aggregation in kwargs['aggregations']:
+            if aggregation[1] == 'project_name':
+                aggregation[1] = 'project_id'
+
+        if not kwargs['aggregations']:
+            data_fn = partial(
+                snuba.raw_query,
+                referrer='discover',
+                **kwargs
+            )
+            return self.paginate(
+                request=request,
+                on_results=lambda results: self.handle_results(results, requested_query, projects),
+                paginator=GenericOffsetPaginator(data_fn=data_fn)
+            )
+        else:
+            snuba_results = snuba.raw_query(
+                referrer='discover',
+                **kwargs
+            )
+            return Response(self.handle_results(
+                snuba_results,
+                requested_query,
+                projects,
+            ), status=200)
 
     def post(self, request, organization):
 
@@ -262,7 +281,7 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 if field not in groupby:
                     groupby.append(field)
 
-        results = self.do_query(
+        return self.do_query(
             projects=projects_map,
             start=serialized.get('start'),
             end=serialized.get('end'),
@@ -275,6 +294,5 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
             rollup=serialized.get('rollup'),
             filter_keys={'project_id': serialized.get('projects')},
             arrayjoin=serialized.get('arrayjoin'),
+            request=request,
         )
-
-        return Response(results, status=200)
