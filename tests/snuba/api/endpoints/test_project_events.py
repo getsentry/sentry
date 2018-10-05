@@ -8,13 +8,17 @@ from sentry.testutils import APITestCase, SnubaTestCase
 
 
 class ProjectEventsTest(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(ProjectEventsTest, self).setUp()
+        self.min_ago = timezone.now() - timedelta(minutes=1)
+
     def test_simple(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
         group = self.create_group(project=project)
-        event_1 = self.create_event('a' * 32, group=group, datetime=timezone.now() - timedelta(minutes=1))
-        event_2 = self.create_event('b' * 32, group=group, datetime=timezone.now() - timedelta(minutes=1))
+        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event('b' * 32, group=group, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-project-events',
@@ -39,8 +43,8 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=timezone.now() - timedelta(minutes=1))
-        event_2 = self.create_event('y' * 32, group=group, message="delet the data", datetime=timezone.now() - timedelta(minutes=1))
+        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        event_2 = self.create_event('y' * 32, group=group, message="delet the data", datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-project-events',
@@ -61,13 +65,9 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event(
-            'a' *
-            32,
-            group=group,
-            datetime=timezone.now() - timedelta(days=2),
-        )
-        event_2 = self.create_event('b' * 32, group=group)
+        two_days_ago = timezone.now() - timedelta(days=2)
+        self.create_event('c' * 32, group=group, datetime=two_days_ago)
+        event_2 = self.create_event('d' * 32, group=group, datetime=self.min_ago)
 
         with self.options({'system.event-retention-days': 1}):
             url = reverse(
