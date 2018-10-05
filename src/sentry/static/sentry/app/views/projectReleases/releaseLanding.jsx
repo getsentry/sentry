@@ -1,5 +1,7 @@
 import React from 'react';
 import {t} from 'app/locale';
+import styled from 'react-emotion';
+
 import {
   BashCard,
   Issues,
@@ -7,8 +9,14 @@ import {
   Emails,
   Contributors,
 } from 'sentry-dreamy-components';
+
 import ReleaseLandingCard from 'app/views/projectReleases/releaseLandingCard';
 import withApi from 'app/utils/withApi';
+
+const StyledSuggestedAssignees = styled(SuggestedAssignees)`
+  width: 200px;
+  height: 200px;
+`;
 
 const cards = [
   {
@@ -23,7 +31,7 @@ const cards = [
     message: t(
       'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
     ),
-    component: SuggestedAssignees,
+    component: StyledSuggestedAssignees,
   },
   {
     title: t('Release Stats'),
