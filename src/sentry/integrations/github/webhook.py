@@ -46,6 +46,10 @@ class Webhook(object):
                 provider=self.provider,
             )
         except Integration.DoesNotExist:
+            # It seems possible for the GH or GHE app to be installed on their
+            # end, but the integration to not exist. Possibly from deleting in
+            # Sentry first or from a failed install flow (where the integration
+            # didn't get created in the first place)
             logger.info(
                 'github.missing-integration',
                 extra={
@@ -93,6 +97,10 @@ class InstallationEventWebhook(Webhook):
                 )
                 self._handle_delete(event, integration)
             except Integration.DoesNotExist:
+                # It seems possible for the GH or GHE app to be installed on their
+                # end, but the integration to not exist. Possibly from deleting in
+                # Sentry first or from a failed install flow (where the integration
+                # didn't get created in the first place)
                 logger.info(
                     'github.deletion-missing-integration',
                     extra={
