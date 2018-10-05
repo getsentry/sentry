@@ -10,7 +10,12 @@ import InlineSvg from 'app/components/inlineSvg';
 import Panel from 'app/components/panels/panel';
 import {getDisplayValue, getDisplayText} from './utils';
 
-const TABLE_ROW_HEIGHT = 41; // Includes 1px for border
+const TABLE_ROW_HEIGHT = 30;
+const TABLE_ROW_HEIGHT_WITH_BORDER = TABLE_ROW_HEIGHT + 1;
+const MIN_COL_WIDTH = 100;
+const MAX_COL_WIDTH = 500;
+const LINK_COL_WIDTH = 40;
+const CELL_PADDING = 20;
 
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
@@ -88,10 +93,6 @@ export default class ResultTable extends React.Component {
   // less than 20 columns of data to check.
   // Adds an empty column at the end with the remaining table width if any.
   getColumnWidths = tableWidth => {
-    const MIN_COL_WIDTH = 100;
-    const MAX_COL_WIDTH = 400;
-    const LINK_COL_WIDTH = 40;
-
     const {query, data: {data}} = this.props;
     const cols = this.getColumnList();
 
@@ -111,7 +112,7 @@ export default class ResultTable extends React.Component {
 
         // Ensure size is within max and min bounds, add 20px for cell padding
         const width = Math.max(
-          Math.min(Math.max(...sizes) + 20, MAX_COL_WIDTH),
+          Math.min(Math.max(...sizes) + CELL_PADDING, MAX_COL_WIDTH),
           MIN_COL_WIDTH
         );
 
@@ -133,6 +134,27 @@ export default class ResultTable extends React.Component {
     widths.push(Math.max(tableWidth - sumOfWidths, 0));
 
     return widths;
+  };
+
+  getRowHeight = (rowIndex, columnsToCheck) => {
+    const {data: {data}} = this.props;
+
+    if (rowIndex === 0) {
+      return TABLE_ROW_HEIGHT_WITH_BORDER;
+    }
+
+    const row = data[rowIndex - 1]; // -1 offset due to header row
+    const colWidths = columnsToCheck.map(col => {
+      return this.measureText(getDisplayText(row[col]), false);
+    });
+    const maxColWidth = Math.max(...colWidths, 0);
+
+    const rows = Math.max(
+      Math.min(Math.ceil(maxColWidth / (MAX_COL_WIDTH - CELL_PADDING)), 3),
+      1
+    );
+
+    return TABLE_ROW_HEIGHT * rows + 1; // 1px for border;
   };
 
   getColumnList = () => {
@@ -168,13 +190,24 @@ export default class ResultTable extends React.Component {
     // Add one column at the end to make sure table spans full width
     const colCount = cols.length + (showEventLinks ? 1 : 0) + 1;
 
-    const maxVisibleResults = Math.min(data.length, 10);
+    const maxVisibleResults = Math.min(data.length, 12);
 
     return (
       <GridContainer visibleRows={maxVisibleResults + 1}>
         <AutoSizer>
           {({width, height}) => {
             const columnWidths = this.getColumnWidths(width);
+
+            // Since calculating row height might be expensive, we'll only
+            // perform the check against a subset of columns (where col width
+            // has exceeded the max value)
+            const columnsToCheck = columnWidths.reduce((acc, colWidth, idx) => {
+              if (colWidth === MAX_COL_WIDTH) {
+                acc.push(cols[idx].name);
+              }
+              return acc;
+            }, []);
+
             return (
               <MultiGrid
                 ref={ref => (this.grid = ref)}
@@ -183,7 +216,7 @@ export default class ResultTable extends React.Component {
                 rowCount={data.length + 1}
                 columnCount={colCount}
                 fixedRowCount={1}
-                rowHeight={TABLE_ROW_HEIGHT}
+                rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
                 columnWidth={({index}) => columnWidths[index]}
                 cellRenderer={this.cellRenderer}
               />
@@ -207,7 +240,7 @@ export default class ResultTable extends React.Component {
 
 const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
   height: ${p =>
-    p.visibleRows * TABLE_ROW_HEIGHT +
+    p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER +
     2}px; /* cell height + cell border + top and bottom Panel border */
   overflow: hidden;
 
@@ -220,7 +253,7 @@ const Cell = styled('div')`
   ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
       `text-align: ${p.align};`} overflow: scroll;
   font-size: 14px;
-  line-height: 40px;
+  line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;
   border-top: 1px solid ${p => p.theme.borderLight};
 
