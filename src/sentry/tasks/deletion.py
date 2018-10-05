@@ -292,16 +292,20 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
         transaction_id=transaction_id or uuid4().hex,
     )
     has_more = task.chunk()
-    if not has_more:
+    if has_more:
+        countdown = 15
+    else:
         # *this* group is done, remove it from the list
         object_ids.pop(0)
+        # we're moving on to the next group, don't delay
+        countdown = None
 
     if object_ids:
         delete_groups.apply_async(
             kwargs={'object_ids': object_ids,
                     'transaction_id': transaction_id,
                     'eventstream_state': eventstream_state},
-            countdown=15,
+            countdown=countdown,
         )
     else:
         # all groups have been deleted
