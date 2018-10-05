@@ -56,6 +56,7 @@ exports[`RuleBuilder renders 1`] = `
         Object {
           "id": "3",
           "isMember": true,
+          "memberCount": 0,
           "name": "COOL TEAM",
           "slug": "cool-team",
         },
@@ -517,6 +518,7 @@ exports[`RuleBuilder renders 1`] = `
                     Object {
                       "id": "3",
                       "isMember": true,
+                      "memberCount": 0,
                       "name": "COOL TEAM",
                       "slug": "cool-team",
                     },
@@ -710,6 +712,7 @@ exports[`RuleBuilder renders 1`] = `
                                     Object {
                                       "id": "3",
                                       "isMember": true,
+                                      "memberCount": 0,
                                       "name": "COOL TEAM",
                                       "slug": "cool-team",
                                     }
@@ -743,6 +746,7 @@ exports[`RuleBuilder renders 1`] = `
                                           Object {
                                             "id": "4",
                                             "isMember": true,
+                                            "memberCount": 0,
                                             "name": "TEAM NOT IN PROJECT",
                                             "slug": "team-not-in-project",
                                           }
@@ -1079,6 +1083,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         Object {
           "id": "3",
           "isMember": true,
+          "memberCount": 0,
           "name": "COOL TEAM",
           "slug": "cool-team",
         },
@@ -1756,6 +1761,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     Object {
                       "id": "3",
                       "isMember": true,
+                      "memberCount": 0,
                       "name": "COOL TEAM",
                       "slug": "cool-team",
                     },
@@ -2177,6 +2183,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     Object {
                                       "id": "3",
                                       "isMember": true,
+                                      "memberCount": 0,
                                       "name": "COOL TEAM",
                                       "slug": "cool-team",
                                     }
@@ -2210,6 +2217,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           Object {
                                             "id": "4",
                                             "isMember": true,
+                                            "memberCount": 0,
                                             "name": "TEAM NOT IN PROJECT",
                                             "slug": "team-not-in-project",
                                           }

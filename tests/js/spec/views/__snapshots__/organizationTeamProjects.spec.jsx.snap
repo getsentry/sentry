@@ -279,6 +279,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           Object {
                             "id": "1",
                             "isMember": true,
+                            "memberCount": 0,
                             "name": "Team Name",
                             "slug": "team-slug",
                           },
@@ -334,6 +335,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     Object {
                                       "id": "1",
                                       "isMember": true,
+                                      "memberCount": 0,
                                       "name": "Team Name",
                                       "slug": "team-slug",
                                     },
@@ -355,6 +357,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       Object {
                                         "id": "1",
                                         "isMember": true,
+                                        "memberCount": 0,
                                         "name": "Team Name",
                                         "slug": "team-slug",
                                       },

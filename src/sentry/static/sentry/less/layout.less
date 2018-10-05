@@ -10,14 +10,7 @@ body {
   color: @gray-darker;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  padding-left: @sidebar-width;
   min-height: 100vh;
-
-  // Fake sidebar rendering until actual sidebar is loaded
-
-  background-image: linear-gradient(@header-bg-color, @header-bg-color);
-  background-size: @sidebar-width;
-  background-repeat: repeat-y;
 
   &.new-settings {
     overflow-y: scroll;
