@@ -364,6 +364,9 @@ class SnubaOffsetPaginator(object):
         # dataset, which is the same meaning as SQLs `OFFSET`.
         return CursorResult(
             data,
-            prev=Cursor(0, max(0, offset - limit), True, offset != 0),
-            next=Cursor(0, max(0, offset + limit), True, has_more)
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more)
         )
+        # TODO use Cursor.value as the `end` argument to data_fn() so that
+        # subsequent pages returned using these cursors are using the same end
+        # date for queries, this should stop drift from new incoming events.

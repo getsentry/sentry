@@ -241,6 +241,7 @@ class SnubaEvent(object):
     ]
 
     def __init__(self, kv):
+        assert set(kv.keys()) == set(self.selected_columns)
         self.__dict__ = kv
 
 
@@ -253,7 +254,6 @@ class SnubaEventSerializer(Serializer):
     """
     def serialize(self, obj, attrs, user):
         return {
-            'id': 0,  # This is not relevant for snuba-sourced events, but some things expect it
             'eventID': six.text_type(obj.event_id),
             'message': obj.message,
             'user': {
