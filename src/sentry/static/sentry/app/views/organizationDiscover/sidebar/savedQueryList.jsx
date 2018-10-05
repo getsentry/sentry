@@ -1,5 +1,6 @@
 import React from 'react';
 import moment from 'moment';
+import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 
@@ -39,7 +40,9 @@ export default class SavedQueries extends React.Component {
   renderLoading() {
     return (
       <Fieldset>
-        <LoadingIndicator mini />
+        <Flex justify="center">
+          <LoadingIndicator mini />
+        </Flex>
       </Fieldset>
     );
   }
