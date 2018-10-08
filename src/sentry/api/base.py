@@ -16,6 +16,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from simplejson import JSONDecodeError
 
 from sentry import tsdb
 from sentry.app import raven
@@ -25,6 +26,8 @@ from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
+from sentry.utils import json
+
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
@@ -101,6 +104,29 @@ class Endpoint(APIView):
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
+    def load_json_body(self, request):
+        """
+        Attempts to load the request body when it's JSON.
+
+        The end result is ``request.json_body`` having a value. When it can't
+        load the body as JSON, for any reason, ``request.json_body`` is None.
+
+        The request flow is unaffected and no exceptions are ever raised.
+        """
+
+        request.json_body = None
+
+        if request.META.get('CONTENT_TYPE') != 'application/json':
+            return
+
+        if not len(request.body):
+            return
+
+        try:
+            request.json_body = json.loads(request.body)
+        except JSONDecodeError:
+            return
+
     def initialize_request(self, request, *args, **kwargs):
         rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
         # If our request is being made via our internal API client, we need to
@@ -121,6 +147,7 @@ class Endpoint(APIView):
         self.args = args
         self.kwargs = kwargs
         request = self.initialize_request(request, *args, **kwargs)
+        self.load_json_body(request)
         self.request = request
         self.headers = self.default_response_headers  # deprecate?
 
