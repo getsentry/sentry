@@ -16,7 +16,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         try:
             integration_model = Integration.objects.get(
                 id=integration_id,
-                organization_id=organization_id,
+                organizations=organization_id,
             )
         except Integration.DoesNotExist as error:
             self.handle_api_error(error)

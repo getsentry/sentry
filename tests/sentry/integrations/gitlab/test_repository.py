@@ -21,7 +21,6 @@ class GitLabProviderTest(PluginTestCase):
 
     @responses.activate
     def test_create_repository(self):
-
         self.login_as(self.user)
         repo_id = 123
         repo_path = 'getsentry/example-repo'
@@ -75,6 +74,7 @@ class GitLabProviderTest(PluginTestCase):
                     'identifier': repo_id,
                 }
             )
+
         assert response.status_code == 201
         repo = Repository.objects.get(
             organization_id=self.organization.id,
