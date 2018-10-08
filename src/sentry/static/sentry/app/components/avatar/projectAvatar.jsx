@@ -10,19 +10,22 @@ class ProjectAvatar extends React.Component {
     ...BaseAvatar.propTypes,
   };
 
+  getPlatforms = project => {
+    if (project && project.platforms && project.platforms.length > 0) {
+      return project.platforms;
+    }
+
+    if (project && project.platform) {
+      return [project.platform];
+    }
+
+    return [];
+  };
+
   render() {
     let {project, ...props} = this.props;
 
-    return (
-      <PlatformList
-        platforms={
-          (project && project.platforms && project.platforms.length > 0
-            ? project.platforms
-            : project.platform && [project.platform]) || []
-        }
-        {...props}
-      />
-    );
+    return <PlatformList platforms={this.getPlatforms(project)} {...props} />;
   }
 }
 export default ProjectAvatar;
