@@ -23,7 +23,6 @@ export default class IntegrationRepos extends AsyncComponent {
     integration: PropTypes.object.isRequired,
   };
   static contextTypes = {
-    router: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
   };
 
@@ -40,9 +39,8 @@ export default class IntegrationRepos extends AsyncComponent {
 
   getEndpoints() {
     let orgId = this.context.organization.slug;
-    let {cursor} = this.context.router.location.query;
     return [
-      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: '', cursor}}],
+      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       [
         'integrationRepos',
         `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`,
