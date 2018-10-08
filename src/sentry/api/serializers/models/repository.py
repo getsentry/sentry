@@ -10,7 +10,7 @@ from sentry.models import Repository
 class RepositorySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         integration_id = None
-        if obj.integraiton_id:
+        if obj.integration_id:
             integration_id = six.text_type(obj.id)
         if obj.provider:
             provider = {
