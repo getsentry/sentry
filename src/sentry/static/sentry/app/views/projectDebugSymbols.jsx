@@ -1,5 +1,4 @@
 import {Box, Flex} from 'grid-emotion';
-import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
@@ -7,7 +6,7 @@ import styled from 'react-emotion';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import DateTime from 'app/components/dateTime';
+import ActionLink from 'app/components/actions/actionLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
 import LoadingError from 'app/components/loadingError';
@@ -16,25 +15,9 @@ import OrganizationState from 'app/mixins/organizationState';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
-
-const marginBottomStyle = {marginBottom: 40};
-
-const LastSeen = styled(Flex)`
-  font-size: 12px;
-  color: ${p => p.theme.purple2};
-`;
-
-const TimeIcon = styled.span`
-  margin-right: 4px;
-`;
-
-const HoverablePanelItem = styled(PanelItem)`
-  cursor: pointer;
-  transition: all 0s ease-in-out;
-  &:hover {
-    background-color: ${p => p.theme.whiteDark};
-  }
-`;
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 
 const ProjectDebugSymbols = createReactClass({
   displayName: 'ProjectDebugSymbols',
@@ -45,9 +28,7 @@ const ProjectDebugSymbols = createReactClass({
       loading: true,
       error: false,
       showModal: false,
-      debugSymbols: [],
-      unreferencedDebugSymbols: [],
-      apps: [],
+      debugFiles: [],
       activeAppID: null,
       activeVersion: null,
       activeBuilds: null,
@@ -67,9 +48,7 @@ const ProjectDebugSymbols = createReactClass({
         this.setState({
           error: false,
           loading: false,
-          debugSymbols: data.debugSymbols,
-          unreferencedDebugSymbols: data.unreferencedDebugSymbols,
-          apps: data.apps,
+          debugFiles: data.debugFiles,
           pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
@@ -82,288 +61,104 @@ const ProjectDebugSymbols = createReactClass({
     });
   },
 
-  setActive(appID, version, builds) {
-    this.setState({
-      activeAppID: appID,
-      activeVersion: version,
-      activeBuilds: builds,
-    });
-  },
-
-  openModal(build, dsyms) {
-    this.setState({
-      showModal: true,
-      activeBuild: build,
-      activeDsyms: dsyms,
-    });
-  },
-
-  closeModal() {
-    this.setState({
-      showModal: false,
-    });
-  },
-
-  renderDebugTable() {
-    let body;
-
-    if (this.state.loading) {
-      body = this.renderLoading();
-    } else if (this.state.error) {
-      body = <LoadingError onRetry={this.fetchData} />;
-    } else if (this.state.debugSymbols.length > 0) {
-      body = this.renderResults();
-    } else {
-      body = this.renderEmpty();
-    }
-
-    return body;
-  },
-
   renderLoading() {
+    return <LoadingIndicator />;
+  },
+
+  renderNoQueryResults() {
     return (
-      <Panel>
-        <LoadingIndicator />
-      </Panel>
+      <EmptyStateWarning>
+        <p>{t('Sorry, no releases match your filters.')}</p>
+      </EmptyStateWarning>
     );
   },
 
   renderEmpty() {
     return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{t('There are no debug symbols for this project.')}</p>
-        </EmptyStateWarning>
-      </Panel>
+      <EmptyStateWarning>
+        <p>{t('There are no debug symbols for this project.')}</p>
+      </EmptyStateWarning>
     );
   },
 
-  mapObject(object, callback) {
-    if (object === undefined) {
-      return [];
-    }
-    return Object.keys(object).map(function(key) {
-      return callback(object[key], key);
-    });
-  },
-
-  renderResults() {
-    let groupedDsyms = [];
-    this.state.debugSymbols.map((dsym, idx) => {
-      if (groupedDsyms[dsym.dsymAppId] === undefined) {
-        groupedDsyms[dsym.dsymAppId] = [];
-      }
-      if (groupedDsyms[dsym.dsymAppId][dsym.version] === undefined) {
-        groupedDsyms[dsym.dsymAppId][dsym.version] = [];
-      }
-      if (groupedDsyms[dsym.dsymAppId][dsym.version][dsym.build] === undefined) {
-        groupedDsyms[dsym.dsymAppId][dsym.version][dsym.build] = [];
-      }
-      groupedDsyms[dsym.dsymAppId][dsym.version][dsym.build].push(dsym);
-    });
-
-    let indexedApps = [];
-    if (this.state.apps) {
-      this.state.apps.map((app, idx) => {
-        indexedApps[app.id] = app;
-      });
-    }
-
-    return indexedApps.map(app => {
-      return (
-        <Panel style={marginBottomStyle} key={app.id}>
-          <PanelHeader>
-            <div>
-              <div
-                className="app-icon"
-                style={app.iconUrl && {backgroundImage: `url(${app.iconUrl})`}}
-              />
-              {app.name}
-            </div>
-            <small>({app.appId})</small>
-          </PanelHeader>
-
-          <PanelBody>
-            {this.mapObject(groupedDsyms[app.id], (builds, version) => {
-              let symbolsInVersion = 0;
-              let lastSeen = null;
-              this.mapObject(groupedDsyms[app.id][version], (dsyms, build) => {
-                symbolsInVersion += Object.keys(dsyms).length;
-                if (
-                  lastSeen === null ||
-                  (lastSeen &&
-                    new Date(dsyms[0].dateAdded).getTime() > new Date(lastSeen).getTime())
-                ) {
-                  lastSeen = dsyms[0].dateAdded;
-                }
-              });
-              let row = (
-                <HoverablePanelItem
-                  className="hoverable"
-                  onClick={() => this.setActive(app.id, version, builds)}
-                >
-                  <Flex flex="1" direction="column">
-                    <h3 className="truncate">{version}</h3>
-                    <BuildLabel>
-                      {t('Builds')}: {Object.keys(builds).length}
-                    </BuildLabel>
-                    <LastSeen align="center">
-                      <TimeIcon className="icon icon-clock" />
-                      <TimeSince date={lastSeen} />
-                    </LastSeen>
-                  </Flex>
-                  <Box>
-                    {t('Debug Information Files')}: {symbolsInVersion}
-                  </Box>
-                </HoverablePanelItem>
-              );
-
-              let buildPanelItems = '';
-              if (
-                this.state.activeVersion &&
-                this.state.activeBuilds &&
-                this.state.activeVersion == version &&
-                this.state.activeAppID == app.id
-              ) {
-                buildPanelItems = this.renderBuilds(version, this.state.activeBuilds);
-              }
-              return (
-                <PanelItem direction="column" key={version}>
-                  {row}
-                  {buildPanelItems}
-                </PanelItem>
-              );
-            })}
-          </PanelBody>
-        </Panel>
-      );
-    });
-  },
-
-  renderBuilds(version, builds) {
-    let buildPanelItems = [];
-    let dateAdded = null;
-    this.mapObject(builds, (dsyms, build) => {
-      if (
-        dateAdded === null ||
-        (dateAdded &&
-          new Date(dsyms[0].dateAdded).getTime() > new Date(dateAdded).getTime())
-      ) {
-        dateAdded = dsyms[0].dateAdded;
-      }
-    });
-    this.mapObject(builds, (dsyms, build) => {
-      buildPanelItems.push(
-        <HoverablePanelItem key={build} onClick={() => this.openModal(build, dsyms)}>
-          <Flex flex="1" direction="column">
-            <BuildLabel>{build}</BuildLabel>
-            <LastSeen align="center">
-              <TimeIcon className="icon icon-clock" />
-              <TimeSince date={dateAdded} />
-            </LastSeen>
-          </Flex>
-          <Box>
-            {t('Debug Information Files')}: {dsyms.length}
-          </Box>
-        </HoverablePanelItem>
-      );
-    });
-    return buildPanelItems;
-  },
-
-  renderDsyms(dsyms, raw) {
-    if (dsyms === null) {
-      return null;
-    }
-
-    let moreSymbolsHidden = null;
-    if (raw && dsyms.length >= 100) {
-      moreSymbolsHidden = (
-        <tr className="text-center" key="empty-row">
-          <td colSpan="6">{t('There are more symbols than are shown here.')}</td>
-        </tr>
-      );
-    }
-
+  renderDsyms() {
     let {orgId, projectId} = this.props.params;
     let access = this.getAccess();
 
-    const rows = dsyms.map((dsymFile, key) => {
-      let dsym = raw ? dsymFile : dsymFile.dsym;
-      if (dsym === undefined || dsym === null) {
-        return null;
-      }
+    const rows = this.state.debugFiles.map((dsym, key) => {
       const url = `${this.api
         .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsym.id}`;
       return (
-        <tr key={key}>
-          <td>
-            <code className="small">{dsym.debugId || dsym.uuid}</code>
-          </td>
-          <td>
+        <PanelItem key={key} align="center" px={2} py={1}>
+          <Box w={5 / 12} pl={2}>
+            <p className="m-b-0 small">{dsym.debugId || dsym.uuid}</p>
+            <Flex align="center">
+              <Box w={6 / 12}>
+                <p className="m-b-0 text-light small">
+                  <span className="icon icon-clock" />{' '}
+                  <TimeSince date={dsym.dateCreated} />
+                </p>
+              </Box>
+              <Box w={6 / 12}>
+                <p className="m-b-0 text-light small">
+                  <FileSize bytes={dsym.size} />
+                </p>
+              </Box>
+            </Flex>
+          </Box>
+          <Box flex="1">
             {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
               ? '-'
               : dsym.objectName}
-          </td>
-          <td>
-            {dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
-              ? 'proguard'
-              : `${dsym.cpuName} (${dsym.symbolType})`}
-          </td>
-          <td>
-            <DateTime date={dsym.dateCreated} />
-          </td>
-          <td>
-            <FileSize bytes={dsym.size} />
-          </td>
-          <td>
+            <p className="m-b-0 text-light small">
+              {dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
+                ? 'proguard'
+                : `${dsym.cpuName} (${dsym.symbolType})`}
+            </p>
+          </Box>
+
+          <Box flex="1">
             {access.has('project:write') ? (
-              <a href={url} className="btn btn-sm btn-default">
-                <span className="icon icon-open" />
-              </a>
+              <div className="btn-group">
+                <ActionLink
+                  onAction={() => this.download(url)}
+                  className="btn btn-default btn-sm"
+                >
+                  {t('Download')}
+                </ActionLink>
+                <LinkWithConfirmation
+                  className="btn btn-danger btn-sm"
+                  title={t('Delete')}
+                  message={t(
+                    'Are you sure you wish to delete this debug infromation file?'
+                  )}
+                  onConfirm={() => this.onDelete(row.id)}
+                >
+                  {t('Delete')}
+                </LinkWithConfirmation>
+              </div>
             ) : null}
-          </td>
-        </tr>
+          </Box>
+        </PanelItem>
       );
     });
 
-    rows.push(moreSymbolsHidden);
     return rows;
   },
 
-  renderUnreferencedDebugSymbols() {
-    if (this.state.loading) {
-      return null;
-    }
-    return (
-      <div>
-        <SettingsPageHeader title={t('Unreferenced Debug Information Files')} />
-        <TextBlock>
-          {t(
-            `
-          This list represents all Debug Information Files which are not assigned to an
-          app version. We will still find these debug symbols for symbolication
-          but we can't tell you which versions they belong to.  This happens
-          if you upload them with an old verison of sentry-cli or if sentry-cli
-          can't locate the Info.plist file at the time of upload.
-        `
-          )}
-        </TextBlock>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t('Debug ID')}</th>
-              <th>{t('Object')}</th>
-              <th>{t('Type')}</th>
-              <th>{t('Uploaded')}</th>
-              <th>{t('Size')}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>{this.renderDsyms(this.state.unreferencedDebugSymbols, true)}</tbody>
-        </table>
-      </div>
-    );
+  renderStreamBody() {
+    let body;
+
+    let params = this.props.params;
+
+    if (this.state.loading) body = this.renderLoading();
+    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
+    else if (this.state.debugFiles.length > 0) body = this.renderDsyms();
+    else if (this.state.query && this.state.query !== DEFAULT_QUERY)
+      body = this.renderNoQueryResults();
+    else body = this.renderEmpty();
+
+    return body;
   },
 
   render() {
@@ -373,7 +168,7 @@ const ProjectDebugSymbols = createReactClass({
         <TextBlock>
           {t(
             `
-          Here you can find uploaded debug information (for instance debug
+          Here you can find all your uploaded debug information files (for instance debug
           symbol files or proguard mappings).  This is used to convert
           addresses and minified function names from crash dumps
           into function names and locations.  For JavaScript debug support
@@ -382,38 +177,30 @@ const ProjectDebugSymbols = createReactClass({
           )}
         </TextBlock>
 
-        {this.renderDebugTable()}
-
-        {this.renderUnreferencedDebugSymbols()}
-
-        <Modal
-          show={this.state.showModal}
-          onHide={this.closeModal}
-          animation={false}
-          backdrop="static"
-          enforceFocus={false}
-          bsSize="lg"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>
-              {this.state.activeVersion} ({this.state.activeBuild})
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('Debug ID')}</th>
-                  <th>{t('Object')}</th>
-                  <th>{t('Type')}</th>
-                  <th>{t('Uploaded')}</th>
-                  <th>{t('Size')}</th>
-                </tr>
-              </thead>
-              <tbody>{this.renderDsyms(this.state.activeDsyms)}</tbody>
-            </table>
-          </Modal.Body>
-        </Modal>
+        <div className="ref-project-releases">
+          <div className="row release-list-header">
+            <div className="col-sm-7" />
+            <div className="col-sm-5 release-search">
+              <SearchBar
+                defaultQuery=""
+                placeholder={t('Search for a DIF')}
+                query={this.state.query}
+                onSearch={this.onSearch}
+              />
+            </div>
+          </div>
+          <Panel>
+            <PanelHeader>
+              <Box w={5 / 12} pl={2}>
+                {t('Debug ID')}
+              </Box>
+              <Box flex="1">{t('Name')}</Box>
+              <Box flex="1" />
+            </PanelHeader>
+            <PanelBody>{this.renderDsyms()}</PanelBody>
+          </Panel>
+          <Pagination pageLinks={this.state.pageLinks} />
+        </div>
       </div>
     );
   },

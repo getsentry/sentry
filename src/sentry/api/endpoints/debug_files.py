@@ -108,16 +108,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
                                      DIFs of.
         :auth: required
         """
-
-        apps = DSymApp.objects.filter(project=project)
-        debug_files = VersionDSymFile.objects.filter(
-            dsym_app=apps
-        ).select_related('dsym_file').order_by('-build', 'version')
-
         file_list = ProjectDebugFile.objects.filter(
             project=project,
-            versiondsymfile__isnull=True,
-        ).select_related('file')[:100]
+        ).select_related('file')
 
         download_requested = request.GET.get('download_id') is not None
         if download_requested and (request.access.has_scope('project:write')):
@@ -125,9 +118,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         return Response(
             {
-                'apps': serialize(list(apps)),
-                'debugSymbols': serialize(list(debug_files)),
-                'unreferencedDebugSymbols': serialize(list(file_list)),
+                'debugFiles': serialize(list(file_list)),
             }
         )
 
