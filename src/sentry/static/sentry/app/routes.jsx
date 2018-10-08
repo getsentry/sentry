@@ -744,7 +744,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
-              import(/*webpackChunkName: OrganizationDiscover*/ './views/organizationDiscover/index')}
+              import(/*webpackChunkName: "OrganizationDiscover"*/ './views/organizationDiscover/index')}
             component={errorHandler(LazyLoad)}
           >
             <Redirect path="saved/" to="/organizations/:orgId/discover/" />
@@ -783,7 +783,7 @@ function routes() {
 
             <Route
               path="browsers"
-              i={() =>
+              componentPromise={() =>
                 import(/*webpackChunkName: HealthBrowsers*/ './views/organizationHealth/browsers')}
               component={errorHandler(LazyLoad)}
             />
