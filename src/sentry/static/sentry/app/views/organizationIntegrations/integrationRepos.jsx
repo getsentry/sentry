@@ -113,7 +113,6 @@ export default class IntegrationRepos extends AsyncComponent {
     let method = migratableRepo ? 'PUT' : 'POST';
     let saveIndicator = IndicatorStore.add(t('Adding repository...'));
     this.setState({adding: true});
-
     this.api.request(path, {
       data,
       method,
@@ -193,7 +192,7 @@ export default class IntegrationRepos extends AsyncComponent {
       );
     }
     const repositories = new Set(
-      this.state.itemList.filter(item => !item.integrationId).map(i => i.name)
+      this.state.itemList.filter(item => item.integrationId).map(i => i.name)
     );
     let repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)
