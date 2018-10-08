@@ -15,7 +15,7 @@ describe('Discover', function() {
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
 
       wrapper = mount(
-        <Discover queryBuilder={queryBuilder} organization={organization} />,
+        <Discover queryBuilder={queryBuilder} organization={organization} params={{}} />,
         TestStubs.routerContext()
       );
     });
@@ -94,6 +94,7 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           location={{location: '?fields=something'}}
+          params={{}}
         />,
         TestStubs.routerContext()
       );

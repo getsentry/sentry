@@ -605,11 +605,9 @@ function routes() {
           )}
       />
 
-
       <Redirect from="/account/" to="/settings/account/details/" />
 
       <Route path="/settings/" name="Settings" component={SettingsWrapper}>
-
         <IndexRoute
           getComponent={(loc, cb) =>
             import(/* webpackChunkName: "SettingsIndex" */ './views/settings/settingsIndex').then(
@@ -743,13 +741,16 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
-
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
-              import(/*webpackChunkName:"OrganizationDiscover"*/ './views/organizationDiscover/index')}
+              import(/*webpackChunkName: "OrganizationDiscover"*/ './views/organizationDiscover/index')}
             component={errorHandler(LazyLoad)}
-          />
+          >
+            <Redirect path="saved/" to="/organizations/:orgId/discover/" />
+            <Route path="saved/:savedQueryId/" />
+          </Route>
+
           <Route
             path="/organizations/:orgId/activity/"
             component={errorHandler(OrganizationActivity)}
