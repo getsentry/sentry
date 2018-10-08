@@ -26,7 +26,6 @@ import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
 import OrganizationDashboard from 'app/views/organizationDashboard';
 import OrganizationDetails from 'app/views/organizationDetails';
-import OrganizationDiscover from 'app/views/organizationDiscover';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
@@ -744,19 +743,13 @@ function routes() {
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
           <Route
             path="/organizations/:orgId/discover/"
-            /* We do not lazy load discover since it causes the components
-            * to be unnecessarily remounted when navigating between the
-            * /discover and /discover/saved/:id routes */
-            component={errorHandler(OrganizationDiscover)}
-          />
-          <Redirect
-            path="/organizations/:orgId/discover/saved/"
-            to="/organizations/:orgId/discover/"
-          />
-          <Route
-            path="/organizations/:orgId/discover/saved/:savedQueryId/"
-            component={errorHandler(OrganizationDiscover)}
-          />
+            componentPromise={() =>
+              import(/*webpackChunkName: OrganizationDiscover*/ './views/organizationDiscover/index')}
+            component={errorHandler(LazyLoad)}
+          >
+            <Redirect path="saved/" to="/organizations/:orgId/discover/" />
+            <Route path="saved/:savedQueryId/" />
+          </Route>
 
           <Route
             path="/organizations/:orgId/activity/"
@@ -790,7 +783,7 @@ function routes() {
 
             <Route
               path="browsers"
-              componentPromise={() =>
+              i={() =>
                 import(/*webpackChunkName: HealthBrowsers*/ './views/organizationHealth/browsers')}
               component={errorHandler(LazyLoad)}
             />
