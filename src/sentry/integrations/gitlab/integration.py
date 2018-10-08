@@ -55,19 +55,12 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
-        def get_repo_list(resp):
-            return [{
-                'identifier': repo['id'],
-                'name': repo['name_with_namespace'],
-            } for repo in resp]
-
         group = self.get_group_id()
-        if not query:
-            resp = self.get_client().get_group_projects(group, simple=True)
-            return get_repo_list(resp)
-
-        resp = self.get_client().get_group_projects(group, query, simple=True)
-        return get_repo_list(resp)
+        resp = self.get_client().get_group_projects(group, query)
+        return [{
+            'identifier': repo['id'],
+            'name': repo['name_with_namespace'],
+        } for repo in resp]
 
 
 class InstallationForm(forms.Form):

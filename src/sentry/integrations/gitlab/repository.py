@@ -14,13 +14,16 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             raise ValueError('%s requires an integration_id' % self.name)
 
         try:
-            integration_model = Integration.objects.get(id=integration_id)
+            integration_model = Integration.objects.get(
+                id=integration_id,
+                organization_id=organization_id,
+            )
         except Integration.DoesNotExist as error:
             self.handle_api_error(error)
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
+    def get_repository_data(self, organization, config):
         installation = self.get_installation(config['installation'], organization.id)
         client = installation.get_client()
 
@@ -41,7 +44,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         })
         return config
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         return {
             'name': data['name'],
             'external_id': data['external_id'],

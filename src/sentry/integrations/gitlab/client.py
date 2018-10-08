@@ -63,7 +63,7 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
     def get_user(self):
         return self.get(GitLabApiClientPath.user)
 
-    def get_group_projects(self, group, query=None, simple=False):
+    def get_group_projects(self, group, query=None, simple=True):
         # simple param returns limited fields for the project.
         # Really useful, because we often don't need most of the project information
         return self.get(
