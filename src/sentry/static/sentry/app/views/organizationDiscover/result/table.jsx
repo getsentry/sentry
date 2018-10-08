@@ -11,11 +11,13 @@ import Panel from 'app/components/panels/panel';
 import {getDisplayValue, getDisplayText} from './utils';
 
 const TABLE_ROW_HEIGHT = 30;
-const TABLE_ROW_HEIGHT_WITH_BORDER = TABLE_ROW_HEIGHT + 1;
+const TABLE_ROW_BORDER = 1;
+const TABLE_ROW_HEIGHT_WITH_BORDER = TABLE_ROW_HEIGHT + TABLE_ROW_BORDER;
 const MIN_COL_WIDTH = 100;
 const MAX_COL_WIDTH = 500;
 const LINK_COL_WIDTH = 40;
 const CELL_PADDING = 20;
+const VISIBLE_ROWS = 12;
 
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
@@ -149,12 +151,14 @@ export default class ResultTable extends React.Component {
     });
     const maxColWidth = Math.max(...colWidths, 0);
 
+    // Number of rows to be rendered based on text content divided by cell width
+    // Apply a min of 1 and max of 3
     const rows = Math.max(
       Math.min(Math.ceil(maxColWidth / (MAX_COL_WIDTH - CELL_PADDING)), 3),
       1
     );
 
-    return TABLE_ROW_HEIGHT * rows + 1; // 1px for border;
+    return TABLE_ROW_HEIGHT * rows + TABLE_ROW_BORDER;
   };
 
   getColumnList = () => {
@@ -190,7 +194,7 @@ export default class ResultTable extends React.Component {
     // Add one column at the end to make sure table spans full width
     const colCount = cols.length + (showEventLinks ? 1 : 0) + 1;
 
-    const maxVisibleResults = Math.min(data.length, 12);
+    const maxVisibleResults = Math.min(data.length, VISIBLE_ROWS);
 
     return (
       <GridContainer visibleRows={maxVisibleResults + 1}>
