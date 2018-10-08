@@ -172,7 +172,10 @@ class RedisBuffer(Buffer):
 
         pipe = conn.pipeline()
         pipe.hsetnx(key, 'm', '%s.%s' % (model.__module__, model.__name__))
-        pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
+        # TODO(dcramer): once this goes live in production, we can kill the pickle path
+        # (this is to ensure a zero downtime deploy where we can transition event processing)
+        pipe.hsetnx(key, 'f', pickle.dumps(filters))
+        # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
         for column, amount in six.iteritems(columns):
             pipe.hincrby(key, 'i+' + column, amount)
 
@@ -181,7 +184,10 @@ class RedisBuffer(Buffer):
             # hook here
             # e.g. "update score if last_seen or times_seen is changed"
             for column, value in six.iteritems(extra):
-                pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
+                # TODO(dcramer): once this goes live in production, we can kill the pickle path
+                # (this is to ensure a zero downtime deploy where we can transition event processing)
+                pipe.hset(key, 'e+' + column, pickle.dumps(value))
+                # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
