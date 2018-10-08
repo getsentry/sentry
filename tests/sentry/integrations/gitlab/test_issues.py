@@ -2,44 +2,16 @@ from __future__ import absolute_import
 
 import responses
 
-from time import time
-
-from sentry.models import Identity, IdentityProvider, Integration
-from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
+from .testutils import GitLabTestCase
 
 
-class GitlabIssuesTest(APITestCase):
-    provider = 'gitlab'
+class GitlabIssuesTest(GitLabTestCase):
 
     def setUp(self):
-        self.login_as(self.user)
+        super(GitlabIssuesTest, self).setUp()
         self.group = self.create_group()
         self.create_event(group=self.group)
-
-        integration = Integration.objects.create(
-            provider=self.provider,
-            name='Example Gitlab',
-            metadata={
-                'base_url': 'https://example.gitlab.com',
-                'domain_name': 'example.gitlab.com/sentry-group',
-                'verify_ssl': False,
-            }
-        )
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(
-                type=self.provider,
-                config={},
-            ),
-            user=self.user,
-            external_id='gitlab123',
-            data={
-                'access_token': '123456789',
-                'expires': time() + 1234567,
-            }
-        )
-        integration.add_organization(self.organization, self.user, identity.id)
-        self.installation = integration.get_installation(self.organization.id)
 
     def test_make_external_key(self):
         project_name = 'getsentry/sentry'

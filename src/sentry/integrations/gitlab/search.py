@@ -42,7 +42,7 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
             if not query:
                 return Response([])
 
-            response = installation.get_client().get_projects(query=query, simple=True)
+            response = installation.get_client().get_projects(query=query)
             return Response([{
                 'label': project['name_with_namespace'],
                 'value': project['path_with_namespace'],
