@@ -167,7 +167,7 @@ const ProjectDebugSymbols = createReactClass({
                   onAction={() => (window.location = url)}
                   className="btn btn-default btn-sm"
                 >
-                  <InlineSvg src="icon-download" />
+                  <InlineSvg src="icon-download" /> {t('Download')}
                 </ActionLink>
                 <LinkWithConfirmation
                   className="btn btn-danger btn-sm"
@@ -177,7 +177,7 @@ const ProjectDebugSymbols = createReactClass({
                   )}
                   onConfirm={() => this.onDelete(dsym.id)}
                 >
-                  <span className="icon icon-trash" />
+                  <InlineSvg src="icon-trash" /> {t('Delete')}
                 </LinkWithConfirmation>
               </div>
             ) : null}
