@@ -1,5 +1,5 @@
 """
-sentry.models.dsymfile
+sentry.models.debugfile
 ~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
@@ -35,7 +35,7 @@ from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File, ChunkFileState
 from sentry.utils.zip import safe_extract_zip
-from sentry.constants import KNOWN_DSYM_TYPES
+from sentry.constants import KNOWN_DIF_TYPES
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
 
@@ -49,7 +49,7 @@ ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 # 10 minutes is assumed to be a reasonable value here.
 CONVERSION_ERROR_TTL = 60 * 10
 
-DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
+DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_TYPES.items())
 
 _proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
 
@@ -95,7 +95,7 @@ class VersionDSymFile(Model):
     __core__ = False
 
     objects = BaseManager()
-    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile', null=True)
+    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile', null=True)
     dsym_app = FlexibleForeignKey('sentry.DSymApp')
     version = models.CharField(max_length=32)
     build = models.CharField(max_length=32, null=True)
@@ -108,23 +108,23 @@ class VersionDSymFile(Model):
 
 
 # TODO(dcramer): pull in enum library
-class DSymPlatform(object):
+class DifPlatform(object):
     GENERIC = 0
     APPLE = 1
     ANDROID = 2
 
 
-DSYM_PLATFORMS = {
-    'generic': DSymPlatform.GENERIC,
-    'apple': DSymPlatform.APPLE,
-    'android': DSymPlatform.ANDROID,
+DIF_PLATFORMS = {
+    'generic': DifPlatform.GENERIC,
+    'apple': DifPlatform.APPLE,
+    'android': DifPlatform.ANDROID,
 }
-DSYM_PLATFORMS_REVERSE = dict((v, k) for (k, v) in six.iteritems(DSYM_PLATFORMS))
+DIF_PLATFORMS_REVERSE = dict((v, k) for (k, v) in six.iteritems(DIF_PLATFORMS))
 
 
 def _auto_enrich_data(data, app_id, platform):
     # If we don't have an icon URL we can try to fetch one from iTunes
-    if 'icon_url' not in data and platform == DSymPlatform.APPLE:
+    if 'icon_url' not in data and platform == DifPlatform.APPLE:
         from sentry.http import safe_urlopen
         try:
             rv = safe_urlopen(
@@ -143,7 +143,7 @@ def _auto_enrich_data(data, app_id, platform):
 
 class DSymAppManager(BaseManager):
     def create_or_update_app(
-        self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC,
+        self, sync_id, app_id, project, data=None, platform=DifPlatform.GENERIC,
         no_fetch=False
     ):
         if data is None:
@@ -176,8 +176,9 @@ class DSymApp(Model):
     platform = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (DSymPlatform.GENERIC, _('Generic')), (DSymPlatform.APPLE, _('Apple')),
-            (DSymPlatform.ANDROID, _('Android')),
+            (DifPlatform.GENERIC, _('Generic')),
+            (DifPlatform.APPLE, _('Apple')),
+            (DifPlatform.ANDROID, _('Android')),
         )
     )
     last_synced = models.DateTimeField(default=timezone.now)
@@ -189,7 +190,7 @@ class DSymApp(Model):
         unique_together = (('project', 'platform', 'app_id'), )
 
 
-class ProjectDSymFileManager(BaseManager):
+class ProjectDebugFileManager(BaseManager):
     def find_missing(self, checksums, project):
         if not checksums:
             return []
@@ -197,7 +198,7 @@ class ProjectDSymFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
-        found = ProjectDSymFile.objects.filter(
+        found = ProjectDebugFile.objects.filter(
             file__checksum__in=checksums, project=project
         ).values('file__checksum')
 
@@ -210,10 +211,10 @@ class ProjectDSymFileManager(BaseManager):
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
-        return ProjectDSymFile.objects.filter(file__checksum__in=checksums, project=project)
+        return ProjectDebugFile.objects.filter(file__checksum__in=checksums, project=project)
 
 
-class ProjectDSymFile(Model):
+class ProjectDebugFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey('sentry.File')
@@ -221,7 +222,7 @@ class ProjectDSymFile(Model):
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey('sentry.Project', null=True)
     debug_id = models.CharField(max_length=64, db_column='uuid')
-    objects = ProjectDSymFileManager()
+    objects = ProjectDebugFileManager()
 
     class Meta:
         unique_together = (('project', 'debug_id'), )
@@ -231,16 +232,29 @@ class ProjectDSymFile(Model):
     __repr__ = sane_repr('object_name', 'cpu_name', 'debug_id')
 
     @property
-    def dsym_type(self):
+    def dif_type(self):
         ct = self.file.headers.get('Content-Type', 'unknown').lower()
-        return KNOWN_DSYM_TYPES.get(ct, 'unknown')
+        return KNOWN_DIF_TYPES.get(ct, 'unknown')
+
+    @property
+    def file_extension(self):
+        if self.dif_type == 'breakpad':
+            return '.sym'
+        if self.dif_type == 'macho':
+            return '.dSYM'
+        if self.dif_type == 'proguard':
+            return '.txt'
+        if self.dif_type == 'elf':
+            return '.debug'
+
+        return ''
 
     @property
     def supports_symcache(self):
-        return self.dsym_type in ('breakpad', 'macho', 'elf')
+        return self.dif_type in ('breakpad', 'macho', 'elf')
 
     def delete(self, *args, **kwargs):
-        super(ProjectDSymFile, self).delete(*args, **kwargs)
+        super(ProjectDebugFile, self).delete(*args, **kwargs)
         self.file.delete()
 
 
@@ -249,7 +263,7 @@ class ProjectSymCacheFile(Model):
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     cache_file = FlexibleForeignKey('sentry.File')
-    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile')
+    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile')
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
@@ -265,21 +279,21 @@ class ProjectSymCacheFile(Model):
         self.cache_file.delete()
 
 
-def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
-                        basename, fileobj=None, file=None):
+def create_dif_from_id(project, dif_type, cpu_name, debug_id,
+                       basename, fileobj=None, file=None):
     """This creates a mach dsym file or proguard mapping from the given
-    debug id and open file object to a dsym file.  This will not verify the
-    debug id (intentionally so).  Use `create_files_from_dsym_zip` for doing
+    debug id and open file object to a debug file.  This will not verify the
+    debug id (intentionally so).  Use `create_files_from_dif_zip` for doing
     everything.
     """
-    if dsym_type == 'proguard':
+    if dif_type == 'proguard':
         object_name = 'proguard-mapping'
-    elif dsym_type in ('macho', 'elf'):
+    elif dif_type in ('macho', 'elf'):
         object_name = basename
-    elif dsym_type == 'breakpad':
+    elif dif_type == 'breakpad':
         object_name = basename[:-4] if basename.endswith('.sym') else basename
     else:
-        raise TypeError('unknown dsym type %r' % (dsym_type, ))
+        raise TypeError('unknown dif type %r' % (dif_type, ))
 
     if file is None:
         assert fileobj is not None, 'missing file object'
@@ -293,16 +307,17 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
         fileobj.seek(0, 0)
 
         try:
-            rv = ProjectDSymFile.objects.get(debug_id=debug_id, project=project)
+            rv = ProjectDebugFile.objects.select_related('file') \
+                .get(debug_id=debug_id, project=project)
             if rv.file.checksum == checksum:
                 return rv, False
-        except ProjectDSymFile.DoesNotExist:
+        except ProjectDebugFile.DoesNotExist:
             rv = None
 
         file = File.objects.create(
             name=debug_id,
-            type='project.dsym',
-            headers={'Content-Type': DSYM_MIMETYPES[dsym_type]},
+            type='project.dif',
+            headers={'Content-Type': DIF_MIMETYPES[dif_type]},
         )
         file.putfile(fileobj)
 
@@ -317,9 +332,9 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
         if rv is None:
             try:
                 with transaction.atomic():
-                    rv = ProjectDSymFile.objects.create(**kwargs)
+                    rv = ProjectDebugFile.objects.create(**kwargs)
             except IntegrityError:
-                rv = ProjectDSymFile.objects.select_related('file') \
+                rv = ProjectDebugFile.objects.select_related('file') \
                     .get(debug_id=debug_id, project=project)
                 oldfile = rv.file
                 rv.update(**kwargs)
@@ -330,12 +345,12 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
             oldfile.delete()
     else:
         try:
-            rv = ProjectDSymFile.objects.select_related('file') \
+            rv = ProjectDebugFile.objects.select_related('file') \
                 .get(debug_id=debug_id, project=project)
-        except ProjectDSymFile.DoesNotExist:
+        except ProjectDebugFile.DoesNotExist:
             try:
                 with transaction.atomic():
-                    rv = ProjectDSymFile.objects.create(
+                    rv = ProjectDebugFile.objects.create(
                         file=file,
                         debug_id=debug_id,
                         cpu_name=cpu_name,
@@ -343,7 +358,7 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
                         project=project,
                     )
             except IntegrityError:
-                rv = ProjectDSymFile.objects.select_related('file') \
+                rv = ProjectDebugFile.objects.select_related('file') \
                     .get(debug_id=debug_id, project=project)
                 oldfile = rv.file
                 rv.update(file=file)
@@ -352,7 +367,7 @@ def create_dsym_from_id(project, dsym_type, cpu_name, debug_id,
             oldfile = rv.file
             rv.update(file=file)
             oldfile.delete()
-        rv.file.headers['Content-Type'] = DSYM_MIMETYPES[dsym_type]
+        rv.file.headers['Content-Type'] = DIF_MIMETYPES[dif_type]
         rv.file.save()
 
     resolve_processing_issue(
@@ -403,28 +418,27 @@ def detect_dif_from_path(path):
         return objs
 
 
-def create_dsym_from_dif(to_create, project, overwrite_filename=None):
-    """Create a ProjectDSymFile from a dif (Debug Information File) and
+def create_debug_file_from_dif(to_create, project, overwrite_filename=None):
+    """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
     rv = []
-    for dsym_type, cpu, file_id, filename in to_create:
+    for dif_type, cpu, file_id, filename in to_create:
         with open(filename, 'rb') as f:
             result_filename = os.path.basename(filename)
             if overwrite_filename is not None:
                 result_filename = overwrite_filename
-            dsym, created = create_dsym_from_id(
-                project, dsym_type, cpu, file_id, result_filename,
+            dif, created = create_dif_from_id(
+                project, dif_type, cpu, file_id, result_filename,
                 fileobj=f
             )
             if created:
-                rv.append(dsym)
+                rv.append(dif)
     return rv
 
 
-def create_files_from_dsym_zip(fileobj, project,
-                               update_symcaches=True):
-    """Creates all missing dsym files from the given zip file.  This
+def create_files_from_dif_zip(fileobj, project, update_symcaches=True):
+    """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
     scratchpad = tempfile.mkdtemp()
@@ -444,7 +458,7 @@ def create_files_from_dsym_zip(fileobj, project,
                     difs = []
                 to_create = to_create + difs
 
-        rv = create_dsym_from_dif(to_create, project)
+        rv = create_debug_file_from_dif(to_create, project)
 
         # By default we trigger the symcache generation on upload to avoid
         # some obvious dogpiling.
@@ -464,18 +478,18 @@ def create_files_from_dsym_zip(fileobj, project,
         shutil.rmtree(scratchpad)
 
 
-def find_dsym_file(project, debug_id):
-    """Finds a dsym file for the given debug id."""
+def find_debug_file(project, debug_id):
+    """Finds a debug information file for the given debug id."""
     try:
-        return ProjectDSymFile.objects \
+        return ProjectDebugFile.objects \
             .filter(debug_id=debug_id.lower(), project=project) \
             .select_related('file') \
             .get()
-    except ProjectDSymFile.DoesNotExist:
+    except ProjectDebugFile.DoesNotExist:
         pass
 
 
-class DSymCache(object):
+class DIFCache(object):
     @property
     def cache_path(self):
         return options.get('dsym.cache-path')
@@ -484,16 +498,16 @@ class DSymCache(object):
         return os.path.join(self.cache_path, six.text_type(project.id))
 
     def update_symcaches(self, project, debug_ids):
-        """Given some debug ids of dsyms this will update the symcaches for
+        """Given some debug ids of DIFs this will update the symcaches for
         all of these if a symcache is supported for that symbol.
         """
         self._get_symcaches_impl(project, debug_ids)
 
-    def get_symcaches(self, project, debug_ids, on_dsym_file_referenced=None,
+    def get_symcaches(self, project, debug_ids, on_dif_referenced=None,
                       with_conversion_errors=False):
         """Given some debug ids returns the symcaches loaded for these debug ids."""
         cachefiles, conversion_errors = self._get_symcaches_impl(
-            project, debug_ids, on_dsym_file_referenced)
+            project, debug_ids, on_dif_referenced)
         symcaches = self._load_cachefiles_via_fs(project, cachefiles)
         if with_conversion_errors:
             return symcaches, dict((k, v) for k, v in conversion_errors.items())
@@ -517,32 +531,32 @@ class DSymCache(object):
             if close_tf:
                 tf.close()
 
-    def fetch_dsyms(self, project, debug_ids):
+    def fetch_difs(self, project, debug_ids):
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
         rv = {}
         for debug_id in debug_ids:
             debug_id = six.text_type(debug_id).lower()
-            dsym_path = os.path.join(self.get_project_path(project), debug_id)
+            dif_path = os.path.join(self.get_project_path(project), debug_id)
 
             try:
-                os.stat(dsym_path)
+                os.stat(dif_path)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
-                debug_file = find_dsym_file(project, debug_id)
+                debug_file = find_debug_file(project, debug_id)
                 if debug_file is None:
                     continue
-                debug_file.file.save_to(dsym_path)
-            rv[debug_id] = dsym_path
+                debug_file.file.save_to(dif_path)
+            rv[debug_id] = dif_path
 
         return rv
 
-    def _get_symcaches_impl(self, project, debug_ids, on_dsym_file_referenced=None):
-        # Fetch dsym files first and invoke the callback if we need
+    def _get_symcaches_impl(self, project, debug_ids, on_dif_referenced=None):
+        # Fetch debug files first and invoke the callback if we need
         debug_ids = list(map(six.text_type, debug_ids))
-        debug_files = [x for x in ProjectDSymFile.objects.filter(
+        debug_files = [x for x in ProjectDebugFile.objects.filter(
             project=project,
             debug_id__in=debug_ids,
         ).select_related('file') if x.supports_symcache]
@@ -551,8 +565,8 @@ class DSymCache(object):
 
         debug_files_by_id = {}
         for debug_file in debug_files:
-            if on_dsym_file_referenced is not None:
-                on_dsym_file_referenced(debug_file)
+            if on_dif_referenced is not None:
+                on_dif_referenced(debug_file)
             debug_files_by_id[debug_file.debug_id] = debug_file
 
         # Now find all the cache files we already have.
@@ -604,17 +618,17 @@ class DSymCache(object):
                 conversion_errors[debug_file.debug_id] = err
 
         for debug_file in debug_files:
-            dsym_id = debug_file.debug_id
-            if dsym_id in conversion_errors:
+            debug_id = debug_file.debug_id
+            if debug_id in conversion_errors:
                 continue
 
             with debug_file.file.getfile(as_tempfile=True) as tf:
                 symcache_file, conversion_error = self._update_cachefile(
                     debug_file, tf)
             if symcache_file is not None:
-                rv.append((dsym_id, symcache_file))
+                rv.append((debug_id, symcache_file))
             elif conversion_error is not None:
-                conversion_errors[dsym_id] = conversion_error
+                conversion_errors[debug_id] = conversion_error
 
         return rv, conversion_errors
 
@@ -672,8 +686,8 @@ class DSymCache(object):
     def _load_cachefiles_via_fs(self, project, cachefiles):
         rv = {}
         base = self.get_project_path(project)
-        for dsym_id, symcache_file in cachefiles:
-            cachefile_path = os.path.join(base, dsym_id + '.symcache')
+        for debug_id, symcache_file in cachefiles:
+            cachefile_path = os.path.join(base, debug_id + '.symcache')
             try:
                 stat = os.stat(cachefile_path)
             except OSError as e:
@@ -682,7 +696,7 @@ class DSymCache(object):
                 symcache_file.cache_file.save_to(cachefile_path)
             else:
                 self._try_bump_timestamp(cachefile_path, stat)
-            rv[dsym_id] = SymCache.from_path(cachefile_path)
+            rv[debug_id] = SymCache.from_path(cachefile_path)
         return rv
 
     def _try_bump_timestamp(self, path, old_stat):
@@ -717,4 +731,4 @@ class DSymCache(object):
                         pass
 
 
-ProjectDSymFile.dsymcache = DSymCache()
+ProjectDebugFile.difcache = DIFCache()

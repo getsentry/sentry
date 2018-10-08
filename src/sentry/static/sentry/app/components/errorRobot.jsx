@@ -71,7 +71,7 @@ const ErrorRobot = createReactClass({
 
     analytics('sample_event.created', {
       org_id: parseInt(org.id, 10),
-      project_id: project.id,
+      project_id: parseInt(project.id, 10),
       source: 'robot',
     });
     this.api.request(url, {

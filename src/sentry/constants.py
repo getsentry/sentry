@@ -76,6 +76,9 @@ MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
 
+ENVIRONMENT_NAME_PATTERN = r'^[^\n\r\f\/]*$'
+ENVIRONMENT_NAME_MAX_LENGTH = 64
+
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
@@ -217,8 +220,8 @@ FILTER_MASK = '[Filtered]'
 # Maximum length of a symbol
 MAX_SYM = 256
 
-# Known dsym mimetypes
-KNOWN_DSYM_TYPES = {
+# Known debug information file mimetypes
+KNOWN_DIF_TYPES = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'application/x-elf-binary': 'elf',

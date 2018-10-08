@@ -182,7 +182,7 @@ class BaseChart extends React.Component {
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
           tooltip: tooltip !== null ? Tooltip({isGroupedByDate, ...tooltip}) : null,
-          legend: legend ? Legend(legend) : null,
+          legend: legend ? Legend({...legend}) : null,
           yAxis: yAxis !== null ? YAxis(yAxis) : null,
           xAxis:
             xAxis !== null

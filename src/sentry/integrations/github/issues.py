@@ -39,8 +39,12 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
+    def get_persisted_default_config_fields(self):
+        return ['repo']
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
+        defaults = self.get_project_defaults(group.project_id)
         try:
             repos = self.get_repositories()
         except ApiError:
@@ -49,7 +53,16 @@ class GitHubIssueBasic(IssueBasicMixin):
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
+
+        # If a repo has been selected outside of the default 100-limit list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
+
         assignees = self.get_allowed_assignees(default_repo)
 
         org = group.organization
@@ -63,7 +76,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'defaultLabel': default_repo.split('/')[1],
+                'choices': repo_choices,
                 'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
@@ -115,7 +128,16 @@ class GitHubIssueBasic(IssueBasicMixin):
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
         params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+        defaults = self.get_project_defaults(group.project_id)
+        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
+
+        # If a repo has been selected outside of the default 100-limit list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
 
         org = group.organization
         autocomplete_url = reverse(
@@ -128,7 +150,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'defaultLabel': default_repo.split('/')[1],
+                'choices': repo_choices,
                 'url': autocomplete_url,
                 'required': True,
                 'updatesForm': True,

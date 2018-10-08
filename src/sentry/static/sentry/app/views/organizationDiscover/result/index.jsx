@@ -17,9 +17,6 @@ import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 export default class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object,
-    query: PropTypes.object,
-    chartData: PropTypes.object,
-    chartQuery: PropTypes.object,
   };
 
   constructor() {
@@ -30,14 +27,16 @@ export default class Result extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (!nextProps.chartData && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
+    const {baseQuery, byDayQuery} = nextProps.data;
+
+    if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
       this.setState({
         view: 'table',
       });
     }
 
     if (
-      !nextProps.query.aggregations.length &&
+      !baseQuery.query.aggregations.length &&
       ['line', 'bar'].includes(this.state.view)
     ) {
       this.setState({
@@ -47,15 +46,15 @@ export default class Result extends React.Component {
   }
 
   renderToggle() {
-    const {data, query, chartData} = this.props;
+    const {baseQuery, byDayQuery} = this.props.data;
 
     const options = [{id: 'table', name: t('Table')}];
 
-    if (query.aggregations.length) {
+    if (baseQuery.query.aggregations.length) {
       options.push({id: 'line', name: t('Line')}, {id: 'bar', name: t('Bar')});
     }
 
-    if (chartData) {
+    if (byDayQuery.data) {
       options.push(
         {id: 'line-by-day', name: t('Line by Day')},
         {id: 'bar-by-day', name: t('Bar by Day')}
@@ -83,7 +82,7 @@ export default class Result extends React.Component {
           })}
         </div>
         <Box ml={1}>
-          <Link className={linkClasses} onClick={() => downloadAsCsv(data)}>
+          <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}
           </Link>
         </Box>
@@ -92,9 +91,11 @@ export default class Result extends React.Component {
   }
 
   renderSummary() {
-    const {data, chartData} = this.props;
+    const {baseQuery, byDayQuery} = this.props.data;
     const baseViews = ['table', 'line', 'bar'];
-    const summaryData = baseViews.includes(this.state.view) ? data : chartData;
+    const summaryData = baseViews.includes(this.state.view)
+      ? baseQuery.data
+      : byDayQuery.data;
 
     return (
       <ResultSummary>
@@ -110,15 +111,16 @@ export default class Result extends React.Component {
   }
 
   render() {
-    const {data, query, chartQuery, chartData} = this.props;
+    const {baseQuery, byDayQuery} = this.props.data;
     const {view} = this.state;
 
-    const basicChartData = getChartData(data.data, query);
+    const basicChartData = getChartData(baseQuery.data.data, baseQuery.query);
 
-    const byDayChartData = chartData && getChartDataByDay(chartData.data, chartQuery);
+    const byDayChartData =
+      byDayQuery.data && getChartDataByDay(byDayQuery.data.data, byDayQuery.query);
 
     const legendData = byDayChartData
-      ? {data: byDayChartData.map(entry => entry.seriesName)}
+      ? {data: byDayChartData.map(entry => entry.seriesName), truncate: 80}
       : null;
 
     const tooltipOptions = {
@@ -135,14 +137,14 @@ export default class Result extends React.Component {
           {this.renderToggle()}
         </Flex>
 
-        {view === 'table' && <Table data={data} query={query} />}
+        {view === 'table' && <Table data={baseQuery.data} query={baseQuery.query} />}
         {view === 'line' && (
           <ChartWrapper>
             <LineChart
               series={basicChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={{data: [query.aggregations[0][2]]}}
+              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
               renderer="canvas"
             />
           </ChartWrapper>
@@ -153,7 +155,7 @@ export default class Result extends React.Component {
               series={basicChartData}
               height={300}
               tooltip={tooltipOptions}
-              legend={{data: [query.aggregations[0][2]]}}
+              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
               renderer="canvas"
             />
           </ChartWrapper>

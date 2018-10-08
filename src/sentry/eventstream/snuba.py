@@ -5,7 +5,8 @@ from sentry.utils import snuba
 
 
 class SnubaEventStream(EventStream):
-    def publish(self, group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume=False):
+    def insert(self, group, event, is_new, is_sample, is_regression,
+               is_new_group_environment, primary_hash, skip_consume=False):
         snuba.insert_raw([{
             'group_id': event.group_id,
             'event_id': event.event_id,
@@ -16,4 +17,17 @@ class SnubaEventStream(EventStream):
             'data': dict(event.data.items()),
             'primary_hash': primary_hash,
         }])
-        super(SnubaEventStream, self).publish(group, event, is_new, is_sample, is_regression, is_new_group_environment, primary_hash, skip_consume)
+        super(SnubaEventStream, self).insert(
+            group, event, is_new, is_sample,
+            is_regression, is_new_group_environment,
+            primary_hash, skip_consume
+        )
+
+    def unmerge(self, project_id, new_group_id, event_ids):
+        pass
+
+    def delete_groups(self, project_id, group_ids):
+        pass
+
+    def merge(self, project_id, previous_group_id, new_group_id):
+        pass

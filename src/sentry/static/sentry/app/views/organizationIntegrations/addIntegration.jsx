@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import queryString from 'query-string';
 
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -45,14 +46,18 @@ export default class AddIntegration extends React.Component {
     return {left, top};
   }
 
-  openDialog = () => {
+  openDialog = urlParams => {
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
-    const {reinstallId} = this.props;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    const installUrl = reinstallId ? url + `?reinstall_id=${reinstallId}` : url;
+    const query = {...urlParams};
 
+    if (this.props.reinstallId) {
+      query.reinstall_id = this.props.reinstallId;
+    }
+
+    const installUrl = `${url}?${queryString.stringify(query)}`;
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);

@@ -49,7 +49,6 @@ class OnboardingProject extends React.Component {
 
   renderTeamPicker = () => {
     let {team, teams, setTeam} = this.props;
-    if (teams.length < 2) return null;
     return (
       <div className="new-project-team">
         <h4>{t('Team') + ':'}</h4>

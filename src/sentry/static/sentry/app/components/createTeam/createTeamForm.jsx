@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/views/settings/components/forms/textField';
@@ -17,7 +16,6 @@ export default class CreateTeamForm extends React.Component {
   };
 
   handleCreateTeamSuccess = data => {
-    addSuccessMessage(tct('Added team [team]', {team: `#${data.slug}`}));
     this.props.onSuccess(data);
   };
 

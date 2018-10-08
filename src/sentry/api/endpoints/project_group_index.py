@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import analytics, features, search
+from sentry import analytics, eventstream, features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import ActorField, Actor
@@ -951,6 +951,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             GroupStatus.PENDING_DELETION,
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
+
+        eventstream.delete_groups(project.id, group_ids)
 
         GroupHashTombstone.tombstone_groups(
             project_id=project.id,

@@ -955,8 +955,16 @@ class EventManagerTest(TransactionTestCase):
 
         assert dict(event.tags).get('environment') == 'beta'
 
-    @mock.patch('sentry.event_manager.eventstream.publish')
-    def test_group_environment(self, eventstream_publish):
+    def test_invalid_environment(self):
+        manager = EventManager(self.make_event(**{
+            'environment': 'bad/name',
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert dict(event.tags).get('environment') is None
+
+    @mock.patch('sentry.event_manager.eventstream.insert')
+    def test_group_environment(self, eventstream_insert):
         release_version = '1.0'
 
         def save_event():
@@ -983,7 +991,7 @@ class EventManagerTest(TransactionTestCase):
 
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
-        eventstream_publish.assert_called_with(
+        eventstream_insert.assert_called_with(
             group=event.group,
             event=event,
             is_new=True,
@@ -998,7 +1006,7 @@ class EventManagerTest(TransactionTestCase):
 
         # Ensure that the next event in the (group, environment) pair is *not*
         # marked as being part of a new environment.
-        eventstream_publish.assert_called_with(
+        eventstream_insert.assert_called_with(
             group=event.group,
             event=event,
             is_new=False,
