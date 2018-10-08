@@ -12,6 +12,7 @@ import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SpreadLayout from 'app/components/spreadLayout';
 import space from 'app/styles/space';
@@ -22,6 +23,7 @@ export default class IntegrationRepos extends AsyncComponent {
     integration: PropTypes.object.isRequired,
   };
   static contextTypes = {
+    router: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
   };
 
@@ -38,9 +40,9 @@ export default class IntegrationRepos extends AsyncComponent {
 
   getEndpoints() {
     let orgId = this.context.organization.slug;
-
+    let {cursor} = this.context.router.location.query;
     return [
-      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
+      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: '', cursor}}],
       [
         'integrationRepos',
         `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`,
@@ -234,6 +236,7 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   renderBody() {
+    const {itemListPageLinks} = this.state;
     const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader disablePadding hasButtons>
@@ -247,63 +250,68 @@ export default class IntegrationRepos extends AsyncComponent {
     );
 
     return (
-      <Panel>
-        {header}
-        <PanelBody>
-          {itemList.length === 0 && (
-            <EmptyMessage
-              icon="icon-commit"
-              title={t('Sentry is better with commit data')}
-              description={t(
-                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
-              )}
-              action={
-                <Button href="https://docs.sentry.io/learn/releases/">
-                  {t('Learn More')}
-                </Button>
-              }
-            />
-          )}
-          {itemList.map(repo => {
-            let repoIsActive = repo.status === 'active';
-            return (
-              <RepoOption key={repo.id} disabled={repo.status === 'disabled'}>
-                <Box p={2} flex="1">
-                  <Flex direction="column">
-                    <Box pb={1}>
-                      <strong>{repo.name}</strong>
-                      {!repoIsActive && <small> — {this.getStatusLabel(repo)}</small>}
-                      {repo.status === 'pending_deletion' && (
+      <React.Fragment>
+        <Panel>
+          {header}
+          <PanelBody>
+            {itemList.length === 0 && (
+              <EmptyMessage
+                icon="icon-commit"
+                title={t('Sentry is better with commit data')}
+                description={t(
+                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
+                )}
+                action={
+                  <Button href="https://docs.sentry.io/learn/releases/">
+                    {t('Learn More')}
+                  </Button>
+                }
+              />
+            )}
+            {itemList.map(repo => {
+              let repoIsActive = repo.status === 'active';
+              return (
+                <RepoOption key={repo.id} disabled={repo.status === 'disabled'}>
+                  <Box p={2} flex="1">
+                    <Flex direction="column">
+                      <Box pb={1}>
+                        <strong>{repo.name}</strong>
+                        {!repoIsActive && <small> — {this.getStatusLabel(repo)}</small>}
+                        {repo.status === 'pending_deletion' && (
+                          <small>
+                            {' '}
+                            (
+                            <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
+                            )
+                          </small>
+                        )}
+                      </Box>
+                      <Box>
                         <small>
-                          {' '}
-                          (
-                          <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
-                          )
+                          <a href={repo.url}>{repo.url.replace('https://', '')}</a>
                         </small>
-                      )}
-                    </Box>
-                    <Box>
-                      <small>
-                        <a href={repo.url}>{repo.url.replace('https://', '')}</a>
-                      </small>
-                    </Box>
-                  </Flex>
-                </Box>
+                      </Box>
+                    </Flex>
+                  </Box>
 
-                <Box p={2}>
-                  <Confirm
-                    disabled={!repoIsActive && repo.status !== 'disabled'}
-                    onConfirm={() => this.deleteRepo(repo)}
-                    message={t('Are you sure you want to remove this repository?')}
-                  >
-                    <Button size="xsmall" icon="icon-trash" />
-                  </Confirm>
-                </Box>
-              </RepoOption>
-            );
-          })}
-        </PanelBody>
-      </Panel>
+                  <Box p={2}>
+                    <Confirm
+                      disabled={!repoIsActive && repo.status !== 'disabled'}
+                      onConfirm={() => this.deleteRepo(repo)}
+                      message={t('Are you sure you want to remove this repository?')}
+                    >
+                      <Button size="xsmall" icon="icon-trash" />
+                    </Confirm>
+                  </Box>
+                </RepoOption>
+              );
+            })}
+          </PanelBody>
+        </Panel>
+        {itemListPageLinks && (
+          <Pagination pageLinks={itemListPageLinks} {...this.props} />
+        )}
+      </React.Fragment>
     );
   }
 }
