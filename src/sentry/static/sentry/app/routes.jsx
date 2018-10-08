@@ -591,7 +591,7 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
-        path="/extensions/external-install/:installationId"
+        path="/extensions/external-install/:providerId/:installationId"
         componentPromise={() =>
           import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/integrationInstallation')}
         component={errorHandler(LazyLoad)}

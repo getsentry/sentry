@@ -38,7 +38,8 @@ class PipelineAdvancerView(BaseView):
         if provider_id in FORWARD_INSTALL_FOR and request.GET.get(
                 'setup_action') == 'install' and pipeline is None:
             installation_id = request.GET.get('installation_id')
-            return self.redirect(reverse('integration-installation', args=[installation_id]))
+            return self.redirect(reverse('integration-installation',
+                                         args=[provider_id, installation_id]))
 
         if pipeline is None or not pipeline.is_valid():
             messages.add_message(request, messages.ERROR, _("Invalid request."))
