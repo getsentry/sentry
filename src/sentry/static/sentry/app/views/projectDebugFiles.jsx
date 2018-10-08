@@ -1,7 +1,9 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import {browserHistory} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import qs from 'query-string';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -9,6 +11,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import ActionLink from 'app/components/actions/actionLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
+import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
@@ -27,13 +30,9 @@ const ProjectDebugSymbols = createReactClass({
     return {
       loading: true,
       error: false,
-      showModal: false,
       debugFiles: [],
-      activeAppID: null,
-      activeVersion: null,
-      activeBuilds: null,
-      activeBuild: null,
-      activeDsyms: null,
+      query: '',
+      pageLinks: '',
     };
   },
 
@@ -41,14 +40,42 @@ const ProjectDebugSymbols = createReactClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(nextProps.location.search)),
+      omit(qs.parse(this.props.location.search))
+    );
+
+    if (searchHasChanged) {
+      const queryParams = nextProps.location.query;
+      this.setState(
+        {
+          query: queryParams.query,
+        },
+        this.fetchData
+      );
+    }
+  },
+
   fetchData() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
+
+    const query = {
+      per_page: 20,
+      query: this.state.query,
+    };
+
+    this.setState({
+      loading: true,
+    });
+
     this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/`, {
+      query,
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
           loading: false,
-          debugFiles: data.debugFiles,
+          debugFiles: data,
           pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
@@ -58,6 +85,28 @@ const ProjectDebugSymbols = createReactClass({
           loading: false,
         });
       },
+    });
+  },
+
+  onDelete(id) {
+    const {orgId, projectId} = this.props.params;
+    this.setState({
+      loading: true,
+    });
+    this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/?id=${id}`, {
+      method: 'DELETE',
+      complete: () => this.fetchData(),
+    });
+  },
+
+  onSearch(query) {
+    let targetQueryParams = {};
+    if (query !== '') targetQueryParams.query = query;
+
+    let {orgId, projectId} = this.props.params;
+    browserHistory.push({
+      pathname: `/settings/${orgId}/${projectId}/debug-symbols/`,
+      query: targetQueryParams,
     });
   },
 
@@ -87,24 +136,11 @@ const ProjectDebugSymbols = createReactClass({
 
     const rows = this.state.debugFiles.map((dsym, key) => {
       const url = `${this.api
-        .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?download_id=${dsym.id}`;
+        .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
       return (
         <PanelItem key={key} align="center" px={2} py={1}>
-          <Box w={5 / 12} pl={2}>
-            <p className="m-b-0 small">{dsym.debugId || dsym.uuid}</p>
-            <Flex align="center">
-              <Box w={6 / 12}>
-                <p className="m-b-0 text-light small">
-                  <span className="icon icon-clock" />{' '}
-                  <TimeSince date={dsym.dateCreated} />
-                </p>
-              </Box>
-              <Box w={6 / 12}>
-                <p className="m-b-0 text-light small">
-                  <FileSize bytes={dsym.size} />
-                </p>
-              </Box>
-            </Flex>
+          <Box w={4 / 12}>
+            <code className="small">{dsym.debugId || dsym.uuid}</code>
           </Box>
           <Box flex="1">
             {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
@@ -116,15 +152,22 @@ const ProjectDebugSymbols = createReactClass({
                 : `${dsym.cpuName} (${dsym.symbolType})`}
             </p>
           </Box>
-
+          <Box w={3 / 12} pl={2} className="hidden-xs">
+            <p className="m-b-0 text-light small">
+              <FileSize bytes={dsym.size} />
+            </p>
+            <p className="m-b-0 text-light small">
+              <span className="icon icon-clock" /> <TimeSince date={dsym.dateCreated} />
+            </p>
+          </Box>
           <Box flex="1">
             {access.has('project:write') ? (
-              <div className="btn-group">
+              <div className="btn-group" style={{float: 'right'}}>
                 <ActionLink
-                  onAction={() => this.download(url)}
+                  onAction={() => (window.location = url)}
                   className="btn btn-default btn-sm"
                 >
-                  {t('Download')}
+                  <InlineSvg src="icon-download" />
                 </ActionLink>
                 <LinkWithConfirmation
                   className="btn btn-danger btn-sm"
@@ -132,9 +175,9 @@ const ProjectDebugSymbols = createReactClass({
                   message={t(
                     'Are you sure you wish to delete this debug infromation file?'
                   )}
-                  onConfirm={() => this.onDelete(row.id)}
+                  onConfirm={() => this.onDelete(dsym.id)}
                 >
-                  {t('Delete')}
+                  <span className="icon icon-trash" />
                 </LinkWithConfirmation>
               </div>
             ) : null}
@@ -149,12 +192,10 @@ const ProjectDebugSymbols = createReactClass({
   renderStreamBody() {
     let body;
 
-    let params = this.props.params;
-
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.debugFiles.length > 0) body = this.renderDsyms();
-    else if (this.state.query && this.state.query !== DEFAULT_QUERY)
+    else if (this.state.query && this.state.query !== '')
       body = this.renderNoQueryResults();
     else body = this.renderEmpty();
 
@@ -168,11 +209,9 @@ const ProjectDebugSymbols = createReactClass({
         <TextBlock>
           {t(
             `
-          Here you can find all your uploaded debug information files (for instance debug
-          symbol files or proguard mappings).  This is used to convert
-          addresses and minified function names from crash dumps
-          into function names and locations.  For JavaScript debug support
-          look at releases instead.
+          Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
+          This is used to convert addresses and minified function names from crash dumps
+          into function names and locations.
         `
           )}
         </TextBlock>
@@ -191,13 +230,12 @@ const ProjectDebugSymbols = createReactClass({
           </div>
           <Panel>
             <PanelHeader>
-              <Box w={5 / 12} pl={2}>
-                {t('Debug ID')}
-              </Box>
+              <Box w={4 / 12}>{t('Debug ID')}</Box>
               <Box flex="1">{t('Name')}</Box>
+              <Box w={3 / 12} pl={2} className="hidden-xs" />
               <Box flex="1" />
             </PanelHeader>
-            <PanelBody>{this.renderDsyms()}</PanelBody>
+            <PanelBody>{this.renderStreamBody()}</PanelBody>
           </Panel>
           <Pagination pageLinks={this.state.pageLinks} />
         </div>
@@ -207,7 +245,3 @@ const ProjectDebugSymbols = createReactClass({
 });
 
 export default ProjectDebugSymbols;
-
-const BuildLabel = styled('div')`
-  margin-bottom: 4px;
-`;
