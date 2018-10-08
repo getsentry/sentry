@@ -80,6 +80,15 @@ export function getOrderByOptions(queryBuilder) {
   return [...columnOptions, ...aggregationOptions];
 }
 
+export function getView(requestedView) {
+  switch (requestedView) {
+    case 'saved':
+      return 'saved';
+    default:
+      return 'query';
+  }
+}
+
 /**
  * Takes a saved query and strips associated query metadata in order to match
  * our internal representation of queries.
