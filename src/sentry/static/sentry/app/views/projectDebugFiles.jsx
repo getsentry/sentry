@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
@@ -139,8 +139,21 @@ const ProjectDebugSymbols = createReactClass({
         .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
       return (
         <PanelItem key={key} align="center" px={2} py={1}>
-          <Box w={4 / 12}>
+          <Box w={4.5 / 12}>
             <code className="small">{dsym.debugId || dsym.uuid}</code>
+            <Flex mt="4px">
+              <Box w={4 / 12} pl="2px">
+                <p className="m-b-0 text-light small">
+                  <FileSize bytes={dsym.size} />
+                </p>
+              </Box>
+              <Box w={8 / 12} pl={1}>
+                <p className="m-b-0 text-light small">
+                  <span className="icon icon-clock" />{' '}
+                  <TimeSince date={dsym.dateCreated} />
+                </p>
+              </Box>
+            </Flex>
           </Box>
           <Box flex="1">
             {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
@@ -152,14 +165,7 @@ const ProjectDebugSymbols = createReactClass({
                 : `${dsym.cpuName} (${dsym.symbolType})`}
             </p>
           </Box>
-          <Box w={3 / 12} pl={2} className="hidden-xs">
-            <p className="m-b-0 text-light small">
-              <FileSize bytes={dsym.size} />
-            </p>
-            <p className="m-b-0 text-light small">
-              <span className="icon icon-clock" /> <TimeSince date={dsym.dateCreated} />
-            </p>
-          </Box>
+
           <Box flex="1">
             {access.has('project:write') ? (
               <div className="btn-group" style={{float: 'right'}}>
@@ -230,9 +236,8 @@ const ProjectDebugSymbols = createReactClass({
           </div>
           <Panel>
             <PanelHeader>
-              <Box w={4 / 12}>{t('Debug ID')}</Box>
+              <Box w={4.5 / 12}>{t('Debug ID')}</Box>
               <Box flex="1">{t('Name')}</Box>
-              <Box w={3 / 12} pl={2} className="hidden-xs" />
               <Box flex="1" />
             </PanelHeader>
             <PanelBody>{this.renderStreamBody()}</PanelBody>

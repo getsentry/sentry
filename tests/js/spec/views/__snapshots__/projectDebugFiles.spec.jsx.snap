@@ -132,14 +132,14 @@ exports[`ProjectDebugFiles renders 1`] = `
                       is={null}
                     >
                       <Box
-                        w={0.3333333333333333}
+                        w={0.375}
                       >
                         <Base
-                          className="css-ej6hqt"
-                          w={0.3333333333333333}
+                          className="css-cxbzjr"
+                          w={0.375}
                         >
                           <div
-                            className="css-ej6hqt"
+                            className="css-cxbzjr"
                             is={null}
                           >
                             Debug ID
@@ -159,22 +159,6 @@ exports[`ProjectDebugFiles renders 1`] = `
                           >
                             Name
                           </div>
-                        </Base>
-                      </Box>
-                      <Box
-                        className="hidden-xs"
-                        pl={2}
-                        w={0.25}
-                      >
-                        <Base
-                          className="hidden-xs css-1xdea7v"
-                          pl={2}
-                          w={0.25}
-                        >
-                          <div
-                            className="hidden-xs css-1xdea7v"
-                            is={null}
-                          />
                         </Base>
                       </Box>
                       <Box
@@ -271,7 +255,7 @@ exports[`ProjectDebugFiles renders empty 1`] = `
     <Panel>
       <PanelHeader>
         <Box
-          w={0.3333333333333333}
+          w={0.375}
         >
           Debug ID
         </Box>
@@ -280,11 +264,6 @@ exports[`ProjectDebugFiles renders empty 1`] = `
         >
           Name
         </Box>
-        <Box
-          className="hidden-xs"
-          pl={2}
-          w={0.25}
-        />
         <Box
           flex="1"
         />
