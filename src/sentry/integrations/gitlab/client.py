@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import quote
 
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.integrations.client import ApiClient
 from sentry.integrations.exceptions import ApiError
 
 API_VERSION = u'/api/v4'
@@ -26,7 +26,7 @@ class GitLabApiClientPath(object):
         )
 
 
-class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
+class GitLabApiClient(ApiClient):
 
     def __init__(self, installation):
         self.installation = installation

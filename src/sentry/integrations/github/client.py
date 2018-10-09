@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
-from sentry.integrations.client import ApiClient
+from sentry.integrations.client import ApiClient, ClientTokenRefresh
 
 
 class GitHubClientMixin(ApiClient):
@@ -91,13 +91,18 @@ class GitHubClientMixin(ApiClient):
         return self.get(u'/users/{}'.format(gh_username))
 
     def request(self, method, path, headers=None, data=None, params=None):
-        if headers is None:
-            headers = {
-                'Authorization': 'token %s' % self.get_token(),
-                # TODO(jess): remove this whenever it's out of preview
-                'Accept': 'application/vnd.github.machine-man-preview+json',
-            }
-        return self._request(method, path, headers=headers, data=data, params=params)
+        headers_merged = {
+            # TODO(jess): remove this whenever it's out of preview
+            'Accept': 'application/vnd.github.machine-man-preview+json',
+        }
+
+        if headers is not None:
+            headers_merged.update(headers)
+
+        if 'Authorization' not in headers_merged:
+            headers_merged['Authorization'] = 'Token %s' % self.get_token()
+
+        return self._request(method, path, headers=headers_merged, data=data, params=params)
 
     def get_token(self):
         """
@@ -105,27 +110,35 @@ class GitHubClientMixin(ApiClient):
         Should the token have expried, a new token will be generated and
         automatically presisted into the integration.
         """
+        def gh_refresh_strategy(integration, **kwargs):
+            res = self.create_token()
+            token = res['token']
+            expires_at = datetime.strptime(res['expires_at'], '%Y-%m-%dT%H:%M:%SZ')
+
+            # TODO(epurkhsier): Most other integrations simply store the
+            # timestamp, not a string representation. We may want to migrate
+            # this later.
+            integration.metadata.update({
+                'access_token': token,
+                'expires_at': expires_at.isoformat(),
+            })
+            integration.save()
+
+            return integration
+
         token = self.integration.metadata.get('access_token')
         expires_at = self.integration.metadata.get('expires_at')
 
         if expires_at is not None:
             expires_at = datetime.strptime(expires_at, '%Y-%m-%dT%H:%M:%S')
 
-        if not token or expires_at < datetime.utcnow():
-            res = self.create_token()
-            token = res['token']
-            expires_at = datetime.strptime(
-                res['expires_at'],
-                '%Y-%m-%dT%H:%M:%SZ',
-            )
+        ClientTokenRefresh.check_auth(
+            self.integration,
+            refresh_strategy=gh_refresh_strategy,
+            force_refresh=(not token or expires_at < datetime.utcnow()),
+        )
 
-            self.integration.metadata.update({
-                'access_token': token,
-                'expires_at': expires_at.isoformat(),
-            })
-            self.integration.save()
-
-        return token
+        return self.integration.metadata.get('access_token')
 
     def create_token(self):
         return self.post(
@@ -134,8 +147,6 @@ class GitHubClientMixin(ApiClient):
             ),
             headers={
                 'Authorization': 'Bearer %s' % self.get_jwt(),
-                # TODO(jess): remove this whenever it's out of preview
-                'Accept': 'application/vnd.github.machine-man-preview+json',
             },
         )
 

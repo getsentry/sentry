@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.integrations.client import ApiClient, ClientTokenRefresh
 from sentry.utils.http import absolute_uri
 
 UNSET = object()
@@ -34,7 +34,7 @@ class VstsApiPath(object):
     users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
 
-class VstsApiClient(ApiClient, OAuth2RefreshMixin):
+class VstsApiClient(ApiClient):
     api_version = '4.1'
     api_version_preview = '-preview.1'
 
@@ -46,7 +46,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             raise ValueError('Vsts Identity missing access token')
 
     def request(self, method, path, data=None, params=None, api_preview=False, timeout=None):
-        self.check_auth(redirect_url=self.oauth_redirect_url)
+        ClientTokenRefresh.check_auth(self.identity, redirect_url=self.oauth_redirect_url)
+
         headers = {
             'Accept': u'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',

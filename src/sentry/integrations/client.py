@@ -8,13 +8,14 @@ from collections import OrderedDict
 
 from BeautifulSoup import BeautifulStoneSoup
 from requests.exceptions import ConnectionError, HTTPError
-from sentry.exceptions import InvalidIdentity
 from time import time
 from django.utils.functional import cached_property
 
 from sentry.http import build_session
+from sentry.models import Identity, Integration
+from sentry.identity import get as get_identity_provider
 
-from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
+from .exceptions import ApiHostError, ApiError, UnsupportedResponseType
 
 
 class BaseApiResponse(object):
@@ -194,64 +195,96 @@ class ApiClient(object):
         return self.request('PUT', *args, **kwargs)
 
 
-class AuthApiClient(ApiClient):
-    auth = None
+class ClientTokenRefresh(object):
+    """
+    ClientTokenRefresh provides generic functionality to refresh Identity and
+    Integration access tokens for integration API clients.
 
-    def __init__(self, auth=None, *args, **kwargs):
-        self.auth = auth
-        super(AuthApiClient, self).__init__(*args, **kwargs)
-
-    def has_auth(self):
-        return self.auth and 'access_token' in self.auth.tokens
-
-    def exception_means_unauthorized(self, exc):
-        return isinstance(exc, ApiUnauthorized)
-
-    def ensure_auth(self, **kwargs):
-        headers = kwargs['headers']
-        if 'Authorization' not in headers and self.has_auth() and 'auth' not in kwargs:
-            kwargs = self.bind_auth(**kwargs)
-        return kwargs
-
-    def bind_auth(self, **kwargs):
-        token = self.auth.tokens['access_token']
-        kwargs['headers']['Authorization'] = u'Bearer {}'.format(token)
-        return kwargs
-
-    def _request(self, method, path, **kwargs):
-        headers = kwargs.setdefault('headers', {})
-        headers.setdefault('Accept', 'application/json, application/xml')
-
-        # TODO(dcramer): we could proactively refresh the token if we knew
-        # about expires
-        kwargs = self.ensure_auth(**kwargs)
-
-        try:
-            return ApiClient._request(self, method, path, **kwargs)
-        except Exception as exc:
-            if not self.exception_means_unauthorized(exc):
-                raise
-            if not self.auth:
-                raise
-
-        # refresh token
-        self.logger.info('token.refresh', extra={
-            'auth_id': self.auth.id,
-            'provider': self.auth.provider,
-        })
-        self.auth.refresh_token()
-        kwargs = self.bind_auth(**kwargs)
-        return ApiClient._request(self, method, path, **kwargs)
-
-
-class OAuth2RefreshMixin(object):
-
-    def check_auth(self, *args, **kwargs):
+    Not all integrations will need this as some use non-expiring tokens.
+    """
+    @classmethod
+    def check_auth(cls, model, force_refresh=False, refresh_strategy=None, **kwargs):
         """
-        Checks if auth is expired and if so refreshes it
+        Check auth provides a generic yet configurable way to refresh oauth2
+        style authentication tokens.
+
+        Depending on the model passed different strategies will be used to
+        refresh the token.
+
+        - Identity
+          When an Identity model is provided, the token will be refreshed using
+          the identity providers `refresh_identity` method. Updating and
+          returning the identity model.
+
+        - Integration
+          When an Integration model is provided, the token will be refreshed
+          using the identity provider associated to the integrations
+          `refresh_oauth_data` method the token, however the access token
+          will be persisted on the integration model. The integration model
+          will be returned.
+
+        If the token should not be refreshed using the identity providers
+        `refresh_oauth_data` capabilities, a custom refresh strategy can be
+        provided.
+
+        By default this will check the ``exipred_at`` key, which is expected to
+        be a unix timestamp, with the current time. If you wish to force access
+        token refreshing (or require a different strategy for comparing
+        expires_at) you may pass ``force_refresh=True``.
         """
-        time_expires = self.identity.data.get('expires')
-        if time_expires is None:
-            raise InvalidIdentity('OAuth2ApiClient requires identity with specified expired time')
-        if int(time_expires) <= int(time()):
-            self.identity.get_provider().refresh_identity(self.identity, *args, **kwargs)
+        if isinstance(model, Identity):
+            oauth_data = model.data
+            strategy = cls.strategy_identity_refresh
+        elif isinstance(model, Integration):
+            oauth_data = model.metadata
+            strategy = cls.strategy_integration_oauth_refresh
+
+        # Use a default strategy for the provided model if no custom strategy
+        # is provided
+        if refresh_strategy is None:
+            refresh_strategy = strategy
+
+        expires_at = oauth_data.get('expires_at')
+
+        # If we have no expires_at time then we should immedaitely try and refresh
+        # the token. This is likely due to integrations such as slack that
+        # previosuly did *not* have expiring tokens, or integrations that
+        # previously set a 'expires' isntead of 'expires_at' key.
+        if expires_at is None:
+            force_refresh = True
+
+        if force_refresh or int(expires_at) <= int(time()):
+            return refresh_strategy(model, **kwargs)
+
+        return model
+
+    @staticmethod
+    def strategy_identity_refresh(identity, **kwargs):
+        """
+        Refresh the token on the identity model.
+        """
+        return identity.get_provider().refresh_identity(identity, **kwargs)
+
+    @staticmethod
+    def strategy_integration_oauth_refresh(integration, **kwargs):
+        """
+        Refresh the token on the integration model using the associated
+        IdentityProvider. This requires that an integration uses the same key
+        as a registered IdentityProvider.
+        """
+        # XXX: We're explicitly looking for the identity provider with the same
+        # provider key as the integration. This makes the assumption that the
+        # integration is using the identity provider for auth.
+        ident_provider = get_identity_provider(integration.provider)
+
+        refresh_token = integration.metadata.get('refresh_token')
+        if refresh_token is None:
+            # TODO: Better exception
+            raise Exception('No refresh token')
+
+        data = ident_provider.refresh_oauth_data(refresh_token, **kwargs)
+
+        integration.metadata.update(data)
+        integration.save()
+
+        return integration

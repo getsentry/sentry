@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from time import time
 import logging
 import re
 
@@ -351,7 +350,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state['identity']['data']
-        oauth_data = self.get_oauth_data(data)
+        oauth_data = VSTSIdentityProvider.get_oauth_data(data)
         account = state['account']
         user = get_user_info(data['access_token'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
@@ -409,18 +408,6 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
         return subscription_id, shared_secret
-
-    def get_oauth_data(self, payload):
-        data = {'access_token': payload['access_token']}
-
-        if 'expires_in' in payload:
-            data['expires'] = int(time()) + int(payload['expires_in'])
-        if 'refresh_token' in payload:
-            data['refresh_token'] = payload['refresh_token']
-        if 'token_type' in payload:
-            data['token_type'] = payload['token_type']
-
-        return data
 
     @classmethod
     def get_base_url(cls, access_token, account_id):

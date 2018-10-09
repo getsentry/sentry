@@ -70,9 +70,9 @@ class Provider(PipelineProvider):
         """
         return new_data
 
-    def refresh_identity(self, auth_identity, *args, **kwargs):
+    def refresh_identity(self, auth_identity, **kwargs):
         """
-        Updates the AuthIdentity with any changes from upstream. The primary
+        Updates the Identity with any changes from upstream. The primary
         example of a change would be signalling this identity is no longer
         valid.
 

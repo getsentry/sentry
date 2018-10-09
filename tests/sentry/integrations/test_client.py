@@ -165,7 +165,7 @@ class OAuth2ApiClientTest(TestCase):
             data={
                 'access_token': 'access_token',
                 'refresh_token': 'refresh_token',
-                'expires': int(time()) - 3600
+                'expires_at': int(time()) - 3600
             }
         )
 
@@ -174,7 +174,7 @@ class OAuth2ApiClientTest(TestCase):
 
         assert client.identity.data['access_token'] == new_auth['access_token']
         assert client.identity.data['refresh_token'] == new_auth['refresh_token']
-        assert client.identity.data['expires'] > int(time())
+        assert client.identity.data['expires_at'] > int(time())
 
     @responses.activate
     def test_check_auth_no_refresh(self):
@@ -186,7 +186,7 @@ class OAuth2ApiClientTest(TestCase):
         old_auth = {
             'access_token': 'access_token',
             'refresh_token': 'refresh_token',
-            'expires': int(time()) + 3600
+            'expires_at': int(time()) + 3600
         }
         responses.add(
             responses.POST,
