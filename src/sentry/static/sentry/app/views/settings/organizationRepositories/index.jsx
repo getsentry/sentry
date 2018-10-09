@@ -4,7 +4,7 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
 import AsyncView from 'app/views/asyncView';
-
+import Pagination from 'app/components/pagination';
 import OrganizationRepositories from './organizationRepositories';
 
 export default class OrganizationRepositoriesContainer extends AsyncView {
@@ -83,13 +83,18 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
 
   renderBody() {
     return (
-      <OrganizationRepositories
-        {...this.props}
-        {...this.state}
-        onAddRepo={this.onAddRepo}
-        onCancelDelete={this.cancelDelete}
-        onDeleteRepo={this.deleteRepo}
-      />
+      <React.Fragment>
+        <OrganizationRepositories
+          {...this.props}
+          {...this.state}
+          onAddRepo={this.onAddRepo}
+          onCancelDelete={this.cancelDelete}
+          onDeleteRepo={this.deleteRepo}
+        />
+        {this.state.itemListPageLinks && (
+          <Pagination pageLinks={this.state.itemListPageLinks} {...this.props} />
+        )}
+      </React.Fragment>
     );
   }
 }

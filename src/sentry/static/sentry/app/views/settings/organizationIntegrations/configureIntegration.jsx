@@ -61,7 +61,7 @@ export default class ConfigureIntegration extends AsyncView {
         )}
 
         {provider.features.includes('commits') && (
-          <IntegrationRepos integration={integration} />
+          <IntegrationRepos {...this.props} integration={integration} />
         )}
       </React.Fragment>
     );
