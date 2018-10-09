@@ -4,7 +4,7 @@ import {Link, browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import {t} from 'app/locale';
 

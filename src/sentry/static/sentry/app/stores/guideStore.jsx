@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';

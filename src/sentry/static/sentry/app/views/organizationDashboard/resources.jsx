@@ -2,7 +2,7 @@ import React from 'react';
 import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ResourceCard from 'app/components/resourceCard';
 import SentryTypes from 'app/sentryTypes';
 import ErrorRobot from 'app/components/errorRobot';

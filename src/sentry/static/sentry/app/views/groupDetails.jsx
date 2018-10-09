@@ -5,7 +5,7 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupHeader from 'app/views/groupDetails/header';
 import GroupStore from 'app/stores/groupStore';
