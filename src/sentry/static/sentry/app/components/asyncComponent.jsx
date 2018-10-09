@@ -142,6 +142,8 @@ export default class AsyncComponent extends React.Component {
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
+      // If you're using nested async components/views make sure to pass the
+      // props through so that the child component has access to props.location
       let locationQuery = (this.props.location && this.props.location.query) || {};
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
