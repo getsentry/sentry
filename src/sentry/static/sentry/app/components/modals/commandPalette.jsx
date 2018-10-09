@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import Search from 'app/components/search';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 
 const dropdownStyle = css`
   width: 100%;

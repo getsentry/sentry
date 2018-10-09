@@ -7,7 +7,7 @@ import {debounce} from 'lodash';
 
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import AutoComplete from 'app/components/autoComplete';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SearchResult from 'app/components/search/searchResult';

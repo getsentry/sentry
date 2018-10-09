@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 import GuideActions from 'app/actions/guideActions';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 
 const api = new Client();
 
