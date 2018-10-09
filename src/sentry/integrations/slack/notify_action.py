@@ -183,17 +183,19 @@ class SlackNotifyServiceAction(EventAction):
         })
 
         # Slack limits the response of `channels.list` to 1000 channels, paginate if needed
+        channels = session.get('https://slack.com/api/channels.list', params=channels_payload)
         cursor = None
         while cursor or len(channels) == 0:
-            resp = session.get('https://slack.com/api/channels.list', params=dict(channels_payload, **{
-                'cursor': cursor
-            }))
-            resp = resp.json()
+            if cursor:
+                channels = session.get('https://slack.com/api/channels.list', params=dict(channels_payload, **{
+                    'cursor': cursor
+                }))
+            channels = channels.json()
             if not resp.get('ok'):
                 self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
                 return None
 
-            cursor = resp.get('response_metadata', {}).get('next_cursor', None)
+            cursor = channels.get('response_metadata', {}).get('next_cursor', None)
 
             channel_id = {c['name']: c['id'] for c in resp['channels']}
             if channel_id:
