@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import re
+
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
@@ -213,7 +215,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
-        domain_name = '%s/%s' % (base_url.replace('https://', ''), group['path'])
+        domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
 
         integration = {
             'name': group['name'],
