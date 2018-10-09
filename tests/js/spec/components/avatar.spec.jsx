@@ -136,5 +136,28 @@ describe('Avatar', function() {
       expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test organization');
       expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-organization');
     });
+
+    it('displays platform list icons for project Avatar', function() {
+      let project = TestStubs.Project({
+        platforms: ['python', 'javascript'],
+        platform: 'java',
+      });
+      let avatar = mount(<Avatar project={project} />);
+      expect(avatar.find('PlatformList').prop('platforms')).toEqual([
+        'python',
+        'javascript',
+      ]);
+    });
+
+    it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function() {
+      let project = TestStubs.Project({platform: 'java'});
+      let avatar = mount(<Avatar project={project} />);
+      expect(avatar.find('PlatformList').prop('platforms')).toEqual(['java']);
+    });
+    it('uses onboarding project when platforms is an empty array', function() {
+      let project = TestStubs.Project({platforms: [], platform: 'java'});
+      let avatar = mount(<Avatar project={project} />);
+      expect(avatar.find('PlatformList').prop('platforms')).toEqual(['java']);
+    });
   });
 });
