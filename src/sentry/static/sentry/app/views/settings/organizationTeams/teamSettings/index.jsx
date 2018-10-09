@@ -52,6 +52,7 @@ export default class TeamSettings extends AsyncView {
       this.props.router.push(
         `/settings/${this.props.params.orgId}/teams/${model.getValue(id)}/settings/`
       );
+      this.forceUpdate();
       this.setState({loading: true});
     }
   };
