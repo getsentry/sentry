@@ -2240,7 +2240,7 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
                     </AlertRuleRow>
                     <ActionBar>
                       <div
-                        className="css-bcc03y-ActionBar elb7f1e2"
+                        className="css-1nbij62-ActionBar elb7f1e2"
                       >
                         <CancelButton
                           to="/settings/org-slug/project-slug/alerts/rules/"
@@ -4362,7 +4362,7 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
                     </AlertRuleRow>
                     <ActionBar>
                       <div
-                        className="css-bcc03y-ActionBar elb7f1e2"
+                        className="css-1nbij62-ActionBar elb7f1e2"
                       >
                         <CancelButton
                           to="/settings/org-slug/project-slug/alerts/rules/"
