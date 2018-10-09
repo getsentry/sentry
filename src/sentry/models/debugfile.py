@@ -421,7 +421,10 @@ def detect_dif_from_path(path):
     else:
         objs = []
         for obj in fo.iter_objects():
-            data = {'features': list(obj.features)}
+            data = {
+                'type': obj.type,
+                'features': list(obj.features),
+            }
             objs.append((obj.kind, obj.arch, obj.id, path, data))
         return objs
 
