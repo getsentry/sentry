@@ -26,12 +26,6 @@ export default function getConfiguration({project}) {
           description: t('Manage alerts and alert rules for a project'),
         },
         {
-          path: `${pathPrefix}/quotas/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features.has('quotas'),
-          description: t("Configure project's rate limits"),
-        },
-        {
           path: `${pathPrefix}/tags/`,
           title: t('Tags'),
           description: t("View and manage a  project's tags"),
