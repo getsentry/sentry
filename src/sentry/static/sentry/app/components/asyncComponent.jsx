@@ -277,7 +277,7 @@ export default class AsyncComponent extends React.Component {
       resp => resp && resp.status === 403
     );
 
-    // If all error responses have status code === 0, then show erorr message but don't
+    // If all error responses have status code === 0, then show error message but don't
     // log it to sentry
     let shouldLogSentry =
       !!Object.values(this.state.errors).find(resp => resp && resp.status !== 0) ||
