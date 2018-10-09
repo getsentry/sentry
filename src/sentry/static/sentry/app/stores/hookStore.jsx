@@ -18,7 +18,7 @@ let validHookNames = new Set([
   'project:custom-inbound-filters:disabled',
   'project:discard-groups:disabled',
   'issue:secondary-column',
-  'analytics:onboarding-complete',
+  'amplitude:event',
   'analytics:event',
   'analytics:log-experiment',
   'sidebar:organization-dropdown-menu',
