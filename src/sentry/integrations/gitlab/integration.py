@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import re
+
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
@@ -14,6 +16,7 @@ from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
 from .client import GitLabApiClient, GitLabApiClientPath
+from .issues import GitlabIssueBasic
 
 DESCRIPTION = """
 Fill me out
@@ -32,7 +35,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(IntegrationInstallation):
+class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic):
 
     def __init__(self, *args, **kwargs):
         super(GitlabIntegration, self).__init__(*args, **kwargs)
@@ -212,13 +215,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
+        domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
 
         integration = {
             'name': group['name'],
             'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': group['web_url'].replace('https://', ''),
+                'domain_name': domain_name,
                 'scopes': scopes,
                 'verify_ssl': state['installation_data']['verify_ssl'],
                 'base_url': base_url,
