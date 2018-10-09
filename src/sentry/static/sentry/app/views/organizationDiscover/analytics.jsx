@@ -1,4 +1,4 @@
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 
 /**
  * Takes an organization and query and tracks in Redash as discover.query.
