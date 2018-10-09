@@ -63,7 +63,8 @@ class DebugFilesClearTest(APITestCase):
 
         difs = ProjectDebugFile.difcache.fetch_difs(
             project=project,
-            debug_ids=[PROGUARD_UUID])
+            debug_ids=[PROGUARD_UUID],
+            features=['mapping'])
         assert len(difs) == 1
         assert os.path.isfile(difs[PROGUARD_UUID])
 

@@ -251,11 +251,19 @@ class ProjectDebugFile(Model):
         return ''
 
     @property
+    def features(self):
+        return frozenset((self.data or {}).get('features', []))
+
+    @property
     def supports_symcache(self):
-        return self.dif_type in ('breakpad', 'macho', 'elf')
+        if self.data is None:
+            return self.dif_type in ('breakpad', 'macho', 'elf')
+        else:
+            return 'debug' in self.features
 
     def delete(self, *args, **kwargs):
         super(ProjectDebugFile, self).delete(*args, **kwargs)
+        # TODO(ja): Delete symcache
         self.file.delete()
 
 
@@ -280,7 +288,28 @@ class ProjectSymCacheFile(Model):
         self.cache_file.delete()
 
 
-def create_dif_from_id(project, dif_type, cpu_name, debug_id,
+def clean_redundant_difs(project, debug_id):
+    """Deletes redundant debug files from the database and file storage. A debug
+    file is considered redundant if there is a newer file with the same debug
+    identifier and the same or a superset of its features.
+    """
+    difs = ProjectDebugFile.objects \
+        .filter(project=project, debug_id=debug_id) \
+        .select_related('file') \
+        .order_by('-id')
+
+    all_features = set()
+    for i, dif in enumerate(difs):
+        # We always keep the latest file. If it has no features, likely the
+        # previous files did not have features either and will be removed, or we
+        # keep both. Subsequent uploads will remove this file later.
+        if i > 0 and dif.features <= all_features:
+            dif.delete()
+        else:
+            all_features.update(dif.features)
+
+
+def create_dif_from_id(project, dif_type, cpu_name, debug_id, data,
                        basename, fileobj=None, file=None):
     """This creates a mach dsym file or proguard mapping from the given
     debug id and open file object to a debug file.  This will not verify the
@@ -296,8 +325,9 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
     else:
         raise TypeError('unknown dif type %r' % (dif_type, ))
 
-    if file is None:
-        assert fileobj is not None, 'missing file object'
+    if file is not None:
+        checksum = file.checksum
+    elif fileobj is not None:
         h = hashlib.sha1()
         while 1:
             chunk = fileobj.read(16384)
@@ -306,70 +336,39 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
             h.update(chunk)
         checksum = h.hexdigest()
         fileobj.seek(0, 0)
+    else:
+        raise RuntimeError('missing file object')
 
-        try:
-            rv = ProjectDebugFile.objects.select_related('file') \
-                .get(debug_id=debug_id, project=project)
-            if rv.file.checksum == checksum:
-                return rv, False
-        except ProjectDebugFile.DoesNotExist:
-            rv = None
+    dif = ProjectDebugFile.objects \
+        .select_related('file') \
+        .filter(project=project, debug_id=debug_id, file__checksum=checksum, data__isnull=False) \
+        .order_by('-id') \
+        .first()
 
+    if dif is not None:
+        return dif, False
+
+    if file is None:
         file = File.objects.create(
             name=debug_id,
             type='project.dif',
             headers={'Content-Type': DIF_MIMETYPES[dif_type]},
         )
         file.putfile(fileobj)
-
-        kwargs = {
-            'file': file,
-            'debug_id': debug_id,
-            'cpu_name': cpu_name,
-            'object_name': object_name,
-            'project': project
-        }
-
-        if rv is None:
-            try:
-                with transaction.atomic():
-                    rv = ProjectDebugFile.objects.create(**kwargs)
-            except IntegrityError:
-                rv = ProjectDebugFile.objects.select_related('file') \
-                    .get(debug_id=debug_id, project=project)
-                oldfile = rv.file
-                rv.update(**kwargs)
-                oldfile.delete()
-        else:
-            oldfile = rv.file
-            rv.update(**kwargs)
-            oldfile.delete()
     else:
-        try:
-            rv = ProjectDebugFile.objects.select_related('file') \
-                .get(debug_id=debug_id, project=project)
-        except ProjectDebugFile.DoesNotExist:
-            try:
-                with transaction.atomic():
-                    rv = ProjectDebugFile.objects.create(
-                        file=file,
-                        debug_id=debug_id,
-                        cpu_name=cpu_name,
-                        object_name=object_name,
-                        project=project,
-                    )
-            except IntegrityError:
-                rv = ProjectDebugFile.objects.select_related('file') \
-                    .get(debug_id=debug_id, project=project)
-                oldfile = rv.file
-                rv.update(file=file)
-                oldfile.delete()
-        else:
-            oldfile = rv.file
-            rv.update(file=file)
-            oldfile.delete()
-        rv.file.headers['Content-Type'] = DIF_MIMETYPES[dif_type]
-        rv.file.save()
+        file.headers['Content-Type'] = DIF_MIMETYPES[dif_type]
+        file.save()
+
+    dif = ProjectDebugFile.objects.create(
+        file=file,
+        debug_id=debug_id,
+        cpu_name=cpu_name,
+        object_name=object_name,
+        project=project,
+        data=data,
+    )
+
+    clean_redundant_difs(project, debug_id)
 
     resolve_processing_issue(
         project=project,
@@ -377,7 +376,7 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
         object='dsym:%s' % debug_id,
     )
 
-    return rv, True
+    return dif, True
 
 
 def _analyze_progard_filename(filename):
@@ -402,9 +401,16 @@ def detect_dif_from_path(path):
     # (proguard/mapping-UUID.txt).
     proguard_id = _analyze_progard_filename(path)
     if proguard_id is not None:
-        return [('proguard', 'any', proguard_id, path)]
+        data = {'features': ['mapping']}
+        return [(
+            'proguard',   # dif type
+            'any',        # architecture
+            proguard_id,  # debug_id
+            path,         # basepath
+            data,         # extra data
+        )]
 
-    # macho style debug symbols
+    # native debug information files (MachO, ELF or Breakpad)
     try:
         fo = FatObject.from_path(path)
     except ObjectErrorUnsupportedObject as e:
@@ -415,7 +421,8 @@ def detect_dif_from_path(path):
     else:
         objs = []
         for obj in fo.iter_objects():
-            objs.append((obj.kind, obj.arch, obj.id, path))
+            data = {'features': list(obj.features)}
+            objs.append((obj.kind, obj.arch, obj.id, path, data))
         return objs
 
 
@@ -424,14 +431,14 @@ def create_debug_file_from_dif(to_create, project, overwrite_filename=None):
     return an array of created objects.
     """
     rv = []
-    for dif_type, cpu, file_id, filename in to_create:
+    for dif_type, cpu, debug_id, filename, data in to_create:
         with open(filename, 'rb') as f:
             result_filename = os.path.basename(filename)
             if overwrite_filename is not None:
                 result_filename = overwrite_filename
             dif, created = create_dif_from_id(
-                project, dif_type, cpu, file_id, result_filename,
-                fileobj=f
+                project, dif_type, cpu, debug_id, data,
+                result_filename, fileobj=f
             )
             if created:
                 rv.append(dif)
@@ -479,15 +486,42 @@ def create_files_from_dif_zip(fileobj, project, update_symcaches=True):
         shutil.rmtree(scratchpad)
 
 
-def find_debug_file(project, debug_id):
-    """Finds a debug information file for the given debug id."""
-    try:
-        return ProjectDebugFile.objects \
-            .filter(debug_id=debug_id.lower(), project=project) \
-            .select_related('file') \
-            .get()
-    except ProjectDebugFile.DoesNotExist:
-        pass
+def find_debug_files(project, debug_ids, features=None):
+    """Finds debug information files matching the given debug IDs. If a set of
+    features is specified, only files that satisfy all features will be
+    returned. This does not apply to legacy debug files that were not tagged
+    with features."""
+    features = frozenset(features) if features is not None else frozenset()
+
+    difs = ProjectDebugFile.objects \
+        .filter(project=project, debug_id__in=debug_ids) \
+        .select_related('file') \
+        .order_by('-id')
+
+    difs_by_id = {}
+    for dif in difs:
+        difs_by_id.setdefault(dif.debug_id, []).append(dif)
+
+    rv = []
+    for group in six.itervalues(difs_by_id):
+        with_features = [dif for dif in group if 'features' in (dif.data or ())]
+
+        # In case we've never computed features for any of these files, we just
+        # take the first one and assume that it matches.
+        if not with_features:
+            rv.append(group[0])
+            break
+
+        # There's at least one file with computed features. Older files are
+        # considered redundant and will be deleted. We search for the first file
+        # matching the given feature set. This might not resolve if no DIF
+        # matches the given feature set.
+        for dif in with_features:
+            if dif.features >= features:
+                rv.append(dif)
+                break
+
+    return rv
 
 
 class DIFCache(object):
@@ -532,24 +566,22 @@ class DIFCache(object):
             if close_tf:
                 tf.close()
 
-    def fetch_difs(self, project, debug_ids):
+    def fetch_difs(self, project, debug_ids, features=None):
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
-        rv = {}
-        for debug_id in debug_ids:
-            debug_id = six.text_type(debug_id).lower()
-            dif_path = os.path.join(self.get_project_path(project), debug_id)
 
+        debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
+        difs = find_debug_files(project, debug_ids, features)
+        rv = {}
+        for dif in difs:
+            dif_path = os.path.join(self.get_project_path(project), dif.debug_id)
             try:
                 os.stat(dif_path)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
-                debug_file = find_debug_file(project, debug_id)
-                if debug_file is None:
-                    continue
-                debug_file.file.save_to(dif_path)
+                dif.file.save_to(dif_path)
             rv[debug_id] = dif_path
 
         return rv
@@ -557,13 +589,7 @@ class DIFCache(object):
     def _get_symcaches_impl(self, project, debug_ids, on_dif_referenced=None):
         # Fetch debug files first and invoke the callback if we need
         debug_ids = list(map(six.text_type, debug_ids))
-        debug_files = [x for x in ProjectDebugFile.objects.filter(
-            project=project,
-            debug_id__in=debug_ids,
-        ).select_related('file') if x.supports_symcache]
-        if not debug_files:
-            return {}, {}
-
+        debug_files = find_debug_files(project, debug_ids, features=['debug'])
         debug_files_by_id = {}
         for debug_file in debug_files:
             if on_dif_referenced is not None:
@@ -587,8 +613,7 @@ class DIFCache(object):
                 cachefiles_to_update.pop(debug_id, None)
                 cachefiles.append((debug_id, cache_file))
             else:
-                cachefiles_to_update[debug_id] = \
-                    (cache_file, debug_file)
+                cachefiles_to_update[debug_id] = (cache_file, debug_file)
 
         # if any cache files need to be updated, do that now.
         if cachefiles_to_update:
