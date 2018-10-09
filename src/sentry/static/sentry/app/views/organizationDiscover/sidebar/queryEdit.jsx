@@ -36,8 +36,10 @@ export default class QueryEdit extends React.Component {
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
-    // Do not allow conditions on projectID field
-    const columnsForConditions = columns.filter(({name}) => name !== 'project_id');
+    // Do not allow conditions on project_id or project_name fields
+    const columnsForConditions = columns.filter(
+      ({name}) => !['project_id', 'project_name'].includes(name)
+    );
 
     const fieldOptions = columns.map(({name}) => ({
       value: name,
