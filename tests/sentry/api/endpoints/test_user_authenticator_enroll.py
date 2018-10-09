@@ -4,8 +4,12 @@ import mock
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.db.models import F
 
-from sentry.models import Authenticator
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, Authenticator, Organization,
+    OrganizationMember
+)
 from sentry.testutils import APITestCase
 
 
@@ -139,3 +143,188 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert resp.status_code == 204
 
             self._assert_security_email_sent('mfa-added', email_log)
+
+
+class AcceptOrganizationInviteTest(APITestCase):
+
+    def setUp(self):
+        self.organization = self.create_organization(
+            owner=self.create_user('foo@example.com'),
+        )
+        self.user = self.create_user('bar@example.com', is_superuser=False)
+        self.login_as(user=self.user)
+
+        self.require_2fa_for_organization()
+        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+
+    def require_2fa_for_organization(self):
+        self.organization.update(flags=F('flags').bitor(Organization.flags.require_2fa))
+        self.assertTrue(self.organization.flags.require_2fa.is_set)
+
+    def assert_2fa_cookie_set(self, response, om):
+        invite_link = om.get_invite_link()
+        self.assertIn(response.client.cookies['pending-invite'].value, invite_link)
+
+    def create_existing_om(self):
+        OrganizationMember.objects.create(
+            user=self.user,
+            role='member',
+            organization=self.organization,
+        )
+
+    def get_om_and_init_invite(self):
+        om = OrganizationMember.objects.create(
+            email='newuser@example.com',
+            role='member',
+            token='abc',
+            organization=self.organization,
+        )
+
+        resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/accept-organization-invite.html')
+        self.assert_2fa_cookie_set(resp, om)
+
+        return om
+
+    def assert_invite_accepted(self, response, member_id):
+        om = OrganizationMember.objects.get(id=member_id)
+        assert om.user == self.user
+        assert om.email is None
+
+        AuditLogEntry.objects.get(
+            organization=self.organization,
+            target_object=om.id,
+            target_user=self.user,
+            event=AuditLogEntryEvent.MEMBER_ACCEPT,
+            data=om.get_audit_log_data()
+        )
+
+        self.assertFalse(response.client.cookies['pending-invite'].value)
+
+    def setup_u2f(self, om, invite):
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['system.url-prefix'] = 'https://testserver'
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'u2f'}
+            )
+
+            resp = self.client.post(url, data={
+                'deviceName': 'device name',
+                'challenge': 'challenge',
+                'response': 'response',
+                'invite': invite
+            })
+            assert resp.status_code == 204
+
+        return resp
+
+    @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
+    def test_accept_pending_invite__u2f_enroll(self, try_enroll):
+        om = self.get_om_and_init_invite()
+        invite = '/accept/{}/{}/'.format(om.id, om.token)
+        resp = self.setup_u2f(om, invite)
+
+        self.assert_invite_accepted(resp, om.id)
+
+    @mock.patch('sentry.models.SmsInterface.validate_otp', return_value=True)
+    @mock.patch('sentry.models.SmsInterface.send_text', return_value=True)
+    def test_accept_pending_invite__sms_enroll(self, send_text, validate_otp):
+        om = self.get_om_and_init_invite()
+
+        # setup sms
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['sms.twilio-account'] = 'twilio-account'
+
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'sms'}
+            )
+
+            resp = self.client.post(url, data={
+                "secret": "secret12",
+                "phone": "1231234",
+            })
+            assert resp.status_code == 204
+
+            resp = self.client.post(url, data={
+                "secret": "secret12",
+                "phone": "1231234",
+                "otp": "123123",
+                "invite": "/accept/{}/{}/".format(om.id, om.token)
+            })
+            assert validate_otp.call_count == 1
+            assert validate_otp.call_args == mock.call("123123")
+
+            interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+            assert interface.phone_number == "1231234"
+
+        self.assert_invite_accepted(resp, om.id)
+
+    @mock.patch('sentry.models.TotpInterface.validate_otp', return_value=True)
+    def test_accept_pending_invite__totp_enroll(self, validate_otp):
+        om = self.get_om_and_init_invite()
+
+        # setup totp
+        url = reverse(
+            'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'totp'}
+        )
+
+        resp = self.client.get(url)
+        assert resp.status_code == 200
+
+        resp = self.client.post(url, data={
+            'secret': 'secret12',
+            'otp': '1234',
+            'invite': '/accept/{}/{}/'.format(om.id, om.token)
+        })
+        assert resp.status_code == 204
+
+        interface = Authenticator.objects.get_interface(user=self.user, interface_id='totp')
+        assert interface
+
+        self.assert_invite_accepted(resp, om.id)
+
+    @mock.patch('sentry.api.endpoints.user_authenticator_enroll.logger')
+    @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
+    def test_user_already_org_member(self, try_enroll, log):
+        om = self.get_om_and_init_invite()
+        self.create_existing_om()
+        invite = '/accept/{}/{}/'.format(om.id, om.token)
+        self.setup_u2f(om, invite)
+
+        assert not OrganizationMember.objects.filter(id=om.id).exists()
+
+        log.info.assert_called_once_with(
+            'Pending org invite not accepted - User already org member',
+            extra={'organization_id': self.organization.id, 'user_id': self.user.id}
+        )
+
+    @mock.patch('sentry.api.endpoints.user_authenticator_enroll.logger')
+    @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
+    def test_org_member_does_not_exist(self, try_enroll, log):
+        om = self.get_om_and_init_invite()
+        invite = '/accept/{}/{}/'.format(om.id + 20, om.token)
+        self.setup_u2f(om, invite)
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert om.user is None
+        assert om.email == 'newuser@example.com'
+
+        log.error.call_count == 1
+        log.error.call_args[0][0] == 'Failed to accept pending org invite'
+
+    @mock.patch('sentry.api.endpoints.user_authenticator_enroll.logger')
+    @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
+    def test_invalid_invite(self, try_enroll, log):
+        om = self.get_om_and_init_invite()
+        invite = '/invalid/'
+        self.setup_u2f(om, invite)
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert om.user is None
+        assert om.email == 'newuser@example.com'
+
+        log.error.call_count == 1
+        log.error.call_args[0][0] == 'Failed to accept pending org invite'

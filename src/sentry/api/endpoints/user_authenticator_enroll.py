@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+import logging
 import petname
 
 from sentry.api.bases.user import UserEndpoint
@@ -10,7 +11,9 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
+from sentry.web.frontend.accept_organization_invite import ApiInviteHelper
 
+logger = logging.getLogger(__name__)
 
 ALREADY_ENROLLED_ERR = {'details': 'Already enrolled'}
 INVALID_OTP_ERR = {'details': 'Invalid OTP'},
@@ -22,7 +25,7 @@ class TotpRestSerializer(serializers.Serializer):
         label='Authenticator code',
         help_text='Code from authenticator',
         required=True,
-        max_length=20
+        max_length=20,
     )
 
 
@@ -207,5 +210,24 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             request.user.refresh_session_nonce(self.request)
             request.user.save()
             Authenticator.objects.auto_add_recovery_codes(request.user)
+
+            try:
+                invite = request.DATA['invite']
+            except KeyError:
+                pass
+            else:
+                helper = ApiInviteHelper(
+                    instance=self,
+                    request=request,
+                    invite=invite,
+                    logger=logger,
+                )
+
+                if helper.valid_request():
+                    helper.accept_invite()
+
+                    response = Response(status=status.HTTP_204_NO_CONTENT)
+                    helper.remove_invite_cookie(response)
+                    return response
 
             return Response(status=status.HTTP_204_NO_CONTENT)

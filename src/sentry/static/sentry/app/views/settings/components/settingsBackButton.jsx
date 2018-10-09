@@ -57,9 +57,8 @@ class BackButton extends React.Component {
     // if the user needs to setup 2fa as part of the org invite flow,
     // send them back to accept the invite
     let pendingInvite = Cookies.get('pending-invite');
-    let shouldGoBackToInvite = pendingInvite && !lastAppContext;
 
-    if (shouldGoBackToInvite) {
+    if (pendingInvite) {
       return (
         <BackButtonWrapper href={pendingInvite}>
           <Icon src="icon-chevron-left" size="10px" />

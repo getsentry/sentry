@@ -3,6 +3,7 @@
  */
 import {withRouter} from 'react-router';
 import React from 'react';
+import Cookies from 'js-cookie';
 
 import {
   addErrorMessage,
@@ -24,6 +25,8 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import U2fsign from 'app/components/u2fsign';
 
 const ENDPOINT = '/users/me/authenticators/';
+// accept organization invite url, pending 2FA setup
+const PENDING_INVITE = 'pending-invite';
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method
@@ -140,6 +143,7 @@ class AccountSecurityEnroll extends AsyncView {
   // Handles
   handleSmsSubmit = dataModel => {
     let {authenticator, hasSentCode} = this.state;
+    let invite = Cookies.get(PENDING_INVITE);
 
     // Don't submit if empty
     if (!this._form.phone) return;
@@ -150,6 +154,7 @@ class AccountSecurityEnroll extends AsyncView {
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
       otp: hasSentCode ? this._form.otp || '' : undefined,
       secret: authenticator.secret,
+      ...(invite && {invite}),
     };
 
     // Only show loading when submitting OTP
@@ -204,11 +209,14 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handle u2f device tap
   handleU2fTap = data => {
+    let invite = Cookies.get(PENDING_INVITE);
+
     return this.api
       .requestPromise(`${ENDPOINT}${this.props.params.authId}/enroll/`, {
         data: {
           ...data,
           ...this._form,
+          ...(invite && {invite}),
         },
       })
       .then(this.handleEnrollSuccess, this.handleEnrollError);
@@ -217,11 +225,13 @@ class AccountSecurityEnroll extends AsyncView {
   // Currently only TOTP uses this
   handleSubmit = dataModel => {
     let {authenticator} = this.state;
+    let invite = Cookies.get(PENDING_INVITE);
 
     let data = {
       ...this._form,
       ...(dataModel || {}),
       secret: authenticator.secret,
+      ...(invite && {invite}),
     };
 
     this.setState({
