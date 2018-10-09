@@ -99,16 +99,23 @@ export default class IntegrationRepos extends AsyncComponent {
     let {integration} = this.props;
     let orgId = this.context.organization.slug;
     let {itemList} = this.state;
+    let migratableRepo = itemList.filter(item => selection.value === item.name)[0];
+    let path = migratableRepo
+      ? `/organizations/${orgId}/repos/${migratableRepo.id}/`
+      : `/organizations/${orgId}/repos/`;
+    let data = migratableRepo
+      ? {integrationId: integration.id}
+      : {
+          installation: integration.id,
+          identifier: selection.value,
+          provider: `integrations:${integration.provider.key}`,
+        };
+    let method = migratableRepo ? 'PUT' : 'POST';
     let saveIndicator = IndicatorStore.add(t('Adding repository...'));
     this.setState({adding: true});
-
-    this.api.request(`/organizations/${orgId}/repos/`, {
-      data: {
-        installation: integration.id,
-        identifier: selection.value,
-        provider: `integrations:${integration.provider.key}`,
-      },
-      method: 'POST',
+    this.api.request(path, {
+      data,
+      method,
       success: repo => {
         this.setState({itemList: itemList.concat(repo)});
         IndicatorStore.addSuccess(
@@ -117,8 +124,8 @@ export default class IntegrationRepos extends AsyncComponent {
           })
         );
       },
-      error: data => {
-        let text = data.responseJSON.errors
+      error: errorData => {
+        let text = errorData.responseJSON.errors
           ? data.responseJSON.errors.__all__
           : t('Unable to add repository.');
         IndicatorStore.addError(text);
@@ -184,8 +191,10 @@ export default class IntegrationRepos extends AsyncComponent {
         </DropdownButton>
       );
     }
-    const repositories = new Set(this.state.itemList.map(i => i.name));
-    const repositoryOptions = (this.state.integrationRepos.repos || []).filter(
+    const repositories = new Set(
+      this.state.itemList.filter(item => item.integrationId).map(i => i.name)
+    );
+    let repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)
     );
     let items = repositoryOptions.map(repo => {

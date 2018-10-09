@@ -336,5 +336,5 @@ const ActionBar = styled('div')`
   justify-content: flex-end;
   padding: ${space(2)};
   border-top: 1px solid ${p => p.theme.borderLight};
-  margin: 0 -20px -20px;
+  margin: 0 -${space(2)} -${space(2)};
 `;
