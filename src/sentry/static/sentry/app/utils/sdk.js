@@ -27,6 +27,10 @@ function setContextInScope(context) {
         scope.setExtra(key, context.extra[key]);
       });
     }
+
+    if (context.fingerprint) {
+      scope.setFingerprint(context.fingerprint);
+    }
   });
 }
 

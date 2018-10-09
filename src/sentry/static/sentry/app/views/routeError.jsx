@@ -36,6 +36,7 @@ class RouteError extends React.Component {
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
       sdk.captureException(error, {
+        fingerprint: ['route-error', ...(route ? [route] : [])],
         extra: {
           route,
           orgFeatures: (organization && organization.features) || [],
