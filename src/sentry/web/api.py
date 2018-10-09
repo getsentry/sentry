@@ -130,18 +130,19 @@ class APIView(BaseView):
                 return
 
             # We want to send only serializable items from request.META
-            headers = {}
+            meta = {}
             for key, value in request.META.items():
                 try:
                     json.dumps([key, value])
-                    headers[key] = value
+                    meta[key] = value
                 except TypeError:
                     pass
 
-            data = json.dumps([headers, request.body])
+            meta['SENTRY_API_VIEW_NAME'] = self.__class__.__name__
+
             kafka_publisher.publish(
                 channel=getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_TOPIC', 'raw_store_events'),
-                value=data
+                value=json.dumps([meta, request.body])
             )
         except Exception as e:
             logger.debug("Cannot publish event to Kafka: {}".format(e.message))
@@ -156,7 +157,7 @@ class APIView(BaseView):
         )
         origin = None
 
-        if kafka_publisher is None or request.body is None:
+        if kafka_publisher is not None and request.body is not None:
             self._publish_to_kafka(request)
 
         try:
