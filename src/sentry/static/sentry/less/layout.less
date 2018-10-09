@@ -444,6 +444,12 @@ footer {
   margin-top: 20px;
   padding: 28px 0;
 
+  .container {
+    // Ensure dropdowns inside application views
+    // don't stack under footer content.
+    position: static;
+  }
+
   .pull-right {
     a {
       margin-left: 20px;
