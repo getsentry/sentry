@@ -157,7 +157,7 @@ export default class Condition extends React.Component {
     return (
       <Box w={1}>
         <SelectControl
-          forwardedRef={ref => (this.select = ref)}
+          innerRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}
