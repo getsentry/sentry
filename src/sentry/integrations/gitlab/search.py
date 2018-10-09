@@ -23,15 +23,12 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
         query = request.GET.get('query')
         if field is None:
             return Response({'detail': 'field is a required parameter'}, status=400)
-        if not query:
+        if query is None:
             return Response({'detail': 'query is a required parameter'}, status=400)
 
         installation = integration.get_installation(organization.id)
 
         if field == 'externalIssue':
-            if not query:
-                return Response([])
-
             response = installation.get_client().search_issues(query)
             return Response([{
                 'label': '(#%s) %s' % (i['iid'], i['title']),
@@ -39,13 +36,10 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
             } for i in response])
 
         if field == 'project':
-            if not query:
-                return Response([])
-
             response = installation.get_client().get_projects(query=query)
             return Response([{
                 'label': project['name_with_namespace'],
                 'value': project['path_with_namespace'],
             } for project in response])
 
-        return Response(status=400)
+        return Response({'detail': 'invalid field value'}, status=400)

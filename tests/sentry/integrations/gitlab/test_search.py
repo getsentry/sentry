@@ -12,20 +12,6 @@ class GitlabSearchTest(GitLabTestCase):
 
     def setUp(self):
         super(GitlabSearchTest, self).setUp()
-        self.gitlab_project_id = '1'
-        self.gitlab_project_id_2 = '2'
-        self.gitlab_projects = [
-            {
-                'id': self.gitlab_project_id,
-                'name_with_namespace': 'GetSentry / Sentry',
-                'path_with_namespace': 'getsentry/sentry'
-            },
-            {
-                'id': self.gitlab_project_id_2,
-                'name_with_namespace': 'GetSentry2 / Sentry2',
-                'path_with_namespace': 'getsentry2/sentry2'
-            },
-        ]
         self.url = reverse(
             'sentry-extensions-gitlab-search',
             kwargs={
@@ -33,18 +19,17 @@ class GitlabSearchTest(GitLabTestCase):
                 'integration_id': self.installation.model.id,
             }
         )
-        self.issue_search_results = {
-            # query: response
-            'AEIOU': [
-                {'iid': 25, 'title': 'AEIOU Error', 'project_id': self.gitlab_project_id},
-                {'iid': 45, 'title': 'AEIOU Error', 'project_id': self.gitlab_project_id}
-            ]
-        }
 
     # Happy Paths
     @responses.activate
     def test_finds_external_issue_results(self):
-        with patch('sentry.integrations.gitlab.client.GitLabApiClient.search_issues', lambda c, q: self.issue_search_results[q]):
+        search_results = {
+            'AEIOU': [
+                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '1'},
+                {'iid': 45, 'title': 'AEIOU Error', 'project_id': '2'}
+            ]
+        }
+        with patch('sentry.integrations.gitlab.client.GitLabApiClient.search_issues', lambda c, q: search_results[q]):
             resp = self.client.get(
                 self.url,
                 data={
@@ -56,11 +41,23 @@ class GitlabSearchTest(GitLabTestCase):
             assert resp.status_code == 200
             assert resp.data == [
                 {'value': '1#25', 'label': '(#25) AEIOU Error'},
-                {'value': '1#45', 'label': '(#45) AEIOU Error'}
+                {'value': '2#45', 'label': '(#45) AEIOU Error'}
             ]
 
     def test_finds_project_results(self):
-        with patch('sentry.integrations.gitlab.client.GitLabApiClient.get_projects', lambda c, query: self.gitlab_projects):
+        projects = {'GetSentry': [
+            {
+                'id': '1',
+                'name_with_namespace': 'GetSentry / Sentry',
+                'path_with_namespace': 'getsentry/sentry'
+            },
+            {
+                'id': '2',
+                'name_with_namespace': 'GetSentry2 / Sentry2',
+                'path_with_namespace': 'getsentry2/sentry2'
+            },
+        ]}
+        with patch('sentry.integrations.gitlab.client.GitLabApiClient.get_projects', lambda c, query: projects[query]):
             resp = self.client.get(
                 self.url,
                 data={
