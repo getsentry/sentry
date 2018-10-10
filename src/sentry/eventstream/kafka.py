@@ -157,6 +157,7 @@ class KafkaEventStream(EventStream):
         return state
 
     def end_delete_groups(self, state):
+        state = state.copy()
         state['datetime'] = datetime.now(tz=pytz.utc)
         self._send(
             state['project_id'],
@@ -185,6 +186,7 @@ class KafkaEventStream(EventStream):
         )
 
     def end_merge(self, state):
+        state = state.copy()
         state['datetime'] = datetime.now(tz=pytz.utc)
         self._send(
             state['project_id'],
@@ -216,6 +218,7 @@ class KafkaEventStream(EventStream):
         return state
 
     def end_unmerge(self, state):
+        state = state.copy()
         state['datetime'] = datetime.now(tz=pytz.utc)
         self._send(
             state['project_id'],
