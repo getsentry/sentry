@@ -22,17 +22,28 @@ class ProjectSelector extends React.Component {
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
 
+    // Render a footer at the bottom of the list
+    // render function that is passed an `actions` object with `close` and `open` properties.
+    menuFooter: PropTypes.func,
+
     // Allow selecting multiple projects?
     multi: PropTypes.bool,
 
+    // Disable selecting a single project, every action should trigger multi select
+    multiOnly: PropTypes.bool,
+
+    // Initial selected projects, only used for first rendered
+    // Used for uncontrolled components
     initialSelectedProjects: PropTypes.arrayOf(SentryTypes.Project),
+
+    // Use this if the component should be a controlled component
     selectedProjects: PropTypes.arrayOf(SentryTypes.Project),
 
     // Callback when a project is selected
     onSelect: PropTypes.func,
 
     // Callback when projects are selected via the multiple project selector
-    // Calls back with (project, checked, event)
+    // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
   };
 
@@ -68,8 +79,8 @@ class ProjectSelector extends React.Component {
 
   isControlled = () => typeof this.props.selectedProjects !== 'undefined';
 
-  toggleProject(project) {
-    let {slug} = project;
+  toggleProject(project, e) {
+    const {slug, onMultiSelect} = project;
     // Don't update state if this is a controlled component
     if (this.isControlled()) return;
 
@@ -82,6 +93,10 @@ class ProjectSelector extends React.Component {
         selectedProjects.set(slug, project);
       }
 
+      if (typeof onMultiSelect === 'function') {
+        onMultiSelect(Array.from(selectedProjects.values()), e);
+      }
+
       return {
         selectedProjects,
       };
@@ -89,9 +104,14 @@ class ProjectSelector extends React.Component {
   }
 
   handleSelect = ({value: project}) => {
-    const {onSelect} = this.props;
-    this.setState({activeProject: project});
-    onSelect(project);
+    const {multiOnly, onSelect} = this.props;
+
+    if (!multiOnly) {
+      this.setState({activeProject: project});
+      onSelect(project);
+    } else {
+      this.handleMultiSelect(project);
+    }
   };
 
   handleMultiSelect = (project, e) => {
@@ -107,36 +127,25 @@ class ProjectSelector extends React.Component {
     }
 
     if (hasCallback) {
-      let returnValue;
-
       if (isControlled) {
-        if (e.target.checked) {
-          // selected a project
-          const selectedProjectsMap = new Map([
-            ...selectedProjects.map(p => [p.slug, p]),
-            [project.slug, project],
-          ]);
-
-          returnValue = selectedProjectsMap;
-        } else {
+        const selectedProjectsMap = new Map(selectedProjects.map(p => [p.slug, p]));
+        if (selectedProjectsMap.has(project.slug)) {
           // unselected a project
-          const selectedProjectsMap = new Map(selectedProjects.map(p => [p.slug, p]));
 
           selectedProjectsMap.delete(project.slug);
-          returnValue = selectedProjectsMap;
+        } else {
+          selectedProjectsMap.set(project.slug, project);
         }
-      } else {
-        returnValue = this.state.selectedProjects;
-      }
 
-      onMultiSelect(Array.from(returnValue.values()), e.target.checked, e);
+        onMultiSelect(Array.from(selectedProjectsMap.values()), e);
+      }
     }
 
-    this.toggleProject(project);
+    this.toggleProject(project, e);
   };
 
   render() {
-    const {children, organization: org, multi} = this.props;
+    const {children, organization: org, menuFooter, multi, multiOnly} = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
 
@@ -151,6 +160,7 @@ class ProjectSelector extends React.Component {
     return (
       <DropdownAutoComplete
         alignMenu="left"
+        closeOnSelect={!multiOnly}
         blendCorner={false}
         filterPlaceholder={t('Filter projects')}
         onSelect={this.handleSelect}
@@ -162,46 +172,43 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={33}
         emptyHidesInput
-        menuFooter={
-          !hasProjects && hasProjectWrite ? (
-            <CreateProjectButton
-              priority="primary"
-              size="small"
-              to={`${this.urlPrefix()}/projects/new/`}
-            >
-              {t('Create project')}
-            </CreateProjectButton>
-          ) : null
-        }
+        menuFooter={renderProps => {
+          const renderedFooter =
+            typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
+          const showCreateProjectButton = !hasProjects && hasProjectWrite;
+
+          if (!renderedFooter && !showCreateProjectButton) return null;
+
+          return (
+            <React.Fragment>
+              {showCreateProjectButton && (
+                <CreateProjectButton
+                  priority="primary"
+                  size="small"
+                  to={`${this.urlPrefix()}/projects/new/`}
+                >
+                  {t('Create project')}
+                </CreateProjectButton>
+              )}
+              {renderedFooter}
+            </React.Fragment>
+          );
+        }}
         items={projectList.map(project => ({
           value: project,
           searchKey: project.slug,
           label: ({inputValue}) => (
-            <ProjectRow>
-              <BadgeWrapper multi={multi}>
-                <IdBadgeMenuItem
-                  project={project}
-                  avatarSize={16}
-                  displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-                  avatarProps={{consistentWidth: true}}
-                />
-                {project.isBookmarked && <BookmarkIcon multi={multi} />}
-              </BadgeWrapper>
-
-              {multi && (
-                <MultiSelect
-                  checked={
-                    this.isControlled()
-                      ? this.props.selectedProjects.find(
-                          ({slug}) => slug === project.slug
-                        )
-                      : this.state.selectedProjects.has(project.slug)
-                  }
-                  onClick={e => e.stopPropagation()}
-                  onChange={e => this.handleMultiSelect(project, e)}
-                />
-              )}
-            </ProjectRow>
+            <ProjectSelectorItem
+              project={project}
+              multi={multi}
+              inputValue={inputValue}
+              isChecked={
+                this.isControlled()
+                  ? this.props.selectedProjects.find(({slug}) => slug === project.slug)
+                  : this.state.selectedProjects.has(project.slug)
+              }
+              onMultiSelect={this.handleMultiSelect}
+            />
           ),
         }))}
       >
@@ -214,6 +221,52 @@ class ProjectSelector extends React.Component {
               : Array.from(this.state.selectedProjects.values()),
           })}
       </DropdownAutoComplete>
+    );
+  }
+}
+
+class ProjectSelectorItem extends React.PureComponent {
+  static propTypes = {
+    project: SentryTypes.Project,
+    multi: PropTypes.bool,
+    inputValue: PropTypes.string,
+    isChecked: PropTypes.bool,
+    onMultiSelect: PropTypes.func,
+  };
+
+  handleMultiSelect = e => {
+    const {project, onMultiSelect} = this.props;
+    onMultiSelect(project, e);
+  };
+
+  handleClick = e => {
+    e.stopPropagation();
+  };
+
+  render() {
+    const {project, multi, inputValue, isChecked} = this.props;
+    return (
+      <ProjectRow>
+        <BadgeWrapper multi={multi}>
+          <IdBadgeMenuItem
+            project={project}
+            avatarSize={16}
+            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+            avatarProps={{consistentWidth: true}}
+          />
+          {project.isBookmarked && <BookmarkIcon multi={multi} />}
+        </BadgeWrapper>
+
+        {multi && (
+          <MultiSelectWrapper onClick={this.handleMultiSelect}>
+            <MultiSelect
+              checked={isChecked}
+              onClick={this.handleClick}
+              onChange={this.handleMultiSelect}
+            />
+          </MultiSelectWrapper>
+        )}
+      </ProjectRow>
     );
   }
 }
@@ -261,6 +314,11 @@ const BadgeWrapper = styled('div')`
 const IdBadgeMenuItem = styled(IdBadge)`
   flex: 1;
   overflow: hidden;
+`;
+
+const MultiSelectWrapper = styled('div')`
+  margin: -8px;
+  padding: 8px;
 `;
 
 const MultiSelect = styled(Checkbox)`

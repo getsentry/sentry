@@ -111,7 +111,7 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     menuWithArrow: PropTypes.bool,
 
-    menuFooter: PropTypes.node,
+    menuFooter: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
     menuHeader: PropTypes.node,
 
     /**
@@ -303,6 +303,9 @@ class DropdownAutoCompleteMenu extends React.Component {
           // emptyHidesInput is set to true.
           let showInput = hasItems || !emptyHidesInput;
 
+          let renderedFooter =
+            typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
+
           return (
             <AutoCompleteRoot {...getRootProps()}>
               {children({
@@ -362,7 +365,9 @@ class DropdownAutoCompleteMenu extends React.Component {
                         })}
                     </StyledItemList>
 
-                    {menuFooter && <LabelWithPadding>{menuFooter}</LabelWithPadding>}
+                    {renderedFooter && (
+                      <LabelWithPadding>{renderedFooter}</LabelWithPadding>
+                    )}
                   </div>
                 </StyledMenu>
               )}
