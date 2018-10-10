@@ -278,9 +278,6 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     from sentry import deletions, eventstream
     from sentry.models import Group
 
-    if not object_ids:
-        return
-
     group_id = object_ids[0]
 
     task = deletions.get(
