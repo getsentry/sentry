@@ -49,7 +49,12 @@ class SentryAppsTest(APITestCase):
             response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
-        assert [o['uuid'] for o in response.data] == [self.published_app.uuid]
+        assert response.data == [{
+            'name': self.published_app.name,
+            'scopes': [],
+            'uuid': self.published_app.uuid,
+            'webhook_url': self.published_app.webhook_url,
+        }]
 
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)
