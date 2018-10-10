@@ -12,6 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
+import {fetchOrganizationsByMember} from 'app/actionCreators/organizations';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
@@ -25,7 +26,6 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import U2fsign from 'app/components/u2fsign';
 
 const ENDPOINT = '/users/me/authenticators/';
-// accept organization invite url, pending 2FA setup
 const PENDING_INVITE = 'pending-invite';
 
 /**
@@ -125,6 +125,19 @@ class AccountSecurityEnroll extends AsyncView {
     return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
   }
 
+  componentWillMount() {
+    super.componentWillMount();
+    // If 2FA is required, a pending organization invite
+    // can be accepted once the user enrolls in 2FA
+    let invite = Cookies.get(PENDING_INVITE);
+
+    if (invite) {
+      invite = invite.split('/');
+      this.memberId = invite[2];
+      this.token = invite[3];
+    }
+  }
+
   handleFieldChange = (name, value) => {
     // This should not be used for rendering, that's why it's not in state
     this._form[name] = value;
@@ -143,7 +156,6 @@ class AccountSecurityEnroll extends AsyncView {
   // Handles
   handleSmsSubmit = dataModel => {
     let {authenticator, hasSentCode} = this.state;
-    let invite = Cookies.get(PENDING_INVITE);
 
     // Don't submit if empty
     if (!this._form.phone) return;
@@ -154,7 +166,8 @@ class AccountSecurityEnroll extends AsyncView {
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
       otp: hasSentCode ? this._form.otp || '' : undefined,
       secret: authenticator.secret,
-      ...(invite && {invite}),
+      ...(this.memberId && {memberId: this.memberId}),
+      ...(this.token && {token: this.token}),
     };
 
     // Only show loading when submitting OTP
@@ -182,6 +195,13 @@ class AccountSecurityEnroll extends AsyncView {
             addMessage(t('Sent code to %s', data.phone));
           } else {
             // OTP was accepted and SMS was added as a 2fa method
+            // Load organization context
+            if (this.memberId) {
+              fetchOrganizationsByMember(this.memberId, {
+                setActive: true,
+              });
+            }
+
             this.props.router.push('/settings/account/security/');
             openRecoveryOptions({
               authenticatorName: authenticator.name,
@@ -209,14 +229,13 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handle u2f device tap
   handleU2fTap = data => {
-    let invite = Cookies.get(PENDING_INVITE);
-
     return this.api
       .requestPromise(`${ENDPOINT}${this.props.params.authId}/enroll/`, {
         data: {
           ...data,
           ...this._form,
-          ...(invite && {invite}),
+          ...(this.memberId && {memberId: this.memberId}),
+          ...(this.token && {token: this.token}),
         },
       })
       .then(this.handleEnrollSuccess, this.handleEnrollError);
@@ -225,13 +244,13 @@ class AccountSecurityEnroll extends AsyncView {
   // Currently only TOTP uses this
   handleSubmit = dataModel => {
     let {authenticator} = this.state;
-    let invite = Cookies.get(PENDING_INVITE);
 
     let data = {
       ...this._form,
       ...(dataModel || {}),
       secret: authenticator.secret,
-      ...(invite && {invite}),
+      ...(this.memberId && {memberId: this.memberId}),
+      ...(this.token && {token: this.token}),
     };
 
     this.setState({
@@ -247,6 +266,12 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handler when we successfully add a 2fa device
   handleEnrollSuccess = () => {
+    // Load organization context
+    if (this.memberId)
+      fetchOrganizationsByMember(this.memberId, {
+        setActive: true,
+      });
+
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.props.router.push('/settings/account/security');

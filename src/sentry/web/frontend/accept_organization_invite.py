@@ -115,6 +115,12 @@ class AcceptOrganizationInviteView(BaseView):
 
 
 class BaseInviteHelper(object):
+    def __init__(self, instance, request, member_id, token, logger=None):
+        self.request = request
+        self.instance = instance
+        self.member_id = member_id
+        self.token = token
+        self.logger = logger
 
     def handle_success(self):
         pass
@@ -179,13 +185,6 @@ class BaseInviteHelper(object):
 
 
 class WebInviteHelper(BaseInviteHelper):
-
-    def __init__(self, instance, request, member_id, token):
-        self.request = request
-        self.instance = instance
-        self.member_id = member_id
-        self.token = token
-
     def handle_success(self):
         messages.add_message(
             self.request, messages.SUCCESS,
@@ -205,18 +204,6 @@ class WebInviteHelper(BaseInviteHelper):
 
 
 class ApiInviteHelper(BaseInviteHelper):
-
-    def __init__(self, instance, request, invite, logger):
-        self.request = request
-        self.instance = instance
-        self.invite = invite
-        self.logger = logger
-
-    def parse_invite(self):
-        invite = self.invite.split('/')
-        self.member_id = invite[2]
-        self.token = invite[3]
-
     def handle_member_already_exists(self):
         self.logger.info(
             'Pending org invite not accepted - User already org member',
@@ -227,12 +214,6 @@ class ApiInviteHelper(BaseInviteHelper):
         )
 
     def valid_request(self):
-        try:
-            self.parse_invite()
-        except IndexError:
-            self.logger.error('Failed to accept pending org invite', exc_info=True)
-            return False
-
         try:
             self.get_organization_member()
         except OrganizationMember.DoesNotExist:

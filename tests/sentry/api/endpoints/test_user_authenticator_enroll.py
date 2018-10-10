@@ -202,7 +202,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         self.assertFalse(response.client.cookies['pending-invite'].value)
 
-    def setup_u2f(self, om, invite):
+    def setup_u2f(self, om, memberId=None, token=None):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options['system.url-prefix'] = 'https://testserver'
         with self.settings(SENTRY_OPTIONS=new_options):
@@ -214,7 +214,8 @@ class AcceptOrganizationInviteTest(APITestCase):
                 'deviceName': 'device name',
                 'challenge': 'challenge',
                 'response': 'response',
-                'invite': invite
+                'memberId': memberId or om.id,
+                'token': token or om.token,
             })
             assert resp.status_code == 204
 
@@ -223,8 +224,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
     def test_accept_pending_invite__u2f_enroll(self, try_enroll):
         om = self.get_om_and_init_invite()
-        invite = '/accept/{}/{}/'.format(om.id, om.token)
-        resp = self.setup_u2f(om, invite)
+        resp = self.setup_u2f(om)
 
         self.assert_invite_accepted(resp, om.id)
 
@@ -243,22 +243,23 @@ class AcceptOrganizationInviteTest(APITestCase):
             )
 
             resp = self.client.post(url, data={
-                "secret": "secret12",
-                "phone": "1231234",
+                'secret': 'secret12',
+                'phone': '1231234',
             })
             assert resp.status_code == 204
 
             resp = self.client.post(url, data={
-                "secret": "secret12",
-                "phone": "1231234",
-                "otp": "123123",
-                "invite": "/accept/{}/{}/".format(om.id, om.token)
+                'secret': 'secret12',
+                'phone': '1231234',
+                'otp': '123123',
+                'memberId': om.id,
+                'token': om.token,
             })
             assert validate_otp.call_count == 1
-            assert validate_otp.call_args == mock.call("123123")
+            assert validate_otp.call_args == mock.call('123123')
 
-            interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
-            assert interface.phone_number == "1231234"
+            interface = Authenticator.objects.get_interface(user=self.user, interface_id='sms')
+            assert interface.phone_number == '1231234'
 
         self.assert_invite_accepted(resp, om.id)
 
@@ -277,7 +278,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         resp = self.client.post(url, data={
             'secret': 'secret12',
             'otp': '1234',
-            'invite': '/accept/{}/{}/'.format(om.id, om.token)
+            'memberId': om.id,
+            'token': om.token,
         })
         assert resp.status_code == 204
 
@@ -291,8 +293,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     def test_user_already_org_member(self, try_enroll, log):
         om = self.get_om_and_init_invite()
         self.create_existing_om()
-        invite = '/accept/{}/{}/'.format(om.id, om.token)
-        self.setup_u2f(om, invite)
+        self.setup_u2f(om)
 
         assert not OrganizationMember.objects.filter(id=om.id).exists()
 
@@ -305,8 +306,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
     def test_org_member_does_not_exist(self, try_enroll, log):
         om = self.get_om_and_init_invite()
-        invite = '/accept/{}/{}/'.format(om.id + 20, om.token)
-        self.setup_u2f(om, invite)
+        self.setup_u2f(om, memberId=om.id + 20)
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
@@ -317,14 +317,10 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch('sentry.api.endpoints.user_authenticator_enroll.logger')
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
-    def test_invalid_invite(self, try_enroll, log):
+    def test_invalid_token(self, try_enroll, log):
         om = self.get_om_and_init_invite()
-        invite = '/invalid/'
-        self.setup_u2f(om, invite)
+        self.setup_u2f(om, token='123')
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
         assert om.email == 'newuser@example.com'
-
-        log.error.call_count == 1
-        log.error.call_args[0][0] == 'Failed to accept pending org invite'

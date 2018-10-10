@@ -25,7 +25,7 @@ class TotpRestSerializer(serializers.Serializer):
         label='Authenticator code',
         help_text='Code from authenticator',
         required=True,
-        max_length=20,
+        max_length=20
     )
 
 
@@ -211,15 +211,18 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             request.user.save()
             Authenticator.objects.auto_add_recovery_codes(request.user)
 
+            # Try to accept org invite pending 2FA enrollment
             try:
-                invite = request.DATA['invite']
+                member_id = request.DATA['memberId']
+                token = request.DATA['token']
             except KeyError:
                 pass
             else:
                 helper = ApiInviteHelper(
                     instance=self,
                     request=request,
-                    invite=invite,
+                    member_id=member_id,
+                    token=token,
                     logger=logger,
                 )
 
