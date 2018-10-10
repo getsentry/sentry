@@ -37,7 +37,7 @@ class ProjectFilters extends React.Component {
           <ProjectFiltersChart params={this.props.params} />
 
           {features.has('discard-groups') && (
-            <NavTabs style={{paddingTop: '30px'}}>
+            <NavTabs underlined style={{paddingTop: '30px'}}>
               <li className={filterType === 'data-filters' ? 'active' : ''}>
                 <Link to={recreateRoute('data-filters/', {...this.props, stepBack: -1})}>
                   {t('Data Filters')}
