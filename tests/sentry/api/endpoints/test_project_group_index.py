@@ -1419,11 +1419,13 @@ class GroupUpdateTest(APITestCase):
             from_object_id=group1.id,
             to_object_id=group2.id,
             transaction_id='abc123',
+            eventstream_state=None,
         )
         merge_group.delay.assert_any_call(
             from_object_id=group3.id,
             to_object_id=group2.id,
             transaction_id='abc123',
+            eventstream_state=None,
         )
 
     def test_assign(self):
