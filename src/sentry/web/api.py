@@ -36,7 +36,7 @@ from sentry.coreapi import (
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.utils import merge_minidump_event
+from sentry.lang.native.minidump import merge_minidump_event
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
