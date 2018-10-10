@@ -151,6 +151,7 @@ from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoin
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
+from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -1076,6 +1077,13 @@ urlpatterns = patterns(
         r'^events/(?P<event_id>\d+)/apple-crash-report$',
         EventAppleCrashReportEndpoint.as_view(),
         name='sentry-api-0-event-apple-crash-report'
+    ),
+
+    # Sentry Apps
+    url(
+        r'^sentry-apps/$',
+        SentryAppsEndpoint.as_view(),
+        name='sentry-api-0-sentry-apps'
     ),
 
     # Internal

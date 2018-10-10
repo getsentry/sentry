@@ -7,7 +7,8 @@ from django.db import models
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
-from sentry.db.models import FlexibleForeignKey, ParanoidModel
+from sentry.constants import SentryAppStatus
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
 from sentry.models.apiscopes import HasApiScopes
 
 
@@ -33,6 +34,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     name = models.TextField()
     slug = models.CharField(max_length=64, unique=True)
+    status = BoundedPositiveIntegerField(
+        default=SentryAppStatus.UNPUBLISHED,
+        choices=SentryAppStatus.as_choices(),
+        db_index=True,
+    )
     uuid = models.CharField(max_length=64,
                             default=default_uuid)
 
