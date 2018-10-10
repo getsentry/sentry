@@ -91,7 +91,7 @@ class BitbucketIssueTest(APITestCase):
         )
         group = self.create_group()
         self.create_event(group=group)
-        org_integration = self.integration.add_organization(self.organization.id)
+        org_integration = self.integration.add_organization(self.organization)
         org_integration.config = {
             'project_issue_defaults': {
                 six.text_type(group.project_id): {'repo': 'myaccount/repo1'}
@@ -122,7 +122,7 @@ class BitbucketIssueTest(APITestCase):
         )
         group = self.create_group()
         self.create_event(group=group)
-        org_integration = self.integration.add_organization(self.organization.id)
+        org_integration = self.integration.add_organization(self.organization)
         org_integration.config = {
             'project_issue_defaults': {
                 six.text_type(group.project_id): {'repo': 'myaccount/repo1'}
