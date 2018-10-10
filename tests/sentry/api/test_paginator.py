@@ -10,7 +10,7 @@ from sentry.api.paginator import (
     DateTimePaginator,
     OffsetPaginator,
     SequencePaginator,
-    SnubaOffsetPaginator,
+    GenericOffsetPaginator,
     reverse_bisect_left)
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -404,12 +404,12 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert paginator.get_result(5, count_hits=True).hits == n
 
 
-class SnubaOffsetPaginatorTest(TestCase):
+class GenericOffsetPaginatorTest(TestCase):
     def test_simple(self):
         def data_fn(offset=None, limit=None):
             return [i for i in range(offset, limit)]
 
-        paginator = SnubaOffsetPaginator(data_fn=data_fn)
+        paginator = GenericOffsetPaginator(data_fn=data_fn)
 
         result = paginator.get_result(5)
 

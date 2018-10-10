@@ -332,7 +332,7 @@ class SequencePaginator(object):
         )
 
 
-class SnubaOffsetPaginator(object):
+class GenericOffsetPaginator(object):
     """
     A paginator for getting pages of results for a query using the OFFSET/LIMIT
     mechanism.
