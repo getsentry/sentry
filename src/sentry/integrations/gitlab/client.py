@@ -5,12 +5,14 @@ from six.moves.urllib.parse import quote
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
 
+
 API_VERSION = u'/api/v4'
 
 
 class GitLabApiClientPath(object):
     group = u'/groups/{group}'
     group_projects = u'/groups/{group}/projects'
+    hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
     issues_search = u'/issues'
