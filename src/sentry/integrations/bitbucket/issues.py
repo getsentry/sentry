@@ -51,12 +51,12 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return [
             {
                 'name': 'repo',
-                'label': 'Bitbucket Repository',
-                'type': 'select',
-                'default': default_repo,
-                'defaultLabel': default_repo,
-                'url': autocomplete_url,
                 'required': True,
+                'type': 'select',
+                'url': autocomplete_url,
+                'choices': repo_choices,
+                'defaultValue': default_repo,
+                'label': 'Bitbucket Repository',
             }
         ] + fields + [
             {
@@ -84,13 +84,12 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
         return [{
             'name': 'repo',
-            'label': 'Bitbucket Repository',
-            'type': 'select',
-            'default': default_repo,
-            'defaultLabel': default_repo,
-            'url': autocomplete_url,
             'required': True,
-            'updatesForm': True,
+            'type': 'select',
+            'url': autocomplete_url,
+            'choices': repo_choices,
+            'defaultValue': default_repo,
+            'label': 'Bitbucket Repository',
         }, {
             'name': 'externalIssue',
             'label': 'Issue',

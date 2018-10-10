@@ -104,8 +104,7 @@ class BitbucketIssueTest(APITestCase):
             if field['name'] == 'repo':
                 repo_field = field
                 break
-        assert repo_field['default'] == 'myaccount/repo1'
-        assert repo_field['defaultLabel'] == 'myaccount/repo1'
+        assert repo_field['defaultValue'] == 'myaccount/repo1'
 
     @responses.activate
     def test_default_repo_create_fields(self):
@@ -135,5 +134,4 @@ class BitbucketIssueTest(APITestCase):
             if field['name'] == 'repo':
                 repo_field = field
                 break
-        assert repo_field['default'] == 'myaccount/repo1'
-        assert repo_field['defaultLabel'] == 'myaccount/repo1'
+        assert repo_field['defaultValue'] == 'myaccount/repo1'
