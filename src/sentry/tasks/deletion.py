@@ -281,7 +281,6 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     if not object_ids:
         return
 
-    object_ids = sorted(object_ids)
     group_id = object_ids[0]
 
     task = deletions.get(
