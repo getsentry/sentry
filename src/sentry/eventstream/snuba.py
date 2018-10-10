@@ -23,12 +23,6 @@ class SnubaEventStream(EventStream):
             primary_hash, skip_consume
         )
 
-    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
-        pass
-
-    def end_unmerge(self, state):
-        pass
-
     def start_delete_groups(self, project_id, group_ids):
         pass
 
@@ -39,4 +33,10 @@ class SnubaEventStream(EventStream):
         pass
 
     def end_merge(self, state):
+        pass
+
+    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
+        pass
+
+    def end_unmerge(self, state):
         pass
