@@ -20,7 +20,16 @@ INVALID_OTP_ERR = {'details': 'Invalid OTP'},
 SEND_SMS_ERR = {'details': 'Error sending SMS'}
 
 
-class TotpRestSerializer(serializers.Serializer):
+class BaseRestSerializer(serializers.Serializer):
+    memberId = serializers.CharField(
+        required=False
+    )
+    token = serializers.CharField(
+        required=False,
+    )
+
+
+class TotpRestSerializer(BaseRestSerializer):
     otp = serializers.CharField(
         label='Authenticator code',
         help_text='Code from authenticator',
@@ -29,7 +38,7 @@ class TotpRestSerializer(serializers.Serializer):
     )
 
 
-class SmsRestSerializer(serializers.Serializer):
+class SmsRestSerializer(BaseRestSerializer):
     phone = serializers.CharField(
         label="Phone number",
         help_text="Phone number to send SMS code",
@@ -44,7 +53,7 @@ class SmsRestSerializer(serializers.Serializer):
     )
 
 
-class U2fRestSerializer(serializers.Serializer):
+class U2fRestSerializer(BaseRestSerializer):
     deviceName = serializers.CharField(
         label='Device name',
         required=False,
@@ -59,6 +68,8 @@ class U2fRestSerializer(serializers.Serializer):
     )
 
 
+hidden_fields = ['memberId', 'token']
+
 serializer_map = {
     'totp': TotpRestSerializer,
     'sms': SmsRestSerializer,
@@ -70,7 +81,7 @@ def get_serializer_field_metadata(serializer, fields=None):
     """Returns field metadata for serializer"""
     meta = []
     for field in serializer.base_fields:
-        if fields is None or field in fields:
+        if (fields is None or field in fields) and field not in hidden_fields:
             serialized_field = dict(serializer.base_fields[field].metadata())
             serialized_field['name'] = field
             serialized_field['defaultValue'] = serializer.base_fields[field].get_default_value()
@@ -213,8 +224,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
             # Try to accept org invite pending 2FA enrollment
             try:
-                member_id = request.DATA['memberId']
-                token = request.DATA['token']
+                member_id = serializer.data['memberId']
+                token = serializer.data['token']
             except KeyError:
                 pass
             else:
