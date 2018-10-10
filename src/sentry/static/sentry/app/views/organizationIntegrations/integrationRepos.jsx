@@ -12,6 +12,7 @@ import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SpreadLayout from 'app/components/spreadLayout';
 import space from 'app/styles/space';
@@ -38,7 +39,6 @@ export default class IntegrationRepos extends AsyncComponent {
 
   getEndpoints() {
     let orgId = this.context.organization.slug;
-
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       [
@@ -99,16 +99,23 @@ export default class IntegrationRepos extends AsyncComponent {
     let {integration} = this.props;
     let orgId = this.context.organization.slug;
     let {itemList} = this.state;
+    let migratableRepo = itemList.filter(item => selection.value === item.name)[0];
+    let path = migratableRepo
+      ? `/organizations/${orgId}/repos/${migratableRepo.id}/`
+      : `/organizations/${orgId}/repos/`;
+    let data = migratableRepo
+      ? {integrationId: integration.id}
+      : {
+          installation: integration.id,
+          identifier: selection.value,
+          provider: `integrations:${integration.provider.key}`,
+        };
+    let method = migratableRepo ? 'PUT' : 'POST';
     let saveIndicator = IndicatorStore.add(t('Adding repository...'));
     this.setState({adding: true});
-
-    this.api.request(`/organizations/${orgId}/repos/`, {
-      data: {
-        installation: integration.id,
-        identifier: selection.value,
-        provider: `integrations:${integration.provider.key}`,
-      },
-      method: 'POST',
+    this.api.request(path, {
+      data,
+      method,
       success: repo => {
         this.setState({itemList: itemList.concat(repo)});
         IndicatorStore.addSuccess(
@@ -117,8 +124,8 @@ export default class IntegrationRepos extends AsyncComponent {
           })
         );
       },
-      error: data => {
-        let text = data.responseJSON.errors
+      error: errorData => {
+        let text = errorData.responseJSON.errors
           ? data.responseJSON.errors.__all__
           : t('Unable to add repository.');
         IndicatorStore.addError(text);
@@ -184,8 +191,10 @@ export default class IntegrationRepos extends AsyncComponent {
         </DropdownButton>
       );
     }
-    const repositories = new Set(this.state.itemList.map(i => i.name));
-    const repositoryOptions = (this.state.integrationRepos.repos || []).filter(
+    const repositories = new Set(
+      this.state.itemList.filter(item => item.integrationId).map(i => i.name)
+    );
+    let repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)
     );
     let items = repositoryOptions.map(repo => {
@@ -225,6 +234,7 @@ export default class IntegrationRepos extends AsyncComponent {
   }
 
   renderBody() {
+    const {itemListPageLinks} = this.state;
     const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader disablePadding hasButtons>
@@ -238,63 +248,68 @@ export default class IntegrationRepos extends AsyncComponent {
     );
 
     return (
-      <Panel>
-        {header}
-        <PanelBody>
-          {itemList.length === 0 && (
-            <EmptyMessage
-              icon="icon-commit"
-              title={t('Sentry is better with commit data')}
-              description={t(
-                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
-              )}
-              action={
-                <Button href="https://docs.sentry.io/learn/releases/">
-                  {t('Learn More')}
-                </Button>
-              }
-            />
-          )}
-          {itemList.map(repo => {
-            let repoIsActive = repo.status === 'active';
-            return (
-              <RepoOption key={repo.id} disabled={repo.status === 'disabled'}>
-                <Box p={2} flex="1">
-                  <Flex direction="column">
-                    <Box pb={1}>
-                      <strong>{repo.name}</strong>
-                      {!repoIsActive && <small> — {this.getStatusLabel(repo)}</small>}
-                      {repo.status === 'pending_deletion' && (
+      <React.Fragment>
+        <Panel>
+          {header}
+          <PanelBody>
+            {itemList.length === 0 && (
+              <EmptyMessage
+                icon="icon-commit"
+                title={t('Sentry is better with commit data')}
+                description={t(
+                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested owners, and deploy emails.'
+                )}
+                action={
+                  <Button href="https://docs.sentry.io/learn/releases/">
+                    {t('Learn More')}
+                  </Button>
+                }
+              />
+            )}
+            {itemList.map(repo => {
+              let repoIsActive = repo.status === 'active';
+              return (
+                <RepoOption key={repo.id} disabled={repo.status === 'disabled'}>
+                  <Box p={2} flex="1">
+                    <Flex direction="column">
+                      <Box pb={1}>
+                        <strong>{repo.name}</strong>
+                        {!repoIsActive && <small> — {this.getStatusLabel(repo)}</small>}
+                        {repo.status === 'pending_deletion' && (
+                          <small>
+                            {' '}
+                            (
+                            <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
+                            )
+                          </small>
+                        )}
+                      </Box>
+                      <Box>
                         <small>
-                          {' '}
-                          (
-                          <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
-                          )
+                          <a href={repo.url}>{repo.url.replace('https://', '')}</a>
                         </small>
-                      )}
-                    </Box>
-                    <Box>
-                      <small>
-                        <a href={repo.url}>{repo.url.replace('https://', '')}</a>
-                      </small>
-                    </Box>
-                  </Flex>
-                </Box>
+                      </Box>
+                    </Flex>
+                  </Box>
 
-                <Box p={2}>
-                  <Confirm
-                    disabled={!repoIsActive && repo.status !== 'disabled'}
-                    onConfirm={() => this.deleteRepo(repo)}
-                    message={t('Are you sure you want to remove this repository?')}
-                  >
-                    <Button size="xsmall" icon="icon-trash" />
-                  </Confirm>
-                </Box>
-              </RepoOption>
-            );
-          })}
-        </PanelBody>
-      </Panel>
+                  <Box p={2}>
+                    <Confirm
+                      disabled={!repoIsActive && repo.status !== 'disabled'}
+                      onConfirm={() => this.deleteRepo(repo)}
+                      message={t('Are you sure you want to remove this repository?')}
+                    >
+                      <Button size="xsmall" icon="icon-trash" />
+                    </Confirm>
+                  </Box>
+                </RepoOption>
+              );
+            })}
+          </PanelBody>
+        </Panel>
+        {itemListPageLinks && (
+          <Pagination pageLinks={itemListPageLinks} {...this.props} />
+        )}
+      </React.Fragment>
     );
   }
 }

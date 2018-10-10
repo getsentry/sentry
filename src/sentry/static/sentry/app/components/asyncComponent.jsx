@@ -142,6 +142,8 @@ export default class AsyncComponent extends React.Component {
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
+      // If you're using nested async components/views make sure to pass the
+      // props through so that the child component has access to props.location
       let locationQuery = (this.props.location && this.props.location.query) || {};
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
@@ -277,7 +279,7 @@ export default class AsyncComponent extends React.Component {
       resp => resp && resp.status === 403
     );
 
-    // If all error responses have status code === 0, then show erorr message but don't
+    // If all error responses have status code === 0, then show error message but don't
     // log it to sentry
     let shouldLogSentry =
       !!Object.values(this.state.errors).find(resp => resp && resp.status !== 0) ||

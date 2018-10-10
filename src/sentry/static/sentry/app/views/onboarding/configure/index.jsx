@@ -3,9 +3,8 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import sdk from 'app/utils/sdk';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
-import HookStore from 'app/stores/hookStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -89,7 +88,6 @@ const Configure = createReactClass({
   },
 
   submit() {
-    HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
     analytics('onboarding.complete', {project: this.props.params.projectId});
     this.redirectUrl();
   },
