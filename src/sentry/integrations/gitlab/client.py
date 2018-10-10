@@ -4,6 +4,7 @@ from six.moves.urllib.parse import quote
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
 
 
 API_VERSION = u'/api/v4'
@@ -19,6 +20,7 @@ class GitLabApiClientPath(object):
     members = u'/projects/{project}/members'
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
+    project_hooks = u'/projects/{project}/hooks'
     projects = u'/projects'
     user = u'/user'
 
@@ -28,6 +30,35 @@ class GitLabApiClientPath(object):
             base_url=base_url,
             api=API_VERSION,
             path=path,
+        )
+
+
+class GitLabSetupClient(ApiClient):
+    """
+    API Client that doesn't require an installation.
+    This client is used during integration setup to fetch data
+    needed to build installation metadata
+    """
+
+    def __init__(self, base_url, access_token, verify_ssl):
+        self.base_url = base_url
+        self.token = access_token
+        self.verify_ssl = verify_ssl
+
+    def get_group(self, group):
+        path = GitLabApiClientPath.group.format(group=group)
+        return self.get(path)
+
+    def request(self, method, path, data=None, params=None):
+        headers = {
+            'Authorization': u'Bearer {}'.format(self.token)
+        }
+        return self._request(
+            method,
+            GitLabApiClientPath.build_api_url(self.base_url, path),
+            headers=headers,
+            data=data,
+            params=params
         )
 
 
@@ -139,3 +170,18 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
                 project=quote(project, safe='')
             ),
         )
+
+    def create_webhook(self, project):
+        path = GitLabApiClientPath.project_hook.format(
+            project=quote(project, safe=''))
+        data = {
+            'url': absolute_uri('/extensions/gitlab/webhooks/'),
+            'token': self.metadata['webhook_secret'],
+            'merge_requests_events': True,
+            'push_events': True,
+            'enable_ssl_verification': self.metadata['verify_ssl'],
+        }
+        resp = self.post(path, data)
+        resp.raise_for_status()
+
+        return resp.json()['id'],
