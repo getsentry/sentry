@@ -1,14 +1,14 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import DataText from 'app/components/events/meta/dataText';
-import {decorateEvent} from 'app/components/events/meta/metaProxy';
+import Annotated from 'app/components/events/meta/annotated';
+import {withMeta} from 'app/components/events/meta/metaProxy';
 
-describe('DataText', () => {
+describe('Annotated', () => {
   let mock = jest.fn(() => null);
 
   const createEvent = (value, {err, rem, chunks} = {}) => {
-    return decorateEvent({
+    return withMeta({
       value,
       _meta: {
         value: {
@@ -32,9 +32,9 @@ describe('DataText', () => {
         value: 'foo',
       };
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
       expect(mock).toHaveBeenCalledWith('foo');
     });
@@ -44,9 +44,9 @@ describe('DataText', () => {
         value: 0,
       };
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
       expect(mock).toHaveBeenCalledWith(0);
     });
@@ -56,15 +56,15 @@ describe('DataText', () => {
         value: false,
       };
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
       expect(mock).toHaveBeenCalledWith(false);
     });
 
     it('ignores empty meta data', () => {
-      let obj = decorateEvent({
+      let obj = withMeta({
         value: 'foo',
         _meta: {
           value: {
@@ -77,9 +77,9 @@ describe('DataText', () => {
         },
       });
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
       expect(mock).toHaveBeenCalledWith('foo');
     });
@@ -88,9 +88,9 @@ describe('DataText', () => {
       let obj = createEvent(null, {});
 
       mount(
-        <DataText object={obj} prop="value" required>
+        <Annotated object={obj} prop="value" required>
           {mock}
-        </DataText>
+        </Annotated>
       );
 
       expect(mock).not.toHaveBeenCalled();
@@ -102,9 +102,9 @@ describe('DataText', () => {
       let obj = createEvent('foo', {err: ['something']});
 
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
 
       expect(mock.mock.calls[0][0].props).toEqual(
@@ -121,9 +121,9 @@ describe('DataText', () => {
       let obj = createEvent('foo', {rem: [{type: 't'}], chunks: [{text: 'foo'}]});
 
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
 
       expect(mock.mock.calls[0][0].props).toEqual(
@@ -140,9 +140,9 @@ describe('DataText', () => {
       let obj = createEvent(null, {err: ['something']});
 
       mount(
-        <DataText object={obj} prop="value">
+        <Annotated object={obj} prop="value">
           {mock}
-        </DataText>
+        </Annotated>
       );
 
       expect(mock.mock.calls[0][0].props).toEqual(

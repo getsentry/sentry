@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import DataText from 'app/components/events/meta/dataText';
+import Annotated from 'app/components/events/meta/annotated';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -19,9 +19,9 @@ class MessageInterface extends React.Component {
     return (
       <EventDataSection group={group} event={event} type="message" title={t('Message')}>
         <pre className="plain">
-          <DataText object={data} prop="formatted">
-            {formatted => formatted || <DataText object={data} prop="message" />}
-          </DataText>
+          <Annotated object={data} prop="formatted">
+            {formatted => formatted || <Annotated object={data} prop="message" />}
+          </Annotated>
         </pre>
 
         {data.params &&

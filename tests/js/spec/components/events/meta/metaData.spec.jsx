@@ -1,13 +1,13 @@
 import {mount} from 'enzyme';
 import React from 'react';
 
-import {decorateEvent} from 'app/components/events/meta/metaProxy';
+import {withMeta} from 'app/components/events/meta/metaProxy';
 import MetaData from 'app/components/events/meta/metaData';
 
 describe('MetaData', function() {
   let exc = TestStubs.ExceptionWithMeta();
 
-  let proxiedExc = decorateEvent(exc);
+  let proxiedExc = withMeta(exc);
 
   it('can get meta data', function() {
     let renderProp = jest.fn(() => null);

@@ -1,7 +1,7 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {decorateEvent} from 'app/components/events/meta/metaProxy';
+import {withMeta} from 'app/components/events/meta/metaProxy';
 import ApiMixin from 'app/mixins/apiMixin';
 import EventEntries from 'app/components/events/eventEntries';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
@@ -77,7 +77,7 @@ const GroupEventDetails = createReactClass({
 
   render() {
     let group = this.getGroup();
-    let evt = decorateEvent(this.state.event);
+    let evt = withMeta(this.state.event);
     let params = this.props.params;
 
     return (

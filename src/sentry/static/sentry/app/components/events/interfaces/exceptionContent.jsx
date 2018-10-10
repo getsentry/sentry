@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {defined} from 'app/utils';
-import DataText from 'app/components/events/meta/dataText';
+import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 
@@ -25,13 +25,13 @@ class ExceptionContent extends React.Component {
             <span>{exc.type}</span>
           </h5>
 
-          <DataText object={exc} prop="value" required>
+          <Annotated object={exc} prop="value" required>
             {value => (
               <pre className="exc-message" style={{marginTop: 0}}>
                 {value}
               </pre>
             )}
-          </DataText>
+          </Annotated>
 
           {exc.mechanism && (
             <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />

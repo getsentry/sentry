@@ -6,7 +6,7 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 
 /**
  * Retrieves metadata from an object (object should be a proxy that
- * has been decorated using `app/components/events/meta/metaProxy/decorateEvent`
+ * has been decorated using `app/components/events/meta/metaProxy/withMeta`
  */
 export default class MetaData extends React.Component {
   static propTypes = {

@@ -65,7 +65,7 @@ exports[`CrashContent renders with meta data 1`] = `
               ValueError
             </span>
           </h5>
-          <DataText
+          <Annotated
             object={
               Object {
                 "module": "exceptions",
@@ -138,7 +138,7 @@ exports[`CrashContent renders with meta data 1`] = `
                 </AnnotatedText>
               </pre>
             </MetaData>
-          </DataText>
+          </Annotated>
           <StacktraceContent
             data={
               Object {

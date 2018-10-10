@@ -4,8 +4,11 @@ import React from 'react';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import MetaData from 'app/components/events/meta/metaData';
 
-// TODO: Rename this to maybe Annotated?
-function DataText({children, object, prop, required, ...other}) {
+/**
+ * Returns the value of `object[prop]` and returns an annotated component if
+ * there is meta data
+ */
+function Annotated({children, object, prop, required, ...other}) {
   return (
     <MetaData object={object} prop={prop} required={required}>
       {(value, meta) => {
@@ -27,16 +30,16 @@ function DataText({children, object, prop, required, ...other}) {
   );
 }
 
-DataText.propTypes = {
+Annotated.propTypes = {
   object: PropTypes.object.isRequired,
   prop: PropTypes.string.isRequired,
   required: PropTypes.bool,
   children: PropTypes.func,
 };
 
-DataText.defaultProps = {
+Annotated.defaultProps = {
   children: value => value,
   required: false,
 };
 
-export default DataText;
+export default Annotated;
