@@ -18,7 +18,7 @@ from sentry.models import (
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
-    delete_api_application, delete_group, delete_organization, delete_project, delete_repository,
+    delete_api_application, delete_groups, delete_organization, delete_project, delete_repository,
     delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
@@ -332,7 +332,7 @@ class DeleteGroupTest(TestCase):
         )
 
         with self.tasks():
-            delete_group(object_id=group.id)
+            delete_groups(object_ids=[group.id])
 
         assert not Event.objects.filter(id=event.id).exists()
         assert not EventMapping.objects.filter(
