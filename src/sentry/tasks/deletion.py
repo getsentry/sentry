@@ -278,30 +278,23 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     from sentry import deletions, eventstream
     from sentry.models import Group
 
-    group_id = object_ids[0]
+    max_batch_size = 100
+    current_batch, rest = object_ids[:max_batch_size], object_ids[max_batch_size:]
 
     task = deletions.get(
         model=Group,
         query={
-            'id': group_id,
+            'id__in': current_batch,
         },
         transaction_id=transaction_id or uuid4().hex,
     )
     has_more = task.chunk()
-    if has_more:
-        countdown = 15
-    else:
-        # *this* group is done, remove it from the list
-        object_ids.pop(0)
-        # we're moving on to the next group, don't delay
-        countdown = None
-
-    if object_ids:
+    if has_more or rest:
         delete_groups.apply_async(
-            kwargs={'object_ids': object_ids,
+            kwargs={'object_ids': object_ids if has_more else rest,
                     'transaction_id': transaction_id,
                     'eventstream_state': eventstream_state},
-            countdown=countdown,
+            countdown=15,
         )
     else:
         # all groups have been deleted

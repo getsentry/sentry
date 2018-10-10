@@ -951,8 +951,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         if not group_list:
             return
 
-        # delete groups from least seen ("smallest") to most seen ("largest")
-        group_list = sorted(group_list, key=lambda g: g.times_seen)
         group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
