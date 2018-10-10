@@ -381,7 +381,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
-        from sentry.tasks.deletion import delete_group
+        from sentry.tasks.deletion import delete_groups
 
         updated = Group.objects.filter(
             id=group.id,
@@ -392,7 +392,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         if updated:
             project = group.project
 
-            eventstream.delete_groups(group.project_id, [group.id])
+            eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
 
             GroupHashTombstone.tombstone_groups(
                 project_id=project.id,
@@ -401,10 +401,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             transaction_id = uuid4().hex
 
-            delete_group.apply_async(
+            delete_groups.apply_async(
                 kwargs={
-                    'object_id': group.id,
+                    'object_ids': [group.id],
                     'transaction_id': transaction_id,
+                    'eventstream_state': eventstream_state,
                 },
                 countdown=3600,
             )
