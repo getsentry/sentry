@@ -5,9 +5,11 @@ import styled from 'react-emotion';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import Checkbox from 'app/components/checkbox';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 class ProjectSelector extends React.Component {
@@ -16,14 +18,29 @@ class ProjectSelector extends React.Component {
     // is created from Django templates, and only organization is serialized
     projectId: PropTypes.string,
     organization: PropTypes.object.isRequired,
+    projects: PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
+    ),
+
+    // Allow selecting multiple projects?
+    multi: PropTypes.bool,
+
+    initialSelectedProjects: PropTypes.arrayOf(SentryTypes.Project),
+    selectedProjects: PropTypes.arrayOf(SentryTypes.Project),
 
     // Callback when a project is selected
     onSelect: PropTypes.func,
+
+    // Callback when projects are selected via the multiple project selector
+    // Calls back with (project, checked, event)
+    onMultiSelect: PropTypes.func,
   };
 
   static defaultProps = {
     projectId: null,
+    multi: false,
     onSelect: () => {},
+    initialSelectedProjects: [],
   };
 
   constructor(props) {
@@ -31,6 +48,7 @@ class ProjectSelector extends React.Component {
 
     this.state = {
       activeProject: this.getActiveProject(),
+      selectedProjects: new Map(props.initialSelectedProjects.map(({slug}) => slug)),
     };
   }
 
@@ -44,12 +62,30 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {organization} = this.props;
-    return organization.projects.filter(project => project.isMember);
+    const {organization, projects} = this.props;
+    return projects || organization.projects.filter(project => project.isMember);
   }
 
-  getProjectLabel(project) {
-    return project.slug;
+  isControlled = () => typeof this.props.selectedProjects !== 'undefined';
+
+  toggleProject(project) {
+    let {slug} = project;
+    // Don't update state if this is a controlled component
+    if (this.isControlled()) return;
+
+    this.setState(state => {
+      const selectedProjects = new Map(state.selectedProjects.entries());
+
+      if (selectedProjects.has(slug)) {
+        selectedProjects.delete(slug);
+      } else {
+        selectedProjects.set(slug, project);
+      }
+
+      return {
+        selectedProjects,
+      };
+    });
   }
 
   handleSelect = ({value: project}) => {
@@ -58,11 +94,54 @@ class ProjectSelector extends React.Component {
     onSelect(project);
   };
 
-  render() {
-    let {children, organization: org} = this.props;
-    let access = new Set(org.access);
+  handleMultiSelect = (project, e) => {
+    const {onMultiSelect, selectedProjects} = this.props;
+    const isControlled = this.isControlled();
+    const hasCallback = typeof onMultiSelect === 'function';
 
-    let projectList = sortArray(this.getProjects(), project => {
+    if (isControlled && !hasCallback) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'ProjectSelector is a controlled component but `onMultiSelect` callback is not defined'
+      );
+    }
+
+    if (hasCallback) {
+      let returnValue;
+
+      if (isControlled) {
+        if (e.target.checked) {
+          // selected a project
+          const selectedProjectsMap = new Map([
+            ...selectedProjects.map(p => [p.slug, p]),
+            [project.slug, project],
+          ]);
+
+          returnValue = selectedProjectsMap;
+        } else {
+          // unselected a project
+          const selectedProjectsMap = new Map(selectedProjects.map(p => [p.slug, p]));
+
+          selectedProjectsMap.delete(project.slug);
+          returnValue = selectedProjectsMap;
+        }
+      } else {
+        returnValue = this.state.selectedProjects;
+      }
+
+      onMultiSelect(Array.from(returnValue.values()), e.target.checked, e);
+    }
+
+    this.toggleProject(project);
+  };
+
+  render() {
+    const {children, organization: org, multi} = this.props;
+    const {activeProject} = this.state;
+    const access = new Set(org.access);
+
+    const projects = this.getProjects();
+    const projectList = sortArray(projects, project => {
       return [!project.isBookmarked, project.name];
     });
 
@@ -99,21 +178,41 @@ class ProjectSelector extends React.Component {
           searchKey: project.slug,
           label: ({inputValue}) => (
             <ProjectRow>
-              <BadgeWrapper>
+              <BadgeWrapper multi={multi}>
                 <IdBadgeMenuItem
                   project={project}
                   avatarSize={16}
                   displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
                   avatarProps={{consistentWidth: true}}
                 />
-                {project.isBookmarked && <BookmarkIcon />}
+                {project.isBookmarked && <BookmarkIcon multi={multi} />}
               </BadgeWrapper>
+
+              {multi && (
+                <MultiSelect
+                  checked={
+                    this.isControlled()
+                      ? this.props.selectedProjects.find(
+                          ({slug}) => slug === project.slug
+                        )
+                      : this.state.selectedProjects.has(project.slug)
+                  }
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => this.handleMultiSelect(project, e)}
+                />
+              )}
             </ProjectRow>
           ),
         }))}
       >
         {renderProps =>
-          children({...renderProps, activeProject: this.state.activeProject})}
+          children({
+            ...renderProps,
+            activeProject,
+            selectedProjects: this.isControlled()
+              ? this.props.selectedProjects
+              : Array.from(this.state.selectedProjects.values()),
+          })}
       </DropdownAutoComplete>
     );
   }
@@ -135,13 +234,14 @@ const ProjectRow = styled(FlexY)`
   }
 `;
 
-const BookmarkIcon = styled(props => (
+const BookmarkIcon = styled(({multi, ...props}) => (
   <div {...props}>
     <span className="icon-star-solid bookmark" />
   </div>
 ))`
   display: flex;
   font-size: 12px;
+  ${p => p.multi && `margin-left: ${space(0.5)}`};
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -153,6 +253,7 @@ const CreateProjectButton = styled(Button)`
 const BadgeWrapper = styled('div')`
   display: flex;
   flex: 1;
+  ${p => !p.multi && 'justify-content: space-between'};
   white-space: nowrap;
   overflow: hidden;
 `;
@@ -160,6 +261,15 @@ const BadgeWrapper = styled('div')`
 const IdBadgeMenuItem = styled(IdBadge)`
   flex: 1;
   overflow: hidden;
+`;
+
+const MultiSelect = styled(Checkbox)`
+  flex-shrink: 0;
+  border: 1px solid ${p => p.theme.borderLight};
+
+  &:hover {
+    border-color: ${p => p.theme.borderDark};
+  }
 `;
 
 export default ProjectSelector;
