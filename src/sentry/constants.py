@@ -362,6 +362,18 @@ class ObjectStatus(object):
         )
 
 
+class SentryAppStatus(object):
+    UNPUBLISHED = 0
+    PUBLISHED = 1
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.UNPUBLISHED, 'unpublished'),
+            (cls.PUBLISHED, 'published'),
+        )
+
+
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))
