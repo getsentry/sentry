@@ -10,7 +10,7 @@ from sentry.constants import SentryAppStatus
 from sentry.models import SentryApp
 
 
-class SentryAppsDetailsEndpoint(Endpoint):
+class SentryAppDetailsEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication, )
     permission_classes = (IsAuthenticated, )
 

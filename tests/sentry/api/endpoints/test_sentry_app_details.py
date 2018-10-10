@@ -7,7 +7,7 @@ from sentry.mediators.sentry_apps import Creator
 from sentry.constants import SentryAppStatus
 
 
-class SentryAppsDetailsTest(APITestCase):
+class SentryAppDetailsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email='a@example.com', is_superuser=True)
         self.user = self.create_user(email='boop@example.com')
@@ -26,7 +26,7 @@ class SentryAppsDetailsTest(APITestCase):
             scopes=(),
             webhook_url='https://example.com',
         )
-        self.url = reverse('sentry-api-0-sentry-apps-details', args=[self.published_app.id])
+        self.url = reverse('sentry-api-0-sentry-app-details', args=[self.published_app.id])
 
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser)
@@ -44,7 +44,7 @@ class SentryAppsDetailsTest(APITestCase):
             'webhook_url': self.published_app.webhook_url,
         }
 
-        url = reverse('sentry-api-0-sentry-apps-details', args=[self.unpublished_app.id])
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.id])
         with self.feature({
             'organizations:internal-catchall': True,
         }):
@@ -60,7 +60,7 @@ class SentryAppsDetailsTest(APITestCase):
 
     def test_users_only_see_published_apps(self):
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-sentry-apps-details', args=[self.unpublished_app.id])
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.id])
 
         with self.feature({
             'organizations:internal-catchall': True,
@@ -75,7 +75,7 @@ class SentryAppsDetailsTest(APITestCase):
             'webhook_url': self.published_app.webhook_url,
         }
 
-        url = reverse('sentry-api-0-sentry-apps-details', args=[self.unpublished_app.id])
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.id])
         with self.feature({
             'organizations:internal-catchall': True,
         }):
