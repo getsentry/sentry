@@ -1,9 +1,9 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ProjectSelector from 'app/components/projectHeader/projectSelector';
+import ProjectHeaderProjectSelector from 'app/components/projectHeader/projectSelector';
 
-describe('ProjectSelector', function() {
+describe('ProjectHeaderProjectSelector', function() {
   const testTeam = TestStubs.Team({
     id: 'test-team',
     slug: 'test-team',
@@ -34,95 +34,20 @@ describe('ProjectSelector', function() {
 
   const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
 
-  beforeAll(function() {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-  });
-
-  afterAll(function() {
-    window.location.assign.mockRestore();
-  });
-
   const openMenu = wrapper => wrapper.find('DropdownLabel').simulate('click');
 
-  it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
+  it('renders with "Select a project" when no project is selected', function() {
     let wrapper = mount(
-      <ProjectSelector
-        organization={{
-          id: 'org',
-          slug: 'org-slug',
-          teams: [],
-          projects: [],
-          access: [],
-        }}
-        projectId=""
-      />,
+      <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
       routerContext
     );
-    openMenu(wrapper);
-    expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
-    // Should not have "Create Project" button
-    expect(wrapper.find('CreateProjectButton')).toHaveLength(0);
+
+    expect(wrapper.find('SelectProject')).toHaveLength(1);
   });
 
-  it('should show empty message and create project button, when no projects and has "project:write" access', function() {
+  it('has project label when project is selected', function() {
     let wrapper = mount(
-      <ProjectSelector
-        organization={{
-          id: 'org',
-          slug: 'org-slug',
-          teams: [],
-          projects: [],
-          access: ['project:write'],
-        }}
-        projectId=""
-      />,
-      routerContext
-    );
-    openMenu(wrapper);
-    expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
-    // Should not have "Create Project" button
-    expect(wrapper.find('CreateProjectButton')).toHaveLength(1);
-  });
-
-  it('lists projects and has filter', function() {
-    let wrapper = mount(
-      <ProjectSelector organization={mockOrg} projectId="" />,
-      routerContext
-    );
-    openMenu(wrapper);
-    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
-  });
-
-  it('can filter projects by project name', function() {
-    let wrapper = mount(
-      <ProjectSelector organization={mockOrg} projectId="" />,
-      routerContext
-    );
-    openMenu(wrapper);
-
-    wrapper.find('StyledInput').simulate('change', {target: {value: 'TEST'}});
-
-    const result = wrapper.find('AutoCompleteItem ProjectBadge');
-    expect(result).toHaveLength(1);
-    expect(result.prop('project').slug).toBe('test-project');
-  });
-
-  it('does not close dropdown when input is clicked', async function() {
-    let wrapper = mount(
-      <ProjectSelector organization={mockOrg} projectId="" />,
-      routerContext
-    );
-    openMenu(wrapper);
-
-    wrapper.find('StyledInput').simulate('click');
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(true);
-  });
-
-  it('closes dropdown when project is selected', function() {
-    let wrapper = mount(
-      <ProjectSelector organization={mockOrg} projectId="" />,
+      <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
       routerContext
     );
     openMenu(wrapper);
@@ -132,17 +57,32 @@ describe('ProjectSelector', function() {
       .find('AutoCompleteItem')
       .first()
       .simulate('click');
-    expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(false);
+
+    expect(wrapper.find('IdBadge').prop('project')).toEqual(
+      expect.objectContaining({
+        slug: 'test-project',
+      })
+    );
   });
 
-  it('shows empty filter message when filtering has no results', function() {
+  it('calls `router.push` when a project is selected', function() {
+    let routerMock = TestStubs.router();
     let wrapper = mount(
-      <ProjectSelector organization={mockOrg} projectId="" />,
+      <ProjectHeaderProjectSelector
+        organization={mockOrg}
+        projectId=""
+        router={routerMock}
+      />,
       routerContext
     );
     openMenu(wrapper);
 
-    wrapper.find('StyledInput').simulate('change', {target: {value: 'Foo'}});
-    expect(wrapper.find('EmptyMessage').prop('children')).toBe('No projects found');
+    // Select first project
+    wrapper
+      .find('AutoCompleteItem')
+      .first()
+      .simulate('click');
+
+    expect(routerMock.push).toHaveBeenCalledWith('/org/test-project/');
   });
 });
