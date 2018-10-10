@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import RouteSource from 'app/components/search/sources/routeSource';
+import {RouteSource} from 'app/components/search/sources/routeSource';
 
 describe('RouteSource', function() {
   let wrapper;
