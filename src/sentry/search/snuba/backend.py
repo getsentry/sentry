@@ -157,6 +157,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # do that search against every event in Snuba instead, but results may
         # differ.
 
+        db_name = options.get('snuba.search.django-database-name')
+
         now = timezone.now()
         end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
         # TODO: Presumably we want to search back to the project's full retention,
@@ -231,7 +233,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         candidate_hashes = None
         if max_pre_snuba_candidates and limit <= max_pre_snuba_candidates:
             candidate_hashes = dict(
-                GroupHash.objects.filter(
+                GroupHash.objects.using(db_name).filter(
                     group__in=group_queryset
                 ).values_list(
                     'hash', 'group_id'
@@ -301,6 +303,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 candidate_hashes=candidate_hashes,
                 limit=chunk_limit,
                 offset=offset,
+                db_name=db_name,
                 **parameters
             )
             metrics.timing('snuba.search.num_snuba_results', len(snuba_groups))
@@ -317,7 +320,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             else:
                 # pre-filtered candidates were *not* passed down to Snuba,
                 # so we need to do post-filtering to verify Sentry DB predicates
-                filtered_group_ids = group_queryset.filter(
+                filtered_group_ids = group_queryset.using(db_name).filter(
                     id__in=[gid for gid, _ in snuba_groups]
                 ).values_list('id', flat=True)
 
@@ -374,7 +377,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
         metrics.timing('snuba.search.num_chunks', num_chunks)
 
-        groups = Group.objects.in_bulk(paginator_results.results)
+        groups = Group.objects.using(db_name).in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
         return paginator_results
@@ -382,7 +385,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 def snuba_search(project_id, environment_id, tags, start, end,
                  sort, extra_aggregations, score_fn, candidate_hashes,
-                 limit, offset, **parameters):
+                 limit, offset, db_name, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
     query method above, but the query method is already large and this function at least
@@ -463,7 +466,7 @@ def snuba_search(project_id, environment_id, tags, start, end,
         hash_to_group = candidate_hashes
     else:
         hash_to_group = dict(
-            GroupHash.objects.filter(
+            GroupHash.objects.using(db_name).filter(
                 project_id=project_id,
                 hash__in=snuba_results.keys()
             ).values_list(
