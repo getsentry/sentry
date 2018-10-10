@@ -278,6 +278,8 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     from sentry import deletions, eventstream
     from sentry.models import Group
 
+    transaction_id = transaction_id or uuid4().hex
+
     max_batch_size = 100
     current_batch, rest = object_ids[:max_batch_size], object_ids[max_batch_size:]
 
@@ -286,7 +288,7 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
         query={
             'id__in': current_batch,
         },
-        transaction_id=transaction_id or uuid4().hex,
+        transaction_id=transaction_id,
     )
     has_more = task.chunk()
     if has_more or rest:
