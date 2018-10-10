@@ -21,6 +21,7 @@ class GitLabApiClientPath(object):
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
     project_hooks = u'/projects/{project}/hooks'
+    project_hook = u'/projects/{project}/hooks/{hook_id}'
     projects = u'/projects'
     user = u'/user'
 
@@ -171,8 +172,8 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             ),
         )
 
-    def create_webhook(self, project):
-        path = GitLabApiClientPath.project_hook.format(
+    def create_project_webhook(self, project):
+        path = GitLabApiClientPath.project_hooks.format(
             project=quote(project, safe=''))
         data = {
             'url': absolute_uri('/extensions/gitlab/webhooks/'),
@@ -182,6 +183,11 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             'enable_ssl_verification': self.metadata['verify_ssl'],
         }
         resp = self.post(path, data)
-        resp.raise_for_status()
 
-        return resp.json()['id'],
+        return resp['id']
+
+    def delete_project_webhook(self, project, hook_id):
+        path = GitLabApiClientPath.project_hook.format(
+            project=quote(project, safe=''),
+            hook_id=hook_id)
+        self.delete(path)
