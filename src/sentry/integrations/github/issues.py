@@ -42,26 +42,12 @@ class GitHubIssueBasic(IssueBasicMixin):
     def get_persisted_default_config_fields(self):
         return ['repo']
 
+    def create_default_repo_choice(self, default_repo):
+        return (default_repo, default_repo.split('/')[1])
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
-        defaults = self.get_project_defaults(group.project_id)
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
-
-        # If a repo has been selected outside of the default 100-limit list of
-        # repos, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in repo_choices if r[0] == default_repo)
-        except StopIteration:
-            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo)
 
@@ -119,11 +105,8 @@ class GitHubIssueBasic(IssueBasicMixin):
             'repo': repo,
         }
 
-    def create_default_repo_choice(self, default_repo):
-        return (default_repo, default_repo.split('/')[1])
-
     def get_link_issue_config(self, group, **kwargs):
-        default_repo, repo_choices = self.get_repo_choices(group, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
