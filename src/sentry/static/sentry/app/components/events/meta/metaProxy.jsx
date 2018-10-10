@@ -47,8 +47,9 @@ export class MetaProxy {
 }
 
 export function withMeta(event) {
-  let _meta = event._meta;
+  if (!event) return null;
 
+  let _meta = event._meta;
   return new Proxy(event, new MetaProxy(_meta));
 }
 
