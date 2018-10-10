@@ -93,6 +93,7 @@ class OrganizationHealth extends React.Component {
               <Header>
                 <MultipleProjectSelector
                   anchorRight
+                  organization={organization}
                   projects={projects}
                   value={this.state.projects}
                   onChange={this.handleChangeProjects}

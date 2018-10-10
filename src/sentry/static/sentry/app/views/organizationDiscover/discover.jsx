@@ -352,6 +352,7 @@ export default class OrganizationDiscover extends React.Component {
           <TopBar>
             <MultipleProjectSelector
               value={currentQuery.projects}
+              organization={organization}
               projects={projects}
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
