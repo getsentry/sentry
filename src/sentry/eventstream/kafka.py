@@ -149,7 +149,7 @@ class KafkaEventStream(EventStream):
 
         self._send(
             project_id,
-            'delete_groups',
+            'start_delete_groups',
             extra_data=(state,),
             asynchronous=False
         )
@@ -180,7 +180,7 @@ class KafkaEventStream(EventStream):
 
         self._send(
             project_id,
-            'merge',
+            'start_merge',
             extra_data=(state,),
             asynchronous=False
         )
@@ -190,7 +190,7 @@ class KafkaEventStream(EventStream):
         state['datetime'] = datetime.now(tz=pytz.utc)
         self._send(
             state['project_id'],
-            'merge',
+            'end_merge',
             extra_data=(state,),
             asynchronous=False
         )
