@@ -85,6 +85,7 @@ const SidebarWrapper = styled(Box)`
  */
 const Content = styled(Box)`
   flex: 1;
+  min-width: 0; /* keep children from stretching container */
 `;
 
 const SettingsSubheader = styled('div')`
