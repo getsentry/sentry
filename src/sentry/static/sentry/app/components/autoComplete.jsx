@@ -66,7 +66,14 @@ class AutoComplete extends React.Component {
     this.items = new Map();
   }
 
-  componentWillReceiveProps() {
+  componentWillReceiveProps(nextProps, nextState) {
+    // TODO(billy): Write a test for this
+    // If we do NOT want to close on select, then we should not reset highlight state
+    // when we select an item (when we select an item, `this.state.selectedItem` changes)
+    if (!nextProps.closeOnSelect && this.state.selectedItem !== nextState.selectedItem) {
+      return;
+    }
+
     this.resetHighlightState();
   }
 
