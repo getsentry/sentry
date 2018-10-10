@@ -446,10 +446,8 @@ class JiraIntegrationTest(APITestCase):
 
         with mock.patch.object(installation, 'get_client', get_client):
             fields = installation.get_create_issue_config(group, params={'project': '10000'})
-            for field in fields:
-                if field['name'] == 'project':
-                    project_field = field
-                    break
+            project_field = [field for field in fields if field['name'] == 'project'][0]
+
             assert project_field == {
                 'default': '10000',
                 'choices': [('10000', 'EX'), ('10001', 'ABC')],
@@ -483,10 +481,8 @@ class JiraIntegrationTest(APITestCase):
 
         with mock.patch.object(installation, 'get_client', get_client):
             fields = installation.get_create_issue_config(group)
-            for field in fields:
-                if field['name'] == 'project':
-                    project_field = field
-                    break
+            project_field = [field for field in fields if field['name'] == 'project'][0]
+
             assert project_field == {
                 'default': '10001',
                 'choices': [('10000', 'EX'), ('10001', 'ABC')],
