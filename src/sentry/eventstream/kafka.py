@@ -113,6 +113,14 @@ class KafkaEventStream(EventStream):
 
     def insert(self, group, event, is_new, is_sample, is_regression,
                is_new_group_environment, primary_hash, skip_consume=False):
+        # ensure the superclass's insert() is called, regardless of what happens
+        # attempting to send to Kafka
+        super(KafkaEventStream, self).insert(
+            group, event, is_new, is_sample,
+            is_regression, is_new_group_environment,
+            primary_hash, skip_consume
+        )
+
         project = event.project
         retention_days = quotas.get_event_retention(
             organization=Organization(project.organization_id)
