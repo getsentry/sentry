@@ -104,7 +104,7 @@ class KafkaEventStream(EventStream):
                 on_delivery=self.delivery_callback,
             )
         except Exception as error:
-            logger.error('Could not publish message: %s', error, exc_info=True)
+            logger.exception('Could not publish message: %s', error)
             return
 
         if not asynchronous:
