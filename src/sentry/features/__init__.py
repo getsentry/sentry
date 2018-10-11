@@ -17,15 +17,10 @@ default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:suggested-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
-default_manager.add('organizations:github-apps', OrganizationFeature)  # NOQA
 default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
 default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-issue-ui', OrganizationFeature)  # NOQA
-default_manager.add('organizations:github-enterprise', OrganizationFeature)  # NOQA
-default_manager.add('organizations:bitbucket-integration', OrganizationFeature)  # NOQA
-default_manager.add('organizations:jira-integration', OrganizationFeature)  # NOQA
-default_manager.add('organizations:vsts-integration', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:new-teams', OrganizationFeature)  # NOQA

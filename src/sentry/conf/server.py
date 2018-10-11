@@ -774,15 +774,10 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
-    'organizations:github-apps': True,
     'organizations:invite-members': True,
     'organizations:require-2fa': False,
     'organizations:internal-catchall': False,
     'organizations:new-issue-ui': True,
-    'organizations:github-enterprise': True,
-    'organizations:bitbucket-integration': True,
-    'organizations:jira-integration': True,
-    'organizations:vsts-integration': True,
     'organizations:integrations-issue-basic': False,
     'organizations:integrations-issue-sync': False,
     'organizations:new-teams': True,
@@ -1278,12 +1273,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'bitbucket',
-    'github',
-    'github_enterprise',
     'gitlab',
-    'jira',
-    'vsts',
     'vsts-extension',
 )
 
