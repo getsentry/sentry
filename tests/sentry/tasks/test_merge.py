@@ -17,6 +17,18 @@ index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
 @patch('sentry.similarity.features.index', new=index)
 class MergeGroupTest(TestCase):
+    @patch('sentry.tasks.merge.eventstream')
+    def test_merge_calls_eventstream(self, mock_eventstream):
+        group1 = self.create_group(self.project)
+        group2 = self.create_group(self.project)
+
+        eventstream_state = object()
+
+        with self.tasks():
+            merge_group(group1.id, group2.id, eventstream_state=eventstream_state)
+
+        mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
+
     def test_merge_group_environments(self):
         group1 = self.create_group(self.project)
 

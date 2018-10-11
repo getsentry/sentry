@@ -113,7 +113,6 @@ def merge_group(
         transaction_id=transaction_id,
     )
 
-    last_task = False
     if has_more:
         merge_group.delay(
             from_object_id=from_object_id,
@@ -123,8 +122,6 @@ def merge_group(
             eventstream_state=eventstream_state,
         )
         return
-    else:
-        last_task = True
 
     features.merge(new_group, [group], allow_unsafe=True)
 
@@ -195,7 +192,7 @@ def merge_group(
     except DataError:
         pass
 
-    if last_task and eventstream_state:
+    if eventstream_state:
         eventstream.end_merge(eventstream_state)
 
 
