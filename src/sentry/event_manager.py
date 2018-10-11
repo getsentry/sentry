@@ -39,7 +39,8 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.db import get_db_engine
+from sentry.utils.dates import to_timestamp
+from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import is_float
@@ -234,13 +235,38 @@ class HashDiscarded(Exception):
     pass
 
 
+def scoreclause_sql(sc, connection):
+    db = getattr(connection, 'alias', 'default')
+    has_values = sc.last_seen is not None and sc.times_seen is not None
+    if is_postgres(db):
+        if has_values:
+            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+        else:
+            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+    elif is_mysql(db):
+        if has_values:
+            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+        else:
+            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+    else:
+        # XXX: if we cant do it atomically let's do it the best we can
+        sql = int(sc)
+
+    return (sql, [])
+
+
 try:
     from django.db.models import Func
 except ImportError:
     # XXX(dramer): compatibility hack for Django 1.6
     class ScoreClause(object):
-        def __init__(self, group=None, *args, **kwargs):
+        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
             self.group = group
+            self.last_seen = last_seen
+            self.times_seen = times_seen
+            # times_seen is likely an F-object that needs the value extracted
+            if hasattr(self.times_seen, 'children'):
+                self.times_seen = self.times_seen.children[1]
             super(ScoreClause, self).__init__(*args, **kwargs)
 
         def __int__(self):
@@ -255,21 +281,18 @@ except ImportError:
             return
 
         def evaluate(self, node, qn, connection):
-            engine = get_db_engine(getattr(connection, 'alias', 'default'))
-            if engine.startswith('postgresql'):
-                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-            elif engine.startswith('mysql'):
-                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-            else:
-                # XXX: if we cant do it atomically let's do it the best we can
-                sql = int(self)
+            return scoreclause_sql(self, connection)
 
-            return (sql, [])
 else:
     # XXX(dramer): compatibility hack for Django 1.8+
     class ScoreClause(Func):
-        def __init__(self, group, *args, **kwargs):
+        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
             self.group = group
+            self.last_seen = last_seen
+            self.times_seen = times_seen
+            # times_seen is likely an F-object that needs the value extracted
+            if hasattr(self.times_seen, 'rhs'):
+                self.times_seen = self.times_seen.rhs.value
             super(ScoreClause, self).__init__(*args, **kwargs)
 
         def __int__(self):
@@ -278,16 +301,7 @@ else:
             return self.group.get_score() if self.group else 0
 
         def as_sql(self, compiler, connection, function=None, template=None):
-            engine = get_db_engine(getattr(connection, 'alias', 'default'))
-            if engine.startswith('postgresql'):
-                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-            elif engine.startswith('mysql'):
-                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-            else:
-                # XXX: if we cant do it atomically let's do it the best we can
-                sql = int(self)
-
-            return (sql, [])
+            return scoreclause_sql(self, connection)
 
 
 class InvalidTimestamp(Exception):
