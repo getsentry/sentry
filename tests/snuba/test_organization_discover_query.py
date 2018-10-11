@@ -173,3 +173,44 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 0
+
+    def test_select_project_name(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['project_name'],
+                'range': '14d',
+                'orderby': '-timestamp',
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['project_name']) == 'bar'
+
+    def test_groupby_project_name(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', '', 'count']],
+                'fields': ['project_name'],
+                'range': '14d',
+                'orderby': '-count',
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['project_name']) == 'bar'
+        assert(response.data['data'][0]['count']) == 1
+
+    def test_uniq_project_name(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['uniq', 'project_name', 'uniq_project_name']],
+                'range': '14d',
+                'orderby': '-uniq_project_name',
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['uniq_project_name']) == 1
