@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from sentry.integrations.exceptions import ApiError
 from sentry.plugins import providers
 from sentry.models import Integration
 
@@ -45,6 +46,15 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(self, organization, data):
+        installation = self.get_installation(data['installation'],
+                                             organization.id)
+        client = installation.get_client()
+        hook_id = None
+        try:
+            hook_id = client.create_project_webhook(
+                six.text_type(data['repo_id']))
+        except Exception as e:
+            installation.raise_error(e)
         return {
             'name': data['name'],
             'external_id': data['external_id'],
@@ -52,7 +62,22 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             'config': {
                 'instance': data['instance'],
                 'repo_id': data['repo_id'],
-                'path': data['path']
+                'path': data['path'],
+                'webhook_id': hook_id,
             },
             'integration_id': data['installation'],
         }
+
+    def on_delete_repository(self, repo):
+        """Clean up the attached webhook"""
+        installation = self.get_installation(repo.integration_id,
+                                             repo.organization_id)
+        client = installation.get_client()
+        try:
+            client.delete_project_webhook(
+                six.text_type(repo.config['repo_id']),
+                repo.config['webhook_id'])
+        except ApiError as e:
+            if e.code == 404:
+                return
+            installation.raise_error(e)
