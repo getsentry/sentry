@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import pytz
 from django.conf import settings
 from django.utils import timezone
-from mock import patch
+from mock import patch, Mock
 
 from sentry import tagstore
 from sentry.tagstore.models import GroupTagValue
@@ -186,7 +186,11 @@ class UnmergeTestCase(TestCase):
             'first_release': None,
         }
 
-    def test_unmerge(self):
+    @patch('sentry.tasks.unmerge.eventstream')
+    def test_unmerge(self, mock_eventstream):
+        eventstream_state = object()
+        mock_eventstream.start_unmerge = Mock(return_value=eventstream_state)
+
         def shift(i):
             return timedelta(seconds=1 << i)
 
@@ -360,6 +364,12 @@ class UnmergeTestCase(TestCase):
         destination = Group.objects.get(
             id=source_activity.data['destination_id'],
         )
+
+        mock_eventstream.start_unmerge.assert_called_once_with(
+            source.project_id, [events.keys()[1]], source.id, destination.id
+        )
+
+        mock_eventstream.end_unmerge.assert_called_once_with(eventstream_state)
 
         assert list(
             Group.objects.filter(id=destination.id).values_list(
