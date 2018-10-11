@@ -51,7 +51,8 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
             end=timezone.now(),
             conditions=conditions,
             filter_keys={'project_id': self.get_project_ids(request, organization)},
-            selected_columns=SnubaEvent.selected_columns
+            selected_columns=SnubaEvent.selected_columns,
+            orderby='-timestamp',
         )
 
         return self.paginate(
