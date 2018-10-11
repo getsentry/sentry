@@ -10,9 +10,9 @@
 
 {% block main %}
 <h3>Azure DevOps Configuration</h3>
-{% if no_accounts is True %}
+{% if no_accounts %}
   <p>
-    No accounts found. Please check that you are an account owner.
+    {% trans "No accounts found. Please check that you are an account owner." %}
   </p>
 {% else %}
   <form action="" method="post" class="form-stacked">
@@ -20,7 +20,7 @@
     <input type="hidden" name="provider" value="vsts" />
 
     <p>
-      Configure Azure DevOps to use with Sentry.io.
+      {% trans "Configure Azure DevOps to use with Sentry." %}
     </p>
 
     {{ form|as_crispy_errors }}

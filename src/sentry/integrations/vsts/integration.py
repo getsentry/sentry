@@ -473,7 +473,7 @@ class AccountConfigView(PipelineView):
 
         )
         accounts = accounts['value']
-        if len(accounts) is 0:
+        if not len(accounts):
             return render_to_response(
                 template='sentry/integrations/vsts-config.html',
                 context={

@@ -1,6 +1,6 @@
 
 from __future__ import absolute_import
-from mock import Mock
+from mock import Mock, patch
 import responses
 from django.http import HttpRequest
 from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, VSTSIdentityProvider
@@ -142,7 +142,10 @@ class TestAccountConfigView(TestCase):
             ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
 
     @responses.activate
-    def test_no_accounts_recieved(self):
+    @patch('sentry.integrations.vsts.integration.get_user_info')
+    @patch('sentry.integrations.vsts.integration.render_to_response')
+    def test_no_accounts_recieved(self, mock_render_to_response, mock_get_user_info):
+        responses.reset()
         responses.add(
             responses.GET,
             'https://app.vssps.visualstudio.com/_apis/accounts',
@@ -152,8 +155,20 @@ class TestAccountConfigView(TestCase):
             },
             status=200,
         )
-        # import pdb; pdb.set_trace()
-        # view = AccountConfigView()
+
+        view = AccountConfigView()
+        request = Mock()
+        request.POST = {}
+        request.user = self.user
+
+        pipeline = Mock()
+        pipeline.fetch_state = lambda key: {'data': {'access_token': '1234567890'}}
+        pipeline.organization = self.organization
+
+        view.dispatch(request, pipeline)
+        assert mock_get_user_info.called is True
+        assert mock_render_to_response.called is True
+        assert mock_render_to_response.call_args[1]['context'] == {'no_accounts': True}
 
 
 class VstsIdentityProviderTest(TestCase):
