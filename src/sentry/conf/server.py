@@ -792,6 +792,7 @@ SENTRY_FEATURES = {
     'organizations:js-loader': False,
     'organizations:health': False,
     'organizations:discover': False,
+    'organizations:events-stream': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,

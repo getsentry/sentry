@@ -34,6 +34,7 @@ default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('organizations:js-loader', OrganizationFeature)  # NOQA
 default_manager.add('organizations:health', OrganizationFeature)  # NOQA
 default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
+default_manager.add('organizations:events-stream', OrganizationFeature)  # NOQA
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
