@@ -61,6 +61,29 @@ describe('Discover', function() {
     });
   });
 
+  describe('componentWillRecieveProps()', function() {
+    it('handles navigating to saved query', function() {
+      const wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          params={{}}
+          updateSavedQueryData={() => {}}
+          location={{search: ''}}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+      expect(wrapper.find('QueryEdit')).toHaveLength(1);
+      expect(wrapper.find('QueryRead')).toHaveLength(0);
+      wrapper.setProps({
+        savedQuery: TestStubs.DiscoverSavedQuery(),
+      });
+      wrapper.update();
+      expect(wrapper.find('QueryEdit')).toHaveLength(0);
+      expect(wrapper.find('QueryRead')).toHaveLength(1);
+    });
+  });
+
   describe('runQuery()', function() {
     const mockResponse = {timing: {}, data: [], meta: []};
     let wrapper;
