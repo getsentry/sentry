@@ -72,7 +72,9 @@ const OrganizationDiscoverContainer = createReactClass({
       .catch(() => {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/discover/`,
+          query: {view: 'saved'},
         });
+        window.location.reload();
       });
   },
 
