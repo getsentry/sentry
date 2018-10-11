@@ -13,7 +13,7 @@ storiesOf('UI|Badge', module).add(
         Normal <Badge text="0" />
       </div>
       <div>
-        New <Badge text="50" isNew />
+        New <Badge text="50" priority="new" />
       </div>
     </div>
   ))
