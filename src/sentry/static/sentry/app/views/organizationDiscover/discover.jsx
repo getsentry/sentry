@@ -81,6 +81,7 @@ export default class OrganizationDiscover extends React.Component {
     const {resultManager} = this.state;
 
     if (savedQuery && savedQuery !== this.props.savedQuery) {
+      this.setState({view: 'saved'});
       this.runQuery();
     }
 
