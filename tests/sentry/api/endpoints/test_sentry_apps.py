@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.mediators.sentry_apps import Creator
 from sentry.constants import SentryAppStatus
 
@@ -28,25 +29,21 @@ class SentryAppsTest(APITestCase):
         )
         self.url = reverse('sentry-api-0-sentry-apps')
 
+    @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser)
 
-        with self.feature({
-            'organizations:internal-catchall': True,
-        }):
-            response = self.client.get(self.url, format='json')
+        response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
         assert set(o['uuid'] for o in response.data) == set(
             [self.published_app.uuid, self.unpublished_app.uuid])
 
+    @with_feature('organizations:internal-catchall')
     def test_users_only_see_published_apps(self):
         self.login_as(user=self.user)
 
-        with self.feature({
-            'organizations:internal-catchall': True,
-        }):
-            response = self.client.get(self.url, format='json')
+        response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
         assert response.data == [{
