@@ -14,7 +14,7 @@ import {
   parseSavedQuery,
   getView,
 } from './utils';
-import {LoadingContainer} from './styles';
+import {DiscoverWrapper, LoadingContainer} from './styles';
 
 const OrganizationDiscoverContainer = createReactClass({
   displayName: 'OrganizationDiscoverContainer',
@@ -104,7 +104,7 @@ const OrganizationDiscoverContainer = createReactClass({
     if (!hasFeature) return this.renderComingSoon();
 
     return (
-      <div>
+      <DiscoverWrapper>
         {isLoading ? (
           this.renderLoading()
         ) : (
@@ -118,7 +118,7 @@ const OrganizationDiscoverContainer = createReactClass({
             view={view}
           />
         )}
-      </div>
+      </DiscoverWrapper>
     );
   },
 });
