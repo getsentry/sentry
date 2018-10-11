@@ -133,8 +133,10 @@ class AccountSecurityEnroll extends AsyncView {
 
     if (invite) {
       invite = invite.split('/');
-      this.memberId = invite[2];
-      this.token = invite[3];
+      this.invite = {
+        memberId: invite[2],
+        token: invite[3],
+      };
     }
   }
 
@@ -166,8 +168,7 @@ class AccountSecurityEnroll extends AsyncView {
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
       otp: hasSentCode ? this._form.otp || '' : undefined,
       secret: authenticator.secret,
-      ...(this.memberId && {memberId: this.memberId}),
-      ...(this.token && {token: this.token}),
+      ...this.invite,
     };
 
     // Only show loading when submitting OTP
@@ -196,8 +197,8 @@ class AccountSecurityEnroll extends AsyncView {
           } else {
             // OTP was accepted and SMS was added as a 2fa method
             // Load organization context
-            if (this.memberId) {
-              fetchOrganizationsByMember(this.memberId, {
+            if (this.invite && this.invite.memberId) {
+              fetchOrganizationsByMember(this.invite.memberId, {
                 setActive: true,
               });
             }
@@ -234,8 +235,7 @@ class AccountSecurityEnroll extends AsyncView {
         data: {
           ...data,
           ...this._form,
-          ...(this.memberId && {memberId: this.memberId}),
-          ...(this.token && {token: this.token}),
+          ...this.invite,
         },
       })
       .then(this.handleEnrollSuccess, this.handleEnrollError);
@@ -249,8 +249,7 @@ class AccountSecurityEnroll extends AsyncView {
       ...this._form,
       ...(dataModel || {}),
       secret: authenticator.secret,
-      ...(this.memberId && {memberId: this.memberId}),
-      ...(this.token && {token: this.token}),
+      ...this.invite,
     };
 
     this.setState({
@@ -267,10 +266,11 @@ class AccountSecurityEnroll extends AsyncView {
   // Handler when we successfully add a 2fa device
   handleEnrollSuccess = () => {
     // Load organization context
-    if (this.memberId)
-      fetchOrganizationsByMember(this.memberId, {
+    if (this.invite && this.invite.memberId) {
+      fetchOrganizationsByMember(this.invite.memberId, {
         setActive: true,
       });
+    }
 
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';

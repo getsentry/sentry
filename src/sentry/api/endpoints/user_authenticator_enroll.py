@@ -21,6 +21,8 @@ SEND_SMS_ERR = {'details': 'Error sending SMS'}
 
 
 class BaseRestSerializer(serializers.Serializer):
+    # Fields needed to accept an org invite
+    # pending 2FA enrollment
     memberId = serializers.CharField(
         required=False
     )
@@ -222,7 +224,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             request.user.save()
             Authenticator.objects.auto_add_recovery_codes(request.user)
 
-            # Try to accept org invite pending 2FA enrollment
+            # Try to accept an org invite pending 2FA enrollment
             try:
                 member_id = serializer.data['memberId']
                 token = serializer.data['token']
