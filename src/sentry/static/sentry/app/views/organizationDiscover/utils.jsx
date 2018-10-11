@@ -59,6 +59,11 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
+    // Never allow ordering by project_name since this can't be done in Snuba
+    if (name === 'project_name') {
+      return acc;
+    }
+
     return [
       ...acc,
       {value: name, label: `${name} asc`},
