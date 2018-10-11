@@ -1,8 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`NewProjectPlatform render() should render 1`] = `
-<div
-  className="getting-started"
+<Box
+  flex={1}
 >
   <div
     className="sub-header flex flex-container flex-vertically-centered"
@@ -39,5 +39,5 @@ exports[`NewProjectPlatform render() should render 1`] = `
       />
     </div>
   </div>
-</div>
+</Box>
 `;

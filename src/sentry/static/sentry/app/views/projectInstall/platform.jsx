@@ -105,7 +105,7 @@ const ProjectInstallPlatform = createReactClass({
     );
   },
 
-  renderBody() {
+  render() {
     let {integration, platform} = this.state;
     let {orgId, projectId} = this.props.params;
 
@@ -166,14 +166,6 @@ const ProjectInstallPlatform = createReactClass({
           )}
         </PanelBody>
       </Panel>
-    );
-  },
-
-  render() {
-    return (
-      <div className="install row">
-        <div className="install-content col-lg-10">{this.renderBody()}</div>
-      </div>
     );
   },
 });

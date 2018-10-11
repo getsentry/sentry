@@ -1,3 +1,4 @@
+import {Box} from 'grid-emotion';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
@@ -13,7 +14,7 @@ const NewProject = createReactClass({
 
   render() {
     return (
-      <div className="getting-started">
+      <Box flex={1}>
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div className="p-t-1 p-b-1">
             <ProjectSelector organization={this.getOrganization()} />
@@ -30,7 +31,7 @@ const NewProject = createReactClass({
             />
           </div>
         </div>
-      </div>
+      </Box>
     );
   },
 });
