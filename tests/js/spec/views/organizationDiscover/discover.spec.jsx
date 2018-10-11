@@ -13,6 +13,10 @@ describe('Discover', function() {
     queryBuilder = createQueryBuilder({}, organization);
   });
 
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
+  });
+
   describe('componentDidMount()', function() {
     let wrapper, mockResponse;
     beforeEach(function() {
@@ -148,6 +152,7 @@ describe('Discover', function() {
             organization={organization}
             location={{location: '?fields=something'}}
             params={{}}
+            updateSavedQueryData={() => {}}
           />,
           TestStubs.routerContext()
         );
@@ -203,26 +208,99 @@ describe('Discover', function() {
         expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount);
       });
     });
+  });
 
-    describe('saved query', function() {
-      it('resets saved query', function() {
-        const wrapper = mount(
-          <Discover
-            queryBuilder={queryBuilder}
-            organization={organization}
-            params={{}}
-            savedQuery={TestStubs.DiscoverSavedQuery()}
-          />,
-          TestStubs.routerContext()
-        );
-        wrapper.instance().updateField('fields', ['message']);
-        wrapper.instance().runQuery();
-        wrapper.update();
-        expect(queryBuilder.getInternal().fields).toEqual(['message']);
-        wrapper.instance().reset();
-        wrapper.update();
-        expect(queryBuilder.getInternal().fields).toEqual(['test']);
+  describe('Saved query', function() {
+    let wrapper, deleteMock, updateMock;
+    beforeEach(function() {
+      wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          params={{}}
+          savedQuery={TestStubs.DiscoverSavedQuery()}
+          updateSavedQueryData={() => {}}
+          view="saved"
+        />,
+        TestStubs.routerContext()
+      );
+
+      deleteMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'DELETE',
       });
+
+      updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'PUT',
+      });
+    });
+
+    it('resets saved query', function() {
+      wrapper.instance().updateField('fields', ['message']);
+      wrapper.instance().runQuery();
+      wrapper.update();
+      expect(queryBuilder.getInternal().fields).toEqual(['message']);
+      wrapper.instance().reset();
+      wrapper.update();
+      expect(queryBuilder.getInternal().fields).toEqual(['test']);
+    });
+
+    it('toggles edit mode', function() {
+      expect(wrapper.find('QueryRead')).toHaveLength(1);
+      expect(wrapper.find('QueryEdit')).toHaveLength(0);
+      wrapper
+        .find('SavedQueryTitle')
+        .find('a')
+        .simulate('click');
+      expect(wrapper.find('QueryRead')).toHaveLength(0);
+      expect(wrapper.find('QueryEdit')).toHaveLength(1);
+    });
+
+    it('delete saved query', function() {
+      // Click edit
+      wrapper
+        .find('SavedQueryTitle')
+        .find('Link')
+        .simulate('click');
+
+      // Click delete
+      wrapper
+        .find('SavedQueryAction')
+        .at(1)
+        .simulate('click');
+      expect(deleteMock).toHaveBeenCalled();
+    });
+
+    it('update name', function() {
+      // Click edit
+      wrapper
+        .find('SavedQueryTitle')
+        .find('Link')
+        .simulate('click');
+
+      // Change name
+      wrapper
+        .find('EditableName')
+        .find('input')
+        .simulate('change', {target: {value: 'New name'}});
+      wrapper.update();
+
+      // Click save
+      wrapper
+        .find('SavedQueryAction')
+        .at(0)
+        .simulate('click');
+
+      wrapper.update();
+      expect(updateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/saved/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'New name',
+          }),
+        })
+      );
     });
   });
 
@@ -283,7 +361,7 @@ describe('Discover', function() {
       );
     });
 
-    it('toggles', function() {
+    it('toggles sidebar', function() {
       expect(wrapper.find('QueryEdit')).toHaveLength(1);
       expect(wrapper.find('SavedQueries')).toHaveLength(0);
       wrapper
