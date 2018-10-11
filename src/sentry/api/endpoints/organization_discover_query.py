@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import re
 import six
+from copy import deepcopy
 
 from django.utils import timezone
 from rest_framework import serializers
@@ -111,10 +112,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         member = self.member
         projects = attrs[source]
 
-        org_projects = set(Project.objects.filter(
-            organization=organization,
-            status=ProjectStatus.VISIBLE,
-        ).values_list('id', flat=True))
+        org_projects = set(project[0] for project in self.context['projects'])
 
         if not set(projects).issubset(org_projects) or not self.has_projects_access(
                 member, organization, projects):
@@ -172,15 +170,59 @@ class DiscoverQuerySerializer(serializers.Serializer):
 class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDiscoverQueryPermission, )
 
-    def do_query(self, start, end, groupby, **kwargs):
+    def do_query(self, projects, **kwargs):
+        requested_query = deepcopy(kwargs)
+
+        selected_columns = kwargs['selected_columns']
+        groupby_columns = kwargs['groupby']
+
+        if 'project_name' in requested_query['selected_columns']:
+            selected_columns.remove('project_name')
+            if 'project_id' not in selected_columns:
+                selected_columns.append('project_id')
+
+        if 'project_name' in requested_query['groupby']:
+            groupby_columns.remove('project_name')
+            if 'project_id' not in groupby_columns:
+                groupby_columns.append('project_id')
+
+        for aggregation in kwargs['aggregations']:
+            if aggregation[1] == 'project_name':
+                aggregation[1] = 'project_id'
 
         snuba_results = snuba.raw_query(
-            start=start,
-            end=end,
-            groupby=groupby,
             referrer='discover',
             **kwargs
         )
+
+        if 'project_name' in requested_query['selected_columns']:
+            project_name_index = requested_query['selected_columns'].index('project_name')
+            snuba_results['meta'].insert(project_name_index, {'name': 'project_name'})
+            if 'project_id' not in requested_query['selected_columns']:
+                snuba_results['meta'] = [
+                    field for field in snuba_results['meta'] if field['name'] != 'project_id'
+                ]
+
+            for result in snuba_results['data']:
+                result['project_name'] = projects[result['project_id']]
+                if 'project_id' not in requested_query['selected_columns']:
+                    del result['project_id']
+
+        if 'project_name' in requested_query['groupby']:
+            project_name_index = requested_query['groupby'].index('project_name')
+            snuba_results['meta'].insert(project_name_index, {'name': 'project_name'})
+            if 'project_id' not in requested_query['groupby']:
+                snuba_results['meta'] = [
+                    field for field in snuba_results['meta'] if field['name'] != 'project_id'
+                ]
+
+            for result in snuba_results['data']:
+                result['project_name'] = projects[result['project_id']]
+                if 'project_id' not in requested_query['groupby']:
+                    del result['project_id']
+
+        # Only return the meta propety "name"
+        snuba_results['meta'] = [{'name': field['name']} for field in snuba_results['meta']]
 
         return snuba_results
 
@@ -189,9 +231,14 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
         if not features.has('organizations:discover', organization, actor=request.user):
             return self.respond(status=404)
 
+        projects = Project.objects.filter(
+            organization=organization,
+            status=ProjectStatus.VISIBLE,
+        ).values_list('id', 'slug')
+
         serializer = DiscoverQuerySerializer(
             data=request.DATA, context={
-                'organization': organization, 'user': request.user})
+                'organization': organization, 'projects': projects, 'user': request.user})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -201,6 +248,10 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
         has_aggregations = len(serialized.get('aggregations')) > 0
 
         selected_columns = [] if has_aggregations else serialized.get('fields')
+
+        projects_map = {}
+        for project in projects:
+            projects_map[project[0]] = project[1]
 
         # Make sure that all selected fields are in the group by clause if there
         # are aggregations
@@ -212,8 +263,9 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                     groupby.append(field)
 
         results = self.do_query(
-            serialized.get('start'),
-            serialized.get('end'),
+            projects=projects_map,
+            start=serialized.get('start'),
+            end=serialized.get('end'),
             groupby=groupby,
             selected_columns=selected_columns,
             conditions=serialized.get('conditions'),

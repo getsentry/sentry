@@ -11,7 +11,7 @@ describe('Query Builder', function() {
 
       expect(external.projects).toEqual([2]);
       expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-      expect(external.fields).toHaveLength(45);
+      expect(external.fields).toHaveLength(46);
       expect(external.conditions).toHaveLength(0);
       expect(external.aggregations).toHaveLength(0);
       expect(external.orderby).toBe('-timestamp');
