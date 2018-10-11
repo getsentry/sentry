@@ -42,13 +42,15 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         query = request.GET.get('query')
         conditions = []
         if query:
-            conditions.append(['message', 'LIKE', '%{}%'.format(query)])
+            conditions.append(['message', 'LIKE', '%%%s%%' % (query,)])
+
+        now = timezone.now()
 
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=timezone.now() - timedelta(days=90),
-            end=timezone.now(),
+            start=now - timedelta(days=90),
+            end=now,
             conditions=conditions,
             filter_keys={'project_id': self.get_project_ids(request, organization)},
             selected_columns=SnubaEvent.selected_columns,
