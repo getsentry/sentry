@@ -119,8 +119,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('api-keys')
         if features.has('organizations:group-unmerge', obj, actor=user):
             feature_list.append('group-unmerge')
-        if features.has('organizations:github-apps', obj, actor=user):
-            feature_list.append('github-apps')
         if features.has('organizations:require-2fa', obj, actor=user):
             feature_list.append('require-2fa')
         if features.has('organizations:repos', obj, actor=user):
@@ -129,14 +127,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('internal-catchall')
         if features.has('organizations:new-issue-ui', obj, actor=user):
             feature_list.append('new-issue-ui')
-        if features.has('organizations:github-enterprise', obj, actor=user):
-            feature_list.append('github-enterprise')
-        if features.has('organizations:bitbucket-integration', obj, actor=user):
-            feature_list.append('bitbucket-integration')
-        if features.has('organizations:jira-integration', obj, actor=user):
-            feature_list.append('jira-integration')
-        if features.has('organizations:vsts-integration', obj, actor=user):
-            feature_list.append('vsts-integration')
         if features.has('organizations:integrations-issue-basic', obj, actor=user):
             feature_list.append('integrations-issue-basic')
         if features.has('organizations:integrations-issue-sync', obj, actor=user):
