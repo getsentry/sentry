@@ -51,7 +51,7 @@ class IntegrationDetailsModal extends React.Component {
 
   componentDidMount() {
     analytics('integrations.install_modal_opened', {
-      organization_id: this.props.organization.id,
+      org_id: this.props.organization.id,
       integration: this.props.provider.key,
     });
   }

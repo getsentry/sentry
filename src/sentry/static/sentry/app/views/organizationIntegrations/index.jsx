@@ -22,7 +22,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
   componentDidMount() {
     analytics('integrations.index_viewed', {
-      organization_id: this.props.params.orgId,
+      org_id: this.props.params.orgId,
     });
   }
 

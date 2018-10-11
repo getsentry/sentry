@@ -26,7 +26,7 @@ export default class InstalledIntegration extends React.Component {
 
   componentDidMount() {
     analytics('integrations.details_viewed', {
-      organization_id: this.props.orgId,
+      org_id: this.props.orgId,
       integration: this.props.provider.key,
     });
   }
