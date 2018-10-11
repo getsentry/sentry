@@ -28,7 +28,7 @@ from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
-Connect your Sentry organization to your self-hosted GitLab instance, enabling the following features:
+Connect your Sentry organization to your GitLab instance or gitlab.com, enabling the following features:
 """
 
 FEATURES = [

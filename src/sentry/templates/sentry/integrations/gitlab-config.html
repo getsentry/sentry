@@ -15,9 +15,7 @@
   {% csrf_token %}
   <input type="hidden" name="provider" value="gitlab" />
 
-  <p>
-    Configure GitLab to use with Sentry.
-  </p>
+  <p>{% trans "Configure GitLab to use with Sentry." %}</p>
 
   {{ form|as_crispy_errors }}
 
