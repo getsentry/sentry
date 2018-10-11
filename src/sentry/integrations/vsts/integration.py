@@ -378,23 +378,22 @@ class VstsIntegrationProvider(IntegrationProvider):
                 external_id=account['accountId'],
                 status=ObjectStatus.VISIBLE,
             )
-            assert 'subscription' in integration_model.metadata
+            # preserve previously created subscription information
+            integration['metadata']['subscription'] = integration_model.metadata['subscription']
 
             assert OrganizationIntegration.objects.filter(
                 integration_id=integration_model.id,
                 status=ObjectStatus.VISIBLE,
             ).exists()
 
-        except (IntegrationModel.DoesNotExist, AssertionError):
+        except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
             subscription_id, subscription_secret = self.create_subscription(
                 base_url, account['accountId'], oauth_data)
             integration['metadata']['subscription'] = {
                 'id': subscription_id,
                 'secret': subscription_secret,
             }
-        else:
-            # preserve previously created subscription information
-            integration['metadata']['subscription'] = integration_model.metadata['subscription']
+
         return integration
 
     def create_subscription(self, instance, account_id, oauth_data):
