@@ -7,16 +7,11 @@ import {t, tct} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import Feature from 'app/components/feature';
 import HeroIcon from 'app/components/heroIcon';
-import MenuItem from 'app/components/menuItem';
 import SpreadLayout from 'app/components/spreadLayout';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-
-import AddRepositoryLink from './addRepositoryLink';
 
 const RepoRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -29,8 +24,6 @@ const RepoRow = styled(SpreadLayout)`
 export default class OrganizationRepositories extends React.Component {
   static propTypes = {
     itemList: PropTypes.array,
-    repoConfig: PropTypes.object,
-    onAddRepo: PropTypes.func,
     onCancelDelete: PropTypes.func,
     onDeleteRepo: PropTypes.func,
   };
@@ -51,70 +44,18 @@ export default class OrganizationRepositories extends React.Component {
   }
 
   render() {
-    let {
-      params,
-      itemList,
-      repoConfig,
-      onAddRepo,
-      onCancelDelete,
-      onDeleteRepo,
-    } = this.props;
+    let {params, itemList, onCancelDelete, onDeleteRepo} = this.props;
     let {orgId} = params;
     let hasItemList = itemList && itemList.length > 0;
 
     return (
       <div>
-        <SettingsPageHeader
-          title={t('Repositories')}
-          action={
-            <Feature
-              feature={['bitbucket-integration', 'github-enterprise']}
-              requireAll={false}
-            >
-              {({hasFeature}) => {
-                return (
-                  !hasFeature && (
-                    <DropdownLink
-                      anchorRight
-                      className="btn btn-primary btn-sm"
-                      title={t('Add Repository')}
-                    >
-                      {repoConfig &&
-                        repoConfig.providers &&
-                        repoConfig.providers.map(provider => {
-                          return (
-                            <MenuItem noAnchor={true} key={provider.id}>
-                              <AddRepositoryLink
-                                provider={provider}
-                                orgId={orgId}
-                                onSuccess={onAddRepo}
-                              />
-                            </MenuItem>
-                          );
-                        })}
-                    </DropdownLink>
-                  )
-                );
-              }}
-            </Feature>
-          }
-        />
-        <Feature
-          feature={['bitbucket-integration', 'github-enterprise']}
-          requireAll={false}
-        >
-          {({hasFeature}) => {
-            return (
-              hasFeature && (
-                <AlertLink to={`/settings/${orgId}/integrations/`}>
-                  {t(
-                    'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
-                  )}
-                </AlertLink>
-              )
-            );
-          }}
-        </Feature>
+        <SettingsPageHeader title={t('Repositories')} />
+        <AlertLink to={`/settings/${orgId}/integrations/`}>
+          {t(
+            'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+          )}
+        </AlertLink>
         {!hasItemList && (
           <div className="m-b-2">
             <TextBlock>
