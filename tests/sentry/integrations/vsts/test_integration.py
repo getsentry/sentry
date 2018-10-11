@@ -188,7 +188,9 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         # The above already created the Webhook, so subsequent calls to
         # ``build_integration`` should omit that data.
         data = VstsIntegrationProvider().build_integration(state)
-        assert 'subscription' not in data['metadata']
+        assert 'subscription' in data['metadata']
+        assert Integration.objects.get(
+            provider='vsts').metadata['subscription'] == data['metadata']['subscription']
 
     def test_fix_subscription(self):
         external_id = '1234567890'
