@@ -155,6 +155,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('health')
         if features.has('organizations:discover', obj, actor=user):
             feature_list.append('discover')
+        if features.has('organizations:events-stream', obj, actor=user):
+            feature_list.append('events-stream')
         if OrganizationOption.objects.filter(
                 organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
             feature_list.append('legacy-rate-limits')
