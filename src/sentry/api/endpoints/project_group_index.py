@@ -953,7 +953,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         # deterministic sort for sanity, and for very large deletions we'll
         # delete the "smaller" groups first
-        group_list.sort(group_list, key=lambda g: (g.times_seen, g.id))
+        group_list.sort(key=lambda g: (g.times_seen, g.id))
         group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
