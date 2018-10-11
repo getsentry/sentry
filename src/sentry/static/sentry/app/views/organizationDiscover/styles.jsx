@@ -19,6 +19,7 @@ export const DiscoverWrapper = styled(Flex)`
 `;
 
 export const Discover = styled(Flex)`
+  width: 100%;
   min-height: calc(100vh - ${FOOTER_HEIGHT}px);
 
   margin-bottom: -20px;
