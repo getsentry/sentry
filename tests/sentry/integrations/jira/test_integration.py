@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 import mock
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -339,7 +340,10 @@ SAMPLE_TRANSITION_RESPONSE = """
 
 class MockJiraApiClient(object):
     def get_create_meta(self, project=None):
-        return json.loads(SAMPLE_CREATE_META_RESPONSE)
+        resp = json.loads(SAMPLE_CREATE_META_RESPONSE)
+        if project == '10001':
+            resp['projects'][0]['id'] = '10001'
+        return resp
 
     def get_create_meta_for_project(self, project):
         return self.get_create_meta()['projects'][0]
@@ -417,6 +421,76 @@ class JiraIntegrationTest(APITestCase):
                 'label': 'Issue Type',
                 'updatesForm': True,
             }]
+
+    def test_get_create_issue_config_with_default_and_param(self):
+        org = self.organization
+        self.login_as(self.user)
+        group = self.create_group()
+        self.create_event(group=group)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        org_integration = integration.add_organization(org, self.user)
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'project': '10001'}
+            }
+        }
+        org_integration.save()
+        installation = integration.get_installation(org.id)
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, 'get_client', get_client):
+            fields = installation.get_create_issue_config(group, params={'project': '10000'})
+            project_field = [field for field in fields if field['name'] == 'project'][0]
+
+            assert project_field == {
+                'default': '10000',
+                'choices': [('10000', 'EX'), ('10001', 'ABC')],
+                'type': 'select',
+                'name': 'project',
+                'label': 'Jira Project',
+                'updatesForm': True,
+            }
+
+    def test_get_create_issue_config_with_default(self):
+        org = self.organization
+        self.login_as(self.user)
+        group = self.create_group()
+        self.create_event(group=group)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        org_integration = integration.add_organization(org, self.user)
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'project': '10001'}
+            }
+        }
+        org_integration.save()
+        installation = integration.get_installation(org.id)
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, 'get_client', get_client):
+            fields = installation.get_create_issue_config(group)
+            project_field = [field for field in fields if field['name'] == 'project'][0]
+
+            assert project_field == {
+                'default': '10001',
+                'choices': [('10000', 'EX'), ('10001', 'ABC')],
+                'type': 'select',
+                'name': 'project',
+                'label': 'Jira Project',
+                'updatesForm': True,
+            }
 
     def test_get_link_issue_config(self):
         org = self.organization

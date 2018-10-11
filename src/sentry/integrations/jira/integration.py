@@ -253,6 +253,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return '%s/browse/%s' % (self.model.metadata['base_url'], key)
 
+    def get_persisted_default_config_fields(self):
+        return ['project', 'issuetype', 'priority']
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             u'Sentry Issue: [{}|{}]'.format(
@@ -382,12 +385,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_create_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
 
-        # TODO(jess): update if we allow saving a default project key
-
+        default_project = params.get('project', defaults.get('project'))
         client = self.get_client()
+
         try:
-            resp = client.get_create_meta(params.get('project'))
+            resp = client.get_create_meta(default_project)
         except ApiUnauthorized:
             raise IntegrationError(
                 'Jira returned: Unauthorized. '
@@ -402,9 +406,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
 
         # check if the issuetype was passed as a parameter
-        issue_type = params.get('issuetype')
-
-        # TODO(jess): update if we allow specifying a default issuetype
+        issue_type = params.get('issuetype', defaults.get('issuetype'))
 
         issue_type_meta = self.get_issue_type_meta(issue_type, meta)
 
@@ -467,9 +469,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
                 field['choices'] = self.make_choices(client.get_priorities())
-                # TODO(jess): fix if we are going to allow default priority
-                # field['default'] = self.get_option('default_priority', group.project) or ''
-                field['default'] = ''
+                field['default'] = defaults.get('priority', '')
             elif field['name'] == 'fixVersions':
                 field['choices'] = self.make_choices(client.get_versions(meta['key']))
 
