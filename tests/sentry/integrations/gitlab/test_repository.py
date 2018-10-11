@@ -27,6 +27,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                 'domain_name': 'example.gitlab.com/my-group',
                 'verify_ssl': False,
                 'base_url': 'https://example.gitlab.com',
+                'webhook_secret': 'super-secret',
             }
         )
         identity = Identity.objects.create(
@@ -54,7 +55,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
 
     @fixture
     def provider(self):
-        return GitlabRepositoryProvider()
+        return GitlabRepositoryProvider('gitlab')
 
     def create_repository(self, repository_config, integration_id, organization_slug=None):
         repo_id = repository_config['id']
@@ -62,6 +63,11 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             responses.GET,
             u'https://example.gitlab.com/api/v4/projects/%s' % repo_id,
             json=repository_config
+        )
+        responses.add(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % repo_id,
+            json={'id': 99}
         )
 
         with self.feature({'organizations:internal-catchall': True, 'organizations:repos': True}):
@@ -92,6 +98,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             'instance': domain_name,
             'repo_id': repository_config['id'],
             'path': repository_config['path_with_namespace'],
+            'webhook_id': 99,
         }
 
     @responses.activate
@@ -120,7 +127,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         assert response.status_code == 500
 
     @responses.activate
-    def test_create_repository_projects_request_fails(self):
+    def test_create_repository_get_project_request_fails(self):
         responses.add(
             responses.GET,
             u'https://example.gitlab.com/api/v4/projects/%s' % self.default_repository_config['id'],
@@ -129,3 +136,47 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         response = self.create_repository(self.default_repository_config, self.integration.id)
         # TODO(lb): it gives a 400 which I'm not sure makes sense here
         assert response.status_code == 400
+
+    @responses.activate
+    def test_create_repository_integration_create_webhook_failure(self):
+        repo_id = self.default_repository_config['id']
+        responses.add(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % repo_id,
+            status=503,
+        )
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        assert response.status_code == 400
+
+    @responses.activate
+    def test_on_delete_repository_remove_webhook(self):
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        responses.reset()
+
+        repo_id = self.default_repository_config['id']
+        responses.add(
+            responses.DELETE,
+            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % repo_id,
+            status=204
+        )
+        repo = Repository.objects.get(pk=response.data['id'])
+        self.provider.on_delete_repository(repo)
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_on_delete_repository_remove_webhook_missing_hook(self):
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        responses.reset()
+
+        repo_id = self.default_repository_config['id']
+        responses.add(
+            responses.DELETE,
+            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % repo_id,
+            status=404
+        )
+        repo = Repository.objects.get(pk=response.data['id'])
+        self.provider.on_delete_repository(repo)
+        assert len(responses.calls) == 1

@@ -112,10 +112,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             u'domain_name': u'gitlab.example.com/cool-group',
             u'verify_ssl': True,
             u'base_url': 'https://gitlab.example.com',
-            'webhook': {
-                'id': 'webhook-id-1',
-                'secret': 'secret-token'
-            }
+            'webhook_secret': 'secret-token'
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,

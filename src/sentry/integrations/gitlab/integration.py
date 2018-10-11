@@ -6,7 +6,6 @@ from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-from sentry import http
 from sentry.web.helpers import render_to_response
 from sentry.models.apitoken import generate_token
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -17,7 +16,7 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
-from .client import GitLabApiClient, GitLabApiClientPath
+from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
@@ -73,15 +72,6 @@ class InstallationForm(forms.Form):
             attrs={'placeholder': 'https://github.example.com'}
         ),
     )
-    name = forms.CharField(
-        label=_("Gitlab App Name"),
-        help_text=_('The name of your OAuth Application in Gitlab. '
-                    'This can be found on the apps configuration '
-                    'page. (/profile/applications)'),
-        widget=forms.TextInput(
-            attrs={'placeholder': _('Sentry App')}
-        )
-    )
     group = forms.CharField(
         label=_("Gitlab Group Name"),
         widget=forms.TextInput(
@@ -91,7 +81,9 @@ class InstallationForm(forms.Form):
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_('By default, we verify SSL certificates '
-                    'when delivering payloads to your Gitlab instance'),
+                    'when delivering payloads to your GitLab instance, '
+                    'and request GitLab to verify SSL when it delivers '
+                    'webhooks.'),
         widget=forms.CheckboxInput(),
         required=False
     )
@@ -204,23 +196,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return data
 
     def get_group_info(self, access_token, installation_data):
-        session = http.build_session()
-        resp = session.get(
-            GitLabApiClientPath.build_api_url(
-                base_url=installation_data['url'],
-                path=GitLabApiClientPath.group.format(
-                    group=installation_data['group'],
-                )
-            ),
-            headers={
-                'Accept': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            },
-            verify=installation_data['verify_ssl']
+        client = GitLabSetupClient(
+            installation_data['url'],
+            access_token,
+            installation_data['verify_ssl']
         )
+        resp = client.get_group(installation_data['group'])
 
-        resp.raise_for_status()
-        return resp.json()
+        return resp.json
 
     def get_pipeline_views(self):
         return [InstallationConfigView(), lambda: self._make_identity_pipeline_view()]
@@ -235,11 +218,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
         domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
         verify_ssl = state['installation_data']['verify_ssl']
 
-        webhook_id, webhook_secret = self.create_webhook(
-            base_url,
-            data['access_token'],
-            verify_ssl)
-
         integration = {
             'name': group['name'],
             'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
@@ -249,10 +227,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
-                'webhook': {
-                    'secret': webhook_secret,
-                    'id': webhook_id,
-                }
+                'webhook_secret': generate_token()
             },
             'user_identity': {
                 'type': 'gitlab',
@@ -271,29 +246,3 @@ class GitlabIntegrationProvider(IntegrationProvider):
             GitlabRepositoryProvider,
             id='integrations:gitlab',
         )
-
-    def create_webhook(self, base_url, access_token, verify_ssl):
-        webhook_secret = generate_token()
-        session = http.build_session()
-
-        uri = GitLabApiClientPath.build_api_url(
-            base_url=base_url,
-            path=GitLabApiClientPath.hooks
-        )
-        resp = session.post(
-            uri,
-            headers={
-                'Accept': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            },
-            verify=verify_ssl,
-            data={
-                'url': absolute_uri('/extensions/gitlab/webhooks/'),
-                'token': webhook_secret,
-                'merge_requests_events': True,
-                'push_events': True,
-            },
-        )
-
-        resp.raise_for_status()
-        return resp.json()['id'], webhook_secret
