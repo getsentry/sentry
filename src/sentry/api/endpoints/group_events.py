@@ -91,6 +91,10 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             events = events.filter(q)
 
+        # TODO currently snuba can be used to get this filter of event_ids matching
+        # the search tags, which is then used to further filter a postgres QuerySet
+        # Ideally we would just use snuba to completely replace the fetching of the
+        # events.
         if tags:
             event_filter = tagstore.get_group_event_filter(
                 group.project_id,
