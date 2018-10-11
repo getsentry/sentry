@@ -94,8 +94,9 @@ export default class Result extends React.Component {
           pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
         });
       })
-      .catch(() => {
-        addErrorMessage(t('Could not save query'));
+      .catch(err => {
+        const message = (err && err.detail) || t('Could not save query');
+        addErrorMessage(message);
       });
   };
 
