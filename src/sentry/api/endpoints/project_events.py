@@ -2,15 +2,11 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
-from functools32 import partial
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.event import SnubaEvent
-from sentry.api.paginator import GenericOffsetPaginator
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.snuba import raw_query
 
 
 @scenario('ListProjectAvailableSamples')
@@ -24,21 +20,41 @@ def list_project_available_samples_scenario(runner):
 class ProjectEventsEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
-    @attach_scenarios([list_project_available_samples_scenario])
-    def get(self, request, project):
-        """
-        List a Project's Events
-        ```````````````````````
+    def __search_events_legacy(self, request, project):
+        from sentry import quotas
+        from sentry.api.paginator import DateTimePaginator
+        from sentry.models import Event
 
-        Return a list of events bound to a project.
+        events = Event.objects.filter(
+            project_id=project.id,
+        )
 
-        Note: This endpoint is experimental and may be removed without notice.
+        query = request.GET.get('query')
+        if query:
+            events = events.filter(
+                message__icontains=query,
+            )
 
-        :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
-                                     belong to.
-        """
+        # filter out events which are beyond the retention period
+        retention = quotas.get_event_retention(organization=project.organization)
+        if retention:
+            events = events.filter(
+                datetime__gte=timezone.now() - timedelta(days=retention)
+            )
+
+        return self.paginate(
+            request=request,
+            queryset=events,
+            order_by='-datetime',
+            on_results=lambda x: serialize(x, request.user),
+            paginator_cls=DateTimePaginator,
+        )
+
+    def __search_events_snuba(self, request, project):
+        from functools32 import partial
+        from sentry.api.paginator import GenericOffsetPaginator
+        from sentry.api.serializers.models.event import SnubaEvent
+        from sentry.utils.snuba import raw_query
 
         query = request.GET.get('query')
         conditions = []
@@ -57,6 +73,28 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         return self.paginate(
             request=request,
-            on_results=lambda results: serialize([SnubaEvent(row) for row in results], request.user),
+            on_results=lambda results: serialize(
+                [SnubaEvent(row) for row in results], request.user),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
+
+    @attach_scenarios([list_project_available_samples_scenario])
+    def get(self, request, project):
+        """
+        List a Project's Events
+        ```````````````````````
+
+        Return a list of events bound to a project.
+
+        Note: This endpoint is experimental and may be removed without notice.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          groups belong to.
+        :pparam string project_slug: the slug of the project the groups
+                                     belong to.
+        """
+        backend = request.COOKIES.get('eventstream', 'legacy')
+        return {
+            'legacy': self.__search_events_legacy,
+            'snuba': self.__search_events_snuba,
+        }[backend](request, project)

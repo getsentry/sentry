@@ -11,6 +11,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.client.cookies['eventstream'] = 'snuba'
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -44,7 +45,11 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
-        event_2 = self.create_event('y' * 32, group=group, message="delet the data", datetime=self.min_ago)
+        event_2 = self.create_event(
+            'y' * 32,
+            group=group,
+            message="delet the data",
+            datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-project-events',
