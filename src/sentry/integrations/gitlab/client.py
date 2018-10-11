@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import quote
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
@@ -175,9 +176,10 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
     def create_project_webhook(self, project):
         path = GitLabApiClientPath.project_hooks.format(
             project=quote(project, safe=''))
+        hook_uri = reverse('sentry-extensions-gitlab-webhook')
         data = {
-            'url': absolute_uri('/extensions/gitlab/webhooks/'),
-            'token': self.metadata['webhook_secret'],
+            'url': absolute_uri(hook_uri),
+            'token': self.installation.model.external_id,
             'merge_requests_events': True,
             'push_events': True,
             'enable_ssl_verification': self.metadata['verify_ssl'],

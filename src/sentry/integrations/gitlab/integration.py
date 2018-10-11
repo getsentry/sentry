@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-import re
-
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
+from uuid import uuid4
 
 from sentry.web.helpers import render_to_response
-from sentry.models.apitoken import generate_token
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
@@ -248,23 +246,26 @@ class GitlabIntegrationProvider(IntegrationProvider):
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
-        domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
+
+        hostname = urlparse(base_url).netloc
         verify_ssl = state['installation_data']['verify_ssl']
 
         integration = {
             'name': group['name'],
-            'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
+            # We splice the host & secret together to create an external id.
+            # This id is used as a webhook secret so we can find the matching
+            # sentry org later on.
+            'external_id': u'{}:{}'.format(hostname, uuid4().hex),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': domain_name,
+                'domain_name': u'{}/{}'.format(hostname, group['path']),
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
-                'webhook_secret': generate_token()
             },
             'user_identity': {
                 'type': 'gitlab',
-                'external_id': u'{}:{}'.format(urlparse(base_url).netloc, user['id']),
+                'external_id': u'{}:{}'.format(hostname, user['id']),
                 'scopes': scopes,
                 'data': oauth_data,
             },

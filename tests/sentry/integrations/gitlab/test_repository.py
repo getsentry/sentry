@@ -22,12 +22,11 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         self.integration = Integration.objects.create(
             provider='gitlab',
             name='Example GitLab',
-            external_id='example.gitlab.com:55',
+            external_id='example.gitlab.com:secret-token',
             metadata={
                 'domain_name': 'example.gitlab.com/my-group',
                 'verify_ssl': False,
                 'base_url': 'https://example.gitlab.com',
-                'webhook_secret': 'super-secret',
             }
         )
         identity = Identity.objects.create(
@@ -89,7 +88,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
-            external_id='%s:example-repo' % (domain_name,)
+            external_id=repository_config['path_with_namespace']
         )
         assert repo.name == repository_config['name_with_namespace']
         assert repo.url == repository_config['web_url']

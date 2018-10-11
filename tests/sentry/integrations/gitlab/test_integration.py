@@ -4,7 +4,7 @@ import responses
 import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
-from mock import patch
+from mock import patch, Mock
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (
@@ -97,14 +97,14 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    @patch('sentry.integrations.gitlab.integration.generate_token')
-    def test_basic_flow(self, mock_generate_token):
-        mock_generate_token.return_value = 'secret-token'
+    @patch('sentry.integrations.gitlab.integration.uuid4')
+    def test_basic_flow(self, mock_uuid):
+        mock_uuid.return_value = Mock(hex='secret-token')
         self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        assert integration.external_id == 'gitlab.example.com:4'
+        assert integration.external_id == 'gitlab.example.com:secret-token'
         assert integration.name == 'Cool'
         assert integration.metadata == {
             u'scopes': ['api', 'sudo'],
@@ -112,7 +112,6 @@ class GitlabIntegrationTest(IntegrationTestCase):
             u'domain_name': u'gitlab.example.com/cool-group',
             u'verify_ssl': True,
             u'base_url': 'https://gitlab.example.com',
-            'webhook_secret': 'secret-token'
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,

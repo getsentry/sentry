@@ -32,16 +32,17 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         instance = installation.model.metadata['domain_name']
 
         try:
-            repo = client.get_project(six.text_type(repo_id))
+            project = client.get_project(six.text_type(repo_id))
         except Exception as e:
             installation.raise_error(e)
         config.update({
             'instance': instance,
-            'path': repo['path_with_namespace'],
-            'name': repo['name_with_namespace'],
-            'repo_id': repo['id'],
-            'external_id': '%s:%s' % (instance, repo['path']),
-            'url': repo['web_url'],
+            'path': project['path_with_namespace'],
+            'name': project['name_with_namespace'],
+            'repo_id': project['id'],
+            # Repo names are not unique without the namespace.
+            'external_id': project['path_with_namespace'],
+            'url': project['web_url'],
         })
         return config
 
