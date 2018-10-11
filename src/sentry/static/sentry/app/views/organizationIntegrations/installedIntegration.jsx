@@ -1,8 +1,9 @@
 import {Box, Flex} from 'grid-emotion';
-import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
@@ -22,6 +23,13 @@ export default class InstalledIntegration extends React.Component {
     onDisable: PropTypes.func.isRequired,
     onReinstallIntegration: PropTypes.func.isRequired,
   };
+
+  componentDidMount() {
+    analytics('integrations.details_viewed', {
+      organization_id: this.props.orgId,
+      integration: this.props.provider.key,
+    });
+  }
 
   /**
    * Integrations have additional configuration when any of the conditions are

@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -18,6 +19,12 @@ export default class OrganizationIntegrations extends AsyncComponent {
   // we come back to the tab we want to show our integrations as soon as we can.
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
+
+  componentDidMount() {
+    analytics('integrations.index_viewed', {
+      organization_id: this.props.params.orgId,
+    });
+  }
 
   getEndpoints() {
     let {orgId} = this.props.params;
