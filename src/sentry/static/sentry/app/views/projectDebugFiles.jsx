@@ -168,7 +168,7 @@ const ProjectDebugSymbols = createReactClass({
 
           <Box flex="1">
             {access.has('project:write') ? (
-              <div className="btn-group" style={{float: 'right'}}>
+              <div className="btn-group pull-right">
                 <ActionLink
                   onAction={() => (window.location = url)}
                   className="btn btn-default btn-sm"

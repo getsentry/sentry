@@ -107,7 +107,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         Retrieve a list of debug information files for a given project.
 
         :pparam string organization_slug: the slug of the organization the
-                                          release belongs to.
+                                          file belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      DIFs of.
         :auth: required
@@ -143,22 +143,22 @@ class DebugFilesEndpoint(ProjectEndpoint):
         Delete a specific Project's Debug Information File
         ```````````````````````````````````````````````````
 
-        Retrieve a list of debug information files for a given project.
+        Delete a debug information file for a given project.
 
         :pparam string organization_slug: the slug of the organization the
-                                          release belongs to.
-        :pparam string project_slug: the slug of the project to list the
-                                     DIFs of.
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to delete the
+                                     DIF.
         :auth: required
         """
 
         if request.GET.get('id') and (request.access.has_scope('project:write')):
             try:
-                debug_file = ProjectDebugFile.objects.get(
-                    id=request.GET.get('id'),
-                    project=project,
-                )
                 with transaction.atomic():
+                    debug_file = ProjectDebugFile.objects.get(
+                        id=request.GET.get('id'),
+                        project=project,
+                    )
                     debug_file.delete()
                     return Response(status=204)
             except ProjectDebugFile.DoesNotExist:
