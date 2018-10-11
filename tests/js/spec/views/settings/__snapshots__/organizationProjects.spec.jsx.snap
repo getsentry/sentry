@@ -247,7 +247,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                 flex={false}
               >
                 <div
-                  className="css-8atqhb"
+                  className="css-o3jmd1-textStyles"
                 >
                   <PanelItem
                     align="center"
