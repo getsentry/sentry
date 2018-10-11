@@ -104,8 +104,8 @@ class KafkaEventStream(EventStream):
                 on_delivery=self.delivery_callback,
             )
         except Exception as error:
-            logger.warning('Could not publish message: %s', error, exc_info=True)
-            raise
+            logger.error('Could not publish message: %s', error, exc_info=True)
+            return
 
         if not asynchronous:
             # flush() is a convenience method that calls poll() until len() is zero
