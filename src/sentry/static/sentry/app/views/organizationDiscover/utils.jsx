@@ -122,8 +122,8 @@ export function fetchSavedQueries(organization) {
 
 export function createSavedQuery(organization, data) {
   const api = new Client();
-  const endpoint = `/organizations/${organization.slug}/discover/saved/`;
 
+  const endpoint = `/organizations/${organization.slug}/discover/saved/`;
   return api.requestPromise(endpoint, {
     method: 'POST',
     data,
