@@ -24,21 +24,13 @@ describe('Discover', function() {
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
     });
     it('auto-runs saved query', async function() {
-      const savedQuery = {
-        id: '1',
-        name: 'Saved query #1',
-        dateCreated: new Date().toString(),
-        dateUpdated: new Date().toString(),
-        fields: ['test'],
-      };
-
       wrapper = mount(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
           updateSavedQueryData={() => {}}
-          savedQuery={savedQuery}
+          savedQuery={TestStubs.DiscoverSavedQuery()}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -214,19 +206,12 @@ describe('Discover', function() {
 
     describe('saved query', function() {
       it('resets saved query', function() {
-        const savedQuery = {
-          id: '1',
-          name: 'Saved query #1',
-          dateCreated: new Date().toString(),
-          dateUpdated: new Date().toString(),
-          fields: ['test'],
-        };
         const wrapper = mount(
           <Discover
             queryBuilder={queryBuilder}
             organization={organization}
             params={{}}
-            savedQuery={savedQuery}
+            savedQuery={TestStubs.DiscoverSavedQuery()}
           />,
           TestStubs.routerContext()
         );
