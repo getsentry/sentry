@@ -36,9 +36,6 @@ class PromptsActivityEndpoint(Endpoint):
         return Response(prompts)
 
     def put(self, request):
-        """Record a prompt as snoozed, or dismissed.
-        """
-
         serializer = PromptsActivitySerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
