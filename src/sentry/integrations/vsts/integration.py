@@ -392,7 +392,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'id': subscription_id,
                 'secret': subscription_secret,
             }
-
+        else:
+            # preserve previously created subscription information
+            integration['metadata']['subscription'] = integration_model.metadata['subscription']
         return integration
 
     def create_subscription(self, instance, account_id, oauth_data):
