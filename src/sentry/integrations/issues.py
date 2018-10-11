@@ -4,7 +4,7 @@ import logging
 import six
 
 from sentry import features
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Activity, Event, Group, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -202,7 +202,9 @@ class IssueBasicMixin(object):
         try:
             repos = self.get_repositories()
         except ApiError:
-            repo_choices = [(' ', ' ')]
+            raise IntegrationError(
+                'Unable to retrive repositories.'  # TODO(lb): What do I say here?
+            )
         else:
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
