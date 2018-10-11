@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
@@ -114,10 +115,21 @@ class LazyLoad extends React.Component {
       );
     }
 
-    if (!Component && !hideBusy) return <LoadingIndicator />;
+    if (!Component && !hideBusy) {
+      return (
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      );
+    }
 
     return <Component {...otherProps} />;
   }
 }
 
+const LoadingContainer = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
 export default LazyLoad;
