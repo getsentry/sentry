@@ -7,7 +7,7 @@ from uuid import uuid4
 import six
 from django.utils import timezone
 from exam import fixture
-from mock import patch
+from mock import patch, Mock
 
 from sentry import tagstore
 from sentry.models import (
@@ -1383,7 +1383,11 @@ class GroupUpdateTest(APITestCase):
 
     @patch('sentry.api.endpoints.project_group_index.uuid4')
     @patch('sentry.api.endpoints.project_group_index.merge_group')
-    def test_merge(self, merge_group, mock_uuid4):
+    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    def test_merge(self, mock_eventstream, merge_group, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
         class uuid(object):
             hex = 'abc123'
 
@@ -1414,16 +1418,21 @@ class GroupUpdateTest(APITestCase):
             ]
         )
 
+        mock_eventstream.start_merge.assert_called_once_with(
+            group1.project_id, [group3.id, group1.id], group2.id)
+
         assert len(merge_group.mock_calls) == 2
         merge_group.delay.assert_any_call(
             from_object_id=group1.id,
             to_object_id=group2.id,
             transaction_id='abc123',
+            eventstream_state=eventstream_state,
         )
         merge_group.delay.assert_any_call(
             from_object_id=group3.id,
             to_object_id=group2.id,
             transaction_id='abc123',
+            eventstream_state=eventstream_state,
         )
 
     def test_assign(self):
@@ -1586,7 +1595,12 @@ class GroupDeleteTest(APITestCase):
             self.project.slug,
         )
 
-    def test_delete_by_id(self):
+    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    @patch('sentry.eventstream')
+    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = object()
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
@@ -1619,6 +1633,9 @@ class GroupDeleteTest(APITestCase):
 
         response = self.client.delete(url, format='json')
 
+        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+            group1.project_id, [group1.id, group2.id])
+
         assert response.status_code == 204
 
         assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
@@ -1640,6 +1657,8 @@ class GroupDeleteTest(APITestCase):
 
         with self.tasks():
             response = self.client.delete(url, format='json')
+
+        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
 
         assert response.status_code == 204
 

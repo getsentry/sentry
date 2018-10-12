@@ -606,6 +606,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 60 * 3,
         },
     },
+    'schedule-vsts-integration-subscription-check': {
+        'task': 'sentry.tasks.integrations.kickoff_vsts_subscription_check',
+        'schedule': timedelta(hours=6),
+        'options': {
+            'expires': 60 * 25,
+        }
+    }
 }
 
 BGTASKS = {
@@ -785,6 +792,7 @@ SENTRY_FEATURES = {
     'organizations:js-loader': False,
     'organizations:health': False,
     'organizations:discover': False,
+    'organizations:events-stream': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,

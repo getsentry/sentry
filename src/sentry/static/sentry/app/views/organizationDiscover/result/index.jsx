@@ -28,9 +28,9 @@ import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization,
-    data: PropTypes.object,
-    queryBuilder: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
+    data: PropTypes.object.isRequired,
+    queryBuilder: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
   };
 
@@ -94,8 +94,9 @@ export default class Result extends React.Component {
           pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
         });
       })
-      .catch(() => {
-        addErrorMessage(t('Could not save query'));
+      .catch(err => {
+        const message = (err && err.detail) || t('Could not save query');
+        addErrorMessage(message);
       });
   };
 
@@ -184,16 +185,18 @@ export default class Result extends React.Component {
         {!isEditMode && (
           <Flex>
             <Heading>{t('Result')}</Heading>
-            <SavedQueryAction onClick={this.toggleEditMode}>{t('Save')}</SavedQueryAction>
+            <SavedQueryAction data-test-id="save" onClick={this.toggleEditMode}>
+              {t('Save')}
+            </SavedQueryAction>
           </Flex>
         )}
         {isEditMode && (
           <Flex>
             <EditableName value={savedQueryName} onChange={this.updateSavedQueryName} />
-            <SavedQueryAction onClick={this.confirmSave}>
+            <SavedQueryAction data-test-id="confirm" onClick={this.confirmSave}>
               {t('Confirm save')}
             </SavedQueryAction>
-            <SavedQueryAction onClick={this.toggleEditMode}>
+            <SavedQueryAction data-test-id="cancel" onClick={this.toggleEditMode}>
               {t('Cancel')}
             </SavedQueryAction>
           </Flex>
