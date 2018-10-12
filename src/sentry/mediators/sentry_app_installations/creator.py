@@ -10,7 +10,7 @@ from sentry.utils.cache import memoize
 
 
 class Creator(Mediator):
-    organization = Param('sentry.models.organization.Organization')
+    organization = Param('sentry.models.Organization')
     slug = Param(six.string_types)
 
     def call(self):

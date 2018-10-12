@@ -27,7 +27,7 @@ class TestParam(TestCase):
             name.validate(None, 'name', None)
 
     def test_validate_user_defined_type(self):
-        user = Param('sentry.models.user.User')
+        user = Param('sentry.models.User')
         assert user.validate(None, 'user', User())
 
     def test_setup(self):

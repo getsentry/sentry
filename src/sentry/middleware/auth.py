@@ -19,7 +19,7 @@ def get_user(request):
         # actions take place, this nonce will rotate causing a
         # mismatch here forcing the session to be logged out and
         # requiring re-validation.
-        if user.is_authenticated():
+        if user.is_authenticated() and not user.is_sentry_app:
             # We only need to check the nonce if there is a nonce
             # currently set on the User. By default, the value will
             # be None until the first action has been taken, at

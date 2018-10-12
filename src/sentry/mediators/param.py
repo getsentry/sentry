@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import sys
 import types
 
 from sentry.utils.cache import memoize
@@ -96,7 +97,8 @@ class Param(object):
 
         if self.is_required and not self._type_match(value):
             raise TypeError(u'`{}` must be a {}, received {}'.format(
-                name, self.type, self._value_type(value)))
+                name, self.type, self._eval_type(value)
+            ))
 
         return True
 
@@ -127,18 +129,12 @@ class Param(object):
 
     def _type_match(self, value):
         if isinstance(self.type, six.string_types):
-            return self._value_type(value) == self.type
-
+            self.type = self._eval_type()
         return isinstance(value, self.type)
 
-    def _value_type(self, value):
-        module = type(value).__module__
-        klass = type(value).__name__
-
-        if module == '__builtin__':
-            return klass
-
-        return '.'.join([module, klass])
+    def _eval_type(self):
+        mod, klass = self.type.rsplit('.', 1)
+        return getattr(sys.modules[mod], klass)
 
     def _missing_value(self, value):
         return self.is_required and value is None and not self.has_default

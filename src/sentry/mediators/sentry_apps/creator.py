@@ -10,7 +10,7 @@ from sentry.models import (ApiApplication, SentryApp, User)
 
 class Creator(Mediator):
     name = Param(six.string_types)
-    user = Param('sentry.models.user.User')
+    user = Param('sentry.models.User')
     scopes = Param(Iterable)
     webhook_url = Param(six.string_types)
 
