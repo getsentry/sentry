@@ -20,6 +20,7 @@ var WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
 var SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
 var USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
 var WITH_CSS_SOURCEMAPS = !!process.env.WITH_CSS_SOURCEMAPS || IS_PRODUCTION;
+var WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
@@ -68,7 +69,7 @@ process.traceDeprecation = true;
  * Main Webpack config for Sentry React SPA.
  */
 var appConfig = {
-  mode: 'development',
+  mode: WEBPACK_MODE,
   entry: appEntry,
   context: path.join(__dirname, staticPrefix),
   module: {
@@ -212,6 +213,7 @@ var appConfig = {
  * Webpack entry for password strength checker
  */
 var pwConfig = {
+  mode: WEBPACK_MODE,
   entry: {
     pwstrength: './index',
   },
@@ -241,6 +243,7 @@ var pwConfig = {
  * for use on Django-powered pages.
  */
 var legacyCssConfig = {
+  mode: WEBPACK_MODE,
   entry: {
     sentry: 'less/sentry.less',
 
