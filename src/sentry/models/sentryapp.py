@@ -19,13 +19,21 @@ def default_uuid():
 class SentryApp(ParanoidModel, HasApiScopes):
     __core__ = True
 
-    application = models.OneToOneField('sentry.ApiApplication',
-                                       related_name='sentry_app')
+    application = models.OneToOneField(
+        'sentry.ApiApplication',
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='sentry_app',
+    )
 
     # Much of the OAuth system in place currently depends on a User existing.
     # This "proxy user" represents the SentryApp in those cases.
-    proxy_user = models.OneToOneField('sentry.User',
-                                      related_name='sentry_app')
+    proxy_user = models.OneToOneField(
+        'sentry.User',
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='sentry_app'
+    )
 
     # The owner is an actual Sentry User who created the SentryApp. Used to
     # determine who can manage the SentryApp itself.
