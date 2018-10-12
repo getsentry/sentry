@@ -17,7 +17,7 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import parseApiError from 'app/utils/parseApiError';
-import withEnvironment from 'app/utils/withEnvironment';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
@@ -94,9 +94,7 @@ const GroupEvents = createReactClass({
   },
 
   handleSearch(query) {
-    let targetQueryParams = {};
-    if (query !== '') targetQueryParams.query = query;
-
+    let targetQueryParams = {...this.props.location.query, query};
     let {groupId, orgId, projectId} = this.props.params;
     browserHistory.push({
       pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
@@ -208,4 +206,4 @@ const GroupEvents = createReactClass({
 });
 
 export {GroupEvents}; // For tests
-export default withEnvironment(GroupEvents);
+export default withEnvironmentInQueryString(GroupEvents);
