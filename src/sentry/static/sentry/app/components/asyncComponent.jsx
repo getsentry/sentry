@@ -247,14 +247,18 @@ export default class AsyncComponent extends React.Component {
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
-  renderSearchInput({onSearchSubmit, stateKey, ...other}) {
+  renderSearchInput({onSearchSubmit, stateKey, url, ...other}) {
+    const [firstEndpoint] = this.getEndpoints() || [];
+    const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
+    const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
         onSearchSubmit={onSearchSubmit}
-        stateKey={stateKey}
+        stateKey={stateKeyOrDefault}
+        url={urlOrDefault}
         api={this.api}
         onSuccess={(data, jqXHR) => {
-          this.handleRequestSuccess({stateKey, data, jqXHR});
+          this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, jqXHR});
         }}
         onError={() => {
           this.renderError(new Error('Error with AsyncComponentSearchInput'));
