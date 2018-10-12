@@ -11,7 +11,13 @@ from sentry.models.apitoken import generate_token
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
-from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    FeatureDescription,
+    IntegrationInstallation,
+    IntegrationFeatures,
+    IntegrationProvider,
+    IntegrationMetadata
+)
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
@@ -21,10 +27,37 @@ from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
-Fill me out
+Connect your Sentry organization to your GitLab instance or gitlab.com, enabling the following features:
 """
 
-FEATURES = []
+FEATURES = [
+    FeatureDescription(
+        """
+        Track commits and releases (learn more
+        [here](https://docs.sentry.io/learn/releases/))
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Resolve Sentry issues via GitLab commits and merge requests by
+        including `Fixes PROJ-ID` in the message
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create GitLab issues from Sentry
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link Sentry issues to existing GitLab issues
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -66,14 +99,14 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 class InstallationForm(forms.Form):
     url = forms.CharField(
         label=_("Installation Url"),
-        help_text=_('The "base URL" for your gitlab instance, '
+        help_text=_('The "base URL" for your GitLab instance, '
                     'includes the host and protocol.'),
         widget=forms.TextInput(
-            attrs={'placeholder': 'https://github.example.com'}
+            attrs={'placeholder': 'https://gitlab.example.com'}
         ),
     )
     group = forms.CharField(
-        label=_("Gitlab Group Name"),
+        label=_("GitLab Group Name"),
         widget=forms.TextInput(
             attrs={'placeholder': _('my-awesome-group')}
         )
@@ -83,19 +116,19 @@ class InstallationForm(forms.Form):
         help_text=_('By default, we verify SSL certificates '
                     'when delivering payloads to your GitLab instance, '
                     'and request GitLab to verify SSL when it delivers '
-                    'webhooks.'),
+                    'webhooks to Sentry.'),
         widget=forms.CheckboxInput(),
         required=False
     )
     client_id = forms.CharField(
-        label=_("Gitlab Application ID"),
+        label=_("GitLab Application ID"),
         widget=forms.TextInput(
             attrs={'placeholder': _(
                 '5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737')}
         )
     )
     client_secret = forms.CharField(
-        label=_("Gitlab Application Secret"),
+        label=_("GitLab Application Secret"),
         widget=forms.TextInput(
             attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
         )
