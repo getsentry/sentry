@@ -32,16 +32,14 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         instance = installation.model.metadata['domain_name']
 
         try:
-            project = client.get_project(six.text_type(repo_id))
+            project = client.get_project(repo_id)
         except Exception as e:
             installation.raise_error(e)
         config.update({
             'instance': instance,
             'path': project['path_with_namespace'],
             'name': project['name_with_namespace'],
-            'repo_id': project['id'],
-            # Repo names are not unique without the namespace.
-            'external_id': project['path_with_namespace'],
+            'external_id': project['id'],
             'url': project['web_url'],
         })
         return config
@@ -52,8 +50,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         hook_id = None
         try:
-            hook_id = client.create_project_webhook(
-                six.text_type(data['repo_id']))
+            hook_id = client.create_project_webhook(data['external_id'])
         except Exception as e:
             installation.raise_error(e)
         return {
@@ -62,7 +59,6 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             'url': data['url'],
             'config': {
                 'instance': data['instance'],
-                'repo_id': data['repo_id'],
                 'path': data['path'],
                 'webhook_id': hook_id,
             },
@@ -76,7 +72,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         try:
             client.delete_project_webhook(
-                six.text_type(repo.config['repo_id']),
+                repo.external_id,
                 repo.config['webhook_id'])
         except ApiError as e:
             if e.code == 404:

@@ -43,7 +43,7 @@ class GitLabTestCase(APITestCase):
         self.integration.add_organization(self.organization, self.user, identity.id)
         self.installation = self.integration.get_installation(self.organization.id)
 
-    def create_repo(self, name, external_id, url=None):
+    def create_repo(self, name, external_id=15, url=None):
         return Repository.objects.create(
             organization_id=self.organization.id,
             name=name,
@@ -63,6 +63,7 @@ MERGE_REQUEST_OPENED_EVENT = b"""{
     "avatar_url": "http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon"
   },
   "project": {
+    "id": 15,
     "name": "Sentry",
     "description": "",
     "web_url": "http://example.com/getsentry/sentry",

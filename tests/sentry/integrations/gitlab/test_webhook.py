@@ -64,10 +64,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 404
 
     def test_push_event_create_commits_annd_authors(self):
-        repo = self.create_repo(
-            name='getsentry/sentry',
-            external_id='getsentry/sentry'
-        )
+        repo = self.create_repo('getsentry/sentry')
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -95,10 +92,7 @@ class WebhookTest(GitLabTestCase):
             assert author.organization_id == self.organization.id
 
     def test_push_event_ignore_commit(self):
-        self.create_repo(
-            name='getsentry/sentry',
-            external_id='getsentry/sentry'
-        )
+        self.create_repo('getsentry/sentry')
         response = self.client.post(
             self.url,
             data=PUSH_EVENT_IGNORED_COMMIT,
@@ -115,10 +109,7 @@ class WebhookTest(GitLabTestCase):
             email='jordi@example.org',
             name='Jordi'
         )
-        self.create_repo(
-            name='getsentry/sentry',
-            external_id='getsentry/sentry'
-        )
+        self.create_repo('getsentry/sentry')
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -146,10 +137,7 @@ class WebhookTest(GitLabTestCase):
 
     @pytest.mark.incomplete
     def test_merge_event_create_pull_request(self):
-        self.create_repo(
-            name='getsentry/sentry',
-            external_id='getsentry/sentry'
-        )
+        self.create_repo('getsentry/sentry')
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,

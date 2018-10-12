@@ -51,21 +51,21 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             'id': 123,
             'web_url': 'https://example.gitlab.com/my-group/projects/example-repo',
         }
+        self.gitlab_id = 123
 
     @fixture
     def provider(self):
         return GitlabRepositoryProvider('gitlab')
 
     def create_repository(self, repository_config, integration_id, organization_slug=None):
-        repo_id = repository_config['id']
         responses.add(
             responses.GET,
-            u'https://example.gitlab.com/api/v4/projects/%s' % repo_id,
+            u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
             json=repository_config
         )
         responses.add(
             responses.POST,
-            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % repo_id,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
             json={'id': 99}
         )
 
@@ -78,7 +78,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                 data={
                     'provider': self.provider_name,
                     'installation': integration_id,
-                    'identifier': repo_id,
+                    'identifier': repository_config['id'],
                 }
             )
         return response
@@ -88,14 +88,14 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
-            external_id=repository_config['path_with_namespace']
+            external_id=repository_config['id']
         )
         assert repo.name == repository_config['name_with_namespace']
         assert repo.url == repository_config['web_url']
         assert repo.integration_id == self.integration.id
+        assert repo.external_id == str(repository_config['id'])
         assert repo.config == {
             'instance': domain_name,
-            'repo_id': repository_config['id'],
             'path': repository_config['path_with_namespace'],
             'webhook_id': 99,
         }
@@ -129,7 +129,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
     def test_create_repository_get_project_request_fails(self):
         responses.add(
             responses.GET,
-            u'https://example.gitlab.com/api/v4/projects/%s' % self.default_repository_config['id'],
+            u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
@@ -138,10 +138,9 @@ class GitLabRepositoryProviderTest(PluginTestCase):
 
     @responses.activate
     def test_create_repository_integration_create_webhook_failure(self):
-        repo_id = self.default_repository_config['id']
         responses.add(
             responses.POST,
-            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % repo_id,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(self.default_repository_config,
@@ -154,10 +153,9 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                                           self.integration.id)
         responses.reset()
 
-        repo_id = self.default_repository_config['id']
         responses.add(
             responses.DELETE,
-            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % repo_id,
+            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % self.gitlab_id,
             status=204
         )
         repo = Repository.objects.get(pk=response.data['id'])
@@ -170,10 +168,9 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                                           self.integration.id)
         responses.reset()
 
-        repo_id = self.default_repository_config['id']
         responses.add(
             responses.DELETE,
-            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % repo_id,
+            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % self.gitlab_id,
             status=404
         )
         repo = Repository.objects.get(pk=response.data['id'])

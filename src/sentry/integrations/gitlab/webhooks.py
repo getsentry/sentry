@@ -32,16 +32,21 @@ class Webhook(object):
         raise NotImplementedError
 
     def get_repo(self, integration, organization, event):
-        repo_name = event['project']['path_with_namespace']
+        try:
+            repo_id = event['project']['id']
+        except KeyError:
+            logger.info('gitlab.webhook.missing-projectid')
+            raise Http404()
+
         try:
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=six.text_type(repo_name),
+                external_id=repo_id,
             )
         except Repository.DoesNotExist:
             logger.info('gitlab.webhook.missing-repo', extra={
-                'external_id': repo_name
+                'external_id': repo_id
             })
             raise Http404()
         return repo
