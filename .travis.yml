@@ -161,6 +161,11 @@ matrix:
 
     - python: 2.7
       env: TEST_SUITE=dist
+      before_install:
+        - nvm install
+        - npm install -g "yarn@${YARN_VERSION}"
+      install:
+        - yarn install --pure-lockfile
 
     - python: 2.7
       env: SENTRY_TAGSTORE=sentry.tagstore.v2.V2TagStorage TEST_SUITE=postgres DB=postgres
