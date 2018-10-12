@@ -193,11 +193,11 @@ export class Client {
 
   requestPromise(path, options = {}) {
     return new Promise((resolve, reject) => {
-      const {isjqXHR} = options;
+      const {includeAllArgs} = options;
       this.request(path, {
         ...options,
-        success: (data, _, jqXHR) => {
-          isjqXHR ? resolve({data, jqXHR}) : resolve(data);
+        success: (data, _, includeAllArgs) => {
+          includeAllArgs ? resolve([data, includeAllArgs]) : resolve(data);
         },
         error: (error, ...args) => {
           reject(error);
