@@ -73,7 +73,7 @@ class OrganizationEvents extends AsyncView {
                       <Td>
                         <IdBadge user={event.user} hideEmail />
                         <DateRow>
-                          <DateTime date={new Date(event.timestamp)} />
+                          <DateTime date={new Date(event.dateCreated)} />
                         </DateRow>
                       </Td>
                     </tr>
