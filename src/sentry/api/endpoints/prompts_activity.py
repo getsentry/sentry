@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import datetime
+import calendar
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -38,15 +40,18 @@ class PromptsActivityEndpoint(Endpoint):
             data = prompt.data
 
             if data.get('snoozed_ts'):
-                # snoozed_ts = datetime.datetime.strptime(data.get('snoozed_ts'), '%Y-%m-%dT%H:%M:%S%f')
-                # if snoozed_ts > timezone.now():
-                status = 'snoozed'
+                snoozed_ts = datetime.datetime.fromtimestamp(data.get('snoozed_ts'))
+                if snoozed_ts > datetime.datetime.now() - datetime.timedelta(days=3):
+                    status = 'snoozed'
+                    results.append({'name': prompt.feature,
+                                    'status': status,
+                                    })
             elif data.get('dismissed_ts'):
                 status = 'dismissed'
 
-            results.append({'name': prompt.feature,
-                            'status': status,
-                            })
+                results.append({'name': prompt.feature,
+                                'status': status,
+                                })
 
         return Response(results)
 
@@ -60,11 +65,11 @@ class PromptsActivityEndpoint(Endpoint):
         feature = request.DATA['feature']
         status = request.DATA['status']
         data = {}
-
+        now = calendar.timegm(timezone.now().utctimetuple())
         if status == 'snoozed':
-            data['snoozed_ts'] = timezone.now()
+            data['snoozed_ts'] = now
         elif status == 'dismissed':
-            data['dismissed_ts'] = timezone.now()
+            data['dismissed_ts'] = now
 
         try:
             with transaction.atomic():
