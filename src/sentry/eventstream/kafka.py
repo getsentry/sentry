@@ -193,6 +193,8 @@ class KafkaEventStream(EventStream):
             asynchronous=False
         )
 
+        return state
+
     def end_merge(self, state):
         state = state.copy()
         state['datetime'] = datetime.now(tz=pytz.utc)
