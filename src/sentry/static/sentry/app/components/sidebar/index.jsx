@@ -196,6 +196,7 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
+
                 <Feature feature={['discover']}>
                   <SidebarItem
                     {...sidebarItemProps}
@@ -203,6 +204,16 @@ class Sidebar extends React.Component {
                     icon={<InlineSvg src="icon-discover" />}
                     label={t('Discover')}
                     to={`/organizations/${organization.slug}/discover/`}
+                  />
+                </Feature>
+
+                <Feature feature={['events-stream']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-stack" />}
+                    label={t('Events')}
+                    to={`/organizations/${organization.slug}/events/`}
                   />
                 </Feature>
               </SidebarSection>

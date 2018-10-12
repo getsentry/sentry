@@ -32,7 +32,7 @@ export const User = PropTypes.shape({
   ),
   has2fa: PropTypes.bool,
   hasPasswordAuth: PropTypes.bool,
-  id: PropTypes.string.isRequired,
+  id: PropTypes.string,
   identities: PropTypes.array,
   isActive: PropTypes.bool,
   isManaged: PropTypes.bool,
