@@ -76,7 +76,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         self.default_identity = None
 
     def get_group_id(self):
-        return self.model.external_id.split(':')[1]
+        return self.model.name
 
     def get_client(self):
         if self.default_identity is None:
