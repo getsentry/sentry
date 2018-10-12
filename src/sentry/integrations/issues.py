@@ -203,7 +203,7 @@ class IssueBasicMixin(object):
             repos = self.get_repositories()
         except ApiError:
             raise IntegrationError(
-                'Unable to retrive repositories.'  # TODO(lb): What do I say here?
+                'Unable to retrive repositories. Please try again later.'
             )
         else:
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
