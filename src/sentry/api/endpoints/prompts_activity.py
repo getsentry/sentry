@@ -10,8 +10,6 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.models import PromptsActivity
 
-VALID_STATUSES = frozenset(('snoozed', 'dismissed'))
-
 PROMPTS = ['releases']
 
 
@@ -19,7 +17,9 @@ class PromptsActivitySerializer(serializers.Serializer):
     feature = serializers.CharField(required=True)
 
     def validate_feature(self, attrs, source):
-        pass
+        if attrs[source] not in PROMPTS:
+            raise serializers.ValidationError('Not a valid feature prompt')
+        return attrs
 
 
 class PromptsActivityEndpoint(Endpoint):
@@ -27,13 +27,28 @@ class PromptsActivityEndpoint(Endpoint):
 
     def get(self, request):
         """ Return all prompts that are dismissed or in snoozed period"""
-        # prompt_status = PromptsActivity.objects.filter(
-        #     organization_id=request.GET['organization_id'],
-        #     user=request.user,
-        # )
+        prompts = PromptsActivity.objects.filter(
+            organization_id=request.GET['organization_id'],
+            user=request.user,
+        )
 
-        prompts = []
-        return Response(prompts)
+        results = []
+
+        for prompt in prompts:
+            data = prompt.data
+
+            if data.get('snoozed_ts'):
+                # snoozed_ts = datetime.datetime.strptime(data.get('snoozed_ts'), '%Y-%m-%dT%H:%M:%S%f')
+                # if snoozed_ts > timezone.now():
+                status = 'snoozed'
+            elif data.get('dismissed_ts'):
+                status = 'dismissed'
+
+            results.append({'name': prompt.feature,
+                            'status': status,
+                            })
+
+        return Response(results)
 
     def put(self, request):
         serializer = PromptsActivitySerializer(data=request.DATA, partial=True)

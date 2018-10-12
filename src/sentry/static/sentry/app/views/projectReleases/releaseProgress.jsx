@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
+import styled from 'react-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -18,8 +19,15 @@ class ReleaseProgress extends AsyncView {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
   };
-  constructor(...args) {
-    super(...args);
+
+  static contextTypes = {
+    organization: PropTypes.object,
+    project: PropTypes.object,
+    router: PropTypes.object,
+  };
+
+  constructor(props, context) {
+    super(props, context);
   }
 
   getTitle() {
@@ -27,14 +35,16 @@ class ReleaseProgress extends AsyncView {
   }
 
   getEndpoints() {
+    let {project, organization} = this.context;
     let data = {
-      organization_id: 1,
+      organization_id: organization.id,
     };
-    const {orgId, projectId} = this.props;
-
     return [
       ['promptsActivity', '/promptsactivity/', {data}],
-      ['setupStatus', `/projects/${orgId}/${projectId}/releases/completion/`],
+      [
+        'setupStatus',
+        `/projects/${organization.slug}/${project.slug}/releases/completion/`,
+      ],
     ];
   }
   onRequestSuccess({stateKey, data, jqXHR}) {
@@ -61,16 +71,21 @@ class ReleaseProgress extends AsyncView {
 
   showBar(data) {
     let prompt = data.find(p => p.feature === 'releases');
-    let status = prompt && prompt.status !== 'snoozed' && prompt.status !== 'dismissed';
-    this.setState({showBar: status});
+
+    let show = prompt
+      ? prompt && prompt.status !== 'snoozed' && prompt.status !== 'dismissed'
+      : true;
+
+    this.setState({showBar: show});
   }
 
   handleClick(action) {
+    let {project, organization} = this.context;
     this.api.request('/promptsactivity/', {
       method: 'PUT',
       data: {
-        organization_id: this.context.organization.id,
-        project_id: 4,
+        organization_id: organization.id,
+        project_id: project.id,
         feature: 'releases',
         status: action,
       },
@@ -81,25 +96,39 @@ class ReleaseProgress extends AsyncView {
   }
 
   renderBody() {
-    return this.state.remainingSteps && this.state.showBar ? (
+    let {remainingSteps, showBar} = this.state;
+
+    return remainingSteps && showBar ? (
       <PanelItem>
-        <div> You haven't finished setting up releases!! </div>
-        <div>
-          {' '}
-          Remaining steps:
-          <ul>
-            {this.state.remainingSteps.map((step, i) => {
-              return <li key={i}>{step}</li>;
-            })}
-          </ul>
+        <div className="col-sm-3">
+          <div>
+            <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
+
+            {t('Next steps:')}
+            <ul>
+              {this.state.remainingSteps.map((step, i) => {
+                return <li key={i}>{step}</li>;
+              })}
+            </ul>
+          </div>
         </div>
-        <div>
-          <Button priority="primary" onClick={() => this.handleClick('dismissed')}>
-            Dismiss
-          </Button>
-          <Button priority="primary" onClick={() => this.handleClick('snoozed')}>
-            Remind Me Later
-          </Button>
+        <div className="col-sm-9">
+          <div>
+            <StyledButton
+              className="text-light"
+              onClick={() => this.handleClick('dismissed')}
+              size="large"
+            >
+              {t('Dismiss')}
+            </StyledButton>
+            <StyledButton
+              className="text-light"
+              onClick={() => this.handleClick('snoozed')}
+              size="large"
+            >
+              {t('Remind Me')}
+            </StyledButton>
+          </div>
         </div>
       </PanelItem>
     ) : (
@@ -107,5 +136,9 @@ class ReleaseProgress extends AsyncView {
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  margin: 5px;
+`;
 
 export default ReleaseProgress;

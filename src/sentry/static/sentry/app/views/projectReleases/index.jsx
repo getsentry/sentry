@@ -18,6 +18,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import ReleaseList from 'app/views/projectReleases/releaseList';
+import ReleaseProgress from 'app/views/projectReleases/releaseProgress';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const DEFAULT_QUERY = '';
@@ -138,11 +139,14 @@ const ProjectReleases = createReactClass({
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.releaseList.length > 0)
       body = (
-        <ReleaseList
-          orgId={params.orgId}
-          projectId={params.projectId}
-          releaseList={this.state.releaseList}
-        />
+        <div>
+          <ReleaseProgress orgId={params.orgId} projectId={params.projectId} />
+          <ReleaseList
+            orgId={params.orgId}
+            projectId={params.projectId}
+            releaseList={this.state.releaseList}
+          />
+        </div>
       );
     else if (this.state.query && this.state.query !== DEFAULT_QUERY)
       body = this.renderNoQueryResults();
