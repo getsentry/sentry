@@ -117,6 +117,10 @@ var appConfig = {
         },
       },
       {
+        test: /\.json$/,
+        loader: 'json-loader',
+      },
+      {
         test: /app\/icons\/.*\.svg$/,
         use: [
           {
@@ -224,7 +228,7 @@ var appConfig = {
   output: {
     path: distPath,
     filename: '[name].js',
-    libraryTarget: 'window',
+    libraryTarget: 'var',
     library: 'exports',
     sourceMapFilename: '[name].js.map',
   },
