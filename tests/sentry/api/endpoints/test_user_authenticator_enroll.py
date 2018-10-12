@@ -202,7 +202,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         self.assertFalse(response.client.cookies['pending-invite'].value)
 
-    def setup_u2f(self, om, memberId=None, token=None):
+    def setup_u2f(self, om, member_id=None, token=None):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options['system.url-prefix'] = 'https://testserver'
         with self.settings(SENTRY_OPTIONS=new_options):
@@ -214,7 +214,7 @@ class AcceptOrganizationInviteTest(APITestCase):
                 'deviceName': 'device name',
                 'challenge': 'challenge',
                 'response': 'response',
-                'memberId': memberId or om.id,
+                'memberId': member_id or om.id,
                 'token': token or om.token,
             })
             assert resp.status_code == 204
@@ -306,7 +306,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
     def test_org_member_does_not_exist(self, try_enroll, log):
         om = self.get_om_and_init_invite()
-        self.setup_u2f(om, memberId=om.id + 20)
+        self.setup_u2f(om, member_id=om.id + 20)
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
