@@ -14,8 +14,8 @@ const LetterAvatar = createReactClass({
   displayName: 'LetterAvatar',
 
   propTypes: {
-    identifier: PropTypes.string.isRequired,
-    displayName: PropTypes.string.isRequired,
+    identifier: PropTypes.string,
+    displayName: PropTypes.string,
     round: PropTypes.bool,
   },
 
