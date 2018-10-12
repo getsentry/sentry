@@ -183,7 +183,7 @@ travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-js: test-js
 travis-test-cli: test-cli
-travis-test-dist:
+travis-test-dist: node-version-check
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
 

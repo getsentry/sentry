@@ -230,13 +230,7 @@ var appConfig = {
   },
   optimization: {
     splitChunks: {
-      // chunks: 'async', // 'all' is harder to get working
-      chunks(chunk) {
-        // exclude `my-excluded-chunk`
-        console.log(chunk.name);
-        return chunk.name && !chunk.name.includes('locale');
-        return chunk.name !== 'my-excluded-chunk';
-      },
+      chunks: 'all',
     },
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-module-eval-source-map',
