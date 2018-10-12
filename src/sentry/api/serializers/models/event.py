@@ -260,7 +260,7 @@ class SnubaEventSerializer(Serializer):
             'eventID': six.text_type(obj.event_id),
             'projectID': six.text_type(obj.project_id),
             'message': obj.message,
-            'timestamp': obj.timestamp,
+            'dateCreated': obj.timestamp,
             'user': {
                 'id': obj.user_id,
                 'email': obj.email,
