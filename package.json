@@ -105,6 +105,7 @@
     "storybook": "start-storybook -p 9001 -c .storybook",
     "storybook-build": "build-storybook -c .storybook -o .storybook-out",
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
+    "build-static": "yarn webpack",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "jest": {
