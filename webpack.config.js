@@ -117,10 +117,6 @@ var appConfig = {
         },
       },
       {
-        test: /\.json$/,
-        loader: 'json-loader',
-      },
-      {
         test: /app\/icons\/.*\.svg$/,
         use: [
           {
@@ -363,10 +359,8 @@ var minificationPlugins = [
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
   new (require('compression-webpack-plugin'))({
-    algorithm: function(buffer, options, callback) {
-      require('zlib').gzip(buffer, callback);
-    },
-    regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+    algorithm: 'gzip',
+    include: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }),
   // Disable annoying UglifyJS warnings that pollute Travis log output
   // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
