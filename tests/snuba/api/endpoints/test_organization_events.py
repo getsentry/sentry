@@ -88,6 +88,12 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
                 'organization_slug': project.organization.slug,
             }
         )
+
+        # test bad project id
+        url = '%s?project=abc' % (base_url,)
+        response = self.client.get(url, format='json')
+        assert response.status_code == 400
+
         # test including project user doesn't have access to
         url = '%s?project=%s&project=%s' % (base_url, project.id, project3.id)
         response = self.client.get(url, format='json')

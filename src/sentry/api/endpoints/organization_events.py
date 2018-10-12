@@ -6,6 +6,7 @@ from functools32 import partial
 from django.utils import timezone
 
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases import OrganizationEndpoint
@@ -61,13 +62,18 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
 
         now = timezone.now()
 
+        try:
+            project_ids = self.get_project_ids(request, organization)
+        except ValueError:
+            return Response({'detail': 'Invalid project ids'}, status=400)
+
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
             start=now - timedelta(days=90),
             end=now,
             conditions=conditions,
-            filter_keys={'project_id': self.get_project_ids(request, organization)},
+            filter_keys={'project_id': project_ids},
             selected_columns=SnubaEvent.selected_columns,
             orderby='-timestamp',
         )
