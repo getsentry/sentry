@@ -50,6 +50,7 @@ export default class AsyncComponentSearchInput extends React.Component {
 
   handleSearch = evt => {
     let {onSearchSubmit} = this.props;
+    evt.preventDefault();
     if (typeof onSearchSubmit !== 'function') return;
     onSearchSubmit(this.state.query, evt);
   };
