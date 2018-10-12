@@ -234,10 +234,12 @@ class SnubaEvent(object):
     # out a proper event object.
     selected_columns = [
         'event_id',
+        'project_id',
         'message',
         'user_id',
         'username',
         'email',
+        'timestamp',
     ]
 
     def __init__(self, kv):
@@ -256,7 +258,9 @@ class SnubaEventSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'eventID': six.text_type(obj.event_id),
+            'projectID': six.text_type(obj.project_id),
             'message': obj.message,
+            'timestamp': obj.timestamp,
             'user': {
                 'id': obj.user_id,
                 'email': obj.email,
