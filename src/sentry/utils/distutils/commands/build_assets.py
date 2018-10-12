@@ -136,7 +136,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env = dict(os.environ)
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
         env['NODE_ENV'] = 'production'
-        self._run_command(['node_modules/.bin/webpack', '--bail'], env=env)
+        self._run_command(['yarn webpack', '--bail'], env=env)
 
     def _write_version_file(self, version_info):
         manifest = {
