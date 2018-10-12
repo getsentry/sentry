@@ -14,13 +14,15 @@ from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 
 
-class SentryAppDetailPermissionTest(TestCase):
+class SentryAppDetailsPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppDetailsPermission()
         self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+
         self.sentry_app = SentryAppCreator.run(
             name='foo',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )
@@ -41,13 +43,15 @@ class SentryAppDetailsEndpointTest(TestCase):
         self.endpoint = SentryAppDetailsEndpoint()
 
         self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+
         self.request = HttpRequest()
         self.request.user = self.user
         self.request.successful_authenticator = True
 
         self.sentry_app = SentryAppCreator.run(
             name='foo',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )
@@ -61,7 +65,7 @@ class SentryAppDetailsEndpointTest(TestCase):
             self.endpoint.convert_args(self.request, 'notanapp')
 
 
-class SentryAppInstallationDetailPermissionTest(TestCase):
+class SentryAppInstallationDetailsPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppInstallationDetailsPermission()
 
@@ -71,7 +75,7 @@ class SentryAppInstallationDetailPermissionTest(TestCase):
 
         self.sentry_app = SentryAppCreator.run(
             name='foo',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )
@@ -123,7 +127,7 @@ class SentryAppInstallationDetailsEndpointTest(TestCase):
 
         self.sentry_app = SentryAppCreator.run(
             name='foo',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )
