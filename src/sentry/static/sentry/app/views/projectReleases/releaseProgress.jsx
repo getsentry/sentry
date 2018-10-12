@@ -1,11 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import {t} from 'app/locale';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
-import SentryTypes from 'app/sentryTypes';
 
 const STEPS = {
   tag: 'Tag an error',
@@ -14,95 +13,57 @@ const STEPS = {
   deploy: 'Tell sentry about a deploy',
 };
 
-const ReleaseProgress = createReactClass({
-  displayName: 'releaseProgress',
-  propTypes: {
+class ReleaseProgress extends AsyncView {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
+  constructor(...args) {
+    super(...args);
+  }
 
-  contextTypes: {
-    organization: SentryTypes.Organization,
-  },
+  getTitle() {
+    return t('ReleaseProgress');
+  }
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      setupStatus: null,
-      prompts: null,
+  getEndpoints() {
+    let data = {
+      organization_id: 1,
     };
-  },
+    const {orgId, projectId} = this.props;
 
-  componentDidMount() {
-    this.fetchData();
-    this.fetchSetupStatus();
-  },
-
-  fetchData() {
-    this.api.request('/promptsactivity/', {
-      method: 'GET',
-      data: {
-        organization_id: this.context.organization.id,
-      },
-      success: data => {
-        this.setState({
-          prompts: data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: data => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
-  },
-
-  fetchSetupStatus() {
-    let url = this.getCompletionStatusEndpoint();
-
-    this.api.request(url, {
-      success: data => {
-        this.setState({
-          setupStatus: data,
-        });
-      },
-      error: error => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
-  },
+    return [
+      ['promptsActivity', '/promptsactivity/', {data}],
+      ['setupStatus', `/projects/${orgId}/${projectId}/releases/completion/`],
+    ];
+  }
+  onRequestSuccess({stateKey, data, jqXHR}) {
+    if (stateKey === 'promptsActivity') {
+      this.showBar(data);
+    } else if (stateKey === 'setupStatus') {
+      this.getRemainingSteps();
+    }
+  }
 
   getRemainingSteps() {
     let {setupStatus} = this.state;
-    let todos;
-    if (!setupStatus) return null;
+    let remainingSteps;
+    if (setupStatus) {
+      remainingSteps = setupStatus
+        .filter(step => step.complete === false)
+        .map(displayStep => STEPS[displayStep.step]);
 
-    todos = setupStatus
-      .filter(step => step.complete === false)
-      .map(displayStep => STEPS[displayStep.step]);
-    return todos;
-  },
+      this.setState({
+        remainingSteps,
+      });
+    }
+  }
 
-  getCompletionStatusEndpoint() {
-    const {orgId, projectId} = this.props;
-    return `/projects/${orgId}/${projectId}/releases/completion/`;
-  },
-
-  showBar() {
-    let {prompts} = this.state;
-    if (!prompts) return null;
-
-    let prompt = prompts.find(p => p.feature === 'releases');
-    let status = prompt && prompt.status;
-    return status !== 'snoozed' && status !== 'dismissed';
-  },
+  showBar(data) {
+    let prompt = data.find(p => p.feature === 'releases');
+    let status = prompt && prompt.status !== 'snoozed' && prompt.status !== 'dismissed';
+    this.setState({showBar: status});
+  }
 
   handleClick(action) {
     this.api.request('/promptsactivity/', {
@@ -117,17 +78,17 @@ const ReleaseProgress = createReactClass({
         this.setState({showBar: false});
       },
     });
-  },
+  }
 
-  renderBody(remainingSteps) {
-    return (
+  renderBody() {
+    return this.state.remainingSteps && this.state.showBar ? (
       <PanelItem>
         <div> You haven't finished setting up releases!! </div>
         <div>
           {' '}
           Remaining steps:
           <ul>
-            {remainingSteps.map((step, i) => {
+            {this.state.remainingSteps.map((step, i) => {
               return <li key={i}>{step}</li>;
             })}
           </ul>
@@ -141,14 +102,10 @@ const ReleaseProgress = createReactClass({
           </Button>
         </div>
       </PanelItem>
+    ) : (
+      ''
     );
-  },
-
-  render() {
-    let remainingSteps = this.getRemainingSteps();
-    let showBar = this.showBar();
-    return remainingSteps && showBar ? this.renderBody(remainingSteps) : '';
-  },
-});
+  }
+}
 
 export default ReleaseProgress;
