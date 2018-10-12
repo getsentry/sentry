@@ -6,18 +6,16 @@
 {% block wrapperclass %} narrow auth {% endblock %}
 {% block modal_header_signout %} {% endblock %}
 
-{% block title %} {% trans "Gitlab Setup" %} | {{ block.super }} {% endblock %}
+{% block title %} {% trans "GitLab Setup" %} | {{ block.super }} {% endblock %}
 
 {% block main %}
-<h3>Gitlab Configuration</h3>
+<h3>GitLab Configuration</h3>
 
 <form action="" method="post" class="form-stacked">
   {% csrf_token %}
   <input type="hidden" name="provider" value="gitlab" />
 
-  <p>
-    Configure Gitlab to use with Sentry.io.
-  </p>
+  <p>{% trans "Configure GitLab to use with Sentry." %}</p>
 
   {{ form|as_crispy_errors }}
 
