@@ -13,11 +13,15 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SnubaEvent
+from sentry.api.utils import parse_stats_period
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Project, ProjectStatus
+from sentry.search.utils import parse_datetime_string, InvalidQuery
 from sentry.utils.snuba import raw_query
 
 
 class OrganizationEventsEndpoint(OrganizationEndpoint):
+    MIN_STATS_PERIOD = timedelta(hours=1)
+    MAX_STATS_PERIOD = timedelta(days=90)
 
     def get_project_ids(self, request, organization):
         project_ids = set(map(int, request.GET.getlist('project')))
@@ -63,6 +67,27 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
 
         now = timezone.now()
 
+        # default to last 90 days
+        end = now
+        start = now - timedelta(days=90)
+
+        stats_period = request.GET.get('statsPeriod')
+        if stats_period is not None:
+            stats_period = parse_stats_period(request.GET['statsPeriod'])
+            if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
+                return Response({'detail': 'Invalid statsPeriod'}, status=400)
+            start = now - stats_period
+        elif request.GET.get('start') or request.GET.get('end'):
+            if not all([request.GET.get('start'), request.GET.get('end')]):
+                return Response({'detail': 'start and end are both required'}, status=400)
+            try:
+                start = parse_datetime_string(request.GET['start'])
+                end = parse_datetime_string(request.GET['end'])
+            except InvalidQuery as exc:
+                return Response({'detail': exc.message}, status=400)
+            if start > end:
+                return Response({'detail': 'start must be before end'}, status=400)
+
         try:
             project_ids = self.get_project_ids(request, organization)
         except ValueError:
@@ -71,8 +96,8 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=now - timedelta(days=90),
-            end=now,
+            start=start,
+            end=end,
             conditions=conditions,
             filter_keys={'project_id': project_ids},
             selected_columns=SnubaEvent.selected_columns,

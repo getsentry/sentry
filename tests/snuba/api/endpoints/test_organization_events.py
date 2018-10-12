@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import urlencode
+
 from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
@@ -11,6 +13,7 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.day_ago = timezone.now() - timedelta(days=1)
 
     def test_simple(self):
         self.login_as(user=self.user)
@@ -121,5 +124,73 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
             [
                 event_1.event_id,
                 event_2.event_id,
+            ]
+        )
+
+    def test_stats_period(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project2 = self.create_project()
+        group = self.create_group(project=project)
+        group2 = self.create_group(project=project2)
+        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
+        self.create_event('b' * 32, group=group2, datetime=self.day_ago)
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        url = '%s?statsPeriod=2h' % (url,)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
+            [
+                event_1.event_id,
+            ]
+        )
+
+    def test_time_range(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project2 = self.create_project()
+        group = self.create_group(project=project)
+        group2 = self.create_group(project=project2)
+        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
+        self.create_event('b' * 32, group=group2, datetime=self.day_ago)
+
+        now = timezone.now()
+
+        base_url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+
+        # test swapped order of start/end
+        url = '%s?%s' % (base_url, urlencode({
+            'end': (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
+            'start': now.strftime('%Y-%m-%dT%H:%M:%S'),
+        }))
+        response = self.client.get(url, format='json')
+        assert response.status_code == 400
+
+        url = '%s?%s' % (base_url, urlencode({
+            'start': (now - timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),
+            'end': now.strftime('%Y-%m-%dT%H:%M:%S'),
+        }))
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
+            [
+                event_1.event_id,
             ]
         )
