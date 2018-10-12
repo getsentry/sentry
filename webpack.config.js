@@ -45,34 +45,6 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 
 var appEntry = {
   app: ['app'],
-  // vendor: [
-  // 'babel-polyfill',
-  // // Yes this is included in prod builds, but has no effect on render and build size in prod
-  // 'react-hot-loader/patch',
-  // 'bootstrap/js/dropdown',
-  // 'bootstrap/js/tab',
-  // 'bootstrap/js/tooltip',
-  // 'bootstrap/js/alert',
-  // 'create-react-class',
-  // 'jed',
-  // 'jquery',
-  // 'marked',
-  // 'moment',
-  // 'moment-timezone',
-  // 'raven-js',
-  // 'react',
-  // 'react-dom',
-  // 'react-dom/server',
-  // 'react-document-title',
-  // 'react-router',
-  // 'react-bootstrap/lib/Modal',
-  // 'reflux',
-  // 'vendor/simple-slider/simple-slider',
-  // 'emotion',
-  // 'react-emotion',
-  // 'grid-emotion',
-  // 'emotion-theming',
-  // ],
 };
 
 // dynamically iterate over locale files and add to `entry` appConfig
