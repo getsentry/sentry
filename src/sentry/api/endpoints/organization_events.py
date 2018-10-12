@@ -19,7 +19,7 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         om_role = OrganizationMember.objects.filter(
             user=request.user,
             organization=organization,
-        ).values_list('role').get()
+        ).values_list('role', flat=True).get()
 
         if request.user.is_superuser or (om_role and roles.get(om_role).is_global):
             qs = Project.objects.filter(
