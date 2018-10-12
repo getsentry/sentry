@@ -9,7 +9,9 @@ from django.utils.functional import cached_property
 
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember, UserPermission
+from sentry.models import (
+    AuthIdentity, AuthProvider, OrganizationMember, SentryApp, UserPermission
+)
 
 
 def _sso_params(member):
@@ -168,7 +170,12 @@ class NoAccess(BaseAccess):
 
 def from_request(request, organization=None, scopes=None):
     if not organization:
-        return from_user(request.user, organization=organization, scopes=scopes)
+        return from_user(request.user,
+                         organization=organization,
+                         scopes=scopes)
+
+    if request.user.is_sentry_app:
+        return from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
         # we special case superuser so that if they're a member of the org
@@ -198,6 +205,26 @@ def from_request(request, organization=None, scopes=None):
         return from_auth(request.auth, scopes=scopes)
 
     return from_user(request.user, organization, scopes=scopes)
+
+
+def from_sentry_app(user, organization=None):
+    if not organization:
+        return NoAccess()
+
+    sentry_app = SentryApp.objects.get(proxy_user=user)
+
+    if not sentry_app.is_installed_on(organization):
+        return NoAccess()
+
+    return Access(
+        scopes=sentry_app.scope_list,
+        is_active=True,
+        teams=list(sentry_app.teams.all()),
+        memberships=(),
+        permissions=(),
+        sso_is_valid=True,
+        requires_sso=False,
+    )
 
 
 def from_user(user, organization=None, scopes=None):
