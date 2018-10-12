@@ -28,7 +28,7 @@ _client = None, None, None
 
 def get_client(project_id, credentials):
     global _client
-    if (project_id, credentials) != (_client[0], _client[1]):
+    if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
         _client = (
             project_id,
             credentials,
