@@ -11,6 +11,10 @@ API_VERSION = u'/api/v4'
 
 
 class GitLabApiClientPath(object):
+    commit = u'/projects/{project}/repository/commits/{sha}'
+    commits = u'/projects/{project}/repository/commits'
+    compare = u'/projects/{project}/repository/compare'
+    diff = u'/projects/{project}/repository/commits/{sha}/diff'
     group = u'/groups/{group}'
     group_projects = u'/groups/{group}/projects'
     hooks = u'/hooks'
@@ -178,3 +182,30 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
     def delete_project_webhook(self, project_id, hook_id):
         path = GitLabApiClientPath.project_hook.format(project=project_id, hook_id=hook_id)
         return self.delete(path)
+
+    def get_last_commits(self, project_id, end_sha):
+        """Get the last set of commits ending at end_sha
+
+        Gitlab doesn't give us a good way to do this, so we fetch the end_sha
+        and use its date to find the block of commits. We only fetch one page
+        of commits to match other implementations (github, bitbucket)
+        """
+        path = GitLabApiClientPath.commit.format(project=project_id, sha=end_sha)
+        commit = self.get(path)
+        if not commit:
+            return []
+        end_date = commit['created_at']
+
+        path = GitLabApiClientPath.commits.format(project=project_id)
+        return self.get(path, params={'until': end_date})
+
+    def compare_commits(self, project_id, start_sha, end_sha):
+        path = GitLabApiClientPath.compare.format(project=project_id)
+        return self.get(path, params={'from': start_sha, 'to': end_sha})
+
+    def get_diff(self, project_id, sha):
+        path = GitLabApiClientPath.diff.format(
+            project=project_id,
+            sha=sha
+        )
+        return self.get(path)
