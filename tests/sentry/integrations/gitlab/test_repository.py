@@ -24,6 +24,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             name='Example GitLab',
             external_id='example.gitlab.com:secret-token',
             metadata={
+                'instance': 'example.gitlab.com',
                 'domain_name': 'example.gitlab.com/my-group',
                 'verify_ssl': False,
                 'base_url': 'https://example.gitlab.com',
@@ -84,19 +85,21 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         return response
 
     def assert_repository(self, repository_config, organization_id=None):
-        domain_name = self.integration.metadata['domain_name']
+        instance = self.integration.metadata['instance']
+
+        external_id = u'{}:{}'.format(instance, repository_config['id'])
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
-            external_id=repository_config['id']
+            external_id=external_id
         )
         assert repo.name == repository_config['name_with_namespace']
         assert repo.url == repository_config['web_url']
         assert repo.integration_id == self.integration.id
-        assert repo.external_id == str(repository_config['id'])
         assert repo.config == {
-            'instance': domain_name,
+            'instance': instance,
             'path': repository_config['path_with_namespace'],
+            'project_id': repository_config['id'],
             'webhook_id': 99,
         }
 

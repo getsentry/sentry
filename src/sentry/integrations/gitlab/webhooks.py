@@ -33,20 +33,23 @@ class Webhook(object):
 
     def get_repo(self, integration, organization, event):
         try:
-            repo_id = event['project']['id']
+            project_id = event['project']['id']
         except KeyError:
-            logger.info('gitlab.webhook.missing-projectid')
+            logger.info('gitlab.webhook.missing-projectid', extra={
+                'integration_id': integration.id
+            })
             raise Http404()
 
+        external_id = u'{}:{}'.format(integration.metadata['instance'], project_id)
         try:
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=repo_id,
+                external_id=external_id,
             )
         except Repository.DoesNotExist:
             logger.info('gitlab.webhook.missing-repo', extra={
-                'external_id': repo_id
+                'external_id': project_id
             })
             raise Http404()
         return repo

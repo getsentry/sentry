@@ -23,6 +23,7 @@ class GitLabTestCase(APITestCase):
             name='Example Gitlab',
             external_id=WEBHOOK_SECRET,
             metadata={
+                'instance': 'example.gitlab.com',
                 'base_url': 'https://example.gitlab.com',
                 'domain_name': 'example.gitlab.com/sentry-group',
                 'verify_ssl': False,
@@ -44,12 +45,13 @@ class GitLabTestCase(APITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
 
     def create_repo(self, name, external_id=15, url=None):
+        instance = self.integration.metadata['instance']
         return Repository.objects.create(
             organization_id=self.organization.id,
             name=name,
-            external_id=external_id,
+            external_id=u'{}:{}'.format(instance, external_id),
             url=url,
-            config={},
+            config={'project_id': external_id},
             provider='integrations:gitlab',
             integration_id=self.integration.id,
         )

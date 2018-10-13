@@ -107,11 +107,12 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert integration.external_id == 'gitlab.example.com:secret-token'
         assert integration.name == 'Cool'
         assert integration.metadata == {
-            u'scopes': ['api', 'sudo'],
-            u'icon': u'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
-            u'domain_name': u'gitlab.example.com/cool-group',
-            u'verify_ssl': True,
-            u'base_url': 'https://gitlab.example.com',
+            'instance': 'gitlab.example.com',
+            'scopes': ['api', 'sudo'],
+            'icon': u'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
+            'domain_name': u'gitlab.example.com/cool-group',
+            'verify_ssl': True,
+            'base_url': 'https://gitlab.example.com',
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,

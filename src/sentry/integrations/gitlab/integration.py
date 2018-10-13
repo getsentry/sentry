@@ -258,6 +258,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             'external_id': u'{}:{}'.format(hostname, uuid4().hex),
             'metadata': {
                 'icon': group['avatar_url'],
+                'instance': hostname,
                 'domain_name': u'{}/{}'.format(hostname, group['path']),
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
