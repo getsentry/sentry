@@ -72,6 +72,7 @@ class MergeEventWebhook(Webhook):
             logger.info(
                 'gitlab.webhook.invalid-merge-data',
                 extra={
+                    'integration_id': integration.id,
                     'error': six.string_type(e)
                 })
             raise Http404()
@@ -84,10 +85,10 @@ class MergeEventWebhook(Webhook):
 
         try:
             PullRequest.objects.create_or_update(
+                organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
                 values={
-                    'organization_id': organization.id,
                     'title': title,
                     'author': author,
                     'message': body,
