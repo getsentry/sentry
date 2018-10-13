@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from six.moves.urllib.parse import quote
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
@@ -177,4 +176,4 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
 
     def delete_project_webhook(self, project_id, hook_id):
         path = GitLabApiClientPath.project_hook.format(project=project_id, hook_id=hook_id)
-        self.delete(path)
+        return self.delete(path)
