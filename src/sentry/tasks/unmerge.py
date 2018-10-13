@@ -20,6 +20,9 @@ from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
 
+logger = logging.getLogger(__name__)
+
+
 def cache(function):
     results = {}
 
@@ -593,6 +596,7 @@ def unmerge(
         tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
 
+        logger.warning('Unmerge complete (eventstream state: %s)', eventstream_state)
         if eventstream_state:
             eventstream.end_unmerge(eventstream_state)
 
