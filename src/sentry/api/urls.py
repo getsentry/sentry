@@ -1093,7 +1093,7 @@ urlpatterns = patterns(
         name='sentry-api-0-sentry-apps'
     ),
     url(
-        r'^sentry-apps/(?P<sentry_app_id>\d+)/$',
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$',
         SentryAppDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-details'
     ),

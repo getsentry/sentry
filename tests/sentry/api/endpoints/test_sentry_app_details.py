@@ -27,7 +27,7 @@ class SentryAppDetailsTest(APITestCase):
             scopes=(),
             webhook_url='https://example.com',
         )
-        self.url = reverse('sentry-api-0-sentry-app-details', args=[self.published_app.id])
+        self.url = reverse('sentry-api-0-sentry-app-details', args=[self.published_app.slug])
 
     @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_apps(self):
@@ -43,7 +43,7 @@ class SentryAppDetailsTest(APITestCase):
             'webhook_url': self.published_app.webhook_url,
         }
 
-        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.id])
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200
@@ -57,7 +57,7 @@ class SentryAppDetailsTest(APITestCase):
     @with_feature('organizations:internal-catchall')
     def test_users_only_see_published_apps(self):
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.id])
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
 
         response = self.client.get(self.url, format='json')
 
@@ -69,7 +69,7 @@ class SentryAppDetailsTest(APITestCase):
             'webhook_url': self.published_app.webhook_url,
         }
 
-        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.id])
+        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
         response = self.client.get(url, format='json')
 
         assert response.status_code == 404

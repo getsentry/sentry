@@ -11,16 +11,17 @@ from sentry.models import SentryApp, SentryAppInstallation
 
 class SentryAppDetailsPermission(ScopedPermission):
     def has_object_permission(self, request, view, sentry_app):
-        return sentry_app.owner in request.user.get_orgs()
+        return sentry_app.owner == request.user.get_orgs() or request.user.is_superuser
+
 
 
 class SentryAppDetailsEndpoint(Endpoint):
     authentication_classes = (IsAuthenticated, )
     permission_classes = (SentryAppDetailsPermission, )
 
-    def convert_args(self, request, slug, *args, **kwargs):
+    def convert_args(self, request, sentry_app_slug, *args, **kwargs):
         try:
-            sentry_app = SentryApp.objects.get_from_cache(slug=slug)
+            sentry_app = SentryApp.objects.get_from_cache(slug=sentry_app_slug)
         except SentryApp.DoesNotExist:
             raise ResourceDoesNotExist
 
