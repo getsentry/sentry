@@ -11,7 +11,7 @@ from sentry.models import SentryApp, SentryAppInstallation
 
 class SentryAppDetailsPermission(ScopedPermission):
     def has_object_permission(self, request, view, sentry_app):
-        return sentry_app.owner == request.user
+        return sentry_app.owner in request.user.get_orgs()
 
 
 class SentryAppDetailsEndpoint(Endpoint):
