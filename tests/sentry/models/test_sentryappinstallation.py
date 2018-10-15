@@ -15,7 +15,7 @@ class SentryAppInstallationTest(TestCase):
             application=self.application,
             name='NullDB',
             proxy_user=self.proxy,
-            owner=self.user,
+            owner=self.org,
             scope_list=('project:read', ),
             webhook_url='http://example.com',
         )

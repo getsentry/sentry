@@ -13,10 +13,11 @@ class TestClientIdSecretAuthentication(TestCase):
         super(TestClientIdSecretAuthentication, self).setUp()
 
         self.auth = ClientIdSecretAuthentication()
+        self.org = self.create_organization(owner=self.user)
 
         self.sentry_app = Creator.run(
             name="foo",
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )

@@ -36,9 +36,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
         related_name='sentry_app'
     )
 
-    # The owner is an actual Sentry User who created the SentryApp. Used to
-    # determine who can manage the SentryApp itself.
-    owner = FlexibleForeignKey('sentry.User',
+    # The Organization the Sentry App was created in "owns" it. Members of that
+    # Org have differing access, dependent on their role within the Org.
+    owner = FlexibleForeignKey('sentry.Organization',
                                related_name='owned_sentry_apps')
 
     name = models.TextField()

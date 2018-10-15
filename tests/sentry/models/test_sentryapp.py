@@ -7,6 +7,7 @@ from sentry.models import ApiApplication, SentryApp
 class SentryAppTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
         self.proxy = self.create_user()
         self.application = ApiApplication.objects.create(owner=self.proxy)
 
@@ -14,7 +15,7 @@ class SentryAppTest(TestCase):
             application=self.application,
             name='NullDB',
             proxy_user=self.proxy,
-            owner=self.user,
+            owner=self.org,
             scope_list=('project:read', ),
             webhook_url='http://example.com',
         )
