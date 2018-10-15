@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.utils.http import absolute_uri
 
+
 UNSET = object()
 
 FIELD_MAP = {
@@ -279,12 +280,24 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             )
         )
 
-    def update_subscription(self, instance, subscription_id):
+    def update_subscription(self, instance, subscription_id, shared_secret):
         return self.put(
             VstsApiPath.subscription.format(
                 instance=instance,
                 subscription_id=subscription_id,
-            )
+            ),
+            data={
+                'publisherId': 'tfs',
+                'eventType': 'workitem.updated',
+                'resourceVersion': '1.0',
+                'consumerId': 'webHooks',
+                'consumerActionId': 'httpRequest',
+                'consumerInputs': {
+                    'url': absolute_uri('/extensions/vsts/issue-updated/'),
+                    'resourceDetailsToSend': 'all',
+                    'httpHeaders': 'shared-secret:%s' % shared_secret,
+                }
+            },
         )
 
     def search_issues(self, account_name, query=None):
