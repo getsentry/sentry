@@ -16,18 +16,21 @@ class SentryAppDetailsTest(APITestCase):
         self.super_org = self.create_organization(owner=self.superuser)
         self.published_app = Creator.run(
             name='Test',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )
         self.published_app.update(status=SentryAppStatus.PUBLISHED)
         self.unpublished_app = Creator.run(
             name='Testin',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='https://example.com',
         )
         self.url = reverse('sentry-api-0-sentry-app-details', args=[self.published_app.slug])
+
+
+class GetSentryAppDetailsTest(SentryAppDetailsTest):
 
     @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_apps(self):
