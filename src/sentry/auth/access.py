@@ -174,7 +174,7 @@ def from_request(request, organization=None, scopes=None):
                          organization=organization,
                          scopes=scopes)
 
-    if request.user.is_sentry_app:
+    if getattr(request.user, 'is_sentry_app', False):
         return from_sentry_app(request.user, organization=organization)
 
     if is_active_superuser(request):
