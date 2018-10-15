@@ -48,7 +48,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         event_2 = self.create_event(
             'y' * 32,
             group=group,
-            message="delet the data",
+            message="Delet the Data",
             datetime=self.min_ago)
 
         url = reverse(
@@ -63,7 +63,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['eventID'] == event_2.event_id
-        assert response.data[0]['message'] == 'delet the data'
+        assert response.data[0]['message'] == 'Delet the Data'
 
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
