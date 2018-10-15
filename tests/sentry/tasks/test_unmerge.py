@@ -210,21 +210,29 @@ class UnmergeTestCase(TestCase):
             },
         ])
 
-        environment = Environment.objects.create(
-            organization_id=project.organization_id,
-            name='production',
-        )
-        EnvironmentProject.objects.create(
-            environment=environment,
-            project=project,
-        )
+        for environment in ('production', ''):
+            EnvironmentProject.objects.create(
+                environment=Environment.objects.create(
+                    organization_id=project.organization_id,
+                    name=environment,
+                ),
+                project=project,
+            )
 
-        def create_message_event(template, parameters):
+        def create_message_event(template, parameters, environment, release):
             i = next(sequence)
 
             event_id = uuid.UUID(
                 fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080, ),
             ).hex
+
+            tags = [['color', next(tag_values)]]
+
+            if environment:
+                tags.append(['environment', environment])
+
+            if release:
+                tags.append(['sentry:release', release])
 
             event = Event.objects.create(
                 project_id=project.id,
@@ -233,7 +241,7 @@ class UnmergeTestCase(TestCase):
                 message='%s' % (id, ),
                 datetime=now + shift(i),
                 data={
-                    'environment': 'production',
+                    'environment': environment,
                     'type': 'default',
                     'metadata': {
                         'title': template % parameters,
@@ -244,18 +252,17 @@ class UnmergeTestCase(TestCase):
                         'formatted': template % parameters,
                     },
                     'sentry.interfaces.User': next(user_values),
-                    'tags': [
-                        ['color', next(tag_values)],
-                        ['environment', 'production'],
-                        ['sentry:release', 'version'],
-                    ],
+                    'tags': tags,
                 },
             )
 
             with self.tasks():
                 Group.objects.add_tags(
                     source,
-                    environment,
+                    Environment.objects.get(
+                        organization_id=project.organization_id,
+                        name=environment
+                    ),
                     tags=event.get_tags(),
                 )
 
@@ -275,11 +282,12 @@ class UnmergeTestCase(TestCase):
                 comments='Quack',
             )
 
-            Release.get_or_create(
-                project=project,
-                version=event.get_tag('sentry:release'),
-                date_added=event.datetime,
-            )
+            if release:
+                Release.get_or_create(
+                    project=project,
+                    version=event.get_tag('sentry:release'),
+                    date_added=event.datetime,
+                )
 
             features.record([event])
 
@@ -287,11 +295,16 @@ class UnmergeTestCase(TestCase):
 
         events = OrderedDict()
 
-        for event in (create_message_event('This is message #%s.', i) for i in xrange(10)):
+        for event in (create_message_event('This is message #%s.', i,
+                                           environment='production', release='version') for i in xrange(10)):
             events.setdefault(get_fingerprint(event), []).append(event)
 
-        for event in (create_message_event('This is message #%s!', i) for i in xrange(10, 17)):
+        for event in (create_message_event('This is message #%s!', i,
+                                           environment='production', release='version') for i in xrange(10, 16)):
             events.setdefault(get_fingerprint(event), []).append(event)
+
+        event = create_message_event('This is message #%s!', 17, environment='', release=None)
+        events.setdefault(get_fingerprint(event), []).append(event)
 
         assert len(events) == 2
         assert sum(map(len, events.values())) == 17
@@ -305,9 +318,14 @@ class UnmergeTestCase(TestCase):
                 hash=fingerprint,
             )
 
+        production_environment = Environment.objects.get(
+            organization_id=project.organization_id,
+            name='production'
+        )
+
         assert set(
             [(gtk.key, gtk.values_seen)
-             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, environment.id)]
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, production_environment.id)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -325,8 +343,8 @@ class UnmergeTestCase(TestCase):
             (u'color', u'red', 6),
             (u'color', u'green', 6),
             (u'color', u'blue', 5),
-            (u'environment', u'production', 17),
-            (u'sentry:release', u'version', 17),
+            (u'environment', u'production', 16),
+            (u'sentry:release', u'version', 16),
         ])
 
         assert features.compare(source) == [
@@ -428,7 +446,7 @@ class UnmergeTestCase(TestCase):
 
         assert set(
             [(gtk.key, gtk.values_seen)
-             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, environment.id)]
+             for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, production_environment.id)]
         ) == set([
             (u'color', 3),
             (u'environment', 1),
@@ -487,11 +505,11 @@ class UnmergeTestCase(TestCase):
                 group_id=destination.id,
             ).values_list('environment', 'first_seen', 'last_seen')
         ) == set([
-            (u'production', now + shift(10), now + shift(16), ),
+            (u'production', now + shift(10), now + shift(15), ),
         ])
 
         assert set([(gtk.key, gtk.values_seen)
-                    for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, environment.id)]
+                    for gtk in tagstore.get_group_tag_keys(source.project_id, source.id, production_environment.id)]
                    ) == set(
             [
                 (u'color', 3),
@@ -513,8 +531,8 @@ class UnmergeTestCase(TestCase):
             (u'color', u'red', 2, now + shift(12), now + shift(15), ),
             (u'color', u'green', 3, now + shift(10), now + shift(16), ),
             (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
-            (u'environment', u'production', 7, now + shift(10), now + shift(16), ),
-            (u'sentry:release', u'version', 7, now + shift(10), now + shift(16), ),
+            (u'environment', u'production', 6, now + shift(10), now + shift(15), ),
+            (u'sentry:release', u'version', 6, now + shift(10), now + shift(15), ),
         ])
 
         rollup_duration = 3600
@@ -523,7 +541,7 @@ class UnmergeTestCase(TestCase):
             tsdb.models.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
-            now + shift(16),
+            now + shift(15),
             rollup_duration,
         )
 
@@ -531,9 +549,9 @@ class UnmergeTestCase(TestCase):
             tsdb.models.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
-            now + shift(16),
+            now + shift(15),
             rollup_duration,
-            environment_id=environment.id,
+            environment_id=production_environment.id,
         )
 
         def get_expected_series_values(rollup, events, function=None):
@@ -566,7 +584,7 @@ class UnmergeTestCase(TestCase):
             )
 
             assert_series_contains(
-                get_expected_series_values(rollup_duration, events.values()[1]),
+                get_expected_series_values(rollup_duration, events.values()[1][:-1]),
                 series[destination.id],
                 0,
             )
@@ -585,7 +603,7 @@ class UnmergeTestCase(TestCase):
             now - timedelta(seconds=rollup_duration),
             now + shift(16),
             rollup_duration,
-            environment_id=environment.id,
+            environment_id=production_environment.id,
         )
 
         def collect_by_user_tag(aggregate, event):
@@ -632,12 +650,15 @@ class UnmergeTestCase(TestCase):
 
         def collect_by_release(group, aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
+            release = event.get_tag('sentry:release')
+            if not release:
+                return aggregate
             release = GroupRelease.objects.get(
                 group_id=group.id,
                 environment=event.data['environment'],
                 release_id=Release.objects.get(
                     organization_id=project.organization_id,
-                    version=event.get_tag('sentry:release'),
+                    version=release,
                 ).id,
             ).id
             aggregate[release] = aggregate.get(release, 0) + 1
