@@ -68,9 +68,8 @@ class Client {
     };
   }
 
-  requestPromise(path, options = {}) {
+  requestPromise(path, {includeAllArgs, ...options} = {}) {
     return new Promise((resolve, reject) => {
-      const {includeAllArgs} = options;
       this.request(path, {
         ...options,
         success: (data, _, allArgs) => {

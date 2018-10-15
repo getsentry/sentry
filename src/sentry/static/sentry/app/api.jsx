@@ -191,7 +191,7 @@ export class Client {
     return this.activeRequests[id];
   }
 
-  requestPromise(path, {includeAllArgs, ...options}) {
+  requestPromise(path, {includeAllArgs, ...options} = {}) {
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
