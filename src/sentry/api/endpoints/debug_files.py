@@ -153,15 +153,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
 
         if request.GET.get('id') and (request.access.has_scope('project:write')):
-            try:
-                debug_file = ProjectDebugFile.objects.get(
+            with transaction.atomic():
+                debug_file = ProjectDebugFile.objects.filter(
                     id=request.GET.get('id'),
                     project=project,
-                )
-                debug_file.delete()
-                return Response(status=204)
-            except ProjectDebugFile.DoesNotExist:
-                pass
+                ).select_related('file').first()
+                if debug_file is not None:
+                    debug_file.delete()
+                    return Response(status=204)
 
         return Response(status=404)
 
