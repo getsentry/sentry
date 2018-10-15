@@ -212,7 +212,7 @@ class BaseChart extends React.Component {
                 }),
               ],
           dataZoom,
-          toolBox,
+          toolbox: toolBox,
         }}
       />
     );

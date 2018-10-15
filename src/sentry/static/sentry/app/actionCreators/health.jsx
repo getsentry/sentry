@@ -1,13 +1,36 @@
+import moment from 'moment';
+
 const BASE_URL = org => `/organizations/${org.slug}/health/`;
 
 // Gets the period to query with if we need to double the initial period in order
 // to get data for the previous period
-const getPeriod = (originalPeriod, shouldDoublePeriod) => {
-  if (!shouldDoublePeriod) return originalPeriod;
+const getPeriod = ({period, start, end}, {shouldDoublePeriod}) => {
+  // you can not specify both relative and absolute periods
+  // relative period takes precendence
+  if (period) {
+    if (!shouldDoublePeriod) return {statsPeriod: period};
+    const [, periodNumber, periodLength] = period.match(/([0-9]+)([mhdw])/);
 
-  const [, periodNumber, periodLength] = originalPeriod.match(/([0-9]+)([mhdw])/);
+    return {statsPeriod: `${parseInt(periodNumber, 10) * 2}${periodLength}`};
+  }
 
-  return `${parseInt(periodNumber, 10) * 2}${periodLength}`;
+  if (!start || !end) {
+    throw new Error('start and end required');
+  }
+
+  if (shouldDoublePeriod) {
+    // get duration of end - start and double
+    const diff = moment(end).diff(moment(start));
+
+    return {
+      start: moment(start)
+        .subtract(diff)
+        .format(moment.HTML5_FMT.DATETIME_LOCAL_MS),
+      end,
+    };
+  }
+
+  return {start, end};
 };
 
 /**
@@ -34,6 +57,8 @@ export const doHealthRequest = (
     tag,
     environments,
     period,
+    start,
+    end,
     interval,
     timeseries,
     includePrevious,
@@ -46,17 +71,17 @@ export const doHealthRequest = (
 
   const path = timeseries ? 'graph/' : 'top/';
   const shouldDoublePeriod = timeseries && includePrevious;
-  const totalPeriod = getPeriod(period, shouldDoublePeriod);
+  const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
   const query = {
     tag,
     includePrevious,
     interval,
-    statsPeriod: totalPeriod,
     project: projects,
     environment: environments,
     q: specifiers,
     limit,
+    ...periodObj,
     ...(topk ? {topk} : {}),
   };
 

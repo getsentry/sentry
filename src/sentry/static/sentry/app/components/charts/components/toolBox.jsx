@@ -15,6 +15,7 @@ function getFeatures({dataZoom, ...features} = {}) {
           },
         }
       : {}),
+    ...features,
   };
 }
 
