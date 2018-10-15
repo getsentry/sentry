@@ -61,9 +61,63 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
-        assert response.status_code == 404
+        # Missing repositories don't 40x as we can't explode
+        # on missing repositories due to the possibility of multiple
+        # organizations sharing an integration and not having the same
+        # repositories enabled.
+        assert response.status_code == 204
 
-    def test_push_event_create_commits_annd_authors(self):
+    def test_push_event_multiple_organizations_one_missing_repo(self):
+        # Create a repo on the primary organization
+        repo = self.create_repo('getsentry/sentry')
+
+        # Second org with no repo.
+        other_org = self.create_organization(owner=self.user)
+        self.integration.add_organization(other_org, self.user)
+
+        response = self.client.post(
+            self.url,
+            data=PUSH_EVENT,
+            content_type='application/json',
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_EVENT='Push Hook'
+        )
+        assert response.status_code == 204
+        commits = Commit.objects.all()
+        assert len(commits) == 2
+        for commit in commits:
+            assert commit.organization_id == self.organization.id
+            assert commit.repository_id == repo.id
+
+    def test_push_event_multiple_organizations(self):
+        # Create a repo on the primary organization
+        repo = self.create_repo('getsentry/sentry')
+
+        # Second org with the same repo
+        other_org = self.create_organization(owner=self.user)
+        self.integration.add_organization(other_org, self.user)
+        other_repo = self.create_repo('getsentry/sentry', organization_id=other_org.id)
+
+        response = self.client.post(
+            self.url,
+            data=PUSH_EVENT,
+            content_type='application/json',
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_EVENT='Push Hook'
+        )
+        assert response.status_code == 204
+
+        commits = Commit.objects.filter(repository_id=repo.id).all()
+        assert len(commits) == 2
+        for commit in commits:
+            assert commit.organization_id == self.organization.id
+
+        commits = Commit.objects.filter(repository_id=other_repo.id).all()
+        assert len(commits) == 2
+        for commit in commits:
+            assert commit.organization_id == other_org.id
+
+    def test_push_event_create_commits_and_authors(self):
         repo = self.create_repo('getsentry/sentry')
         response = self.client.post(
             self.url,
@@ -82,6 +136,7 @@ class WebhookTest(GitLabTestCase):
             assert commit.author
             assert commit.date_added
             assert commit.repository_id == repo.id
+            assert commit.organization_id == self.organization.id
 
         authors = CommitAuthor.objects.all()
         assert len(authors) == 2
@@ -133,7 +188,8 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
             HTTP_X_GITLAB_EVENT='Merge Request Hook'
         )
-        assert response.status_code == 404
+        assert response.status_code == 204
+        assert 0 == PullRequest.objects.count()
 
     @pytest.mark.incomplete
     def test_merge_event_create_pull_request(self):

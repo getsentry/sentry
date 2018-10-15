@@ -44,10 +44,11 @@ class GitLabTestCase(APITestCase):
         self.integration.add_organization(self.organization, self.user, identity.id)
         self.installation = self.integration.get_installation(self.organization.id)
 
-    def create_repo(self, name, external_id=15, url=None):
+    def create_repo(self, name, external_id=15, url=None, organization_id=None):
         instance = self.integration.metadata['instance']
+        organization_id = organization_id or self.organization.id
         return Repository.objects.create(
-            organization_id=self.organization.id,
+            organization_id=organization_id,
             name=name,
             external_id=u'{}:{}'.format(instance, external_id),
             url=url,

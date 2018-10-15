@@ -48,16 +48,15 @@ class Webhook(object):
                 external_id=external_id,
             )
         except Repository.DoesNotExist:
-            logger.info('gitlab.webhook.missing-repo', extra={
-                'external_id': project_id
-            })
-            raise Http404()
+            return None
         return repo
 
 
 class MergeEventWebhook(Webhook):
     def __call__(self, integration, organization, event):
         repo = self.get_repo(integration, organization, event)
+        if repo is None:
+            return
         try:
             number = event['object_attributes']['iid']
             title = event['object_attributes']['title']
@@ -104,6 +103,8 @@ class MergeEventWebhook(Webhook):
 class PushEventWebhook(Webhook):
     def __call__(self, integration, organization, event):
         repo = self.get_repo(integration, organization, event)
+        if repo is None:
+            return
 
         authors = {}
 
@@ -173,17 +174,6 @@ class GitlabWebhookEndpoint(View):
                 }
             )
             return HttpResponse(status=400)
-
-        if integration.organizations.count() != 1:
-            logger.info(
-                'gitlab.webhook.extra-organizations',
-                extra={
-                    'count': len(integration.organizations),
-                    'external_id': integration.external_id,
-                }
-            )
-            return HttpResponse(status=400)
-
         try:
             event = json.loads(request.body.decode('utf-8'))
         except JSONDecodeError:
@@ -203,5 +193,6 @@ class GitlabWebhookEndpoint(View):
             })
             return HttpResponse(status=400)
 
-        handler()(integration, integration.organizations.first(), event)
+        for organization in integration.organizations.all():
+            handler()(integration, organization, event)
         return HttpResponse(status=204)
