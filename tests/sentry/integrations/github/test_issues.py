@@ -229,7 +229,7 @@ class GitHubIssueBasicTest(TestCase):
         assert payload == {'body': 'hello'}
 
     @responses.activate
-    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    @patch('sentry.integrations.github.client.GitHubClientMixin.get_token', return_value='jwt_token_1')
     def test_default_repo_link_fields(self, mock_get_jwt):
         responses.add(
             responses.GET,
