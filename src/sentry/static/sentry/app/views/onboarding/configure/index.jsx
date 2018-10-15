@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 import sdk from 'app/utils/sdk';
 import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
+import HookStore from 'app/stores/hookStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -22,6 +23,7 @@ const Configure = createReactClass({
     return {
       isFirstTimePolling: true,
       hasSentRealEvent: false,
+      component: null,
     };
   },
 
@@ -35,6 +37,10 @@ const Configure = createReactClass({
     this.timer = setInterval(() => {
       this.fetchEventData();
     }, 2000);
+  },
+
+  componentDidMount() {
+    this.getHookComponent();
   },
 
   componentWillUpdate(nextProps, nextState) {
@@ -99,13 +105,29 @@ const Configure = createReactClass({
     browserHistory.push(url);
   },
 
+  getHookComponent() {
+    let component =
+      HookStore.get('component:sample-event').length && !this.state.hasSentRealEvent
+        ? HookStore.get('component:sample-event')[0](
+            this.props.params,
+            this.context.organization,
+            'header'
+          )
+        : undefined;
+
+    this.setState({component});
+  },
+
   render() {
     let {orgId, projectId} = this.props.params;
 
     return (
       <div>
         <div className="onboarding-Configure">
-          <h2 style={{marginBottom: 30}}>Configure your application</h2>
+          <h2 style={{marginBottom: 30}}>
+            Configure your application
+            {this.state.component}
+          </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
             <ProjectDocsContext>
               <ProjectInstallPlatform

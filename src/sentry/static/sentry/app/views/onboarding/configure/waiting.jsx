@@ -31,7 +31,8 @@ class Waiting extends React.Component {
       HookStore.get('component:sample-event').length && !this.props.hasEvent
         ? HookStore.get('component:sample-event')[0](
             this.props.params,
-            this.props.organization
+            this.props.organization,
+            'waiting'
           )
         : undefined;
 
