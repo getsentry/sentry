@@ -13,7 +13,7 @@ class TestCreator(TestCase):
 
         self.sentry_app = SentryAppCreator.run(
             name='nulldb',
-            user=self.user,
+            organization=self.org,
             scopes=('project:read',),
             webhook_url='http://example.com',
         )

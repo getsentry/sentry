@@ -14,7 +14,7 @@ class TestDestroyer(TestCase):
 
         self.sentry_app = Creator.run(
             name='blah',
-            user=self.user,
+            organization=self.org,
             scopes=('project:read',),
             webhook_url='https://example.com',
         )

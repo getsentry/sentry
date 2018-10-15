@@ -174,7 +174,7 @@ class FromSentryAppTest(TestCase):
 
         self.sentry_app = SentryAppCreator.run(
             name='SlowDB',
-            user=self.user,
+            organization=self.org,
             scopes=(),
             webhook_url='http://example.com',
         )
