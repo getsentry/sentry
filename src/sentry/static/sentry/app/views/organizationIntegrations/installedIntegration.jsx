@@ -1,7 +1,7 @@
 import {Box, Flex} from 'grid-emotion';
-import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
