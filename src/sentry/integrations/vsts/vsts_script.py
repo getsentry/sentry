@@ -32,6 +32,8 @@ def fix_integrations():
             (integration.metadata['domain_name']))
 
         for subscription in resp['value']:
+            # The call to the api gets all subscriptions that the user has.
+            # We need to get a subscription that is related to our integration
             if subscription['consumerInputs']['url'] != url:
                 continue
             result = re.search(
