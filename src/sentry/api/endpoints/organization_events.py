@@ -58,7 +58,8 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         query = request.GET.get('query')
         conditions = []
         if query:
-            conditions.append(['message', 'LIKE', '%%%s%%' % (query,)])
+            conditions.append(
+                [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
 
         now = timezone.now()
 
