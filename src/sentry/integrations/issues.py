@@ -4,6 +4,7 @@ import logging
 import six
 
 from sentry import features
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Activity, Event, Group, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -193,6 +194,40 @@ class IssueBasicMixin(object):
         does not match the disired display name.
         """
         return ''
+
+    def get_repository_choices(self, group, **kwargs):
+        """
+        Returns the default repository and a set/subset of repositories of asscoaited with the installation
+        """
+        try:
+            repos = self.get_repositories()
+        except ApiError:
+            raise IntegrationError(
+                'Unable to retrive repositories. Please try again later.'
+            )
+        else:
+            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
+
+        # If a repo has been selected outside of the default list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
+
+        return default_repo, repo_choices
+
+    def create_default_repo_choice(self, default_repo):
+        """
+        Helper method for get_repository_choices
+        Returns the choice for the default repo in a tuple to be added to the list of repository choices
+        """
+        return (default_repo, default_repo)
 
 
 class IssueSyncMixin(IssueBasicMixin):
