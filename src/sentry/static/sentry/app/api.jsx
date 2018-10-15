@@ -196,8 +196,8 @@ export class Client {
       const {includeAllArgs} = options;
       this.request(path, {
         ...options,
-        success: (data, _, includeAllArgs) => {
-          includeAllArgs ? resolve([data, includeAllArgs]) : resolve(data);
+        success: (data, _, allArgs) => {
+          includeAllArgs ? resolve([data, allArgs]) : resolve(data);
         },
         error: (error, ...args) => {
           reject(error);
