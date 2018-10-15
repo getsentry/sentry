@@ -14,11 +14,10 @@ from sentry.mediators.sentry_app_installation import Creator
 from sentry.models import SentryAppInstallation
 
 
-class SentryAppInstallationSerializer(serializers.Serializer):
+class OrganizationSentryAppInstallationsSerializer(serializers.Serializer):
     slug = serializers.RegexField(
         r'^[a-z0-9_\-]+$',
         max_length=50,
-        required=False,
         error_messages={
             'invalid': _('Enter a valid slug consisting of lowercase letters, '
                          'numbers, underscores or hyphens.'),
@@ -31,7 +30,7 @@ class SentryAppInstallationSerializer(serializers.Serializer):
         return attrs
 
 
-class SentryAppInstallationEndpoint(Endpoint):
+class OrganizationSentryAppInstallationsEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication, )
     permission_classes = (IsAuthenticated, )
 
@@ -51,7 +50,7 @@ class SentryAppInstallationEndpoint(Endpoint):
 
     @requires_feature('organizations:internal-catchall', any_org=True)
     def post(self, request, organization):
-        serializer = SentryAppInstallationSerializer(request.DATA)
+        serializer = OrganizationSentryAppInstallationsSerializer(request.DATA)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
