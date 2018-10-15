@@ -184,7 +184,7 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.12.17
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
