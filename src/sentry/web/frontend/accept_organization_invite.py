@@ -40,21 +40,20 @@ class AcceptOrganizationInviteView(BaseView):
     def handle(self, request, member_id, token):
         assert request.method in ('POST', 'GET')
 
-        helper = WebInviteHelper(
-            instance=self,
-            request=request,
-            member_id=member_id,
-            token=token
-        )
-
         try:
-            om = helper.get_organization_member()
+            helper = WebInviteHelper(
+                instance=self,
+                request=request,
+                member_id=member_id,
+                token=token
+            )
         except OrganizationMember.DoesNotExist:
             return self.redirect_with_err_message(request)
 
         if not helper.member_pending or not helper.valid_token:
             return self.redirect_with_err_message(request)
 
+        om = helper.om
         organization = om.organization
 
         qs = Project.objects.filter(
@@ -121,6 +120,7 @@ class BaseInviteHelper(object):
         self.member_id = member_id
         self.token = token
         self.logger = logger
+        self.om = self.get_organization_member()
 
     def handle_success(self):
         pass
@@ -129,8 +129,7 @@ class BaseInviteHelper(object):
         pass
 
     def get_organization_member(self):
-        self.om = OrganizationMember.objects.select_related('organization').get(pk=self.member_id)
-        return self.om
+        return OrganizationMember.objects.select_related('organization').get(pk=self.member_id)
 
     @property
     def member_pending(self):
@@ -214,12 +213,6 @@ class ApiInviteHelper(BaseInviteHelper):
         )
 
     def valid_request(self):
-        try:
-            self.get_organization_member()
-        except OrganizationMember.DoesNotExist:
-            self.logger.error('Failed to accept pending org invite', exc_info=True)
-            return False
-
         if (not self.member_pending or
             not self.valid_token or
             not self.user_authenticated or

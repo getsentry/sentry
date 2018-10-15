@@ -221,6 +221,13 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         return resp
 
+    def test_cannot_accept_invite_pending_invite__2fa_required(self):
+        om = self.get_om_and_init_invite()
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert om.user is None
+        assert om.email == 'newuser@example.com'
+
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
     def test_accept_pending_invite__u2f_enroll(self, try_enroll):
         om = self.get_om_and_init_invite()

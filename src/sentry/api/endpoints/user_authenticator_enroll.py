@@ -9,7 +9,7 @@ import petname
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import Authenticator
+from sentry.models import Authenticator, OrganizationMember
 from sentry.security import capture_security_activity
 from sentry.web.frontend.accept_organization_invite import ApiInviteHelper
 
@@ -228,9 +228,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             try:
                 member_id = serializer.data['memberId']
                 token = serializer.data['token']
-            except KeyError:
-                pass
-            else:
+
                 helper = ApiInviteHelper(
                     instance=self,
                     request=request,
@@ -238,7 +236,11 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                     token=token,
                     logger=logger,
                 )
-
+            except KeyError:
+                pass
+            except OrganizationMember.DoesNotExist:
+                logger.error('Failed to accept pending org invite', exc_info=True)
+            else:
                 if helper.valid_request():
                     helper.accept_invite()
 
