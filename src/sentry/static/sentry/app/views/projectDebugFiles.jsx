@@ -21,6 +21,7 @@ import TimeSince from 'app/components/timeSince';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import space from 'app/styles/space';
 
 const ProjectDebugSymbols = createReactClass({
   displayName: 'ProjectDebugSymbols',
@@ -167,26 +168,29 @@ const ProjectDebugSymbols = createReactClass({
           </Box>
 
           <Box flex="1">
-            {access.has('project:write') ? (
-              <div className="btn-group pull-right">
-                <ActionLink
-                  onAction={() => (window.location = url)}
-                  className="btn btn-default btn-sm"
-                >
-                  <InlineSvg src="icon-download" /> {t('Download')}
-                </ActionLink>
-                <LinkWithConfirmation
-                  className="btn btn-danger btn-sm"
-                  title={t('Delete')}
-                  message={t(
-                    'Are you sure you wish to delete this debug infromation file?'
-                  )}
-                  onConfirm={() => this.onDelete(dsym.id)}
-                >
-                  <InlineSvg src="icon-trash" /> {t('Delete')}
-                </LinkWithConfirmation>
-              </div>
-            ) : null}
+            <div className="pull-right">
+              <ActionLink
+                onAction={() => (window.location = url)}
+                className="btn btn-default btn-sm"
+                disabled={!access.has('project:write')}
+                css={{
+                  marginRight: space(0.5),
+                }}
+              >
+                <InlineSvg src="icon-download" /> {t('Download')}
+              </ActionLink>
+              <LinkWithConfirmation
+                className="btn btn-danger btn-sm"
+                disabled={!access.has('project:write')}
+                title={t('Delete')}
+                message={t(
+                  'Are you sure you wish to delete this debug infromation file?'
+                )}
+                onConfirm={() => this.onDelete(dsym.id)}
+              >
+                <InlineSvg src="icon-trash" /> {t('Delete')}
+              </LinkWithConfirmation>
+            </div>
           </Box>
         </PanelItem>
       );
@@ -210,7 +214,7 @@ const ProjectDebugSymbols = createReactClass({
 
   render() {
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
         <TextBlock>
           {t(
@@ -222,29 +226,27 @@ const ProjectDebugSymbols = createReactClass({
           )}
         </TextBlock>
 
-        <div className="ref-project-releases">
-          <div className="row release-list-header">
-            <div className="col-sm-7" />
-            <div className="col-sm-5 release-search">
-              <SearchBar
-                defaultQuery=""
-                placeholder={t('Search for a DIF')}
-                query={this.state.query}
-                onSearch={this.onSearch}
-              />
-            </div>
+        <div className="row m-b-1">
+          <div className="col-sm-7" />
+          <div className="col-sm-5">
+            <SearchBar
+              defaultQuery=""
+              placeholder={t('Search for a DIF')}
+              query={this.state.query}
+              onSearch={this.onSearch}
+            />
           </div>
-          <Panel>
-            <PanelHeader>
-              <Box w={4.5 / 12}>{t('Debug ID')}</Box>
-              <Box flex="1">{t('Name')}</Box>
-              <Box flex="1" />
-            </PanelHeader>
-            <PanelBody>{this.renderStreamBody()}</PanelBody>
-          </Panel>
-          <Pagination pageLinks={this.state.pageLinks} />
         </div>
-      </div>
+        <Panel>
+          <PanelHeader>
+            <Box w={4.5 / 12}>{t('Debug ID')}</Box>
+            <Box flex="1">{t('Name')}</Box>
+            <Box flex="1" />
+          </PanelHeader>
+          <PanelBody>{this.renderStreamBody()}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
+      </React.Fragment>
     );
   },
 });

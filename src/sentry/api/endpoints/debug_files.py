@@ -154,13 +154,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         if request.GET.get('id') and (request.access.has_scope('project:write')):
             try:
-                with transaction.atomic():
-                    debug_file = ProjectDebugFile.objects.get(
-                        id=request.GET.get('id'),
-                        project=project,
-                    )
-                    debug_file.delete()
-                    return Response(status=204)
+                debug_file = ProjectDebugFile.objects.get(
+                    id=request.GET.get('id'),
+                    project=project,
+                )
+                debug_file.delete()
+                return Response(status=204)
             except ProjectDebugFile.DoesNotExist:
                 pass
 
