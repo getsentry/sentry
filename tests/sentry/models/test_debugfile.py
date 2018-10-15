@@ -8,6 +8,8 @@ from six import BytesIO, text_type
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
+from symbolic import SYMCACHE_LATEST_VERSION
+
 from sentry.testutils import APITestCase, TestCase
 from sentry.models import File, ProjectDebugFile, ProjectSymCacheFile
 
@@ -20,6 +22,46 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 67:67:java.lang.Class[] getClassContext() -> getClassContext
 65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
 '''
+
+
+class DebugFileTest(TestCase):
+    def test_delete_dif(self):
+        dif_file = self.create_file(
+            name='baz.dSYM',
+            size=42,
+            headers={'Content-Type': 'application/x-mach-binary'},
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+        )
+
+        dif = self.create_dif_file(
+            debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
+            object_name='baz.dSYM',
+            cpu_name='x86_64',
+            file=dif_file,
+            data={'features': ['debug']},
+        )
+
+        cache_file = self.create_file(
+            name='baz.symc',
+            size=42,
+            headers={'Content-Type': 'application/x-sentry-symcache'},
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+        )
+
+        symcache = ProjectSymCacheFile.objects.create(
+            project=self.project,
+            cache_file=cache_file,
+            dsym_file=dif,
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            version=SYMCACHE_LATEST_VERSION,
+        )
+
+        dif.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
+        assert not File.objects.filter(id=dif_file.id).exists()
+        assert not ProjectSymCacheFile.objects.filter(id=symcache.id).exists()
+        assert not File.objects.filter(id=cache_file.id).exists()
 
 
 class DebugFilesClearTest(APITestCase):
@@ -154,3 +196,39 @@ class SymCacheTest(TestCase):
 
         assert symcache.id == debug_id
         assert symcache.is_latest_file_format
+
+    def test_delete_symcache(self):
+        dif_file = self.create_file(
+            name='baz.dSYM',
+            size=42,
+            headers={'Content-Type': 'application/x-mach-binary'},
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+        )
+
+        dif = self.create_dif_file(
+            debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
+            object_name='baz.dSYM',
+            cpu_name='x86_64',
+            file=dif_file,
+            data={'features': ['debug']},
+        )
+
+        cache_file = self.create_file(
+            name='baz.symc',
+            size=42,
+            headers={'Content-Type': 'application/x-sentry-symcache'},
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+        )
+
+        symcache = ProjectSymCacheFile.objects.create(
+            project=self.project,
+            cache_file=cache_file,
+            dsym_file=dif,
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            version=SYMCACHE_LATEST_VERSION,
+        )
+
+        symcache.delete()
+
+        assert not File.objects.filter(id=cache_file.id).exists()
+        assert not ProjectSymCacheFile.objects.filter(id=symcache.id).exists()

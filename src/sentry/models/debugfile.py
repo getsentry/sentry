@@ -22,6 +22,7 @@ from requests.exceptions import RequestException
 
 from jsonfield import JSONField
 from django.db import models, transaction, IntegrityError
+from django.db.models.fields.related import OneToOneRel
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -262,8 +263,11 @@ class ProjectDebugFile(Model):
             return 'debug' in self.features
 
     def delete(self, *args, **kwargs):
+        symcache = self.projectsymcachefile.select_related('cache_file').first()
+        if symcache is not None:
+            symcache.delete()
+
         super(ProjectDebugFile, self).delete(*args, **kwargs)
-        # TODO(ja): Delete symcache
         self.file.delete()
 
 
@@ -272,7 +276,7 @@ class ProjectSymCacheFile(Model):
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     cache_file = FlexibleForeignKey('sentry.File')
-    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile')
+    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile', rel_class=OneToOneRel)
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
