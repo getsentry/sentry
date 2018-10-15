@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization import OrganizationDiscoverSavedQueryPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry import features
@@ -11,7 +11,7 @@ from sentry.models import DiscoverSavedQuery
 
 
 class OrganizationDiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+    permission_classes = (OrganizationDiscoverSavedQueryPermission, )
 
     def get(self, request, organization, query_id):
         """
