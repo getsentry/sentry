@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
-from uuid import uuid4
 
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -19,6 +18,7 @@ from sentry.integrations import (
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
+from sentry.utils.hashlib import sha1_text
 
 from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
@@ -250,6 +250,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
         hostname = urlparse(base_url).netloc
         verify_ssl = state['installation_data']['verify_ssl']
 
+        # Generate a hash to prevent stray hooks from being accepted
+        # use a consistent hash so that reinstalls/shared integrations don't
+        # rotate secrets.
+        secret = sha1_text(''.join([hostname, state['installation_data']['client_id']]))
+
         integration = {
             'name': group['name'],
             # Splice the gitlab host and project together to
@@ -265,7 +270,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
-                'webhook_secret': uuid4().hex
+                'webhook_secret': secret.hexdigest()
             },
             'user_identity': {
                 'type': 'gitlab',
