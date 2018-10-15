@@ -59,7 +59,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         query = request.GET.get('query')
         conditions = []
         if query:
-            conditions.append(['message', 'LIKE', u'%{}%'.format(query)])
+            conditions.append(
+                [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
 
         now = timezone.now()
         data_fn = partial(
