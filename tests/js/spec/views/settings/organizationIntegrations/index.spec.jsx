@@ -4,7 +4,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
-import OrganizationIntegrations from 'app/views/organizationIntegrations';
+import {OrganizationIntegrations} from 'app/views/organizationIntegrations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openIntegrationDetails: jest.fn(),
@@ -56,7 +56,10 @@ describe('OrganizationIntegrations', function() {
         body: [],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
       it('Displays integration providers', function() {
         expect(wrapper).toMatchSnapshot();
@@ -96,7 +99,10 @@ describe('OrganizationIntegrations', function() {
         body: [],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
       const updatedIntegration = Object.assign({}, githubIntegration, {
         domain_name: 'updated-integration.github.com',
@@ -168,7 +174,10 @@ describe('OrganizationIntegrations', function() {
         ],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
       it('displays an Upgrade when the Plugin is enabled but a new Integration is not', function() {
         expect(

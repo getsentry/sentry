@@ -6,6 +6,7 @@ import HookStore from 'app/stores/hookStore';
 
 describe('IntegrationDetailsModal', function() {
   const integrationAdded = jest.fn();
+  const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
 
   it('renders simple integration', function() {
@@ -16,6 +17,7 @@ describe('IntegrationDetailsModal', function() {
       <IntegrationDetailsModal
         provider={provider}
         closeModal={onClose}
+        organization={org}
         onAddIntegration={integrationAdded}
       />,
       routerContext
@@ -37,6 +39,7 @@ describe('IntegrationDetailsModal', function() {
       <IntegrationDetailsModal
         provider={provider}
         closeModal={onClose}
+        organization={org}
         onAddIntegration={integrationAdded}
       />,
       routerContext
@@ -63,6 +66,7 @@ describe('IntegrationDetailsModal', function() {
       <IntegrationDetailsModal
         provider={provider}
         onAddIntegration={integrationAdded}
+        organization={org}
         closeModal={() => null}
       />,
       routerContext

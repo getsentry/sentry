@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import queryString from 'query-string';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
 
@@ -62,6 +63,10 @@ export default class AddIntegration extends React.Component {
 
     this.dialog = window.open(installUrl, name, opts);
     this.dialog.focus();
+
+    analytics('integrations.install_initiated', {
+      integration: this.props.provider.key,
+    });
   };
 
   didReceiveMessage = message => {
@@ -82,6 +87,10 @@ export default class AddIntegration extends React.Component {
     }
 
     if (!data) return;
+
+    analytics('integrations.install_succeess', {
+      integration: this.props.provider.key,
+    });
 
     this.props.onInstall(data);
     IndicatorStore.addSuccess(t(`${this.props.provider.name} added`));

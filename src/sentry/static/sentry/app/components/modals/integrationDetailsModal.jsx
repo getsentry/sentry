@@ -51,7 +51,7 @@ class IntegrationDetailsModal extends React.Component {
 
   componentDidMount() {
     analytics('integrations.install_modal_opened', {
-      org_id: this.props.organization.id,
+      org_id: parseInt(this.props.organization.id, 10),
       integration: this.props.provider.key,
     });
   }
@@ -136,7 +136,11 @@ class IntegrationDetailsModal extends React.Component {
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
-        <FeatureList {...featureProps} formatter={singleLineRenderer} />
+        <FeatureList
+          {...featureProps}
+          provider={provider}
+          formatter={singleLineRenderer}
+        />
 
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>

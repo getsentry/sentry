@@ -13,8 +13,9 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withOrganization from 'app/utils/withOrganization';
 
-export default class OrganizationIntegrations extends AsyncComponent {
+class OrganizationIntegrations extends AsyncComponent {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
   reloadOnVisible = true;
@@ -22,7 +23,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
 
   componentDidMount() {
     analytics('integrations.index_viewed', {
-      org_id: this.props.params.orgId,
+      org_id: parseInt(this.props.organization.id, 10),
     });
   }
 
@@ -168,3 +169,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   top: 50%;
   transform: translateY(-16px);
 `;
+
+export default withOrganization(OrganizationIntegrations);
+export {OrganizationIntegrations};
