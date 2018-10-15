@@ -104,7 +104,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        assert integration.external_id == 'gitlab.example.com:secret-token'
+        assert integration.external_id == 'gitlab.example.com:cool-group'
         assert integration.name == 'Cool'
         assert integration.metadata == {
             'instance': 'gitlab.example.com',
@@ -113,6 +113,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             'domain_name': u'gitlab.example.com/cool-group',
             'verify_ssl': True,
             'base_url': 'https://gitlab.example.com',
+            'webhook_secret': 'secret-token'
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,

@@ -252,10 +252,12 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
         integration = {
             'name': group['name'],
-            # We splice the host & secret together to create an external id.
-            # This id is used as a webhook secret so we can find the matching
-            # sentry org later on.
-            'external_id': u'{}:{}'.format(hostname, uuid4().hex),
+            # Splice the gitlab host and project together to
+            # act as unique link between a gitlab instance, group + sentry.
+            # This value is embedded then in the webook token that we
+            # give to gitlab to allow us to find the integration a hook came
+            # from.
+            'external_id': u'{}:{}'.format(hostname, group['path']),
             'metadata': {
                 'icon': group['avatar_url'],
                 'instance': hostname,
@@ -263,6 +265,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
+                'webhook_secret': uuid4().hex
             },
             'user_identity': {
                 'type': 'gitlab',

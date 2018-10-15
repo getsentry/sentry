@@ -163,12 +163,13 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
     def create_project_webhook(self, project_id):
         path = GitLabApiClientPath.project_hooks.format(project=project_id)
         hook_uri = reverse('sentry-extensions-gitlab-webhook')
+        model = self.installation.model
         data = {
             'url': absolute_uri(hook_uri),
-            'token': self.installation.model.external_id,
+            'token': u'{}:{}'.format(model.external_id, model.metadata['webhook_secret']),
             'merge_requests_events': True,
             'push_events': True,
-            'enable_ssl_verification': self.metadata['verify_ssl'],
+            'enable_ssl_verification': model.metadata['verify_ssl'],
         }
         resp = self.post(path, data)
 

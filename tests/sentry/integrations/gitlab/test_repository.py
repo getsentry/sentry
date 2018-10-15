@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.testutils import PluginTestCase
+from sentry.utils import json
 
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 
@@ -22,12 +23,13 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         self.integration = Integration.objects.create(
             provider='gitlab',
             name='Example GitLab',
-            external_id='example.gitlab.com:secret-token',
+            external_id='example.gitlab.com:getsentry',
             metadata={
                 'instance': 'example.gitlab.com',
-                'domain_name': 'example.gitlab.com/my-group',
+                'domain_name': 'example.gitlab.com/getsentry',
                 'verify_ssl': False,
                 'base_url': 'https://example.gitlab.com',
+                'webhook_secret': 'secret-token-value',
             }
         )
         identity = Identity.objects.create(
@@ -50,7 +52,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             'name_with_namespace': 'Get Sentry / Example Repo',
             'path': 'example-repo',
             'id': 123,
-            'web_url': 'https://example.gitlab.com/my-group/projects/example-repo',
+            'web_url': 'https://example.gitlab.com/getsentry/projects/example-repo',
         }
         self.gitlab_id = 123
 
@@ -105,6 +107,28 @@ class GitLabRepositoryProviderTest(PluginTestCase):
 
     @responses.activate
     def test_create_repository(self):
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        assert response.status_code == 201
+        self.assert_repository(self.default_repository_config)
+
+    @responses.activate
+    def test_create_repository_verify_payload(self):
+        def request_callback(request):
+            payload = json.loads(request.body)
+            assert 'url' in payload
+            assert payload['push_events']
+            assert payload['merge_requests_events']
+            expected_token = u'{}:{}'.format(self.integration.external_id,
+                                             self.integration.metadata['webhook_secret'])
+            assert payload['token'] == expected_token
+
+            return (201, {}, json.dumps({'id': 99}))
+
+        responses.add_callback(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
+            callback=request_callback
+        )
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)

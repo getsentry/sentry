@@ -10,7 +10,9 @@ from sentry.models import (
 )
 
 
-WEBHOOK_SECRET = 'example.gitlab.com:super-secret-token'
+EXTERNAL_ID = 'example.gitlab.com:group-x'
+WEBHOOK_SECRET = 'secret-token-value'
+WEBHOOK_TOKEN = u'{}:{}'.format(EXTERNAL_ID, WEBHOOK_SECRET)
 
 
 class GitLabTestCase(APITestCase):
@@ -21,12 +23,13 @@ class GitLabTestCase(APITestCase):
         self.integration = Integration.objects.create(
             provider=self.provider,
             name='Example Gitlab',
-            external_id=WEBHOOK_SECRET,
+            external_id=EXTERNAL_ID,
             metadata={
                 'instance': 'example.gitlab.com',
                 'base_url': 'https://example.gitlab.com',
-                'domain_name': 'example.gitlab.com/sentry-group',
+                'domain_name': 'example.gitlab.com/group-x',
                 'verify_ssl': False,
+                'webhook_secret': WEBHOOK_SECRET,
             }
         )
         identity = Identity.objects.create(
@@ -69,19 +72,19 @@ MERGE_REQUEST_OPENED_EVENT = b"""{
     "id": 15,
     "name": "Sentry",
     "description": "",
-    "web_url": "http://example.com/getsentry/sentry",
+    "web_url": "http://example.com/cool-group/sentry",
     "avatar_url": null,
-    "git_ssh_url": "git@example.com:getsentry/sentry.git",
-    "git_http_url": "http://example.com/getsentry/sentry.git",
-    "namespace": "getsentry",
+    "git_ssh_url": "git@example.com:cool-group/sentry.git",
+    "git_http_url": "http://example.com/cool-group/sentry.git",
+    "namespace": "cool-group",
     "visibility_level": 0,
-    "path_with_namespace": "getsentry/sentry",
+    "path_with_namespace": "cool-group/sentry",
     "default_branch": "master",
     "ci_config_path": "",
-    "homepage": "http://example.com/getsentry/sentry",
-    "url": "git@example.com:getsentry/sentry.git",
-    "ssh_url": "git@example.com:getsentry/sentry.git",
-    "http_url": "http://example.com/getsentry/sentry.git"
+    "homepage": "http://example.com/cool-group/sentry",
+    "url": "git@example.com:cool-group/sentry.git",
+    "ssh_url": "git@example.com:cool-group/sentry.git",
+    "http_url": "http://example.com/cool-group/sentry.git"
   },
   "object_attributes": {
     "id": 90,
@@ -192,26 +195,26 @@ PUSH_EVENT = b"""
     "id": 15,
     "name":"Diaspora",
     "description":"",
-    "web_url":"http://example.com/getsentry/sentry",
+    "web_url":"http://example.com/cool-group/sentry",
     "avatar_url":null,
-    "git_ssh_url":"git@example.com:getsentry/sentry.git",
-    "git_http_url":"http://example.com/getsentry/sentry.git",
+    "git_ssh_url":"git@example.com:cool-group/sentry.git",
+    "git_http_url":"http://example.com/cool-group/sentry.git",
     "namespace":"Mike",
     "visibility_level":0,
-    "path_with_namespace":"getsentry/sentry",
+    "path_with_namespace":"cool-group/sentry",
     "default_branch":"master",
-    "homepage":"http://example.com/getsentry/sentry",
-    "url":"git@example.com:getsentry/sentry.git",
-    "ssh_url":"git@example.com:getsentry/sentry.git",
-    "http_url":"http://example.com/getsentry/sentry.git"
+    "homepage":"http://example.com/cool-group/sentry",
+    "url":"git@example.com:cool-group/sentry.git",
+    "ssh_url":"git@example.com:cool-group/sentry.git",
+    "http_url":"http://example.com/cool-group/sentry.git"
   },
   "repository":{
     "name": "Sentry",
-    "url": "git@example.com:getsentry/sentry.git",
+    "url": "git@example.com:cool-group/sentry.git",
     "description": "",
-    "homepage": "http://example.com/getsentry/sentry",
-    "git_http_url":"http://example.com/getsentry/sentry.git",
-    "git_ssh_url":"git@example.com:getsentry/sentry.git",
+    "homepage": "http://example.com/cool-group/sentry",
+    "git_http_url":"http://example.com/cool-group/sentry.git",
+    "git_ssh_url":"git@example.com:cool-group/sentry.git",
     "visibility_level":0
   },
   "commits": [
@@ -219,7 +222,7 @@ PUSH_EVENT = b"""
       "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
       "message": "Update Catalan translation to e38cb41.",
       "timestamp": "2011-12-12T14:27:31+02:00",
-      "url": "http://example.com/getsentry/sentry/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "url": "http://example.com/cool-group/sentry/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
       "author": {
         "name": "Jordi",
         "email": "jordi@example.org"
@@ -232,7 +235,7 @@ PUSH_EVENT = b"""
       "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
       "message": "fixed readme",
       "timestamp": "2012-01-03T23:36:29+02:00",
-      "url": "http://example.com/getsentry/sentry/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "url": "http://example.com/cool-group/sentry/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
       "author": {
         "name": "GitLab dev user",
         "email": "gitlabdev@example.org"
@@ -263,26 +266,26 @@ PUSH_EVENT_IGNORED_COMMIT = b"""
     "id": 15,
     "name":"Sentry",
     "description":"",
-    "web_url":"http://example.com/getsentry/sentry",
+    "web_url":"http://example.com/cool-group/sentry",
     "avatar_url":null,
-    "git_ssh_url":"git@example.com:getsentry/sentry.git",
-    "git_http_url":"http://example.com/getsentry/sentry.git",
-    "namespace":"getsentry",
+    "git_ssh_url":"git@example.com:cool-group/sentry.git",
+    "git_http_url":"http://example.com/cool-group/sentry.git",
+    "namespace":"cool-group",
     "visibility_level":0,
-    "path_with_namespace":"getsentry/sentry",
+    "path_with_namespace":"cool-group/sentry",
     "default_branch":"master",
-    "homepage":"http://example.com/getsentry/sentry",
-    "url":"git@example.com:getsentry/sentry.git",
-    "ssh_url":"git@example.com:getsentry/sentry.git",
-    "http_url":"http://example.com/getsentry/sentry.git"
+    "homepage":"http://example.com/cool-group/sentry",
+    "url":"git@example.com:cool-group/sentry.git",
+    "ssh_url":"git@example.com:cool-group/sentry.git",
+    "http_url":"http://example.com/cool-group/sentry.git"
   },
   "repository":{
     "name": "Sentry",
-    "url": "git@example.com:getsentry/sentry.git",
+    "url": "git@example.com:cool-group/sentry.git",
     "description": "",
-    "homepage": "http://example.com/getsentry/sentry",
-    "git_http_url":"http://example.com/getsentry/sentry.git",
-    "git_ssh_url":"git@example.com:getsentry/sentry.git",
+    "homepage": "http://example.com/cool-group/sentry",
+    "git_http_url":"http://example.com/cool-group/sentry.git",
+    "git_ssh_url":"git@example.com:cool-group/sentry.git",
     "visibility_level":0
   },
   "commits": [
@@ -290,7 +293,7 @@ PUSH_EVENT_IGNORED_COMMIT = b"""
       "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
       "message": "Update things #skipsentry",
       "timestamp": "2011-12-12T14:27:31+02:00",
-      "url": "http://example.com/getsentry/sentry/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "url": "http://example.com/cool-group/sentry/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
       "author": {
         "name": "Jordi",
         "email": "jordi@example.org"

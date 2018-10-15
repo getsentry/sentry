@@ -7,7 +7,8 @@ from sentry.models import (
 )
 from .testutils import (
     GitLabTestCase,
-    WEBHOOK_SECRET,
+    WEBHOOK_TOKEN,
+    EXTERNAL_ID,
     MERGE_REQUEST_OPENED_EVENT,
     PUSH_EVENT,
     PUSH_EVENT_IGNORED_COMMIT
@@ -28,12 +29,12 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='lol'
         )
         assert response.status_code == 400
 
-    def test_invalid_secret(self):
+    def test_invalid_token(self):
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -43,12 +44,22 @@ class WebhookTest(GitLabTestCase):
         )
         assert response.status_code == 400
 
+    def test_valid_id_invalid_secret(self):
+        response = self.client.post(
+            self.url,
+            data=PUSH_EVENT,
+            content_type='application/json',
+            HTTP_X_GITLAB_TOKEN=u'{}:{}'.format(EXTERNAL_ID, 'wrong'),
+            HTTP_X_GITLAB_EVENT='Push Hook'
+        )
+        assert response.status_code == 400
+
     def test_invalid_payload(self):
         response = self.client.post(
             self.url,
             data='lol not json',
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         assert response.status_code == 400
@@ -58,7 +69,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         # Missing repositories don't 40x as we can't explode
@@ -79,7 +90,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         assert response.status_code == 204
@@ -102,7 +113,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         assert response.status_code == 204
@@ -123,7 +134,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         assert response.status_code == 204
@@ -152,7 +163,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT_IGNORED_COMMIT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         assert response.status_code == 204
@@ -169,7 +180,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Push Hook'
         )
         assert response.status_code == 204
@@ -179,26 +190,24 @@ class WebhookTest(GitLabTestCase):
     def test_push_event_create_commits_more_than_20(self):
         pass
 
-    @pytest.mark.incomplete
     def test_merge_event_missing_repo(self):
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Merge Request Hook'
         )
         assert response.status_code == 204
         assert 0 == PullRequest.objects.count()
 
-    @pytest.mark.incomplete
     def test_merge_event_create_pull_request(self):
         self.create_repo('getsentry/sentry')
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
             content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_SECRET,
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT='Merge Request Hook'
         )
         assert response.status_code == 204

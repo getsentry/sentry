@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 from simplejson import JSONDecodeError
 
 from sentry.models import (
@@ -162,9 +163,20 @@ class GitlabWebhookEndpoint(View):
 
     def post(self, request):
         try:
+            # Munge the token to extract the integration external_id.
+            # gitlab hook payloads don't give us enough unique context
+            # to find data on our side so we embed one in the token.
+            token = request.META['HTTP_X_GITLAB_TOKEN']
+            instance, group_path, secret = token.split(':')
+            external_id = u'{}:{}'.format(instance, group_path)
+        except Exception:
+            logger.info('gitlab.webhook.invalid-token', extra={'token': token})
+            return HttpResponse(status=400)
+
+        try:
             integration = Integration.objects.filter(
                 provider=self.provider,
-                external_id=request.META['HTTP_X_GITLAB_TOKEN']
+                external_id=external_id
             ).prefetch_related('organizations').get()
         except Integration.DoesNotExist:
             logger.info(
@@ -174,6 +186,16 @@ class GitlabWebhookEndpoint(View):
                 }
             )
             return HttpResponse(status=400)
+
+        if not constant_time_compare(secret, integration.metadata['webhook_secret']):
+            logger.info(
+                'gitlab.webhook.invalid-token-secret',
+                extra={
+                    'integration_id': integration.id
+                }
+            )
+            return HttpResponse(status=400)
+
         try:
             event = json.loads(request.body.decode('utf-8'))
         except JSONDecodeError:
