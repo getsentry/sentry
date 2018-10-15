@@ -13,6 +13,7 @@ echo "Bucket directory: ${BUCKET_DIR_NAME}"
 npm run storybook-build
 
 # Upload the files
+gsutil cp .storybook-out/favicon.ico "gs://${GS_BUCKET_NAME}/favicon.ico"
 gsutil -m rsync -r -d .storybook-out/ "gs://${GS_BUCKET_NAME}/${BUCKET_DIR_NAME}"
 
 # Upload build metadata
