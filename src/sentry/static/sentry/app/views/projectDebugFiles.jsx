@@ -188,7 +188,7 @@ const ProjectDebugSymbols = createReactClass({
                 )}
                 onConfirm={() => this.onDelete(dsym.id)}
               >
-                <InlineSvg src="icon-trash" /> {t('Delete')}
+                <InlineSvg src="icon-trash" />
               </LinkWithConfirmation>
             </div>
           </Box>
