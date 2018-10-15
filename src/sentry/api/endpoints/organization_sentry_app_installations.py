@@ -3,14 +3,13 @@ from __future__ import absolute_import
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, SessionAuthentication
+from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.features.helpers import requires_feature
-from sentry.mediators.sentry_app_installation import Creator
+from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import SentryAppInstallation
 
 
@@ -30,11 +29,8 @@ class OrganizationSentryAppInstallationsSerializer(serializers.Serializer):
         return attrs
 
 
-class OrganizationSentryAppInstallationsEndpoint(Endpoint):
-    authentication_classes = (SessionAuthentication, )
-    permission_classes = (IsAuthenticated, )
-
-    @requires_feature('organizations:internal-catchall', any_org=True)
+class OrganizationSentryAppInstallationsEndpoint(OrganizationEndpoint):
+    @requires_feature('organizations:internal-catchall')
     def get(self, request, organization):
         queryset = SentryAppInstallation.objects.filter(
             organization=organization,
@@ -48,7 +44,7 @@ class OrganizationSentryAppInstallationsEndpoint(Endpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @requires_feature('organizations:internal-catchall', any_org=True)
+    @requires_feature('organizations:internal-catchall')
     def post(self, request, organization):
         serializer = OrganizationSentryAppInstallationsSerializer(request.DATA)
         if not serializer.is_valid():

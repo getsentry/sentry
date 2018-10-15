@@ -46,7 +46,7 @@ class GetOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallatio
 
     @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_installs(self):
-        self.login_as(user=self.superuser)
+        self.login_as(user=self.superuser, superuser=True)
 
         response = self.client.get(self.url, format='json')
 
