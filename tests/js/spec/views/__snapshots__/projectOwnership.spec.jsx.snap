@@ -165,8 +165,8 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "fields": Array [
                 Object {
-                  "help": "Owners will receive notifications for issues they are responsible for.",
-                  "label": "All users with access to this project are owners",
+                  "help": "Issue owners will receive notifications for issues they are responsible for.",
+                  "label": "All users with access to this project are issue owners",
                   "name": "fallthrough",
                   "type": "boolean",
                 },
