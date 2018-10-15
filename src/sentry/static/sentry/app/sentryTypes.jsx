@@ -708,10 +708,10 @@ export const EChartsLegend = PropTypes.shape({
 export const EChartsDataZoom = PropTypes.arrayOf(
   PropTypes.oneOfType([
     PropTypes.shape({
-      type: 'inside',
+      type: PropTypes.oneOf(['inside']),
     }),
     PropTypes.shape({
-      type: 'slider',
+      type: PropTypes.oneOf(['slider']),
     }),
   ])
 );
