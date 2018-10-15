@@ -4,7 +4,7 @@ import responses
 import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
-from mock import patch
+from mock import patch, Mock
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (
@@ -99,7 +99,10 @@ class GitlabIntegrationTest(IntegrationTestCase):
     @responses.activate
     @patch('sentry.integrations.gitlab.integration.sha1_text')
     def test_basic_flow(self, mock_sha):
-        mock_sha.return_value = 'secret-token'
+        sha = Mock()
+        sha.hexdigest.return_value = 'secret-token'
+        mock_sha.return_value = sha
+
         self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
