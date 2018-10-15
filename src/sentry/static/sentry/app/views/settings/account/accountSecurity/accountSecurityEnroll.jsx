@@ -140,6 +140,14 @@ class AccountSecurityEnroll extends AsyncView {
     }
   }
 
+  loadOrganizationContext = () => {
+    if (this.invite && this.invite.memberId) {
+      fetchOrganizationsByMember(this.invite.memberId, {
+        setActive: true,
+      });
+    }
+  };
+
   handleFieldChange = (name, value) => {
     // This should not be used for rendering, that's why it's not in state
     this._form[name] = value;
@@ -196,13 +204,7 @@ class AccountSecurityEnroll extends AsyncView {
             addMessage(t('Sent code to %s', data.phone));
           } else {
             // OTP was accepted and SMS was added as a 2fa method
-            // Load organization context
-            if (this.invite && this.invite.memberId) {
-              fetchOrganizationsByMember(this.invite.memberId, {
-                setActive: true,
-              });
-            }
-
+            this.loadOrganizationContext();
             this.props.router.push('/settings/account/security/');
             openRecoveryOptions({
               authenticatorName: authenticator.name,
@@ -265,13 +267,7 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handler when we successfully add a 2fa device
   handleEnrollSuccess = () => {
-    // Load organization context
-    if (this.invite && this.invite.memberId) {
-      fetchOrganizationsByMember(this.invite.memberId, {
-        setActive: true,
-      });
-    }
-
+    this.loadOrganizationContext();
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.props.router.push('/settings/account/security');
