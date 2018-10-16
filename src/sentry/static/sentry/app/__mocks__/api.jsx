@@ -72,8 +72,8 @@ class Client {
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
-        success: (data, _, allArgs) => {
-          includeAllArgs ? resolve([data, allArgs]) : resolve(data);
+        success: (data, successString, allArgs) => {
+          includeAllArgs ? resolve([data, allArgs, successString]) : resolve(data);
         },
         error: (error, ...args) => {
           reject(error);
