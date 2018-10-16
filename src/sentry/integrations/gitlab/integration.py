@@ -1,13 +1,10 @@
 from __future__ import absolute_import
 
-import re
-
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
 from sentry.web.helpers import render_to_response
-from sentry.models.apitoken import generate_token
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
@@ -21,6 +18,7 @@ from sentry.integrations import (
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
+from sentry.utils.hashlib import sha1_text
 
 from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
@@ -78,7 +76,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         self.default_identity = None
 
     def get_group_id(self):
-        return self.model.external_id.split(':')[1]
+        return self.model.name
 
     def get_client(self):
         if self.default_identity is None:
@@ -248,23 +246,35 @@ class GitlabIntegrationProvider(IntegrationProvider):
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
-        domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
+
+        hostname = urlparse(base_url).netloc
         verify_ssl = state['installation_data']['verify_ssl']
+
+        # Generate a hash to prevent stray hooks from being accepted
+        # use a consistent hash so that reinstalls/shared integrations don't
+        # rotate secrets.
+        secret = sha1_text(''.join([hostname, state['installation_data']['client_id']]))
 
         integration = {
             'name': group['name'],
-            'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
+            # Splice the gitlab host and project together to
+            # act as unique link between a gitlab instance, group + sentry.
+            # This value is embedded then in the webook token that we
+            # give to gitlab to allow us to find the integration a hook came
+            # from.
+            'external_id': u'{}:{}'.format(hostname, group['path']),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': domain_name,
+                'instance': hostname,
+                'domain_name': u'{}/{}'.format(hostname, group['path']),
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
-                'webhook_secret': generate_token()
+                'webhook_secret': secret.hexdigest()
             },
             'user_identity': {
                 'type': 'gitlab',
-                'external_id': u'{}:{}'.format(urlparse(base_url).netloc, user['id']),
+                'external_id': u'{}:{}'.format(hostname, user['id']),
                 'scopes': scopes,
                 'data': oauth_data,
             },

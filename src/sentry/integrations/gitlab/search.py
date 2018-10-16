@@ -39,7 +39,7 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
             response = installation.get_client().get_projects(query=query)
             return Response([{
                 'label': project['name_with_namespace'],
-                'value': project['path_with_namespace'],
+                'value': project['id'],
             } for project in response])
 
         return Response({'detail': 'invalid field value'}, status=400)

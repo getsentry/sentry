@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from sentry.integrations.exceptions import ApiError
 from sentry.plugins import providers
 from sentry.models import Integration
@@ -29,19 +27,19 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
 
         repo_id = config['identifier']
-        instance = installation.model.metadata['domain_name']
+        instance = installation.model.metadata['instance']
 
         try:
-            repo = client.get_project(six.text_type(repo_id))
+            project = client.get_project(repo_id)
         except Exception as e:
             installation.raise_error(e)
         config.update({
             'instance': instance,
-            'path': repo['path_with_namespace'],
-            'name': repo['name_with_namespace'],
-            'repo_id': repo['id'],
-            'external_id': '%s:%s' % (instance, repo['path']),
-            'url': repo['web_url'],
+            'path': project['path_with_namespace'],
+            'name': project['name_with_namespace'],
+            'external_id': u'{}:{}'.format(instance, project['id']),
+            'project_id': project['id'],
+            'url': project['web_url'],
         })
         return config
 
@@ -51,8 +49,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         hook_id = None
         try:
-            hook_id = client.create_project_webhook(
-                six.text_type(data['repo_id']))
+            hook_id = client.create_project_webhook(data['project_id'])
         except Exception as e:
             installation.raise_error(e)
         return {
@@ -61,9 +58,9 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             'url': data['url'],
             'config': {
                 'instance': data['instance'],
-                'repo_id': data['repo_id'],
                 'path': data['path'],
                 'webhook_id': hook_id,
+                'project_id': data['project_id'],
             },
             'integration_id': data['installation'],
         }
@@ -75,7 +72,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         try:
             client.delete_project_webhook(
-                six.text_type(repo.config['repo_id']),
+                repo.config['project_id'],
                 repo.config['webhook_id'])
         except ApiError as e:
             if e.code == 404:
