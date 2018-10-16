@@ -3,7 +3,11 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelBody} from 'app/components/panels';
-import {getQueryEnvironment, getQueryStringWithEnvironment} from 'app/utils/queryString';
+import {
+  getQueryEnvironment,
+  getQueryStringWithEnvironment,
+  getQueryStringWithoutEnvironment,
+} from 'app/utils/queryString';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -94,7 +98,9 @@ const GroupEvents = createReactClass({
   },
 
   handleSearch(query) {
-    let targetQueryParams = {...this.props.location.query, query};
+    query = getQueryStringWithoutEnvironment(query);
+    let targetQueryParams = {...this.props.location.query};
+    if (query !== '') targetQueryParams.query = query;
     let {groupId, orgId, projectId} = this.props.params;
     browserHistory.push({
       pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
