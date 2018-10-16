@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.mediators.sentry_apps import Creator
@@ -34,8 +33,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
 
     @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_apps(self):
-        self.login_as(user=self.superuser)
-
+        self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
