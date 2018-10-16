@@ -12,7 +12,7 @@ import six
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
 from django.forms.util import flatatt
 from django.forms import (
-    Field, CharField, TypedChoiceField, ValidationError
+    Field, CharField, EmailField, TypedChoiceField, ValidationError
 )
 from django.utils.encoding import force_text
 from django.utils.html import format_html
@@ -20,6 +20,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
+from sentry.security import is_valid_email_address
 
 
 class CustomTypedChoiceField(TypedChoiceField):
@@ -98,3 +99,13 @@ class ReadOnlyTextField(Field):
         # Always return initial because the widget doesn't
         # render an input field.
         return initial
+
+
+def email_address_validator(value):
+    if not is_valid_email_address(value):
+        raise ValidationError(_('Enter a valid email address.'), code='invalid')
+    return value
+
+
+class AllowedEmailField(EmailField):
+    default_validators = EmailField.default_validators + [is_valid_email_address]

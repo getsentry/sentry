@@ -14,6 +14,7 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
+from sentry.api.validators import AllowedEmailField
 from sentry.models import AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
@@ -31,7 +32,7 @@ class MemberPermission(OrganizationPermission):
 
 
 class OrganizationMemberSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=75, required=True)
+    email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
     teams = ListField(required=False, allow_null=False)
 
