@@ -60,6 +60,23 @@ export function updateOrganization(org) {
   OrganizationsActions.update(org);
 }
 
+export function fetchOrganizationsByMember(memberId, {setActive}) {
+  let api = new Client();
+  let request = api.requestPromise('/organizations/', {
+    query: {
+      member: memberId,
+    },
+  });
+
+  request.then(data => {
+    if (data.length && setActive) {
+      setActiveOrganization(data[0]);
+    }
+  });
+
+  return request;
+}
+
 export function fetchOrganizationDetails(orgId, {setActive, loadProjects, loadTeam}) {
   let api = new Client();
   let request = api.requestPromise(`/organizations/${orgId}/`);

@@ -3,6 +3,7 @@
  */
 import {withRouter} from 'react-router';
 import React from 'react';
+import Cookies from 'js-cookie';
 
 import {
   addErrorMessage,
@@ -11,6 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
+import {fetchOrganizationsByMember} from 'app/actionCreators/organizations';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
@@ -24,6 +26,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import U2fsign from 'app/components/u2fsign';
 
 const ENDPOINT = '/users/me/authenticators/';
+const PENDING_INVITE = 'pending-invite';
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method
@@ -122,6 +125,29 @@ class AccountSecurityEnroll extends AsyncView {
     return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
   }
 
+  componentWillMount() {
+    super.componentWillMount();
+    // If 2FA is required, a pending organization invite
+    // can be accepted once the user enrolls in 2FA
+    let invite = Cookies.get(PENDING_INVITE);
+
+    if (invite) {
+      invite = invite.split('/');
+      this.invite = {
+        memberId: invite[2],
+        token: invite[3],
+      };
+    }
+  }
+
+  loadOrganizationContext = () => {
+    if (this.invite && this.invite.memberId) {
+      fetchOrganizationsByMember(this.invite.memberId, {
+        setActive: true,
+      });
+    }
+  };
+
   handleFieldChange = (name, value) => {
     // This should not be used for rendering, that's why it's not in state
     this._form[name] = value;
@@ -150,6 +176,7 @@ class AccountSecurityEnroll extends AsyncView {
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
       otp: hasSentCode ? this._form.otp || '' : undefined,
       secret: authenticator.secret,
+      ...this.invite,
     };
 
     // Only show loading when submitting OTP
@@ -177,6 +204,7 @@ class AccountSecurityEnroll extends AsyncView {
             addMessage(t('Sent code to %s', data.phone));
           } else {
             // OTP was accepted and SMS was added as a 2fa method
+            this.loadOrganizationContext();
             this.props.router.push('/settings/account/security/');
             openRecoveryOptions({
               authenticatorName: authenticator.name,
@@ -209,6 +237,7 @@ class AccountSecurityEnroll extends AsyncView {
         data: {
           ...data,
           ...this._form,
+          ...this.invite,
         },
       })
       .then(this.handleEnrollSuccess, this.handleEnrollError);
@@ -222,6 +251,7 @@ class AccountSecurityEnroll extends AsyncView {
       ...this._form,
       ...(dataModel || {}),
       secret: authenticator.secret,
+      ...this.invite,
     };
 
     this.setState({
@@ -237,6 +267,7 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handler when we successfully add a 2fa device
   handleEnrollSuccess = () => {
+    this.loadOrganizationContext();
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.props.router.push('/settings/account/security');

@@ -144,6 +144,32 @@ class AcceptInviteTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/accept-organization-invite.html')
 
+    def test_member_already_exists(self):
+        self.login_as(self.user)
+
+        om = OrganizationMember.objects.create(
+            email='newuser@example.com',
+            role='member',
+            token='abc',
+            organization=self.organization,
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
+        assert resp.status_code == 302
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert om.email is None
+        assert om.user == self.user
+
+        om2 = OrganizationMember.objects.create(
+            email='newuser1@example.com',
+            role='member',
+            token='abcd',
+            organization=self.organization,
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[om2.id, om2.token]))
+        assert resp.status_code == 302
+        assert not OrganizationMember.objects.filter(id=om2.id).exists()
+
     def test_can_accept_when_user_has_2fa(self):
         self._require_2fa_for_organization()
         self._enroll_user_in_2fa()
