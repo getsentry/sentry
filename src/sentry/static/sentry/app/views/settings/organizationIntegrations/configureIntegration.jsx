@@ -22,10 +22,13 @@ class ConfigureIntegration extends AsyncView {
     ];
   }
 
-  componentDidMount() {
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey !== 'integration') {
+      return;
+    }
     analytics('integrations.details_viewed', {
       org_id: parseInt(this.props.organization.id, 10),
-      integration: this.props.provider.key,
+      integration: data.provider.key,
     });
   }
 
