@@ -138,14 +138,14 @@ class APIView(BaseView):
                 try:
                     json.dumps([key, value])
                     meta[key] = value
-                except TypeError:
+                except (TypeError, ValueError):
                     pass
 
             meta['SENTRY_API_VIEW_NAME'] = self.__class__.__name__
 
             kafka_publisher.publish(
                 channel=getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_TOPIC', 'raw-store-events'),
-                value=json.dumps([meta, data])
+                value=json.dumps([meta, base64.b64encode(data)])
             )
         except Exception as e:
             logger.debug("Cannot publish event to Kafka: {}".format(e.message))
