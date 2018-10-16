@@ -57,6 +57,7 @@ class TestVSTSOAuthCallbackView(TestCase):
 
 class TestAccountConfigView(TestCase):
     def setUp(self):
+        responses.reset()
         account_id = '1234567-8910'
         self.base_url = 'http://sentry2.visualstudio.com/'
         self.accounts = [
@@ -133,8 +134,8 @@ class TestAccountConfigView(TestCase):
     def test_get_accounts(self):
         view = AccountConfigView()
         accounts = view.get_accounts('access-token', 'user-id')
-        assert accounts[0]['accountName'] == 'sentry'
-        assert accounts[1]['accountName'] == 'sentry2'
+        assert accounts['value'][0]['accountName'] == 'sentry'
+        assert accounts['value'][1]['accountName'] == 'sentry2'
 
     def test_account_form(self):
         account_form = AccountForm(self.accounts)
