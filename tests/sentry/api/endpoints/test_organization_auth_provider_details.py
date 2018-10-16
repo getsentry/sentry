@@ -14,5 +14,5 @@ class OrganizationAuthProviderPermissionTest(PermissionTestCase):
         )
 
     def test_member_can_get(self):
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             self.assert_member_can_access(self.path)
