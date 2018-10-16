@@ -198,7 +198,7 @@ class WebInviteHelper(BaseInviteHelper):
         messages.add_message(
             self.request, messages.SUCCESS,
             _('You are already a member of the %r organization.') %
-            (self.organization.name.encode('utf-8'), )
+            (self.om.organization.name.encode('utf-8'), )
         )
 
 
