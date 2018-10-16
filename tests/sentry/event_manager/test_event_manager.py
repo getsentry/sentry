@@ -7,50 +7,52 @@ import mock
 import pytest
 import uuid
 
+from collections import namedtuple
 from datetime import datetime, timedelta
-from django.conf import settings
 from django.utils import timezone
 from time import time
 
 from sentry.app import tsdb
-from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME, VERSION_LENGTH
+from sentry.constants import VERSION_LENGTH
 from sentry.event_manager import (
-    HashDiscarded, EventManager, EventUser, InvalidTimestamp,
-    get_hashes_for_event, get_hashes_from_fingerprint, generate_culprit,
-    md5_from_hash, process_timestamp
+    HashDiscarded, EventManager, EventUser,
+    md5_from_hash
 )
 from sentry.models import (
-    Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment, GroupHash, GroupLink,
-    GroupRelease, GroupResolution, GroupStatus, GroupTombstone, EventMapping, Integration, Release,
+    Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
+    GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
+    GroupTombstone, EventMapping, Integration, Release,
     ReleaseProjectEnvironment, OrganizationIntegration, UserReport
 )
 from sentry.signals import event_discarded, event_saved
-from sentry.testutils import assert_mock_called_once_with_partial, TestCase, TransactionTestCase
+from sentry.testutils import assert_mock_called_once_with_partial, TransactionTestCase
+from sentry.utils.data_filters import FilterStatKeys
+
+
+def make_event(**kwargs):
+    result = {
+        'event_id': 'a' * 32,
+        'message': 'foo',
+        'timestamp': 1403007314.570599,
+        'level': logging.ERROR,
+        'logger': 'default',
+        'tags': [],
+    }
+    result.update(kwargs)
+    return result
 
 
 class EventManagerTest(TransactionTestCase):
-    def make_event(self, **kwargs):
-        result = {
-            'event_id': 'a' * 32,
-            'message': 'foo',
-            'timestamp': 1403007314.570599,
-            'level': logging.ERROR,
-            'logger': 'default',
-            'tags': [],
-        }
-        result.update(kwargs)
-        return result
-
     def make_release_event(self, release_name, project_id):
-        manager = EventManager(self.make_event(release=release_name))
+        manager = EventManager(make_event(release=release_name))
         manager.normalize()
         event = manager.save(project_id)
         return event
 
     def test_key_id_remains_in_data(self):
-        manager = EventManager(self.make_event(key_id=12345))
+        manager = EventManager(make_event(key_id=12345))
         manager.normalize()
-        assert manager.data['key_id'] == 12345
+        assert manager.get_data()['key_id'] == 12345
         event = manager.save(1)
         assert event.data['key_id'] == 12345
 
@@ -58,11 +60,11 @@ class EventManagerTest(TransactionTestCase):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
-        manager = EventManager(self.make_event(event_id='a', message='foo bar'))
+        manager = EventManager(make_event(event_id='a', message='foo bar'))
         manager.normalize()
         event1 = manager.save(1)
 
-        manager = EventManager(self.make_event(event_id='b', message='foo baz'))
+        manager = EventManager(make_event(event_id='b', message='foo baz'))
         manager.normalize()
         event2 = manager.save(1)
 
@@ -73,7 +75,7 @@ class EventManagerTest(TransactionTestCase):
         should_sample.return_value = True
         event_id = 'a' * 32
 
-        manager = EventManager(self.make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id))
         event = manager.save(1)
 
         # This is a brand new event, so it is actually saved.
@@ -90,7 +92,7 @@ class EventManagerTest(TransactionTestCase):
 
         event_id = 'b' * 32
 
-        manager = EventManager(self.make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id))
         event = manager.save(1)
 
         # This second is a dupe, so should be sampled
@@ -105,121 +107,9 @@ class EventManagerTest(TransactionTestCase):
             event_id=event_id,
         ).exists()
 
-    def test_tags_as_list(self):
-        manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
-        data = manager.normalize()
-
-        assert data['tags'] == [('foo', 'bar')]
-
-    def test_tags_as_dict(self):
-        manager = EventManager(self.make_event(tags={'foo': 'bar'}))
-        data = manager.normalize()
-
-        assert data['tags'] == [('foo', 'bar')]
-
-    def test_interface_is_relabeled(self):
-        manager = EventManager(self.make_event(user={'id': '1'}))
-        data = manager.normalize()
-
-        assert data['user'] == {'id': '1'}
-        # data is a CanonicalKeyDict, so we need to check .keys() explicitly
-        assert 'sentry.interfaces.User' not in data.keys()
-
-    def test_does_default_ip_address_to_user(self):
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'sentry.interfaces.Http': {
-                        'url': 'http://example.com',
-                        'env': {
-                            'REMOTE_ADDR': '127.0.0.1',
-                        }
-                    }
-                }
-            )
-        )
-        data = manager.normalize()
-        assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
-
-    @mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
-    def test_does_geo_from_ip(self, from_ip_address_mock):
-        from sentry.interfaces.geo import Geo
-
-        geo = {
-            'city': 'San Francisco',
-            'country_code': 'US',
-            'region': 'CA',
-        }
-        from_ip_address_mock.return_value = Geo.to_python(geo)
-
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'sentry.interfaces.User': {
-                        'ip_address': '192.168.0.1',
-                    },
-                }
-            )
-        )
-        data = manager.normalize()
-        assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
-        assert data['sentry.interfaces.User']['geo'] == geo
-
-    @mock.patch('sentry.interfaces.geo.geo_by_addr')
-    def test_skips_geo_with_no_result(self, geo_by_addr_mock):
-        geo_by_addr_mock.return_value = None
-
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'sentry.interfaces.User': {
-                        'ip_address': '127.0.0.1',
-                    },
-                }
-            )
-        )
-        data = manager.normalize()
-        assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
-        assert 'geo' not in data['sentry.interfaces.User']
-
-    def test_does_default_ip_address_if_present(self):
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'sentry.interfaces.Http': {
-                        'url': 'http://example.com',
-                        'env': {
-                            'REMOTE_ADDR': '127.0.0.1',
-                        }
-                    },
-                    'sentry.interfaces.User': {
-                        'ip_address': '192.168.0.1',
-                    },
-                }
-            )
-        )
-        data = manager.normalize()
-        assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
-
-    def test_does_not_default_invalid_ip_address(self):
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'sentry.interfaces.Http': {
-                        'url': 'http://example.com',
-                        'env': {
-                            'REMOTE_ADDR': '127.0.0.1, 192.168.0.1',
-                        }
-                    }
-                }
-            )
-        )
-        data = manager.normalize()
-        assert 'sentry.interfaces.User' not in data
-
     def test_platform_is_saved(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{'sentry.interfaces.AppleCrashReport': {
                     'crash': {},
                     'binary_images': []
@@ -232,7 +122,7 @@ class EventManagerTest(TransactionTestCase):
         assert 'sentry.interfacse.AppleCrashReport' not in event.interfaces
 
     def test_ephemral_interfaces_removed_on_save(self):
-        manager = EventManager(self.make_event(platform='python'))
+        manager = EventManager(make_event(platform='python'))
         event = manager.save(1)
 
         group = event.group
@@ -242,20 +132,20 @@ class EventManagerTest(TransactionTestCase):
     def test_dupe_message_id(self):
         event_id = 'a' * 32
 
-        manager = EventManager(self.make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id))
         manager.save(1)
 
         assert Event.objects.count() == 1
 
         # ensure that calling it again doesn't raise a db error
-        manager = EventManager(self.make_event(event_id=event_id))
+        manager = EventManager(make_event(event_id=event_id))
         manager.save(1)
 
         assert Event.objects.count() == 1
 
     def test_updates_group(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo',
                 event_id='a' * 32,
                 checksum='a' * 32,
@@ -264,7 +154,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(1)
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo bar',
                 event_id='b' * 32,
                 checksum='a' * 32,
@@ -285,7 +175,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_updates_group_with_fingerprint(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo',
                 event_id='a' * 32,
                 fingerprint=['a' * 32],
@@ -295,7 +185,7 @@ class EventManagerTest(TransactionTestCase):
             event = manager.save(1)
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo bar',
                 event_id='b' * 32,
                 fingerprint=['a' * 32],
@@ -312,7 +202,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_differentiates_with_fingerprint(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo',
                 event_id='a' * 32,
                 fingerprint=['{{ default }}', 'a' * 32],
@@ -323,7 +213,7 @@ class EventManagerTest(TransactionTestCase):
             event = manager.save(1)
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo bar',
                 event_id='b' * 32,
                 fingerprint=['a' * 32],
@@ -339,7 +229,7 @@ class EventManagerTest(TransactionTestCase):
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1. MySQL doesn't support microseconds.
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
                 timestamp=1403007314,
@@ -354,7 +244,7 @@ class EventManagerTest(TransactionTestCase):
         assert group.is_resolved()
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
                 timestamp=1403007345,
@@ -373,7 +263,7 @@ class EventManagerTest(TransactionTestCase):
         plugin_is_regression.return_value = False
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
                 timestamp=1403007314,
@@ -388,7 +278,7 @@ class EventManagerTest(TransactionTestCase):
         assert group.is_resolved()
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
                 timestamp=1403007315,
@@ -415,7 +305,7 @@ class EventManagerTest(TransactionTestCase):
         old_release.add_project(self.project)
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
                 timestamp=time() - 50000,  # need to work around active_at
@@ -441,7 +331,7 @@ class EventManagerTest(TransactionTestCase):
         )
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
                 timestamp=time(),
@@ -460,7 +350,7 @@ class EventManagerTest(TransactionTestCase):
         assert GroupResolution.objects.filter(group=group).exists()
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='c' * 32,
                 checksum='a' * 32,
                 timestamp=time(),
@@ -501,7 +391,7 @@ class EventManagerTest(TransactionTestCase):
         old_release.add_project(self.project)
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
                 timestamp=time() - 50000,  # need to work around active_at
@@ -561,7 +451,7 @@ class EventManagerTest(TransactionTestCase):
         )
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
                 timestamp=time(),
@@ -586,7 +476,7 @@ class EventManagerTest(TransactionTestCase):
                 assert GroupResolution.objects.filter(group=group).exists()
 
                 manager = EventManager(
-                    self.make_event(
+                    make_event(
                         event_id='c' * 32,
                         checksum='a' * 32,
                         timestamp=time(),
@@ -618,7 +508,7 @@ class EventManagerTest(TransactionTestCase):
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
         mock_is_resolved.return_value = False
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
                 timestamp=1403007314,
@@ -629,7 +519,7 @@ class EventManagerTest(TransactionTestCase):
 
         mock_is_resolved.return_value = True
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
                 timestamp=1403007414,
@@ -642,31 +532,17 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=event.group.id)
         assert group.active_at == event2.datetime != event.datetime
 
-    def test_long_culprit(self):
-        manager = EventManager(self.make_event(
-            culprit='x' * (MAX_CULPRIT_LENGTH + 1),
-        ))
-        data = manager.normalize()
-        assert len(data['culprit']) == MAX_CULPRIT_LENGTH
-
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
-        manager = EventManager(self.make_event(
+        manager = EventManager(make_event(
             transaction=dict_input,
         ))
         manager.normalize()
         event = manager.save(1)
         assert event.transaction is None
 
-    def test_long_transaction(self):
-        manager = EventManager(self.make_event(
-            transaction='x' * (MAX_CULPRIT_LENGTH + 1),
-        ))
-        data = manager.normalize()
-        assert len(data['transaction']) == MAX_CULPRIT_LENGTH
-
     def test_transaction_as_culprit(self):
-        manager = EventManager(self.make_event(
+        manager = EventManager(make_event(
             transaction='foobar',
         ))
         manager.normalize()
@@ -675,7 +551,7 @@ class EventManagerTest(TransactionTestCase):
         assert event.culprit == 'foobar'
 
     def test_culprit_is_not_transaction(self):
-        manager = EventManager(self.make_event(
+        manager = EventManager(make_event(
             culprit='foobar',
         ))
         manager.normalize()
@@ -684,7 +560,7 @@ class EventManagerTest(TransactionTestCase):
         assert event1.culprit == 'foobar'
 
     def test_transaction_and_culprit(self):
-        manager = EventManager(self.make_event(
+        manager = EventManager(make_event(
             transaction='foobar',
             culprit='baz',
         ))
@@ -692,26 +568,6 @@ class EventManagerTest(TransactionTestCase):
         event1 = manager.save(1)
         assert event1.transaction == 'foobar'
         assert event1.culprit == 'baz'
-
-    def test_long_message(self):
-        manager = EventManager(
-            self.make_event(
-                message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
-            )
-        )
-        data = manager.normalize()
-        assert len(data['sentry.interfaces.Message']['message']) == \
-            settings.SENTRY_MAX_MESSAGE_LENGTH
-
-    def test_default_version(self):
-        manager = EventManager(self.make_event())
-        data = manager.normalize()
-        assert data['version'] == '5'
-
-    def test_explicit_version(self):
-        manager = EventManager(self.make_event(), '6')
-        data = manager.normalize()
-        assert data['version'] == '6'
 
     def test_first_release(self):
         project_id = 1
@@ -774,7 +630,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_group_release_with_env(self):
         manager = EventManager(
-            self.make_event(release='1.0', environment='prod', event_id='a' * 32)
+            make_event(release='1.0', environment='prod', event_id='a' * 32)
         )
         event = manager.save(1)
 
@@ -787,7 +643,7 @@ class EventManagerTest(TransactionTestCase):
         ).exists()
 
         manager = EventManager(
-            self.make_event(release='1.0', environment='staging', event_id='b' * 32)
+            make_event(release='1.0', environment='staging', event_id='b' * 32)
         )
         event = manager.save(1)
 
@@ -799,19 +655,9 @@ class EventManagerTest(TransactionTestCase):
             environment='staging',
         ).exists()
 
-    def test_logger(self):
-        manager = EventManager(self.make_event(logger="foo\nbar"))
-        data = manager.normalize()
-        assert data['logger'] == DEFAULT_LOGGER_NAME
-
-        manager = EventManager(self.make_event(logger=""))
-        data = manager.normalize()
-        assert data['logger'] == DEFAULT_LOGGER_NAME
-        assert not any(e.get('name') == 'logger' for e in data['errors'])
-
     def test_tsdb(self):
         project = self.project
-        manager = EventManager(self.make_event(
+        manager = EventManager(make_event(
             fingerprint=['totally unique super duper fingerprint'],
             environment='totally unique super duper environment',
         ))
@@ -833,7 +679,7 @@ class EventManagerTest(TransactionTestCase):
     @pytest.mark.xfail
     def test_record_frequencies(self):
         project = self.project
-        manager = EventManager(self.make_event())
+        manager = EventManager(make_event())
         event = manager.save(project.id)
 
         assert tsdb.get_most_frequent(
@@ -857,7 +703,7 @@ class EventManagerTest(TransactionTestCase):
         }
 
     def test_event_user(self):
-        manager = EventManager(self.make_event(
+        manager = EventManager(make_event(
             event_id='a',
             environment='totally unique environment',
             **{'sentry.interfaces.User': {
@@ -919,7 +765,7 @@ class EventManagerTest(TransactionTestCase):
 
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(
-            self.make_event(
+            make_event(
                 event_id='b',
                 **{'sentry.interfaces.User': {
                     'id': '1',
@@ -937,7 +783,7 @@ class EventManagerTest(TransactionTestCase):
         assert euser.ident == '1'
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(self.make_event(**{'sentry.interfaces.User': {'username': u'foô'}}))
+        manager = EventManager(make_event(**{'sentry.interfaces.User': {'username': u'foô'}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
@@ -947,7 +793,7 @@ class EventManagerTest(TransactionTestCase):
         assert euser.username == u'foô'
 
     def test_environment(self):
-        manager = EventManager(self.make_event(**{
+        manager = EventManager(make_event(**{
             'environment': 'beta',
         }))
         manager.normalize()
@@ -956,7 +802,7 @@ class EventManagerTest(TransactionTestCase):
         assert dict(event.tags).get('environment') == 'beta'
 
     def test_invalid_environment(self):
-        manager = EventManager(self.make_event(**{
+        manager = EventManager(make_event(**{
             'environment': 'bad/name',
         }))
         manager.normalize()
@@ -968,7 +814,7 @@ class EventManagerTest(TransactionTestCase):
         release_version = '1.0'
 
         def save_event():
-            manager = EventManager(self.make_event(**{
+            manager = EventManager(make_event(**{
                 'event_id': uuid.uuid1().hex,  # don't deduplicate
                 'environment': 'beta',
                 'release': release_version,
@@ -1018,7 +864,7 @@ class EventManagerTest(TransactionTestCase):
         )
 
     def test_default_fingerprint(self):
-        manager = EventManager(self.make_event())
+        manager = EventManager(make_event())
         manager.normalize()
         event = manager.save(self.project.id)
 
@@ -1044,7 +890,7 @@ class EventManagerTest(TransactionTestCase):
             comments='It Broke!!!',
         )
         manager = EventManager(
-            self.make_event(
+            make_event(
                 environment=environment.name,
                 event_id=event_id,
                 group=group))
@@ -1053,8 +899,9 @@ class EventManagerTest(TransactionTestCase):
         assert UserReport.objects.get(event_id=event_id).environment == environment
 
     def test_default_event_type(self):
-        manager = EventManager(self.make_event(message='foo bar'))
-        data = manager.normalize()
+        manager = EventManager(make_event(message='foo bar'))
+        manager.normalize()
+        data = manager.get_data()
         assert data['type'] == 'default'
         event = manager.save(self.project.id)
         group = event.group
@@ -1065,7 +912,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_message_event_type(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{
                     'message': '',
                     'sentry.interfaces.Message': {
@@ -1076,7 +923,8 @@ class EventManagerTest(TransactionTestCase):
                 }
             )
         )
-        data = manager.normalize()
+        manager.normalize()
+        data = manager.get_data()
         assert data['type'] == 'default'
         event = manager.save(self.project.id)
         group = event.group
@@ -1087,7 +935,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_error_event_type(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{
                     'sentry.interfaces.Exception': {
                         'values': [{
@@ -1098,7 +946,8 @@ class EventManagerTest(TransactionTestCase):
                 }
             )
         )
-        data = manager.normalize()
+        manager.normalize()
+        data = manager.get_data()
         assert data['type'] == 'error'
         event = manager.save(self.project.id)
         group = event.group
@@ -1110,7 +959,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_csp_event_type(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{
                     'sentry.interfaces.Csp': {
                         'effective_directive': 'script-src',
@@ -1119,7 +968,8 @@ class EventManagerTest(TransactionTestCase):
                 }
             )
         )
-        data = manager.normalize()
+        manager.normalize()
+        data = manager.get_data()
         assert data['type'] == 'csp'
         event = manager.save(self.project.id)
         group = event.group
@@ -1132,7 +982,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_sdk(self):
         manager = EventManager(
-            self.make_event(**{
+            make_event(**{
                 'sdk': {
                     'name': 'sentry-unity',
                     'version': '1.0',
@@ -1150,7 +1000,7 @@ class EventManagerTest(TransactionTestCase):
     def test_no_message(self):
         # test that the message is handled gracefully
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{
                     'message': None,
                     'sentry.interfaces.Message': {
@@ -1166,7 +1016,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_bad_message(self):
         # test that the message is handled gracefully
-        manager = EventManager(self.make_event(**{
+        manager = EventManager(make_event(**{
             'message': 1234,
         }))
         manager.normalize()
@@ -1178,7 +1028,7 @@ class EventManagerTest(TransactionTestCase):
         }
 
     def test_message_attribute_goes_to_interface(self):
-        manager = EventManager(self.make_event(**{
+        manager = EventManager(make_event(**{
             'message': 'hello world',
         }))
         manager.normalize()
@@ -1192,7 +1042,7 @@ class EventManagerTest(TransactionTestCase):
         # of a compatibility hack, and ideally we would just enforce a stricter
         # schema instead of combining them like this.
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{
                     'message': 'world hello',
                     'sentry.interfaces.Message': {
@@ -1210,7 +1060,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_message_attribute_interface_both_strings(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 **{
                     'sentry.interfaces.Message': 'a plain string',
                     'message': 'another string',
@@ -1226,7 +1076,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_throws_when_matches_discarded_hash(self):
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo',
                 event_id='a' * 32,
                 fingerprint=['a' * 32],
@@ -1252,7 +1102,7 @@ class EventManagerTest(TransactionTestCase):
         )
 
         manager = EventManager(
-            self.make_event(
+            make_event(
                 message='foo',
                 event_id='b' * 32,
                 fingerprint=['a' * 32],
@@ -1280,7 +1130,7 @@ class EventManagerTest(TransactionTestCase):
         mock_event_saved = mock.Mock()
         event_saved.connect(mock_event_saved)
 
-        manager = EventManager(self.make_event(message='foo'))
+        manager = EventManager(make_event(message='foo'))
         manager.normalize()
         event = manager.save(1)
 
@@ -1291,32 +1141,10 @@ class EventManagerTest(TransactionTestCase):
             signal=event_saved,
         )
 
-    def test_bad_interfaces_no_exception(self):
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'sentry.interfaces.User': None,
-                    'sentry.interfaces.Http': None,
-                    'sdk': 'A string for sdk is not valid'
-                }
-            )
-        )
-        manager.normalize({'client_ip': '1.2.3.4'})
-
-        manager = EventManager(
-            self.make_event(
-                **{
-                    'errors': {},
-                    'sentry.interfaces.Http': {},
-                }
-            )
-        )
-        manager.normalize()
-
     def test_checksum_rehashed(self):
         checksum = 'invalid checksum hash'
         manager = EventManager(
-            self.make_event(**{
+            make_event(**{
                 'checksum': checksum,
             })
         )
@@ -1326,259 +1154,47 @@ class EventManagerTest(TransactionTestCase):
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
         assert hashes == [md5_from_hash(checksum), checksum]
 
+    @mock.patch('sentry.event_manager.is_valid_error_message')
+    def test_should_filter_message(self, mock_is_valid_error_message):
+        TestItem = namedtuple('TestItem', 'value formatted result')
 
-class ProcessTimestampTest(TestCase):
-    def test_iso_timestamp(self):
-        self.assertEquals(
-            process_timestamp(
-                '2012-01-01T10:30:45',
-                current_datetime=datetime(2012, 1, 1, 10, 30, 45),
+        items = [
+            TestItem(
+                {'type': 'UnfilteredException'},
+                'UnfilteredException',
+                True,
             ),
-            1325413845.0,
-        )
-
-    def test_iso_timestamp_with_ms(self):
-        self.assertEquals(
-            process_timestamp(
-                '2012-01-01T10:30:45.434',
-                current_datetime=datetime(2012, 1, 1, 10, 30, 45, 434000),
+            TestItem(
+                {'value': 'This is an unfiltered exception.'},
+                'This is an unfiltered exception.',
+                True,
             ),
-            1325413845.0,
-        )
-
-    def test_timestamp_iso_timestamp_with_Z(self):
-        self.assertEquals(
-            process_timestamp(
-                '2012-01-01T10:30:45Z',
-                current_datetime=datetime(2012, 1, 1, 10, 30, 45),
+            TestItem(
+                {'type': 'UnfilteredException', 'value': 'This is an unfiltered exception.'},
+                'UnfilteredException: This is an unfiltered exception.',
+                True,
             ),
-            1325413845.0,
-        )
-
-    def test_invalid_timestamp(self):
-        self.assertRaises(InvalidTimestamp, process_timestamp, 'foo')
-
-    def test_invalid_numeric_timestamp(self):
-        self.assertRaises(InvalidTimestamp, process_timestamp, '100000000000000000000.0')
-
-    def test_future_timestamp(self):
-        self.assertRaises(InvalidTimestamp, process_timestamp, '2052-01-01T10:30:45Z')
-
-    def test_long_microseconds_value(self):
-        self.assertEquals(
-            process_timestamp(
-                '2012-01-01T10:30:45.341324Z',
-                current_datetime=datetime(2012, 1, 1, 10, 30, 45),
+            TestItem(
+                {'type': 'FilteredException', 'value': 'This is a filtered exception.'},
+                'FilteredException: This is a filtered exception.',
+                False,
             ),
-            1325413845.0,
-        )
+        ]
 
-
-class GetHashesFromEventTest(TestCase):
-    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
-    @mock.patch('sentry.interfaces.http.Http.compute_hashes')
-    def test_stacktrace_wins_over_http(self, http_comp_hash, stack_comp_hash):
-        # this was a regression, and a very important one
-        http_comp_hash.return_value = [['baz']]
-        stack_comp_hash.return_value = [['foo', 'bar']]
-        event = Event(
-            data={
-                'sentry.interfaces.Stacktrace': {
-                    'frames': [{
-                        'lineno': 1,
-                        'filename': 'foo.py',
-                    }],
-                },
-                'sentry.interfaces.Http': {
-                    'url': 'http://example.com'
-                },
-            },
-            platform='python',
-            message='Foo bar',
-        )
-        hashes = get_hashes_for_event(event)
-        assert len(hashes) == 1
-        hash_one = hashes[0]
-        stack_comp_hash.assert_called_once_with('python')
-        assert not http_comp_hash.called
-        assert hash_one == ['foo', 'bar']
-
-
-class GetHashesFromFingerprintTest(TestCase):
-    def test_default_value(self):
-        event = Event(
-            data={
-                'sentry.interfaces.Stacktrace': {
-                    'frames': [
-                        {
-                            'lineno': 1,
-                            'filename': 'foo.py',
-                        }, {
-                            'lineno': 1,
-                            'filename': 'foo.py',
-                            'in_app': True,
-                        }
-                    ],
-                },
-                'sentry.interfaces.Http': {
-                    'url': 'http://example.com'
-                },
-            },
-            platform='python',
-            message='Foo bar',
-        )
-        fp_checksums = get_hashes_from_fingerprint(event, ["{{default}}"])
-
-        def_checksums = get_hashes_for_event(event)
-        assert def_checksums == fp_checksums
-
-    def test_custom_values(self):
-        event = Event(
-            data={
-                'sentry.interfaces.Stacktrace': {
-                    'frames': [
-                        {
-                            'lineno': 1,
-                            'filename': 'foo.py',
-                        }, {
-                            'lineno': 1,
-                            'filename': 'foo.py',
-                            'in_app': True,
-                        }
-                    ],
-                },
-                'sentry.interfaces.Http': {
-                    'url': 'http://example.com'
-                },
-            },
-            platform='python',
-            message='Foo bar',
-        )
-        fp_checksums = get_hashes_from_fingerprint(event, ["{{default}}", "custom"])
-
-        def_checksums = get_hashes_for_event(event)
-        assert len(fp_checksums) == len(def_checksums)
-        assert def_checksums != fp_checksums
-
-
-class GenerateCulpritTest(TestCase):
-    def test_with_exception_interface(self):
         data = {
             'sentry.interfaces.Exception': {
-                'values': [
-                    {
-                        'stacktrace': {
-                            'frames': [
-                                {
-                                    'lineno': 1,
-                                    'filename': 'foo.py',
-                                }, {
-                                    'lineno': 1,
-                                    'filename': 'bar.py',
-                                    'in_app': True,
-                                }
-                            ],
-                        }
-                    }
-                ]
-            },
-            'sentry.interfaces.Stacktrace': {
-                'frames': [
-                    {
-                        'lineno': 1,
-                        'filename': 'NOTME.py',
-                    }, {
-                        'lineno': 1,
-                        'filename': 'PLZNOTME.py',
-                        'in_app': True,
-                    }
-                ],
-            },
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com'
+                'values': [item.value for item in items]
             },
         }
-        assert generate_culprit(data) == 'bar.py in ?'
 
-    def test_with_missing_exception_interface(self):
-        data = {
-            'sentry.interfaces.Stacktrace': {
-                'frames': [
-                    {
-                        'lineno': 1,
-                        'filename': 'NOTME.py',
-                    }, {
-                        'lineno': 1,
-                        'filename': 'PLZNOTME.py',
-                        'in_app': True,
-                    }
-                ],
-            },
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com'
-            },
-        }
-        assert generate_culprit(data) == 'PLZNOTME.py in ?'
+        manager = EventManager(data)
 
-    def test_with_empty_stacktrace(self):
-        data = {
-            'sentry.interfaces.Stacktrace': None,
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com'
-            },
-        }
-        assert generate_culprit(data) == 'http://example.com'
+        mock_is_valid_error_message.side_effect = [item.result for item in items]
 
-    def test_with_only_http_interface(self):
-        data = {
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com'
-            },
-        }
-        assert generate_culprit(data) == 'http://example.com'
+        assert manager.should_filter(project=self.project) == (True, FilterStatKeys.ERROR_MESSAGE)
 
-        data = {
-            'sentry.interfaces.Http': {},
-        }
-        assert generate_culprit(data) == ''
-
-    def test_empty_data(self):
-        assert generate_culprit({}) == ''
-
-    def test_truncation(self):
-        data = {
-            'sentry.interfaces.Exception': {
-                'values':
-                [{
-                    'stacktrace': {
-                        'frames': [{
-                            'filename': 'x' * (MAX_CULPRIT_LENGTH + 1),
-                        }],
-                    }
-                }],
-            }
-        }
-        assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
-
-        data = {
-            'sentry.interfaces.Stacktrace': {
-                'frames': [{
-                    'filename': 'x' * (MAX_CULPRIT_LENGTH + 1),
-                }]
-            }
-        }
-        assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
-
-        data = {
-            'sentry.interfaces.Http': {
-                'url': 'x' * (MAX_CULPRIT_LENGTH + 1),
-            }
-        }
-        assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
-
-    def test_md5_from_hash(self):
-        result = md5_from_hash(['foo', 'bar', u'foô'])
-        assert result == '6d81588029ed4190110b2779ba952a00'
+        assert mock_is_valid_error_message.call_args_list == [
+            mock.call(self.project, item.formatted) for item in items]
 
 
 class ReleaseIssueTest(TransactionTestCase):
@@ -1603,7 +1219,7 @@ class ReleaseIssueTest(TransactionTestCase):
 
     def make_release_event(self, release_version='1.0',
                            environment_name='prod', project_id=1, **kwargs):
-        event = self.make_event(
+        event = make_event(
             release=release_version,
             environment=environment_name,
             event_id=uuid.uuid1().hex,

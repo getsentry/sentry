@@ -212,7 +212,6 @@ def create_sample_event(project, platform=None, default=None,
 
     data.update(kwargs)
 
-    data = ClientApiHelper().validate_data(data)
     manager = EventManager(data)
     manager.normalize()
     return manager.save(project.id, raw=raw)

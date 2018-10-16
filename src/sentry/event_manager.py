@@ -9,6 +9,8 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
+import jsonschema
+
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -18,11 +20,12 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb
+from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
 )
+from sentry.coreapi import APIError, APIForbidden
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
@@ -39,6 +42,8 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.data_filters import is_valid_ip, \
+    is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
@@ -46,9 +51,13 @@ from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
+logger = logging.getLogger('sentry.events')
+
+
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
+SECURITY_REPORT_INTERFACES = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
 
 
 def count_limit(count):
@@ -138,6 +147,22 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
             else:
                 hashes[bit] = bit
     return list(hashes.items())
+
+
+def parse_client_as_sdk(value):
+    if not value:
+        return {}
+    try:
+        name, version = value.split('/', 1)
+    except ValueError:
+        try:
+            name, version = value.split(' ', 1)
+        except ValueError:
+            return {}
+    return {
+        'name': name,
+        'version': version,
+    }
 
 
 if not settings.SENTRY_SAMPLE_DATA:
@@ -295,15 +320,90 @@ class InvalidTimestamp(Exception):
 
 
 class EventManager(object):
-    logger = logging.getLogger('sentry.events')
+    """
+    Handles normalization in both the store endpoint and the save task. The
+    intention is to swap this class out with a reimplementation in Rust.
+    """
 
     def __init__(self, data, version='5'):
-        self.data = CanonicalKeyDict(data)
+        if not isinstance(data, (bytes, six.text_type)):
+            data = CanonicalKeyDict(data)
+        self._data = data
         self.version = version
 
-    def normalize(self, request_env=None):
-        request_env = request_env or {}
-        data = self.data
+    def decode(self, content_encoding, helper):
+        data = self._data
+        if isinstance(data, six.binary_type):
+            if content_encoding == 'gzip':
+                data = helper.decompress_gzip(data)
+            elif content_encoding == 'deflate':
+                data = helper.decompress_deflate(data)
+            elif data[0] != b'{':
+                data = helper.decode_and_decompress_data(data)
+            else:
+                data = helper.decode_data(data)
+        if isinstance(data, six.text_type):
+            data = helper.safely_load_json_string(data)
+
+        self._data = CanonicalKeyDict(data)
+
+    def process_csp_report(self, client_ip=None, user_agent=None):
+        """Only called from the CSP report endpoint."""
+        data = self._data
+
+        try:
+            interface = get_interface(data.pop('interface'))
+            report = data.pop('report')
+        except KeyError:
+            raise APIForbidden('No report or interface data')
+
+        # To support testing, we can either accept a buillt interface instance, or the raw data in
+        # which case we build the instance ourselves
+        try:
+            instance = report if isinstance(report, interface) else interface.from_raw(report)
+        except jsonschema.ValidationError as e:
+            raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
+
+        def clean(d):
+            return dict(filter(lambda x: x[1], d.items()))
+
+        data.update({
+            'logger': 'csp',
+            'message': instance.get_message(),
+            'culprit': instance.get_culprit(),
+            instance.get_path(): instance.to_json(),
+            'tags': instance.get_tags(),
+            'errors': [],
+
+            'sentry.interfaces.User': {
+                'ip_address': client_ip,
+            },
+
+            # Construct a faux Http interface based on the little information we have
+            # This is a bit weird, since we don't have nearly enough
+            # information to create an Http interface, but
+            # this automatically will pick up tags for the User-Agent
+            # which is actually important here for CSP
+            'sentry.interfaces.Http': {
+                'url': instance.get_origin(),
+                'headers': clean({
+                    'User-Agent': user_agent,
+                    'Referer': instance.get_referrer(),
+                })
+            },
+        })
+
+        self._data = data
+
+    def normalize(self, project=None, key=None, auth=None, client_ip=None):
+        data = self._data
+        if project is not None:
+            data['project'] = project.id
+        if key is not None:
+            data['key_id'] = key.id
+        if auth is not None:
+            data['sdk'] = data.get('sdk') or parse_client_as_sdk(auth.client)
+
         errors = data['errors'] = []
 
         # Ignore event meta data for now.
@@ -372,7 +472,6 @@ class EventManager(object):
                             'logentry', {})['formatted'] = msg_meta
 
         # Fill in ip addresses marked as {{auto}}
-        client_ip = request_env.get('client_ip')
         if client_ip:
             if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
                 data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
@@ -403,13 +502,13 @@ class EventManager(object):
             value = data.pop(k)
 
             if not value:
-                self.logger.debug('Ignored empty interface value: %s', k)
+                logger.debug('Ignored empty interface value: %s', k)
                 continue
 
             try:
                 interface = get_interface(k)
             except ValueError:
-                self.logger.debug('Ignored unknown attribute: %s', k)
+                logger.debug('Ignored unknown attribute: %s', k)
                 errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
                 continue
 
@@ -417,8 +516,7 @@ class EventManager(object):
                 inst = interface.to_python(value)
                 data[inst.get_path()] = inst.to_json()
             except Exception as e:
-                log = self.logger.debug if isinstance(
-                    e, InterfaceValidationError) else self.logger.error
+                log = logger.debug if isinstance(e, InterfaceValidationError) else logger.error
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
@@ -499,7 +597,6 @@ class EventManager(object):
 
         # If there is no User ip_addres, update it either from the Http interface
         # or the client_ip of the request.
-        auth = request_env.get('auth')
         is_public = auth and auth.is_public
         add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
@@ -519,11 +616,53 @@ class EventManager(object):
         if data['transaction']:
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
 
-        return data
+        self._data = data
+
+    def should_filter(self, project=None, client_ip=None):
+        """
+        returns (result: bool, reason: string or None)
+        Result is True if an event should be filtered
+        The reason for filtering is passed along as a string
+        so that we can store it in metrics
+        """
+        for name in SECURITY_REPORT_INTERFACES:
+            if name in self._data:
+                interface = get_interface(name)
+                if interface.to_python(self._data[name]).should_filter(project):
+                    return (True, FilterStatKeys.INVALID_CSP)
+
+        if client_ip and not is_valid_ip(project, client_ip):
+            return (True, FilterStatKeys.IP_ADDRESS)
+
+        release = self._data.get('release')
+        if release and not is_valid_release(project, release):
+            return (True, FilterStatKeys.RELEASE_VERSION)
+
+        message_interface = self._data.get('sentry.interfaces.Message', {})
+        error_message = message_interface.get('formatted', ''
+                                              ) or message_interface.get('message', '')
+        if error_message and not is_valid_error_message(project, error_message):
+            return (True, FilterStatKeys.ERROR_MESSAGE)
+
+        for exception_interface in self._data.get(
+                'sentry.interfaces.Exception', {}).get('values', []):
+            message = u': '.join(filter(None, map(exception_interface.get, ['type', 'value'])))
+            if message and not is_valid_error_message(project, message):
+                return (True, FilterStatKeys.ERROR_MESSAGE)
+
+        for filter_cls in filters.all():
+            filter_obj = filter_cls(project)
+            if filter_obj.is_enabled() and filter_obj.test(self._data):
+                return (True, six.text_type(filter_obj.id))
+
+        return (False, None)
+
+    def get_data(self):
+        return self._data
 
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
-        data = self.data
+        data = self._data
 
         project = Project.objects.get_from_cache(id=project)
 
@@ -540,7 +679,7 @@ class EventManager(object):
         except Event.DoesNotExist:
             pass
         else:
-            self.logger.info(
+            logger.info(
                 'duplicate.found',
                 exc_info=True,
                 extra={
@@ -780,7 +919,7 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(EventMapping)):
                     EventMapping.objects.create(project=project, group=group, event_id=event_id)
             except IntegrityError:
-                self.logger.info(
+                logger.info(
                     'duplicate.found',
                     exc_info=True,
                     extra={
@@ -880,7 +1019,7 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info(
+                logger.info(
                     'duplicate.found',
                     exc_info=True,
                     extra={

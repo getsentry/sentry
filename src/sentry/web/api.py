@@ -32,9 +32,10 @@ from symbolic import ProcessMinidumpError
 from sentry import features, quotas, tsdb, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper,
     MinidumpApiHelper,
 )
+from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import merge_minidump_event
@@ -364,6 +365,10 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
+    def pre_normalize(self, data, helper):
+        """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
+        pass
+
     def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
         metrics.incr('events.total')
 
@@ -372,14 +377,15 @@ class StoreView(APIView):
 
         remote_addr = request.META['REMOTE_ADDR']
 
-        data = LazyData(
-            data=data,
+        event_mgr = EventManager(data)
+        del data
+        event_mgr.decode(
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
-            helper=helper,
-            project=project,
-            key=key,
-            auth=auth,
-            client_ip=remote_addr,
+            helper=helper
+        )
+        self.pre_normalize(event_mgr, helper)
+        event_mgr.normalize(
+            project=project, key=key, auth=auth, client_ip=remote_addr
         )
 
         event_received.send_robust(
@@ -387,10 +393,11 @@ class StoreView(APIView):
             project=project,
             sender=type(self),
         )
+
         start_time = time()
         tsdb_start_time = to_datetime(start_time)
-        should_filter, filter_reason = helper.should_filter(
-            project, data, ip_address=remote_addr)
+        should_filter, filter_reason = event_mgr.should_filter(
+            project=project, client_ip=remote_addr)
         if should_filter:
             increment_list = [
                 (tsdb.models.project_total_received, project.id),
@@ -476,6 +483,9 @@ class StoreView(APIView):
 
         org_options = OrganizationOption.objects.get_all_values(
             project.organization_id)
+
+        data = event_mgr.get_data()
+        del event_mgr
 
         event_id = data['event_id']
 
@@ -798,6 +808,10 @@ class SecurityReportView(StoreView):
                 if k in body:
                     return report_type_for_key[k]
         return None
+
+    def pre_normalize(self, data, helper):
+        data.process_csp_report(user_agent=helper.context.agent,
+                                client_ip=helper.context.ip_address)
 
 
 @cache_control(max_age=3600, public=True)
