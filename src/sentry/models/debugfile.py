@@ -494,10 +494,14 @@ def create_files_from_dif_zip(fileobj, project, update_symcaches=True):
 
 
 def find_debug_files(project, debug_ids, features=None):
-    """Finds debug information files matching the given debug IDs. If a set of
-    features is specified, only files that satisfy all features will be
-    returned. This does not apply to legacy debug files that were not tagged
-    with features."""
+    """Finds debug information files matching the given debug IDs.
+
+    If a set of features is specified, only files that satisfy all features will
+    be returned. This does not apply to legacy debug files that were not tagged
+    with features.
+
+    Returns a dict of debug files keyed by their debug identifier.
+    """
     features = frozenset(features) if features is not None else frozenset()
 
     difs = ProjectDebugFile.objects \
@@ -509,14 +513,14 @@ def find_debug_files(project, debug_ids, features=None):
     for dif in difs:
         difs_by_id.setdefault(dif.debug_id, []).append(dif)
 
-    rv = []
-    for group in six.itervalues(difs_by_id):
+    rv = {}
+    for debug_id, group in six.iteritems(difs_by_id):
         with_features = [dif for dif in group if 'features' in (dif.data or ())]
 
         # In case we've never computed features for any of these files, we just
         # take the first one and assume that it matches.
         if not with_features:
-            rv.append(group[0])
+            rv[debug_id] = group[0]
             break
 
         # There's at least one file with computed features. Older files are
@@ -525,7 +529,7 @@ def find_debug_files(project, debug_ids, features=None):
         # matches the given feature set.
         for dif in with_features:
             if dif.features >= features:
-                rv.append(dif)
+                rv[debug_id] = dif
                 break
 
     return rv
@@ -547,7 +551,8 @@ class DIFCache(object):
 
     def get_symcaches(self, project, debug_ids, on_dif_referenced=None,
                       with_conversion_errors=False):
-        """Given some debug ids returns the symcaches loaded for these debug ids."""
+        """Given some debug ids returns the symcaches loaded for these debug ids.
+        """
         cachefiles, conversion_errors = self._get_symcaches_impl(
             project, debug_ids, on_dif_referenced)
         symcaches = self._load_cachefiles_via_fs(project, cachefiles)
@@ -555,34 +560,36 @@ class DIFCache(object):
             return symcaches, dict((k, v) for k, v in conversion_errors.items())
         return symcaches
 
-    def generate_symcache(self, project, debug_file, tf=None):
+    def generate_symcache(self, project, debug_file, fileobj=None):
         """Generate a single symcache for a debug id based on the passed file
         contents.  If the tempfile is not passed then its opened again.
         """
         if not debug_file.supports_symcache:
             raise RuntimeError('This file type does not support symcaches')
-        close_tf = False
-        if tf is None:
-            tf = debug_file.file.getfile(as_tempfile=True)
-            close_tf = True
+
+        if fileobj is None:
+            fileobj = debug_file.file.getfile(as_tempfile=True)
+            close_fileobj = True
         else:
-            tf.seek(0)
+            fileobj.seek(0)
+            close_fileobj = False
+
         try:
-            return self._update_cachefile(debug_file, tf)
+            return self._update_cachefile(debug_file, fileobj)
         finally:
-            if close_tf:
-                tf.close()
+            if close_fileobj:
+                fileobj.close()
 
     def fetch_difs(self, project, debug_ids, features=None):
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
-
         debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
         difs = find_debug_files(project, debug_ids, features)
+
         rv = {}
-        for dif in difs:
-            dif_path = os.path.join(self.get_project_path(project), dif.debug_id)
+        for debug_id, dif in six.iteritems(difs):
+            dif_path = os.path.join(self.get_project_path(project), debug_id)
             try:
                 os.stat(dif_path)
             except OSError as e:
@@ -595,147 +602,164 @@ class DIFCache(object):
 
     def _get_symcaches_impl(self, project, debug_ids, on_dif_referenced=None):
         # Fetch debug files first and invoke the callback if we need
-        debug_ids = list(map(six.text_type, debug_ids))
+        debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
         debug_files = find_debug_files(project, debug_ids, features=['debug'])
-        debug_files_by_id = {}
-        for debug_file in debug_files:
-            if on_dif_referenced is not None:
+
+        # Notify the caller that we have used a symbol file
+        if on_dif_referenced is not None:
+            for debug_file in six.itervalues(debug_files):
                 on_dif_referenced(debug_file)
-            debug_files_by_id[debug_file.debug_id] = debug_file
 
-        # Now find all the cache files we already have.
-        q = ProjectSymCacheFile.objects.filter(
-            project=project,
-            dsym_file_id__in=[x.id for x in debug_files],
-        ).select_related('cache_file', 'dsym_file__debug_id')
+        # Now find all the cache files we already have
+        found_ids = [d.id for d in six.itervalues(debug_files)]
+        existing_caches = ProjectSymCacheFile.objects \
+            .filter(project=project, dsym_file_id__in=found_ids) \
+            .select_related('cache_file', 'dsym_file__debug_id')
 
-        conversion_errors = {}
-        cachefiles = []
-        cachefiles_to_update = dict.fromkeys(x.debug_id for x in debug_files)
-        for cache_file in q:
-            debug_id = cache_file.dsym_file.debug_id
-            debug_file = debug_files_by_id[debug_id]
-            if cache_file.version == SYMCACHE_LATEST_VERSION and \
-               cache_file.checksum == debug_file.file.checksum:
-                cachefiles_to_update.pop(debug_id, None)
-                cachefiles.append((debug_id, cache_file))
+        # Check for missing and out-of-date cache files. Outdated files are
+        # removed to be re-created immediately.
+        caches = []
+        to_update = debug_files.copy()
+        for cache_file in existing_caches:
+            if cache_file.version == SYMCACHE_LATEST_VERSION:
+                debug_id = cache_file.dsym_file.debug_id
+                to_update.pop(debug_id, None)
+                caches.append((debug_id, cache_file, None))
             else:
-                cachefiles_to_update[debug_id] = (cache_file, debug_file)
+                cache_file.delete()
 
-        # if any cache files need to be updated, do that now.
-        if cachefiles_to_update:
-            to_update = []
-            for debug_id, it in six.iteritems(cachefiles_to_update):
-                if it is None:
-                    debug_file = debug_files_by_id[debug_id]
-                else:
-                    cache_file, debug_file = it
-                    cache_file.delete()
-                to_update.append(debug_file)
+        # If any cache files need to be updated, do that now
+        if to_update:
             updated_cachefiles, conversion_errors = self._update_cachefiles(
-                project, to_update)
-            cachefiles.extend(updated_cachefiles)
+                project, to_update.values())
+            caches.extend(updated_cachefiles)
+        else:
+            conversion_errors = {}
 
-        return cachefiles, conversion_errors
+        return caches, conversion_errors
 
     def _update_cachefiles(self, project, debug_files):
         rv = []
-
-        # Find all the known bad files we could not convert last time
-        # around
         conversion_errors = {}
-        for debug_file in debug_files:
-            cache_key = 'scbe:%s:%s' % (debug_file.debug_id, debug_file.file.checksum)
-            err = default_cache.get(cache_key)
-            if err is not None:
-                conversion_errors[debug_file.debug_id] = err
 
         for debug_file in debug_files:
             debug_id = debug_file.debug_id
-            if debug_id in conversion_errors:
+
+            # Find all the known bad files we could not convert last time. We
+            # use the debug identifier and file checksum to identify the source
+            # DIF for historic reasons (debug_file.id would do, too).
+            cache_key = 'scbe:%s:%s' % (debug_id, debug_file.file.checksum)
+            err = default_cache.get(cache_key)
+            if err is not None:
+                conversion_errors[debug_id] = err
                 continue
 
+            # Download the original debug symbol and convert the object file to
+            # a symcache. This can either yield a symcache, an error or none of
+            # the above. THE FILE DOWNLOAD CAN TAKE SIGNIFICANT TIME.
             with debug_file.file.getfile(as_tempfile=True) as tf:
-                symcache_file, conversion_error = self._update_cachefile(
-                    debug_file, tf)
-            if symcache_file is not None:
-                rv.append((debug_id, symcache_file))
-            elif conversion_error is not None:
-                conversion_errors[debug_id] = conversion_error
+                file, cache, err = self._update_cachefile(debug_file, tf)
+
+            # Store this conversion error so that we can skip subsequent
+            # conversions. There might be concurrent conversions running for the
+            # same debug file, however.
+            if err is not None:
+                default_cache.set(cache_key, err, CONVERSION_ERROR_TTL)
+                conversion_errors[debug_id] = err
+                continue
+
+            if file is not None or cache is not None:
+                rv.append((debug_id, file, cache))
 
         return rv, conversion_errors
 
-    def _update_cachefile(self, debug_file, tf):
+    def _update_cachefile(self, debug_file, fileobj):
+        debug_id = debug_file.debug_id
+
+        # Locate the object inside the FatObject. Since we have keyed debug
+        # files by debug_id, we expect a corresponding object. Otherwise, we
+        # fail silently, just like with missing symbols.
         try:
-            fo = FatObject.from_path(tf.name)
-            o = fo.get_object(id=debug_file.debug_id)
+            fo = FatObject.from_path(fileobj.name)
+            o = fo.get_object(id=debug_id)
             if o is None:
-                return None, None
+                return None, None, None
             symcache = o.make_symcache()
         except SymbolicError as e:
-            default_cache.set('scbe:%s:%s' % (
-                debug_file.debug_id, debug_file.file.checksum), e.message,
-                CONVERSION_ERROR_TTL)
-
             if not isinstance(e, (SymCacheErrorMissingDebugSection, SymCacheErrorMissingDebugInfo)):
                 logger.error('dsymfile.symcache-build-error',
-                             exc_info=True, extra=dict(debug_id=debug_file.debug_id))
+                             exc_info=True, extra=dict(debug_id=debug_id))
 
-            return None, e.message
+            return None, None, e.message
 
-        # We seem to have this task running onconcurrently or some
-        # other task might delete symcaches while this is running
-        # which is why this requires a loop instead of just a retry
-        # on get.
-        for iteration in range(5):
-            file = File.objects.create(
-                name=debug_file.debug_id,
-                type='project.symcache',
-            )
-            file.putfile(symcache.open_stream())
-            try:
-                with transaction.atomic():
-                    return ProjectSymCacheFile.objects.get_or_create(
-                        project=debug_file.project,
-                        cache_file=file,
-                        dsym_file=debug_file,
-                        defaults=dict(
-                            checksum=debug_file.file.checksum,
-                            version=symcache.file_format_version,
-                        )
-                    )[0], None
-            except IntegrityError:
-                file.delete()
-                try:
-                    return ProjectSymCacheFile.objects.get(
-                        project=debug_file.project,
-                        dsym_file=debug_file,
-                    ), None
-                except ProjectSymCacheFile.DoesNotExist:
-                    continue
+        file = File.objects.create(name=debug_id, type='project.symcache')
+        file.putfile(symcache.open_stream())
 
-        raise RuntimeError('Concurrency error on symcache update')
+        # Try to insert the new SymCache into the database. This only fail if
+        # (1) another process has concurrently added the same sym cache, or if
+        # (2) the debug symbol was deleted, either due to a newer upload or via
+        # the API.
+        try:
+            with transaction.atomic():
+                return ProjectSymCacheFile.objects.create(
+                    project=debug_file.project,
+                    cache_file=file,
+                    dsym_file=debug_file,
+                    checksum=debug_file.file.checksum,
+                    version=symcache.file_format_version,
+                ), symcache, None
+        except IntegrityError:
+            file.delete()
+
+        # Check for a concurrently inserted symcache and use that instead. This
+        # could have happened (1) due to a concurrent insert, or (2) a new
+        # upload that has already succeeded to compute a symcache. The latter
+        # case is extremely unlikely.
+        cache_file = ProjectSymCacheFile.objects \
+            .filter(project=debug_file.project, dsym_file_debug_id=debug_id) \
+            .select_related('cache_file') \
+            .order_by('-id') \
+            .first()
+
+        if cache_file is not None:
+            return cache_file, None, None
+
+        # There was no new symcache, indicating that the debug file has been
+        # replaced with a newer version. Another job will create the
+        # corresponding symcache eventually. To prevent querying the database
+        # another time, simply use the in-memory symcache for now:
+        return None, symcache, None
 
     def _load_cachefiles_via_fs(self, project, cachefiles):
         rv = {}
         base = self.get_project_path(project)
-        for debug_id, symcache_file in cachefiles:
-            cachefile_path = os.path.join(base, debug_id + '.symcache')
+        for debug_id, model, cache in cachefiles:
+            # If we're given a cache instance, use that over accessing the file
+            # system or potentially even blob storage.
+            if cache is not None:
+                rv[debug_id] = cache
+                continue
+            elif model is None:
+                raise RuntimeError('missing symcache file to load from fs')
+
+            # Try to locate a cached instance from the file system and bump the
+            # timestamp to indicate it is still being used. Otherwise, download
+            # from the blob store and place it in the cache folder.
+            cachefile_name = '%s_%s.symcache' % (model.id, model.version)
+            cachefile_path = os.path.join(base, cachefile_name)
             try:
                 stat = os.stat(cachefile_path)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
-                symcache_file.cache_file.save_to(cachefile_path)
+                model.cache_file.save_to(cachefile_path)
             else:
-                self._try_bump_timestamp(cachefile_path, stat)
+                now = int(time.time())
+                if stat.st_ctime < now - ONE_DAY:
+                    os.utime(cachefile_path, (now, now))
+
             rv[debug_id] = SymCache.from_path(cachefile_path)
         return rv
-
-    def _try_bump_timestamp(self, path, old_stat):
-        now = int(time.time())
-        if old_stat.st_ctime < now - ONE_DAY:
-            os.utime(path, (now, now))
 
     def clear_old_entries(self):
         try:
