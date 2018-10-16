@@ -27,7 +27,7 @@ const StyledInlineSvg = styled(InlineSvg)`
 
 const Action = styled.div`
   display: block;
-  margin-top: 0.75em;
+  margin-top: ${space(2)};
 `;
 
 const EmptyHeader = styled.div`

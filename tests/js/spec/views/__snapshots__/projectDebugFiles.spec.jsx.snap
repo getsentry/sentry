@@ -104,10 +104,10 @@ exports[`ProjectDebugFiles renders 1`] = `
   </div>
   <Panel>
     <Component
-      className="css-10qfvek-Panel e1laxa7d0"
+      className="css-yahxlu-Panel e1laxa7d0"
     >
       <div
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <PanelHeader>
           <Component

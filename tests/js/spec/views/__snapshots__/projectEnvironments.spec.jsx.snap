@@ -155,10 +155,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -369,10 +369,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -974,10 +974,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -1188,10 +1188,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component

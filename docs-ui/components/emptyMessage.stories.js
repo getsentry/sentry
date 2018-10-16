@@ -60,4 +60,25 @@ storiesOf('UI|EmptyMessage', module)
         />
       </Panel>
     ))
+  )
+  .add(
+    'in onboarding panel',
+    withInfo('Put this in a panel for maximum effect')(() => (
+      <Panel dottedBorder>
+        <EmptyMessage
+          size="large"
+          icon="icon-forward"
+          title="Your business intelligence workflow is missing crucial data"
+          description="Upgrade to the Large or Enterprise plan to send processed events to your favorite business intelligence tools such as Segment, Amazon&nbsp;SQS, and Splunk."
+          action={
+            <React.Fragment>
+              <Button priority="primary" size="small" style={{marginRight: 8}}>
+                Upgrade Plan
+              </Button>
+              <Button size="small">View Docs</Button>
+            </React.Fragment>
+          }
+        />
+      </Panel>
+    ))
   );
