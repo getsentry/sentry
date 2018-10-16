@@ -13,7 +13,7 @@ urlpatterns = patterns(
         name='sentry-extensions-gitlab-search'
     ),
     url(
-        r'^webhooks/$',
+        r'^webhook/$',
         GitlabWebhookEndpoint.as_view(),
         name='sentry-extensions-gitlab-webhook'
     ),

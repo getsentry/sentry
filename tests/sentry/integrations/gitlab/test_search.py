@@ -68,8 +68,8 @@ class GitlabSearchTest(GitLabTestCase):
 
             assert resp.status_code == 200
             assert resp.data == [
-                {'value': 'getsentry/sentry', 'label': 'GetSentry / Sentry'},
-                {'value': 'getsentry2/sentry2', 'label': 'GetSentry2 / Sentry2'}
+                {'value': '1', 'label': 'GetSentry / Sentry'},
+                {'value': '2', 'label': 'GetSentry2 / Sentry2'}
             ]
 
     def test_finds_no_external_issues_results(self):

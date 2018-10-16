@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import quote
+from django.core.urlresolvers import reverse
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
@@ -110,11 +110,9 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             }
         )
 
-    def get_project(self, project):
+    def get_project(self, project_id):
         return self.get(
-            GitLabApiClientPath.project.format(
-                project=quote(project, safe='')
-            )
+            GitLabApiClientPath.project.format(project=project_id)
         )
 
     def get_projects(self, query, simple=True):
@@ -128,22 +126,17 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             }
         )
 
-    def get_issue(self, project, issue_id):
+    def get_issue(self, project_id, issue_id):
         try:
             return self.get(
-                GitLabApiClientPath.issue.format(
-                    project=quote(project, safe=''),
-                    issue=issue_id
-                )
+                GitLabApiClientPath.issue.format(project=project_id, issue=issue_id)
             )
         except IndexError:
             raise ApiError('Issue not found with ID', 404)
 
     def create_issue(self, project, data):
         return self.post(
-            GitLabApiClientPath.issues.format(
-                project=quote(project, safe='')
-            ),
+            GitLabApiClientPath.issues.format(project=project),
             data=data,
         )
 
@@ -156,38 +149,32 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             }
         )
 
-    def create_note(self, project, issue_iid, data):
+    def create_note(self, project_id, issue_iid, data):
         return self.post(
-            GitLabApiClientPath.notes.format(
-                project=quote(project, safe=''),
-                issue=issue_iid,
-            ),
+            GitLabApiClientPath.notes.format(project=project_id, issue=issue_iid),
             data=data,
         )
 
-    def list_project_members(self, project):
+    def list_project_members(self, project_id):
         return self.get(
-            GitLabApiClientPath.members.format(
-                project=quote(project, safe='')
-            ),
+            GitLabApiClientPath.members.format(project=project_id)
         )
 
-    def create_project_webhook(self, project):
-        path = GitLabApiClientPath.project_hooks.format(
-            project=quote(project, safe=''))
+    def create_project_webhook(self, project_id):
+        path = GitLabApiClientPath.project_hooks.format(project=project_id)
+        hook_uri = reverse('sentry-extensions-gitlab-webhook')
+        model = self.installation.model
         data = {
-            'url': absolute_uri('/extensions/gitlab/webhooks/'),
-            'token': self.metadata['webhook_secret'],
+            'url': absolute_uri(hook_uri),
+            'token': u'{}:{}'.format(model.external_id, model.metadata['webhook_secret']),
             'merge_requests_events': True,
             'push_events': True,
-            'enable_ssl_verification': self.metadata['verify_ssl'],
+            'enable_ssl_verification': model.metadata['verify_ssl'],
         }
         resp = self.post(path, data)
 
         return resp['id']
 
-    def delete_project_webhook(self, project, hook_id):
-        path = GitLabApiClientPath.project_hook.format(
-            project=quote(project, safe=''),
-            hook_id=hook_id)
-        self.delete(path)
+    def delete_project_webhook(self, project_id, hook_id):
+        path = GitLabApiClientPath.project_hook.format(project=project_id, hook_id=hook_id)
+        return self.delete(path)
