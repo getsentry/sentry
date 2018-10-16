@@ -25,7 +25,7 @@ from sentry.constants import LANGUAGES
 from sentry.models import (Organization, OrganizationStatus, User, UserOption, UserOptionValue)
 from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
-from sentry.web.forms.fields import CustomTypedChoiceField, ReadOnlyTextField
+from sentry.web.forms.fields import CustomTypedChoiceField, ReadOnlyTextField, AllowedEmailField
 from six.moves import range
 
 
@@ -185,7 +185,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': 'Jane Doe'}),
         required=True
     )
-    username = forms.EmailField(
+    username = AllowedEmailField(
         label=_('Email'),
         max_length=128,
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}),
@@ -308,8 +308,7 @@ class ChangePasswordRecoverForm(forms.Form):
 
 
 class EmailForm(forms.Form):
-
-    alt_email = forms.EmailField(
+    alt_email = AllowedEmailField(
         label=_('New Email'),
         required=False,
         help_text='Designate an alternative email for this account',
@@ -345,7 +344,7 @@ class EmailForm(forms.Form):
 class AccountSettingsForm(forms.Form):
     name = forms.CharField(required=True, label=_('Name'), max_length=30)
     username = forms.CharField(label=_('Username'), max_length=128)
-    email = forms.EmailField(label=_('Email'))
+    email = AllowedEmailField(label=_('Email'))
     new_password = forms.CharField(
         label=_('New password'),
         widget=forms.PasswordInput(),
@@ -630,7 +629,7 @@ class NotificationDeploySettingsForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(
+    alert_email = AllowedEmailField(
         label=_('Email'),
         help_text=_('Designate an alternative email address to send email notifications to.'),
         required=False
