@@ -604,6 +604,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 60 * 3,
         },
     },
+    'schedule-vsts-integration-subscription-check': {
+        'task': 'sentry.tasks.integrations.kickoff_vsts_subscription_check',
+        'schedule': timedelta(hours=6),
+        'options': {
+            'expires': 60 * 25,
+        }
+    }
 }
 
 BGTASKS = {
@@ -768,15 +775,10 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
-    'organizations:github-apps': True,
     'organizations:invite-members': True,
     'organizations:require-2fa': False,
     'organizations:internal-catchall': False,
     'organizations:new-issue-ui': True,
-    'organizations:github-enterprise': True,
-    'organizations:bitbucket-integration': True,
-    'organizations:jira-integration': True,
-    'organizations:vsts-integration': True,
     'organizations:integrations-issue-basic': False,
     'organizations:integrations-issue-sync': False,
     'organizations:new-teams': True,
@@ -786,6 +788,7 @@ SENTRY_FEATURES = {
     'organizations:js-loader': False,
     'organizations:health': False,
     'organizations:discover': False,
+    'organizations:events-stream': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -1272,12 +1275,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'bitbucket',
-    'github',
-    'github_enterprise',
     'gitlab',
-    'jira',
-    'vsts',
     'vsts-extension',
 )
 

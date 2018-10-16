@@ -14,7 +14,12 @@ const FOOTER_HEIGHT = 87;
 const HEADER_HEIGHT = 60;
 const TABS_HEIGHT = 55;
 
+export const DiscoverWrapper = styled(Flex)`
+  flex: 1;
+`;
+
 export const Discover = styled(Flex)`
+  width: 100%;
   min-height: calc(100vh - ${FOOTER_HEIGHT}px);
 
   margin-bottom: -20px;
@@ -53,7 +58,7 @@ export const BodyContent = styled(Flex)`
 
 export const LoadingContainer = styled(Flex)`
   flex: 1;
-  height: calc(100vh - ${FOOTER_HEIGHT}px);
+  align-items: center;
 `;
 
 export const TopBar = styled(Flex)`

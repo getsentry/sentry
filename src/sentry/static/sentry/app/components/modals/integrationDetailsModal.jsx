@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
@@ -13,8 +14,8 @@ import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag.jsx';
-import space from 'app/styles/space';
 import marked, {singleLineRenderer} from 'app/utils/marked';
+import space from 'app/styles/space';
 
 const EARLY_ADOPTER_INTEGRATIONS = [];
 
@@ -45,8 +46,15 @@ class IntegrationDetailsModal extends React.Component {
     closeModal: PropTypes.func.isRequired,
     onAddIntegration: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization,
+    organization: SentryTypes.Organization.isRequired,
   };
+
+  componentDidMount() {
+    analytics('integrations.install_modal_opened', {
+      org_id: parseInt(this.props.organization.id, 10),
+      integration: this.props.provider.key,
+    });
+  }
 
   onAddIntegration = integration => {
     this.props.closeModal();
@@ -128,7 +136,11 @@ class IntegrationDetailsModal extends React.Component {
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
-        <FeatureList {...featureProps} formatter={singleLineRenderer} />
+        <FeatureList
+          {...featureProps}
+          provider={provider}
+          formatter={singleLineRenderer}
+        />
 
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>

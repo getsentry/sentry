@@ -1,16 +1,18 @@
 import React from 'react';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Form from 'app/views/settings/components/forms/form';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withOrganization from 'app/utils/withOrganization';
 
-export default class ConfigureIntegration extends AsyncView {
+class ConfigureIntegration extends AsyncView {
   getEndpoints() {
     const {orgId, integrationId} = this.props.params;
 
@@ -18,6 +20,13 @@ export default class ConfigureIntegration extends AsyncView {
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integration', `/organizations/${orgId}/integrations/${integrationId}/`],
     ];
+  }
+
+  componentDidMount() {
+    analytics('integrations.details_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+      integration: this.props.provider.key,
+    });
   }
 
   getTitle() {
@@ -61,9 +70,11 @@ export default class ConfigureIntegration extends AsyncView {
         )}
 
         {provider.features.includes('commits') && (
-          <IntegrationRepos integration={integration} />
+          <IntegrationRepos {...this.props} integration={integration} />
         )}
       </React.Fragment>
     );
   }
 }
+
+export default withOrganization(ConfigureIntegration);

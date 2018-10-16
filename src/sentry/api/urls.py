@@ -61,6 +61,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -151,6 +152,7 @@ from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoin
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
+from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -475,6 +477,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/config/repos/$',
         OrganizationConfigRepositoriesEndpoint.as_view(),
         name='sentry-api-0-organization-config-repositories'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events/$',
+        OrganizationEventsEndpoint.as_view(),
+        name='sentry-api-0-organization-events'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
@@ -1076,6 +1083,13 @@ urlpatterns = patterns(
         r'^events/(?P<event_id>\d+)/apple-crash-report$',
         EventAppleCrashReportEndpoint.as_view(),
         name='sentry-api-0-event-apple-crash-report'
+    ),
+
+    # Sentry Apps
+    url(
+        r'^sentry-apps/$',
+        SentryAppsEndpoint.as_view(),
+        name='sentry-api-0-sentry-apps'
     ),
 
     # Internal

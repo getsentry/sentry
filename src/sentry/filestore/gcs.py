@@ -20,6 +20,26 @@ from google.cloud.exceptions import NotFound
 from sentry.utils import metrics
 
 
+# _client cache is a 3-tuple of project_id, credentials, Client
+# this is so if any information changes under it, it invalidates
+# the cache. This scenario is possible since `options` are dynamic
+_client = None, None, None
+
+
+def get_client(project_id, credentials):
+    global _client
+    if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
+        _client = (
+            project_id,
+            credentials,
+            Client(
+                project=project_id,
+                credentials=credentials,
+            )
+        )
+    return _client[2]
+
+
 def clean_name(name):
     """
     Cleans the name so that Windows style paths work
@@ -177,9 +197,9 @@ class GoogleCloudStorage(Storage):
     @property
     def client(self):
         if self._client is None:
-            self._client = Client(
-                project=self.project_id,
-                credentials=self.credentials,
+            self._client = get_client(
+                self.project_id,
+                self.credentials,
             )
         return self._client
 

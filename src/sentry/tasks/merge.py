@@ -32,7 +32,8 @@ EXTRA_MERGE_MODELS = []
     max_retries=None
 )
 def merge_group(
-    from_object_id=None, to_object_id=None, transaction_id=None, recursed=False, **kwargs
+    from_object_id=None, to_object_id=None, transaction_id=None,
+    recursed=False, eventstream_state=None, **kwargs
 ):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
@@ -118,6 +119,7 @@ def merge_group(
             to_object_id=to_object_id,
             transaction_id=transaction_id,
             recursed=True,
+            eventstream_state=eventstream_state,
         )
         return
 
@@ -190,7 +192,8 @@ def merge_group(
     except DataError:
         pass
 
-    eventstream.merge(group.project_id, previous_group_id, new_group.id)
+    if eventstream_state:
+        eventstream.end_merge(eventstream_state)
 
 
 def _get_event_environment(event, project, cache):

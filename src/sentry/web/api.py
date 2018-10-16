@@ -6,6 +6,7 @@ import math
 import jsonschema
 import logging
 import os
+import random
 import six
 import traceback
 import uuid
@@ -27,7 +28,7 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError
 
-from sentry import features, quotas, tsdb
+from sentry import features, quotas, tsdb, options
 from sentry.app import raven
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
@@ -50,7 +51,7 @@ from sentry.utils.http import (
     get_origins,
     is_same_domain,
 )
-from sentry.utils.pubsub import QueuedPublisher, RedisPublisher
+from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 
@@ -62,10 +63,14 @@ PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
-
-pubsub = QueuedPublisher(
-    RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
-) if getattr(settings, 'REQUESTS_PUBSUB_ENABLED', False) else None
+kafka_publisher = QueuedPublisherService(
+    KafkaPublisher(
+        getattr(
+            settings,
+            'KAFKA_RAW_EVENTS_PUBLISHER_CONNECTION',
+            None),
+        asynchronous=False)
+) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
 
 def api(func):
@@ -112,6 +117,36 @@ class APIView(BaseView):
 
         return auth
 
+    def _publish_to_kafka(self, request):
+        """
+        Sends raw event data to Kafka for later offline processing.
+        """
+        try:
+            if len(request.body) > options.get('kafka-publisher.max-event-size'):
+                return
+
+            # Sampling
+            if random.random() >= options.get('kafka-publisher.raw-event-sample-rate'):
+                return
+
+            # We want to send only serializable items from request.META
+            meta = {}
+            for key, value in request.META.items():
+                try:
+                    json.dumps([key, value])
+                    meta[key] = value
+                except TypeError:
+                    pass
+
+            meta['SENTRY_API_VIEW_NAME'] = self.__class__.__name__
+
+            kafka_publisher.publish(
+                channel=getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_TOPIC', 'raw_store_events'),
+                value=json.dumps([meta, request.body])
+            )
+        except Exception as e:
+            logger.debug("Cannot publish event to Kafka: {}".format(e.message))
+
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
@@ -121,6 +156,9 @@ class APIView(BaseView):
             ip_address=request.META['REMOTE_ADDR'],
         )
         origin = None
+
+        if kafka_publisher is not None and request.body is not None:
+            self._publish_to_kafka(request)
 
         try:
             origin = helper.origin_from_request(request)
@@ -306,9 +344,6 @@ class StoreView(APIView):
             # sane exception to catch here. This will ultimately
             # bubble up as an APIError.
             data = None
-
-        if pubsub is not None and data is not None:
-            pubsub.publish('requests', data)
 
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):

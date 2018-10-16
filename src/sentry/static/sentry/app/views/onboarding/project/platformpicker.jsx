@@ -3,7 +3,7 @@ import React from 'react';
 import classnames from 'classnames';
 import _ from 'lodash';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
 import {flattenedPlatforms, categoryList} from 'app/views/onboarding/utils';

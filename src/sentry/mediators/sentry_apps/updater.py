@@ -10,7 +10,7 @@ from sentry.mediators.param import if_param
 
 
 class Updater(Mediator):
-    sentry_app = Param('sentry.models.sentryapp.SentryApp')
+    sentry_app = Param('sentry.models.SentryApp')
     name = Param(six.string_types, required=False)
     scopes = Param(Iterable, required=False)
     webhook_url = Param(six.string_types, required=False)

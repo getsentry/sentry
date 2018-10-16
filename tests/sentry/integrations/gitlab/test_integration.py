@@ -4,10 +4,12 @@ import responses
 import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from mock import patch
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (
-    Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration,
+    Identity, IdentityProvider, IdentityStatus, Integration,
+    OrganizationIntegration
 )
 from sentry.testutils import IntegrationTestCase
 
@@ -24,7 +26,6 @@ class GitlabIntegrationTest(IntegrationTestCase):
     }
 
     def assert_setup_flow(self, user_id='user_id_1', group_id=4):
-        responses.reset()
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
         resp = self.client.post(self.init_path, data=self.config)
@@ -46,22 +47,31 @@ class GitlabIntegrationTest(IntegrationTestCase):
         access_token = 'xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx'
 
         responses.add(
-            responses.POST, 'https://gitlab.example.com/oauth/token',
+            responses.POST,
+            'https://gitlab.example.com/oauth/token',
             json={'access_token': access_token}
         )
-
         responses.add(
-            responses.GET, 'https://gitlab.example.com/api/v4/user',
+            responses.GET,
+            'https://gitlab.example.com/api/v4/user',
             json={'id': user_id}
         )
-
         responses.add(
-            responses.GET, u'https://gitlab.example.com/api/v4/groups/cool-group',
+            responses.GET,
+            'https://gitlab.example.com/api/v4/groups/cool-group',
             json={
                 'id': group_id,
                 'name': 'Cool',
+                'path': 'cool-group',
                 'web_url': 'https://gitlab.example.com/groups/cool-group',
                 'avatar_url': 'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
+            }
+        )
+        responses.add(
+            responses.POST,
+            'https://gitlab.example.com/api/v4/hooks',
+            json={
+                'id': 'webhook-id-1'
             }
         )
 
@@ -87,7 +97,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_basic_flow(self):
+    @patch('sentry.integrations.gitlab.integration.generate_token')
+    def test_basic_flow(self, mock_generate_token):
+        mock_generate_token.return_value = 'secret-token'
         self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -97,9 +109,10 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert integration.metadata == {
             u'scopes': ['api', 'sudo'],
             u'icon': u'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
-            u'domain_name': u'gitlab.example.com/groups/cool-group',
+            u'domain_name': u'gitlab.example.com/cool-group',
             u'verify_ssl': True,
-            u'base_url': 'https://gitlab.example.com'
+            u'base_url': 'https://gitlab.example.com',
+            'webhook_secret': 'secret-token'
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,

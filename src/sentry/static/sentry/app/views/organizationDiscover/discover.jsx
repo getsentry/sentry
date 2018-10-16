@@ -81,6 +81,7 @@ export default class OrganizationDiscover extends React.Component {
     const {resultManager} = this.state;
 
     if (savedQuery && savedQuery !== this.props.savedQuery) {
+      this.setState({view: 'saved'});
       this.runQuery();
     }
 
@@ -147,18 +148,24 @@ export default class OrganizationDiscover extends React.Component {
 
     clearIndicators();
 
-    resultManager.fetchAll().then(data => {
-      const shouldRedirect = !this.props.params.savedQueryId;
+    resultManager
+      .fetchAll()
+      .then(data => {
+        const shouldRedirect = !this.props.params.savedQueryId;
 
-      if (shouldRedirect) {
-        browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/`,
-          search: getQueryStringFromQuery(queryBuilder.getInternal()),
-        });
-      }
+        if (shouldRedirect) {
+          browserHistory.push({
+            pathname: `/organizations/${organization.slug}/discover/`,
+            search: getQueryStringFromQuery(queryBuilder.getInternal()),
+          });
+        }
 
-      this.setState({data, isFetchingQuery: false});
-    });
+        this.setState({data, isFetchingQuery: false});
+      })
+      .catch(err => {
+        const message = (err && err.message) || t('An error occurred');
+        addErrorMessage(message);
+      });
   };
 
   toggleSidebar = view => {

@@ -59,6 +59,11 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
+    // Never allow ordering by project_name since this can't be done in Snuba
+    if (name === 'project_name') {
+      return acc;
+    }
+
     return [
       ...acc,
       {value: name, label: `${name} asc`},
@@ -122,8 +127,8 @@ export function fetchSavedQueries(organization) {
 
 export function createSavedQuery(organization, data) {
   const api = new Client();
-  const endpoint = `/organizations/${organization.slug}/discover/saved/`;
 
+  const endpoint = `/organizations/${organization.slug}/discover/saved/`;
   return api.requestPromise(endpoint, {
     method: 'POST',
     data,

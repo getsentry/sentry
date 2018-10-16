@@ -1,25 +1,63 @@
 from __future__ import absolute_import
 
+import re
+
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-from sentry import http
 from sentry.web.helpers import render_to_response
+from sentry.models.apitoken import generate_token
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.gitlab import get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
-from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    FeatureDescription,
+    IntegrationInstallation,
+    IntegrationFeatures,
+    IntegrationProvider,
+    IntegrationMetadata
+)
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 
-from .client import GitLabApiClient, GitLabApiClientPath
+from .client import GitLabApiClient, GitLabSetupClient
+from .issues import GitlabIssueBasic
+from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
-Fill me out
+Connect your Sentry organization to your GitLab instance or gitlab.com, enabling the following features:
 """
 
-FEATURES = []
+FEATURES = [
+    FeatureDescription(
+        """
+        Track commits and releases (learn more
+        [here](https://docs.sentry.io/learn/releases/))
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Resolve Sentry issues via GitLab commits and merge requests by
+        including `Fixes PROJ-ID` in the message
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create GitLab issues from Sentry
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link Sentry issues to existing GitLab issues
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -32,11 +70,15 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(IntegrationInstallation):
+class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMixin):
+    repo_search = True
 
     def __init__(self, *args, **kwargs):
         super(GitlabIntegration, self).__init__(*args, **kwargs)
         self.default_identity = None
+
+    def get_group_id(self):
+        return self.model.external_id.split(':')[1]
 
     def get_client(self):
         if self.default_identity is None:
@@ -44,27 +86,27 @@ class GitlabIntegration(IntegrationInstallation):
 
         return GitLabApiClient(self)
 
+    def get_repositories(self, query=None):
+        # Note: gitlab projects are the same things as repos everywhere else
+        group = self.get_group_id()
+        resp = self.get_client().get_group_projects(group, query)
+        return [{
+            'identifier': repo['id'],
+            'name': repo['name_with_namespace'],
+        } for repo in resp]
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
         label=_("Installation Url"),
-        help_text=_('The "base URL" for your gitlab instance, '
+        help_text=_('The "base URL" for your GitLab instance, '
                     'includes the host and protocol.'),
         widget=forms.TextInput(
-            attrs={'placeholder': 'https://github.example.com'}
+            attrs={'placeholder': 'https://gitlab.example.com'}
         ),
     )
-    name = forms.CharField(
-        label=_("Gitlab App Name"),
-        help_text=_('The name of your OAuth Application in Gitlab. '
-                    'This can be found on the apps configuration '
-                    'page. (/profile/applications)'),
-        widget=forms.TextInput(
-            attrs={'placeholder': _('Sentry App')}
-        )
-    )
     group = forms.CharField(
-        label=_("Gitlab Group Name"),
+        label=_("GitLab Group Name"),
         widget=forms.TextInput(
             attrs={'placeholder': _('my-awesome-group')}
         )
@@ -72,19 +114,21 @@ class InstallationForm(forms.Form):
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
         help_text=_('By default, we verify SSL certificates '
-                    'when delivering payloads to your Gitlab instance'),
+                    'when delivering payloads to your GitLab instance, '
+                    'and request GitLab to verify SSL when it delivers '
+                    'webhooks to Sentry.'),
         widget=forms.CheckboxInput(),
         required=False
     )
     client_id = forms.CharField(
-        label=_("Gitlab Application ID"),
+        label=_("GitLab Application ID"),
         widget=forms.TextInput(
             attrs={'placeholder': _(
                 '5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737')}
         )
     )
     client_secret = forms.CharField(
-        label=_("Gitlab Application Secret"),
+        label=_("GitLab Application Secret"),
         widget=forms.TextInput(
             attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
         )
@@ -134,6 +178,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     features = frozenset([
         IntegrationFeatures.ISSUE_BASIC,
+        IntegrationFeatures.COMMITS,
     ])
 
     setup_dialog_config = {
@@ -184,23 +229,14 @@ class GitlabIntegrationProvider(IntegrationProvider):
         return data
 
     def get_group_info(self, access_token, installation_data):
-        session = http.build_session()
-        resp = session.get(
-            GitLabApiClientPath.build_api_url(
-                base_url=installation_data['url'],
-                path=GitLabApiClientPath.group.format(
-                    group=installation_data['group'],
-                )
-            ),
-            headers={
-                'Accept': 'application/json',
-                'Authorization': 'Bearer %s' % access_token,
-            },
-            verify=installation_data['verify_ssl']
+        client = GitLabSetupClient(
+            installation_data['url'],
+            access_token,
+            installation_data['verify_ssl']
         )
+        resp = client.get_group(installation_data['group'])
 
-        resp.raise_for_status()
-        return resp.json()
+        return resp.json
 
     def get_pipeline_views(self):
         return [InstallationConfigView(), lambda: self._make_identity_pipeline_view()]
@@ -212,16 +248,19 @@ class GitlabIntegrationProvider(IntegrationProvider):
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
+        domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
+        verify_ssl = state['installation_data']['verify_ssl']
 
         integration = {
             'name': group['name'],
             'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': group['web_url'].replace('https://', ''),
+                'domain_name': domain_name,
                 'scopes': scopes,
-                'verify_ssl': state['installation_data']['verify_ssl'],
+                'verify_ssl': verify_ssl,
                 'base_url': base_url,
+                'webhook_secret': generate_token()
             },
             'user_identity': {
                 'type': 'gitlab',
@@ -232,3 +271,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
         }
 
         return integration
+
+    def setup(self):
+        from sentry.plugins import bindings
+        bindings.add(
+            'integration-repository.provider',
+            GitlabRepositoryProvider,
+            id='integrations:gitlab',
+        )

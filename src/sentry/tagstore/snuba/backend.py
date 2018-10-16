@@ -49,9 +49,9 @@ class SnubaTagStorage(TagStorage):
     def get_time_range(self, days=90):
         """
         Returns the default (start, end) time range for querrying snuba.
+        The snuba util may further reduce this range based on the project
+        retention, and first/last seen dates of the groups being queried.
         """
-        # TODO this should use the per-project retention figure to limit
-        # the query to looking at only the retention window for the project.
         end = timezone.now()
         return (end - timedelta(days=days), end)
 

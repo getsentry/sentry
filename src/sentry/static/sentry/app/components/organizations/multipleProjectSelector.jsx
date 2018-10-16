@@ -43,13 +43,7 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   render() {
-    const {
-      className,
-      anchorRight,
-      value,
-      projects,
-      onChange,
-    } = this.props;
+    const {className, anchorRight, value, projects, onChange} = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -68,10 +62,7 @@ export default class MultipleProjectSelector extends React.Component {
     });
 
     return (
-      <HeaderItem
-        className={className}
-        label={t('Project(s)')}
-      >
+      <HeaderItem className={className} label={t('Project(s)')}>
         <DropdownLink
           title={<Title>{summary}</Title>}
           anchorRight={anchorRight}
@@ -97,7 +88,6 @@ export default class MultipleProjectSelector extends React.Component {
     );
   }
 }
-
 
 const Title = styled.span`
   padding-right: 40px;

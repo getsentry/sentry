@@ -9,9 +9,10 @@ from sentry.testutils import TestCase
 class TestUpdater(TestCase):
     def setUp(self):
         self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
         self.sentry_app = Creator.run(
             name='nulldb',
-            user=self.user,
+            organization=self.org,
             scopes=('project:read',),
             webhook_url='http://example.com',
         )

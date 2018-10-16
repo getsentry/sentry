@@ -2,38 +2,38 @@ export default {
   control: {
     backgroundColor: '#fff',
     fontSize: 15,
-    fontWeight: 'normal'
+    fontWeight: 'normal',
   },
 
   input: {
-    margin: 0
+    margin: 0,
   },
 
   '&singleLine': {
     control: {
       display: 'inline-block',
 
-      width: 130
+      width: 130,
     },
 
     highlighter: {
       padding: 1,
-      border: '2px inset transparent'
+      border: '2px inset transparent',
     },
 
     input: {
       padding: 1,
-      border: '2px inset'
-    }
+      border: '2px inset',
+    },
   },
 
   '&multiLine': {
     control: {
-      fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif'
+      fontFamily: 'Rubik, Avenir Next, Helvetica Neue, sans-serif',
     },
 
     highlighter: {
-      padding: 20
+      padding: 20,
     },
 
     input: {
@@ -41,8 +41,8 @@ export default {
       minHeight: 140,
       overflow: 'auto',
       outline: 0,
-      border: 0
-    }
+      border: 0,
+    },
   },
 
   suggestions: {
@@ -51,7 +51,7 @@ export default {
       overflow: 'auto',
       backgroundColor: 'white',
       border: '1px solid rgba(0,0,0,0.15)',
-      fontSize: 12
+      fontSize: 12,
     },
 
     item: {
@@ -59,8 +59,8 @@ export default {
       borderBottom: '1px solid rgba(0,0,0,0.15)',
 
       '&focused': {
-        backgroundColor: '#f8f6f9'
-      }
-    }
-  }
+        backgroundColor: '#f8f6f9',
+      },
+    },
+  },
 };

@@ -835,15 +835,16 @@ class SnubaTestCase(TestCase):
         if not data.get('received'):
             data['received'] = calendar.timegm(event.datetime.timetuple())
 
-        environment = Environment.get_or_create(
-            event.project,
-            tags['environment'],
-        )
+        if 'environment' in tags:
+            environment = Environment.get_or_create(
+                event.project,
+                tags['environment'],
+            )
 
-        GroupEnvironment.objects.get_or_create(
-            environment_id=environment.id,
-            group_id=event.group_id,
-        )
+            GroupEnvironment.objects.get_or_create(
+                environment_id=environment.id,
+                group_id=event.group_id,
+            )
 
         hashes = get_hashes_from_fingerprint(
             event,

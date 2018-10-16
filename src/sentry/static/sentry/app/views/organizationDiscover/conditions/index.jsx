@@ -13,7 +13,7 @@ export default class Conditions extends React.Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.array).isRequired,
     onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array,
+    columns: PropTypes.array.isRequired,
   };
 
   addRow() {

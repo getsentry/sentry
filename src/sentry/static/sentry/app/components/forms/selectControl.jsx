@@ -62,36 +62,31 @@ export default class SelectControl extends React.Component {
   }
 }
 
-// We're making this class because we pass `innerRef` from `FormField`
-// And react yells at us if this picker is a stateless function component
-// (since you can't attach refs to them)
-class SelectPicker extends React.Component {
-  static propTypes = {
-    async: PropTypes.bool,
-    creatable: PropTypes.bool,
-    forwardedRef: PropTypes.any,
-  };
-
-  render() {
-    let {async, creatable, forwardedRef, ...props} = this.props;
-
-    // Pick the right component to use
-    let Component;
-    if (async && creatable) {
-      Component = AsyncCreatable;
-    } else if (async && !creatable) {
-      Component = Async;
-    } else if (creatable) {
-      Component = Creatable;
-    } else {
-      Component = ReactSelect;
-    }
-
-    return <Component ref={forwardedRef} {...props} />;
+const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
+  // Pick the right component to use
+  let Component;
+  if (async && creatable) {
+    Component = AsyncCreatable;
+  } else if (async && !creatable) {
+    Component = Async;
+  } else if (creatable) {
+    Component = Creatable;
+  } else {
+    Component = ReactSelect;
   }
-}
 
-const StyledSelect = styled(SelectPicker)`
+  return <Component ref={forwardedRef} {...props} />;
+};
+SelectPicker.propTypes = {
+  async: PropTypes.bool,
+  creatable: PropTypes.bool,
+  forwardedRef: PropTypes.any,
+};
+
+const forwardRef = (props, ref) => <SelectPicker {...props} forwardedRef={ref} />;
+forwardRef.displayName = 'SelectPicker';
+
+const StyledSelect = styled(React.forwardRef(forwardRef))`
   font-size: 15px;
 
   .Select-control,

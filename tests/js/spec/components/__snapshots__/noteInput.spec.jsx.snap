@@ -54,7 +54,7 @@ Tag users with @, or teams with #"
         Object {
           "&multiLine": Object {
             "control": Object {
-              "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+              "fontFamily": "Rubik, Avenir Next, Helvetica Neue, sans-serif",
             },
             "highlighter": Object {
               "padding": 20,

@@ -1,7 +1,7 @@
 import {trackQuery} from 'app/views/organizationDiscover/analytics';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 
-jest.mock('app/utils/analytics', () => jest.fn(fn => fn));
+jest.mock('app/utils/analytics');
 
 describe('Analytics', function() {
   beforeEach(function() {
