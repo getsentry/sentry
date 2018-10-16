@@ -12,13 +12,13 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import HookStore from 'app/stores/hookStore';
 import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import ReleaseList from 'app/views/projectReleases/releaseList';
-import ReleaseProgress from 'app/views/projectReleases/releaseProgress';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const DEFAULT_QUERY = '';
@@ -29,6 +29,11 @@ const ProjectReleases = createReactClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
     environment: SentryTypes.Environment,
+  },
+
+  contextTypes: {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   },
 
   mixins: [ApiMixin],
@@ -43,12 +48,18 @@ const ProjectReleases = createReactClass({
       query: queryParams.query || DEFAULT_QUERY,
       pageLinks: '',
       environment: this.props.environment,
+      EmptyComponent: null,
+      ProgressComponent: null,
     };
   },
 
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
+  },
+
+  componentDidMount() {
+    this.fetchComponents();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -124,23 +135,37 @@ const ProjectReleases = createReactClass({
     });
   },
 
-  getReleaseTrackingUrl() {
-    let params = this.props.params;
+  fetchComponents() {
+    let EmptyComponent = HookStore.get('component:releases-tab-empty').length
+      ? HookStore.get('component:releases-tab-empty')[0](
+          this.context.organization,
+          this.props.params
+        )
+      : undefined;
+    let ProgressComponent = HookStore.get('component:releases-tab-progress').length
+      ? HookStore.get('component:releases-tab-progress')[0](
+          this.context.organization,
+          this.props.params
+        )
+      : undefined;
 
-    return '/' + params.orgId + '/' + params.projectId + '/settings/release-tracking/';
+    this.setState({EmptyComponent, ProgressComponent});
   },
 
   renderStreamBody() {
     let body;
 
-    let params = this.props.params;
+    let {params} = this.props;
+    const {ProgressComponent} = this.state;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.releaseList.length > 0)
       body = (
         <div>
-          <ReleaseProgress orgId={params.orgId} projectId={params.projectId} />
+          {ProgressComponent && (
+            <ProgressComponent orgId={params.orgId} projectId={params.projectId} />
+          )}
           <ReleaseList
             orgId={params.orgId}
             projectId={params.projectId}
@@ -168,21 +193,34 @@ const ProjectReleases = createReactClass({
   },
 
   renderEmpty() {
-    const {environment} = this.state;
+    let {params} = this.props;
+    const {ProgressComponent} = this.state;
+    const {environment, EmptyComponent} = this.state;
+    const {project} = this.context;
+    let anyProjectReleases = project.latestRelease;
     const message = environment
       ? tct("There don't seem to be any releases in your [env] environment yet", {
           env: environment.displayName,
         })
       : t("There don't seem to be any releases yet.");
-    return (
-      <EmptyStateWarning>
-        <p>{message}</p>
-        <p>
-          <a href={this.getReleaseTrackingUrl()}>
-            {t('Learn how to integrate Release Tracking')}
-          </a>
-        </p>
-      </EmptyStateWarning>
+
+    return anyProjectReleases === null && EmptyComponent ? (
+      <EmptyComponent />
+    ) : (
+      <div>
+        {anyProjectReleases !== null &&
+          ProgressComponent && (
+            <ProgressComponent orgId={params.orgId} projectId={params.projectId} />
+          )}
+        <EmptyStateWarning>
+          <p>{message}</p>
+          <p>
+            <a href="https://docs.sentry.io/learn/releases/">
+              {t('Learn how to integrate Release Tracking')}
+            </a>
+          </p>
+        </EmptyStateWarning>
+      </div>
     );
   },
 
