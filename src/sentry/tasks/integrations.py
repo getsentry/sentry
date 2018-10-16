@@ -268,7 +268,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
         client.update_subscription(
             instance=installation.instance,
             subscription_id=subscription_id,
-            subscription_secret=integration.metadata['subscription']['secret'],
+            shared_secret=integration.metadata['subscription']['secret'],
         )
         integration.metadata['subscription']['check'] = time()
         integration.save()

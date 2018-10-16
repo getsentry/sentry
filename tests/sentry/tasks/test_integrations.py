@@ -55,6 +55,7 @@ class VstsSubscriptionCheckTest(TestCase):
                 'domain_name': 'https://vsts1.visualstudio.com/',
                 'subscription': {
                     'id': 'subscription1',
+                    'secret': '1234567890',
                 }
             }
         )
@@ -73,6 +74,7 @@ class VstsSubscriptionCheckTest(TestCase):
             metadata={
                 'subscription': {
                     'id': 'subscription3',
+                    'secret': '1234567890',
                     'check': integration3_check_time,
                 }
             }
