@@ -789,7 +789,7 @@ SENTRY_FEATURES = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     'organizations:integrations-issue-sync': False,
-    # Special feature flag primarily used on the sentry.io SASS product for
+    # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
