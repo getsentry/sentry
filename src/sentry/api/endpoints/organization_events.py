@@ -67,9 +67,8 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
 
         now = timezone.now()
 
-        # default to last 90 days
         end = now
-        start = now - timedelta(days=90)
+        start = now - self.MAX_STATS_PERIOD
 
         stats_period = request.GET.get('statsPeriod')
         if stats_period is not None:

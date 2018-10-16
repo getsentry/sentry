@@ -15,6 +15,9 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         self.min_ago = timezone.now() - timedelta(minutes=1)
         self.day_ago = timezone.now() - timedelta(days=1)
 
+    def assert_events_in_response(self, response, event_ids):
+        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(event_ids)
+
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -35,12 +38,7 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
-            [
-                event_1.event_id,
-                event_2.event_id,
-            ]
-        )
+        self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
     def test_message_search(self):
         self.login_as(user=self.user)
@@ -109,23 +107,14 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
-            [
-                event_1.event_id,
-            ]
-        )
+        self.assert_events_in_response(response, [event_1.event_id])
 
         # test only returns events from project user has access to
         response = self.client.get(base_url, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
-            [
-                event_1.event_id,
-                event_2.event_id,
-            ]
-        )
+        self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
     def test_stats_period(self):
         self.login_as(user=self.user)
@@ -148,11 +137,7 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
-            [
-                event_1.event_id,
-            ]
-        )
+        self.assert_events_in_response(response, [event_1.event_id])
 
     def test_time_range(self):
         self.login_as(user=self.user)
@@ -189,8 +174,4 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(
-            [
-                event_1.event_id,
-            ]
-        )
+        self.assert_events_in_response(response, [event_1.event_id])
