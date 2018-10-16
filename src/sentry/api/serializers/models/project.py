@@ -157,17 +157,26 @@ class ProjectSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         from sentry import features
+        from sentry.features.base import ProjectFeature
 
-        feature_list = []
-        for feature in (
-            'global-events', 'data-forwarding', 'rate-limits', 'discard-groups', 'similarity-view',
-            'custom-inbound-filters',
-        ):
-            if features.has('projects:' + feature, obj, actor=user):
-                feature_list.append(feature)
+        # Retrieve all registered organization features
+        project_features = features.all(feature_type=ProjectFeature).keys()
+        feature_list = set()
+
+        for feature_name in project_features:
+            if features.has(feature_name, obj, actor=user):
+                # Remove the project scope prefix
+                feature_list.add(feature_name[len('projects:'):])
+
+        # These were not here
+        #default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
+        #default_manager.add('projects:servicehooks', ProjectFeature)  # NOQA
+        #default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
+        #default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
+        #default_manager.add('projects:minidump', ProjectFeature)  # NOQA
 
         if obj.flags.has_releases:
-            feature_list.append('releases')
+            feature_list.add('releases')
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
