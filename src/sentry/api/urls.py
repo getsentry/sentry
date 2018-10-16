@@ -92,7 +92,11 @@ from .endpoints.organization_config_integrations import OrganizationConfigIntegr
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+<<<<<<< HEAD
 from .endpoints.organization_sentry_app_installations import OrganizationSentryAppInstallationsEndpoint
+=======
+from .endpoints.organizattion_sentry_app_installation_details import OrganizationSentryAppInstallationDetailsEndpoint
+>>>>>>> feat(app-platform): Add sentry app install details endpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
@@ -611,6 +615,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
         OrganizationSentryAppInstallationsEndpoint.as_view(),
         name='sentry-api-0-organization-sentry-app-installations'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installation/(?P<uuid>[^/]+)/$',
+        OrganizationSentryAppInstallationDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-sentry-app-installation-details'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
