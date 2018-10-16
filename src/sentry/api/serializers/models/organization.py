@@ -82,6 +82,7 @@ class OnboardingTasksSerializer(Serializer):
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
         from sentry import features, experiments
+        from sentry.features.base import OrganizationFeature
         from sentry.app import env
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
@@ -108,56 +109,36 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ).select_related('user')
         )
 
-        feature_list = []
-        if features.has('organizations:sso', obj, actor=user):
-            feature_list.append('sso')
-        if features.has('organizations:onboarding', obj, actor=user) and \
-                not OrganizationOption.objects.filter(organization=obj).exists():
-            feature_list.append('onboarding')
-        if features.has('organizations:api-keys', obj, actor=user) or \
-                ApiKey.objects.filter(organization=obj).exists():
-            feature_list.append('api-keys')
-        if features.has('organizations:group-unmerge', obj, actor=user):
-            feature_list.append('group-unmerge')
-        if features.has('organizations:require-2fa', obj, actor=user):
-            feature_list.append('require-2fa')
-        if features.has('organizations:repos', obj, actor=user):
-            feature_list.append('repos')
-        if features.has('organizations:internal-catchall', obj, actor=user):
-            feature_list.append('internal-catchall')
-        if features.has('organizations:new-issue-ui', obj, actor=user):
-            feature_list.append('new-issue-ui')
-        if features.has('organizations:integrations-issue-basic', obj, actor=user):
-            feature_list.append('integrations-issue-basic')
-        if features.has('organizations:integrations-issue-sync', obj, actor=user):
-            feature_list.append('integrations-issue-sync')
-        if features.has('organizations:suggested-commits', obj, actor=user):
-            feature_list.append('suggested-commits')
-        if features.has('organizations:new-teams', obj, actor=user):
-            feature_list.append('new-teams')
-        if features.has('organizations:unreleased-changes', obj, actor=user):
-            feature_list.append('unreleased-changes')
-        if features.has('organizations:relay', obj, actor=user):
-            feature_list.append('relay')
-        if features.has('organizations:js-loader', obj, actor=user):
-            feature_list.append('js-loader')
-        if features.has('organizations:health', obj, actor=user):
-            feature_list.append('health')
-        if features.has('organizations:discover', obj, actor=user):
-            feature_list.append('discover')
-        if features.has('organizations:events-stream', obj, actor=user):
-            feature_list.append('events-stream')
+        # Retrieve all registered organization features
+        org_features = features.all(feature_type=OrganizationFeature).keys()
+        feature_list = set()
+
+        for feature_name in org_features:
+            if not feature_name.startswith('organizations:'):
+                continue
+            if features.has(feature_name, obj, actor=user):
+                # Remove the organization scope prefix
+                feature_list.add(feature_name[len('organizations:'):])
+
+        # Do not include the onboarding feature if OrganizationOptions exist
+        if 'onboarding' in feature_list and \
+                OrganizationOption.objects.filter(organization=obj).exists():
+            feature_list.remove('onboarding')
+
+        # Include api-keys feature if they previously had any api-keys
+        if 'api-keys' not in feature_list and ApiKey.objects.filter(organization=obj).exists():
+            feature_list.add('api-keys')
+
+        # Organization flag features (not provided through the features module)
         if OrganizationOption.objects.filter(
                 organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
-            feature_list.append('legacy-rate-limits')
+            feature_list.add('legacy-rate-limits')
         if getattr(obj.flags, 'allow_joinleave'):
-            feature_list.append('open-membership')
+            feature_list.add('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
-            feature_list.append('shared-issues')
+            feature_list.add('shared-issues')
         if getattr(obj.flags, 'require_2fa'):
-            feature_list.append('require-2fa')
-        if features.has('organizations:event-attachments', obj, actor=user):
-            feature_list.append('event-attachments')
+            feature_list.add('require-2fa')
 
         experiment_assignments = experiments.all(org=obj)
 
