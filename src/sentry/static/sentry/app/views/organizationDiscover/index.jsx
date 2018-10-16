@@ -76,7 +76,12 @@ const OrganizationDiscoverContainer = createReactClass({
 
     fetchSavedQuery(organization, savedQueryId)
       .then(resp => {
-        this.queryBuilder = createQueryBuilder(parseSavedQuery(resp), organization);
+        if (this.queryBuilder) {
+          this.queryBuilder.reset(resp);
+        } else {
+          this.queryBuilder = createQueryBuilder(parseSavedQuery(resp), organization);
+        }
+
         this.setState({isLoading: false, savedQuery: resp, view: 'saved'});
       })
       .catch(() => {
