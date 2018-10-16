@@ -23,27 +23,6 @@ def get_shared_secret(subscription_headers):
     return shared_secret
 
 
-# def update_subscription(client, integration, subscription):
-
-#     resp = client.put(
-#         '%s_apis/hooks/subscriptions/%s?api-version=4.1' % (
-#             integration.metadata['domain_name'],
-#             subscription['id']
-#         ),
-#         data={
-#             'publisherId': 'tfs',
-#             'eventType': 'workitem.updated',
-#             'resourceVersion': '1.0',
-#             'consumerId': 'webHooks',
-#             'consumerActionId': 'httpRequest',
-#             'consumerInputs': {
-#                 'url': absolute_uri(reverse('sentry-extensions-vsts-issue-updated')),
-#                 'resourceDetailsToSend': 'all',
-#                 'httpHeaders': 'shared-secret:%s' % shared_secret,
-#             }
-#         },
-#     )
-
 def is_vsts_integration_subscription(subscription):
     return subscription['consumerInputs']['url'] == VSTS_WEBHOOK_URL \
         and subscription['eventType'] == 'workitem.updated' \
@@ -64,7 +43,7 @@ def update_subscription(integration, organization_id):
             continue
         shared_secret = get_shared_secret(subscription['consumerInputs']['httpHeaders'])
         if subscription['status'] == 'disabledBySystem':
-            # TODO(lb): have a PR that makes this work
+            # TODO(lb): test will not pass until a PR is merged that makes this work
             client.update_subscription(installation.instance, subscription['id'], shared_secret)
         integration.metadata['subscription'] = {
             'id': subscription['id'],
