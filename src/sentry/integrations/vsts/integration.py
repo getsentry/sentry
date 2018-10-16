@@ -408,7 +408,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
             )
 
-        subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
+        subscription_id = subscription['id']
         return subscription_id, shared_secret
 
     def get_oauth_data(self, payload):
