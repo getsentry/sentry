@@ -164,6 +164,8 @@ class ProjectSerializer(Serializer):
         feature_list = set()
 
         for feature_name in project_features:
+            if not feature_name.startswith('projects:'):
+                continue
             if features.has(feature_name, obj, actor=user):
                 # Remove the project scope prefix
                 feature_list.add(feature_name[len('projects:'):])

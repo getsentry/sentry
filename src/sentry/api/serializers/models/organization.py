@@ -114,6 +114,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         feature_list = set()
 
         for feature_name in org_features:
+            if not feature_name.startswith('organizations:'):
+                continue
             if features.has(feature_name, obj, actor=user):
                 # Remove the organization scope prefix
                 feature_list.add(feature_name[len('organizations:'):])
