@@ -18,7 +18,7 @@ export const DiscoverWrapper = styled(Flex)`
   flex: 1;
 `;
 
-export const Discover = styled(Flex)`
+export const DiscoverContainer = styled(Flex)`
   width: 100%;
   min-height: calc(100vh - ${FOOTER_HEIGHT}px);
 
@@ -48,7 +48,10 @@ export const Sidebar = styled(props => (
   min-width: 320px;
 `;
 
-export const Body = styled(Flex)``;
+export const Body = styled(Flex)`
+  flex: 1;
+  flex-direction: column;
+`;
 
 export const BodyContent = styled(Flex)`
   flex: 1;
