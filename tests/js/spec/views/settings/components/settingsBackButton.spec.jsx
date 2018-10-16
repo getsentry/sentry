@@ -110,7 +110,7 @@ describe('SettingsBackButton', function() {
       expect(wrapper.find('BackButtonWrapper').prop('href')).toBe('/test/');
     });
 
-    it('renders "Back to Project" when `lastAppContext` is "project" and `pending-invite` cookie', function() {
+    it('renders "Back to Invite" when `lastAppContext` is "project" and `pending-invite` cookie', function() {
       let wrapper = mount(
         <BackButton
           params={{projectId: 'project-slug'}}
@@ -124,11 +124,11 @@ describe('SettingsBackButton', function() {
           },
         }
       );
-      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Project');
-      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/foo/');
+      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Invite');
+      expect(wrapper.find('BackButtonWrapper').prop('href')).toBe('/test/');
     });
 
-    it('renders "Back to Organization" when `lastAppContext` is "organization" and `pending-invite` cookie', function() {
+    it('renders "Back to Invite" when `lastAppContext` is "organization" and `pending-invite` cookie', function() {
       let wrapper = mount(
         <BackButton params={{projectId: 'project-slug'}} organization={org} />,
         {
@@ -137,8 +137,8 @@ describe('SettingsBackButton', function() {
           },
         }
       );
-      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Organization');
-      expect(wrapper.find('BackButtonWrapper').prop('to')).toBe('/org-slug/');
+      expect(wrapper.find('BackButtonWrapper').text()).toBe('Back to Invite');
+      expect(wrapper.find('BackButtonWrapper').prop('href')).toBe('/test/');
     });
   });
 });
