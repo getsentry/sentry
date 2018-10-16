@@ -170,13 +170,6 @@ class ProjectSerializer(Serializer):
                 # Remove the project scope prefix
                 feature_list.add(feature_name[len('projects:'):])
 
-        # These were not here
-        #default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
-        #default_manager.add('projects:servicehooks', ProjectFeature)  # NOQA
-        #default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
-        #default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA
-        #default_manager.add('projects:minidump', ProjectFeature)  # NOQA
-
         if obj.flags.has_releases:
             feature_list.add('releases')
 

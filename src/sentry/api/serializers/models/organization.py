@@ -129,10 +129,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if 'api-keys' not in feature_list and ApiKey.objects.filter(organization=obj).exists():
             feature_list.add('api-keys')
 
-        # These are new
-        # default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
-        # default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
-
         # Organization flag features (not provided through the features module)
         if OrganizationOption.objects.filter(
                 organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
