@@ -9,14 +9,14 @@ from sentry.mediators.sentry_app_installation import Destroyer
 
 
 class OrganizationSentryAppInstallationDetailsEndpoint(BaseEndpoint):
-    @requires_feature('organizations:internall-catchall')
+    @requires_feature('organizations:internal-catchall')
     def get(self, request, organization, install):
         if install.organization == organization:
             return Response(serialize(install))
 
         return Response(status=404)
 
-    @requires_feature('organizations:internall-catchall')
+    @requires_feature('organizations:internal-catchall')
     def delete(self, request, organization, install):
         if not install.organization == organization:
             return Response(status=404)
