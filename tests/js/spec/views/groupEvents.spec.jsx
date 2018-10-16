@@ -49,6 +49,7 @@ describe('groupEvents', function() {
     const list = [
       {searchTerm: '', expectedQuery: {}},
       {searchTerm: 'test', expectedQuery: {query: 'test'}},
+      {searchTerm: 'environment:production test', expectedQuery: {query: 'test'}},
     ];
 
     list.forEach(item => {
