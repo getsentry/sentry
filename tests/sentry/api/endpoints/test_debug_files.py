@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.models import VersionDSymFile
+from sentry.models import ProjectDebugFile, VersionDSymFile
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -259,27 +259,17 @@ class DebugFilesUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        app, = response.data['apps']
-        assert app['appId'] == 'com.example.myapp'
-        assert app['iconUrl'] is None
-        assert app['name'] == 'MyApp'
-        assert app['platform'] == 'android'
-
-        dsym, = response.data['debugSymbols']
-        assert dsym['build'] == '1'
-        assert dsym['version'] == '1.0'
-        assert dsym['dsym']['cpuName'] == 'any'
-        assert dsym['dsym']['headers'] == {
+        dsym, = response.data
+        assert dsym['cpuName'] == 'any'
+        assert dsym['headers'] == {
             'Content-Type': 'text/x-proguard+plain'}
-        assert dsym['dsym']['objectName'] == 'proguard-mapping'
-        assert dsym['dsym']['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
-        assert dsym['dsym']['symbolType'] == 'proguard'
-        assert dsym['dsym']['uuid'] == '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
-
-        assert response.data['unreferencedDebugSymbols'] == []
+        assert dsym['objectName'] == 'proguard-mapping'
+        assert dsym['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
+        assert dsym['symbolType'] == 'proguard'
+        assert dsym['uuid'] == '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
 
         # Test download
-        response = self.client.get(url + "?download_id=" + download_id)
+        response = self.client.get(url + "?id=" + download_id)
 
         assert response.status_code == 200, response.content
         assert response.get(
@@ -293,5 +283,22 @@ class DebugFilesUploadTest(APITestCase):
         # Login user with no permissions
         user_no_permission = self.create_user('baz@localhost', username='baz')
         self.login_as(user=user_no_permission)
-        response = self.client.get(url + "?download_id=" + download_id)
+        response = self.client.get(url + "?id=" + download_id)
         assert response.status_code == 403, response.content
+
+        # Try to delete with no permissions
+        response = self.client.delete(url + "?id=" + download_id)
+        assert response.status_code == 403, response.content
+
+        # Login again with permissions
+        self.login_as(user=self.user)
+
+        response = self.client.delete(url + "?id=888")
+        assert response.status_code == 404, response.content
+
+        assert ProjectDebugFile.objects.count() == 1
+
+        response = self.client.delete(url + "?id=" + download_id)
+        assert response.status_code == 204, response.content
+
+        assert ProjectDebugFile.objects.count() == 0

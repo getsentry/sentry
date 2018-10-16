@@ -5,6 +5,8 @@ import jsonschema
 import logging
 import posixpath
 
+from django.db import transaction
+from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import serializers
 
@@ -13,12 +15,14 @@ from sentry import ratelimits
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
     VersionDSymFile, DSymApp, DIF_PLATFORMS, create_files_from_dif_zip, \
     get_assemble_status, set_assemble_status
 from sentry.utils import json
+from sentry.constants import KNOWN_DIF_TYPES
 
 try:
     from django.http import (
@@ -103,33 +107,62 @@ class DebugFilesEndpoint(ProjectEndpoint):
         Retrieve a list of debug information files for a given project.
 
         :pparam string organization_slug: the slug of the organization the
-                                          release belongs to.
+                                          file belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      DIFs of.
         :auth: required
         """
+        query = request.GET.get('query')
 
-        apps = DSymApp.objects.filter(project=project)
-        debug_files = VersionDSymFile.objects.filter(
-            dsym_app=apps
-        ).select_related('dsym_file').order_by('-build', 'version')
-
-        file_list = ProjectDebugFile.objects.filter(
+        queryset = ProjectDebugFile.objects.filter(
             project=project,
-            versiondsymfile__isnull=True,
-        ).select_related('file')[:100]
+        ).select_related('file')
 
-        download_requested = request.GET.get('download_id') is not None
+        if query:
+            KNOWN_DIF_TYPES_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_TYPES))
+            queryset = queryset.filter(
+                Q(object_name__icontains=query) | Q(debug_id__icontains=query) | Q(
+                    cpu_name__icontains=query) | Q(file__headers__icontains=query) | Q(
+                        file__headers__icontains=KNOWN_DIF_TYPES_REVERSE.get(query))
+            )
+
+        download_requested = request.GET.get('id') is not None
         if download_requested and (request.access.has_scope('project:write')):
-            return self.download(request.GET.get('download_id'), project)
+            return self.download(request.GET.get('id'), project)
 
-        return Response(
-            {
-                'apps': serialize(list(apps)),
-                'debugSymbols': serialize(list(debug_files)),
-                'unreferencedDebugSymbols': serialize(list(file_list)),
-            }
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='-id',
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
         )
+
+    def delete(self, request, project):
+        """
+        Delete a specific Project's Debug Information File
+        ```````````````````````````````````````````````````
+
+        Delete a debug information file for a given project.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to delete the
+                                     DIF.
+        :auth: required
+        """
+
+        if request.GET.get('id') and (request.access.has_scope('project:write')):
+            with transaction.atomic():
+                debug_file = ProjectDebugFile.objects.filter(
+                    id=request.GET.get('id'),
+                    project=project,
+                ).select_related('file').first()
+                if debug_file is not None:
+                    debug_file.delete()
+                    return Response(status=204)
+
+        return Response(status=404)
 
     def post(self, request, project):
         """
