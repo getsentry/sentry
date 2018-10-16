@@ -65,7 +65,6 @@ def fix_integration_subscriptions():
     for org_integration in org_integrations:
         integration = org_integration.integration
         # Check that we are only updating each integration once.
-        # The integration_ids have each integration needed to be updated once.
         # Once an integration_id has been removed do not try it again.
         try:
             integration_ids.remove(integration.id)
