@@ -2,11 +2,11 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import ProjectDebugSymbols from 'app/views/projectDebugSymbols';
+import ProjectDebugFiles from 'app/views/projectDebugFiles';
 
 const ENDPOINT = '/projects/org/project/files/dsyms/';
 
-describe('ProjectDebugSymbols', function() {
+describe('ProjectDebugFiles', function() {
   beforeEach(function() {
     Client.clearMockResponses();
   });
@@ -17,7 +17,7 @@ describe('ProjectDebugSymbols', function() {
       body: [],
     });
     let wrapper = shallow(
-      <ProjectDebugSymbols params={{orgId: 'org', projectId: 'project'}} />,
+      <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
       TestStubs.routerContext()
     );
 
@@ -35,7 +35,7 @@ describe('ProjectDebugSymbols', function() {
     });
 
     let wrapper = mount(
-      <ProjectDebugSymbols params={{orgId: 'org', projectId: 'project'}} />,
+      <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
       TestStubs.routerContext()
     );
 
