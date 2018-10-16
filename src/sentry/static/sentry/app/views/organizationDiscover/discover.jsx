@@ -32,7 +32,7 @@ import {
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {
-  Discover,
+  DiscoverContainer,
   Body,
   BodyContent,
   TopBar,
@@ -326,7 +326,7 @@ export default class OrganizationDiscover extends React.Component {
     const projects = organization.projects.filter(project => project.isMember);
 
     return (
-      <Discover>
+      <DiscoverContainer>
         <Sidebar>
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
@@ -348,7 +348,7 @@ export default class OrganizationDiscover extends React.Component {
           )}
           {shouldRenderSavedList && <SavedQueryList organization={organization} />}
         </Sidebar>
-        <Body direction="column" flex="1">
+        <Body>
           <TopBar>
             <MultipleProjectSelector
               value={currentQuery.projects}
@@ -380,7 +380,7 @@ export default class OrganizationDiscover extends React.Component {
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>
-      </Discover>
+      </DiscoverContainer>
     );
   }
 }
