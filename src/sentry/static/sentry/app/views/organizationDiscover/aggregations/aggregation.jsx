@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 
 import {getInternal, getExternal} from './utils';
 import {PlaceholderText} from '../styles';
+import {ARRAY_FIELD_PREFIXES} from '../data';
 
 export default class Aggregation extends React.Component {
   static propTypes = {
@@ -37,10 +38,12 @@ export default class Aggregation extends React.Component {
     ];
 
     if (input.startsWith('uniq')) {
-      optionList = this.props.columns.map(({name}) => ({
-        value: `uniq(${name})`,
-        label: `uniq(${name})`,
-      }));
+      optionList = this.props.columns
+        .filter(({name}) => !ARRAY_FIELD_PREFIXES.some(prefix => name.startsWith(prefix)))
+        .map(({name}) => ({
+          value: `uniq(${name})`,
+          label: `uniq(${name})`,
+        }));
     }
 
     if (input.startsWith('avg')) {

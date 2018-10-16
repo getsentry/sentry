@@ -35,7 +35,11 @@ describe('Aggregation', function() {
   describe('filterOptions()', function() {
     let wrapper;
     beforeEach(function() {
-      const cols = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      const cols = [
+        {name: 'col1', type: 'string'},
+        {name: 'col2', type: 'number'},
+        {name: 'exception_stacks.type', type: 'string'},
+      ];
       wrapper = mount(
         <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
       );
@@ -49,7 +53,7 @@ describe('Aggregation', function() {
       expect(options.map(({value}) => value)).toEqual(['count', 'uniq', 'avg']);
     });
 
-    it('displays uniq options on input `uniq`', function() {
+    it('displays uniq options for non-array fields only', function() {
       wrapper.setState({inputValue: 'uniq'});
       const options = wrapper.instance().filterOptions();
       expect(options).toHaveLength(2);
