@@ -62,7 +62,7 @@ class FeatureManager(object):
         2. The default configuration of the feature. This can be located in
            sentry.conf.server.SENTRY_FEATURES.
 
-        Depending on the Feature handler, additional arguments may need to be
+        Depending on the Feature class, additional arguments may need to be
         provided to assign organiation or project context to the feature.
 
         >>> FeatureManager.has('organization:feature', organization, actor=request.user)
