@@ -99,9 +99,17 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_user(self):
+        """Get a user
+
+        See https://docs.gitlab.com/ee/api/users.html#single-user
+        """
         return self.get(GitLabApiClientPath.user)
 
     def get_group_projects(self, group, query=None, simple=True):
+        """Get projects for a group
+
+        See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
+        """
         # simple param returns limited fields for the project.
         # Really useful, because we often don't need most of the project information
         return self.get(
@@ -115,11 +123,19 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_project(self, project_id):
+        """Get project
+
+        See https://docs.gitlab.com/ee/api/projects.html#get-single-project
+        """
         return self.get(
             GitLabApiClientPath.project.format(project=project_id)
         )
 
     def get_projects(self, query, simple=True):
+        """Get project list
+
+        See https://docs.gitlab.com/ee/api/projects.html#list-all-projects
+        """
         # simple param returns limited fields for the project.
         # Really useful, because we often don't need most of the project information
         return self.get(
@@ -131,6 +147,10 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_issue(self, project_id, issue_id):
+        """Get an issue
+
+        See https://docs.gitlab.com/ee/api/issues.html#single-issue
+        """
         try:
             return self.get(
                 GitLabApiClientPath.issue.format(project=project_id, issue=issue_id)
@@ -139,6 +159,10 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             raise ApiError('Issue not found with ID', 404)
 
     def create_issue(self, project, data):
+        """Create an issue
+
+        See https://docs.gitlab.com/ee/api/issues.html#new-issue
+        """
         return self.post(
             GitLabApiClientPath.issues.format(project=project),
             data=data,
@@ -154,17 +178,29 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def create_note(self, project_id, issue_iid, data):
+        """Create an issue note
+
+        See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
+        """
         return self.post(
             GitLabApiClientPath.notes.format(project=project_id, issue=issue_iid),
             data=data,
         )
 
     def list_project_members(self, project_id):
+        """Get project members
+
+        See https://docs.gitlab.com/ee/api/members.html#list-all-members-of-a-group-or-project
+        """
         return self.get(
             GitLabApiClientPath.members.format(project=project_id)
         )
 
     def create_project_webhook(self, project_id):
+        """Create a webhook on a project
+
+        See https://docs.gitlab.com/ee/api/projects.html#add-project-hook
+        """
         path = GitLabApiClientPath.project_hooks.format(project=project_id)
         hook_uri = reverse('sentry-extensions-gitlab-webhook')
         model = self.installation.model
@@ -180,6 +216,10 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         return resp['id']
 
     def delete_project_webhook(self, project_id, hook_id):
+        """Delete a webhook from a project
+
+        See https://docs.gitlab.com/ee/api/projects.html#delete-project-hook
+        """
         path = GitLabApiClientPath.project_hook.format(project=project_id, hook_id=hook_id)
         return self.delete(path)
 
@@ -189,6 +229,8 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         Gitlab doesn't give us a good way to do this, so we fetch the end_sha
         and use its date to find the block of commits. We only fetch one page
         of commits to match other implementations (github, bitbucket)
+
+        See https://docs.gitlab.com/ee/api/commits.html#get-the-diff-of-a-commit
         """
         path = GitLabApiClientPath.commit.format(project=project_id, sha=end_sha)
         commit = self.get(path)
@@ -200,10 +242,18 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(path, params={'until': end_date})
 
     def compare_commits(self, project_id, start_sha, end_sha):
+        """Compare commits between two shas
+
+        See https://docs.gitlab.com/ee/api/repositories.html#compare-branches-tags-or-commits
+        """
         path = GitLabApiClientPath.compare.format(project=project_id)
         return self.get(path, params={'from': start_sha, 'to': end_sha})
 
     def get_diff(self, project_id, sha):
+        """Get the diff for a commit
+
+        See https://docs.gitlab.com/ee/api/commits.html#get-the-diff-of-a-commit
+        """
         path = GitLabApiClientPath.diff.format(
             project=project_id,
             sha=sha
