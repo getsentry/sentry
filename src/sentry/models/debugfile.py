@@ -287,7 +287,7 @@ def clean_redundant_difs(project, debug_id):
         .order_by('-id')
 
     from itertools import islice
-    for dif in islice(difs, 1):
+    for dif in islice(difs, 1, None):
         dif.delete()
 
 
