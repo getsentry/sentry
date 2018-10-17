@@ -35,7 +35,7 @@ describe('OrganizationSettingsNavigation', function() {
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({
-            // features: ['sso'],
+            // features: ['sso-basic'],
             access: ['org:admin'],
             experiments: {SSOPaywallExperiment: 1},
           }),
@@ -54,7 +54,7 @@ describe('OrganizationSettingsNavigation', function() {
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({
-            features: ['sso'],
+            features: ['sso-basic'],
             access: ['org:admin'],
             experiments: {SSOPaywallExperiment: null},
           }),
