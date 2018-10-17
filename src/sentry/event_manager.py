@@ -357,7 +357,7 @@ class EventManager(object):
         except KeyError:
             raise APIForbidden('No report or interface data')
 
-        # To support testing, we can either accept a buillt interface instance, or the raw data in
+        # To support testing, we can either accept a built interface instance, or the raw data in
         # which case we build the instance ourselves
         try:
             instance = report if isinstance(report, interface) else interface.from_raw(report)
