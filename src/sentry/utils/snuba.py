@@ -434,7 +434,6 @@ def get_related_project_ids(column, ids):
     Get the project_ids from a model that has a foreign key to project.
     """
     mappings = {
-        'environment': (Environment, 'id', 'project_id'),
         'issue': (Group, 'id', 'project_id'),
         'tags[sentry:release]': (ReleaseProject, 'release_id', 'project_id'),
     }
