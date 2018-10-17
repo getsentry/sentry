@@ -716,7 +716,7 @@ class DIFCache(object):
         # upload that has already succeeded to compute a symcache. The latter
         # case is extremely unlikely.
         cache_file = ProjectSymCacheFile.objects \
-            .filter(project=debug_file.project, dsym_file_debug_id=debug_id) \
+            .filter(project=debug_file.project, dsym_file__debug_id=debug_id) \
             .select_related('cache_file') \
             .order_by('-id') \
             .first()
