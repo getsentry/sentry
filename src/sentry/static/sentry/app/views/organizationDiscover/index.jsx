@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import OrganizationState from 'app/mixins/organizationState';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -14,7 +15,16 @@ import {
   parseSavedQuery,
   getView,
 } from './utils';
-import {DiscoverWrapper, LoadingContainer} from './styles';
+
+import {
+  DiscoverWrapper,
+  DiscoverContainer,
+  Sidebar,
+  Body,
+  PageTitle,
+  TopBar,
+  LoadingContainer,
+} from './styles';
 
 const OrganizationDiscoverContainer = createReactClass({
   displayName: 'OrganizationDiscoverContainer',
@@ -66,7 +76,12 @@ const OrganizationDiscoverContainer = createReactClass({
 
     fetchSavedQuery(organization, savedQueryId)
       .then(resp => {
-        this.queryBuilder = createQueryBuilder(parseSavedQuery(resp), organization);
+        if (this.queryBuilder) {
+          this.queryBuilder.reset(resp);
+        } else {
+          this.queryBuilder = createQueryBuilder(parseSavedQuery(resp), organization);
+        }
+
         this.setState({isLoading: false, savedQuery: resp, view: 'saved'});
       })
       .catch(() => {
@@ -92,9 +107,17 @@ const OrganizationDiscoverContainer = createReactClass({
 
   renderLoading: function() {
     return (
-      <LoadingContainer>
-        <LoadingIndicator />
-      </LoadingContainer>
+      <DiscoverContainer>
+        <Sidebar>
+          <PageTitle>{t('Discover')}</PageTitle>
+        </Sidebar>
+        <Body>
+          <TopBar />
+          <LoadingContainer>
+            <LoadingIndicator />
+          </LoadingContainer>
+        </Body>
+      </DiscoverContainer>
     );
   },
 

@@ -13,6 +13,7 @@ from django.conf.global_settings import *  # NOQA
 
 import os
 import os.path
+import re
 import socket
 import sys
 import tempfile
@@ -766,39 +767,86 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
+    # Enables user registration.
     'auth:register': True,
+
+    # Enable obtaining and using API keys.
     'organizations:api-keys': False,
+    # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
+    # is not enabled).
     'organizations:create': True,
-    'organizations:event-attachments': False,
-    'organizations:repos': True,
-    'organizations:sso': True,
-    'organizations:sso-saml2': True,
-    'organizations:sso-rippling': False,
-    'organizations:group-unmerge': False,
-    'organizations:invite-members': True,
-    'organizations:require-2fa': False,
-    'organizations:internal-catchall': False,
-    'organizations:new-issue-ui': True,
-    'organizations:integrations-issue-basic': False,
-    'organizations:integrations-issue-sync': False,
-    'organizations:new-teams': True,
-    'organizations:unreleased-changes': False,
-    'organizations:suggested-commits': True,
-    'organizations:relay': False,
-    'organizations:js-loader': False,
-    'organizations:health': False,
+    # Enable the 'discover' interface.
     'organizations:discover': False,
+    # Enable attaching arbitrary files to events.
+    'organizations:event-attachments': False,
+    # Enable the organization wide events stream interface.
     'organizations:events-stream': False,
-    'projects:global-events': False,
-    'projects:plugins': True,
-    'projects:dsym': False,
-    'projects:sample-events': True,
-    'projects:data-forwarding': True,
-    'projects:rate-limits': True,
-    'projects:discard-groups': False,
+    # Enable the interface and functionality for unmerging event groups.
+    'organizations:group-unmerge': False,
+    # Enable the 'health' interface.
+    'organizations:health': False,
+    # Enable integration functionality to create and link groups to issues on
+    # external services.
+    'organizations:integrations-issue-basic': False,
+    # Enable interface functionality to synchronize groups between sentry and
+    # issues on external services.
+    'organizations:integrations-issue-sync': False,
+    # Special feature flag primarily used on the sentry.io SAAS product for
+    # easily enabling features while in early development.
+    'organizations:internal-catchall': False,
+    # Enable inviting members to organizations.
+    'organizations:invite-members': True,
+    # DEPRECATED: pending removal.
+    'organizations:js-loader': False,
+    # DEPRECATED: pending removal.
+    'organizations:new-issue-ui': True,
+    # DEPRECATED: pending removal.
+    'organizations:new-teams': True,
+    # Enable the relay functionality, for use with sentry semaphore. See
+    # https://github.com/getsentry/semaphore.
+    'organizations:relay': False,
+    # Enable managing repositories associated to an organization.
+    'organizations:repos': True,
+    # DEPCREATED: pending removal.
+    'organizations:require-2fa': False,
+    # Enable SSO functionality, providing configurable single signon using
+    # services like GitHub / Google. This is *not* the same as the signup /
+    # login with Github / Azure DevOps that sentry.io provides.
+    'organizations:sso': True,
+    # Enable Rippling SSO functionality.
+    'organizations:sso-rippling': False,
+    # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
+    # must be installed to use this functionality.
+    'organizations:sso-saml2': True,
+    # Enable suggested commits associated to a event group in the UI.
+    'organizations:suggested-commits': True,
+    # DEPCREATED: pending removal.
+    'organizations:unreleased-changes': False,
+
+    # Enable functionality to specify custom inbound filters on events.
     'projects:custom-inbound-filters': False,
+    # Enable data forwarding functionality for projects.
+    'projects:data-forwarding': True,
+    # Enable functionality to discard groups.
+    'projects:discard-groups': False,
+    # DEPRECATED: pending removal
+    'projects:dsym': False,
+    # DEPRECATED: pending removal.
+    'projects:global-events': False,
+    # Enable functionality for attaching  minidumps to events and displaying
+    # then in the group UI.
     'projects:minidump': True,
+    # Enable functionality for project plugins.
+    'projects:plugins': True,
+    # Enable functionality for rate-limiting events on projects.
+    'projects:rate-limits': True,
+    # Enable functionality for sampling of events on projects.
+    'projects:sample-events': True,
+    # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
+
+    # Don't add feature defaults down here! Please add them in their associated
+    # group sorted alphabetically.
 }
 
 # Default time zone for localization in the UI.
@@ -1378,3 +1426,7 @@ JS_SDK_LOADER_CDN_URL = ''
 JS_SDK_LOADER_SDK_VERSION = ''
 # This should be the url pointing to the JS SDK
 JS_SDK_LOADER_DEFAULT_SDK_URL = ''
+
+# block domains which are generally used by spammers -- keep this configurable in case an onpremise
+# install wants to allow it
+INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
