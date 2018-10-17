@@ -5,16 +5,18 @@ from django.conf import settings
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import (FlexibleForeignKey, Model, sane_repr)
 
 
 class PromptsActivity(Model):
+    """ Records user interaction with various feature prompts in product"""
     __core__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    organization = FlexibleForeignKey('sentry.Organization', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     feature = models.CharField(max_length=64)
+    # typically will include a dismissed/snoozed timestamp or something similar
     data = JSONField(default={})
 
     date_added = models.DateTimeField(default=timezone.now)
@@ -22,6 +24,6 @@ class PromptsActivity(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_prompt'
-        unique_together = (('organization_id', 'user', 'feature'), )
+        unique_together = (('user', 'feature', 'organization', 'project'), )
 
-    __repr__ = sane_repr('organization_id', 'project_id')
+    __repr__ = sane_repr('organization', 'project')

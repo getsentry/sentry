@@ -15,11 +15,6 @@ const STEPS = {
 };
 
 class ReleaseProgress extends AsyncView {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
-
   static contextTypes = {
     organization: PropTypes.object,
     project: PropTypes.object,

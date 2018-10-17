@@ -25,7 +25,7 @@ const cards = [
   {
     title: t("You Haven't Set Up Releases!"),
     message: t(
-      'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced for the first time'
+      'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
     ),
     component: Contributors,
   },
@@ -39,20 +39,20 @@ const cards = [
   {
     title: t('Release Stats'),
     message: t(
-      'Set the commits in each release, and which issues were introduced or fixed in the release.'
+      'See the commits in each release, and which issues were introduced or fixed in the release'
     ),
     component: Issues,
   },
   {
     title: t('Easy Resolution'),
     message: t(
-      'Automatically resolve issues by including the issue number in your commit message.'
+      'Automatically resolve issues by including the issue number in your commit message'
     ),
     component: BashCard,
   },
   {
     title: t('Deploy Emails'),
-    message: t('Receive email notifications when your code gets deployed.'),
+    message: t('Receive email notifications when your code gets deployed'),
     component: Emails,
   },
 ];
