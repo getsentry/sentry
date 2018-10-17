@@ -5,6 +5,7 @@ from sentry.testutils import APITestCase
 
 import json
 import responses
+import six
 
 
 class BitbucketIssueTest(APITestCase):
@@ -74,3 +75,60 @@ class BitbucketIssueTest(APITestCase):
         assert responses.calls[0].response.status_code == 201
         payload = json.loads(request.body)
         assert payload == {'content': {'raw': comment['comment']}}
+
+    @responses.activate
+    def test_default_repo_link_fields(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": [
+                    {"full_name": "myaccount/repo1"},
+                    {"full_name": "myaccount/repo2"}
+                ]
+            }""",
+            content_type='application/json',
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.add_organization(self.organization)
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'myaccount/repo1'}
+            }
+        }
+        org_integration.save()
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_link_issue_config(group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['defaultValue'] == 'myaccount/repo1'
+
+    @responses.activate
+    def test_default_repo_create_fields(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": [
+                    {"full_name": "myaccount/repo1"},
+                    {"full_name": "myaccount/repo2"}
+                ]
+            }""",
+            content_type='application/json',
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.add_organization(self.organization)
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'myaccount/repo1'}
+            }
+        }
+        org_integration.save()
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['defaultValue'] == 'myaccount/repo1'
