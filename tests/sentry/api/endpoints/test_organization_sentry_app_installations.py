@@ -141,6 +141,29 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
+    @with_feature('organizations:internal-catchall')
+    def test_members_cannot_install_apps(self):
+        user = self.create_user('bar@example.com')
+        self.create_member(
+            organization=self.org,
+            user=user,
+            role='member',
+        )
+        self.login_as(user)
+        app = SentryAppCreator.run(
+            name='Sample',
+            organization=self.org,
+            scopes=(),
+            webhook_url='https://example.com',
+        )
+        app.update(status=SentryAppStatus.PUBLISHED)
+        response = self.client.post(
+            self.url,
+            data={'slug': app.slug},
+            format='json',
+        )
+        assert response.status_code == 403
+
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)
 
