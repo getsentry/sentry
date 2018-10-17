@@ -25,7 +25,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
-        repo_choices, default_repo = self.get_repo_choices(group, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -59,7 +59,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         ]
 
     def get_link_issue_config(self, group, **kwargs):
-        repo_choices, default_repo = self.get_repo_choices(group, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
