@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import zipfile
+from uuid import uuid4
 from six import BytesIO, text_type
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -21,6 +22,21 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 class DebugFilesUploadTest(APITestCase):
+    def _upload_proguard(self, url, uuid):
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.writestr('proguard/%s.txt' % uuid, PROGUARD_SOURCE)
+        f.close()
+
+        return self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(),
+                                   content_type='application/zip'),
+            },
+            format='multipart'
+        )
+
     def test_simple_proguard_upload(self):
         project = self.create_project(name='foo')
 
@@ -34,20 +50,7 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
-        f.writestr('ignored-file.txt', b'This is just some stuff')
-        f.close()
-
-        response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                   content_type='application/zip'),
-            },
-            format='multipart'
-        )
+        response = self._upload_proguard(url, PROGUARD_UUID)
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -72,19 +75,7 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
-        f.close()
-
-        response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                   content_type='application/zip'),
-            },
-            format='multipart'
-        )
+        response = self._upload_proguard(url, PROGUARD_UUID)
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -139,19 +130,7 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
-        f.close()
-
-        response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                   content_type='application/zip'),
-            },
-            format='multipart'
-        )
+        response = self._upload_proguard(url, PROGUARD_UUID)
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -205,19 +184,7 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.writestr('proguard/%s.txt' % PROGUARD_UUID, PROGUARD_SOURCE)
-        f.close()
-
-        response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(),
-                                   content_type='application/zip'),
-            },
-            format='multipart'
-        )
+        response = self._upload_proguard(url, PROGUARD_UUID)
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -302,3 +269,41 @@ class DebugFilesUploadTest(APITestCase):
         assert response.status_code == 204, response.content
 
         assert ProjectDebugFile.objects.count() == 0
+
+    def test_dsyms_search(self):
+        project = self.create_project(name='foo')
+
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        first_uuid = None
+        last_uuid = None
+        for i in range(25):
+            last_uuid = text_type(uuid4())
+            if first_uuid is None:
+                first_uuid = last_uuid
+            self._upload_proguard(url, last_uuid)
+
+        # Test max 20 per page
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        dsyms = response.data
+        assert len(dsyms) == 20
+
+        # Test should return last
+        response = self.client.get(url + "?query=" + last_uuid)
+        assert response.status_code == 200, response.content
+        dsyms = response.data
+        assert len(dsyms) == 1
+
+        response = self.client.get(url + "?query=proguard")
+        assert response.status_code == 200, response.content
+        dsyms = response.data
+        assert len(dsyms) == 20
