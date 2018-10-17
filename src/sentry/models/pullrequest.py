@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.db import models, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
@@ -33,32 +33,3 @@ class PullRequest(Model):
     def find_referenced_groups(self):
         text = u'{} {}'.format(self.message, self.title)
         return find_referenced_groups(text, self.organization_id)
-
-    def set_commits(self, commit_list):
-        with transaction.atomic():
-            PullRequestCommit.objects.filter(
-                pull_request=self,
-            ).exclude(
-                commit__in=commit_list,
-            ).delete()
-            existing = set(PullRequestCommit.objects.filter(
-                pull_request=self,
-            ).values_list('commit', flat=True))
-            commits_missing = [c for c in commit_list if c.id not in existing]
-            for commit in commits_missing:
-                PullRequestCommit.objects.create(
-                    pull_request=self,
-                    commit=commit,
-                )
-
-
-class PullRequestCommit(Model):
-    __core__ = False
-
-    pull_request = FlexibleForeignKey('sentry.PullRequest')
-    commit = FlexibleForeignKey('sentry.Commit')
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_pullrequest_commit'
-        unique_together = (('pull_request', 'commit'), )
