@@ -808,15 +808,15 @@ SENTRY_FEATURES = {
     'organizations:repos': True,
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
-    # Enable SSO functionality, providing configurable single signon using
-    # services like GitHub / Google. This is *not* the same as the signup /
-    # login with Github / Azure DevOps that sentry.io provides.
-    'organizations:sso': True,
-    # Enable Rippling SSO functionality.
-    'organizations:sso-rippling': False,
+    # Enable basic SSO functionality, providing configurable single signon
+    # using services like GitHub / Google. This is *not* the same as the signup
+    # and login with Github / Azure DevOps that sentry.io provides.
+    'organizations:sso-basic': True,
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     'organizations:sso-saml2': True,
+    # Enable Rippling SSO functionality.
+    'organizations:sso-rippling': False,
     # Enable suggested commits associated to a event group in the UI.
     'organizations:suggested-commits': True,
     # DEPCREATED: pending removal.

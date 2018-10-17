@@ -69,7 +69,7 @@ default_manager.add('organizations:relay', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:require-2fa', OrganizationFeature)  # NOQA
-default_manager.add('organizations:sso', OrganizationFeature)  # NOQA
+default_manager.add('organizations:sso-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sso-rippling', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
 default_manager.add('organizations:suggested-commits', OrganizationFeature)  # NOQA

@@ -156,7 +156,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
     @transaction.atomic
     def handle(self, request, organization):
-        if not features.has('organizations:sso', organization, actor=request.user):
+        if not features.has('organizations:sso-basic', organization, actor=request.user):
             messages.add_message(
                 request,
                 messages.ERROR,
