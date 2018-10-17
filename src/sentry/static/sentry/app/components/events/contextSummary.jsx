@@ -205,6 +205,7 @@ export class GpuSummary extends React.Component {
     let versionElement = null;
 
     if (data.vendor_name) {
+      className = generateClassName(data.vendor_name);
       versionElement = (
         <p>
           <strong>{t('Vendor:')}</strong> {data.vendor_name}

@@ -180,7 +180,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
 
 exports[`GpuSummary render() should render name and vendor 1`] = `
 <div
-  className="context-item mali-t"
+  className="context-item arm"
 >
   <span
     className="context-item-icon"
