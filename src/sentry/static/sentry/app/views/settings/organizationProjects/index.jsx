@@ -142,8 +142,12 @@ export default class OrganizationProjects extends AsyncView {
                   />
                 </Box>
                 <Box p={2} align="right">
-                  <Button size="small" to={`/${organization.slug}/${project.slug}/`}>
-                    {t('View Issues')}
+                  <Button
+                    icon="icon-settings"
+                    size="small"
+                    to={`/settings/${organization.slug}/${project.slug}/`}
+                  >
+                    {t('Settings')}
                   </Button>
                 </Box>
               </PanelItem>
