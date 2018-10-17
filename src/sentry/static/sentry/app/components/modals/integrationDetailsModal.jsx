@@ -32,13 +32,7 @@ const defaultFeatureGateComponents = {
       ungatedFeatures: p.features,
       gatedFeatureGroups: [],
     }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i} dangerouslySetInnerHTML={{__html: p.formatter(f.description)}} />
-      ))}
-    </ul>
-  ),
+  FeatureList: p => <ul>{p.features.map((f, i) => <li key={i}>{f.description}</li>)}</ul>,
 };
 
 class IntegrationDetailsModal extends React.Component {
@@ -117,11 +111,19 @@ class IntegrationDetailsModal extends React.Component {
           </Button>
         ));
 
+    // Prepare the features list
+    const features = metadata.features.map(f => ({
+      featureGate: f.featureGate,
+      description: (
+        <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
+      ),
+    }));
+
     const featureListHooks = HookStore.get('integrations:feature-gates');
     featureListHooks.push(() => defaultFeatureGateComponents);
 
     const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
-    const featureProps = {organization, features: metadata.features};
+    const featureProps = {organization, features};
 
     return (
       <React.Fragment>
@@ -136,11 +138,7 @@ class IntegrationDetailsModal extends React.Component {
           </Flex>
         </Flex>
         <Description dangerouslySetInnerHTML={{__html: description}} />
-        <FeatureList
-          {...featureProps}
-          provider={provider}
-          formatter={singleLineRenderer}
-        />
+        <FeatureList {...featureProps} provider={provider} />
 
         <Metadata>
           <AuthorName flex={1}>{t('By %s', provider.metadata.author)}</AuthorName>
