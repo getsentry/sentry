@@ -140,6 +140,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by='-id',
             paginator_cls=OffsetPaginator,
+            default_per_page=20,
             on_results=lambda x: serialize(x, request.user),
         )
 
