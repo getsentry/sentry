@@ -12,13 +12,19 @@ import Conditions from '../conditions';
 import {getOrderByOptions} from '../utils';
 import {Fieldset, PlaceholderText, SidebarLabel, ButtonSpinner} from '../styles';
 
-export default class QueryEdit extends React.Component {
+export default class QueryFields extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
-    isFetchingQuery: PropTypes.bool.isRequired,
     onUpdateField: PropTypes.func.isRequired,
-    onRunQuery: PropTypes.func.isRequired,
-    reset: PropTypes.func.isRequired,
+    actions: PropTypes.arrayOf(
+      PropTypes.shape({
+        title: PropTypes.node.isRequired,
+        priority: PropTypes.string,
+        align: PropTypes.oneOf(['left', 'right']).isRequired,
+        onClick: PropTypes.func.isRequired,
+        isBusy: PropTypes.bool,
+      })
+    ).isRequired,
   };
 
   getSummarizePlaceholder = () => {
@@ -31,8 +37,31 @@ export default class QueryEdit extends React.Component {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
+  renderAction(direction) {
+    const boxProps = {
+      mr: direction === 'left' ? 1 : 0,
+      ml: direction === 'right' ? 1 : 0,
+    };
+
+    return function renderAction(action, idx) {
+      return (
+        <Box key={idx} {...boxProps}>
+          <Button
+            size="xsmall"
+            onClick={action.onClick}
+            priority={action.priority}
+            busy={action.isBusy}
+          >
+            {action.title}
+            {action.isBusy && <ButtonSpinner />}
+          </Button>
+        </Box>
+      );
+    };
+  }
+
   render() {
-    const {queryBuilder, isFetchingQuery, onUpdateField, onRunQuery, reset} = this.props;
+    const {queryBuilder, onUpdateField, actions} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
@@ -45,6 +74,9 @@ export default class QueryEdit extends React.Component {
       value: name,
       label: name,
     }));
+
+    const leftActions = actions.filter(action => action.align === 'left');
+    const rightActions = actions.filter(action => action.align === 'right');
 
     return (
       <React.Fragment>
@@ -99,21 +131,9 @@ export default class QueryEdit extends React.Component {
           />
         </Fieldset>
         <Fieldset>
-          <Flex>
-            <Button
-              size="xsmall"
-              onClick={onRunQuery}
-              priority="primary"
-              busy={isFetchingQuery}
-            >
-              {t('Run')}
-              {isFetchingQuery && <ButtonSpinner />}
-            </Button>
-            <Box ml={1}>
-              <Button size="xsmall" onClick={reset}>
-                {t('Reset')}
-              </Button>
-            </Box>
+          <Flex justify="space-between">
+            <Flex>{leftActions.map(this.renderAction('left'))}</Flex>
+            <Flex>{rightActions.map(this.renderAction('right'))}</Flex>
           </Flex>
         </Fieldset>
       </React.Fragment>
