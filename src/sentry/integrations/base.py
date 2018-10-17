@@ -45,7 +45,7 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 
 class IntegrationMetadata(IntegrationMetadata):
     @staticmethod
-    def featureFlagName(f):
+    def feature_flag_name(f):
         """
         FeatureDescriptions are set using the IntegrationFeatures constants,
         however we expose them here as mappings to organization feature flags, thus
@@ -59,7 +59,7 @@ class IntegrationMetadata(IntegrationMetadata):
         metadata['features'] = [
             {
                 'description': f.description.strip(),
-                'featureGate': self.featureFlagName(f.featureGate.value)
+                'featureGate': self.feature_flag_name(f.featureGate.value)
             }
             for f in metadata['features']
         ]
