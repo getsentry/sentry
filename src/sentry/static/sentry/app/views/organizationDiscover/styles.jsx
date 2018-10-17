@@ -7,12 +7,12 @@ import space from 'app/styles/space';
 
 import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
-import TextField from 'app/components/forms/textField';
 import Link from 'app/components/link';
 
 const FOOTER_HEIGHT = 87;
 const HEADER_HEIGHT = 60;
 const TABS_HEIGHT = 55;
+const QUERY_FIELDS_HEIGHT = 592;
 
 export const DiscoverWrapper = styled(Flex)`
   flex: 1;
@@ -36,7 +36,7 @@ export const PageTitle = styled.h2`
   color: ${p => p.theme.gray4};
   margin: 0;
   align-items: center;
-  padding-left: 30px;
+  padding-left: ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   height: ${HEADER_HEIGHT}px;
 `;
@@ -46,6 +46,7 @@ export const Sidebar = styled(props => (
 ))`
   border-right: 1px solid ${p => p.theme.borderDark};
   min-width: 320px;
+  position: relative;
 `;
 
 export const Body = styled(Flex)`
@@ -92,6 +93,7 @@ export const PlaceholderText = styled.div`
 
 export const Heading = styled.h2`
   font-size: 20px;
+  line-height: 24px;
   font-weight: normal;
   color: ${p => p.theme.gray4};
   margin: 0;
@@ -158,29 +160,16 @@ export const ChartNote = styled(Box)`
   margin-bottom: ${space(3)};
 `;
 
-export const BackToQueryList = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(0.5)} ${space(4)};
-  background-color: ${p => p.theme.whiteDark};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-`;
-
-export const EditableName = styled(props => (
-  <TextField inputStyle={{height: 24, padding: 4}} {...props} />
-))`
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
 export const SavedQueryAction = styled(Link)`
-  font-weight: normal;
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray6};
   margin-left: ${space(2)};
 `;
 
-export const SavedQuery = styled(Box)`
-  height: calc(100vh - ${FOOTER_HEIGHT + HEADER_HEIGHT + TABS_HEIGHT}px);
+export const SavedQueryWrapper = styled('div')`
+  height: ${p =>
+    p.isEditing
+      ? `${QUERY_FIELDS_HEIGHT}px`
+      : `calc(100vh - ${FOOTER_HEIGHT + HEADER_HEIGHT + TABS_HEIGHT}px)`};
   overflow: scroll;
 `;
 
@@ -189,9 +178,12 @@ export const SavedQueryList = styled(Panel)`
   border: 0;
 `;
 
-export const SavedQueryListItem = styled(PanelItem)`
+export const SavedQueryListItem = styled(({isActive, ...props}) => (
+  <PanelItem {...props} />
+))`
   flex-direction: column;
   padding: ${space(2)} ${space(4)};
+  background-color: ${p => (p.isActive ? p.theme.whiteDark : p.theme.white)};
 `;
 
 export const SavedQueryLink = styled(Link)`
@@ -200,5 +192,26 @@ export const SavedQueryLink = styled(Link)`
 
 export const SavedQueryUpdated = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray6};
+`;
+
+export const QueryPanelContainer = styled('div')`
+  position: absolute;
+  width: 100%;
+  height: calc(100% - ${HEADER_HEIGHT}px);
+  background-color: white;
+  top: ${HEADER_HEIGHT}px;
+  overflow: scroll;
+`;
+
+export const QueryPanelTitle = styled(Flex)`
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 ${space(4)};
+  height: ${HEADER_HEIGHT}px;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+export const QueryPanelCloseLink = styled(Link)`
   color: ${p => p.theme.gray6};
 `;

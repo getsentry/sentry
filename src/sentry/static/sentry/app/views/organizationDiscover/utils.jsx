@@ -1,5 +1,5 @@
+import moment from 'moment';
 import {Client} from 'app/api';
-
 import {isValidAggregation} from './aggregations/utils';
 
 export function getQueryFromQueryString(queryString) {
@@ -152,4 +152,13 @@ export function deleteSavedQuery(organization, id) {
   return api.requestPromise(endpoint, {
     method: 'DELETE',
   });
+}
+
+/**
+ * Generate a saved query name based on the current timestamp
+ *
+ * @returns {String}
+ */
+export function generateQueryName() {
+  return `Result - ${moment.utc().format('MMM DD HH:mm:ss')}`;
 }

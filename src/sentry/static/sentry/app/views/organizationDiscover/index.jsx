@@ -34,6 +34,7 @@ const OrganizationDiscoverContainer = createReactClass({
     return {
       isLoading: true,
       savedQuery: null,
+      isEditingSavedQuery: this.props.location.query.editing === 'true',
       view: getView(this.props.location.query.view),
     };
   },
@@ -56,7 +57,7 @@ const OrganizationDiscoverContainer = createReactClass({
 
   componentWillReceiveProps: function(nextProps) {
     if (!nextProps.params.savedQueryId) {
-      this.setState({savedQuery: null});
+      this.setState({savedQuery: null, isEditingSavedQuery: false});
       return;
     }
 
@@ -66,6 +67,12 @@ const OrganizationDiscoverContainer = createReactClass({
 
     if (nextProps.location.query.view !== this.props.location.query.view) {
       this.setState({view: getView(nextProps.location.query.view)});
+    }
+
+    if (nextProps.location.query.editing !== this.props.location.query.editing) {
+      this.setState({
+        isEditingSavedQuery: nextProps.location.query.editing === 'true',
+      });
     }
   },
 
@@ -101,6 +108,24 @@ const OrganizationDiscoverContainer = createReactClass({
     this.setState({savedQuery});
   },
 
+  toggleEditMode: function() {
+    const {organization} = this.context;
+    const {savedQuery} = this.state;
+    const isEditingSavedQuery = !this.state.isEditingSavedQuery;
+
+    const newQuery = {...this.props.location.query};
+    if (isEditingSavedQuery) {
+      newQuery.editing = 'true';
+    } else {
+      delete newQuery.editing;
+    }
+
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
+      query: newQuery,
+    });
+  },
+
   renderComingSoon: function() {
     return (
       <Flex className="organization-home" justify="center" align="center">
@@ -126,7 +151,8 @@ const OrganizationDiscoverContainer = createReactClass({
   },
 
   render() {
-    const {isLoading, savedQuery, view} = this.state;
+    const {isLoading, savedQuery, view, isEditingSavedQuery} = this.state;
+
     const {location, params} = this.props;
     const hasFeature = this.getFeatures().has('discover');
 
@@ -143,8 +169,10 @@ const OrganizationDiscoverContainer = createReactClass({
             location={location}
             params={params}
             savedQuery={savedQuery}
+            isEditingSavedQuery={isEditingSavedQuery}
             updateSavedQueryData={this.updateSavedQuery}
             view={view}
+            toggleEditMode={this.toggleEditMode}
           />
         )}
       </DiscoverWrapper>

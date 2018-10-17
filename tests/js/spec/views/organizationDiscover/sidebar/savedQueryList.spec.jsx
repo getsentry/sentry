@@ -20,7 +20,9 @@ describe('savedQueryList', function() {
   });
 
   it('renders empty state', async function() {
-    const wrapper = mount(<SavedQueryList organization={organization} />);
+    const wrapper = mount(
+      <SavedQueryList organization={organization} onRunQuery={jest.fn()} />
+    );
     await tick();
 
     expect(wrapper.text()).toBe('No saved queries');
@@ -40,7 +42,9 @@ describe('savedQueryList', function() {
       },
     ];
     mockResponse.push(...savedQueries);
-    const wrapper = mount(<SavedQueryList organization={organization} />);
+    const wrapper = mount(
+      <SavedQueryList organization={organization} onRunQuery={jest.fn()} />
+    );
     await tick();
     savedQueries.forEach(query => {
       expect(wrapper.text()).toContain(query.name);

@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
+import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -15,6 +16,10 @@ export default class QueryFields extends React.Component {
     queryBuilder: PropTypes.object.isRequired,
     onUpdateField: PropTypes.func.isRequired,
     actions: PropTypes.node.isRequired,
+    // savedQuery, savedQueryName, and onUpdateName are provided only when it's a saved search
+    savedQuery: PropTypes.object,
+    savedQueryName: PropTypes.string,
+    onUpdateName: PropTypes.func,
   };
 
   getSummarizePlaceholder = () => {
@@ -28,7 +33,14 @@ export default class QueryFields extends React.Component {
   };
 
   render() {
-    const {queryBuilder, onUpdateField, actions} = this.props;
+    const {
+      queryBuilder,
+      onUpdateField,
+      actions,
+      savedQuery,
+      savedQueryName,
+      onUpdateName,
+    } = this.props;
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
@@ -44,6 +56,21 @@ export default class QueryFields extends React.Component {
 
     return (
       <React.Fragment>
+        {savedQuery && (
+          <Fieldset>
+            <React.Fragment>
+              <SidebarLabel htmlFor="name" className="control-label">
+                {t('Name')}
+              </SidebarLabel>
+              <TextField
+                name="name"
+                value={savedQueryName}
+                placeholder={t('Saved search name')}
+                onChange={val => onUpdateName(val)}
+              />
+            </React.Fragment>
+          </Fieldset>
+        )}
         <Fieldset>
           <SidebarLabel htmlFor="fields" className="control-label">
             {t('Summarize')}
