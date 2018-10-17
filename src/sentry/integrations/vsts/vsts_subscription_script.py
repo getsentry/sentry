@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from uuid import uuid4
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.exceptions import ApiError, ApiUnathorized
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.models import OrganizationIntegration
 from sentry.utils.http import absolute_uri
 
@@ -56,7 +56,7 @@ def recreate_subscriptions(self):
 
         try:
             create_webhook(integration, org_integration.organization_id)
-        except (ApiError, ApiUnathorized):
+        except (ApiError, ApiUnauthorized):
             # potentially try the integration again with another org (if it exists)
             integration_ids.append(integration.id)
 
