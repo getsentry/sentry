@@ -196,7 +196,7 @@ export class Client {
       this.request(path, {
         ...options,
         success: (data, successString, allArgs) => {
-          includeAllArgs ? resolve([data, allArgs, successString]) : resolve(data);
+span class="pl-smi">           includeAllArgs ? resolve([data, successString, allArgs]) : resolve(data);
         },
         error: (error, ...args) => {
           reject(error);
