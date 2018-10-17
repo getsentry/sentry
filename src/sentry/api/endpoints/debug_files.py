@@ -119,12 +119,17 @@ class DebugFilesEndpoint(ProjectEndpoint):
         ).select_related('file')
 
         if query:
+            q = Q(object_name__icontains=query) \
+                | Q(debug_id__icontains=query) \
+                | Q(cpu_name__icontains=query) \
+                | Q(file__headers__icontains=query)
+
             KNOWN_DIF_TYPES_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_TYPES))
-            queryset = queryset.filter(
-                Q(object_name__icontains=query) | Q(debug_id__icontains=query) | Q(
-                    cpu_name__icontains=query) | Q(file__headers__icontains=query) | Q(
-                        file__headers__icontains=KNOWN_DIF_TYPES_REVERSE.get(query))
-            )
+            dif_type = KNOWN_DIF_TYPES_REVERSE.get(query)
+            if dif_type:
+                q |= Q(file__headers__icontains=dif_type)
+
+            queryset = queryset.filter(q)
 
         download_requested = request.GET.get('id') is not None
         if download_requested and (request.access.has_scope('project:write')):
@@ -135,6 +140,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by='-id',
             paginator_cls=OffsetPaginator,
+            default_per_page=20,
             on_results=lambda x: serialize(x, request.user),
         )
 
