@@ -555,6 +555,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_new_group_environment', True)
+        kwargs.setdefault('has_reappeared', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
