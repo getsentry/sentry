@@ -107,9 +107,9 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     _capture_stats(event, is_new)
 
     # we process snoozes before rules as it might create a regression
-    process_snoozes(event.group)
+    has_reappeared = process_snoozes(event.group)
 
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment)
+    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
     has_alert = False
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
@@ -152,6 +152,10 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
 
 def process_snoozes(group):
+    """
+    Return True if the group is transitioning from "resolved" to "unresolved",
+    otherwise return False.
+    """
     from sentry.models import GroupSnooze, GroupStatus
 
     try:
@@ -159,11 +163,14 @@ def process_snoozes(group):
             group=group,
         )
     except GroupSnooze.DoesNotExist:
-        return
+        return False
 
     if not snooze.is_valid(group, test_rates=True):
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
+        return True
+
+    return False
 
 
 @instrumented_task(

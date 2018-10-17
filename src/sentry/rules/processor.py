@@ -37,7 +37,7 @@ class EventCompatibilityProxy(object):
 class RuleProcessor(object):
     logger = logging.getLogger('sentry.rules')
 
-    def __init__(self, event, is_new, is_regression, is_new_group_environment):
+    def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
         self.event = EventCompatibilityProxy(event)
         self.group = event.group
         self.project = event.project
@@ -45,6 +45,7 @@ class RuleProcessor(object):
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
+        self.has_reappeared = has_reappeared
 
         self.grouped_futures = {}
 
@@ -76,6 +77,7 @@ class RuleProcessor(object):
             is_new=self.is_new,
             is_regression=self.is_regression,
             is_new_group_environment=self.is_new_group_environment,
+            has_reappeared=self.has_reappeared,
         )
 
     def apply_rule(self, rule):

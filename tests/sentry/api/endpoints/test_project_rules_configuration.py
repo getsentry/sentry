@@ -24,4 +24,4 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data['actions']) == 3
-        assert len(response.data['conditions']) == 8
+        assert len(response.data['conditions']) == 9
