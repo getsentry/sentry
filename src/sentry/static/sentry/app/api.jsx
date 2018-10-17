@@ -191,13 +191,12 @@ export class Client {
     return this.activeRequests[id];
   }
 
-  requestPromise(path, options = {}) {
+  requestPromise(path, {includeAllArgs, ...options} = {}) {
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
-          // This fails if we need jqXhr :(
-          resolve(data);
+          includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
         error: (error, ...args) => {
           reject(error);

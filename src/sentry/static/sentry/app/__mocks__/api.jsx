@@ -68,14 +68,18 @@ class Client {
     };
   }
 
-  requestPromise(url, options) {
-    return new Promise((resolve, reject) =>
-      this.request(url, {
+  requestPromise(path, {includeAllArgs, ...options} = {}) {
+    return new Promise((resolve, reject) => {
+      this.request(path, {
         ...options,
-        success: resolve,
-        error: reject,
-      })
-    );
+        success: (data, ...args) => {
+          includeAllArgs ? resolve([data, ...args]) : resolve(data);
+        },
+        error: (error, ...args) => {
+          reject(error);
+        },
+      });
+    });
   }
 
   request(url, options) {
