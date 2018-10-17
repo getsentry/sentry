@@ -311,12 +311,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         </InlineButton>
                       </Tooltip>
                       <Link
-                        to="/settings/org-slug/project-slug/"
+                        to="/org-slug/project-slug/"
                       >
                         <Link
                           onlyActiveOnIndex={false}
                           style={Object {}}
-                          to="/settings/org-slug/project-slug/"
+                          to="/org-slug/project-slug/"
                         >
                           <a
                             onClick={[Function]}

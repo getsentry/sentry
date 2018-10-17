@@ -73,7 +73,7 @@ const ProjectItem = createReactClass({
             )}
           </InlineButton>
         </Tooltip>
-        <Link to={`/settings/${organization.slug}/${project.slug}/`}>
+        <Link to={`/${organization.slug}/${project.slug}/`}>
           <ProjectLabel project={project} />
         </Link>
       </div>
