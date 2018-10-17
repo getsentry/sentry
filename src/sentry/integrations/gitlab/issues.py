@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 
 from django.core.urlresolvers import reverse
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
 from sentry.integrations.issues import IssueBasicMixin
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r'.+:(.+)#(.+)')
@@ -22,9 +22,22 @@ class GitlabIssueBasic(IssueBasicMixin):
             issue_id,
         )
 
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
+    def create_default_repo_choice(self, default_repo):
+        client = self.get_client()
+        try:
+            # default_repo should be the project_id
+            project = client.get_project(default_repo)
+        except (ApiError, ApiUnauthorized):
+            return ('', '')
+        return (project['id'], project['name_with_namespace'])
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
-        # TODO(lb): Add Default Project Functionality when avaliable
+        # In GitLab Repositories are called Projects
+        default_project, project_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -37,6 +50,8 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'label': 'Gitlab Project',
                 'type': 'select',
                 'url': autocomplete_url,
+                'choices': project_choices,
+                'defaultValue': default_project,
                 'updatesForm': True,
                 'required': True,
                 'choices': [],
