@@ -46,7 +46,7 @@ class GpuContextType extends React.Component {
       ['?API Type', api_type],
     ];
 
-    if (id > 0) {
+    if (vendor_id > 0) {
       knownData.unshift(['?Vendor Id', vendor_id]);
     }
 
