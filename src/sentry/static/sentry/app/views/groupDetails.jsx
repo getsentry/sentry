@@ -30,6 +30,7 @@ const GroupDetails = createReactClass({
 
   contextTypes: {
     organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   },
 
   childContextTypes: {
@@ -70,6 +71,7 @@ const GroupDetails = createReactClass({
     analytics('issue_page.viewed', {
       group_id: parseInt(this.props.params.groupId, 10),
       org_id: parseInt(this.context.organization.id, 10),
+      project_id: parseInt(this.context.project.id, 10),
     });
   },
 
