@@ -189,6 +189,45 @@ class DeviceSummary extends React.Component {
   }
 }
 
+export class GpuSummary extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
+
+  render() {
+    let data = this.props.data;
+
+    if (objectIsEmpty(data) || !data.name) {
+      return <NoSummary title={t('Unknown GPU')} />;
+    }
+
+    let className = generateClassName(data.name);
+    let versionElement = null;
+
+    if (data.vendor_name) {
+      versionElement = (
+        <p>
+          <strong>{t('Vendor:')}</strong> {data.vendor_name}
+        </p>
+      );
+    } else {
+      versionElement = (
+        <p>
+          <strong>{t('Vendor:')}</strong> {t('Unknown')}
+        </p>
+      );
+    }
+
+    return (
+      <div className={`context-item ${className}`}>
+        <span className="context-item-icon" />
+        <h3>{data.name}</h3>
+        {versionElement}
+      </div>
+    );
+  }
+}
+
 const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
 const KNOWN_CONTEXTS = [
@@ -197,6 +236,7 @@ const KNOWN_CONTEXTS = [
   {key: 'runtime', Component: GenericSummary, unknownTitle: t('Unknown Runtime')},
   {key: 'os', Component: OsSummary},
   {key: 'device', Component: DeviceSummary},
+  {key: 'gpu', Component: GpuSummary},
 ];
 
 class EventContextSummary extends React.Component {
