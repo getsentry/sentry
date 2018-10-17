@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 import six
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
-from sentry.coreapi import ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
