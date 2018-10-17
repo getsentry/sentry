@@ -100,10 +100,7 @@ class BitbucketIssueTest(APITestCase):
         org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
         fields = installation.get_link_issue_config(group)
-        for field in fields:
-            if field['name'] == 'repo':
-                repo_field = field
-                break
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
         assert repo_field['defaultValue'] == 'myaccount/repo1'
 
     @responses.activate
