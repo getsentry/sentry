@@ -222,6 +222,7 @@ class ProjectDebugFile(Model):
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey('sentry.Project', null=True)
     debug_id = models.CharField(max_length=64, db_column='uuid')
+    data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
