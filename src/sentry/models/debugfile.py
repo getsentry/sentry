@@ -225,7 +225,7 @@ class ProjectDebugFile(Model):
     objects = ProjectDebugFileManager()
 
     class Meta:
-        unique_together = (('project', 'debug_id'), )
+        index_together = (('project', 'debug_id'), )
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
