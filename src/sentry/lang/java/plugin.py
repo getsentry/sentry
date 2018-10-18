@@ -41,7 +41,8 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(self.project, self.images)
+        dif_paths = ProjectDebugFile.difcache.fetch_difs(
+            self.project, self.images, features=['mapping'])
         self.mapping_views = []
 
         for debug_id in self.images:
