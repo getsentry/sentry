@@ -47,6 +47,7 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
         body="Nothing to see here."
         containerClassName="pill-icon"
         displayTimeout={100}
+        dynamicWidth={false}
         header={
           <span>
             Details
@@ -61,6 +62,9 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
             </a>
           </span>
         }
+        maxWidth={295}
+        minHeight={50}
+        minWidth={295}
       >
         <InlineSvg
           size="14px"
@@ -86,12 +90,16 @@ exports[`ExceptionMechanism basic attributes should render a description hoverca
         body="Nothing to see here."
         containerClassName="pill-icon"
         displayTimeout={100}
+        dynamicWidth={false}
         header={
           <span>
             Details
              
           </span>
         }
+        maxWidth={295}
+        minHeight={50}
+        minWidth={295}
       >
         <InlineSvg
           size="14px"
