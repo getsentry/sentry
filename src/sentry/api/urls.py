@@ -614,9 +614,9 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-sentry-app-installations'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installation/(?P<uuid>[^/]+)/$',
+        r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/(?P<uuid>[^/]+)/$',
         OrganizationSentryAppInstallationDetailsEndpoint.as_view(),
-        name='sentry-api-0-organization-sentry-app-installation-details'
+        name='sentry-api-0-organization-sentry-app-installations-details'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',

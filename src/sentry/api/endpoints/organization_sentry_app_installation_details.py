@@ -33,4 +33,4 @@ class OrganizationSentryAppInstallationDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         Destroyer.run(install=install)
-        return Response(status=200)
+        return Response(status=204)

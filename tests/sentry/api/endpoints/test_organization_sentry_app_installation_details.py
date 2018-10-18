@@ -37,7 +37,7 @@ class OrganizationSentryAppInstallationDetailsTest(APITestCase):
             organization=self.org,
         )
         self.url = reverse(
-            'sentry-api-0-organization-sentry-app-installation-details',
+            'sentry-api-0-organization-sentry-app-installations-details',
             args=[
                 self.org.slug,
                 self.installation2.uuid,
@@ -61,14 +61,14 @@ class GetOrganizationSentryAppInstallationDetailsTest(OrganizationSentryAppInsta
     def test_no_access_outside_install_organization(self):
         self.login_as(user=self.user)
         url = reverse(
-            'sentry-api-0-organization-sentry-app-installation-details',
+            'sentry-api-0-organization-sentry-app-installations-details',
             args=[self.org.slug, self.installation.uuid],
         )
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
         url = reverse(
-            'sentry-api-0-organization-sentry-app-installation-details',
+            'sentry-api-0-organization-sentry-app-installations-details',
             args=[self.super_org.slug, self.installation2.uuid],
         )
         response = self.client.get(url, format='json')
@@ -88,7 +88,7 @@ class DeleteOrganizationSentryAppInstallationDetailsTest(
         self.login_as(user=self.user)
         response = self.client.delete(self.url, format='json')
 
-        assert response.status_code == 200
+        assert response.status_code == 204
 
     @with_feature('organizations:internal-catchall')
     def test_member_cannot_delete_install(self):
