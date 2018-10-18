@@ -344,7 +344,7 @@ def repair_tag_data(caches, project, events):
             env_name,
         )
         for key, values in keys.items():
-            _, created = tagstore.get_or_create_group_tag_key(
+            tagstore.get_or_create_group_tag_key(
                 project_id=project.id,
                 group_id=group_id,
                 environment_id=environment.id,
