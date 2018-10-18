@@ -11,8 +11,8 @@ Sentry is a Server
 ------------------
 
 The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `Raven
-<https://github.com/getsentry/raven-python>`_)
+handle authentication clients (such as `the Python one
+<https://github.com/getsentry/sentry-python>`_)
 and all of the logic behind storage and aggregation.
 
 That said, Sentry is not limited to Python. The primary implementation is in

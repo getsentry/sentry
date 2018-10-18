@@ -9,8 +9,6 @@ from __future__ import absolute_import
 
 from threading import local
 
-from raven.contrib.django.models import client
-
 from sentry.utils import redis
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
@@ -32,6 +30,8 @@ from .nodestore import backend as nodestore  # NOQA
 from .quotas import backend as quotas  # NOQA
 from .ratelimits import backend as ratelimiter  # NOQA
 
-raven = client
+from sentry.utils.sdk import RavenShim
+
+raven = client = RavenShim()  # NOQA
 
 locks = LockManager(RedisLockBackend(redis.clusters.get('default')))
