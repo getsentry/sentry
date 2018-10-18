@@ -16,7 +16,7 @@ from sentry.models import SentryAppInstallation
 class OrganizationSentryAppInstallationsSerializer(serializers.Serializer):
     slug = serializers.RegexField(
         r'^[a-z0-9_\-]+$',
-        max_length=50,
+        max_length=64,
         error_messages={
             'invalid': _('Enter a valid slug consisting of lowercase letters, '
                          'numbers, underscores or hyphens.'),
