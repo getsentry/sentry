@@ -61,8 +61,11 @@ const GroupGroupingView = createReactClass({
         error: typeof error !== 'undefined' ? error : false,
       });
     } else if (mergedParent && mergedParent !== this.props.params.groupId) {
+      let {params} = this.props;
       // Merge success, since we can't specify target, we need to redirect to new parent
-      browserHistory.push(`/issues/${mergedParent}/similar/`);
+      browserHistory.push(
+        `/${params.orgId}/${params.projectId}/issues/${mergedParent}/similar/`
+      );
     }
   },
 
