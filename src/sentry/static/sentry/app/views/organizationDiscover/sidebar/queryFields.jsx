@@ -1,30 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/button';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
 import {getOrderByOptions} from '../utils';
-import {Fieldset, PlaceholderText, SidebarLabel, ButtonSpinner} from '../styles';
+import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 
 export default class QueryFields extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
     onUpdateField: PropTypes.func.isRequired,
-    actions: PropTypes.arrayOf(
-      PropTypes.shape({
-        title: PropTypes.node.isRequired,
-        priority: PropTypes.string,
-        align: PropTypes.oneOf(['left', 'right']).isRequired,
-        onClick: PropTypes.func.isRequired,
-        isBusy: PropTypes.bool,
-      })
-    ).isRequired,
+    actions: PropTypes.node.isRequired,
   };
 
   getSummarizePlaceholder = () => {
@@ -36,29 +26,6 @@ export default class QueryFields extends React.Component {
         : t('No fields selected, showing all');
     return <PlaceholderText>{text}</PlaceholderText>;
   };
-
-  renderAction(direction) {
-    const boxProps = {
-      mr: direction === 'left' ? 1 : 0,
-      ml: direction === 'right' ? 1 : 0,
-    };
-
-    return function renderAction(action, idx) {
-      return (
-        <Box key={idx} {...boxProps}>
-          <Button
-            size="xsmall"
-            onClick={action.onClick}
-            priority={action.priority}
-            busy={action.isBusy}
-          >
-            {action.title}
-            {action.isBusy && <ButtonSpinner />}
-          </Button>
-        </Box>
-      );
-    };
-  }
 
   render() {
     const {queryBuilder, onUpdateField, actions} = this.props;
@@ -74,9 +41,6 @@ export default class QueryFields extends React.Component {
       value: name,
       label: name,
     }));
-
-    const leftActions = actions.filter(action => action.align === 'left');
-    const rightActions = actions.filter(action => action.align === 'right');
 
     return (
       <React.Fragment>
@@ -130,12 +94,7 @@ export default class QueryFields extends React.Component {
             onChange={val => onUpdateField('limit', typeof val === 'number' ? val : null)}
           />
         </Fieldset>
-        <Fieldset>
-          <Flex justify="space-between">
-            <Flex>{leftActions.map(this.renderAction('left'))}</Flex>
-            <Flex>{rightActions.map(this.renderAction('right'))}</Flex>
-          </Flex>
-        </Fieldset>
+        <Fieldset>{actions}</Fieldset>
       </React.Fragment>
     );
   }
