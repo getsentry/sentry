@@ -621,6 +621,15 @@ class Fixtures(object):
     def create_file(self, **kwargs):
         return File.objects.create(**kwargs)
 
+    def create_file_from_path(self, path, name=None, **kwargs):
+        if name is None:
+            name = os.path.basename(path)
+
+        file = self.create_file(name=name, **kwargs)
+        with open(path) as f:
+            file.putfile(f)
+        return file
+
     def create_event_attachment(self, event=None, file=None, **kwargs):
         if event is None:
             event = self.event
@@ -641,11 +650,48 @@ class Fixtures(object):
             **kwargs
         )
 
-    def create_dif_file(self, project=None, **kwargs):
+    def create_dif_file(self, debug_id=None, project=None, object_name=None,
+                        features=None, data=None, file=None, cpu_name=None, **kwargs):
         if project is None:
             project = self.project
 
+        if debug_id is None:
+            debug_id = six.text_type(uuid4())
+
+        if object_name is None:
+            object_name = 'foo.dSYM'
+
+        if features is not None:
+            if data is None:
+                data = {}
+            data['features'] = features
+
+        if file is None:
+            file = self.create_file(
+                name=object_name,
+                size=42,
+                headers={'Content-Type': 'application/x-mach-binary'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return ProjectDebugFile.objects.create(
+            debug_id=debug_id,
+            project=project,
+            object_name=object_name,
+            cpu_name=cpu_name or 'x86_64',
+            file=file,
+            data=data,
+            **kwargs
+        )
+
         return ProjectDebugFile.objects.create(project=project, **kwargs)
+
+    def create_dif_from_path(self, path, object_name=None, **kwargs):
+        if object_name is None:
+            object_name = os.path.basename(path)
+
+        file = self.create_file_from_path(path, name=object_name)
+        return self.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     def add_user_permission(self, user, permission):
         try:

@@ -214,6 +214,47 @@ class ProjectDebugFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         return ProjectDebugFile.objects.filter(file__checksum__in=checksums, project=project)
 
+    def find_by_debug_ids(self, project, debug_ids, features=None):
+        """Finds debug information files matching the given debug identifiers.
+
+        If a set of features is specified, only files that satisfy all features
+        will be returned. This does not apply to legacy debug files that were
+        not tagged with features.
+
+        Returns a dict of debug files keyed by their debug identifier.
+        """
+        features = frozenset(features) if features is not None else frozenset()
+
+        difs = ProjectDebugFile.objects \
+            .filter(project=project, debug_id__in=debug_ids) \
+            .select_related('file') \
+            .order_by('-id')
+
+        difs_by_id = {}
+        for dif in difs:
+            difs_by_id.setdefault(dif.debug_id, []).append(dif)
+
+        rv = {}
+        for debug_id, group in six.iteritems(difs_by_id):
+            with_features = [dif for dif in group if 'features' in (dif.data or ())]
+
+            # In case we've never computed features for any of these files, we
+            # just take the first one and assume that it matches.
+            if not with_features:
+                rv[debug_id] = group[0]
+                continue
+
+            # There's at least one file with computed features. Older files are
+            # considered redundant and will be deleted. We search for the first
+            # file matching the given feature set. This might not resolve if no
+            # DIF matches the given feature set.
+            for dif in with_features:
+                if dif.features >= features:
+                    rv[debug_id] = dif
+                    break
+
+        return rv
+
 
 class ProjectDebugFile(Model):
     __core__ = False
@@ -360,6 +401,7 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id, data,
         )
         file.putfile(fileobj)
     else:
+        file.type = 'project.dif'
         file.headers['Content-Type'] = DIF_MIMETYPES[dif_type]
         file.save()
 
@@ -493,48 +535,6 @@ def create_files_from_dif_zip(fileobj, project, update_symcaches=True):
         shutil.rmtree(scratchpad)
 
 
-def find_debug_files(project, debug_ids, features=None):
-    """Finds debug information files matching the given debug IDs.
-
-    If a set of features is specified, only files that satisfy all features will
-    be returned. This does not apply to legacy debug files that were not tagged
-    with features.
-
-    Returns a dict of debug files keyed by their debug identifier.
-    """
-    features = frozenset(features) if features is not None else frozenset()
-
-    difs = ProjectDebugFile.objects \
-        .filter(project=project, debug_id__in=debug_ids) \
-        .select_related('file') \
-        .order_by('-id')
-
-    difs_by_id = {}
-    for dif in difs:
-        difs_by_id.setdefault(dif.debug_id, []).append(dif)
-
-    rv = {}
-    for debug_id, group in six.iteritems(difs_by_id):
-        with_features = [dif for dif in group if 'features' in (dif.data or ())]
-
-        # In case we've never computed features for any of these files, we just
-        # take the first one and assume that it matches.
-        if not with_features:
-            rv[debug_id] = group[0]
-            break
-
-        # There's at least one file with computed features. Older files are
-        # considered redundant and will be deleted. We search for the first file
-        # matching the given feature set. This might not resolve if no DIF
-        # matches the given feature set.
-        for dif in with_features:
-            if dif.features >= features:
-                rv[debug_id] = dif
-                break
-
-    return rv
-
-
 class DIFCache(object):
     @property
     def cache_path(self):
@@ -585,7 +585,7 @@ class DIFCache(object):
         debug symbol files are on the FS.
         """
         debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
-        difs = find_debug_files(project, debug_ids, features)
+        difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 
         rv = {}
         for debug_id, dif in six.iteritems(difs):
@@ -603,7 +603,8 @@ class DIFCache(object):
     def _get_symcaches_impl(self, project, debug_ids, on_dif_referenced=None):
         # Fetch debug files first and invoke the callback if we need
         debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
-        debug_files = find_debug_files(project, debug_ids, features=['debug'])
+        debug_files = ProjectDebugFile.objects.find_by_debug_ids(
+            project, debug_ids, features=['debug'])
 
         # Notify the caller that we have used a symbol file
         if on_dif_referenced is not None:
