@@ -54,6 +54,12 @@ class Webhook(object):
 
 
 class MergeEventWebhook(Webhook):
+    """
+    Handle Merge Request Hook
+
+    See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
+    """
+
     def __call__(self, integration, organization, event):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
@@ -102,6 +108,12 @@ class MergeEventWebhook(Webhook):
 
 
 class PushEventWebhook(Webhook):
+    """
+    Handle push hook
+
+    See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
+    """
+
     def __call__(self, integration, organization, event):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
