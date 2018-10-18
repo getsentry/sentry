@@ -118,7 +118,7 @@ test-styleguide:
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
-	py.test -xvvs ./tests/sentry/tasks/test_unmerge.py || exit 1
+	py.test -xvvs ./tests/sentry/ || exit 1
 	@echo ""
 
 test-snuba:
