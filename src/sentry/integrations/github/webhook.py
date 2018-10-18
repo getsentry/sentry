@@ -53,7 +53,7 @@ class Webhook(object):
             logger.info(
                 'github.missing-integration',
                 extra={
-                    'action': event['action'],
+                    'action': event.get('action'),
                     'repository': event.get('repository'),
                     'external_id': external_id,
                 }
