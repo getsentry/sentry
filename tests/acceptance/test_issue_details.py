@@ -94,6 +94,17 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details cordova')
 
+    def test_stripped_event(self):
+        event = self.create_sample_event(
+            platform='pii'
+        )
+
+        self.browser.get(
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details pii stripped')
+
     def test_activity_page(self):
         event = self.create_sample_event(
             platform='python',
