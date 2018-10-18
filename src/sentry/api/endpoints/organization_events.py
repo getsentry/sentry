@@ -36,7 +36,7 @@ def get_date_range_from_params(params):
 
     stats_period = params.get('statsPeriod')
     if stats_period is not None:
-        stats_period = parse_stats_period(params['statsPeriod'])
+        stats_period = parse_stats_period(stats_period)
         if stats_period is None or stats_period < MIN_STATS_PERIOD or stats_period >= MAX_STATS_PERIOD:
             raise InvalidParams('Invalid statsPeriod')
         start = now - stats_period
