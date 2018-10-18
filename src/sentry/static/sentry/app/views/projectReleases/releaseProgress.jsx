@@ -33,6 +33,7 @@ class ReleaseProgress extends AsyncView {
     let {project, organization} = this.context;
     let data = {
       organization_id: organization.id,
+      feature: 'releases',
     };
     return [
       ['promptsActivity', '/promptsactivity/', {data}],
@@ -64,11 +65,11 @@ class ReleaseProgress extends AsyncView {
     }
   }
 
-  showBar(data) {
-    let prompt = data.find(p => p.feature === 'releases');
+  showBar(prompt) {
+    let data = prompt.data;
 
-    let show = prompt
-      ? prompt && prompt.status !== 'snoozed' && prompt.status !== 'dismissed'
+    let show = data
+      ? data && data.status !== 'snoozed' && data.status !== 'dismissed'
       : true;
 
     this.setState({showBar: show});
@@ -92,13 +93,18 @@ class ReleaseProgress extends AsyncView {
 
   renderBody() {
     let {remainingSteps, showBar} = this.state;
-
+    let style = {
+      height: '100%',
+      width: '50%',
+    };
     return remainingSteps && showBar ? (
       <PanelItem>
-        <div className="col-sm-3">
+        <div className="col-sm-6">
           <div>
             <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
-
+            <div data-test-id="releases-progress-bar" className="releases-progress-bar">
+              <div className="slider" style={style} />
+            </div>
             {t('Next steps:')}
             <ul>
               {this.state.remainingSteps.map((step, i) => {
@@ -107,8 +113,9 @@ class ReleaseProgress extends AsyncView {
             </ul>
           </div>
         </div>
-        <div className="col-sm-9">
-          <div>
+
+        <div className="col-sm-6">
+          <div className="pull-right">
             <StyledButton
               className="text-light"
               onClick={() => this.handleClick('dismissed')}

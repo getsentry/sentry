@@ -15,7 +15,7 @@ class PromptsActivity(Model):
     organization = FlexibleForeignKey('sentry.Organization', null=True)
     project = FlexibleForeignKey('sentry.Project', null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
-    feature = models.CharField(max_length=64)
+    feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
     data = JSONField(default={})
 

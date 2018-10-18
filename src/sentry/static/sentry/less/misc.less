@@ -2,6 +2,27 @@ img {
   max-width: 100%;
 }
 
+.releases-progress-bar {
+  background: darken(darkgrey, 20);
+  width: 100%;
+  height: 15px;
+  float: right;
+  margin-right: 0px;
+  margin-bottom: 10px;
+  border-radius: 20px;
+  position: relative;
+
+  .slider {
+    background: @green-light;
+    padding-right: 0;
+    border-radius: inherit;
+    box-shadow: 0 2px 1px rgba(0, 0, 0, 0.08);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 150px;
+  }
+}
 .image {
   border: 1px solid #e1e4e5;
   padding: 15px;
