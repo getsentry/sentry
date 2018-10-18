@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from django.utils import timezone
 
 from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
+from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
@@ -223,8 +224,6 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
 
 
 class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
-    MIN_STATS_PERIOD = timedelta(hours=1)
-    MAX_STATS_PERIOD = timedelta(days=90)
 
     def get(self, request, organization):
         """
@@ -235,9 +234,10 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         except KeyError:
             raise ResourceDoesNotExist
 
-        stats_period = parse_stats_period(request.GET.get('statsPeriod', '24h'))
-        if stats_period is None or stats_period < self.MIN_STATS_PERIOD or stats_period >= self.MAX_STATS_PERIOD:
-            return Response({'detail': 'Invalid statsPeriod'}, status=400)
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as exc:
+            return Response({'detail': exc.message}, status=400)
 
         interval = parse_stats_period(request.GET.get('interval', '1h'))
         if interval is None:
@@ -253,8 +253,6 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         environment = self.get_environment(request, organization)
         query_condition = self.get_query_condition(request, organization)
 
-        end = timezone.now()
-        start = end - stats_period
         rollup = int(interval.total_seconds())
 
         data = query(
