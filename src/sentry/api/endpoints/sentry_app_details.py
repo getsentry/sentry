@@ -19,6 +19,7 @@ class SentryAppDetailsEndpoint(BaseEndpoint):
 
         return Response(status=404)
 
+    @requires_feature('organizations:internal-catchall', any_org=True)
     def put(self, request, sentry_app):
         serializer = SentryAppSerializer(data=request.DATA, partial=True)
         if serializer.is_valid():
