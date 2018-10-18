@@ -319,8 +319,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.user is None
         assert om.email == 'newuser@example.com'
 
-        log.error.call_count == 1
-        log.error.call_args[0][0] == 'Failed to accept pending org invite'
+        assert log.error.call_count == 1
+        assert log.error.call_args[0][0] == 'Failed to accept pending org invite'
 
     @mock.patch('sentry.api.endpoints.user_authenticator_enroll.logger')
     @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
@@ -331,3 +331,21 @@ class AcceptOrganizationInviteTest(APITestCase):
         om = OrganizationMember.objects.get(id=om.id)
         assert om.user is None
         assert om.email == 'newuser@example.com'
+
+    @mock.patch('sentry.api.endpoints.user_authenticator_enroll.logger')
+    @mock.patch('sentry.models.U2fInterface.try_enroll', return_value=True)
+    def test_enroll_without_pending_invite__no_error(self, try_enroll, log):
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['system.url-prefix'] = 'https://testserver'
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                'sentry-api-0-user-authenticator-enroll', kwargs={'user_id': 'me', 'interface_id': 'u2f'}
+            )
+
+            resp = self.client.post(url, data={
+                'deviceName': 'device name',
+                'challenge': 'challenge',
+                'response': 'response',
+            })
+            assert resp.status_code == 204
+        assert log.error.called is False
