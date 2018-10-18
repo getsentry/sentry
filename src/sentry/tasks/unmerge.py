@@ -307,7 +307,8 @@ def repair_group_environment_data(caches, project, events):
         fields = {}
         if first_release:
             fields['first_release_id'] = caches['Release'](
-                project.organization_id, first_release).id
+                project.organization_id, first_release
+            ).id
 
         GroupEnvironment.objects.create_or_update(
             environment_id=caches['Environment'](project.organization_id, env_name).id,

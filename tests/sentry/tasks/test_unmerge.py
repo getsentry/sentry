@@ -332,20 +332,37 @@ class UnmergeTestCase(TestCase):
             (u'sentry:release', 1)
         ])
 
-        assert set(
-            [(gtv.key, gtv.value, gtv.times_seen)
-             for gtv in
-             GroupTagValue.objects.filter(
-                 project_id=source.project_id,
-                 group_id=source.id,
-            )]
-        ) == set([
-            (u'color', u'red', 6),
-            (u'color', u'green', 6),
-            (u'color', u'blue', 5),
-            (u'environment', u'production', 16),
-            (u'sentry:release', u'version', 16),
-        ])
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+            assert set(
+                [(gtv.key, gtv.value, gtv.times_seen, Environment.objects.get(pk=gtv._key.environment_id).name)
+                 for gtv in
+                 GroupTagValue.objects.filter(
+                    project_id=source.project_id,
+                    group_id=source.id,
+                ).exclude(_key__environment_id=0)]
+            ) == set([
+                ('color', 'red', 6, 'production'),
+                ('sentry:release', 'version', 16, 'production'),
+                ('color', 'blue', 5, 'production'),
+                ('color', 'green', 5, 'production'),
+                ('environment', 'production', 16, 'production'),
+                ('color', 'green', 1, ''),
+            ])
+        else:
+            assert set(
+                [(gtv.key, gtv.value, gtv.times_seen)
+                 for gtv in
+                 GroupTagValue.objects.filter(
+                    project_id=source.project_id,
+                    group_id=source.id,
+                )]
+            ) == set([
+                (u'color', u'red', 6),
+                (u'color', u'green', 6),
+                (u'color', u'blue', 5),
+                (u'environment', u'production', 16),
+                (u'sentry:release', u'version', 16),
+            ])
 
         assert features.compare(source) == [
             (source.id, {
@@ -454,7 +471,7 @@ class UnmergeTestCase(TestCase):
         ])
 
         if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
-            env_filter = {'_key__environment_id': environment.id}
+            env_filter = {'_key__environment_id': production_environment.id}
         else:
             env_filter = {}
 
@@ -518,22 +535,40 @@ class UnmergeTestCase(TestCase):
             ]
         )
 
-        assert set(
-            [(gtv.key, gtv.value, gtv.times_seen,
-              gtv.first_seen, gtv.last_seen)
-             for gtv in
-             GroupTagValue.objects.filter(
-                 project_id=destination.project_id,
-                 group_id=destination.id,
-                 **env_filter
-            )]
-        ) == set([
-            (u'color', u'red', 2, now + shift(12), now + shift(15), ),
-            (u'color', u'green', 3, now + shift(10), now + shift(16), ),
-            (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
-            (u'environment', u'production', 6, now + shift(10), now + shift(15), ),
-            (u'sentry:release', u'version', 6, now + shift(10), now + shift(15), ),
-        ])
+        if settings.SENTRY_TAGSTORE.startswith('sentry.tagstore.v2'):
+            assert set(
+                [(gtv.key, gtv.value, gtv.times_seen,
+                  gtv.first_seen, gtv.last_seen)
+                 for gtv in
+                 GroupTagValue.objects.filter(
+                    project_id=destination.project_id,
+                    group_id=destination.id,
+                    **env_filter
+                )]
+            ) == set([
+                (u'color', u'red', 2, now + shift(12), now + shift(15), ),
+                (u'color', u'green', 2, now + shift(10), now + shift(13), ),
+                (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
+                (u'environment', u'production', 6, now + shift(10), now + shift(15), ),
+                (u'sentry:release', u'version', 6, now + shift(10), now + shift(15), ),
+            ])
+        else:
+            assert set(
+                [(gtv.key, gtv.value, gtv.times_seen,
+                  gtv.first_seen, gtv.last_seen)
+                 for gtv in
+                 GroupTagValue.objects.filter(
+                    project_id=destination.project_id,
+                    group_id=destination.id,
+                    **env_filter
+                )]
+            ) == set([
+                (u'color', u'red', 2, now + shift(12), now + shift(15), ),
+                (u'color', u'green', 3, now + shift(10), now + shift(16), ),
+                (u'color', u'blue', 2, now + shift(11), now + shift(14), ),
+                (u'environment', u'production', 6, now + shift(10), now + shift(15), ),
+                (u'sentry:release', u'version', 6, now + shift(10), now + shift(15), ),
+            ])
 
         rollup_duration = 3600
 
