@@ -74,13 +74,18 @@ class SentryInternalFilter(logging.Filter):
 
 
 def configure_sdk():
+    from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
 
     assert sentry_sdk.Hub.main.client is None
 
     sentry_sdk.init(
-        integrations=[DjangoIntegration(), CeleryIntegration()],
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            LoggingIntegration(event_level=None)
+        ],
         transport=InternalTransport(),
         **settings.SENTRY_SDK_CONFIG
     )
