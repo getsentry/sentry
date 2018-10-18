@@ -344,17 +344,19 @@ def collect_tag_data(events):
 
 def repair_tag_data(caches, project, events):
     for (group_id, env_name), keys in collect_tag_data(events).items():
+        print "group_id: %s env_name: %s" % (group_id, env_name)
         environment = caches['Environment'](
             project.organization_id,
             env_name,
         )
         for key, values in keys.items():
-            tagstore.get_or_create_group_tag_key(
+            _, created = tagstore.get_or_create_group_tag_key(
                 project_id=project.id,
                 group_id=group_id,
                 environment_id=environment.id,
                 key=key,
             )
+            print "key: %s created: %s" % (key, created)
 
             # XXX: `{first,last}_seen` columns don't totally replicate the
             # ingestion logic (but actually represent a more accurate value.)
@@ -372,6 +374,8 @@ def repair_tag_data(caches, project, events):
                         'times_seen': times_seen,
                     },
                 )
+                print "value: %s created: %s times_seen: %s first_seen: %s last_seen: %s" % (
+                    value, created, times_seen, first_seen, last_seen)
 
                 if not created:
                     tagstore.incr_group_tag_value_times_seen(
