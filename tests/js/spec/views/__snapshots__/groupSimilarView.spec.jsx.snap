@@ -1056,6 +1056,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         />
                       }
                       displayTimeout={100}
+                      dynamicWidth={false}
+                      maxWidth={295}
+                      minHeight={50}
+                      minWidth={295}
                     >
                       <span
                         className="hovercard-container"
@@ -1162,6 +1166,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     <Hovercard
                       body={0}
                       displayTimeout={100}
+                      dynamicWidth={false}
+                      maxWidth={295}
+                      minHeight={50}
+                      minWidth={295}
                     >
                       <span
                         className="hovercard-container"
