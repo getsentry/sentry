@@ -213,3 +213,15 @@ def test_bad_interfaces_no_exception():
         )
     )
     manager.normalize()
+
+
+def test_event_pii():
+    manager = EventManager(
+        make_event(
+            message='foo bar',
+            _meta={'message': {'': {'err': ['invalid']}}},
+        )
+    )
+    manager.normalize()
+    data = manager.get_data()
+    assert data['_meta']['message'] == {'': {'err': ['invalid']}}

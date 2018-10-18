@@ -435,9 +435,6 @@ class EventManager(object):
 
         errors = data['errors'] = []
 
-        # Ignore event meta data for now.
-        data.pop('_meta', None)
-
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
