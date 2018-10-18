@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
@@ -296,7 +296,7 @@ def collect_group_environment_data(events):
     Find the first release for a each group and environment pair from a
     date-descending sorted list of events.
     """
-    results = {}
+    results = OrderedDict()
     for event in events:
         results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
     return results
@@ -319,7 +319,7 @@ def repair_group_environment_data(caches, project, events):
 
 
 def collect_tag_data(events):
-    results = {}
+    results = OrderedDict()
 
     print("")
     for event in events:
@@ -394,7 +394,7 @@ def get_environment_name(event):
 
 
 def collect_release_data(caches, project, events):
-    results = {}
+    results = OrderedDict()
 
     for event in events:
         release = event.get_tag('sentry:release')
