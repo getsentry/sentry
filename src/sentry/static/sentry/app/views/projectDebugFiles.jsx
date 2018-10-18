@@ -23,6 +23,19 @@ import SearchBar from 'app/components/searchBar';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import space from 'app/styles/space';
 
+function getFileType(dsym) {
+  switch (dsym.data && dsym.data.type) {
+    case 'exe':
+      return t('executable');
+    case 'dbg':
+      return t('debug companion');
+    case 'lib':
+      return t('dynamic library');
+    default:
+      return null;
+  }
+}
+
 const ProjectDebugSymbols = createReactClass({
   displayName: 'ProjectDebugSymbols',
   mixins: [ApiMixin, OrganizationState],
@@ -135,9 +148,12 @@ const ProjectDebugSymbols = createReactClass({
     let {orgId, projectId} = this.props.params;
     let access = this.getAccess();
 
-    const rows = this.state.debugFiles.map((dsym, key) => {
-      const url = `${this.api
+    let rows = this.state.debugFiles.map((dsym, key) => {
+      let url = `${this.api
         .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
+      let fileType = getFileType(dsym);
+      let symbolType = fileType ? `${dsym.symbolType} ${fileType}` : dsym.symbolType;
+
       return (
         <PanelItem key={key} align="center" px={2} py={1}>
           <Box w={4.5 / 12}>
@@ -162,8 +178,8 @@ const ProjectDebugSymbols = createReactClass({
               : dsym.objectName}
             <p className="m-b-0 text-light small">
               {dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
-                ? 'proguard'
-                : `${dsym.cpuName} (${dsym.symbolType})`}
+                ? 'proguard mapping'
+                : `${dsym.cpuName} (${symbolType})`}
             </p>
           </Box>
 
