@@ -659,7 +659,7 @@ class Fixtures(object):
             debug_id = six.text_type(uuid4())
 
         if object_name is None:
-            object_name = 'foo.dSYM'
+            object_name = '%s.dSYM' % debug_id
 
         if features is not None:
             if data is None:
