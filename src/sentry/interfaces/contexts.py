@@ -152,6 +152,15 @@ class OsContextType(ContextType):
         super(OsContextType, self).__init__(alias, data)
 
 
+@contexttype
+class GpuContextType(ContextType):
+    type = 'gpu'
+    indexed_fields = {
+        'name': u'{name}',
+        'vendor': u'{vendor_name}',
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
