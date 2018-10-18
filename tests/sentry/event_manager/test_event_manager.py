@@ -1187,11 +1187,11 @@ class EventManagerTest(TransactionTestCase):
             },
         }
 
-        manager = EventManager(data)
+        manager = EventManager(data, project=self.project)
 
         mock_is_valid_error_message.side_effect = [item.result for item in items]
 
-        assert manager.should_filter(project=self.project) == (True, FilterStatKeys.ERROR_MESSAGE)
+        assert manager.should_filter() == (True, FilterStatKeys.ERROR_MESSAGE)
 
         assert mock_is_valid_error_message.call_args_list == [
             mock.call(self.project, item.formatted) for item in items]

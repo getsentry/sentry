@@ -8,9 +8,9 @@ from sentry.event_manager import EventManager
 
 def validate_and_normalize(report, client_ip='198.51.100.0',
                            user_agent='Awesome Browser'):
-    manager = EventManager(report)
-    manager.process_csp_report(client_ip=client_ip, user_agent=user_agent)
-    manager.normalize(client_ip=client_ip)
+    manager = EventManager(report, client_ip=client_ip, user_agent=user_agent)
+    manager.process_csp_report()
+    manager.normalize()
     return manager.get_data()
 
 

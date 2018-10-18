@@ -4,8 +4,8 @@ from sentry.event_manager import EventManager
 
 
 def validate_and_normalize(report, client_ip=None):
-    manager = EventManager(report)
-    manager.normalize(client_ip=client_ip)
+    manager = EventManager(report, client_ip=client_ip)
+    manager.normalize()
     return manager.get_data()
 
 

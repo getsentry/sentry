@@ -325,11 +325,18 @@ class EventManager(object):
     intention is to swap this class out with a reimplementation in Rust.
     """
 
-    def __init__(self, data, version='5'):
+    def __init__(self, data, version='5', project=None, client_ip=None,
+                 user_agent=None, auth=None, key=None):
         if not isinstance(data, (bytes, six.text_type)):
             data = CanonicalKeyDict(data)
         self._data = data
         self.version = version
+
+        self._project = project
+        self._client_ip = client_ip
+        self._user_agent = user_agent
+        self._auth = auth
+        self._key = key
 
     def decode(self, content_encoding, helper):
         data = self._data
@@ -347,7 +354,7 @@ class EventManager(object):
 
         self._data = CanonicalKeyDict(data)
 
-    def process_csp_report(self, client_ip=None, user_agent=None):
+    def process_csp_report(self):
         """Only called from the CSP report endpoint."""
         data = self._data
 
@@ -376,7 +383,7 @@ class EventManager(object):
             'errors': [],
 
             'sentry.interfaces.User': {
-                'ip_address': client_ip,
+                'ip_address': self._client_ip,
             },
 
             # Construct a faux Http interface based on the little information we have
@@ -387,7 +394,7 @@ class EventManager(object):
             'sentry.interfaces.Http': {
                 'url': instance.get_origin(),
                 'headers': clean({
-                    'User-Agent': user_agent,
+                    'User-Agent': self._user_agent,
                     'Referer': instance.get_referrer(),
                 })
             },
@@ -395,14 +402,14 @@ class EventManager(object):
 
         self._data = data
 
-    def normalize(self, project=None, key=None, auth=None, client_ip=None):
+    def normalize(self):
         data = self._data
-        if project is not None:
-            data['project'] = project.id
-        if key is not None:
-            data['key_id'] = key.id
-        if auth is not None:
-            data['sdk'] = data.get('sdk') or parse_client_as_sdk(auth.client)
+        if self._project is not None:
+            data['project'] = self._project.id
+        if self._key is not None:
+            data['key_id'] = self._key.id
+        if self._auth is not None:
+            data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
 
         errors = data['errors'] = []
 
@@ -472,18 +479,18 @@ class EventManager(object):
                             'logentry', {})['formatted'] = msg_meta
 
         # Fill in ip addresses marked as {{auto}}
-        if client_ip:
+        if self._client_ip:
             if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = self._client_ip
 
             if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['request']['env']['REMOTE_ADDR'] = client_ip
+                data['request']['env']['REMOTE_ADDR'] = self._client_ip
 
             if get_path(data, ['sentry.interfaces.User', 'ip_address']) == '{{auto}}':
-                data['sentry.interfaces.User']['ip_address'] = client_ip
+                data['sentry.interfaces.User']['ip_address'] = self._client_ip
 
             if get_path(data, ['user', 'ip_address']) == '{{auto}}':
-                data['user']['ip_address'] = client_ip
+                data['user']['ip_address'] = self._client_ip
 
         # Validate main event body and tags against schema.
         # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
@@ -597,14 +604,14 @@ class EventManager(object):
 
         # If there is no User ip_addres, update it either from the Http interface
         # or the client_ip of the request.
-        is_public = auth and auth.is_public
+        is_public = self._auth and self._auth.is_public
         add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
         http_ip = data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR')
         if http_ip:
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
-        elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
-            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
+        elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', self._client_ip)
 
         # Trim values
         data['logger'] = trim(data['logger'].strip(), 64)
@@ -618,7 +625,7 @@ class EventManager(object):
 
         self._data = data
 
-    def should_filter(self, project=None, client_ip=None):
+    def should_filter(self):
         """
         returns (result: bool, reason: string or None)
         Result is True if an event should be filtered
@@ -628,30 +635,30 @@ class EventManager(object):
         for name in SECURITY_REPORT_INTERFACES:
             if name in self._data:
                 interface = get_interface(name)
-                if interface.to_python(self._data[name]).should_filter(project):
+                if interface.to_python(self._data[name]).should_filter(self._project):
                     return (True, FilterStatKeys.INVALID_CSP)
 
-        if client_ip and not is_valid_ip(project, client_ip):
+        if self._client_ip and not is_valid_ip(self._project, self._client_ip):
             return (True, FilterStatKeys.IP_ADDRESS)
 
         release = self._data.get('release')
-        if release and not is_valid_release(project, release):
+        if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
         message_interface = self._data.get('sentry.interfaces.Message', {})
         error_message = message_interface.get('formatted', ''
                                               ) or message_interface.get('message', '')
-        if error_message and not is_valid_error_message(project, error_message):
+        if error_message and not is_valid_error_message(self._project, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for exception_interface in self._data.get(
                 'sentry.interfaces.Exception', {}).get('values', []):
             message = u': '.join(filter(None, map(exception_interface.get, ['type', 'value'])))
-            if message and not is_valid_error_message(project, message):
+            if message and not is_valid_error_message(self._project, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for filter_cls in filters.all():
-            filter_obj = filter_cls(project)
+            filter_obj = filter_cls(self._project)
             if filter_obj.is_enabled() and filter_obj.test(self._data):
                 return (True, six.text_type(filter_obj.id))
 
@@ -660,11 +667,11 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
-    def save(self, project, raw=False):
+    def save(self, project_id, raw=False):
         from sentry.tasks.post_process import index_event_tags
         data = self._data
 
-        project = Project.objects.get_from_cache(id=project)
+        project = Project.objects.get_from_cache(id=project_id)
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This

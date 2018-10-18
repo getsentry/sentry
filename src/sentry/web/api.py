@@ -377,16 +377,18 @@ class StoreView(APIView):
 
         remote_addr = request.META['REMOTE_ADDR']
 
-        event_mgr = EventManager(data)
+        event_mgr = EventManager(
+            data, project=project, key=key, auth=auth, client_ip=remote_addr,
+            user_agent=helper.context.agent
+        )
         del data
+
         event_mgr.decode(
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
             helper=helper
         )
         self.pre_normalize(event_mgr, helper)
-        event_mgr.normalize(
-            project=project, key=key, auth=auth, client_ip=remote_addr
-        )
+        event_mgr.normalize()
 
         event_received.send_robust(
             ip=remote_addr,
@@ -396,8 +398,7 @@ class StoreView(APIView):
 
         start_time = time()
         tsdb_start_time = to_datetime(start_time)
-        should_filter, filter_reason = event_mgr.should_filter(
-            project=project, client_ip=remote_addr)
+        should_filter, filter_reason = event_mgr.should_filter()
         if should_filter:
             increment_list = [
                 (tsdb.models.project_total_received, project.id),
@@ -810,8 +811,7 @@ class SecurityReportView(StoreView):
         return None
 
     def pre_normalize(self, data, helper):
-        data.process_csp_report(user_agent=helper.context.agent,
-                                client_ip=helper.context.ip_address)
+        data.process_csp_report()
 
 
 @cache_control(max_age=3600, public=True)

@@ -199,9 +199,10 @@ def test_bad_interfaces_no_exception():
                 'sentry.interfaces.Http': None,
                 'sdk': 'A string for sdk is not valid'
             }
-        )
+        ),
+        client_ip='1.2.3.4'
     )
-    manager.normalize(client_ip='1.2.3.4')
+    manager.normalize()
 
     manager = EventManager(
         make_event(
