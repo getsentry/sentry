@@ -1,24 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/button';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
 import {getOrderByOptions} from '../utils';
-import {Fieldset, PlaceholderText, SidebarLabel, ButtonSpinner} from '../styles';
+import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 
-export default class QueryEdit extends React.Component {
+export default class QueryFields extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
-    isFetchingQuery: PropTypes.bool.isRequired,
     onUpdateField: PropTypes.func.isRequired,
-    onRunQuery: PropTypes.func.isRequired,
-    reset: PropTypes.func.isRequired,
+    actions: PropTypes.node.isRequired,
   };
 
   getSummarizePlaceholder = () => {
@@ -32,7 +28,7 @@ export default class QueryEdit extends React.Component {
   };
 
   render() {
-    const {queryBuilder, isFetchingQuery, onUpdateField, onRunQuery, reset} = this.props;
+    const {queryBuilder, onUpdateField, actions} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
@@ -98,24 +94,7 @@ export default class QueryEdit extends React.Component {
             onChange={val => onUpdateField('limit', typeof val === 'number' ? val : null)}
           />
         </Fieldset>
-        <Fieldset>
-          <Flex>
-            <Button
-              size="xsmall"
-              onClick={onRunQuery}
-              priority="primary"
-              busy={isFetchingQuery}
-            >
-              {t('Run')}
-              {isFetchingQuery && <ButtonSpinner />}
-            </Button>
-            <Box ml={1}>
-              <Button size="xsmall" onClick={reset}>
-                {t('Reset')}
-              </Button>
-            </Box>
-          </Flex>
-        </Fieldset>
+        <Fieldset>{actions}</Fieldset>
       </React.Fragment>
     );
   }

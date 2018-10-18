@@ -73,13 +73,13 @@ describe('Discover', function() {
         />,
         TestStubs.routerContext([{organization}])
       );
-      expect(wrapper.find('QueryEdit')).toHaveLength(1);
+      expect(wrapper.find('QueryFields')).toHaveLength(1);
       expect(wrapper.find('QueryRead')).toHaveLength(0);
       wrapper.setProps({
         savedQuery: TestStubs.DiscoverSavedQuery(),
       });
       wrapper.update();
-      expect(wrapper.find('QueryEdit')).toHaveLength(0);
+      expect(wrapper.find('QueryFields')).toHaveLength(0);
       expect(wrapper.find('QueryRead')).toHaveLength(1);
     });
   });
@@ -271,13 +271,13 @@ describe('Discover', function() {
 
     it('toggles edit mode', function() {
       expect(wrapper.find('QueryRead')).toHaveLength(1);
-      expect(wrapper.find('QueryEdit')).toHaveLength(0);
+      expect(wrapper.find('QueryFields')).toHaveLength(0);
       wrapper
         .find('SavedQueryTitle')
         .find('a')
         .simulate('click');
       expect(wrapper.find('QueryRead')).toHaveLength(0);
-      expect(wrapper.find('QueryEdit')).toHaveLength(1);
+      expect(wrapper.find('QueryFields')).toHaveLength(1);
     });
 
     it('delete saved query', function() {
@@ -385,14 +385,14 @@ describe('Discover', function() {
     });
 
     it('toggles sidebar', function() {
-      expect(wrapper.find('QueryEdit')).toHaveLength(1);
+      expect(wrapper.find('QueryFields')).toHaveLength(1);
       expect(wrapper.find('SavedQueries')).toHaveLength(0);
       wrapper
         .find('SidebarTabs')
         .find('a')
         .at(1)
         .simulate('click');
-      expect(wrapper.find('QueryEdit')).toHaveLength(0);
+      expect(wrapper.find('QueryFields')).toHaveLength(0);
       expect(wrapper.find('SavedQueries')).toHaveLength(1);
     });
   });
