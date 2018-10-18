@@ -45,7 +45,8 @@ class GitlabIssuesTest(GitLabTestCase):
                 'name': 'project',
                 'required': True,
                 'type': 'select',
-                'label': 'Gitlab Project'
+                'label': 'Gitlab Project',
+                'choices': [],
             },
             {
                 'name': 'title',
