@@ -287,6 +287,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 >
                   <StyledBaseAvatar
                     className="avatar css-6su6fj"
+                    loaded={true}
                     style={
                       Object {
                         "height": "36px",
@@ -295,7 +296,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     }
                   >
                     <span
-                      className="avatar css-1muke4e-StyledBaseAvatar e1z0ohzl0"
+                      className="avatar css-1ezk8y8-StyledBaseAvatar e1z0ohzl0"
                       style={
                         Object {
                           "height": "36px",
@@ -742,6 +743,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     >
                                       <StyledBaseAvatar
                                         className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                        loaded={true}
                                         round={true}
                                         style={
                                           Object {
@@ -751,7 +753,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-l5crk4-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -1905,6 +1907,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     >
                                       <StyledBaseAvatar
                                         className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                        loaded={true}
                                         round={true}
                                         style={
                                           Object {
@@ -1914,7 +1917,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-l5crk4-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                                           style={
                                             Object {
                                               "height": "32px",
