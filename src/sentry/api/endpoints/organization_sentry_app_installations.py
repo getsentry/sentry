@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import SentryAppInstallation
@@ -16,7 +17,7 @@ from sentry.models import SentryAppInstallation
 class OrganizationSentryAppInstallationsSerializer(serializers.Serializer):
     slug = serializers.RegexField(
         r'^[a-z0-9_\-]+$',
-        max_length=64,
+        max_length=SENTRY_APP_SLUG_MAX_LENGTH,
         error_messages={
             'invalid': _('Enter a valid slug consisting of lowercase letters, '
                          'numbers, underscores or hyphens.'),
