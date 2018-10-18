@@ -11,7 +11,8 @@ from django.core.urlresolvers import reverse
 from symbolic import SYMCACHE_LATEST_VERSION
 
 from sentry.testutils import APITestCase, TestCase
-from sentry.models import File, ProjectDebugFile, ProjectSymCacheFile, debugfile
+from sentry.models import debugfile, File, ProjectDebugFile, ProjectSymCacheFile, \
+    ProjectCfiCacheFile
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -28,11 +29,11 @@ class DebugFileTest(TestCase):
     def test_delete_dif(self):
         dif = self.create_dif_file(
             debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
-            features=['debug'],
+            features=['debug', 'unwind'],
         )
 
-        cache_file = self.create_file(
-            name='baz.symc',
+        symcache_file = self.create_file(
+            name='baz.symcache',
             size=42,
             headers={'Content-Type': 'application/x-sentry-symcache'},
             checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
@@ -40,8 +41,23 @@ class DebugFileTest(TestCase):
 
         symcache = ProjectSymCacheFile.objects.create(
             project=self.project,
-            cache_file=cache_file,
-            dsym_file=dif,
+            cache_file=symcache_file,
+            debug_file=dif,
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            version=SYMCACHE_LATEST_VERSION,
+        )
+
+        cficache_file = self.create_file(
+            name='baz.cficache',
+            size=42,
+            headers={'Content-Type': 'application/x-sentry-cficache'},
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+        )
+
+        cficache = ProjectCfiCacheFile.objects.create(
+            project=self.project,
+            cache_file=cficache_file,
+            debug_file=dif,
             checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
             version=SYMCACHE_LATEST_VERSION,
         )
@@ -51,7 +67,9 @@ class DebugFileTest(TestCase):
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=dif.file.id).exists()
         assert not ProjectSymCacheFile.objects.filter(id=symcache.id).exists()
-        assert not File.objects.filter(id=cache_file.id).exists()
+        assert not File.objects.filter(id=symcache_file.id).exists()
+        assert not ProjectCfiCacheFile.objects.filter(id=cficache.id).exists()
+        assert not File.objects.filter(id=cficache_file.id).exists()
 
     def test_find_dif_by_debug_id(self):
         debug_id1 = 'dfb8e43a-f242-3d73-a453-aeb6a777ef75'
@@ -315,14 +333,14 @@ class SymCacheTest(TestCase):
         )
 
         file = self.create_file_from_path(
-            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.symc'),
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.symcache'),
             type='project.symcache'
         )
 
         ProjectSymCacheFile.objects.create(
             project=self.project,
             cache_file=file,
-            dsym_file=dif,
+            debug_file=dif,
             checksum=dif.file.checksum,
             # XXX: This version does not correspond to the actual file version,
             # but is sufficient to avoid update behavior
@@ -356,6 +374,7 @@ class SymCacheTest(TestCase):
         self.create_dif_from_path(
             path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym'),
             debug_id=debug_id,
+            dif_type='macho',  # XXX: Needed for legacy compatibility check
         )
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
@@ -367,7 +386,7 @@ class SymCacheTest(TestCase):
         self.create_dif_from_path(
             path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym'),
             debug_id=debug_id,
-            features=['debug']
+            features=['debug'],
         )
 
         symcaches = ProjectDebugFile.difcache.get_symcaches(self.project, [debug_id])
@@ -382,16 +401,16 @@ class SymCacheTest(TestCase):
         )
 
         file = self.create_file_from_path(
-            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.symc'),
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.symcache'),
             headers={'Content-Type': 'application/x-sentry-symcache'},
             type='project.symcache'
         )
 
         # Create an outdated SymCache to replace
-        ProjectSymCacheFile.objects.create(
+        old_cache = ProjectSymCacheFile.objects.create(
             project=self.project,
             cache_file=file,
-            dsym_file=dif,
+            debug_file=dif,
             checksum=dif.file.checksum,
             version=1,
         )
@@ -400,6 +419,7 @@ class SymCacheTest(TestCase):
         assert debug_id in symcaches
         assert symcaches[debug_id].id == debug_id
         assert symcaches[debug_id].is_latest_file_format
+        assert not ProjectSymCacheFile.objects.filter(id=old_cache.id).exists()
 
     def test_get_symcache_on_referenced(self):
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
@@ -453,7 +473,7 @@ class SymCacheTest(TestCase):
         symcache = ProjectSymCacheFile.objects.create(
             project=self.project,
             cache_file=cache_file,
-            dsym_file=dif,
+            debug_file=dif,
             checksum=dif.file.checksum,
             version=SYMCACHE_LATEST_VERSION,
         )
@@ -461,3 +481,145 @@ class SymCacheTest(TestCase):
         symcache.delete()
         assert not File.objects.filter(id=cache_file.id).exists()
         assert not ProjectSymCacheFile.objects.filter(id=symcache.id).exists()
+
+
+class CfiCacheTest(TestCase):
+    def test_get_cficache(self):
+        debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
+        dif = self.create_dif_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash'),
+            debug_id=debug_id,
+            features=['unwind'],
+        )
+
+        file = self.create_file_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.cficache'),
+            type='project.cficache'
+        )
+
+        ProjectCfiCacheFile.objects.create(
+            project=self.project,
+            cache_file=file,
+            debug_file=dif,
+            checksum=dif.file.checksum,
+            # XXX: This version does not correspond to the actual file version,
+            # but is sufficient to avoid update behavior
+            version=SYMCACHE_LATEST_VERSION,
+        )
+
+        cficaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
+        assert debug_id in cficaches
+
+    def test_miss_cficache_without_feature(self):
+        debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
+        self.create_dif_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash'),
+            debug_id=debug_id,
+            features=[],
+        )
+
+        # XXX: Explicit empty set denotes DIF without features. Since at least
+        # one file has declared features, get_cficaches will rather not use the
+        # other untagged file.
+        cficaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
+        assert debug_id not in cficaches
+
+    def test_create_cficache_with_feature(self):
+        debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
+        self.create_dif_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash'),
+            debug_id=debug_id,
+            features=['unwind'],
+        )
+
+        cficaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
+        assert debug_id in cficaches
+
+    def test_update_cficache(self):
+        debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
+        dif = self.create_dif_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash'),
+            debug_id=debug_id,
+            features=['unwind'],
+        )
+
+        file = self.create_file_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'v1.symcache'),
+            headers={'Content-Type': 'application/x-sentry-cficache'},
+            type='project.cficache'
+        )
+
+        # Create an outdated CfiCache to replace
+        old_cache = ProjectCfiCacheFile.objects.create(
+            project=self.project,
+            cache_file=file,
+            debug_file=dif,
+            checksum=dif.file.checksum,
+            version=0,
+        )
+
+        cficaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
+        assert debug_id in cficaches
+        assert cficaches[debug_id].is_latest_file_format
+        assert not ProjectCfiCacheFile.objects.filter(id=old_cache.id).exists()
+
+    def test_get_cficache_on_referenced(self):
+        debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
+        dif = self.create_dif_from_path(
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash'),
+            debug_id=debug_id,
+            features=['unwind'],
+        )
+
+        referenced_ids = []
+
+        def dif_referenced(dif):
+            referenced_ids.append(dif.id)
+
+        ProjectDebugFile.difcache.get_cficaches(
+            self.project,
+            [debug_id],
+            on_dif_referenced=dif_referenced
+        )
+        assert referenced_ids == [dif.id]
+
+    def test_cficache_conversion_error(self):
+        debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
+        self.create_dif_file(
+            debug_id=debug_id,
+            features=['unwind'],
+        )
+
+        cficaches, errors = ProjectDebugFile.difcache.get_cficaches(
+            self.project,
+            [debug_id],
+            with_conversion_errors=True
+        )
+        assert debug_id not in cficaches
+        assert debug_id in errors
+
+    def test_delete_cficache(self):
+        dif = self.create_dif_file(
+            debug_id='dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface',
+            features=['unwind'],
+        )
+
+        cache_file = self.create_file(
+            name='baz.symc',
+            size=42,
+            headers={'Content-Type': 'application/x-sentry-cficache'},
+            checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            type='project.cficache'
+        )
+
+        cficache = ProjectCfiCacheFile.objects.create(
+            project=self.project,
+            cache_file=cache_file,
+            debug_file=dif,
+            checksum=dif.file.checksum,
+            version=SYMCACHE_LATEST_VERSION,
+        )
+
+        cficache.delete()
+        assert not File.objects.filter(id=cache_file.id).exists()
+        assert not ProjectCfiCacheFile.objects.filter(id=cficache.id).exists()
