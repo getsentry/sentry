@@ -35,6 +35,7 @@ from sentry.utils.canonical import CANONICAL_TYPES
 
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
+logger = logging.getLogger("sentry.api")
 
 
 class APIError(Exception):
@@ -105,19 +106,18 @@ class ClientContext(object):
 class ClientLogHelper(object):
     def __init__(self, context):
         self.context = context
-        self.logger = logging.getLogger('sentry.api')
 
     def debug(self, *a, **k):
-        self.logger.debug(*a, **self._metadata(**k))
+        logger.debug(*a, **self._metadata(**k))
 
     def info(self, *a, **k):
-        self.logger.info(*a, **self._metadata(**k))
+        logger.info(*a, **self._metadata(**k))
 
     def warning(self, *a, **k):
-        self.logger.warning(*a, **self._metadata(**k))
+        logger.warning(*a, **self._metadata(**k))
 
     def error(self, *a, **k):
-        self.logger.error(*a, **self._metadata(**k))
+        logger.error(*a, **self._metadata(**k))
 
     def _metadata(self, tags=None, extra=None, **kwargs):
         if not extra:
@@ -219,68 +219,6 @@ class ClientApiHelper(object):
     def project_id_from_auth(self, auth):
         return self.project_key_from_auth(auth).project_id
 
-    def decode_data(self, encoded_data):
-        try:
-            return encoded_data.decode('utf-8')
-        except UnicodeDecodeError as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decompress_deflate(self, encoded_data):
-        try:
-            return zlib.decompress(encoded_data).decode('utf-8')
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decompress_gzip(self, encoded_data):
-        try:
-            fp = BytesIO(encoded_data)
-            try:
-                f = GzipFile(fileobj=fp)
-                return f.read().decode('utf-8')
-            finally:
-                f.close()
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decode_and_decompress_data(self, encoded_data):
-        try:
-            try:
-                return decompress(encoded_data).decode('utf-8')
-            except zlib.error:
-                return base64.b64decode(encoded_data).decode('utf-8')
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def safely_load_json_string(self, json_string):
-        try:
-            if isinstance(json_string, six.binary_type):
-                json_string = json_string.decode('utf-8')
-            obj = json.loads(json_string)
-            assert isinstance(obj, dict)
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data reconstructing object (%s, %s)' %
-                           (type(e).__name__, e))
-        return obj
-
     def ensure_does_not_have_ip(self, data):
         if 'sentry.interfaces.Http' in data:
             if 'env' in data['sentry.interfaces.Http']:
@@ -357,3 +295,67 @@ class SecurityApiHelper(ClientApiHelper):
         )
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
+
+
+def decompress_deflate(encoded_data):
+    try:
+        return zlib.decompress(encoded_data).decode("utf-8")
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
+
+
+def decompress_gzip(encoded_data):
+    try:
+        fp = BytesIO(encoded_data)
+        try:
+            f = GzipFile(fileobj=fp)
+            return f.read().decode("utf-8")
+        finally:
+            f.close()
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
+
+
+def decode_and_decompress_data(encoded_data):
+    try:
+        try:
+            return decompress(encoded_data).decode("utf-8")
+        except zlib.error:
+            return base64.b64decode(encoded_data).decode("utf-8")
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
+
+
+def decode_data(encoded_data):
+    try:
+        return encoded_data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
+
+
+def safely_load_json_string(json_string):
+    try:
+        if isinstance(json_string, six.binary_type):
+            json_string = json_string.decode("utf-8")
+        obj = json.loads(json_string)
+        assert isinstance(obj, dict)
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError(
+            "Bad data reconstructing object (%s, %s)" % (type(e).__name__, e)
+        )
+    return obj

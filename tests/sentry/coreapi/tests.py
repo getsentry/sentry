@@ -13,6 +13,8 @@ from sentry.coreapi import (
     APIUnauthorized,
     Auth,
     ClientApiHelper,
+    decode_data,
+    safely_load_json_string
 )
 from sentry.interfaces.base import get_interface
 from sentry.testutils import TestCase
@@ -116,29 +118,29 @@ class ProjectIdFromAuthTest(BaseAPITest):
         self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
 
-class SafelyLoadJSONStringTest(BaseAPITest):
+class SafelyLoadJSONStringTest(TestCase):
     def test_valid_payload(self):
-        data = self.helper.safely_load_json_string('{"foo": "bar"}')
+        data = safely_load_json_string('{"foo": "bar"}')
         assert data == {'foo': 'bar'}
 
     def test_invalid_json(self):
         with self.assertRaises(APIError):
-            self.helper.safely_load_json_string('{')
+            safely_load_json_string('{')
 
     def test_unexpected_type(self):
         with self.assertRaises(APIError):
-            self.helper.safely_load_json_string('1')
+            safely_load_json_string('1')
 
 
-class DecodeDataTest(BaseAPITest):
+class DecodeDataTest(TestCase):
     def test_valid_data(self):
-        data = self.helper.decode_data('foo')
+        data = decode_data('foo')
         assert data == u'foo'
         assert isinstance(data, six.text_type)
 
     def test_invalid_data(self):
         with self.assertRaises(APIError):
-            self.helper.decode_data('\x99')
+            decode_data('\x99')
 
 
 class GetInterfaceTest(TestCase):
