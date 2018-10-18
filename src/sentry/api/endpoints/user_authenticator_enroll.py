@@ -225,27 +225,26 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             Authenticator.objects.auto_add_recovery_codes(request.user)
 
             # Try to accept an org invite pending 2FA enrollment
-            try:
-                member_id = serializer.data['memberId']
-                token = serializer.data['token']
+            member_id = serializer.data.get('memberId')
+            token = serializer.data.get('token')
 
-                helper = ApiInviteHelper(
-                    instance=self,
-                    request=request,
-                    member_id=member_id,
-                    token=token,
-                    logger=logger,
-                )
-            except KeyError:
-                pass
-            except OrganizationMember.DoesNotExist:
-                logger.error('Failed to accept pending org invite', exc_info=True)
-            else:
-                if helper.valid_request():
-                    helper.accept_invite()
+            if member_id and token:
+                try:
+                    helper = ApiInviteHelper(
+                        instance=self,
+                        request=request,
+                        member_id=member_id,
+                        token=token,
+                        logger=logger,
+                    )
+                except OrganizationMember.DoesNotExist:
+                    logger.error('Failed to accept pending org invite', exc_info=True)
+                else:
+                    if helper.valid_request():
+                        helper.accept_invite()
 
-                    response = Response(status=status.HTTP_204_NO_CONTENT)
-                    helper.remove_invite_cookie(response)
-                    return response
+                        response = Response(status=status.HTTP_204_NO_CONTENT)
+                        helper.remove_invite_cookie(response)
+                        return response
 
             return Response(status=status.HTTP_204_NO_CONTENT)
