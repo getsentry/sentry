@@ -24,8 +24,9 @@ import six
 import types
 import logging
 
+from sentry_sdk import Hub
+
 from click.testing import CliRunner
-from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
@@ -39,7 +40,7 @@ from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
-from exam import before, fixture, Exam
+from exam import before, after, fixture, Exam
 from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -76,6 +77,10 @@ class BaseTestCase(Fixtures, Exam):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
+
+    @after
+    def teardown_internal_sdk(self):
+        Hub.main.bind_client(None)
 
     @before
     def setup_dummy_auth_provider(self):
@@ -319,19 +324,6 @@ class BaseTestCase(Fixtures, Exam):
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    @contextmanager
-    def dsn(self, dsn):
-        """
-        A context manager that temporarily sets the internal client's DSN
-        """
-        from raven.contrib.django.models import client
-
-        try:
-            client.set_dsn(dsn)
-            yield
-        finally:
-            client.set_dsn(None)
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader

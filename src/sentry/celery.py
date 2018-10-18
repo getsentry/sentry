@@ -62,16 +62,6 @@ class SentryTask(Task):
 class SentryCelery(Celery):
     task_cls = SentryTask
 
-    def on_configure(self):
-        from raven.contrib.django.models import client
-        from raven.contrib.celery import register_signal, register_logger_signal
-
-        # register a custom filter to filter out duplicate logs
-        register_logger_signal(client)
-
-        # hook into the Celery error handler
-        register_signal(client)
-
 
 app = SentryCelery('sentry')
 app.config_from_object(settings)

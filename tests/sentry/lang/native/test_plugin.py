@@ -1208,7 +1208,7 @@ class RealResolvingIntegrationTest(TestCase):
             for _ in range(3):
                 resp = self._postWithHeader(event_data)
                 assert resp.status_code == 200
-                event = Event.objects.get()
+                event = Event.objects.get(project_id=self.project.id)
                 errors = event.data['errors']
                 assert len(errors) == 1
                 assert errors[0] == {

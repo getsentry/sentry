@@ -12,10 +12,10 @@ import resource
 from celery.task import current
 from contextlib import contextmanager
 from functools import wraps
-from raven.contrib.django.models import client as Raven
 
 from sentry.celery import app
 from sentry.utils import metrics
+from sentry.utils.sdk import push_scope, capture_exception
 
 
 def get_rss_usage():
@@ -44,16 +44,14 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 instance = u'{}.{}'.format(name, stat_suffix(*args, **kwargs))
             else:
                 instance = name
-            Raven.tags_context({
-                'task_name': name,
-                'transaction_id': transaction_id,
-            })
-            with metrics.timer(key, instance=instance), \
-                    track_memory_usage('jobs.memory_change', instance=instance):
-                try:
+
+            with push_scope() as scope:
+                scope.set_tag('task_name', name)
+                scope.set_tag('transaction_id', transaction_id)
+
+                with metrics.timer(key, instance=instance), \
+                        track_memory_usage('jobs.memory_change', instance=instance):
                     result = func(*args, **kwargs)
-                finally:
-                    Raven.context.clear()
             return result
 
         return app.task(name=name, **kwargs)(_wrapped)
@@ -79,7 +77,7 @@ def retry(func=None, on=(Exception, ), exclude=()):
             except exclude:
                 raise
             except on as exc:
-                Raven.captureException()
+                capture_exception()
                 current.retry(exc=exc)
 
         return wrapped
