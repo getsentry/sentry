@@ -414,6 +414,10 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id, data,
         data=data,
     )
 
+    # The DIF we've just created might actually be removed here again. But since
+    # this can happen at any time in near or distant future, we don't care and
+    # assume a successful upload. The DIF will be reported to the uploader and
+    # reprocessing can start.
     clean_redundant_difs(project, debug_id)
 
     resolve_processing_issue(
