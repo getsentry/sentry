@@ -321,6 +321,7 @@ def repair_group_environment_data(caches, project, events):
 def collect_tag_data(events):
     results = {}
 
+    print("")
     for event in events:
         environment = get_environment_name(event)
         tags = results.setdefault((event.group_id, environment), {})
@@ -328,12 +329,16 @@ def collect_tag_data(events):
         for key, value in event.get_tags():
             values = tags.setdefault(key, {})
 
+            print("event: %s time: %s env: %s tag: %s:%s" %
+                  (event.id, event.datetime, environment, key, value))
+
             if value in values:
                 times_seen, first_seen, last_seen = values[value]
                 values[value] = (times_seen + 1, event.datetime, last_seen)
             else:
                 values[value] = (1, event.datetime, event.datetime)
 
+    print("")
     return results
 
 
