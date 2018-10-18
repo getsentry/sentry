@@ -37,6 +37,12 @@ export default class MultipleProjectSelector extends React.Component {
     this.setState({hasChanges: false});
   };
 
+  handleQuickSelect = (selected, checked, e) => {
+    const {onUpdate, onChange} = this.props;
+    onChange([parseInt(selected.id, 10)]);
+    onUpdate();
+  };
+
   handleMultiSelect = (selected, checked, e) => {
     const {onChange} = this.props;
     onChange(selected.map(({id}) => parseInt(id, 10)));
@@ -56,11 +62,10 @@ export default class MultipleProjectSelector extends React.Component {
         <ProjectSelector
           {...this.props}
           multi
-          multiOnly
           showUpdate
           selectedProjects={selected}
           projects={projects}
-          onSelect={this.handleMultiSelect}
+          onSelect={this.handleQuickSelect}
           onMultiSelect={this.handleMultiSelect}
           menuFooter={({actions}) => {
             if (!this.state.hasChanges && selected.length === 0) {
@@ -74,20 +79,20 @@ export default class MultipleProjectSelector extends React.Component {
                   tabIndex={1}
                   size="small"
                   type="button"
+                  disabled={!this.state.hasChanges}
                   onClick={this.handleUpdate.bind(this, actions)}
                 >
                   {t('Update')}
                 </Button>
 
-                {selected.length > 0 && (
-                  <Button
-                    size="small"
-                    type="button"
-                    onClick={this.props.onChange.bind(this, [])}
-                  >
-                    {t('Clear')}
-                  </Button>
-                )}
+                <Button
+                  size="small"
+                  type="button"
+                  disabled={selected.length === 0}
+                  onClick={this.props.onChange.bind(this, [])}
+                >
+                  {t('Clear')}
+                </Button>
               </Footer>
             );
           }}
