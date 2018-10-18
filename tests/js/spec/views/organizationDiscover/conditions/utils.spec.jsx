@@ -39,6 +39,10 @@ const conditionList = [
     internal: 'exception_frames.in_app = true',
     external: ['exception_frames.in_app', '=', true],
   },
+  {
+    internal: 'exception_frames.in_app = false',
+    external: ['exception_frames.in_app', '=', false],
+  },
 ];
 
 describe('Conditions', function() {

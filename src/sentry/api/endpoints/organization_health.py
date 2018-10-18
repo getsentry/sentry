@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 from collections import namedtuple, defaultdict
 from datetime import timedelta
 
@@ -10,6 +9,7 @@ from django.utils import timezone
 
 from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import parse_stats_period
 from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
@@ -23,23 +23,6 @@ from sentry.utils import snuba
 
 SnubaResultSet = namedtuple('SnubaResultSet', ('current', 'previous'))
 SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
-
-
-def parse_stats_period(period):
-    """
-    Convert a value such as 1h into a
-    proper timedelta.
-    """
-    m = re.match('^(\d+)([hdms]?)$', period)
-    if not m:
-        return None
-    value, unit = m.groups()
-    value = int(value)
-    if not unit:
-        unit = 's'
-    return timedelta(**{
-        {'h': 'hours', 'd': 'days', 'm': 'minutes', 's': 'seconds'}[unit]: value,
-    })
 
 
 def query(**kwargs):

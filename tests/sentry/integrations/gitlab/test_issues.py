@@ -45,7 +45,8 @@ class GitlabIssuesTest(GitLabTestCase):
                 'name': 'project',
                 'required': True,
                 'type': 'select',
-                'label': 'Gitlab Project'
+                'label': 'Gitlab Project',
+                'choices': [],
             },
             {
                 'name': 'title',
@@ -93,7 +94,7 @@ class GitlabIssuesTest(GitLabTestCase):
         responses.add(
             responses.GET,
             u'https://example.gitlab.com/api/v4/projects/%s' % project_id,
-            json={'path_with_namespace': project_name}
+            json={'path_with_namespace': project_name, 'id': 10}
         )
         form_data = {
             'project': project_id,
@@ -127,7 +128,7 @@ class GitlabIssuesTest(GitLabTestCase):
         responses.add(
             responses.GET,
             u'https://example.gitlab.com/api/v4/projects/%s' % project_id,
-            json={'path_with_namespace': project_name}
+            json={'id': project_id, 'path_with_namespace': project_name}
         )
 
         assert self.installation.get_issue(issue_id='%s#%s' % (project_id, issue_iid), data={}) == {

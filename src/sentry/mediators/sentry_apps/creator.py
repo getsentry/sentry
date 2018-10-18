@@ -10,7 +10,7 @@ from sentry.models import (ApiApplication, SentryApp, User)
 
 class Creator(Mediator):
     name = Param(six.string_types)
-    user = Param('sentry.models.User')
+    organization = Param('sentry.models.Organization')
     scopes = Param(Iterable)
     webhook_url = Param(six.string_types)
 
@@ -35,7 +35,7 @@ class Creator(Mediator):
         return SentryApp.objects.create(
             name=self.name,
             application=self.api_app,
-            owner=self.user,
+            owner=self.organization,
             proxy_user=self.proxy,
             scope_list=self.scopes,
             webhook_url=self.webhook_url,

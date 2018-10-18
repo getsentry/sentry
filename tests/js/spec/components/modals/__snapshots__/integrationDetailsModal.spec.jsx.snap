@@ -4,6 +4,33 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
 <IntegrationDetailsModal
   closeModal={[MockFunction]}
   onAddIntegration={[MockFunction]}
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   provider={
     Object {
       "canAdd": true,
@@ -144,21 +171,92 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     features={
       Array [
         Object {
-          "description": "*markdown* feature description",
+          "description": <span
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "<em>markdown</em> feature description",
+              }
+            }
+          />,
+          "featureGate": undefined,
         },
       ]
     }
-    formatter={[Function]}
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    provider={
+      Object {
+        "canAdd": true,
+        "config": Array [],
+        "externalIssues": Array [],
+        "features": Array [],
+        "key": "github",
+        "metadata": Object {
+          "aspects": Object {
+            "alerts": Array [
+              Object {
+                "text": "This is a an alert example",
+                "type": "warning",
+              },
+            ],
+          },
+          "author": "Morty",
+          "description": "*markdown* formatted _description_",
+          "features": Array [
+            Object {
+              "description": "*markdown* feature description",
+            },
+          ],
+          "issue_url": "http://example.com/integration_issue_url",
+          "noun": "Installation",
+          "source_url": "http://example.com/integration_source_url",
+        },
+        "name": "GitHub",
+        "setupDialog": Object {
+          "height": 100,
+          "url": "/github-integration-setup-uri/",
+          "width": 100,
+        },
+      }
+    }
   >
     <ul>
       <li
-        dangerouslySetInnerHTML={
-          Object {
-            "__html": "<em>markdown</em> feature description",
-          }
-        }
         key="0"
-      />
+      >
+        <span
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "<em>markdown</em> feature description",
+            }
+          }
+        />
+      </li>
     </ul>
   </FeatureList>
   <Metadata>
@@ -266,9 +364,43 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     features={
       Array [
         Object {
-          "description": "*markdown* feature description",
+          "description": <span
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "<em>markdown</em> feature description",
+              }
+            }
+          />,
+          "featureGate": undefined,
         },
       ]
+    }
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
     }
   >
     <div

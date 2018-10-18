@@ -39,8 +39,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         metadata = integration.metadata
         assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
-        assert metadata['subscription']['id'] == \
-            CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
+        assert metadata['subscription']['id'] == CREATE_SUBSCRIPTION['id']
         assert metadata['domain_name'] == self.vsts_base_url
 
     def test_migrate_repositories(self):

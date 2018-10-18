@@ -24,7 +24,7 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
               style="display:flex;align-items:flex-start"
             >
               <span
-                class="avatar e1fowdfw8 css-yd0wz3-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                class="avatar e1fowdfw8 css-tmrp5m-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                 style="width:32px;height:32px"
               >
                 <svg
@@ -461,7 +461,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
               style="display:flex;align-items:flex-start"
             >
               <span
-                class="avatar e1fowdfw8 css-yd0wz3-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                class="avatar e1fowdfw8 css-tmrp5m-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                 style="width:32px;height:32px"
               >
                 <svg
@@ -925,7 +925,7 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
               style="display:flex;align-items:flex-start"
             >
               <span
-                class="avatar e1fowdfw8 css-yd0wz3-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                class="avatar e1fowdfw8 css-tmrp5m-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                 style="width:32px;height:32px"
               >
                 <svg

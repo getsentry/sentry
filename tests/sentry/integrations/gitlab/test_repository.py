@@ -1,15 +1,31 @@
 from __future__ import absolute_import
 
 import responses
+import pytest
 
 from exam import fixture
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Identity, IdentityProvider, Integration, Repository
-from sentry.testutils import PluginTestCase
-
+from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
+from sentry.models import (
+    Identity,
+    IdentityProvider,
+    Integration,
+    Repository,
+    CommitFileChange
+)
+from sentry.testutils import PluginTestCase
+from sentry.utils import json
+
+from .testutils import (
+    COMPARE_RESPONSE,
+    COMMIT_LIST_RESPONSE,
+    COMMIT_DIFF_RESPONSE
+)
+
+commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field('type').choices}
 
 
 class GitLabRepositoryProviderTest(PluginTestCase):
@@ -22,12 +38,13 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         self.integration = Integration.objects.create(
             provider='gitlab',
             name='Example GitLab',
-            external_id='example.gitlab.com:55',
+            external_id='example.gitlab.com:getsentry',
             metadata={
-                'domain_name': 'example.gitlab.com/my-group',
+                'instance': 'example.gitlab.com',
+                'domain_name': 'example.gitlab.com/getsentry',
                 'verify_ssl': False,
                 'base_url': 'https://example.gitlab.com',
-                'webhook_secret': 'super-secret',
+                'webhook_secret': 'secret-token-value',
             }
         )
         identity = Identity.objects.create(
@@ -49,24 +66,24 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             'path_with_namespace': 'getsentry/example-repo',
             'name_with_namespace': 'Get Sentry / Example Repo',
             'path': 'example-repo',
-            'id': 123,
-            'web_url': 'https://example.gitlab.com/my-group/projects/example-repo',
+            'id': '123',
+            'web_url': 'https://example.gitlab.com/getsentry/projects/example-repo',
         }
+        self.gitlab_id = 123
 
     @fixture
     def provider(self):
         return GitlabRepositoryProvider('gitlab')
 
     def create_repository(self, repository_config, integration_id, organization_slug=None):
-        repo_id = repository_config['id']
         responses.add(
             responses.GET,
-            u'https://example.gitlab.com/api/v4/projects/%s' % repo_id,
+            u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
             json=repository_config
         )
         responses.add(
             responses.POST,
-            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % repo_id,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
             json={'id': 99}
         )
 
@@ -79,30 +96,54 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                 data={
                     'provider': self.provider_name,
                     'installation': integration_id,
-                    'identifier': repo_id,
+                    'identifier': repository_config['id'],
                 }
             )
         return response
 
     def assert_repository(self, repository_config, organization_id=None):
-        domain_name = self.integration.metadata['domain_name']
+        instance = self.integration.metadata['instance']
+
+        external_id = u'{}:{}'.format(instance, repository_config['id'])
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
-            external_id='%s:example-repo' % (domain_name,)
+            external_id=external_id
         )
         assert repo.name == repository_config['name_with_namespace']
         assert repo.url == repository_config['web_url']
         assert repo.integration_id == self.integration.id
         assert repo.config == {
-            'instance': domain_name,
-            'repo_id': repository_config['id'],
+            'instance': instance,
             'path': repository_config['path_with_namespace'],
+            'project_id': repository_config['id'],
             'webhook_id': 99,
         }
 
     @responses.activate
     def test_create_repository(self):
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        assert response.status_code == 201
+        self.assert_repository(self.default_repository_config)
+
+    @responses.activate
+    def test_create_repository_verify_payload(self):
+        def request_callback(request):
+            payload = json.loads(request.body)
+            assert 'url' in payload
+            assert payload['push_events']
+            assert payload['merge_requests_events']
+            expected_token = u'{}:{}'.format(self.integration.external_id,
+                                             self.integration.metadata['webhook_secret'])
+            assert payload['token'] == expected_token
+
+            return (201, {}, json.dumps({'id': 99}))
+
+        responses.add_callback(
+            responses.POST,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
+            callback=request_callback
+        )
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
@@ -130,7 +171,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
     def test_create_repository_get_project_request_fails(self):
         responses.add(
             responses.GET,
-            u'https://example.gitlab.com/api/v4/projects/%s' % self.default_repository_config['id'],
+            u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
@@ -139,10 +180,9 @@ class GitLabRepositoryProviderTest(PluginTestCase):
 
     @responses.activate
     def test_create_repository_integration_create_webhook_failure(self):
-        repo_id = self.default_repository_config['id']
         responses.add(
             responses.POST,
-            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % repo_id,
+            u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(self.default_repository_config,
@@ -155,10 +195,9 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                                           self.integration.id)
         responses.reset()
 
-        repo_id = self.default_repository_config['id']
         responses.add(
             responses.DELETE,
-            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % repo_id,
+            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % self.gitlab_id,
             status=204
         )
         repo = Repository.objects.get(pk=response.data['id'])
@@ -171,12 +210,106 @@ class GitLabRepositoryProviderTest(PluginTestCase):
                                           self.integration.id)
         responses.reset()
 
-        repo_id = self.default_repository_config['id']
         responses.add(
             responses.DELETE,
-            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % repo_id,
+            'https://example.gitlab.com/api/v4/projects/%s/hooks/99' % self.gitlab_id,
             status=404
         )
         repo = Repository.objects.get(pk=response.data['id'])
         self.provider.on_delete_repository(repo)
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_compare_commits_start_and_end(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz' % self.gitlab_id,
+            json=json.loads(COMPARE_RESPONSE)
+        )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits/12d65c8dd2b2676fa3ac47d955accc085a37a9c1/diff' % self.gitlab_id,
+            json=json.loads(COMMIT_DIFF_RESPONSE)
+        )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits/8b090c1b79a14f2bd9e8a738f717824ff53aebad/diff' % self.gitlab_id,
+            json=json.loads(COMMIT_DIFF_RESPONSE)
+        )
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        commits = self.provider.compare_commits(repo, 'abc', 'xyz')
+        assert 2 == len(commits)
+        for commit in commits:
+            assert_commit_shape(commit)
+
+    @responses.activate
+    def test_compare_commits_start_and_end_gitlab_failure(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz' % self.gitlab_id,
+            status=502
+        )
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        with pytest.raises(IntegrationError):
+            self.provider.compare_commits(repo, 'abc', 'xyz')
+
+    @responses.activate
+    def test_compare_commits_no_start(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits/xyz' % self.gitlab_id,
+            json={'created_at': '2018-09-19T13:14:15Z'}
+        )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits?until=2018-09-19T13:14:15Z' % self.gitlab_id,
+            json=json.loads(COMMIT_LIST_RESPONSE)
+        )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits/ed899a2f4b50b4370feeea94676502b42383c746/diff' % self.gitlab_id,
+            json=json.loads(COMMIT_DIFF_RESPONSE)
+        )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits/6104942438c14ec7bd21c6cd5bd995272b3faff6/diff' % self.gitlab_id,
+            json=json.loads(COMMIT_DIFF_RESPONSE)
+        )
+
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        commits = self.provider.compare_commits(repo, None, 'xyz')
+        for commit in commits:
+            assert_commit_shape(commit)
+
+    @responses.activate
+    def test_compare_commits_no_start_gitlab_failure(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/%s/repository/commits/abc' % self.gitlab_id,
+            status=502
+        )
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        with pytest.raises(IntegrationError):
+            self.provider.compare_commits(repo, None, 'abc')
+
+
+def assert_commit_shape(commit):
+    assert commit['id']
+    assert commit['repository']
+    assert commit['author_email']
+    assert commit['author_name']
+    assert commit['message']
+    assert commit['timestamp']
+    assert commit['patch_set']
+    patches = commit['patch_set']
+    for patch in patches:
+        assert patch['type'] in commit_file_type_choices
+        assert patch['path']

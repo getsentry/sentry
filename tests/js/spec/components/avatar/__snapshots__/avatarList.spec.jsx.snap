@@ -212,6 +212,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -222,7 +223,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -360,6 +361,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -370,7 +372,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -508,6 +510,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -518,7 +521,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -656,6 +659,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -666,7 +670,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -804,6 +808,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -814,7 +819,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -1007,6 +1012,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -1017,7 +1023,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",
@@ -1155,6 +1161,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 >
                   <StyledBaseAvatar
                     className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                    loaded={true}
                     round={true}
                     style={
                       Object {
@@ -1165,7 +1172,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     title="Foo Bar (foo@example.com)"
                   >
                     <span
-                      className="tip avatar e1axh4r50 css-1t1vzng-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                       style={
                         Object {
                           "height": "28px",

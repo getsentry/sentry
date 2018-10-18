@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-import six
+import dateutil.parser
+
+from django.utils import timezone
 
 from sentry.integrations.exceptions import ApiError
 from sentry.plugins import providers
@@ -29,19 +31,19 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
 
         repo_id = config['identifier']
-        instance = installation.model.metadata['domain_name']
+        instance = installation.model.metadata['instance']
 
         try:
-            repo = client.get_project(six.text_type(repo_id))
+            project = client.get_project(repo_id)
         except Exception as e:
             installation.raise_error(e)
         config.update({
             'instance': instance,
-            'path': repo['path_with_namespace'],
-            'name': repo['name_with_namespace'],
-            'repo_id': repo['id'],
-            'external_id': '%s:%s' % (instance, repo['path']),
-            'url': repo['web_url'],
+            'path': project['path_with_namespace'],
+            'name': project['name_with_namespace'],
+            'external_id': u'{}:{}'.format(instance, project['id']),
+            'project_id': project['id'],
+            'url': project['web_url'],
         })
         return config
 
@@ -51,8 +53,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         hook_id = None
         try:
-            hook_id = client.create_project_webhook(
-                six.text_type(data['repo_id']))
+            hook_id = client.create_project_webhook(data['project_id'])
         except Exception as e:
             installation.raise_error(e)
         return {
@@ -61,9 +62,9 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             'url': data['url'],
             'config': {
                 'instance': data['instance'],
-                'repo_id': data['repo_id'],
                 'path': data['path'],
                 'webhook_id': hook_id,
+                'project_id': data['project_id'],
             },
             'integration_id': data['installation'],
         }
@@ -75,9 +76,78 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         try:
             client.delete_project_webhook(
-                six.text_type(repo.config['repo_id']),
+                repo.config['project_id'],
                 repo.config['webhook_id'])
         except ApiError as e:
             if e.code == 404:
                 return
             installation.raise_error(e)
+
+    def compare_commits(self, repo, start_sha, end_sha):
+        """Fetch the commit list and diffed files between two shas"""
+        installation = self.get_installation(repo.integration_id,
+                                             repo.organization_id)
+        client = installation.get_client()
+        try:
+            if start_sha is None:
+                res = client.get_last_commits(repo.config['project_id'], end_sha)
+                return self._format_commits(client, repo, res)
+            else:
+                res = client.compare_commits(repo.config['project_id'], start_sha, end_sha)
+                return self._format_commits(client, repo, res['commits'])
+        except Exception as e:
+            installation.raise_error(e)
+
+    def _format_commits(self, client, repo, commit_list):
+        """Convert GitLab commits into our internal format
+        """
+        return [
+            {
+                'id': c['id'],
+                'repository': repo.name,
+                'author_email': c['author_email'],
+                'author_name': c['author_name'],
+                'message': c['title'],
+                'timestamp': dateutil.parser.parse(
+                    c['created_at'],
+                ).astimezone(timezone.utc) if c['created_at'] else None,
+                'patch_set': self._get_patchset(client, repo, c['id'])
+            } for c in commit_list
+        ]
+
+    def _get_patchset(self, client, repo, sha):
+        """GitLab commit lists don't come with diffs so we have
+        to make additional round trips.
+        """
+        diffs = client.get_diff(repo.config['project_id'], sha)
+        return self._transform_patchset(diffs)
+
+    def _transform_patchset(self, patch_set):
+        file_changes = []
+        for changed_file in patch_set:
+            if changed_file['new_file']:
+                file_changes.append({
+                    'path': changed_file['new_path'],
+                    'type': 'A',
+                })
+            elif changed_file['deleted_file']:
+                file_changes.append({
+                    'path': changed_file['old_path'],
+                    'type': 'D',
+                })
+            elif changed_file['renamed_file']:
+                file_changes.append({
+                    'path': changed_file['old_path'],
+                    'type': 'D',
+                })
+                file_changes.append({
+                    'path': changed_file['new_path'],
+                    'type': 'A',
+                })
+            else:
+                file_changes.append({
+                    'path': changed_file['new_path'],
+                    'type': 'M',
+                })
+
+        return file_changes

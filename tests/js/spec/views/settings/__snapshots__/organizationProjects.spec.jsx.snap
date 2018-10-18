@@ -340,12 +340,12 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     </InlineButton>
                                   </Tooltip>
                                   <Link
-                                    to="/settings/org-slug/project-slug/"
+                                    to="/org-slug/project-slug/"
                                   >
                                     <Link
                                       onlyActiveOnIndex={false}
                                       style={Object {}}
-                                      to="/settings/org-slug/project-slug/"
+                                      to="/org-slug/project-slug/"
                                     >
                                       <a
                                         onClick={[Function]}
@@ -440,28 +440,29 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             >
                               <Button
                                 disabled={false}
+                                icon="icon-settings"
                                 size="small"
-                                to="/org-slug/project-slug/"
+                                to="/settings/org-slug/project-slug/"
                               >
                                 <StyledButton
-                                  aria-label="View Issues"
+                                  aria-label="Settings"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="small"
-                                  to="/org-slug/project-slug/"
+                                  to="/settings/org-slug/project-slug/"
                                 >
                                   <Component
-                                    aria-label="View Issues"
+                                    aria-label="Settings"
                                     className="css-dkprmi-StyledButton-getColors eqrebog0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
-                                    to="/org-slug/project-slug/"
+                                    to="/settings/org-slug/project-slug/"
                                   >
                                     <Link
-                                      aria-label="View Issues"
+                                      aria-label="Settings"
                                       className="css-dkprmi-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
@@ -469,10 +470,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                       role="button"
                                       size="small"
                                       style={Object {}}
-                                      to="/org-slug/project-slug/"
+                                      to="/settings/org-slug/project-slug/"
                                     >
                                       <a
-                                        aria-label="View Issues"
+                                        aria-label="Settings"
                                         className="css-dkprmi-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
@@ -490,7 +491,52 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                             <span
                                               className="css-7ui8bl-ButtonLabel eqrebog1"
                                             >
-                                              View Issues
+                                              <Icon
+                                                hasChildren={true}
+                                                size="small"
+                                              >
+                                                <Component
+                                                  className="css-1vdnsie-Icon eqrebog2"
+                                                  hasChildren={true}
+                                                  size="small"
+                                                >
+                                                  <span
+                                                    className="css-1vdnsie-Icon eqrebog2"
+                                                    size="small"
+                                                  >
+                                                    <StyledInlineSvg
+                                                      size="12px"
+                                                      src="icon-settings"
+                                                    >
+                                                      <InlineSvg
+                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                        size="12px"
+                                                        src="icon-settings"
+                                                      >
+                                                        <StyledSvg
+                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                          height="12px"
+                                                          viewBox={Object {}}
+                                                          width="12px"
+                                                        >
+                                                          <svg
+                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                            height="12px"
+                                                            viewBox={Object {}}
+                                                            width="12px"
+                                                          >
+                                                            <use
+                                                              href="#test"
+                                                              xlinkHref="#test"
+                                                            />
+                                                          </svg>
+                                                        </StyledSvg>
+                                                      </InlineSvg>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                              Settings
                                             </span>
                                           </Component>
                                         </ButtonLabel>
