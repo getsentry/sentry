@@ -1,10 +1,1 @@
-<svg viewBox="0 0 15 15">
-  <polyline
-    stroke="currentColor"
-    stroke-width="1"
-    fill="none"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    points="10.5051954 14.4948046 4.50519544 7.49480456 10.498744 0.505195444 10.498744 0.505195444"
-  />
-</svg>
+<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="2" d="M15 20l-8-8 8-8" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"/></svg>
