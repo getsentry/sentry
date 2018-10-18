@@ -39,6 +39,7 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
+                'choices': [],
             }
         ] + fields
 

@@ -306,3 +306,106 @@ PUSH_EVENT_IGNORED_COMMIT = b"""
   "total_commits_count": 1
 }
 """
+
+
+COMPARE_RESPONSE = r"""
+{
+  "commit": {
+    "id": "12d65c8dd2b2676fa3ac47d955accc085a37a9c1",
+    "short_id": "12d65c8dd2b",
+    "title": "JS fix",
+    "author_name": "Dmitriy",
+    "author_email": "dmitriy@example.com",
+    "created_at": "2014-02-27T10:27:00+02:00"
+  },
+  "commits": [{
+    "id": "12d65c8dd2b2676fa3ac47d955accc085a37a9c1",
+    "short_id": "12d65c8dd2b",
+    "title": "JS fix",
+    "author_name": "Dmitriy",
+    "author_email": "dmitriy@example.com",
+    "created_at": "2014-02-27T10:27:00+02:00"
+  },
+  {
+    "id": "8b090c1b79a14f2bd9e8a738f717824ff53aebad",
+    "short_id": "8b090c1b",
+    "title": "Fix dmitriy mistake",
+    "author_name": "Sally",
+    "author_email": "sally@example.com",
+    "created_at": "2014-02-27T10:27:00+02:00"
+  }],
+  "diffs": [{
+    "old_path": "files/js/application.js",
+    "new_path": "files/js/application.js",
+    "a_mode": null,
+    "b_mode": "100644",
+    "diff": "--- a/files/js/application.js\n+++ b/files/js/application.js\n@@ -24,8 +24,10 @@\n //= require g.raphael-min\n //= require g.bar-min\n //= require branch-graph\n-//= require highlightjs.min\n-//= require ace/ace\n //= require_tree .\n //= require d3\n //= require underscore\n+\n+function fix() { \n+  alert(\"Fixed\")\n+}",
+    "new_file": false,
+    "renamed_file": false,
+    "deleted_file": false
+  }],
+  "compare_timeout": false,
+  "compare_same_ref": false
+}
+"""
+
+
+COMMIT_LIST_RESPONSE = r"""
+[
+  {
+    "id": "ed899a2f4b50b4370feeea94676502b42383c746",
+    "short_id": "ed899a2f4b5",
+    "title": "Replace sanitize with escape once",
+    "author_name": "Dmitriy",
+    "author_email": "dmitriy@example.com",
+    "authored_date": "2018-09-20T11:50:22+03:00",
+    "committer_name": "Administrator",
+    "committer_email": "admin@example.com",
+    "committed_date": "2018-09-20T11:50:22+03:00",
+    "created_at": "2018-09-20T11:50:22+03:00",
+    "message": "Replace sanitize with escape once",
+    "parent_ids": [
+      "6104942438c14ec7bd21c6cd5bd995272b3faff6"
+    ]
+  },
+  {
+    "id": "6104942438c14ec7bd21c6cd5bd995272b3faff6",
+    "short_id": "6104942438c",
+    "title": "Sanitize for network graph",
+    "author_name": "randx",
+    "author_email": "dmitriy@example.com",
+    "committer_name": "Dmitriy",
+    "committer_email": "dmitriy@example.com",
+    "created_at": "2018-09-20T09:06:12+03:00",
+    "message": "Sanitize for network graph",
+    "parent_ids": [
+      "ae1d9fb46aa2b07ee9836d49862ec4e2c46fbbba"
+    ]
+  }
+]
+"""
+
+COMMIT_DIFF_RESPONSE = r"""
+[
+    {
+        "old_path": "files/js/application.js",
+        "new_path": "files/js/application.js",
+        "a_mode": null,
+        "b_mode": "100644",
+        "diff": "--- a/files/js/application.js\n+++ b/files/js/application.js\n@@ -24,8 +24,10 @@\n //= require g.raphael-min\n //= require g.bar-min\n //= require branch-graph\n-//= require highlightjs.min\n-//= require ace/ace\n //= require_tree .\n //= require d3\n //= require underscore\n+\n+function fix() { \n+  alert(\"Fixed\")\n+}",
+        "new_file": false,
+        "renamed_file": false,
+        "deleted_file": false
+    },
+    {
+        "a_mode": "100644",
+        "b_mode": "100644",
+        "deleted_file": false,
+        "diff": "@@ -1 +1,3 @@\n OH HAI\n+OH HAI\n+OH HAI\n",
+        "new_file": false,
+        "new_path": "README.txt",
+        "old_path": "README.txt",
+        "renamed_file": false
+    }
+]
+"""

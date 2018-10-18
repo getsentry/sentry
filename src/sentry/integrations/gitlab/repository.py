@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import dateutil.parser
+
+from django.utils import timezone
+
 from sentry.integrations.exceptions import ApiError
 from sentry.plugins import providers
 from sentry.models import Integration
@@ -78,3 +82,72 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             if e.code == 404:
                 return
             installation.raise_error(e)
+
+    def compare_commits(self, repo, start_sha, end_sha):
+        """Fetch the commit list and diffed files between two shas"""
+        installation = self.get_installation(repo.integration_id,
+                                             repo.organization_id)
+        client = installation.get_client()
+        try:
+            if start_sha is None:
+                res = client.get_last_commits(repo.config['project_id'], end_sha)
+                return self._format_commits(client, repo, res)
+            else:
+                res = client.compare_commits(repo.config['project_id'], start_sha, end_sha)
+                return self._format_commits(client, repo, res['commits'])
+        except Exception as e:
+            installation.raise_error(e)
+
+    def _format_commits(self, client, repo, commit_list):
+        """Convert GitLab commits into our internal format
+        """
+        return [
+            {
+                'id': c['id'],
+                'repository': repo.name,
+                'author_email': c['author_email'],
+                'author_name': c['author_name'],
+                'message': c['title'],
+                'timestamp': dateutil.parser.parse(
+                    c['created_at'],
+                ).astimezone(timezone.utc) if c['created_at'] else None,
+                'patch_set': self._get_patchset(client, repo, c['id'])
+            } for c in commit_list
+        ]
+
+    def _get_patchset(self, client, repo, sha):
+        """GitLab commit lists don't come with diffs so we have
+        to make additional round trips.
+        """
+        diffs = client.get_diff(repo.config['project_id'], sha)
+        return self._transform_patchset(diffs)
+
+    def _transform_patchset(self, patch_set):
+        file_changes = []
+        for changed_file in patch_set:
+            if changed_file['new_file']:
+                file_changes.append({
+                    'path': changed_file['new_path'],
+                    'type': 'A',
+                })
+            elif changed_file['deleted_file']:
+                file_changes.append({
+                    'path': changed_file['old_path'],
+                    'type': 'D',
+                })
+            elif changed_file['renamed_file']:
+                file_changes.append({
+                    'path': changed_file['old_path'],
+                    'type': 'D',
+                })
+                file_changes.append({
+                    'path': changed_file['new_path'],
+                    'type': 'A',
+                })
+            else:
+                file_changes.append({
+                    'path': changed_file['new_path'],
+                    'type': 'M',
+                })
+
+        return file_changes
