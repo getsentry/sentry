@@ -12,11 +12,11 @@ import logging
 from datetime import datetime
 import six
 
-from raven.contrib.django.models import client as Raven
 from time import time
 from django.utils import timezone
 
 from sentry import features, reprocessing
+from sentry.app import raven
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
@@ -70,7 +70,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
 
     data = CanonicalKeyDict(data)
     project = data['project']
-    Raven.tags_context({
+    raven.tags_context({
         'project': project,
     })
 
@@ -124,7 +124,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
 
     data = CanonicalKeyDict(data)
     project = data['project']
-    Raven.tags_context({
+    raven.tags_context({
         'project': project,
     })
     has_changed = False
@@ -368,7 +368,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    Raven.tags_context({
+    raven.tags_context({
         'project': project_id,
     })
 
