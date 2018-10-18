@@ -225,7 +225,7 @@ class ProjectDebugFile(Model):
     objects = ProjectDebugFileManager()
 
     class Meta:
-        unique_together = (('project', 'debug_id'), )
+        index_together = (('project', 'debug_id'), )
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
@@ -279,6 +279,18 @@ class ProjectSymCacheFile(Model):
         self.cache_file.delete()
 
 
+# XXX: TEMPORARY WORKAROUND FOR NON-UNIQUE DEBUG FILES
+def clean_redundant_difs(project, debug_id):
+    difs = ProjectDebugFile.objects \
+        .filter(project=project, debug_id=debug_id) \
+        .select_related('file') \
+        .order_by('-id')
+
+    from itertools import islice
+    for dif in islice(difs, 1, None):
+        dif.delete()
+
+
 def create_dif_from_id(project, dif_type, cpu_name, debug_id,
                        basename, fileobj=None, file=None):
     """This creates a mach dsym file or proguard mapping from the given
@@ -306,13 +318,11 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
         checksum = h.hexdigest()
         fileobj.seek(0, 0)
 
-        try:
-            rv = ProjectDebugFile.objects.select_related('file') \
-                .get(debug_id=debug_id, project=project)
-            if rv.file.checksum == checksum:
-                return rv, False
-        except ProjectDebugFile.DoesNotExist:
-            rv = None
+        rv = ProjectDebugFile.objects.select_related('file') \
+            .filter(debug_id=debug_id, project=project) \
+            .order_by('-id').first()
+        if rv is not None and rv.file.checksum == checksum:
+            return rv, False
 
         file = File.objects.create(
             name=debug_id,
@@ -335,7 +345,8 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
                     rv = ProjectDebugFile.objects.create(**kwargs)
             except IntegrityError:
                 rv = ProjectDebugFile.objects.select_related('file') \
-                    .get(debug_id=debug_id, project=project)
+                    .filter(debug_id=debug_id, project=project) \
+                    .order_by('-id').first()
                 oldfile = rv.file
                 rv.update(**kwargs)
                 oldfile.delete()
@@ -344,10 +355,10 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
             rv.update(**kwargs)
             oldfile.delete()
     else:
-        try:
-            rv = ProjectDebugFile.objects.select_related('file') \
-                .get(debug_id=debug_id, project=project)
-        except ProjectDebugFile.DoesNotExist:
+        rv = ProjectDebugFile.objects.select_related('file') \
+            .filter(debug_id=debug_id, project=project) \
+            .order_by('-id').first()
+        if rv is None:
             try:
                 with transaction.atomic():
                     rv = ProjectDebugFile.objects.create(
@@ -359,7 +370,8 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
                     )
             except IntegrityError:
                 rv = ProjectDebugFile.objects.select_related('file') \
-                    .get(debug_id=debug_id, project=project)
+                    .filter(debug_id=debug_id, project=project) \
+                    .order_by('-id').first()
                 oldfile = rv.file
                 rv.update(file=file)
                 oldfile.delete()
@@ -369,6 +381,9 @@ def create_dif_from_id(project, dif_type, cpu_name, debug_id,
             oldfile.delete()
         rv.file.headers['Content-Type'] = DIF_MIMETYPES[dif_type]
         rv.file.save()
+
+    # XXX: TEMPORARY WORKAROUND FOR NON-UNIQUE DEBUG FILES
+    clean_redundant_difs(project, debug_id)
 
     resolve_processing_issue(
         project=project,
@@ -480,13 +495,12 @@ def create_files_from_dif_zip(fileobj, project, update_symcaches=True):
 
 def find_debug_file(project, debug_id):
     """Finds a debug information file for the given debug id."""
-    try:
-        return ProjectDebugFile.objects \
-            .filter(debug_id=debug_id.lower(), project=project) \
-            .select_related('file') \
-            .get()
-    except ProjectDebugFile.DoesNotExist:
-        pass
+    # XXX: TEMPORARY WORKAROUND FOR NON-UNIQUE DEBUG FILES
+    return ProjectDebugFile.objects \
+        .filter(debug_id=debug_id.lower(), project=project) \
+        .select_related('file') \
+        .order_by('-id') \
+        .first()
 
 
 class DIFCache(object):
@@ -556,10 +570,16 @@ class DIFCache(object):
     def _get_symcaches_impl(self, project, debug_ids, on_dif_referenced=None):
         # Fetch debug files first and invoke the callback if we need
         debug_ids = list(map(six.text_type, debug_ids))
-        debug_files = [x for x in ProjectDebugFile.objects.filter(
-            project=project,
-            debug_id__in=debug_ids,
-        ).select_related('file') if x.supports_symcache]
+
+        # XXX: TEMPORARY WORKAROUND FOR NON-UNIQUE DEBUG FILES
+        seen = set()
+        debug_files = [
+            seen.add(d.debug_id) or d
+            for d in ProjectDebugFile.objects.select_related('file')
+                .filter(project=project, debug_id__in=debug_ids).order_by('-id')
+            if d.supports_symcache and d.debug_id not in seen
+        ]
+
         if not debug_files:
             return {}, {}
 

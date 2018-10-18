@@ -171,11 +171,17 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     features={
       Array [
         Object {
-          "description": "*markdown* feature description",
+          "description": <span
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "<em>markdown</em> feature description",
+              }
+            }
+          />,
+          "featureGate": undefined,
         },
       ]
     }
-    formatter={[Function]}
     organization={
       Object {
         "access": Array [
@@ -241,13 +247,16 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
   >
     <ul>
       <li
-        dangerouslySetInnerHTML={
-          Object {
-            "__html": "<em>markdown</em> feature description",
-          }
-        }
         key="0"
-      />
+      >
+        <span
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "<em>markdown</em> feature description",
+            }
+          }
+        />
+      </li>
     </ul>
   </FeatureList>
   <Metadata>
@@ -355,7 +364,14 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     features={
       Array [
         Object {
-          "description": "*markdown* feature description",
+          "description": <span
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "<em>markdown</em> feature description",
+              }
+            }
+          />,
+          "featureGate": undefined,
         },
       ]
     }

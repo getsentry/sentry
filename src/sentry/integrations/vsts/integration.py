@@ -408,7 +408,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
             )
 
-        subscription_id = subscription['publisherInputs']['tfsSubscriptionId']
+        subscription_id = subscription['id']
         return subscription_id, shared_secret
 
     def get_oauth_data(self, payload):
@@ -474,12 +474,21 @@ class AccountConfigView(PipelineView):
 
         )
         accounts = accounts['value']
+        if not len(accounts):
+            return render_to_response(
+                template='sentry/integrations/vsts-config.html',
+                context={
+                    'no_accounts': True,
+                },
+                request=request,
+            )
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
             template='sentry/integrations/vsts-config.html',
             context={
                 'form': account_form,
+                'no_accounts': False,
             },
             request=request,
         )

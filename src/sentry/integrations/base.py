@@ -44,12 +44,22 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 
 
 class IntegrationMetadata(IntegrationMetadata):
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        FeatureDescriptions are set using the IntegrationFeatures constants,
+        however we expose them here as mappings to organization feature flags, thus
+        we prefix them with `integration`.
+        """
+        if f is not None:
+            return u'integrations-{}'.format(f)
+
     def _asdict(self):
         metadata = super(IntegrationMetadata, self)._asdict()
         metadata['features'] = [
             {
                 'description': f.description.strip(),
-                'featureGate': None if f.featureGate is None else f.featureGate.value,
+                'featureGate': self.feature_flag_name(f.featureGate.value)
             }
             for f in metadata['features']
         ]
