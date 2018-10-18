@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.utils import parse_stats_period
 from sentry.models import (
     Project, ProjectStatus, OrganizationMemberTeam,
     Environment,
@@ -19,6 +18,7 @@ from sentry.api.serializers.snuba import (
     SnubaLookup,
 )
 from sentry.utils import snuba
+from sentry.utils.dates import parse_stats_period
 
 
 SnubaResultSet = namedtuple('SnubaResultSet', ('current', 'previous'))
