@@ -128,7 +128,7 @@ class ReleaseProgress extends AsyncView {
               onClick={() => this.handleClick('snoozed')}
               size="large"
             >
-              {t('Remind Me')}
+              {t('Remind Me Later')}
             </StyledButton>
           </div>
         </div>
