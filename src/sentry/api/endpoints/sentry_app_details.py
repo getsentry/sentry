@@ -18,3 +18,21 @@ class SentryAppDetailsEndpoint(BaseEndpoint):
             return Response(serialize(sentry_app, request.user))
 
         return Response(status=404)
+
+    def put(self, request, sentry_app):
+        serializer = SentryAppSerializer(data=request.DATA, partial=True)
+        if serializer.is_valid():
+            result = serializer.object
+            kwargs = {}
+            if 'webhook_url' in result:
+                kwargs['webhook_url'] = result['webhook_url']
+            if 'name' in result:
+                kwargs['name'] = result['name']
+
+            updated_app = Updater.run(
+                sentry_app=sentry_app,
+                **kwargs,
+            )
+            return Response(serialize(updated_app, request.user))
+
+        return Response(serializer.errors, status=400)
