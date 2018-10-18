@@ -1326,6 +1326,14 @@ class EventManagerTest(TransactionTestCase):
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
         assert hashes == [md5_from_hash(checksum), checksum]
 
+    def test_event_pii(self):
+        manager = EventManager(self.make_event(
+            message='foo bar',
+            _meta={'message': {'': {'err': ['invalid']}}},
+        ))
+        data = manager.normalize()
+        assert data['_meta']['message'] == {'': {'err': ['invalid']}}
+
 
 class ProcessTimestampTest(TestCase):
     def test_iso_timestamp(self):
