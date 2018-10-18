@@ -191,3 +191,24 @@ class ContextsTest(TestCase):
                 'device_app_hash': '5678',
             }
         }
+
+    def test_gpu(self):
+        ctx = Contexts.to_python({
+            'gpu': {
+                'name': 'AMD Radeon Pro 560',
+                'vendor_name': 'Apple',
+                'version': 'Metal'
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('gpu.name', 'AMD Radeon Pro 560'),
+            ('gpu.vendor', 'Apple'),
+        ]
+        assert ctx.to_json() == {
+            'gpu': {
+                'type': 'gpu',
+                'name': 'AMD Radeon Pro 560',
+                'vendor_name': 'Apple',
+                'version': 'Metal'
+            }
+        }
