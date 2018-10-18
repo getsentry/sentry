@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import re
 from datetime import timedelta
 
 from django.utils import timezone
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.utils.dates import parse_stats_period
 
 MIN_STATS_PERIOD = timedelta(hours=1)
 MAX_STATS_PERIOD = timedelta(days=90)
@@ -13,23 +13,6 @@ MAX_STATS_PERIOD = timedelta(days=90)
 
 class InvalidParams(Exception):
     pass
-
-
-def parse_stats_period(period):
-    """
-    Convert a value such as 1h into a
-    proper timedelta.
-    """
-    m = re.match('^(\d+)([hdms]?)$', period)
-    if not m:
-        return None
-    value, unit = m.groups()
-    value = int(value)
-    if not unit:
-        unit = 's'
-    return timedelta(**{
-        {'h': 'hours', 'd': 'days', 'm': 'minutes', 's': 'seconds'}[unit]: value,
-    })
 
 
 def get_date_range_from_params(params):
