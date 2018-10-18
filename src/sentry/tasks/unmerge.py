@@ -592,6 +592,7 @@ def unmerge(
         queryset = queryset.filter(id__lt=cursor)
 
     events = list(queryset[:batch_size])
+    events.sort(key=lambda e: e.datetime, reverse=True)
 
     # If there are no more events to process, we're done with the migration.
     if not events:
