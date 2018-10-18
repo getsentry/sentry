@@ -395,7 +395,6 @@ class ProjectSymCacheFile(ProjectCacheFile):
     @classmethod
     def computes_from(cls, debug_file):
         if debug_file.data is None:
-            print('dif_type: %s' % debug_file.dif_type)
             # Compatibility with legacy DIFs before features were introduced
             return debug_file.dif_type in ('breakpad', 'macho', 'elf')
         return super(ProjectSymCacheFile, cls).computes_from(debug_file)
@@ -664,7 +663,7 @@ class DIFCache(object):
             return cficaches, dict((k, v) for k, v in conversion_errors.items())
         return cficaches
 
-    def generate_caches(self, project, dif, fileobj=None):
+    def generate_caches(self, project, dif, filepath=None):
         """Generates a SymCache and CfiCache for the given debug information
         file if it supports these formats. Otherwise, a no - op. The caches are
         computed sequentially.
@@ -673,26 +672,11 @@ class DIFCache(object):
         if not dif.supports_caches:
             return None
 
-        if fileobj is None:
-            fileobj = dif.file.getfile(as_tempfile=True)
-            close_fileobj = True
-        else:
-            fileobj.seek(0)
-            close_fileobj = False
+        if filepath:
+            return self._generate_caches_impl(dif, filepath)
 
-        try:
-            _, _, error = self._update_cachefile(dif, fileobj, ProjectSymCacheFile)
-            if error is not None:
-                return error
-
-            _, _, error = self._update_cachefile(dif, fileobj, ProjectCfiCacheFile)
-            if error is not None:
-                return error
-        finally:
-            if close_fileobj:
-                fileobj.close()
-
-        return None
+        with dif.file.getfile(as_tempfile=True) as tf:
+            return self._generate_caches_impl(dif, tf.name)
 
     def fetch_difs(self, project, debug_ids, features=None):
         """Given some ids returns an id to path mapping for where the
@@ -713,6 +697,17 @@ class DIFCache(object):
             rv[debug_id] = dif_path
 
         return rv
+
+    def _generate_caches_impl(self, dif, filepath):
+        _, _, error = self._update_cachefile(dif, filepath, ProjectSymCacheFile)
+        if error is not None:
+            return error
+
+        _, _, error = self._update_cachefile(dif, filepath, ProjectCfiCacheFile)
+        if error is not None:
+            return error
+
+        return None
 
     def _get_caches_impl(self, project, debug_ids, cls, on_dif_referenced=None):
         # Fetch debug files first and invoke the callback if we need
@@ -773,7 +768,7 @@ class DIFCache(object):
             # a cache. This can either yield a cache object, an error or none of
             # the above. THE FILE DOWNLOAD CAN TAKE SIGNIFICANT TIME.
             with debug_file.file.getfile(as_tempfile=True) as tf:
-                file, cache, err = self._update_cachefile(debug_file, tf, cls)
+                file, cache, err = self._update_cachefile(debug_file, tf.name, cls)
 
             # Store this conversion error so that we can skip subsequent
             # conversions. There might be concurrent conversions running for the
@@ -788,7 +783,7 @@ class DIFCache(object):
 
         return rv, conversion_errors
 
-    def _update_cachefile(self, debug_file, fileobj, cls):
+    def _update_cachefile(self, debug_file, path, cls):
         debug_id = debug_file.debug_id
 
         # Skip silently if this cache cannot be computed from the given DIF
@@ -799,7 +794,7 @@ class DIFCache(object):
         # files by debug_id, we expect a corresponding object. Otherwise, we
         # fail silently, just like with missing symbols.
         try:
-            fo = FatObject.from_path(fileobj.name)
+            fo = FatObject.from_path(path)
             o = fo.get_object(id=debug_id)
             if o is None:
                 return None, None, None
