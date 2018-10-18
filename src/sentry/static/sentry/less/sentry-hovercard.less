@@ -9,7 +9,6 @@
 
 .hovercard {
   @hovercard-padding: 15px;
-  @hovercard-width: 295px;
   border-radius: 4px;
   background-clip: padding-box;
   background: #fff;
@@ -30,8 +29,6 @@
   // Default align hovercard top-middle
   bottom: 28px;
   left: 50%;
-  margin-left: -@hovercard-width / 2;
-  width: @hovercard-width;
   visibility: hidden;
 
   @keyframes hovercardSlideUp {
@@ -174,7 +171,6 @@
 
   .hovercard-body {
     padding: @hovercard-padding;
-    min-height: 50px;
 
     .commit-heading {
       margin: 10px 0;
