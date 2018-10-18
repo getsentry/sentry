@@ -307,6 +307,10 @@ class ProjectDebugFile(Model):
         if symcache is not None:
             symcache.delete()
 
+        cficache = self.projectcficachefile.select_related('cache_file').first()
+        if cficache is not None:
+            cficache.delete()
+
         super(ProjectDebugFile, self).delete(*args, **kwargs)
         self.file.delete()
 
@@ -391,6 +395,7 @@ class ProjectSymCacheFile(ProjectCacheFile):
     @classmethod
     def computes_from(cls, debug_file):
         if debug_file.data is None:
+            print('dif_type: %s' % debug_file.dif_type)
             # Compatibility with legacy DIFs before features were introduced
             return debug_file.dif_type in ('breakpad', 'macho', 'elf')
         return super(ProjectSymCacheFile, cls).computes_from(debug_file)
@@ -639,14 +644,25 @@ class DIFCache(object):
 
     def get_symcaches(self, project, debug_ids, on_dif_referenced=None,
                       with_conversion_errors=False):
-        """Given some debug ids returns the symcaches loaded for these debug ids.
-        """
+        """Loads symcaches for the given debug IDs from the file system cache or
+        blob store."""
         cachefiles, conversion_errors = self._get_caches_impl(
             project, debug_ids, ProjectSymCacheFile, on_dif_referenced)
         symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)
         if with_conversion_errors:
             return symcaches, dict((k, v) for k, v in conversion_errors.items())
         return symcaches
+
+    def get_cficaches(self, project, debug_ids, on_dif_referenced=None,
+                      with_conversion_errors=False):
+        """Loads cficaches for the given debug IDs from the file system cache or
+        blob store."""
+        cachefiles, conversion_errors = self._get_caches_impl(
+            project, debug_ids, ProjectCfiCacheFile, on_dif_referenced)
+        cficaches = self._load_cachefiles_via_fs(project, cachefiles, CfiCache)
+        if with_conversion_errors:
+            return cficaches, dict((k, v) for k, v in conversion_errors.items())
+        return cficaches
 
     def generate_caches(self, project, dif, fileobj=None):
         """Generates a SymCache and CfiCache for the given debug information
@@ -730,7 +746,7 @@ class DIFCache(object):
         # If any cache files need to be updated, do that now
         if to_update:
             updated_cachefiles, conversion_errors = self._update_cachefiles(
-                project, to_update.values())
+                project, to_update.values(), cls)
             caches.extend(updated_cachefiles)
         else:
             conversion_errors = {}
