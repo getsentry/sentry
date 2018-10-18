@@ -46,22 +46,26 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                                     % len(result))
                 return
 
-            dif_type, cpu, file_id, filename = result[0]
+            dif_type, cpu, file_id, filename, data = result[0]
             dif, created = debugfile.create_dif_from_id(
-                project, dif_type, cpu, file_id,
+                project, dif_type, cpu, file_id, data,
                 os.path.basename(name),
                 file=file)
-            delete_file = False
-            bump_reprocessing_revision(project)
-
             indicate_success = True
+            delete_file = False
+
+            # Bump the reprocessing revision since the symbol has changed and
+            # might resolve processing issues. If the file was not created,
+            # someone else has created it and will bump the revision instead.
+            if created:
+                bump_reprocessing_revision(project)
 
             # If we need to write a symcache we can use the
             # `generate_symcache` method to attempt to write one.
             # This way we can also capture down the error if we need
             # to.
-            if dif.supports_symcache:
-                symcache, error = ProjectDebugFile.difcache.generate_symcache(
+            if created and dif.supports_symcache:
+                _, _, error = ProjectDebugFile.difcache.generate_symcache(
                     project, dif, temp_file)
                 if error is not None:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,

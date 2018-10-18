@@ -108,7 +108,7 @@ class DebugFilesUploadTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data['associatedDsymFiles']) == 1
+        assert len(response.data) == 1
         assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
 
         vdf = VersionDSymFile.objects.get()
@@ -162,7 +162,7 @@ class DebugFilesUploadTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data['associatedDsymFiles']) == 1
+        assert len(response.data) == 1
         assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
 
         vdf = VersionDSymFile.objects.get()
@@ -210,7 +210,7 @@ class DebugFilesUploadTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data['associatedDsymFiles']) == 1
+        assert len(response.data) == 1
         assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
         download_id = response.data['associatedDsymFiles'][0]['id']
 

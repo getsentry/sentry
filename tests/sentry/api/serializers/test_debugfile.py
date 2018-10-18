@@ -20,6 +20,7 @@ class DebugFileSerializerTest(TestCase):
             object_name='baz.dSYM',
             cpu_name='x86_64',
             file=file,
+            data={'features': ['debug']},
         )
 
         result = serialize(dif)
@@ -35,6 +36,7 @@ class DebugFileSerializerTest(TestCase):
             'size': 42,
             'sha1': 'dc1e3f3e411979d336c3057cce64294f3420f93a',
             'headers': {'Content-Type': 'application/x-mach-binary'},
+            'data': {'features': ['debug']},
         }
 
     def test_long_debug_id(self):
@@ -50,6 +52,7 @@ class DebugFileSerializerTest(TestCase):
             object_name='baz.dSYM',
             cpu_name='x86_64',
             file=file,
+            data={'features': ['debug']},
         )
 
         result = serialize(dif)
@@ -65,4 +68,5 @@ class DebugFileSerializerTest(TestCase):
             'size': 42,
             'sha1': 'dc1e3f3e411979d336c3057cce64294f3420f93a',
             'headers': {'Content-Type': 'application/x-mach-binary'},
+            'data': {'features': ['debug']},
         }

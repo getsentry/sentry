@@ -78,9 +78,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        debug_file = ProjectDebugFile.objects.filter(
-            id=debug_file_id
-        ).first()
+        debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
 
         if debug_file is None:
             raise Http404
@@ -317,10 +315,12 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # Next, check if this project already owns the ProjectDebugFile.
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
-            dif = ProjectDebugFile.objects.filter(
-                project=project,
-                file__checksum=checksum
-            ).select_related('file').first()
+            dif = ProjectDebugFile.objects \
+                .filter(project=project, file__checksum=checksum) \
+                .select_related('file') \
+                .order_by('-id') \
+                .first()
+
             if dif is not None:
                 file_response[checksum] = {
                     'state': ChunkFileState.OK,
