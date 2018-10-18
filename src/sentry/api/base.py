@@ -116,7 +116,7 @@ class Endpoint(APIView):
 
         request.json_body = None
 
-        if request.META.get('CONTENT_TYPE') != 'application/json':
+        if not request.META.get('CONTENT_TYPE', '').startswith('application/json'):
             return
 
         if not len(request.body):
