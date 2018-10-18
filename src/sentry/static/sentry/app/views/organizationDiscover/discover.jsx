@@ -17,7 +17,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Result from './result';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
-import QueryEdit from './sidebar/queryEdit';
+import NewQuery from './sidebar/newQuery';
 import QueryRead from './sidebar/queryRead';
 import SavedQueryList from './sidebar/savedQueryList';
 
@@ -338,12 +338,12 @@ export default class OrganizationDiscover extends React.Component {
             />
           )}
           {shouldRenderEditMode && (
-            <QueryEdit
+            <NewQuery
               queryBuilder={queryBuilder}
               isFetchingQuery={isFetchingQuery}
               onUpdateField={this.updateField}
               onRunQuery={this.runQuery}
-              reset={this.reset}
+              onReset={this.reset}
             />
           )}
           {shouldRenderSavedList && <SavedQueryList organization={organization} />}
