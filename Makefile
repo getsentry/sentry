@@ -118,7 +118,7 @@ test-styleguide:
 
 test-python: build-platform-assets
 	@echo "--> Running Python tests"
-	py.test -xvvs ./tests/sentry/ || exit 1
+	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:

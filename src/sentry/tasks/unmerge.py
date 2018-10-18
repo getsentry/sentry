@@ -321,7 +321,6 @@ def repair_group_environment_data(caches, project, events):
 def collect_tag_data(events):
     results = OrderedDict()
 
-    print("")
     for event in events:
         environment = get_environment_name(event)
         tags = results.setdefault((event.group_id, environment), {})
@@ -329,22 +328,17 @@ def collect_tag_data(events):
         for key, value in event.get_tags():
             values = tags.setdefault(key, {})
 
-            print("event: %s time: %s env: %s tag: %s:%s" %
-                  (event.id, event.datetime, environment, key, value))
-
             if value in values:
                 times_seen, first_seen, last_seen = values[value]
                 values[value] = (times_seen + 1, event.datetime, last_seen)
             else:
                 values[value] = (1, event.datetime, event.datetime)
 
-    print("")
     return results
 
 
 def repair_tag_data(caches, project, events):
     for (group_id, env_name), keys in collect_tag_data(events).items():
-        print "group_id: %s env_name: %s" % (group_id, env_name)
         environment = caches['Environment'](
             project.organization_id,
             env_name,
@@ -356,7 +350,6 @@ def repair_tag_data(caches, project, events):
                 environment_id=environment.id,
                 key=key,
             )
-            print "key: %s created: %s" % (key, created)
 
             # XXX: `{first,last}_seen` columns don't totally replicate the
             # ingestion logic (but actually represent a more accurate value.)
@@ -374,8 +367,6 @@ def repair_tag_data(caches, project, events):
                         'times_seen': times_seen,
                     },
                 )
-                print "value: %s created: %s times_seen: %s first_seen: %s last_seen: %s" % (
-                    value, created, times_seen, first_seen, last_seen)
 
                 if not created:
                     tagstore.incr_group_tag_value_times_seen(

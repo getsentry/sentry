@@ -36,7 +36,13 @@ env:
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.3.2"
 script:
+  - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
+  - make travis-scan-$TEST_SUITE
+  # installing dependencies for after_* steps here ensures they get cached
+  # since those steps execute after travis runs `store build cache`
+  - pip install codecov
+  - npm install -g @zeus-ci/cli
 
 after_success:
   - codecov -e TEST_SUITE
@@ -61,6 +67,26 @@ matrix:
   include:
     # only the sqlite suite runs riak tests
     - python: 2.7
+      env: TEST_SUITE=sqlite DB=sqlite
+      services:
+        - memcached
+        - riak
+        - redis-server
+      install:
+        - pip install -e ".[dev,tests,optional]"
+
+    - python: 2.7
+      env: TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    - python: 2.7
       env: TEST_SUITE=mysql DB=mysql
       services:
         - memcached
@@ -71,6 +97,119 @@ matrix:
         - pip install mysqlclient
       before_script:
         - mysql -u root -e 'create database sentry;'
+
+    - python: 2.7
+      env: TEST_SUITE=acceptance
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - find "$NODE_DIR" -type d -empty -delete
+        - nvm install
+        - npm install -g "yarn@${YARN_VERSION}"
+      install:
+        - yarn install --pure-lockfile
+        - pip install -e ".[dev,tests,optional]"
+        - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
+        - unzip ~/chromedriver_linux64.zip -d ~/
+        - rm ~/chromedriver_linux64.zip
+        - sudo install -m755 ~/chromedriver /usr/local/bin/
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    - python: 2.7
+      env: TEST_SUITE=js
+      before_install:
+        - find "$NODE_DIR" -type d -empty -delete
+        - nvm install
+        - npm install -g "yarn@${YARN_VERSION}"
+      install:
+        - yarn install --pure-lockfile
+
+    - python: 2.7
+      env: TEST_SUITE=cli
+      services:
+        - postgresql
+        - redis-server
+      install:
+        - pip install -e .
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    - python: 2.7
+      env: TEST_SUITE=dist
+
+    - python: 2.7
+      env: SENTRY_TAGSTORE=sentry.tagstore.v2.V2TagStorage TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # django 1.8 compatibility
+    - python: 2.7
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # django 1.8 compatibility with migrations
+    - python: 2.7
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # snuba in testing - allowed to fail
+    - python: 2.7
+      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage
+      services:
+        - docker
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
+      install:
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # Deploy 'storybook' (component & style guide) - allowed to fail
+    - language: node_js
+      env: STORYBOOK_BUILD=1
+      before_install:
+        # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
+        - openssl aes-256-cbc -K $encrypted_020be61ef175_key -iv $encrypted_020be61ef175_iv -in .travis/storybook-credentials.tar.gz.enc -out credentials.tar.gz -d
+        # If the SDK is not already cached, download it and unpack it
+        - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi
+        - tar -xzf credentials.tar.gz
+        # Use the decrypted service account credentials to authenticate the command line tool
+        - gcloud auth activate-service-account --key-file client-secret.json
+        - npm install -g "yarn@${YARN_VERSION}"
+      install:
+        - yarn install --pure-lockfile
+        - gcloud version
+      script: bash .travis/deploy-storybook.sh
+      after_success: skip
+      after_failure: skip
 
 # jobs are defined in matrix/include
 # to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
