@@ -12,7 +12,7 @@ import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
-import Feature from 'app/components/feature';
+import Feature from 'app/components/acl/feature';
 import SentryTypes from 'app/sentryTypes';
 import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
