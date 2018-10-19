@@ -80,7 +80,8 @@ class ProjectSelector extends React.Component {
   isControlled = () => typeof this.props.selectedProjects !== 'undefined';
 
   toggleProject(project, e) {
-    const {slug, onMultiSelect} = project;
+    const {onMultiSelect} = this.props;
+    const {slug} = project;
     // Don't update state if this is a controlled component
     if (this.isControlled()) return;
 
@@ -247,15 +248,17 @@ class ProjectSelectorItem extends React.PureComponent {
     const {project, multi, inputValue, isChecked} = this.props;
     return (
       <ProjectRow>
-        <BadgeWrapper multi={multi}>
-          <IdBadgeMenuItem
-            project={project}
-            avatarSize={16}
-            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-            avatarProps={{consistentWidth: true}}
-          />
+        <BadgeAndBookmark>
+          <BadgeWrapper multi={multi}>
+            <IdBadgeMenuItem
+              project={project}
+              avatarSize={16}
+              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+              avatarProps={{consistentWidth: true}}
+            />
+          </BadgeWrapper>
           {project.isBookmarked && <BookmarkIcon multi={multi} />}
-        </BadgeWrapper>
+        </BadgeAndBookmark>
 
         {multi && (
           <MultiSelectWrapper onClick={this.handleMultiSelect}>
@@ -305,9 +308,13 @@ const CreateProjectButton = styled(Button)`
 
 const BadgeWrapper = styled('div')`
   display: flex;
-  flex: 1;
-  ${p => !p.multi && 'justify-content: space-between'};
+  ${p => !p.multi && 'flex: 1'};
   white-space: nowrap;
+  overflow: hidden;
+`;
+const BadgeAndBookmark = styled('div')`
+  display: flex;
+  flex: 1;
   overflow: hidden;
 `;
 
