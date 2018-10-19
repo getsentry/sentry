@@ -86,7 +86,13 @@ const TeamDetails = createReactClass({
     let team = this.state.team;
 
     if (this.state.loading) return <LoadingIndicator />;
-    else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    else if (!team || this.state.error)
+      return (
+        <LoadingError
+          message={t('You do not have permission to view members for this team.')}
+          onRetry={this.fetchData}
+        />
+      );
 
     let routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
 
