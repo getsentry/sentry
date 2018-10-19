@@ -1,10 +1,11 @@
 import React from 'react';
-import ConfigStore from 'app/stores/configStore';
-import HookStore from 'app/stores/hookStore';
-import {t} from 'app/locale';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 
-const Footer = p => {
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import Hook from 'app/components/hook';
+
+const Footer = () => {
   const config = ConfigStore.getConfig();
   return (
     <footer>
@@ -34,7 +35,7 @@ const Footer = p => {
           </div>
         )}
         <a href="/" className="icon-sentry-logo" />
-        {HookStore.get('footer').map(cb => cb())}
+        <Hook name="footer" />
       </div>
     </footer>
   );
