@@ -7,7 +7,7 @@ from django.db import models
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
-from sentry.constants import SentryAppStatus
+from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
 from sentry.models import Organization
 from sentry.models.apiscopes import HasApiScopes
@@ -42,7 +42,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
                                related_name='owned_sentry_apps')
 
     name = models.TextField()
-    slug = models.CharField(max_length=64, unique=True)
+    slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
     status = BoundedPositiveIntegerField(
         default=SentryAppStatus.UNPUBLISHED,
         choices=SentryAppStatus.as_choices(),
