@@ -12,7 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
-import {fetchOrganizationsByMember} from 'app/actionCreators/organizations';
+import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
@@ -142,7 +142,8 @@ class AccountSecurityEnroll extends AsyncView {
 
   loadOrganizationContext = () => {
     if (this.invite && this.invite.memberId) {
-      fetchOrganizationsByMember(this.invite.memberId, {
+      fetchOrganizationByMember(this.invite.memberId, {
+        loadOrg: true,
         setActive: true,
       });
     }

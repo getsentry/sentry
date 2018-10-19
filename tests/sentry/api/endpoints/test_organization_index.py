@@ -5,7 +5,9 @@ import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import Authenticator, Organization, OrganizationStatus, TotpInterface
+from sentry.models import (
+    Authenticator, Organization, OrganizationMember, OrganizationStatus, TotpInterface
+)
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 
@@ -76,6 +78,25 @@ class OrganizationsListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
         response = self.client.get(u'{}?query=status:invalid_status'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    def test_member_id_query(self):
+        org = self.create_organization(owner=self.user)
+        self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        response = self.client.get(u'{}?member=1'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        om = OrganizationMember.objects.get(organization=org, user=self.user)
+        response = self.client.get(u'{}?query=member_id:{}'.format(self.path, om.id))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(org.id)
+
+        response = self.client.get(u'{}?query=member_id:{}'.format(self.path, om.id + 10))
         assert response.status_code == 200
         assert len(response.data) == 0
 
