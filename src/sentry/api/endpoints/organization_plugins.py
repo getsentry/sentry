@@ -11,7 +11,6 @@ from sentry.models import ProjectOption
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        # Just load all Plugins once.
         all_plugins = dict([
             (p.slug, p) for p in plugins.all()
         ])
@@ -21,8 +20,8 @@ class OrganizationPluginsEndpoint(OrganizationEndpoint):
         else:
             desired_plugins = set(all_plugins.keys())
 
-        if not desired_plugins.issubset(set(all_plugins.keys())):
-            return Response({'detail': 'Invalid plugins'}, status=422)
+        # Ignore plugins that are not available to this Sentry install.
+        desired_plugins = desired_plugins & set(all_plugins.keys())
 
         # Each tuple represents an enabled Plugin (of only the ones we care
         # about) and its corresponding Project.

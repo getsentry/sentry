@@ -56,3 +56,22 @@ class OrganizationPluginsTest(APITestCase):
 
         assert (self.projectA.id, 'webhooks') not in enabled_plugins
         assert (self.projectB.id, 'mail') in enabled_plugins
+
+    def test_ignore_plugins_that_dont_exist(self):
+        url = reverse(
+            'sentry-api-0-organization-plugins',
+            kwargs={'organization_slug': self.projectA.organization.slug}
+        )
+
+        url = '{}?plugins=nope&plugins=beep&plugins=mail'.format(url)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, \
+            (response.status_code, response.content)
+
+        enabled_plugins = [
+            (p['project']['id'], p['slug']) for p in
+            filter(lambda p: p['enabled'], response.data)
+        ]
+
+        assert enabled_plugins == [(self.projectB.id, 'mail')]
