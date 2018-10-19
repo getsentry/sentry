@@ -54,6 +54,9 @@ export default function createResultManager(queryBuilder) {
       if (hasAggregations) {
         data.byDayQuery.query = byDayQuery;
         data.byDayQuery.data = resp[1];
+      } else {
+        data.byDayQuery.query = null;
+        data.byDayQuery.data = null;
       }
 
       return data;
