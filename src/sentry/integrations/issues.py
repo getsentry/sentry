@@ -210,7 +210,9 @@ class IssueBasicMixin(object):
 
         params = kwargs.get('params', {})
         defaults = self.get_project_defaults(group.project_id)
-        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
+        # Both Azure DevOps and GitLab have projects instead of repos
+        field_name = kwargs.get('field_name', 'repo')
+        default_repo = params.get(field_name, defaults.get(field_name) or repo_choices[0][0])
 
         # If a repo has been selected outside of the default list of
         # repos, stick it onto the front of the list so that it can be
