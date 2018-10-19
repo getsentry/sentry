@@ -76,7 +76,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         self.default_identity = None
 
     def get_group_id(self):
-        return self.model.name
+        return self.model.metadata['group_id']
 
     def get_client(self):
         if self.default_identity is None:
@@ -270,7 +270,8 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
-                'webhook_secret': secret.hexdigest()
+                'webhook_secret': secret.hexdigest(),
+                'group_id': group['id'],
             },
             'user_identity': {
                 'type': 'gitlab',
