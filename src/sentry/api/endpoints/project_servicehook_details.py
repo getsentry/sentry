@@ -27,6 +27,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
+        :auth: required
         """
         try:
             hook = ServiceHook.objects.get(
@@ -49,6 +50,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :pparam string hook_id: the guid of the service hook.
         :param string url: the url for the webhook
         :param array[string] events: the events to subscribe to
+        :auth: required
         """
         if not request.user.is_authenticated():
             return self.respond(status=401)
@@ -102,6 +104,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
+        :auth: required
         """
         if not request.user.is_authenticated():
             return self.respond(status=401)

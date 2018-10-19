@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import os
 import re
 import json
-import base64
 import inspect
 import requests
 import mimetypes
@@ -364,20 +363,25 @@ class MockUtils(object):
         )
 
         dummy_member, _ = OrganizationMember.objects.get_or_create(
-            user=owner, organization=org, defaults={
-                'role': 'member',
+            user=owner,
+            organization=org,
+            defaults={
+                'role': 'owner',
             }
         )
 
         return org
 
-    def create_api_key(self, org, label='Default'):
-        from sentry.models import ApiKey
-        return ApiKey.objects.get_or_create(
-            organization=org,
-            label=label,
-            scopes=(1 << len(ApiKey.scopes.keys())) - 1,
-        )[0]
+    def create_api_token(self, user):
+        from django.conf import settings
+        from sentry.models import ApiToken
+        token = ApiToken.objects.create(
+            user=user,
+            scope_list=settings.SENTRY_SCOPES,
+            refresh_token=None,
+            expires_at=None,
+        )
+        return token
 
     def create_client_key(self, project, label='Default'):
         from sentry.models import ProjectKey
@@ -463,14 +467,14 @@ class Runner(object):
     so that the scenarios can be run separately if needed.
     """
 
-    def __init__(self, ident, func, api_key, org, me, teams=None):
+    def __init__(self, ident, func, api_token, org, me, teams=None):
         self.ident = ident
         self.func = func
         self.requests = []
 
         self.utils = MockUtils()
 
-        self.api_key = api_key
+        self.api_token = api_token
         self.org = org
         self.me = me
         self.teams = teams
@@ -528,9 +532,9 @@ class Runner(object):
             ).delete()
             org.delete()
 
-    def request(self, method, path, headers=None, data=None, api_key=None, format='json'):
-        if api_key is None:
-            api_key = self.api_key
+    def request(self, method, path, headers=None, data=None, api_token=None, format='json'):
+        if api_token is None:
+            api_token = self.api_token
         path = '/api/0/' + path.lstrip('/')
         headers = dict(headers or {})
 
@@ -553,8 +557,7 @@ class Runner(object):
 
         req_headers = dict(headers)
         req_headers['Host'] = 'sentry.io'
-        req_headers['Authorization'] = \
-            'Basic %s' % base64.b64encode('%s:' % (api_key.key.encode('utf-8')))
+        req_headers['Authorization'] = 'Bearer %s' % api_token.token
 
         url = 'http://127.0.0.1:%s%s' % (settings.SENTRY_APIDOCS_WEB_PORT, path, )
 

@@ -151,7 +151,8 @@ def cli(output_path, output_format):
         user = utils.create_user('john@interstellar.invalid')
         org = utils.create_org('The Interstellar Jurisdiction',
                                owner=user)
-        api_key = utils.create_api_key(org)
+        report('auth', 'Creating api token')
+        api_token = utils.create_api_token(user)
 
         report('org', 'Creating team')
         team = utils.create_team('Powerful Abolitionist',
@@ -177,7 +178,7 @@ def cli(output_path, output_format):
         vars = {
             'org': org,
             'me': user,
-            'api_key': api_key,
+            'api_token': api_token,
             'teams': [{
                 'team': team,
                 'projects': projects,
