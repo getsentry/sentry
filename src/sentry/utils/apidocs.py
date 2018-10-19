@@ -396,10 +396,21 @@ class MockUtils(object):
             },
         )[0]
 
+    def join_team(self, team, user):
+        from sentry.models import OrganizationMember, OrganizationMemberTeam
+        member = OrganizationMember.objects.get(
+            organization_id=team.organization_id,
+            user_id=user.id
+        )
+        return OrganizationMemberTeam.objects.create(
+            team=team,
+            organizationmember=member)
+
     def create_project(self, name, teams, org):
         from sentry.models import Project
         project = Project.objects.get_or_create(
-            name=name, defaults={
+            name=name,
+            defaults={
                 'organization': org,
             }
         )[0]

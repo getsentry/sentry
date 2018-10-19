@@ -157,6 +157,7 @@ def cli(output_path, output_format):
         report('org', 'Creating team')
         team = utils.create_team('Powerful Abolitionist',
                                  org=org)
+        utils.join_team(team, user)
 
         projects = []
         for project_name in 'Pump Station', 'Prime Mover':
