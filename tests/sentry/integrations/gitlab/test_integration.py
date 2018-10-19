@@ -24,8 +24,12 @@ class GitlabIntegrationTest(IntegrationTestCase):
         'client_id': 'client_id',
         'client_secret': 'client_secret'
     }
+    default_group_id = 4
 
-    def assert_setup_flow(self, user_id='user_id_1', group_id=4):
+    def assert_setup_flow(self, user_id='user_id_1', group_id=None):
+        if group_id is None:
+            group_id = self.default_group_id
+
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
         resp = self.client.post(self.init_path, data=self.config)
@@ -116,7 +120,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
             'domain_name': u'gitlab.example.com/cool-group',
             'verify_ssl': True,
             'base_url': 'https://gitlab.example.com',
-            'webhook_secret': 'secret-token'
+            'webhook_secret': 'secret-token',
+            'group_id': self.default_group_id,
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration,
