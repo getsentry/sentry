@@ -282,6 +282,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "celery": "python-celery",
     "rq": "python-rq",
     "bottle": "python-bottle",
+    "pythonawslambda": "python-awslambda",
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
