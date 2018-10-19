@@ -19,12 +19,11 @@ logger = logging.getLogger('sentry.integrations.slack')
 
 # Attachment colors used for issues with no actions take
 ACTIONED_ISSUE_COLOR = '#EDEEEF'
-NEW_ISSUE_COLOR = '#E03E2F'
 LEVEL_TO_COLOR = {
     'debug': '#fbe14f',
     'info': '#2788ce',
     'warning': '#f18500',
-    'error': NEW_ISSUE_COLOR,
+    'error': '#E03E2F',
     'fatal': '#d20f2a',
 }
 
@@ -159,7 +158,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
-    color = LEVEL_TO_COLOR.get(event.get_tag('level'), 'error') if event else NEW_ISSUE_COLOR
+    color = LEVEL_TO_COLOR.get(event.get_tag('level'), 'error') if event else LEVEL_TO_COLOR['error']
 
     text = build_attachment_text(group, event) or ''
 
