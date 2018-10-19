@@ -179,7 +179,7 @@ describe('OrganizationIntegrations', function() {
         routerContext
       );
 
-      it('displays an Upgrade when the Plugin is enabled but a new Integration is not', function() {
+      it('displays an Update when the Plugin is enabled but a new Integration is not', function() {
         expect(
           wrapper
             .find('ProviderRow')
@@ -187,7 +187,7 @@ describe('OrganizationIntegrations', function() {
             .find('Button')
             .first()
             .text()
-        ).toBe('Upgrade');
+        ).toBe('Update');
       });
 
       it('displays Add Another button when both Integration and Plugin are enabled', () => {
