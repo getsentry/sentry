@@ -139,3 +139,11 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert identity.data == {
             'access_token': 'xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx'
         }
+
+    @responses.activate
+    def test_get_group_id(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        installation = integration.get_installation(self.organization.id)
+        assert self.default_group_id == installation.get_group_id()
