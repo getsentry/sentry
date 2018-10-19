@@ -15,21 +15,17 @@ const DEFAULT_NO_FEATURE_MESSAGE = (
 );
 
 /**
- * Interface to handle feature tags as well as user's organization access levels
+ * Component to handle feature flags.
  */
 class Feature extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
+
     /**
      * Configuration features from ConfigStore
      */
     configFeatures: PropTypes.arrayOf(PropTypes.string),
-
-    /**
-     * User Configuration from ConfigStore
-     */
-    configUser: PropTypes.object,
 
     /**
      * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -38,22 +34,12 @@ class Feature extends React.Component {
      *
      * Use `organization:` or `project:` prefix strings to specify a feature with context.
      */
-    feature: PropTypes.arrayOf(PropTypes.string),
+    feature: PropTypes.arrayOf(PropTypes.string).isRequired,
 
     /**
-     * List of required access levels
-     */
-    access: PropTypes.arrayOf(PropTypes.string),
-
-    /**
-     * Should the feature require all feature tags/access levels or just one or more.
+     * Should the component require all features or just one or more.
      */
     requireAll: PropTypes.bool,
-
-    /**
-     * Requires superuser
-     */
-    isSuperuser: PropTypes.bool,
 
     /**
      * Custom renderer function for "no feature" message OR `true` to use default message.
@@ -63,13 +49,13 @@ class Feature extends React.Component {
 
     /**
      * If children is a function then will be treated as a render prop and passed this object:
+     *
      * {
      *   hasFeature: bool,
-     *   hasAccess: bool,
      * }
      *
      * The other interface is more simple, only show `children` if org/project has
-     * all the required feature AND access tags
+     * all the required feature.
      */
     children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
   };
@@ -112,27 +98,15 @@ class Feature extends React.Component {
   };
 
   render() {
-    let {
-      children,
-      organization,
-      feature,
-      access,
-      configUser,
-      isSuperuser,
-      renderNoFeatureMessage,
-      requireAll,
-    } = this.props;
-    let {access: orgAccess} = organization || {access: []};
+    let {children, feature, renderNoFeatureMessage, requireAll} = this.props;
+
     let allFeatures = this.getAllFeatures();
     let method = requireAll ? 'every' : 'some';
     let hasFeature =
       !feature || feature[method](feat => this.hasFeature(feat, allFeatures));
-    let hasAccess = !access || access[method](acc => orgAccess.includes(acc));
-    let hasSuperuser = !isSuperuser || configUser.isSuperuser;
+
     let renderProps = {
       hasFeature,
-      hasAccess,
-      hasSuperuser,
     };
 
     if (!hasFeature && typeof renderNoFeatureMessage === 'function') {
@@ -145,22 +119,20 @@ class Feature extends React.Component {
       return children(renderProps);
     }
 
-    // if children is NOT a function,
-    // then only render `children` iff `features` and `access` passes
-    if (hasFeature && hasAccess && hasSuperuser) {
-      return children;
-    }
-
-    return null;
+    return hasFeature ? children : null;
   }
 }
 
 const FeatureContainer = createReactClass({
   displayName: 'FeatureContainer',
+
+  // TODO(billy): We can derive org/project from latestContextStore if needed,
+  // but let's keep it simple for now and use org/project from context
   contextTypes: {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
   },
+
   mixins: [Reflux.listenTo(ConfigStore, 'onConfigStoreUpdate')],
 
   getInitialState() {
@@ -175,17 +147,13 @@ const FeatureContainer = createReactClass({
   },
 
   render() {
-    // TODO(billy): We can derive org/project from latestContextStore if needed, but
-    // let's keep it simple for now and use org/project from context
     let features = this.state.config.features
       ? Array.from(this.state.config.features)
       : [];
-    let user = this.state.config.user || {};
 
     return (
       <Feature
         configFeatures={features}
-        configUser={user}
         organization={this.context.organization}
         project={this.context.project}
         {...this.props}
