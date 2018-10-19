@@ -44,6 +44,7 @@ const SimilarToolbar = createReactClass({
             <FlowLayout>
               <div className="similar-toolbar-actions">
                 <LinkWithConfirmation
+                  data-test-id="merge"
                   disabled={this.state.mergeCount === 0}
                   title={t(`Merging ${this.state.mergeCount} issues`)}
                   message={t('Are you sure you want to merge these issues?')}

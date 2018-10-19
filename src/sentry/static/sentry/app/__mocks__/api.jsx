@@ -52,15 +52,6 @@ class Client {
 
   static mockAsync = false;
 
-  merge(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
-    return this.request(path, {
-      method: 'PUT',
-      data: {merge: 1},
-      ...options,
-    });
-  }
-
   wrapCallback(id, error) {
     return (...args) => {
       if (this.hasProjectBeenRenamed(...args)) return;
@@ -138,5 +129,6 @@ Client.prototype._chain = RealClient.Client.prototype._chain;
 Client.prototype._wrapRequest = RealClient.Client.prototype._wrapRequest;
 Client.prototype.hasProjectBeenRenamed =
   RealClient.Client.prototype.hasProjectBeenRenamed;
+Client.prototype.merge = RealClient.Client.prototype.merge;
 
 export {Client};

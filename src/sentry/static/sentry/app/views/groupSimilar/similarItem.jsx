@@ -116,7 +116,12 @@ const SimilarIssueItem = createReactClass({
     });
 
     return (
-      <SpreadLayout className={cx} responsive onClick={this.handleToggle}>
+      <SpreadLayout
+        data-test-id="similar-item-row"
+        className={cx}
+        responsive
+        onClick={this.handleToggle}
+      >
         <FlowLayout truncate>
           <FlowLayout truncate>
             <div className="action-column">
