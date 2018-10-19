@@ -67,20 +67,15 @@ export default class ProviderRow extends React.Component {
 
   // Rendering
 
-  get buttonText() {
-    let buttonText = this.isEnabled > 0 ? t('Add Another') : t('Install');
+  get buttonProps() {
+    const upgradeable = !this.isEnabled && this.isEnabledPlugin && this.isUpgradable;
 
-    return !this.isEnabled && this.isEnabledPlugin && this.isUpgradable
-      ? t('Upgrade')
-      : buttonText;
-  }
-
-  renderButton() {
-    return (
-      <Button icon="icon-circle-add" size="small" onClick={this.openModal}>
-        {this.buttonText}
-      </Button>
-    );
+    return {
+      icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
+      children: this.isEnabled
+        ? t('Add Another')
+        : upgradeable ? t('Update') : t('Install'),
+    };
   }
 
   renderIntegrations() {
@@ -109,7 +104,9 @@ export default class ProviderRow extends React.Component {
               <StyledLink onClick={this.openModal}>Learn More</StyledLink>
             </ProviderDetails>
           </Box>
-          <Box>{this.renderButton()}</Box>
+          <Box>
+            <Button size="small" onClick={this.openModal} {...this.buttonProps} />
+          </Box>
         </Flex>
         {this.renderIntegrations()}
       </PanelItem>
