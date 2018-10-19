@@ -46,12 +46,12 @@ export default class AddIntegration extends React.Component {
     return {left, top};
   }
 
-  openDialog = event => {
+  openDialog = urlParams => {
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    const query = {};
+    const query = {...urlParams};
 
     if (this.props.reinstallId) {
       query.reinstall_id = this.props.reinstallId;
