@@ -34,7 +34,7 @@ class Feature extends React.Component {
      *
      * Use `organization:` or `project:` prefix strings to specify a feature with context.
      */
-    feature: PropTypes.arrayOf(PropTypes.string).isRequired,
+    features: PropTypes.arrayOf(PropTypes.string).isRequired,
 
     /**
      * Should the component require all features or just one or more.
@@ -98,12 +98,12 @@ class Feature extends React.Component {
   };
 
   render() {
-    let {children, feature, renderNoFeatureMessage, requireAll} = this.props;
+    let {children, features, renderNoFeatureMessage, requireAll} = this.props;
 
     let allFeatures = this.getAllFeatures();
     let method = requireAll ? 'every' : 'some';
     let hasFeature =
-      !feature || feature[method](feat => this.hasFeature(feat, allFeatures));
+      !features || features[method](feat => this.hasFeature(feat, allFeatures));
 
     let renderProps = {
       hasFeature,
