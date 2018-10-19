@@ -168,7 +168,7 @@ describe('ProjectSelector', function() {
     expect(mock).not.toHaveBeenCalled();
   });
 
-  it('calls `onMultiSelect` and render prop  when using multi select as an uncontrolled component', function() {
+  it('calls `onMultiSelect` and render prop  when using multi select as an uncontrolled component', async function() {
     let mock = jest.fn();
     let wrapper = mount(
       <ProjectSelector {...props} multi onMultiSelect={mock} />,
@@ -183,10 +183,11 @@ describe('ProjectSelector', function() {
       .simulate('change', {target: {checked: true}});
 
     expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        slug: 'test-project',
-      }),
-      true,
+      [
+        expect.objectContaining({
+          slug: 'test-project',
+        }),
+      ],
       expect.anything()
     );
     expect(actorRenderer).toHaveBeenLastCalledWith(
@@ -205,10 +206,14 @@ describe('ProjectSelector', function() {
       .simulate('change', {target: {checked: true}});
 
     expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        slug: 'another-project',
-      }),
-      true,
+      [
+        expect.objectContaining({
+          slug: 'test-project',
+        }),
+        expect.objectContaining({
+          slug: 'another-project',
+        }),
+      ],
       expect.anything()
     );
     expect(actorRenderer).toHaveBeenLastCalledWith(
@@ -231,10 +236,11 @@ describe('ProjectSelector', function() {
       .simulate('change', {target: {checked: false}});
 
     expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        slug: 'another-project',
-      }),
-      false,
+      [
+        expect.objectContaining({
+          slug: 'test-project',
+        }),
+      ],
       expect.anything()
     );
     expect(actorRenderer).toHaveBeenLastCalledWith(
