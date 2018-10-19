@@ -163,7 +163,8 @@ class OrganizationMemberDetail extends AsyncView {
                   <div className="control-group">
                     <label>{t('Status')}</label>
                     <div className="controls">
-                      {member.pending ? <em>Invitation Pending</em> : 'Active'}
+                      {member.expired ? <em>Invitiation Expired</em> :
+                        member.pending ? <em>Invitation Pending</em> : 'Active'}
                     </div>
                   </div>
                 </div>

@@ -156,10 +156,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             if om.is_pending:
                 if result.get('regenerate'):
                     if request.access.has_scope('member:admin'):
-                        om.update(token=om.generate_token())
+                        om.regenerate_token()
+                        om.save()
                     else:
                         return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
-
                 om.send_invite_email()
             elif auth_provider and not getattr(om.flags, 'sso:linked'):
                 om.send_sso_link_email(request.user, auth_provider)
