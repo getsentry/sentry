@@ -23,25 +23,32 @@ class VstsIssueSync(IssueSyncMixin):
     def get_persisted_default_config_fields(self):
         return ['project']
 
-    def get_create_issue_config(self, group, **kwargs):
-        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+    def get_project_choices(self, group, **kwargs):
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)['value']
-        except Exception as e:
+        except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
 
-        project_choices = []
+        project_choices = [(project['id'], project['name']) for project in projects]
 
-        default_project = self.get_project_defaults(group.project_id).get('project')
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        default_project = params.get('project', defaults.get('project') or project_choices[0][0])
+
+        # If a project has been selected outside of the default list of
+        # projects, stick it onto the front of the list so that it can be
+        # selected.
         try:
-            default_project_name = default_project.split('#')[1]
-        except AttributeError:
-            default_project_name = None
+            next(True for r in project_choices if r[0] == default_project)
+        except StopIteration:
+            project_choices.insert(0, self.create_default_repo_choice(default_project))
 
-        for project in projects:
-            project_id_and_name = '%s#%s' % (project['id'], project['name'])
-            project_choices.append((project_id_and_name, project['name']))
+        return default_project, project_choices
+
+    def get_create_issue_config(self, group, **kwargs):
+        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+        default_project, project_choices = self.get_project_choices(group, **kwargs)
 
         return [
             {
@@ -49,9 +56,9 @@ class VstsIssueSync(IssueSyncMixin):
                 'required': True,
                 'type': 'choice',
                 'choices': project_choices,
-                'defaultValue': default_project or ('', ''),
+                'defaultValue': default_project,
                 'label': _('Project'),
-                'placeholder': default_project_name or _('MyProject'),
+                'placeholder': default_project or _('MyProject'),
             }
         ] + fields
 
