@@ -93,18 +93,15 @@ class ReleaseProgress extends AsyncView {
 
   renderBody() {
     let {remainingSteps, showBar} = this.state;
-    let style = {
-      height: '100%',
-      width: '50%',
-    };
+
     return remainingSteps && showBar ? (
       <PanelItem>
         <div className="col-sm-6">
           <div>
             <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
-            <div data-test-id="releases-progress-bar" className="releases-progress-bar">
-              <div className="slider" style={style} />
-            </div>
+            <StyledBar>
+              <StyledSlider />
+            </StyledBar>
             {t('Next steps:')}
             <ul>
               {this.state.remainingSteps.map((step, i) => {
@@ -143,4 +140,26 @@ const StyledButton = styled(Button)`
   margin: 5px;
 `;
 
+const StyledBar = styled.div`
+  background: #767676;
+  width: 100%;
+  height: 15px;
+  float: right;
+  margin-right: 0px;
+  margin-bottom: 10px;
+  border-radius: 20px;
+  position: relative;
+`;
+
+const StyledSlider = styled.div`
+  height: 100%;
+  width: 50%;
+  background: #7ccca5;
+  padding-right: 0;
+  border-radius: inherit;
+  box-shadow: 0 2px 1px rgba(0, 0, 0, 0.08);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+`;
 export default ReleaseProgress;

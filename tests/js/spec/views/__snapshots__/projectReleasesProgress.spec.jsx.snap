@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ReleaseProgress renders should show progress bar 1`] = `
+<SideEffect(DocumentTitle)
+  title="ReleaseProgress - Sentry"
+>
+  <LoadingIndicator />
+</SideEffect(DocumentTitle)>
+`;
