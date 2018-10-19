@@ -375,13 +375,12 @@ class MockUtils(object):
     def create_api_token(self, user):
         from django.conf import settings
         from sentry.models import ApiToken
-        token = ApiToken.objects.create(
+        return ApiToken.objects.create(
             user=user,
             scope_list=settings.SENTRY_SCOPES,
             refresh_token=None,
             expires_at=None,
         )
-        return token
 
     def create_client_key(self, project, label='Default'):
         from sentry.models import ProjectKey
