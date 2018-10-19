@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
-from rest_framework.serializers import ValidationError
+from sentry.coreapi import APIError
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
@@ -30,7 +30,7 @@ class Updater(Mediator):
     @if_param('scopes')
     def _update_scopes(self):
         if self.sentry_app.status == SentryAppStatus.PUBLISHED:
-            raise ValidationError('Cannot update scopes on published App.')
+            raise APIError('Cannot update scopes on published App.')
         self.sentry_app.scope_list = self.scopes
 
     @if_param('webhook_url')

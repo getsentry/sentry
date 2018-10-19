@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-from rest_framework.serializers import ValidationError
-
+from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator, Updater
 from sentry.testutils import TestCase
@@ -42,7 +41,7 @@ class TestUpdater(TestCase):
         updater = Updater(sentry_app=sentry_app)
         updater.scopes = ('project:read', 'project:write', )
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(APIError):
             updater.call()
 
     def test_updates_webhook_url(self):
