@@ -22,7 +22,6 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 
 const AssigneeSelectorComponent = createReactClass({
   displayName: 'AssigneeSelector',
@@ -106,13 +105,6 @@ const AssigneeSelectorComponent = createReactClass({
 
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
-
-    // TODO(billyvg): There seems to be a race condition after merging where `group`
-    // is not found in `GroupStore`, show an error toast for now
-    if (!group) {
-      addErrorMessage(t('Error loading teams, please try again.'));
-      return [];
-    }
 
     return (ProjectsStore.getBySlug(group.project.slug) || {
       teams: [],

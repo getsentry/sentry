@@ -21,9 +21,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
   location={Object {}}
   params={
     Object {
-      "groupId": "groupId",
-      "orgId": "orgId",
-      "projectId": "projectId",
+      "groupId": "group-id",
+      "orgId": "org-slug",
+      "projectId": "project-slug",
     }
   }
 >
@@ -224,7 +224,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
           },
         ]
       }
-      groupId="groupId"
+      groupId="group-id"
       items={
         Array [
           Object {
@@ -280,8 +280,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
         ]
       }
       onMerge={[Function]}
-      orgId="orgId"
-      projectId="projectId"
+      orgId="org-slug"
+      projectId="project-slug"
     >
       <div
         className="similar-list-container"
@@ -416,6 +416,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <LinkWithConfirmation
                               className="btn btn-sm btn-default"
+                              data-test-id="merge"
                               disabled={true}
                               message="Are you sure you want to merge these issues?"
                               onConfirm={[Function]}
@@ -424,6 +425,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Confirm"
+                                data-test-id="merge"
                                 disableConfirmButton={false}
                                 disabled={true}
                                 message="Are you sure you want to merge these issues?"
@@ -545,7 +547,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "exception": 0.875,
               }
             }
-            groupId="groupId"
+            groupId="group-id"
             isBelowThreshold={false}
             issue={
               Object {
@@ -583,8 +585,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               }
             }
             key="271"
-            orgId="orgId"
-            projectId="projectId"
+            orgId="org-slug"
+            projectId="project-slug"
             score={
               Object {
                 "exception:stacktrace:pairs": 0.875,
@@ -604,11 +606,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             <SpreadLayout
               center={true}
               className="group similar-issue isResolved"
+              data-test-id="similar-item-row"
               onClick={[Function]}
               responsive={true}
             >
               <div
                 className="spread-layout group similar-issue isResolved center allow-responsive"
+                data-test-id="similar-item-row"
                 onClick={[Function]}
               >
                 <FlowLayout
@@ -687,8 +691,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             includeLink={true}
-                            orgId="orgId"
-                            projectId="projectId"
+                            orgId="org-slug"
+                            projectId="project-slug"
                           >
                             <div
                               className="event-issue-header"
@@ -705,7 +709,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     }
                                     to={
                                       Object {
-                                        "pathname": "/orgId/projectId/issues/271/",
+                                        "pathname": "/org-slug/project-slug/issues/271/",
                                         "search": "",
                                       }
                                     }
@@ -719,7 +723,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       }
                                       to={
                                         Object {
-                                          "pathname": "/orgId/projectId/issues/271/",
+                                          "pathname": "/org-slug/project-slug/issues/271/",
                                           "search": "",
                                         }
                                       }
@@ -783,8 +787,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             }
                                           }
                                           includeLink={true}
-                                          orgId="orgId"
-                                          projectId="projectId"
+                                          orgId="org-slug"
+                                          projectId="project-slug"
                                           style={
                                             Object {
                                               "fontWeight": 600,
@@ -852,7 +856,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             numComments={0}
-                            orgId="orgId"
+                            orgId="org-slug"
                             permalink="http://localhost:8000/sentry/internal/issues/271/"
                             project={
                               Object {
@@ -860,7 +864,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 "slug": "internal",
                               }
                             }
-                            projectId="projectId"
+                            projectId="project-slug"
                             shareId="312e323731"
                             shortId="INTERNAL-4G"
                             showAssignee={true}
@@ -981,7 +985,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 style={Object {}}
                                                 to={
                                                   Object {
-                                                    "pathname": "/orgId/projectId/",
+                                                    "pathname": "/org-slug/project-slug/",
                                                     "query": Object {
                                                       "query": "logger:javascript",
                                                     },
