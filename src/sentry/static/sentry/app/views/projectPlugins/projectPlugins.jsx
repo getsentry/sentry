@@ -9,7 +9,7 @@ import {
   PanelItem,
 } from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import Feature from 'app/components/feature';
+import Access from 'app/components/acl/access';
 import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
@@ -48,7 +48,7 @@ class ProjectPlugins extends Component {
         </PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <Feature access={['org:integrations']}>
+            <Access access={['org:integrations']}>
               {({hasAccess}) => {
                 return hasAccess
                   ? tct(
@@ -61,7 +61,7 @@ class ProjectPlugins extends Component {
                       "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available."
                     );
               }}
-            </Feature>
+            </Access>
           </PanelAlert>
 
           {plugins.map(plugin => (

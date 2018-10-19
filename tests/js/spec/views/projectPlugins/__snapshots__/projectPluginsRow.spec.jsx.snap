@@ -19,20 +19,19 @@ exports[`ProjectPluginRow renders 1`] = `
   slug="amazon-sqs"
   version="8.23.0.dev0"
 >
-  <FeatureContainer
+  <AccessContainer
     access={
       Array [
         "project:write",
       ]
     }
   >
-    <Feature
+    <Access
       access={
         Array [
           "project:write",
         ]
       }
-      configFeatures={Array []}
       configUser={
         Object {
           "email": "foo@example.com",
@@ -69,18 +68,7 @@ exports[`ProjectPluginRow renders 1`] = `
           "teams": Array [],
         }
       }
-      project={
-        Object {
-          "hasAccess": true,
-          "id": "2",
-          "isBookmarked": false,
-          "isMember": true,
-          "name": "Project Name",
-          "slug": "project-slug",
-          "teams": Array [],
-        }
-      }
-      renderNoFeatureMessage={false}
+      renderNoAccessMessage={false}
       requireAll={true}
     >
       <Flex
@@ -226,7 +214,7 @@ exports[`ProjectPluginRow renders 1`] = `
           </div>
         </Base>
       </Flex>
-    </Feature>
-  </FeatureContainer>
+    </Access>
+  </AccessContainer>
 </ProjectPluginRow>
 `;

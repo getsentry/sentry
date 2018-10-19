@@ -7,7 +7,7 @@ import classNames from 'classnames';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
-import Feature from 'app/components/feature';
+import Feature from 'app/components/acl/feature';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import ProjectState from 'app/mixins/projectState';
