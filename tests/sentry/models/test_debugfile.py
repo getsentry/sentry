@@ -419,7 +419,7 @@ class SymCacheTest(TestCase):
         assert debug_id in symcaches
         assert symcaches[debug_id].id == debug_id
         assert symcaches[debug_id].is_latest_file_format
-        assert not ProjectSymCacheFile.objects.filter(id=old_cache.id).exists()
+        assert not ProjectSymCacheFile.objects.filter(id=old_cache.id, version=1).exists()
 
     def test_get_symcache_on_referenced(self):
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
@@ -561,7 +561,7 @@ class CfiCacheTest(TestCase):
         cficaches = ProjectDebugFile.difcache.get_cficaches(self.project, [debug_id])
         assert debug_id in cficaches
         assert cficaches[debug_id].is_latest_file_format
-        assert not ProjectCfiCacheFile.objects.filter(id=old_cache.id).exists()
+        assert not ProjectCfiCacheFile.objects.filter(id=old_cache.id, version=0).exists()
 
     def test_get_cficache_on_referenced(self):
         debug_id = '1ddb3423-950a-3646-b17b-d4360e6acfc9'
