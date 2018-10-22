@@ -38,6 +38,7 @@ from sentry.db.models import FlexibleForeignKey, Model, \
 from sentry.models.file import File, ChunkFileState
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
+from sentry.utils import metrics
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.decorators import classproperty
 
@@ -804,6 +805,10 @@ class DIFCache(object):
             if not isinstance(e, cls.ignored_errors):
                 logger.error('dsymfile.%s-build-error' % cls.cache_name,
                              exc_info=True, extra=dict(debug_id=debug_id))
+
+            metrics.incr('%s.failed' % cls.cache_name, tags={
+                'error': e.__class__.__name__,
+            })
 
             return None, None, e.message
 
