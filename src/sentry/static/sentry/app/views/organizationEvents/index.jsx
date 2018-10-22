@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {defined} from 'app/utils';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -20,13 +21,34 @@ class OrganizationEventsContainer extends React.Component {
     router: PropTypes.object,
   };
 
-  static getDerivedStateFromProps(props, state) {
+  static getInitialStateFromRouter(props) {
     const {query} = props.router.location;
+    const hasAbsolute = !!query.start && !!query.end;
+    let project = [];
+    let environment = query.environment || [];
+
+    if (defined(query.project) && Array.isArray(query.project)) {
+      project = query.project.map(p => parseInt(p, 10));
+    } else if (defined(query.project)) {
+      const projectIdInt = parseInt(query.project, 10);
+      project = isNaN(projectIdInt) ? [] : [projectIdInt];
+    }
+
+    if (defined(query.environment) && !Array.isArray(query.environment)) {
+      environment = [query.environment];
+    }
+
+    const values = {
+      project,
+      environment,
+      period: query.period || (hasAbsolute ? null : '7d'),
+      start: query.start || null,
+      end: query.end || null,
+    };
 
     return {
-      projects: query.projects || [],
-      environments: query.environments || [],
-      period: query.period || '7d',
+      ...values,
+      queryValues: {...values},
     };
   }
 
@@ -37,61 +59,102 @@ class OrganizationEventsContainer extends React.Component {
       updateParams: this.updateParams,
     };
 
-    this.state = {};
+    this.state = OrganizationEventsContainer.getInitialStateFromRouter(props);
   }
 
   updateParams = obj => {
     const {router} = this.props;
+    // Reset cursor when changing parameters
+    // eslint-disable-next-line no-unused-vars
+    const {cursor, ...oldQuery} = router.location.query;
+    const newQuery = {
+      ...oldQuery,
+      ...obj,
+    };
     router.push({
       pathname: router.location.pathname,
-      query: {
-        ...router.location.query,
-        ...obj,
-      },
+      query: newQuery,
     });
   };
 
   handleChangeProjects = projects => {
-    this.updateParams({projects});
+    this.setState(state => ({
+      project: projects,
+    }));
   };
 
   handleChangeEnvironments = environments => {
-    this.updateParams({environments});
+    this.setState(state => ({
+      environment: environments,
+    }));
   };
 
-  handleChangeTime = period => {
-    this.updateParams({period});
+  handleChangeTime = ({start, end, relative}) => {
+    this.setState({start, end, period: relative});
+  };
+
+  handleUpdate = type => {
+    this.setState(state => {
+      let newValueObj = {};
+
+      if (type === 'period') {
+        newValueObj = {
+          period: state.period,
+          start: state.start,
+          end: state.end,
+        };
+      } else {
+        newValueObj = {[type]: state[type]};
+      }
+
+      this.updateParams(newValueObj);
+
+      return {
+        queryValues: {
+          ...state.queryValues,
+          ...newValueObj,
+        },
+      };
+    });
   };
 
   render() {
-    let {organization, children} = this.props;
+    const {organization, children} = this.props;
+    const {period, start, end} = this.state;
 
-    let projects =
+    const projects =
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
       <Feature feature={['events-stream']} renderNoFeatureMessage>
-        <EventsContext.Provider value={{actions: this.actions, ...this.state}}>
+        <EventsContext.Provider
+          value={{actions: this.actions, ...this.state.queryValues}}
+        >
           <Content>
             <Header>
               <MultipleProjectSelector
                 anchorRight
                 projects={projects}
-                value={this.state.projects}
+                value={this.state.project}
                 onChange={this.handleChangeProjects}
+                onUpdate={this.handleUpdate.bind(this, 'project')}
               />
               <HeaderSeparator />
               <MultipleEnvironmentSelector
                 organization={organization}
-                value={this.state.environments}
+                value={this.state.environment}
                 onChange={this.handleChangeEnvironments}
+                onUpdate={this.handleUpdate.bind(this, 'environment')}
               />
               <HeaderSeparator />
               <TimeRangeSelector
-                showAbsolute={false}
+                showAbsolute
                 showRelative
-                relative={this.state.period}
+                relative={period}
+                start={start}
+                end={end}
                 onChange={this.handleChangeTime}
+                onUpdate={this.handleUpdate.bind(this, 'period')}
               />
             </Header>
             <Body>{children}</Body>
@@ -118,6 +181,8 @@ const Header = styled(Flex)`
 `;
 
 const Body = styled('div')`
+  display: flex;
+  flex-direction: column;
   flex: 1;
   padding: ${space(3)};
 `;

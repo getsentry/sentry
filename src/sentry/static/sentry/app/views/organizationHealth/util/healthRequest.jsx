@@ -35,11 +35,22 @@ class HealthRequestWithParams extends React.Component {
     environments: PropTypes.arrayOf(PropTypes.string),
 
     /**
-     * Time period in query. Currently only supports relative dates
+     * Relative time period for query.
+     *
+     * Use `start` and `end` for absolute dates.
      *
      * e.g. 24h, 7d, 30d
      */
     period: PropTypes.string,
+
+    /**
+     * Absolute start date for query
+     */
+    start: PropTypes.string,
+    /**
+     * Absolute end date for query
+     */
+    end: PropTypes.string,
 
     /**
      * Interval to group results in
@@ -100,6 +111,8 @@ class HealthRequestWithParams extends React.Component {
 
   static defaultProps = {
     period: '7d',
+    start: null,
+    end: null,
     interval: '1d',
     limit: 15,
     getCategory: i => i,
