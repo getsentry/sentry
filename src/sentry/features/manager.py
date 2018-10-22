@@ -12,8 +12,9 @@ from .exceptions import FeatureNotRegistered
 
 
 class FeatureManager(object):
-    def __init__(self):
+    def __init__(self, store):
         self._registry = {}
+        self.store = store
 
     def all(self, feature_type=Feature):
         """
@@ -70,11 +71,17 @@ class FeatureManager(object):
         actor = kwargs.pop('actor', None)
         feature = self.get(name, *args, **kwargs)
 
+        # Check dynamic values
+        if hasattr(feature, 'organization'):
+            if self.store.has_feature(feature.organization.id, name):
+                return True
+
         # Check plugin feature handlers
         rv = self._get_plugin_value(feature, actor)
         if rv is not None:
             return rv
 
+        # Check default
         rv = settings.SENTRY_FEATURES.get(feature.name, False)
         if rv is not None:
             return rv

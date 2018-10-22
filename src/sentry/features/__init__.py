@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from .base import *  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
+from .store import *  # NOQA
 
 # The feature flag system provides a way to turn on or off features of Sentry.
 #
@@ -43,7 +46,9 @@ from .manager import *  # NOQA
 #   NOTE: The actor kwarg should be passed when it's expected that the handler
 #         needs context of the user.
 
-default_manager = FeatureManager()  # NOQA
+default_store = FeatureStore(**settings.SENTRY_FEATURE_STORE_OPTIONS)  # NOQA
+
+default_manager = FeatureManager(store=default_store)  # NOQA
 
 # Unscoped features
 default_manager.add('auth:register')
