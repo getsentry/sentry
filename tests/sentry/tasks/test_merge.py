@@ -5,7 +5,7 @@ from mock import patch
 
 from sentry import tagstore
 from sentry.tagstore.models import GroupTagValue
-from sentry.tasks.merge import merge_group
+from sentry.tasks.merge import merge_groups
 from sentry.models import Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
@@ -25,7 +25,7 @@ class MergeGroupTest(TestCase):
         eventstream_state = object()
 
         with self.tasks():
-            merge_group(group1.id, group2.id, eventstream_state=eventstream_state)
+            merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
 
         mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
 
@@ -50,7 +50,7 @@ class MergeGroupTest(TestCase):
         )
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         assert list(GroupEnvironment.objects.filter(
             group_id=group2.id,
@@ -68,7 +68,7 @@ class MergeGroupTest(TestCase):
         event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
@@ -88,7 +88,7 @@ class MergeGroupTest(TestCase):
         groups = [self.create_group() for _ in range(0, 3)]
 
         with self.tasks():
-            merge_group(groups[0].id, groups[1].id)
+            merge_groups([groups[0].id], groups[1].id)
 
         assert not Group.objects.filter(id=groups[0].id).exists()
         assert GroupRedirect.objects.filter(
@@ -97,7 +97,7 @@ class MergeGroupTest(TestCase):
         ).count() == 1
 
         with self.tasks():
-            merge_group(groups[1].id, groups[2].id)
+            merge_groups([groups[1].id], groups[2].id)
 
         assert not Group.objects.filter(id=groups[1].id).exists()
         assert GroupRedirect.objects.filter(
@@ -162,7 +162,7 @@ class MergeGroupTest(TestCase):
             )
 
         with self.tasks():
-            merge_group(other.id, target.id)
+            merge_groups([other.id], target.id)
 
         assert not Group.objects.filter(id=other.id).exists()
         assert len(
@@ -223,7 +223,7 @@ class MergeGroupTest(TestCase):
         assert GroupMeta.objects.get_value(group1, 'other:tid') == '567'
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
@@ -244,7 +244,7 @@ class MergeGroupTest(TestCase):
         ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         assert not Group.objects.filter(id=group1.id).exists()
 

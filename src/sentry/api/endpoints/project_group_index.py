@@ -33,7 +33,7 @@ from sentry.search.utils import InvalidQuery, parse_query
 from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
 from sentry.tasks.deletion import delete_groups
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.tasks.merge import merge_group
+from sentry.tasks.merge import merge_groups
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
@@ -855,21 +855,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             group_list_by_times_seen = sorted(group_list, key=lambda x: x.times_seen, reverse=True)
             primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
+            group_ids_to_merge = sorted([g.id for g in groups_to_merge])
             eventstream_state = eventstream.start_merge(
                 primary_group.project_id,
-                [g.id for g in groups_to_merge],
+                group_ids_to_merge,
                 primary_group.id
             )
 
+            Group.objects.filter(
+                id__in=group_ids_to_merge
+            ).update(
+                status=GroupStatus.PENDING_MERGE
+            )
+
             transaction_id = uuid4().hex
-            for group in groups_to_merge:
-                group.update(status=GroupStatus.PENDING_MERGE)
-                merge_group.delay(
-                    from_object_id=group.id,
-                    to_object_id=primary_group.id,
-                    transaction_id=transaction_id,
-                    eventstream_state=eventstream_state,
-                )
+            merge_groups.delay(
+                from_object_ids=group_ids_to_merge,
+                to_object_id=primary_group.id,
+                transaction_id=transaction_id,
+                eventstream_state=eventstream_state,
+            )
 
             Activity.objects.create(
                 project=primary_group.project,
