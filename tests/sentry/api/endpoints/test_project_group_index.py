@@ -1419,11 +1419,11 @@ class GroupUpdateTest(APITestCase):
         )
 
         mock_eventstream.start_merge.assert_called_once_with(
-            group1.project_id, [group1.id, group3.id], group2.id)
+            group1.project_id, [group3.id, group1.id], group2.id)
 
         assert len(merge_groups.mock_calls) == 1
         merge_groups.delay.assert_any_call(
-            from_object_ids=[group1.id, group3.id],
+            from_object_ids=[group3.id, group1.id],
             to_object_id=group2.id,
             transaction_id='abc123',
             eventstream_state=eventstream_state,

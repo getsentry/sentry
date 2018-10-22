@@ -852,10 +852,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint
         if result.get('merge') and len(group_list) > 1:
-            group_list_by_times_seen = sorted(group_list, key=lambda x: x.times_seen, reverse=True)
+            group_list_by_times_seen = sorted(
+                group_list,
+                key=lambda g: (g.times_seen, g.id),
+                reverse=True,
+            )
             primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
-            group_ids_to_merge = sorted([g.id for g in groups_to_merge])
+            group_ids_to_merge = [g.id for g in groups_to_merge]
             eventstream_state = eventstream.start_merge(
                 primary_group.project_id,
                 group_ids_to_merge,
