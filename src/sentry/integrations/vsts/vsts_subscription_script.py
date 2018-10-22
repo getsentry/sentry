@@ -1,16 +1,11 @@
 from __future__ import absolute_import
 
 import logging
-
-from django.core.urlresolvers import reverse
 from uuid import uuid4
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.models import OrganizationIntegration
-from sentry.utils.http import absolute_uri
-
-VSTS_WEBHOOK_URL = absolute_uri(reverse('sentry-extensions-vsts-issue-updated'))
 
 logger = logging.getLogger('sentry.integrations.vsts_script')
 
@@ -41,7 +36,7 @@ def recreate_subscriptions(self):
 
     # TODO(lb): this looks a little weird to me...
     # can I run into issues with both values_list and distinct?
-    integration_ids = list(
+    integration_ids = set(
         org_integrations.values_list('integration_id', flat=True).distinct('integration_id')
     )
 
