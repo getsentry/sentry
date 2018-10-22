@@ -71,6 +71,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             conditions=conditions,
             filter_keys={'project_id': [project.id]},
             selected_columns=SnubaEvent.selected_columns,
+            orderby='-timestamp',
             referrer='api.project-events',
         )
 
