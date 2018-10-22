@@ -54,19 +54,17 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             indicate_success = True
             delete_file = False
 
-            # Bump the reprocessing revision since the symbol has changed and
-            # might resolve processing issues. If the file was not created,
-            # someone else has created it and will bump the revision instead.
             if created:
+                # Bump the reprocessing revision since the symbol has changed
+                # and might resolve processing issues. If the file was not
+                # created, someone else has created it and will bump the
+                # revision instead.
                 bump_reprocessing_revision(project)
 
-            # If we need to write a symcache we can use the
-            # `generate_symcache` method to attempt to write one.
-            # This way we can also capture down the error if we need
-            # to.
-            if created and dif.supports_symcache:
-                _, _, error = ProjectDebugFile.difcache.generate_symcache(
-                    project, dif, temp_file)
+                # Try to generate caches from this DIF immediately. If this
+                # fails, we can capture the error and report it to the uploader.
+                # Also, we remove the file to prevent it from erroring again.
+                error = ProjectDebugFile.difcache.generate_caches(project, dif, temp_file.name)
                 if error is not None:
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                         detail=error)

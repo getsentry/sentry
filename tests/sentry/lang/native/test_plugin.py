@@ -14,7 +14,7 @@ from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
-from symbolic import parse_addr, Object, SymbolicError
+from symbolic import parse_addr, SymbolicError, SymCache
 
 
 class BasicResolvingIntegrationTest(TestCase):
@@ -1147,11 +1147,13 @@ class RealResolvingIntegrationTest(TestCase):
                 'dSYM/hello')
         f.close()
 
-        original_make_symcache = Object.make_symcache
+        original_make_symcache = SymCache.from_object
 
-        def broken_make_symcache(self):
+        @classmethod
+        def broken_make_symcache(cls, obj):
             raise SymbolicError('shit on fire')
-        Object.make_symcache = broken_make_symcache
+        SymCache.from_object = broken_make_symcache
+
         try:
             response = self.client.post(
                 url, {
@@ -1220,7 +1222,7 @@ class RealResolvingIntegrationTest(TestCase):
                 }
                 event.delete()
         finally:
-            Object.make_symcache = original_make_symcache
+            SymCache.from_object = original_make_symcache
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
