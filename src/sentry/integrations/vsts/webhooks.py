@@ -37,7 +37,7 @@ class WorkItemWebhook(Endpoint):
             logger.info(
                 'vsts.invalid-webhook-payload',
                 extra={
-                    'error': e.message,
+                    'error': six.text_type(e),
                 }
             )
 
