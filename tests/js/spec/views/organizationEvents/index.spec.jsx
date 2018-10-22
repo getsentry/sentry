@@ -4,7 +4,7 @@ import {OrganizationEventsContainer} from 'app/views/organizationEvents';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 
-import {selectByLabel} from '../../../helpers/select';
+import {clearValue, selectByLabel} from '../../../helpers/select';
 
 describe('OrganizationEvents', function() {
   let wrapper;
@@ -46,27 +46,59 @@ describe('OrganizationEvents', function() {
   });
 
   it('updates router when changing environments', async function() {
+    expect(wrapper.state('environment')).toEqual([]);
+
     wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
     await tick();
     wrapper.update();
 
     selectByLabel(wrapper, 'production', {control: true, name: 'environments'});
+    // This should update state, but not route or context
+    expect(wrapper.state('environment')).toEqual(['production']);
+
+    // Click "Update"
+    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
-        environments: ['production'],
+        environment: ['production'],
       },
     });
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({environment: ['production']})
+    );
+
+    // Select a second environment, "staging"
     selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
+    expect(wrapper.state('environment')).toEqual(['production', 'staging']);
+
+    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
-        environments: ['production', 'staging'],
+        environment: ['production', 'staging'],
+      },
+    });
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({environment: ['production', 'staging']})
+    );
+
+    // Can clear
+    clearValue(wrapper);
+    expect(wrapper.state('environment')).toEqual([]);
+    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({environment: []})
+    );
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        environment: [],
       },
     });
   });
 
-  it('updates component state when router is updated', async function() {
+  it('does not update component state when router is changed', async function() {
     wrapper = mount(
       <OrganizationEventsContainer router={router} organization={organization}>
         <div />
@@ -77,30 +109,19 @@ describe('OrganizationEvents', function() {
         },
       ])
     );
-    expect(wrapper.state('environments')).toEqual([]);
+    expect(wrapper.state('environment')).toEqual([]);
 
+    // This shouldn't happen, we only use URL params for initial state
     wrapper.setProps({
       router: {
         location: {
           pathname: '/organizations/org-slug/events/',
           query: {
-            environments: ['production'],
+            environment: ['production'],
           },
         },
       },
     });
-    expect(wrapper.state('environments')).toEqual(['production']);
-
-    wrapper.setProps({
-      router: {
-        location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            environments: ['production', 'staging'],
-          },
-        },
-      },
-    });
-    expect(wrapper.state('environments')).toEqual(['production', 'staging']);
+    expect(wrapper.state('environment')).toEqual([]);
   });
 });

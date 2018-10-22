@@ -9,11 +9,11 @@ import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
 import Grid from './components/grid';
+import Legend from './components/legend';
 import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
-import YAxis from './components/yAxis';
 import XAxis from './components/xAxis';
-import Legend from './components/legend';
+import YAxis from './components/yAxis';
 
 // If dimension is a number conver it to pixels, otherwise use dimension without transform
 const getDimensionValue = dimension => {
@@ -47,6 +47,11 @@ class BaseChart extends React.Component {
 
     // Tooltip options
     tooltip: SentryTypes.EChartsTooltip,
+
+    // DataZoom (allows for zooming of chart)
+    dataZoom: SentryTypes.EChartsDataZoom,
+
+    toolBox: SentryTypes.EChartsToolBox,
 
     // ECharts Grid options
     grid: SentryTypes.EChartsGrid,
@@ -140,6 +145,8 @@ class BaseChart extends React.Component {
       series,
       yAxis,
       xAxis,
+      dataZoom,
+      toolBox,
 
       isGroupedByDate,
       previousPeriod,
@@ -204,6 +211,8 @@ class BaseChart extends React.Component {
                   },
                 }),
               ],
+          dataZoom,
+          toolbox: toolBox,
         }}
       />
     );
