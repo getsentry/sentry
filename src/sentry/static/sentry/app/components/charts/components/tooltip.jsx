@@ -24,7 +24,7 @@ function formatAxisLabel(value, isTimestamp) {
     return value;
   }
 
-  return moment(value).format('MMM D, YYYY');
+  return moment.utc(value).format('MMM D, YYYY');
 }
 
 function getFormatter({filter, isGroupedByDate, truncate}) {
