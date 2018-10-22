@@ -304,15 +304,21 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get('features', []))
 
     def delete(self, *args, **kwargs):
-        symcache = self.projectsymcachefile.select_related('cache_file').first()
-        if symcache is not None:
-            symcache.delete()
+        with transaction.atomic():
+            # First, delete the debug file entity. This ensures no other worker
+            # can attach caches to it. Integrity checks are deferred within this
+            # transaction, so existing caches stay intact. Only then delete the
+            # caches and their files.
+            super(ProjectDebugFile, self).delete(*args, **kwargs)
 
-        cficache = self.projectcficachefile.select_related('cache_file').first()
-        if cficache is not None:
-            cficache.delete()
+            symcache = self.projectsymcachefile.select_related('cache_file').first()
+            if symcache is not None:
+                symcache.delete()
 
-        super(ProjectDebugFile, self).delete(*args, **kwargs)
+            cficache = self.projectcficachefile.select_related('cache_file').first()
+            if cficache is not None:
+                cficache.delete()
+
         self.file.delete()
 
 
