@@ -4,7 +4,6 @@ from .client import VstsApiClient
 import logging
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
-from sentry.app import raven
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 
@@ -13,6 +12,7 @@ UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
 EMAIL_PARSER = re.compile(r'<(.*)>')
 logger = logging.getLogger('sentry.integrations')
+PROVIDER_KEY = 'vsts'
 
 
 class WorkItemWebhook(Endpoint):
@@ -28,29 +28,78 @@ class WorkItemWebhook(Endpoint):
 
     def post(self, request, *args, **kwargs):
         data = request.DATA
-        if data['eventType'] == 'workitem.updated':
-            integration = Integration.objects.get(
-                provider='vsts',
-                external_id=data['resourceContainers']['collection']['id'],
+        try:
+            event_type = data['eventType']
+            external_id = data['resourceContainers']['collection']['id']
+        except KeyError as e:
+            logger.info(
+                'vsts.invalid-webhook-payload',
+                extra={
+                    'error': e.message,
+                }
             )
+
+        if event_type == 'workitem.updated':
+            try:
+                integration = Integration.objects.get(
+                    provider=PROVIDER_KEY,
+                    external_id=external_id,
+                )
+            except Integration.DoesNotExist:
+                logger.info(
+                    'vsts.integration-in-webhook-payload-does-not-exist',
+                    extra={
+                        'external_id': external_id,
+                    }
+                )
+
             try:
                 self.check_webhook_secret(request, integration)
             except AssertionError:
-                raven.captureException()
+                logger.info(
+                    'vsts.invalid-webhook-secret',
+                    extra={
+                        'eventType': 'workitem.updated',
+                        'integration_id': integration.id
+                    }
+                )
+                # TODO(lb): I'm not sure we should even return anything negative to vsts
+                # lest it disable the webhook
                 return self.respond(status=401)
             self.handle_updated_workitem(data, integration)
         return self.respond()
 
     def check_webhook_secret(self, request, integration):
-        assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
+        try:
+            integration_secret = integration.metadata['subscription']['secret']
+            webhook_payload_secret = request.META['HTTP_SHARED_SECRET']
+        except KeyError as e:
+            logger.info(
+                'vsts.missing-webhook-secret',
+                extra={
+                    'error': e.message,
+                }
+            )
+
+        assert integration_secret == webhook_payload_secret
 
     def handle_updated_workitem(self, data, integration):
-        external_issue_key = data['resource']['workItemId']
-        project = data['resourceContainers']['project']['id']
+        try:
+            external_issue_key = data['resource']['workItemId']
+            project = data['resourceContainers']['project']['id']
+        except KeyError as e:
+            logger.info(
+                'vsts.updating-workitem-does-not-have-necessary-information',
+                extra={
+                    'error': e.message,
+                    'integration_id': integration.id
+                }
+            )
+
         try:
             assigned_to = data['resource']['fields'].get('System.AssignedTo')
             status_change = data['resource']['fields'].get('System.State')
-        except KeyError:
+        except KeyError as e:
             logger.info(
                 'vsts.updated-workitem-fields-not-passed',
                 extra={
