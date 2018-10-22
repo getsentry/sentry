@@ -49,7 +49,7 @@ class AssembleTest(TestCase):
 
         assert get_assemble_status(self.project, total_checksum)[0] == ChunkFileState.ERROR
 
-    def test_dif(self):
+    def test_dif_and_caches(self):
         sym_file = self.load_fixture('crash.sym')
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
@@ -67,3 +67,5 @@ class AssembleTest(TestCase):
         ).get()
 
         assert dif.file.headers == {'Content-Type': 'text/x-breakpad'}
+        assert dif.projectsymcachefile.exists()
+        assert dif.projectcficachefile.exists()

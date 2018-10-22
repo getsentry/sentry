@@ -690,7 +690,8 @@ class Fixtures(object):
         if object_name is None:
             object_name = os.path.basename(path)
 
-        file = self.create_file_from_path(path, name=object_name)
+        headers = {'Content-Type': 'application/x-mach-binary'}
+        file = self.create_file_from_path(path, name=object_name, headers=headers)
         return self.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     def add_user_permission(self, user, permission):
