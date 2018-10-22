@@ -78,6 +78,7 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
             filter_keys={'project_id': project_ids},
             selected_columns=SnubaEvent.selected_columns,
             orderby='-timestamp',
+            referrer='api.organization-events',
         )
 
         return self.paginate(
