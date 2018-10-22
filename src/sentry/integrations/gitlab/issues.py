@@ -35,8 +35,10 @@ class GitlabIssueBasic(IssueBasicMixin):
         return (project['id'], project['name_with_namespace'])
 
     def get_create_issue_config(self, group, **kwargs):
-        # TODO(lb): hmm is this typically how one adds things to kwargs?
-        kwargs['field_name'] = 'project'
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        kwargs['repo'] = params.get('project', defaults.get('project'))
+
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
         # In GitLab Repositories are called Projects
         default_project, project_choices = self.get_repository_choices(group, **kwargs)
@@ -54,7 +56,6 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'url': autocomplete_url,
                 'choices': project_choices,
                 'defaultValue': default_project,
-                'updatesForm': True,
                 'required': True,
             }
         ] + fields
