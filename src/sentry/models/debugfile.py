@@ -304,19 +304,28 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get('features', []))
 
     def delete(self, *args, **kwargs):
+        dif_id = self.id
+
         with transaction.atomic():
             # First, delete the debug file entity. This ensures no other worker
             # can attach caches to it. Integrity checks are deferred within this
-            # transaction, so existing caches stay intact. Only then delete the
-            # caches and their files.
+            # transaction, so existing caches stay intact.
             super(ProjectDebugFile, self).delete(*args, **kwargs)
 
-            symcache = self.projectsymcachefile.select_related('cache_file').first()
-            if symcache is not None:
+            # Explicitly select referencing caches and delete them. Using the
+            # backref does not work, since `dif.id` is None after the delete.
+            symcache = ProjectSymCacheFile.objects \
+                .filter(debug_file_id=dif_id) \
+                .select_related('cache_file') \
+                .first()
+            if symcache:
                 symcache.delete()
 
-            cficache = self.projectcficachefile.select_related('cache_file').first()
-            if cficache is not None:
+            cficache = ProjectCfiCacheFile.objects \
+                .filter(debug_file_id=dif_id) \
+                .select_related('cache_file') \
+                .first()
+            if cficache:
                 cficache.delete()
 
         self.file.delete()
@@ -331,7 +340,9 @@ class ProjectCacheFile(Model):
     debug_file = FlexibleForeignKey(
         'sentry.ProjectDebugFile',
         rel_class=OneToOneRel,
-        db_column='dsym_file_id')
+        db_column='dsym_file_id',
+        on_delete=models.DO_NOTHING,
+    )
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
