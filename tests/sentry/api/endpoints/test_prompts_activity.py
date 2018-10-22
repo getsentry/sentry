@@ -27,10 +27,12 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 400
 
     def test_dismiss(self):
-        data = {'organization_id': 1}
+        data = {'organization_id': 1,
+                'feature': 'releases',
+                }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == []
+        assert resp.data == {}
 
         self.client.put(self.path, {
             'organization_id': 1,
@@ -41,14 +43,15 @@ class PromptsActivityTest(APITestCase):
 
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == [{'name': 'releases',
-                              'status': 'dismissed'}]
+        assert resp.data == {'data': {'status': 'dismissed'}}
 
     def test_snooze(self):
-        data = {'organization_id': 1}
+        data = {'organization_id': 1,
+                'feature': 'releases',
+                }
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == []
+        assert resp.data == {}
 
         self.client.put(self.path, {
             'organization_id': 1,
@@ -60,8 +63,7 @@ class PromptsActivityTest(APITestCase):
         resp = self.client.get(self.path, data)
 
         assert resp.status_code == 200
-        assert resp.data == [{'name': 'releases',
-                              'status': 'snoozed'}]
+        assert resp.data == {'data': {'status': 'snoozed'}}
 
         # show if past the snooze date
         prompt = PromptsActivity.objects.filter(
@@ -75,4 +77,4 @@ class PromptsActivityTest(APITestCase):
         prompt.save()
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == []
+        assert resp.data == {}
