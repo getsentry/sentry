@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from .client import VstsApiClient
 
 import logging
+import six
+
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
 from uuid import uuid4
@@ -50,6 +52,7 @@ class WorkItemWebhook(Endpoint):
                     'vsts.integration-in-webhook-payload-does-not-exist',
                     extra={
                         'external_id': external_id,
+                        'event_type': event_type,
                     }
                 )
 
@@ -59,7 +62,7 @@ class WorkItemWebhook(Endpoint):
                 logger.info(
                     'vsts.invalid-webhook-secret',
                     extra={
-                        'eventType': 'workitem.updated',
+                        'event_type': event_type,
                         'integration_id': integration.id
                     }
                 )
@@ -77,7 +80,8 @@ class WorkItemWebhook(Endpoint):
             logger.info(
                 'vsts.missing-webhook-secret',
                 extra={
-                    'error': e.message,
+                    'error': six.text_type(e),
+                    'integration_id': integration.id,
                 }
             )
 
@@ -91,7 +95,7 @@ class WorkItemWebhook(Endpoint):
             logger.info(
                 'vsts.updating-workitem-does-not-have-necessary-information',
                 extra={
-                    'error': e.message,
+                    'error': six.text_type(e),
                     'integration_id': integration.id
                 }
             )
@@ -103,6 +107,7 @@ class WorkItemWebhook(Endpoint):
             logger.info(
                 'vsts.updated-workitem-fields-not-passed',
                 extra={
+                    'error': six.text_type(e),
                     'payload': data,
                     'integration_id': integration.id
                 }
@@ -120,11 +125,24 @@ class WorkItemWebhook(Endpoint):
             return
         new_value = assigned_to.get('newValue')
         if new_value is not None:
-            email = self.parse_email(new_value)
+            try:
+                email = self.parse_email(new_value)
+            except AttributeError as e:
+                logger.info(
+                    'vsts.failed-to-parse-email-in-handle-assign-to',
+                    extra={
+                        'error': six.text_type(e),
+                        'integration_id': integration.id,
+                        'assigned_to_values': assigned_to,
+                        'external_issue_key': external_issue_key,
+                    }
+                )
+                return  # TODO(lb): return if cannot parse email?
             assign = True
         else:
             email = None
             assign = False
+        # TODO(lb): should there be a logging statement here? or a try-catch?
         sync_group_assignee_inbound(
             integration=integration,
             email=email,
@@ -148,9 +166,11 @@ class WorkItemWebhook(Endpoint):
                 'old_state': status_change['oldValue'],
                 'project': project,
             }
+            # TODO(lb): should there be a logging statement here? or a try-catch?
             installation.sync_status_inbound(external_issue_key, data)
 
     def parse_email(self, email):
+        # TODO(lb): hmm... this looks brittle to me
         return EMAIL_PARSER.search(email).group(1)
 
     def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
