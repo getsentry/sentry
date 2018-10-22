@@ -241,33 +241,6 @@ def delete_project(object_id, transaction_id=None, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.deletion.delete_group',
-    queue='cleanup',
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES
-)
-@retry(exclude=(DeleteAborted, ))
-def delete_group(object_id, transaction_id=None, **kwargs):
-    from sentry import deletions
-    from sentry.models import Group
-
-    task = deletions.get(
-        model=Group,
-        query={
-            'id': object_id,
-        },
-        transaction_id=transaction_id or uuid4().hex,
-    )
-    has_more = task.chunk()
-    if has_more:
-        delete_group.apply_async(
-            kwargs={'object_id': object_id,
-                    'transaction_id': transaction_id},
-            countdown=15,
-        )
-
-
-@instrumented_task(
     name='sentry.tasks.deletion.delete_groups',
     queue='cleanup',
     default_retry_delay=60 * 5,
