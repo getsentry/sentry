@@ -9,7 +9,7 @@ describe('NarrowLayout', function() {
     expect(wrapper.find('a.logout')).toHaveLength(0);
   });
   it('renders with logout', function() {
-    let wrapper = mount(<NarrowLayout showLogout={true} />);
+    let wrapper = mount(<NarrowLayout showLogout />);
     expect(wrapper.find('a.logout')).toHaveLength(1);
   });
   it('can logout', function() {
@@ -18,7 +18,7 @@ describe('NarrowLayout', function() {
       method: 'DELETE',
       status: 204,
     });
-    let wrapper = mount(<NarrowLayout showLogout={true} />);
+    let wrapper = mount(<NarrowLayout showLogout />);
 
     wrapper.find('a.logout').simulate('click');
     expect(mock).toHaveBeenCalled();

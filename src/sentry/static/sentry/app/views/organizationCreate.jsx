@@ -26,7 +26,7 @@ export default class OrganizationCreate extends AsyncView {
     let privacyUrl = ConfigStore.get('privacyUrl');
 
     return (
-      <NarrowLayout showLogout={true}>
+      <NarrowLayout showLogout>
         <h3>{t('Create a New Organization')}</h3>
 
         <p>
