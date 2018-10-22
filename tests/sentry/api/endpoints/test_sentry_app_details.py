@@ -138,3 +138,23 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format='json',
         )
         assert response.status_code == 500
+
+    @with_feature('organizations:internal-catchall')
+    def test_cannot_update_non_owned_apps(self):
+        self.login_as(user=self.user)
+        app = Creator.run(
+            name='SampleApp',
+            organization=self.super_org,
+            scopes=(),
+            webhook_url='https://sample.com',
+        )
+        url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
+        response = self.client.put(
+            url,
+            data={
+                'name': 'NewName',
+                'webhook_url': 'https://newurl.com',
+            },
+            format='json',
+        )
+        assert response.status_code == 403
