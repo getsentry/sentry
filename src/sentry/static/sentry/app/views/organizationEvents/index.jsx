@@ -41,7 +41,7 @@ class OrganizationEventsContainer extends React.Component {
     const values = {
       project,
       environment,
-      period: query.period || (hasAbsolute ? null : '7d'),
+      period: query.statsPeriod || (hasAbsolute ? null : '7d'),
       start: query.start || null,
       end: query.end || null,
     };
@@ -62,15 +62,27 @@ class OrganizationEventsContainer extends React.Component {
     this.state = OrganizationEventsContainer.getInitialStateFromRouter(props);
   }
 
-  updateParams = obj => {
+  updateParams = ({period, ...obj}) => {
     const {router} = this.props;
     // Reset cursor when changing parameters
     // eslint-disable-next-line no-unused-vars
     const {cursor, ...oldQuery} = router.location.query;
-    const newQuery = {
+
+    // Filter null values
+    const newQuery = Object.entries({
       ...oldQuery,
+      statsPeriod: period,
       ...obj,
-    };
+    })
+      .filter(([key, value]) => value !== null)
+      .reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: value,
+        }),
+        {}
+      );
+
     router.push({
       pathname: router.location.pathname,
       query: newQuery,
@@ -94,14 +106,12 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   handleUpdate = type => {
-    this.setState(state => {
+    this.setState(({period, start, end, ...state}) => {
       let newValueObj = {};
 
       if (type === 'period') {
         newValueObj = {
-          period: state.period,
-          start: state.start,
-          end: state.end,
+          ...(typeof period !== 'undefined' ? {period} : {start, end}),
         };
       } else {
         newValueObj = {[type]: state[type]};
