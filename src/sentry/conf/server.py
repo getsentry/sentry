@@ -642,9 +642,8 @@ LOGGING = {
         },
         'internal': {
             'level': 'ERROR',
-            'event_level': 'ERROR',
             'filters': ['sentry:internal'],
-            'class': 'sentry_sdk.integrations.logging.SentryHandler',
+            'class': 'sentry_sdk.integrations.logging.EventHandler',
         },
         'metrics': {
             'level': 'WARNING',
@@ -653,9 +652,8 @@ LOGGING = {
         },
         'django_internal': {
             'level': 'WARNING',
-            'event_level': 'WARNING',
             'filters': ['sentry:internal', 'important_django_request'],
-            'class': 'sentry_sdk.integrations.logging.SentryHandler',
+            'class': 'sentry_sdk.integrations.logging.EventHandler',
         },
     },
     'filters': {
