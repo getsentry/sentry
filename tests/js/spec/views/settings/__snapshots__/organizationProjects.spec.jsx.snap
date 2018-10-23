@@ -207,7 +207,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         is={null}
                       >
                         Projects
-                        <AsyncComponentSearchInput
+                        <withRouter(AsyncComponentSearchInput)
                           api={Client {}}
                           className="search"
                           onError={[Function]}
@@ -217,24 +217,87 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           stateKey="projectList"
                           url="/organizations/org-slug/projects/"
                         >
-                          <form
-                            onSubmit={[Function]}
+                          <AsyncComponentSearchInput
+                            api={Client {}}
+                            className="search"
+                            location={
+                              Object {
+                                "query": Object {},
+                              }
+                            }
+                            onError={[Function]}
+                            onSearchSubmit={[Function]}
+                            onSuccess={[Function]}
+                            placeholder="Search Projects"
+                            router={
+                              Object {
+                                "createHref": [MockFunction] {
+                                  "calls": Array [
+                                    Array [
+                                      "/organizations/org-slug/projects/new/",
+                                    ],
+                                    Array [
+                                      "/org-slug/project-slug/",
+                                    ],
+                                    Array [
+                                      "/settings/org-slug/project-slug/",
+                                    ],
+                                  ],
+                                  "results": Array [
+                                    Object {
+                                      "isThrow": false,
+                                      "value": undefined,
+                                    },
+                                    Object {
+                                      "isThrow": false,
+                                      "value": undefined,
+                                    },
+                                    Object {
+                                      "isThrow": false,
+                                      "value": undefined,
+                                    },
+                                  ],
+                                },
+                                "go": [MockFunction],
+                                "goBack": [MockFunction],
+                                "goForward": [MockFunction],
+                                "isActive": [MockFunction],
+                                "listen": [MockFunction],
+                                "location": Object {
+                                  "query": Object {},
+                                },
+                                "push": [MockFunction],
+                                "replace": [MockFunction],
+                                "setRouteLeaveHook": [MockFunction],
+                              }
+                            }
+                            stateKey="projectList"
+                            url="/organizations/org-slug/projects/"
                           >
-                            <Input
-                              className="search"
-                              onChange={[Function]}
-                              placeholder="Search Projects"
-                              value=""
+                            <Form
+                              onSubmit={[Function]}
                             >
-                              <input
-                                className="search css-ybupf9-Input-inputStyles e1xej46s0"
-                                onChange={[Function]}
-                                placeholder="Search Projects"
-                                value=""
-                              />
-                            </Input>
-                          </form>
-                        </AsyncComponentSearchInput>
+                              <form
+                                className="css-vfrmj7-Form et3a3ng1"
+                                onSubmit={[Function]}
+                              >
+                                <Input
+                                  className="search"
+                                  onChange={[Function]}
+                                  placeholder="Search Projects"
+                                  value=""
+                                >
+                                  <input
+                                    className="search css-ybupf9-Input-inputStyles e1xej46s0"
+                                    onChange={[Function]}
+                                    placeholder="Search Projects"
+                                    value=""
+                                  />
+                                </Input>
+                              </form>
+                            </Form>
+                          </AsyncComponentSearchInput>
+                        </withRouter(AsyncComponentSearchInput)>
                       </div>
                     </Base>
                   </Flex>
