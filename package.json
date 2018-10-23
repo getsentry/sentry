@@ -86,7 +86,7 @@
     "svgo": "^1.0.3",
     "svgo-loader": "^2.1.0",
     "u2f-api": "0.2.3",
-    "webpack": "^3.5.6",
+    "webpack": "^3.6.0",
     "webpack-dev-middleware": "^1.12.0",
     "zxcvbn": "^4.4.2"
   },
