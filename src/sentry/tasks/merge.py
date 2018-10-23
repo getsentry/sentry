@@ -35,6 +35,26 @@ def merge_group(
     from_object_id=None, to_object_id=None, transaction_id=None,
     recursed=False, eventstream_state=None, **kwargs
 ):
+    merge_groups(
+        from_object_ids=[from_object_id],
+        to_object_id=to_object_id,
+        transaction_id=transaction_id,
+        recursed=recursed,
+        eventstream_state=eventstream_state,
+        **kwargs
+    )
+
+
+@instrumented_task(
+    name='sentry.tasks.merge.merge_groups',
+    queue='merge',
+    default_retry_delay=60 * 5,
+    max_retries=None
+)
+def merge_groups(
+    from_object_ids=None, to_object_id=None, transaction_id=None,
+    recursed=False, eventstream_state=None, **kwargs
+):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity,
@@ -50,9 +70,10 @@ def merge_group(
         UserReport,
         GroupRedirect,
         GroupMeta,
+        get_group_with_redirect,
     )
 
-    if not (from_object_id and to_object_id):
+    if not (from_object_ids and to_object_id):
         logger.error(
             'group.malformed.missing_params', extra={
                 'transaction_id': transaction_id,
@@ -60,26 +81,18 @@ def merge_group(
         )
         return
 
-    try:
-        group = Group.objects.get(id=from_object_id)
-    except Group.DoesNotExist:
-        logger.warn(
-            'group.malformed.invalid_id',
-            extra={
-                'transaction_id': transaction_id,
-                'old_object_id': from_object_id,
-            }
-        )
-        return
+    # Operate on one "from" group per task iteration. The task is recursed
+    # until each group has been merged.
+    from_object_id = from_object_ids[0]
 
     try:
-        new_group = Group.objects.get(id=to_object_id)
+        new_group, _ = get_group_with_redirect(to_object_id)
     except Group.DoesNotExist:
         logger.warn(
             'group.malformed.invalid_id',
             extra={
                 'transaction_id': transaction_id,
-                'old_object_id': from_object_id,
+                'old_object_ids': from_object_ids,
             }
         )
         return
@@ -90,7 +103,7 @@ def merge_group(
             extra={
                 'transaction_id': transaction_id,
                 'new_group_id': new_group.id,
-                'old_group_id': group.id,
+                'old_group_ids': from_object_ids,
                 # TODO(jtcunning): figure out why these are full seq scans and/or alternative solution
                 # 'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
                 # 'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
@@ -99,23 +112,113 @@ def merge_group(
             }
         )
 
-    model_list = tuple(EXTRA_MERGE_MODELS) + (
-        Activity, GroupAssignee, GroupEnvironment, GroupHash, GroupRuleStatus,
-        GroupSubscription, EventMapping, Event, UserReport, GroupRedirect,
-        GroupMeta,
-    )
+    try:
+        group = Group.objects.get(id=from_object_id)
+    except Group.DoesNotExist:
+        from_object_ids.remove(from_object_id)
 
-    has_more = merge_objects(
-        model_list,
-        group,
-        new_group,
-        logger=logger,
-        transaction_id=transaction_id,
-    )
+        logger.warn(
+            'group.malformed.invalid_id',
+            extra={
+                'transaction_id': transaction_id,
+                'old_object_id': from_object_id,
+            }
+        )
+    else:
+        model_list = tuple(EXTRA_MERGE_MODELS) + (
+            Activity, GroupAssignee, GroupEnvironment, GroupHash, GroupRuleStatus,
+            GroupSubscription, EventMapping, Event, UserReport, GroupRedirect,
+            GroupMeta,
+        )
 
-    if has_more:
-        merge_group.delay(
-            from_object_id=from_object_id,
+        has_more = merge_objects(
+            model_list,
+            group,
+            new_group,
+            logger=logger,
+            transaction_id=transaction_id,
+        )
+
+        if not has_more:
+            # There are no more objects to merge for *this* "from" group, remove it
+            # from the list of "from" groups that are being merged, and finish the
+            # work for this group.
+            from_object_ids.remove(from_object_id)
+
+            features.merge(new_group, [group], allow_unsafe=True)
+
+            environment_ids = list(
+                Environment.objects.filter(
+                    projects=group.project
+                ).values_list('id', flat=True)
+            )
+
+            for model in [tsdb.models.group]:
+                tsdb.merge(
+                    model,
+                    new_group.id,
+                    [group.id],
+                    environment_ids=environment_ids if model in tsdb.models_with_environment_support else None
+                )
+
+            for model in [tsdb.models.users_affected_by_group]:
+                tsdb.merge_distinct_counts(
+                    model,
+                    new_group.id,
+                    [group.id],
+                    environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
+                )
+
+            for model in [
+                tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group
+            ]:
+                tsdb.merge_frequencies(
+                    model,
+                    new_group.id,
+                    [group.id],
+                    environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
+                )
+
+            previous_group_id = group.id
+
+            group.delete()
+            delete_logger.info(
+                'object.delete.executed',
+                extra={
+                    'object_id': previous_group_id,
+                    'transaction_id': transaction_id,
+                    'model': Group.__name__,
+                }
+            )
+
+            try:
+                with transaction.atomic():
+                    GroupRedirect.objects.create(
+                        group_id=new_group.id,
+                        previous_group_id=previous_group_id,
+                    )
+            except IntegrityError:
+                pass
+
+            new_group.update(
+                # TODO(dcramer): ideally these would be SQL clauses
+                first_seen=min(group.first_seen, new_group.first_seen),
+                last_seen=max(group.last_seen, new_group.last_seen),
+            )
+            try:
+                # it's possible to hit an out of range value for counters
+                new_group.update(
+                    times_seen=F('times_seen') + group.times_seen,
+                    num_comments=F('num_comments') + group.num_comments,
+                )
+            except DataError:
+                pass
+
+    if from_object_ids:
+        # This task is recursed until `from_object_ids` is empty and all
+        # "from" groups have merged into the `to_group_id`.
+        merge_groups.delay(
+            from_object_ids=from_object_ids,
             to_object_id=to_object_id,
             transaction_id=transaction_id,
             recursed=True,
@@ -123,75 +226,7 @@ def merge_group(
         )
         return
 
-    features.merge(new_group, [group], allow_unsafe=True)
-
-    environment_ids = list(
-        Environment.objects.filter(
-            projects=group.project
-        ).values_list('id', flat=True)
-    )
-
-    for model in [tsdb.models.group]:
-        tsdb.merge(
-            model,
-            new_group.id,
-            [group.id],
-            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None
-        )
-
-    for model in [tsdb.models.users_affected_by_group]:
-        tsdb.merge_distinct_counts(
-            model,
-            new_group.id,
-            [group.id],
-            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
-        )
-
-    for model in [
-        tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group
-    ]:
-        tsdb.merge_frequencies(
-            model,
-            new_group.id,
-            [group.id],
-            environment_ids=environment_ids if model in tsdb.models_with_environment_support else None,
-        )
-
-    previous_group_id = group.id
-
-    group.delete()
-    delete_logger.info(
-        'object.delete.executed',
-        extra={
-            'object_id': previous_group_id,
-            'transaction_id': transaction_id,
-            'model': Group.__name__,
-        }
-    )
-
-    try:
-        with transaction.atomic():
-            GroupRedirect.objects.create(
-                group_id=new_group.id,
-                previous_group_id=previous_group_id,
-            )
-    except IntegrityError:
-        pass
-
-    new_group.update(
-        # TODO(dcramer): ideally these would be SQL clauses
-        first_seen=min(group.first_seen, new_group.first_seen),
-        last_seen=max(group.last_seen, new_group.last_seen),
-    )
-    try:
-        # it's possible to hit an out of range value for counters
-        new_group.update(
-            times_seen=F('times_seen') + group.times_seen,
-            num_comments=F('num_comments') + group.num_comments,
-        )
-    except DataError:
-        pass
-
+    # All `from_object_ids` have been merged!
     if eventstream_state:
         eventstream.end_merge(eventstream_state)
 

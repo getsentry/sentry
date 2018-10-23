@@ -1382,9 +1382,9 @@ class GroupUpdateTest(APITestCase):
         assert not r4.exists()
 
     @patch('sentry.api.endpoints.project_group_index.uuid4')
-    @patch('sentry.api.endpoints.project_group_index.merge_group')
+    @patch('sentry.api.endpoints.project_group_index.merge_groups')
     @patch('sentry.api.endpoints.project_group_index.eventstream')
-    def test_merge(self, mock_eventstream, merge_group, mock_uuid4):
+    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -1421,15 +1421,9 @@ class GroupUpdateTest(APITestCase):
         mock_eventstream.start_merge.assert_called_once_with(
             group1.project_id, [group3.id, group1.id], group2.id)
 
-        assert len(merge_group.mock_calls) == 2
-        merge_group.delay.assert_any_call(
-            from_object_id=group1.id,
-            to_object_id=group2.id,
-            transaction_id='abc123',
-            eventstream_state=eventstream_state,
-        )
-        merge_group.delay.assert_any_call(
-            from_object_id=group3.id,
+        assert len(merge_groups.mock_calls) == 1
+        merge_groups.delay.assert_any_call(
+            from_object_ids=[group3.id, group1.id],
             to_object_id=group2.id,
             transaction_id='abc123',
             eventstream_state=eventstream_state,
