@@ -62,9 +62,10 @@ class DebugFileTest(TestCase):
             version=SYMCACHE_LATEST_VERSION,
         )
 
+        dif_id = dif.id
         dif.delete()
 
-        assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
+        assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         assert not File.objects.filter(id=dif.file.id).exists()
         assert not ProjectSymCacheFile.objects.filter(id=symcache.id).exists()
         assert not File.objects.filter(id=symcache_file.id).exists()
