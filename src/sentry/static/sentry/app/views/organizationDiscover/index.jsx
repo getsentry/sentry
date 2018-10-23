@@ -44,15 +44,13 @@ const OrganizationDiscoverContainer = createReactClass({
     const {organization} = this.context;
 
     if (savedQueryId) {
-      this.fetchSavedQuery(savedQueryId);
+      this.fetchSavedQuery(savedQueryId).then(this.loadTags);
     } else {
       this.queryBuilder = createQueryBuilder(
         getQueryFromQueryString(search),
         organization
       );
-      this.queryBuilder.load().then(() => {
-        this.setState({isLoading: false});
-      });
+      this.loadTags();
     }
   },
 
@@ -71,10 +69,16 @@ const OrganizationDiscoverContainer = createReactClass({
     }
   },
 
+  loadTags: function() {
+    this.queryBuilder.load().then(() => {
+      this.setState({isLoading: false});
+    });
+  },
+
   fetchSavedQuery: function(savedQueryId) {
     const {organization} = this.context;
 
-    fetchSavedQuery(organization, savedQueryId)
+    return fetchSavedQuery(organization, savedQueryId)
       .then(resp => {
         if (this.queryBuilder) {
           this.queryBuilder.reset(resp);
