@@ -33,14 +33,3 @@ class PullRequest(Model):
     def find_referenced_groups(self):
         text = u'{} {}'.format(self.message, self.title)
         return find_referenced_groups(text, self.organization_id)
-
-
-class PullRequestCommit(Model):
-    __core__ = False
-    pull_request = FlexibleForeignKey('sentry.PullRequest')
-    commit = FlexibleForeignKey('sentry.Commit')
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_pullrequest_commit'
-        unique_together = (('pull_request', 'commit'), )
