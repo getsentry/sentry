@@ -8,6 +8,7 @@ sentry.utils.db
 from __future__ import absolute_import
 
 import six
+from contextlib import contextmanager, closing
 
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
@@ -106,8 +107,17 @@ def table_exists(name, using=DEFAULT_DB_ALIAS):
     return name in connections[using].introspection.table_names()
 
 
-def set_mysql_foreign_key_checks(flag, using=DEFAULT_DB_ALIAS):
+def _set_mysql_foreign_key_checks(flag, using=DEFAULT_DB_ALIAS):
     if is_mysql():
         query = 'SET FOREIGN_KEY_CHECKS=%s' % (1 if flag else 0)
-        cursor = connections[using].cursor()
-        cursor.execute(query)
+        with closing(connections[using].cursor()) as cursor:
+            cursor.execute(query)
+
+
+@contextmanager
+def mysql_disabled_integrity(db=DEFAULT_DB_ALIAS):
+    try:
+        _set_mysql_foreign_key_checks(False, using=db)
+        yield
+    finally:
+        _set_mysql_foreign_key_checks(True, using=db)
