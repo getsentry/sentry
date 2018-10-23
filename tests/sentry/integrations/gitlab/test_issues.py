@@ -51,7 +51,6 @@ class GitlabIssuesTest(GitLabTestCase):
         assert self.installation.get_create_issue_config(self.group) == [
             {
                 'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
-                'updatesForm': True,
                 'name': 'project',
                 'required': True,
                 'type': 'select',
@@ -189,7 +188,6 @@ class GitlabIssuesTest(GitLabTestCase):
         assert self.installation.get_create_issue_config(self.group) == [
             {
                 'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
-                'updatesForm': True,
                 'name': 'project',
                 'required': True,
                 'choices': [
@@ -253,7 +251,6 @@ class GitlabIssuesTest(GitLabTestCase):
         assert self.installation.get_create_issue_config(self.group) == [
             {
                 'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
-                'updatesForm': True,
                 'name': 'project',
                 'required': True,
                 'choices': [
