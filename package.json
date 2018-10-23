@@ -65,6 +65,7 @@
     "react-addons-css-transition-group": "15.6.2",
     "react-autosize-textarea": "^4.0.0",
     "react-bootstrap": "^0.32.0",
+    "react-date-range": "^1.0.0-beta",
     "react-document-title": "2.0.3",
     "react-dom": "16.5.1",
     "react-emotion": "9.1.2",
