@@ -11,7 +11,7 @@ import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 
-class EventsTable extends React.Component {
+class EventsTable extends React.PureComponent {
   static propTypes = {
     events: PropTypes.array,
     organization: SentryTypes.Organization,

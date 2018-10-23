@@ -158,6 +158,10 @@ class HealthRequestWithParams extends React.Component {
     this.fetchData();
   }
 
+  componentWillUnmount() {
+    this.unmounting = true;
+  }
+
   fetchData = async () => {
     const {tag} = this.props;
 
@@ -184,6 +188,8 @@ class HealthRequestWithParams extends React.Component {
           }
         : {}),
     });
+
+    if (this.unmounting) return;
 
     this.setState({
       reloading: false,
