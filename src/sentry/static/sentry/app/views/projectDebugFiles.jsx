@@ -199,9 +199,7 @@ const ProjectDebugSymbols = createReactClass({
                 className="btn btn-danger btn-sm"
                 disabled={!access.has('project:write')}
                 title={t('Delete')}
-                message={t(
-                  'Are you sure you wish to delete this debug infromation file?'
-                )}
+                message={t('Are you sure you wish to delete this file?')}
                 onConfirm={() => this.onDelete(dsym.id)}
               >
                 <InlineSvg src="icon-trash" />
