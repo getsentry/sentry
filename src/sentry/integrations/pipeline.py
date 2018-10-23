@@ -17,13 +17,17 @@ from . import default_manager
 
 DIALOG_RESPONSE = """
 <!doctype html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sentry - Integration Setup Complete</title>
+</head>
 <body>
-<script>
-window.opener.postMessage({json}, document.origin);
-window.close();
-</script>
-<noscript>Please wait...</noscript>
+  <script>
+  window.opener.postMessage({json}, document.origin);
+  window.close();
+  </script>
+  <p>You can safely close this window now.</p>
 </body>
 </html>
 """
