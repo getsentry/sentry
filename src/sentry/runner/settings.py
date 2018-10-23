@@ -65,12 +65,7 @@ def discover_configs():
      * Optional python config file (~/.sentry/sentry.conf.py)
      * Optional yaml config (~/.sentry/config.yml)
     """
-    try:
-        config = os.environ['SENTRY_CONF']
-    except KeyError:
-        config = '~/.sentry'
-
-    config = os.path.expanduser(config)
+    config = os.path.expanduser(os.environ.get('SENTRY_CONF', '~/.sentry'))
 
     # This is the old, now deprecated code path where SENTRY_CONF is pointed directly
     # to a python file
@@ -81,7 +76,6 @@ def discover_configs():
         config, os.path.join(config, DEFAULT_SETTINGS_OVERRIDE),
         os.path.join(config, DEFAULT_SETTINGS_CONF),
     )
-
 
 def configure(ctx, py, yaml, skip_service_validation=False):
     """
