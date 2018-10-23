@@ -16,7 +16,6 @@ import time
 import traceback
 import json
 
-
 from django.core.management.base import BaseCommand, CommandError, make_option
 
 
@@ -60,7 +59,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         data = base64.b64decode(data_encoded)
         return data, meta
 
-    # Here's where the processing happens
+    # Here's where the normalization itself happens
     def process_event(self, data, meta):
         from sentry.event_manager import EventManager
 
@@ -76,8 +75,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         return dict(ev.get_data())
 
     def handle_data(self):
-        result = None
-        error = None
+        result, error = None, None
         start, end = None, None
         try:
             data, meta = self.decode(self.data)
@@ -89,14 +87,20 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
 
         duration = (end - start) if (start and end) else None
         try:
-            return self.encode({'result': result, 'error': error, 'duration': duration})
+            return self.encode({
+                'result': result,
+                'error': error,
+                'duration': duration
+            })
         except (ValueError, TypeError) as e:
             try:
                 # Encoding error, try to send the exception instead
                 return self.encode({
-                    'result': None, 'error': e.message + traceback.format_exc(),
-                    'duration': duration, 'encoding_error': True}
-                )
+                    'result': None,
+                    'error': e.message + traceback.format_exc(),
+                    'duration': duration,
+                    'encoding_error': True,
+                })
             except Exception:
                 return b'{}'
 
@@ -105,7 +109,7 @@ class Command(BaseCommand):
     help = 'Start a socket server for event normalization'
 
     option_list = BaseCommand.option_list + (
-        make_option('--socket', dest='socket_file', help="Unix socket to bind to"),
+        make_option('--socket', dest='socket_file', help='Unix socket to bind to'),
     )
 
     def _check_socket_path(self, socket_file):
