@@ -45,11 +45,7 @@ class CreateTeamModal extends React.Component {
           {t('Create Team')}
         </Header>
         <Body>
-          <CreateTeamForm
-            {...props}
-            onSubmit={this.handleSubmit}
-            onSuccess={this.handleSuccess}
-          />
+          <CreateTeamForm {...props} onSubmit={this.handleSubmit} />
         </Body>
       </React.Fragment>
     );
