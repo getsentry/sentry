@@ -70,7 +70,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             end=now,
             conditions=conditions,
             filter_keys={'project_id': [project.id]},
-            selected_columns=SnubaEvent.selected_columns
+            selected_columns=SnubaEvent.selected_columns,
+            orderby='-timestamp',
+            referrer='api.project-events',
         )
 
         return self.paginate(

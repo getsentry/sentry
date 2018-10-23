@@ -233,8 +233,6 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # XXX: This will exhaust the request body stream and cache it
-    'raven.contrib.django.middleware.DjangoRestFrameworkCompatMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
@@ -261,7 +259,7 @@ INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
     'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
-    'raven.contrib.django.raven_compat', 'rest_framework', 'sentry', 'sentry.analytics',
+    'rest_framework', 'sentry', 'sentry.analytics',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
@@ -644,8 +642,9 @@ LOGGING = {
         },
         'internal': {
             'level': 'ERROR',
+            'event_level': 'ERROR',
             'filters': ['sentry:internal'],
-            'class': 'raven.contrib.django.handlers.SentryHandler',
+            'class': 'sentry_sdk.integrations.logging.SentryHandler',
         },
         'metrics': {
             'level': 'WARNING',
@@ -654,13 +653,14 @@ LOGGING = {
         },
         'django_internal': {
             'level': 'WARNING',
+            'event_level': 'WARNING',
             'filters': ['sentry:internal', 'important_django_request'],
-            'class': 'raven.contrib.django.handlers.SentryHandler',
+            'class': 'sentry_sdk.integrations.logging.SentryHandler',
         },
     },
     'filters': {
         'sentry:internal': {
-            '()': 'sentry.utils.raven.SentryInternalFilter',
+            '()': 'sentry.utils.sdk.SentryInternalFilter',
         },
         'important_django_request': {
             '()': 'sentry.logging.handlers.MessageContainsFilter',
@@ -688,6 +688,11 @@ LOGGING = {
         },
         'sentry.errors': {
             'handlers': ['console'],
+            'propagate': False,
+        },
+        'sentry_sdk.errors': {
+            'handlers': ['console'],
+            'level': "INFO",
             'propagate': False,
         },
         'sentry.rules': {
@@ -761,9 +766,7 @@ DEBUG_TOOLBAR_PANELS = (
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
-# Sentry and Raven configuration
-
-SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
+# Sentry and internal client configuration
 
 SENTRY_FEATURES = {
     # Enables user registration.
@@ -1327,18 +1330,18 @@ SENTRY_INTERNAL_INTEGRATIONS = (
 )
 
 
-def get_raven_config():
+def get_sentry_sdk_config():
     return {
         'release': sentry.__build__,
-        'register_signals': True,
         'environment': ENVIRONMENT,
-        'include_paths': [
+        'in_app_include': [
             'sentry',
         ],
+        'debug': True
     }
 
 
-RAVEN_CONFIG = get_raven_config()
+SENTRY_SDK_CONFIG = get_sentry_sdk_config()
 
 # Config options that are explicitly disabled from Django
 DEAD = object()

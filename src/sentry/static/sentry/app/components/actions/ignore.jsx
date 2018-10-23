@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
@@ -36,7 +36,7 @@ export default class IgnoreActions extends React.Component {
   }
 
   getIgnoreCounts() {
-    return [10, 100, 1000, 10000, 100000];
+    return [1, 10, 100, 1000, 10000, 100000];
   }
 
   getIgnoreWindows() {
@@ -173,7 +173,7 @@ export default class IgnoreActions extends React.Component {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
-                        title={t('%s times', count.toLocaleString())}
+                        title={tn('one time', '%s times', count)}
                         caret={false}
                         isNestedDropdown={true}
                         alwaysRenderMenu
@@ -223,7 +223,7 @@ export default class IgnoreActions extends React.Component {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
-                        title={t('%s users', count.toLocaleString())}
+                        title={tn('one user', '%s users', count)}
                         caret={false}
                         isNestedDropdown={true}
                         alwaysRenderMenu

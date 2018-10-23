@@ -49,6 +49,9 @@ export class MetaProxy {
 export function withMeta(event) {
   if (!event) return null;
 
+  // Return unproxied `event` if browser does not support `Proxy`
+  if (typeof window.Proxy === 'undefined') return event;
+
   let _meta = event._meta;
   return new Proxy(event, new MetaProxy(_meta));
 }

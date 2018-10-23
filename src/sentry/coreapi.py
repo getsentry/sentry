@@ -104,6 +104,7 @@ class ClientContext(object):
 
 
 class ClientLogHelper(object):
+    # XXX(markus): Remove. This should all be doable via scopes
     def __init__(self, context):
         self.context = context
 

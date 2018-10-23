@@ -20,6 +20,7 @@ class DebugFileSerializer(Serializer):
             'size': obj.file.size,
             'sha1': obj.file.checksum,
             'dateCreated': obj.file.timestamp,
+            'data': obj.data or {},
         }
         return d
 

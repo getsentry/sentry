@@ -43,7 +43,7 @@ export default class MigrationWarnings extends AsyncComponent {
           onInstall={this.props.onInstall}
         >
           {onClick => (
-            <AlertLink onClick={onClick} href="#">
+            <AlertLink onClick={() => onClick()} href="#">
               {tct(
                 "Your [orgName] repositories can't send commit data to Sentry. Add a [orgName] [providerName] instance here.",
                 {

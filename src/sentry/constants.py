@@ -79,6 +79,8 @@ MAX_EMAIL_FIELD_LENGTH = 75
 ENVIRONMENT_NAME_PATTERN = r'^[^\n\r\f\/]*$'
 ENVIRONMENT_NAME_MAX_LENGTH = 64
 
+SENTRY_APP_SLUG_MAX_LENGTH = 64
+
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
@@ -90,7 +92,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
         'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
-        'project-avatar', 'team-avatar', 'careers', '_experiment',
+        'project-avatar', 'team-avatar', 'careers', '_experiment', 'sentry-apps',
     )
 )
 
@@ -282,6 +284,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "celery": "python-celery",
     "rq": "python-rq",
     "bottle": "python-bottle",
+    "pythonawslambda": "python-awslambda",
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
