@@ -68,10 +68,19 @@ class ReleaseProgress extends AsyncView {
 
   showBar(prompt) {
     let data = prompt.data;
+    console.log(data);
 
-    let show = data
-      ? data && data.status !== 'snoozed' && data.status !== 'dismissed'
-      : true;
+    let show;
+    if (data && data.snoozed_ts) {
+      // check if more than 3 days have passed since snooze
+      let now = Date.now() / 1000;
+      let snoozingTime = (now - data.snoozed_ts) / (60 * 24);
+      show = snoozingTime > 3 ? true : false;
+    } else if (data && data.dismissed_ts) {
+      show = false;
+    } else {
+      show = true;
+    }
 
     this.setState({showBar: show});
   }

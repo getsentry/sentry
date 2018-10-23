@@ -88,7 +88,9 @@ class PromptsActivityEndpoint(Endpoint):
                 PromptsActivity.objects.create_or_update(
                     feature=feature,
                     user=request.user,
-                    data=data,
+                    values={
+                        'data': data,
+                    },
                     **fields
                 )
         except IntegrityError:
