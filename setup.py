@@ -44,7 +44,7 @@ ROOT = os.path.realpath(os.path.join(os.path.dirname(
 sys.path.insert(0, os.path.join(ROOT, 'src'))
 
 from sentry.utils.distutils import (
-    BuildAssetsCommand, BuildIntegrationDocsCommand
+    BuildAssetsCommand, BuildIntegrationDocsCommand, BuildJsSdkRegistryCommand
 )
 
 # The version of sentry
@@ -99,6 +99,7 @@ class SentryBuildCommand(BuildCommand):
         if not IS_LIGHT_BUILD:
             self.run_command('build_integration_docs')
             self.run_command('build_assets')
+            self.run_command('build_js_sdk_registry')
 
 
 class SentryDevelopCommand(DevelopCommand):
@@ -115,6 +116,7 @@ cmdclass = {
     'build': SentryBuildCommand,
     'build_assets': BuildAssetsCommand,
     'build_integration_docs': BuildIntegrationDocsCommand,
+    'build_js_sdk_registry': BuildJsSdkRegistryCommand,
 }
 
 

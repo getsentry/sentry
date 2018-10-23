@@ -1,12 +1,29 @@
 from __future__ import absolute_import
 
+import os
 import re
+import logging
+
+import sentry
 
 from django.conf import settings
 
+logger = logging.getLogger('sentry')
 
 _version_regexp = re.compile(r'\d+')
+LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
 DEFAULT_VERSION = '4.x'
+
+
+def load_registry(path):
+    if '/' in path:
+        return None
+    fn = os.path.join(LOADER_FLODER, path + '.json')
+    try:
+        with open(fn, 'rb') as f:
+            return json.load(f)
+    except IOError:
+        return None
 
 
 def get_highest_browser_sdk_version():
@@ -31,8 +48,16 @@ def get_browser_sdk_version_choices():
 def get_browser_sdk_version(project_key):
     # TODO(hazat): Right now we are only returing our conf version
     selected_version = get_selected_browser_sdk_version(project_key)
+
     if selected_version == DEFAULT_VERSION:
-        return settings.JS_SDK_LOADER_SDK_VERSION
+        try:
+            data = load_registry('_registry')
+            version = data['version']
+            return version
+        except:
+            log.error('error ocurred while trying to read js sdk information from the registry')
+            return settings.JS_SDK_LOADER_SDK_VERSION
+
     return settings.JS_SDK_LOADER_SDK_VERSION
 
 
