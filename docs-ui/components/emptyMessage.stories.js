@@ -1,4 +1,5 @@
 import React from 'react';
+import {Flex, Box} from 'grid-emotion';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {storiesOf} from '@storybook/react';
@@ -50,13 +51,36 @@ storiesOf('UI|EmptyMessage', module)
     ))
   )
   .add(
-    'in panel with sub-description',
+    'in panel with title and description',
     withInfo('Put this in a panel for maximum effect')(() => (
       <Panel>
         <PanelHeader>Members</PanelHeader>
         <EmptyMessage
           title="Sentry is better with Friends"
           description="When you use sentry with friends, you'll find your world of possibilities expands!"
+        />
+      </Panel>
+    ))
+  )
+  .add(
+    'in panel with everything',
+    withInfo('Put this in a panel for maximum effect')(() => (
+      <Panel>
+        <PanelHeader>Members</PanelHeader>
+        <EmptyMessage
+          icon="icon-user"
+          title="Sentry is better with friends!"
+          description="When you use sentry with friends, you'll find your world of possibilities expands!"
+          action={
+            <Flex justify="center">
+              <Box mr={1}>
+                <Button priority="primary">Invite Members</Button>
+              </Box>
+              <Box>
+                <Button>Learn More</Button>
+              </Box>
+            </Flex>
+          }
         />
       </Panel>
     ))

@@ -195,12 +195,25 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-gvii4q-Wrapper eh488yo0"
                   >
                     <div
                       className="ref-message"
                     >
-                      You don't have any environments yet.
+                      <Description
+                        noMargin={true}
+                      >
+                        <Component
+                          className="css-vc38z-TextBlock-Description eh488yo4"
+                          noMargin={true}
+                        >
+                          <div
+                            className="css-vc38z-TextBlock-Description eh488yo4"
+                          >
+                            You don't have any environments yet.
+                          </div>
+                        </Component>
+                      </Description>
                     </div>
                   </div>
                 </Wrapper>
@@ -1014,12 +1027,25 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-gvii4q-Wrapper eh488yo0"
                   >
                     <div
                       className="ref-message"
                     >
-                      You don't have any hidden environments.
+                      <Description
+                        noMargin={true}
+                      >
+                        <Component
+                          className="css-vc38z-TextBlock-Description eh488yo4"
+                          noMargin={true}
+                        >
+                          <div
+                            className="css-vc38z-TextBlock-Description eh488yo4"
+                          >
+                            You don't have any hidden environments.
+                          </div>
+                        </Component>
+                      </Description>
                     </div>
                   </div>
                 </Wrapper>

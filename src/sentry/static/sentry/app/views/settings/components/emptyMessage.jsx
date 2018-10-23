@@ -12,43 +12,44 @@ const Wrapper = styled.div`
   align-items: center;
   flex-direction: column;
   color: ${p => p.theme.gray4};
-  padding: ${p => p.theme.grid * 3}px;
-  font-size: ${p => (p.theme.large ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge)};
-  font-weight: bold;
+  padding: ${p => p.theme.grid * 4}px 15%;
+  line-height: 1;
+  font-size: ${p =>
+    p.size && p.size.large ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
   display: block;
   color: ${p => p.theme.gray1};
-  width: 2em;
-  height: 2em;
-  margin-bottom: 0.75em;
+  margin-bottom: ${space(2)};
 `;
 
 const Action = styled.div`
   display: block;
-  margin-top: 0.75em;
 `;
 
-const EmptyHeader = styled.div`
+const Title = styled.div`
+  font-weight: bold;
+  font-size: 20px;
   margin-bottom: ${space(2)};
+  line-height: 1.2;
 `;
 
-const EmptyDescription = styled(TextBlock)`
-  font-size: 0.9em;
-  font-weight: normal;
+const Description = styled(TextBlock)`
+  margin-top: -${space(0.5)}; /* Remove the illusion of bad padding by offsetting line-height */
+  margin-bottom: ${space(2)};
 `;
 
 const EmptyMessage = ({title, description, icon, children, action, size}) => {
   return (
     <Wrapper size={size}>
-      {icon && <StyledInlineSvg src={icon} />}
+      {icon && <StyledInlineSvg src={icon} size="36px" />}
       <div className="ref-message">
-        {title && <EmptyHeader>{title}</EmptyHeader>}
-        {description && <EmptyDescription noMargin>{description}</EmptyDescription>}
-        {children}
+        {title && <Title>{title}</Title>}
+        {description && <Description noMargin>{description}</Description>}
+        {children && <Description noMargin>{children}</Description>}
+        {action && <Action>{action}</Action>}
       </div>
-      {action && <Action>{action}</Action>}
     </Wrapper>
   );
 };
