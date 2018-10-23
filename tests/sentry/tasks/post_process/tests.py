@@ -9,7 +9,7 @@ from mock import Mock, patch
 from sentry import tagstore
 from sentry.models import Group, GroupSnooze, GroupStatus, ServiceHook
 from sentry.testutils import TestCase
-from sentry.tasks.merge import merge_group
+from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
@@ -49,7 +49,7 @@ class PostProcessGroupTest(TestCase):
         assert event.group == group1
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
