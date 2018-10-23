@@ -25,6 +25,7 @@ class GitLabTestCase(APITestCase):
             name='Example Gitlab',
             external_id=EXTERNAL_ID,
             metadata={
+                'group_id': 42,
                 'instance': 'example.gitlab.com',
                 'base_url': 'https://example.gitlab.com',
                 'domain_name': 'example.gitlab.com/group-x',

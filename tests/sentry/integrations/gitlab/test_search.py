@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import responses
 
-from mock import patch
 from django.core.urlresolvers import reverse
 from .testutils import GitLabTestCase
 
@@ -23,80 +22,95 @@ class GitlabSearchTest(GitLabTestCase):
     # Happy Paths
     @responses.activate
     def test_finds_external_issue_results(self):
-        search_results = {
-            'AEIOU': [
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/groups/42/issues?scope=all&search=AEIOU',
+            json=[
                 {'iid': 25, 'title': 'AEIOU Error', 'project_id': '1'},
                 {'iid': 45, 'title': 'AEIOU Error', 'project_id': '2'}
             ]
-        }
-        with patch('sentry.integrations.gitlab.client.GitLabApiClient.search_issues', lambda c, q: search_results[q]):
-            resp = self.client.get(
-                self.url,
-                data={
-                    'field': 'externalIssue',
-                    'query': 'AEIOU',
-                }
-            )
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': 'AEIOU',
+            }
+        )
 
-            assert resp.status_code == 200
-            assert resp.data == [
-                {'value': '1#25', 'label': '(#25) AEIOU Error'},
-                {'value': '2#45', 'label': '(#45) AEIOU Error'}
-            ]
+        assert resp.status_code == 200
+        assert resp.data == [
+            {'value': '1#25', 'label': '(#25) AEIOU Error'},
+            {'value': '2#45', 'label': '(#45) AEIOU Error'}
+        ]
 
+    @responses.activate
     def test_finds_project_results(self):
-        projects = {'GetSentry': [
-            {
-                'id': '1',
-                'name_with_namespace': 'GetSentry / Sentry',
-                'path_with_namespace': 'getsentry/sentry'
-            },
-            {
-                'id': '2',
-                'name_with_namespace': 'GetSentry2 / Sentry2',
-                'path_with_namespace': 'getsentry2/sentry2'
-            },
-        ]}
-        with patch('sentry.integrations.gitlab.client.GitLabApiClient.get_projects', lambda c, query: projects[query]):
-            resp = self.client.get(
-                self.url,
-                data={
-                    'field': 'project',
-                    'query': 'GetSentry',
-                }
-            )
-
-            assert resp.status_code == 200
-            assert resp.data == [
-                {'value': '1', 'label': 'GetSentry / Sentry'},
-                {'value': '2', 'label': 'GetSentry2 / Sentry2'}
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/groups/42/projects?query=GetSentry&simple=True',
+            json=[
+                {
+                    'id': '1',
+                    'name_with_namespace': 'GetSentry / Sentry',
+                    'path_with_namespace': 'getsentry/sentry'
+                },
+                {
+                    'id': '2',
+                    'name_with_namespace': 'GetSentry2 / Sentry2',
+                    'path_with_namespace': 'getsentry2/sentry2'
+                },
             ]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'project',
+                'query': 'GetSentry',
+            }
+        )
 
+        assert resp.status_code == 200
+        assert resp.data == [
+            {'value': '1', 'label': 'GetSentry / Sentry'},
+            {'value': '2', 'label': 'GetSentry2 / Sentry2'}
+        ]
+
+    @responses.activate
     def test_finds_no_external_issues_results(self):
-        with patch('sentry.integrations.gitlab.client.GitLabApiClient.search_issues', lambda c, q: []):
-            resp = self.client.get(
-                self.url,
-                data={
-                    'field': 'externalIssue',
-                    'query': 'XYZ',
-                }
-            )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/groups/42/issues?scope=all&search=XYZ',
+            json=[]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': 'XYZ',
+            }
+        )
 
-            assert resp.status_code == 200
-            assert resp.data == []
+        assert resp.status_code == 200
+        assert resp.data == []
 
+    @responses.activate
     def test_finds_no_project_results(self):
-        with patch('sentry.integrations.gitlab.client.GitLabApiClient.get_projects', lambda c, query: []):
-            resp = self.client.get(
-                self.url,
-                data={
-                    'field': 'project',
-                    'query': 'GetSentry',
-                }
-            )
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/groups/42/projects?query=GetSentry&simple=True',
+            json=[]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'project',
+                'query': 'GetSentry',
+            }
+        )
 
-            assert resp.status_code == 200
-            assert resp.data == []
+        assert resp.status_code == 200
+        assert resp.data == []
 
     # Request Validations
     def test_missing_field(self):
@@ -165,7 +179,8 @@ class GitlabSearchTest(GitLabTestCase):
     @responses.activate
     def test_search_issues_request_fails(self):
         responses.add(
-            responses.GET, u'https://example.gitlab.com/api/v4/issues',
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/issues',
             status=503
         )
         resp = self.client.get(

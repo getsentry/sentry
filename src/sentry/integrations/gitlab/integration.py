@@ -93,6 +93,16 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
             'name': repo['name_with_namespace'],
         } for repo in resp]
 
+    def search_projects(self, query):
+        client = self.get_client()
+        group_id = self.get_group_id()
+        return client.get_group_projects(group_id, query)
+
+    def search_issues(self, query):
+        client = self.get_client()
+        group_id = self.get_group_id()
+        return client.search_group_issues(group_id, query)
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
@@ -106,7 +116,7 @@ class InstallationForm(forms.Form):
     group = forms.CharField(
         label=_("GitLab Group Name"),
         widget=forms.TextInput(
-            attrs={'placeholder': _('my-awesome-group')}
+            attrs={'placeholder': _('example-co')}
         )
     )
     verify_ssl = forms.BooleanField(
