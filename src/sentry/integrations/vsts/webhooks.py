@@ -142,7 +142,7 @@ class WorkItemWebhook(Endpoint):
         else:
             email = None
             assign = False
-        # TODO(lb): should there be a logging statement here? or a try-catch?
+
         sync_group_assignee_inbound(
             integration=integration,
             email=email,
@@ -166,7 +166,7 @@ class WorkItemWebhook(Endpoint):
                 'old_state': status_change['oldValue'],
                 'project': project,
             }
-            # TODO(lb): should there be a logging statement here? or a try-catch?
+
             installation.sync_status_inbound(external_issue_key, data)
 
     def parse_email(self, email):
