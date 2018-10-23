@@ -108,7 +108,6 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'updatesForm': True,
             },
         ]
-        # just comment
 
     def get_issue(self, issue_id, **kwargs):
         project_id, issue_num = issue_id.split('#')
