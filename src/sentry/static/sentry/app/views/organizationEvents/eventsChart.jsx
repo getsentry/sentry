@@ -11,25 +11,6 @@ import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
 import withApi from 'app/utils/withApi';
 
-const EventRequest = withApi(
-  class EventRequest extends React.Component {
-    render() {
-      return (
-        <EventsContext.Consumer>
-          {context => (
-            <HealthRequestWithParams
-              {...context}
-              projects={context.project || []}
-              environments={context.environment || []}
-              {...this.props}
-            />
-          )}
-        </EventsContext.Consumer>
-      );
-    }
-  }
-);
-
 class EventsChart extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
@@ -87,12 +68,10 @@ class EventsChart extends React.Component {
   };
 
   render() {
-    const {organization} = this.props;
-
     return (
       <div>
-        <EventRequest
-          organization={organization}
+        <HealthRequestWithParams
+          {...this.props}
           tag="error.handled"
           includeTimeseries
           interval="1d"
@@ -122,20 +101,29 @@ class EventsChart extends React.Component {
               }}
             />
           )}
-        </EventRequest>
+        </HealthRequestWithParams>
       </div>
     );
   }
 }
 
-class EventsChartContainer extends React.Component {
-  render() {
-    return (
-      <EventsContext.Consumer>
-        {context => <EventsChart {...context} {...this.props} />}
-      </EventsContext.Consumer>
-    );
+const EventsChartContainer = withApi(
+  class EventsChartContainer extends React.Component {
+    render() {
+      return (
+        <EventsContext.Consumer>
+          {context => (
+            <EventsChart
+              {...context}
+              projects={context.project || []}
+              environments={context.environment || []}
+              {...this.props}
+            />
+          )}
+        </EventsContext.Consumer>
+      );
+    }
   }
-}
+);
 export default EventsChartContainer;
 export {EventsChart};
