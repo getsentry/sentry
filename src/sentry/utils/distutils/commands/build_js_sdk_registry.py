@@ -42,18 +42,24 @@ def dump_registry(path, data):
         json.dump(data, f, indent=2)
         f.write('\n')
 
+
+def sync_registry():
+    body = urlopen(JS_SDK_REGISTRY_URL).read().decode('utf-8')
+    data = json.loads(body)
+    dump_registry('_registry', data)
+
+
 from .base import BaseBuildCommand
+
 
 class BuildJsSdkRegistryCommand(BaseBuildCommand):
     description = 'build js sdk registry'
 
     def _build(self):
-        log.info('downloading js sdk information from the registry')
+        logger.info('downloading js sdk information from the registry')
 
         try:
-            body = urlopen(JS_SDK_REGISTRY_URL).read().decode('utf-8')
-            data = json.loads(body)
-            dump_registry('_registry', data)
-        except:
-            log.error('error ocurred while trying to fetch js sdk information from the registry')
+            sync_registry()
+        except BaseException:
+            logger.error('error ocurred while trying to fetch js sdk information from the registry')
             pass
