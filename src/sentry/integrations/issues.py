@@ -208,10 +208,13 @@ class IssueBasicMixin(object):
         else:
             repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
 
-        params = kwargs.get('params', {})
-        defaults = self.get_project_defaults(group.project_id)
-        default_repo = params.get('repo', defaults.get('repo') or repo_choices[0][0])
+        repo = kwargs.get('repo')
+        if not repo:
+            params = kwargs.get('params', {})
+            defaults = self.get_project_defaults(group.project_id)
+            repo = params.get('repo', defaults.get('repo'))
 
+        default_repo = repo or repo_choices[0][0]
         # If a repo has been selected outside of the default list of
         # repos, stick it onto the front of the list so that it can be
         # selected.
