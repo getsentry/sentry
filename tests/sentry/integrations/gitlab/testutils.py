@@ -30,6 +30,7 @@ class GitLabTestCase(APITestCase):
                 'domain_name': 'example.gitlab.com/group-x',
                 'verify_ssl': False,
                 'webhook_secret': WEBHOOK_SECRET,
+                'group_id': 1,
             }
         )
         identity = Identity.objects.create(
