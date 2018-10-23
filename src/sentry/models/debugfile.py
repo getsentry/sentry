@@ -39,6 +39,7 @@ from sentry.models.file import File, ChunkFileState
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
 from sentry.utils import metrics
+from sentry.utils.db import mysql_disabled_integrity
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.decorators import classproperty
 
@@ -304,15 +305,32 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get('features', []))
 
     def delete(self, *args, **kwargs):
-        symcache = self.projectsymcachefile.select_related('cache_file').first()
-        if symcache is not None:
-            symcache.delete()
+        dif_id = self.id
 
-        cficache = self.projectcficachefile.select_related('cache_file').first()
-        if cficache is not None:
-            cficache.delete()
+        with mysql_disabled_integrity(db=ProjectDebugFile.objects.db):
+            with transaction.atomic():
+                # First, delete the debug file entity. This ensures no other
+                # worker can attach caches to it. Integrity checks are deferred
+                # within this transaction, so existing caches stay intact.
+                super(ProjectDebugFile, self).delete(*args, **kwargs)
 
-        super(ProjectDebugFile, self).delete(*args, **kwargs)
+                # Explicitly select referencing caches and delete them. Using
+                # the backref does not work, since `dif.id` is None after the
+                # delete.
+                symcache = ProjectSymCacheFile.objects \
+                    .filter(debug_file_id=dif_id) \
+                    .select_related('cache_file') \
+                    .first()
+                if symcache:
+                    symcache.delete()
+
+                cficache = ProjectCfiCacheFile.objects \
+                    .filter(debug_file_id=dif_id) \
+                    .select_related('cache_file') \
+                    .first()
+                if cficache:
+                    cficache.delete()
+
         self.file.delete()
 
 
@@ -325,7 +343,9 @@ class ProjectCacheFile(Model):
     debug_file = FlexibleForeignKey(
         'sentry.ProjectDebugFile',
         rel_class=OneToOneRel,
-        db_column='dsym_file_id')
+        db_column='dsym_file_id',
+        on_delete=models.DO_NOTHING,
+    )
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
