@@ -70,6 +70,7 @@ def merge_groups(
         UserReport,
         GroupRedirect,
         GroupMeta,
+        get_group_with_redirect,
     )
 
     if not (from_object_ids and to_object_id):
@@ -85,7 +86,7 @@ def merge_groups(
     from_object_id = from_object_ids[0]
 
     try:
-        new_group = Group.objects.get(id=to_object_id)
+        new_group, _ = get_group_with_redirect(to_object_id)
     except Group.DoesNotExist:
         logger.warn(
             'group.malformed.invalid_id',
