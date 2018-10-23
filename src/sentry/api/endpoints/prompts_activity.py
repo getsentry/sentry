@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import datetime
 import calendar
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
@@ -10,11 +9,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.models import PromptsActivity, Organization
+from sentry.models import PromptsActivity
 
-PROMPTS = {'releases': {'required_fields': ['organization_id'],
-                        },
-           }
+PROMPTS = {
+    'releases': {
+        'required_fields': ['organization_id', 'project_id'],
+    },
+}
 
 VALID_STATUSES = frozenset(('snoozed', 'dismissed'))
 
@@ -27,7 +28,7 @@ class PromptsActivitySerializer(serializers.Serializer):
     )
 
     def validate_feature(self, attrs, source):
-        if not attrs[source]:
+        if attrs[source] is None:
             raise serializers.ValidationError('Must specify feature name')
         if attrs[source] not in PROMPTS:
             raise serializers.ValidationError('Not a valid feature prompt')
@@ -40,45 +41,30 @@ class PromptsActivityEndpoint(Endpoint):
     def get(self, request):
         """ Return feature prompt status if dismissed or in snoozed period"""
 
-        data = request.GET.dict()
-        feature = data.get('feature')
+        feature = request.GET.get('feature')
 
-        if feature is None:
-            return Response({'detail': 'Missing feature name'}, status=400)
+        if feature not in PROMPTS:
+            return Response({'detail': 'Invalid feature name'}, status=400)
 
         required_fields = PROMPTS[feature]['required_fields']
         for field in required_fields:
-            if field not in data.keys():
-                return Response({'detail': 'Missing required fields'}, status=400)
+            if field not in request.GET:
+                return Response({'detail': 'Missing required field "%s"' % field}, status=400)
 
-        prompts_result = []
-        if feature == 'releases':
-            prompts_result = PromptsActivity.objects.filter(user=request.user,
-                                                            organization=Organization.objects.get(
-                                                                id=data.get('organization_id')),
-                                                            feature='releases',)
-        response = {}
-        if prompts_result:
-            data = prompts_result[0].data
-            if data.get('snoozed_ts'):
-                snoozed_ts = datetime.datetime.fromtimestamp(data.get('snoozed_ts'))
-                if snoozed_ts > datetime.datetime.now() - datetime.timedelta(days=3):
-                    status = 'snoozed'
-                    response['data'] = {'status': status}
-            elif data.get('dismissed_ts'):
-                status = 'dismissed'
-                response['data'] = {'status': status}
+        filters = {k: request.GET.get(k) for k in required_fields}
 
-        return Response(response)
+        try:
+            result = PromptsActivity.objects.get(user=request.user,
+                                                 feature='releases',
+                                                 **filters)
+        except PromptsActivity.DoesNotExist:
+            return Response({})
+
+        return Response({'data': result.data})
 
     def put(self, request):
         serializer = PromptsActivitySerializer(
             data=request.DATA,
-            partial=True,
-            context={
-                'user': request.user,
-                'request': request,
-            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -86,15 +72,9 @@ class PromptsActivityEndpoint(Endpoint):
         serialized = serializer.object
         feature = serialized['feature']
         status = serialized['status']
-        required_fields = PROMPTS[feature]['required_fields']
 
-        fields = {}
-        if 'organization_id' in required_fields:
-            try:
-                organization = Organization.objects.get(id=request.DATA.get('organization_id'))
-                fields['organization'] = organization
-            except Organization.DoesNotExist:
-                return Response({'detail': 'Invalid organization'}, status=400)
+        required_fields = PROMPTS[feature]['required_fields']
+        fields = {k: request.DATA.get(k) for k in required_fields}
 
         data = {}
         now = calendar.timegm(timezone.now().utctimetuple())

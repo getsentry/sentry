@@ -1,11 +1,7 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
-import calendar
-from datetime import timedelta
 from django.core.urlresolvers import reverse
 
-from sentry.models import PromptsActivity
 from sentry.testutils import APITestCase
 
 
@@ -28,6 +24,7 @@ class PromptsActivityTest(APITestCase):
 
     def test_dismiss(self):
         data = {'organization_id': 1,
+                'project_id': 1,
                 'feature': 'releases',
                 }
         resp = self.client.get(self.path, data)
@@ -43,10 +40,12 @@ class PromptsActivityTest(APITestCase):
 
         resp = self.client.get(self.path, data)
         assert resp.status_code == 200
-        assert resp.data == {'data': {'status': 'dismissed'}}
+        assert 'data' in resp.data
+        assert 'dismissed_ts' in resp.data['data']
 
     def test_snooze(self):
         data = {'organization_id': 1,
+                'project_id': 1,
                 'feature': 'releases',
                 }
         resp = self.client.get(self.path, data)
@@ -63,18 +62,5 @@ class PromptsActivityTest(APITestCase):
         resp = self.client.get(self.path, data)
 
         assert resp.status_code == 200
-        assert resp.data == {'data': {'status': 'snoozed'}}
-
-        # show if past the snooze date
-        prompt = PromptsActivity.objects.filter(
-            organization_id=1,
-            user=self.user,
-            feature='releases',
-        )[0]
-        week_ago = timezone.now() - timedelta(days=8)
-
-        prompt.data['snoozed_ts'] = calendar.timegm(week_ago.utctimetuple())
-        prompt.save()
-        resp = self.client.get(self.path, data)
-        assert resp.status_code == 200
-        assert resp.data == {}
+        assert 'data' in resp.data
+        assert 'snoozed_ts' in resp.data['data']

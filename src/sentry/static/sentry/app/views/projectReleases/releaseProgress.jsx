@@ -33,6 +33,7 @@ class ReleaseProgress extends AsyncView {
     let {project, organization} = this.context;
     let data = {
       organization_id: organization.id,
+      project_id: project.id,
       feature: 'releases',
     };
     return [
