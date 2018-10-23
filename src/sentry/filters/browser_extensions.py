@@ -42,7 +42,8 @@ EXTENSION_EXC_VALUES = re.compile(
                 # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
                 'plugin.setSuspendState is not a function',
                 # Google Translate extension
-                # See: https://medium.com/@amir.harel/a-b-target-classname-indexof-is-not-a-function-at-least-not-mine-8e52f7be64ca
+                # See:
+                # https://medium.com/@amir.harel/a-b-target-classname-indexof-is-not-a-function-at-least-not-mine-8e52f7be64ca
                 'a[b].target.className.indexOf is not a function',
             )
         )
