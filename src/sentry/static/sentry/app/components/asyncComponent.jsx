@@ -247,12 +247,13 @@ export default class AsyncComponent extends React.Component {
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
-  renderSearchInput({onSearchSubmit, stateKey, url, ...other}) {
+  renderSearchInput({onSearchSubmit, stateKey, url, updateRoute, ...other}) {
     const [firstEndpoint] = this.getEndpoints() || [];
     const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
+        updateRoute={updateRoute}
         onSearchSubmit={onSearchSubmit}
         stateKey={stateKeyOrDefault}
         url={urlOrDefault}
