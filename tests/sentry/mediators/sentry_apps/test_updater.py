@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from rest_framework.serializers import ValidationError
-
+from sentry.coreapi import APIError
+from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator, Updater
 from sentry.testutils import TestCase
 
@@ -24,17 +24,25 @@ class TestUpdater(TestCase):
         self.updater.call()
         assert self.sentry_app.name == 'A New Thing'
 
-    def test_updates_scopes(self):
+    def test_updates_unpublished_app_scopes(self):
         self.updater.scopes = ('project:read', 'project:write', )
         self.updater.call()
         assert self.sentry_app.get_scopes() == \
             ['project:read', 'project:write']
 
-    def test_rejects_scope_subtractions(self):
-        self.updater.scopes = (None, )
+    def test_doesnt_update_published_app_scopes(self):
+        sentry_app = Creator.run(
+            name='sentry',
+            organization=self.org,
+            scopes=('project:read',),
+            webhook_url='http://example.com',
+        )
+        sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        updater = Updater(sentry_app=sentry_app)
+        updater.scopes = ('project:read', 'project:write', )
 
-        with self.assertRaises(ValidationError):
-            self.updater.call()
+        with self.assertRaises(APIError):
+            updater.call()
 
     def test_updates_webhook_url(self):
         self.updater.webhook_url = 'http://example.com/hooks'
