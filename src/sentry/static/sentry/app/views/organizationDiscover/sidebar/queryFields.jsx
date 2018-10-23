@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
@@ -17,7 +18,7 @@ export default class QueryFields extends React.Component {
     onUpdateField: PropTypes.func.isRequired,
     actions: PropTypes.node.isRequired,
     // savedQuery, savedQueryName, and onUpdateName are provided only when it's a saved search
-    savedQuery: PropTypes.object,
+    savedQuery: SentryTypes.DiscoverSavedQuery,
     savedQueryName: PropTypes.string,
     onUpdateName: PropTypes.func,
   };

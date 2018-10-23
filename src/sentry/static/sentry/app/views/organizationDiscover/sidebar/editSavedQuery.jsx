@@ -3,6 +3,7 @@ import React from 'react';
 import {Flex, Box} from 'grid-emotion';
 import {isEqual} from 'lodash';
 
+import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
@@ -15,7 +16,7 @@ export default class EditSavedQuery extends React.Component {
   static propTypes = {
     queryBuilder: PropTypes.object.isRequired,
     onRunQuery: PropTypes.func.isRequired,
-    savedQuery: PropTypes.object.isRequired,
+    savedQuery: SentryTypes.DiscoverSavedQuery,
     onUpdateField: PropTypes.func.isRequired,
     onDeleteQuery: PropTypes.func.isRequired,
     onSaveQuery: PropTypes.func.isRequired,
