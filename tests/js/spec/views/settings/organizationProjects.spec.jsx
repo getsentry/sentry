@@ -58,7 +58,7 @@ describe('OrganizationProjects', function() {
 
   it('should search organization projects', async function() {
     let searchMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/?query=${project.slug}`,
+      url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
     let wrapper = mount(
@@ -66,17 +66,17 @@ describe('OrganizationProjects', function() {
       routerContext
     );
 
-    expect(searchMock).not.toHaveBeenCalled();
-
     wrapper
       .find('AsyncComponentSearchInput Input')
       .simulate('change', {target: {value: `${project.slug}`}});
 
-    expect(searchMock).toHaveBeenCalled();
-    expect(searchMock).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/projects/?query=${project.slug}`,
+    expect(searchMock).toHaveBeenLastCalledWith(
+      `/organizations/${org.slug}/projects/`,
       expect.objectContaining({
         method: 'GET',
+        query: {
+          query: project.slug,
+        },
       })
     );
 
