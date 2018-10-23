@@ -68,7 +68,6 @@ class ReleaseProgress extends AsyncView {
 
   showBar(prompt) {
     let data = prompt.data;
-    console.log(data);
 
     let show;
     if (data && data.snoozed_ts) {
