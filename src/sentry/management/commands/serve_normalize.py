@@ -17,6 +17,7 @@ import traceback
 import json
 
 from django.core.management.base import BaseCommand, CommandError, make_option
+from django.utils.encoding import force_str
 
 
 class EventNormalizeHandler(SocketServer.BaseRequestHandler):
@@ -83,7 +84,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
             result = self.process_event(data, meta)
             end = time.time()
         except Exception as e:
-            error = e.message + ' ' + traceback.format_exc()
+            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
 
         duration = (end - start) if (start and end) else None
         try:
@@ -97,7 +98,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
                 # Encoding error, try to send the exception instead
                 return self.encode({
                     'result': None,
-                    'error': e.message + traceback.format_exc(),
+                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
                     'duration': duration,
                     'encoding_error': True,
                 })
