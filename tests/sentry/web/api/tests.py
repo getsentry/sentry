@@ -224,12 +224,12 @@ class StoreViewTest(TestCase):
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
-    @mock.patch('sentry.coreapi.is_valid_ip', mock.Mock(return_value=False))
+    @mock.patch('sentry.event_manager.is_valid_ip', mock.Mock(return_value=False))
     def test_request_with_blacklisted_ip(self):
         resp = self._postWithHeader({})
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    @mock.patch('sentry.coreapi.is_valid_release', mock.Mock(return_value=False))
+    @mock.patch('sentry.event_manager.is_valid_release', mock.Mock(return_value=False))
     def test_request_with_filtered_release(self):
         body = {
             "release": "abcdefg",
@@ -248,7 +248,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
-    @mock.patch('sentry.coreapi.is_valid_error_message', mock.Mock(return_value=False))
+    @mock.patch('sentry.event_manager.is_valid_error_message', mock.Mock(return_value=False))
     def test_request_with_filtered_error(self):
         body = {
             "release": "abcdefg",
@@ -658,7 +658,7 @@ class StoreViewTest(TestCase):
         )
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
-    @mock.patch('sentry.coreapi.ClientApiHelper.should_filter')
+    @mock.patch('sentry.event_manager.EventManager.should_filter')
     def test_filtered_signal(self, mock_should_filter):
         mock_should_filter.return_value = (True, 'ip-address')
 

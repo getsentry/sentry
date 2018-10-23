@@ -158,7 +158,9 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
-    color = LEVEL_TO_COLOR.get(event.get_tag('level'), 'error') if event else LEVEL_TO_COLOR['error']
+    color = LEVEL_TO_COLOR.get(
+        event.get_tag('level'),
+        'error') if event else LEVEL_TO_COLOR['error']
 
     text = build_attachment_text(group, event) or ''
 

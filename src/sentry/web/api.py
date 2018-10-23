@@ -32,9 +32,9 @@ from sentry import features, quotas, tsdb, options
 from sentry.app import raven
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
-    MinidumpApiHelper,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string,
 )
+from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import merge_minidump_event
@@ -367,6 +367,10 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
+    def pre_normalize(self, data, helper):
+        """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
+        pass
+
     def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
         metrics.incr('events.total')
 
@@ -375,25 +379,25 @@ class StoreView(APIView):
 
         remote_addr = request.META['REMOTE_ADDR']
 
-        data = LazyData(
-            data=data,
-            content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
-            helper=helper,
+        event_mgr = EventManager(
+            data,
             project=project,
             key=key,
             auth=auth,
             client_ip=remote_addr,
+            user_agent=helper.context.agent,
+            content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
         )
+        del data
 
-        event_received.send_robust(
-            ip=remote_addr,
-            project=project,
-            sender=type(self),
-        )
+        self.pre_normalize(event_mgr, helper)
+        event_mgr.normalize()
+
+        event_received.send_robust(ip=remote_addr, project=project, sender=type(self))
+
         start_time = time()
         tsdb_start_time = to_datetime(start_time)
-        should_filter, filter_reason = helper.should_filter(
-            project, data, ip_address=remote_addr)
+        should_filter, filter_reason = event_mgr.should_filter()
         if should_filter:
             increment_list = [
                 (tsdb.models.project_total_received, project.id),
@@ -479,6 +483,9 @@ class StoreView(APIView):
 
         org_options = OrganizationOption.objects.get_all_values(
             project.organization_id)
+
+        data = event_mgr.get_data()
+        del event_mgr
 
         event_id = data['event_id']
 
@@ -757,7 +764,7 @@ class SecurityReportView(StoreView):
         )
 
     def post(self, request, project, helper, **kwargs):
-        json_body = helper.safely_load_json_string(request.body)
+        json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
             raise APIError('Unrecognized security report type')
@@ -801,6 +808,9 @@ class SecurityReportView(StoreView):
                 if k in body:
                     return report_type_for_key[k]
         return None
+
+    def pre_normalize(self, data, helper):
+        data.process_csp_report()
 
 
 @cache_control(max_age=3600, public=True)
