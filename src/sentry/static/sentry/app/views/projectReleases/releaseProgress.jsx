@@ -48,12 +48,12 @@ class ReleaseProgress extends AsyncView {
     if (stateKey === 'promptsActivity') {
       this.showBar(data);
     } else if (stateKey === 'setupStatus') {
-      this.getRemainingSteps();
+      this.getRemainingSteps(data);
     }
   }
 
-  getRemainingSteps() {
-    let {setupStatus} = this.state;
+  getRemainingSteps(data) {
+    let setupStatus = data;
     let remainingSteps;
     if (setupStatus) {
       remainingSteps = setupStatus
@@ -126,6 +126,7 @@ class ReleaseProgress extends AsyncView {
               className="text-light"
               onClick={() => this.handleClick('dismissed')}
               size="large"
+              data-test-id="dismissed"
             >
               {t('Dismiss')}
             </StyledButton>
@@ -133,6 +134,7 @@ class ReleaseProgress extends AsyncView {
               className="text-light"
               onClick={() => this.handleClick('snoozed')}
               size="large"
+              data-test-id="snoozed"
             >
               {t('Remind Me Later')}
             </StyledButton>
