@@ -232,7 +232,8 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
             return self.paginate(
                 request=request,
                 on_results=lambda results: self.handle_results(results, requested_query, projects),
-                paginator=GenericOffsetPaginator(data_fn=data_fn)
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                max_per_page=1000
             )
         else:
             snuba_results = snuba.raw_query(
