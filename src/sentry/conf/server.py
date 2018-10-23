@@ -1097,7 +1097,7 @@ SENTRY_MAX_EXCEPTIONS = 25
 SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
-SENTRY_SOURCE_FETCH_TIMEOUT = 5
+SENTRY_SOURCE_FETCH_TIMEOUT = int(os.environ.get('SENTRY_SOURCE_FETCH_TIMEOUT', 5))
 
 # Timeout (in seconds) for socket operations when fetching remote source files
 SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
