@@ -58,8 +58,10 @@ class DeviceContextType extends React.Component {
       family,
       model,
       model_id,
+      cpu_description,
       arch,
       battery_level,
+      battery_status,
       orientation,
       simulator,
       memory_size,
@@ -71,6 +73,7 @@ class DeviceContextType extends React.Component {
       external_free_storage,
       boot_time,
       timezone,
+      device_type,
       ...data
     } = this.props.data;
     let memory = this.formatMemory(memory_size, free_memory, usable_memory);
@@ -87,14 +90,17 @@ class DeviceContextType extends React.Component {
           ['?Name', name],
           ['?Family', family],
           ['?Model', model + (model_id ? ` (${model_id})` : '')],
+          ['?CPU Description', cpu_description],
           ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],
+          ['?Battery Status', battery_status],
           ['?Orientation', orientation],
           ['?Memory', memory],
           ['?Capacity', storage],
           ['?Simulator', simulator],
           ['?Boot Time', boot_time],
           ['?Timezone', timezone],
+          ['?Device Type', device_type],
         ]}
         alias={this.props.alias}
       />
