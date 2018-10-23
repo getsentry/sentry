@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
-from rest_framework.serializers import ValidationError
+from sentry.coreapi import APIError
 
+from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
 
@@ -28,17 +29,10 @@ class Updater(Mediator):
 
     @if_param('scopes')
     def _update_scopes(self):
-        self._validate_only_added_scopes()
+        if self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            raise APIError('Cannot update scopes on published App.')
         self.sentry_app.scope_list = self.scopes
 
     @if_param('webhook_url')
     def _update_webhook_url(self):
         self.sentry_app.webhook_url = self.webhook_url
-
-    def _validate_only_added_scopes(self):
-        if any(self._scopes_removed):
-            raise ValidationError('Cannot remove `scopes` already in use.')
-
-    @property
-    def _scopes_removed(self):
-        return [s for s in self.sentry_app.scope_list if s not in self.scopes]
