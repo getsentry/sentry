@@ -104,3 +104,10 @@ def attach_foreignkey(objects, field, related=[], database=None):
 
 def table_exists(name, using=DEFAULT_DB_ALIAS):
     return name in connections[using].introspection.table_names()
+
+
+def set_mysql_foreign_key_checks(flag, using=DEFAULT_DB_ALIAS):
+    if is_mysql():
+        query = 'SET FOREIGN_KEY_CHECKS=%s' % (1 if flag else 0)
+        cursor = connections[using].cursor()
+        cursor.execute(query)

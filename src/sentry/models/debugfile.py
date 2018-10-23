@@ -39,6 +39,7 @@ from sentry.models.file import File, ChunkFileState
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
 from sentry.utils import metrics
+from sentry.utils.db import set_mysql_foreign_key_checks
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.decorators import classproperty
 
@@ -306,27 +307,36 @@ class ProjectDebugFile(Model):
     def delete(self, *args, **kwargs):
         dif_id = self.id
 
-        with transaction.atomic():
+        try:
+            # MySQL InnoDB always checks foreign key constraints per row and
+            # does not support deferred checking. Disable constraint validation
+            # temporarily for this session to emulate this behavior.
+            set_mysql_foreign_key_checks(False, using=ProjectDebugFile.objects.db)
+
             # First, delete the debug file entity. This ensures no other worker
             # can attach caches to it. Integrity checks are deferred within this
             # transaction, so existing caches stay intact.
-            super(ProjectDebugFile, self).delete(*args, **kwargs)
+            with transaction.atomic():
+                super(ProjectDebugFile, self).delete(*args, **kwargs)
 
-            # Explicitly select referencing caches and delete them. Using the
-            # backref does not work, since `dif.id` is None after the delete.
-            symcache = ProjectSymCacheFile.objects \
-                .filter(debug_file_id=dif_id) \
-                .select_related('cache_file') \
-                .first()
-            if symcache:
-                symcache.delete()
+                # Explicitly select referencing caches and delete them. Using
+                # the backref does not work, since `dif.id` is None after the
+                # delete.
+                symcache = ProjectSymCacheFile.objects \
+                    .filter(debug_file_id=dif_id) \
+                    .select_related('cache_file') \
+                    .first()
+                if symcache:
+                    symcache.delete()
 
-            cficache = ProjectCfiCacheFile.objects \
-                .filter(debug_file_id=dif_id) \
-                .select_related('cache_file') \
-                .first()
-            if cficache:
-                cficache.delete()
+                cficache = ProjectCfiCacheFile.objects \
+                    .filter(debug_file_id=dif_id) \
+                    .select_related('cache_file') \
+                    .first()
+                if cficache:
+                    cficache.delete()
+        finally:
+            set_mysql_foreign_key_checks(True, using=ProjectDebugFile.objects.db)
 
         self.file.delete()
 
