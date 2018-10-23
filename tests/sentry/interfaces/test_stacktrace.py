@@ -565,6 +565,28 @@ class StacktraceTest(TestCase):
         result = interface.get_hash(platform='javascript')
         assert result == ['<module>']
 
+    def test_get_hash_ignores_singular_anonymous_frame(self):
+        interface = Stacktrace.to_python({
+            'frames': [
+                {"abs_path": "<anonymous>", "filename": "<anonymous>", "in_app": False},
+                {"function": "c",
+                 "abs_path": "file:///C:/Users/redacted/AppData/Local/redacted/resources/app.asar/dojo/dojo.js",
+                 "in_app": False,
+                 "lineno": 1188,
+                 "colno": 125,
+                 "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"},
+                {"function": "Object._createDocumentViewModel",
+                 "abs_path": "file:///C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js",
+                 "in_app": False,
+                 "lineno": 1184,
+                 "colno": 92,
+                 "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"}
+            ]
+        })
+        result = interface.get_hash(platform='javascript')
+
+        assert result == []
+
     def test_collapse_recursion(self):
         interface = Stacktrace.to_python(
             {

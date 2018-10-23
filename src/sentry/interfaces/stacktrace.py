@@ -413,6 +413,13 @@ class Frame(Interface):
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
         # so that they're more likely to group together
+        if self.filename == '<anonymous>':
+            hashable_filename = None
+        elif self.filename:
+            hashable_filename = remove_filename_outliers(self.filename, platform)
+        else:
+            hashable_filename = None
+
         if self.filename == '[native code]':
             return output
 
@@ -421,8 +428,8 @@ class Frame(Interface):
                 output.append('<module>')
             else:
                 output.append(remove_module_outliers(self.module, platform))
-        elif self.filename and not self.is_url() and not self.is_caused_by():
-            output.append(remove_filename_outliers(self.filename, platform))
+        elif hashable_filename and not self.is_url() and not self.is_caused_by():
+            output.append(hashable_filename)
 
         if self.context_line is None:
             can_use_context = False
