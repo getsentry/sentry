@@ -589,6 +589,13 @@ function routes() {
             import(/*webpackChunkName: "sentryApplicationDetails"*/ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')}
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          name="Edit Application"
+          path=":appSlug/"
+          componentPromise={() =>
+            import(/*webpackChunkName: "sentryApplicationDetails"*/ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')}
+          component={errorHandler(LazyLoad)}
+        />
       </Route>
     </React.Fragment>
   );

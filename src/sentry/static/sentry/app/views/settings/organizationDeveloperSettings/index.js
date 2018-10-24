@@ -1,32 +1,40 @@
 import {Box, Flex} from 'grid-emotion';
-import Button from 'app/components/button';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import {Link} from 'react-router';
+
 import AsyncView from 'app/views/asyncView';
+import createReactClass from 'create-react-class';
+import Button from 'app/components/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import PropTypes from 'prop-types'
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {t} from 'app/locale';
+import Tag from 'app/views/settings/components/tag.jsx';
+import styled from 'react-emotion';
+import space from 'app/styles/space';
+import {withTheme} from 'emotion-theming';
 
 
 class SentryApplicationRow extends React.Component {
 
   static propTypes = {
     app: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
   };
 
   render() {
-    let app = this.props.app;
-
+    let {app, orgId} = this.props;
     let btnClassName = 'btn btn-default';
 
     return (
       <PanelItem justify="space-between" px={2} py={2}>
         <Box flex="1">
-          <h4 style={{marginBottom: 5}}>
-              {app.name}
-          </h4>
+          <div style={{marginBottom: 5}}>
+              <StyledLink to={`/settings/${orgId}/developer-settings/${app.slug}/`}>{app.name}</StyledLink>
+          </div>
+          <Status published={app.status === "published"} />
         </Box>
 
         <Flex align="center">
@@ -38,6 +46,7 @@ class SentryApplicationRow extends React.Component {
               <span className="icon icon-trash" />
             </a>
           </Box>
+
         </Flex>
       </PanelItem>
     );
@@ -48,7 +57,7 @@ export default class OrganizationDeveloperSettings extends AsyncView {
   getEndpoints() {
     let {orgId} = this.props.params;
     return [
-      ['applications', `/sentry-apps/`]
+      ['applications', `/organizations/${orgId}/sentry-apps/`]
     ];
   }
 
@@ -67,7 +76,6 @@ export default class OrganizationDeveloperSettings extends AsyncView {
     );
 
     let isEmpty = this.state.applications.length === 0;
-    console.log(this.state.applications);
     return (
       <div>
         <SettingsPageHeader title="Developer Settings" action={action} />
@@ -83,12 +91,12 @@ export default class OrganizationDeveloperSettings extends AsyncView {
             {!isEmpty ? (
               this.state.applications.map(app => {
                 return (
-                  <SentryApplicationRow app={app}/>
+                  <SentryApplicationRow app={app} orgId={orgId}/>
                 );
               })
             ) : (
               <EmptyMessage>
-                {t("You haven't created any applications yet.")}
+                {t("No applications have been created yet.")}
               </EmptyMessage>
             )}
           </PanelBody>
@@ -97,3 +105,31 @@ export default class OrganizationDeveloperSettings extends AsyncView {
     );
   }
 }
+
+const StyledTag = styled(Tag)`
+  &:not(:first-child) {
+    margin-left: ${space(0.5)};
+  }
+`;
+
+const StyledLink = styled(Link)`
+  font-size: 22px;
+  color: ${p => p.theme.textColor};
+`;
+
+const Status = styled(
+  withTheme(props => {
+    const {published, ...p} = props;
+    return (
+      <Flex align="center">
+        <CircleIndicator size={4} color={published ? p.theme.success : p.theme.gray2} />
+        <div {...p}>{published ? t('published') : t('unpublished')}</div>
+      </Flex>
+    );
+  })
+)`
+  color: ${p => (p.published ? p.theme.success : p.theme.gray2)};
+  margin-left: ${space(0.5)};
+  font-weight: light;
+  margin-right: ${space(0.75)};
+`;

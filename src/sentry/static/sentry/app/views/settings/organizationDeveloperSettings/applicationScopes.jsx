@@ -36,7 +36,7 @@ class ApplicationScopes extends React.Component {
         scopes: new Set(scopes),
       },
       () => {
-        this.props.onToggle(this.props.data, scopes, e);
+        this.props.onToggle(this.props.scopes, scopes, e);
       }
     );
   };
