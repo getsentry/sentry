@@ -27,6 +27,7 @@ describe('Discover', function() {
       };
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
     });
+
     it('auto-runs saved query', async function() {
       wrapper = mount(
         <Discover
@@ -84,6 +85,61 @@ describe('Discover', function() {
     });
   });
 
+  describe('Pagination', function() {
+    let wrapper, firstPageMock, secondPageMock;
+
+    beforeEach(function() {
+      firstPageMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        method: 'POST',
+        body: {timing: {}, data: [], meta: []},
+        headers: {Link: '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"'}
+      });
+
+      secondPageMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:1000:0',
+        method: 'POST',
+        body: {timing: {}, data: [], meta: []},
+      });
+
+      wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          params={{}}
+          updateSavedQueryData={() => {}}
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('can go to next page', async function(){
+      wrapper.instance().runQuery();
+      await tick();
+      wrapper.update();
+      wrapper.find('PaginationButtons').find('Button').at(1).simulate('click');
+      expect(firstPageMock).toHaveBeenCalledTimes(1);
+      expect(secondPageMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('can\'t go back', async function() {
+      wrapper.instance().runQuery();
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('PaginationButtons').find('Button').at(0).prop('disabled')).toBe(true);
+      wrapper.find('PaginationButtons').find('Button').at(0).simulate('click');
+      expect(firstPageMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not paginate on aggregate', async function(){
+      wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
+      wrapper.instance().runQuery();
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('Pagination').exists()).toBe(false);
+    });
+  });
+
   describe('runQuery()', function() {
     const mockResponse = {timing: {}, data: [], meta: []};
     let wrapper;
@@ -107,6 +163,7 @@ describe('Discover', function() {
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
+
     });
 
     it('always requests event_id and project_id for basic queries', async function() {

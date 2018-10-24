@@ -344,6 +344,9 @@ class GenericOffsetPaginator(object):
 
     It is potentially less performant than a ranged query solution that might
     not to have to look at as many rows.
+
+    Can either take data as a list or dictionary with data as value in order to
+    return full object if necessary. (if isinstance statement)
     """
 
     def __init__(self, data_fn):
@@ -354,9 +357,17 @@ class GenericOffsetPaginator(object):
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
         data = self.data_fn(offset=offset, limit=limit + 1)
-        has_more = (len(data) == limit + 1)
-        if has_more:
-            data.pop()
+
+        if isinstance(data, list):
+            has_more = len(data) == limit + 1
+            if has_more:
+                data.pop()
+        elif isinstance(data.get('data'), list):
+            has_more = len(data['data']) == limit + 1
+            if has_more:
+                data['data'].pop()
+        else:
+            raise NotImplementedError
 
         # Since we are not issuing ranged queries, our cursors always have
         # `value=0` (ie. all rows have the same value), and so offset naturally

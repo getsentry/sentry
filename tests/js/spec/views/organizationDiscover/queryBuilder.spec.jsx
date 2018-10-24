@@ -26,7 +26,7 @@ describe('Query Builder', function() {
 
     it('loads tags', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
           data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
@@ -39,7 +39,7 @@ describe('Query Builder', function() {
       await queryBuilder.load();
 
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/query/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data: expect.objectContaining({
             fields: ['tags_key'],
@@ -67,7 +67,7 @@ describe('Query Builder', function() {
 
     it('loads hardcoded tags when API request fails', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
       });
       const queryBuilder = createQueryBuilder(
@@ -98,8 +98,13 @@ describe('Query Builder', function() {
         TestStubs.Organization({projects: [TestStubs.Project()]})
       );
       discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
+        body: {
+          data: [],
+          timing: {},
+          meta: [],
+        },
       });
     });
 
@@ -111,7 +116,7 @@ describe('Query Builder', function() {
       const data = {projects: [1], fields: ['event_id']};
       await queryBuilder.fetch(data);
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/query/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data,
         })
