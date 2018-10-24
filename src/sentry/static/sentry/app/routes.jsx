@@ -589,6 +589,7 @@ function routes() {
             import(/*webpackChunkName: "sentryApplicationDetails"*/ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')}
           component={errorHandler(LazyLoad)}
         />
+<<<<<<< HEAD
         <Route
           name="Edit Application"
           path=":appSlug/"
@@ -596,6 +597,8 @@ function routes() {
             import(/*webpackChunkName: "sentryApplicationDetails"*/ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')}
           component={errorHandler(LazyLoad)}
         />
+=======
+>>>>>>> feat(app-platform): Add UI for adding sentry apps
       </Route>
     </React.Fragment>
   );
