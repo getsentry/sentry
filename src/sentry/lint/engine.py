@@ -319,7 +319,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
         if prompt_on_changes:
             with open('/dev/tty') as fp:
                 print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
-                if fp.readline().strip().lower() != 'y':
+                if fp.readline().strip() not in ('Y', 'y', ''):
                     print(  # noqa: B314
                         '[sentry.lint] Unstaged changes have not been staged.', file=sys.stderr)
                     if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
