@@ -92,7 +92,8 @@ describe('Result', function() {
           data={data}
           organization={organization}
           savedQuery={TestStubs.DiscoverSavedQuery()}
-        />
+        />,
+        TestStubs.routerContext()
       );
     });
 

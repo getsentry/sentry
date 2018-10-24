@@ -51,7 +51,7 @@ export default function createQueryBuilder(initial = {}, organization) {
   };
 
   /**
-   * Loads tags keys for user's projectsand updates `tags` with the result.
+   * Loads tags keys for user's projects and updates `tags` with the result.
    * If the request fails updates `tags` to be the hardcoded list of predefined
    * promoted tags.
    *
@@ -164,9 +164,10 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {Object} [data] Optional field to provide data to fetch
    * @returns {Promise<Object|Error>}
    */
-  function fetch(data) {
+  function fetch(data, cursor = '0:0:1') {
     const api = new Client();
-    const endpoint = `/organizations/${organization.slug}/discover/query/`;
+    const limit = data.limit || 1000;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
     data = data || getExternal();
 
@@ -186,11 +187,12 @@ export default function createQueryBuilder(initial = {}, organization) {
     }
 
     return api
-      .requestPromise(endpoint, {
-        method: 'POST',
-        data,
+      .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data})
+      .then(([responseData, _, utils]) => {
+        responseData.pageLinks = utils.getResponseHeader('Link');
+        return responseData;
       })
-      .catch(() => {
+      .catch(err => {
         throw new Error(t('An error occurred'));
       });
   }
