@@ -36,7 +36,6 @@ const StyledAlertText = styled(Flex)`
     display: inline;
     white-space: normal;
   }
-
 `;
 
 const StyledLink = styled(Link)`
