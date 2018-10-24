@@ -9,7 +9,7 @@ class Migration(SchemaMigration):
 
     # Flag to indicate if this migration is too risky
     # to run online and needs to be coordinated for offline
-    is_dangerous = False
+    is_dangerous = True
 
     def forwards(self, orm):
         # Removing unique constraint on 'PullRequestCommit', fields ['pull_request', 'commit']
