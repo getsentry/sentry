@@ -19,7 +19,9 @@ const MIN_COL_WIDTH = 100;
 const MAX_COL_WIDTH = 500;
 const LINK_COL_WIDTH = 40;
 const CELL_PADDING = 20;
-const VISIBLE_ROWS = 12;
+const MIN_VISIBLE_ROWS = 12;
+const MAX_VISIBLE_ROWS = 24;
+const OTHER_ELEMENTS_HEIGHT = 114; // pagination obuttons, alpha notice, heading
 
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
@@ -29,6 +31,7 @@ export default class ResultTable extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
+    height: PropTypes.number,
   };
 
   static contextTypes = {
@@ -188,8 +191,21 @@ export default class ResultTable extends React.Component {
     return Math.ceil(context.measureText(text).width) + 1;
   };
 
+  getMaxVisibleRows = elementHeight => {
+    if (!elementHeight) {
+      return MIN_VISIBLE_ROWS;
+    }
+
+    const visibleRows = Math.floor(
+      (elementHeight - OTHER_ELEMENTS_HEIGHT) / TABLE_ROW_HEIGHT_WITH_BORDER
+    );
+
+    // Apply min/max
+    return Math.max(Math.min(visibleRows, MAX_VISIBLE_ROWS), MIN_VISIBLE_ROWS);
+  };
+
   renderTable() {
-    const {query, data: {data}} = this.props;
+    const {query, data: {data}, height} = this.props;
 
     const cols = this.getColumnList();
 
@@ -198,13 +214,13 @@ export default class ResultTable extends React.Component {
     // Add one column at the end to make sure table spans full width
     const colCount = cols.length + (showEventLinks ? 1 : 0) + 1;
 
-    const maxVisibleResults = Math.min(data.length, VISIBLE_ROWS);
+    const visibleRows = this.getMaxVisibleRows(height);
 
     return (
-      <GridContainer visibleRows={maxVisibleResults + 1}>
+      <GridContainer visibleRows={Math.min(data.length, visibleRows) + 1}>
         <AutoSizer>
-          {({width, height}) => {
-            const columnWidths = this.getColumnWidths(width);
+          {size => {
+            const columnWidths = this.getColumnWidths(size.width);
 
             // Since calculating row height might be expensive, we'll only
             // perform the check against a subset of columns (where col width
@@ -219,8 +235,8 @@ export default class ResultTable extends React.Component {
             return (
               <MultiGrid
                 ref={ref => (this.grid = ref)}
-                width={width - 1}
-                height={height}
+                width={size.width - 1}
+                height={size.height}
                 rowCount={data.length + 1}
                 columnCount={colCount}
                 fixedRowCount={1}

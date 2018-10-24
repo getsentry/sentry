@@ -147,6 +147,10 @@ export const ResultSummary = styled(Box)`
   margin-bottom: ${space(3)};
 `;
 
+export const ResultContainer = styled('div')`
+  flex: 1;
+`;
+
 export const ChartWrapper = styled(Panel)`
   padding: ${space(3)} ${space(2)};
 `;

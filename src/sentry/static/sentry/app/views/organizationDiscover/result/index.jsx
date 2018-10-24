@@ -21,6 +21,7 @@ import {
   Heading,
   EditableName,
   ResultSummary,
+  ResultContainer,
   ChartWrapper,
   ChartNote,
   SavedQueryAction,
@@ -208,11 +209,7 @@ export default class Result extends React.Component {
   }
 
   render() {
-    const {
-      data: {baseQuery, byDayQuery},
-      savedQuery,
-      onFetchPage,
-    } = this.props;
+    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage} = this.props;
 
     const {view} = this.state;
 
@@ -231,7 +228,7 @@ export default class Result extends React.Component {
     };
 
     return (
-      <Box flex="1">
+      <ResultContainer innerRef={ref => (this.container = ref)}>
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
@@ -241,7 +238,11 @@ export default class Result extends React.Component {
 
         {view === 'table' && (
           <div>
-            <Table data={baseQuery.data} query={baseQuery.query} />
+            <Table
+              data={baseQuery.data}
+              query={baseQuery.query}
+              height={this.container && this.container.clientHeight}
+            />
             {!baseQuery.query.aggregations.length && (
               <Pagination
                 previous={baseQuery.previous}
@@ -300,7 +301,7 @@ export default class Result extends React.Component {
           </ChartWrapper>
         )}
         {this.renderSummary()}
-      </Box>
+      </ResultContainer>
     );
   }
 }
