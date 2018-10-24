@@ -91,10 +91,10 @@ class VstsIssueSync(IssueSyncMixin):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
-        project = data.get('project') or self.default_project
-        if project is None:
+        project_id = data.get('project')
+        if project_id is None:
             raise ValueError('VSTS expects project')
-        project_id, project_name = project.split('#')
+
         client = self.get_client()
 
         title = data['title']
@@ -112,6 +112,7 @@ class VstsIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
+        project_name = created_item['fields']['System.AreaPath']
         return {
             'key': six.text_type(created_item['id']),
             'title': title,
