@@ -24,7 +24,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_external_issue_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/42/issues?scope=all&search=AEIOU',
+            'https://example.gitlab.com/api/v4/groups/1/issues?scope=all&search=AEIOU',
             json=[
                 {'iid': 25, 'title': 'AEIOU Error', 'project_id': '1'},
                 {'iid': 45, 'title': 'AEIOU Error', 'project_id': '2'}
@@ -48,7 +48,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_project_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/42/projects?query=GetSentry&simple=True',
+            'https://example.gitlab.com/api/v4/groups/1/projects?query=GetSentry&simple=True',
             json=[
                 {
                     'id': '1',
@@ -80,7 +80,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_external_issues_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/42/issues?scope=all&search=XYZ',
+            'https://example.gitlab.com/api/v4/groups/1/issues?scope=all&search=XYZ',
             json=[]
         )
         resp = self.client.get(
@@ -98,7 +98,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_project_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/42/projects?query=GetSentry&simple=True',
+            'https://example.gitlab.com/api/v4/groups/1/projects?query=GetSentry&simple=True',
             json=[]
         )
         resp = self.client.get(
