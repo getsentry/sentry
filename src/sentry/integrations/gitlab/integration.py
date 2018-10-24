@@ -87,16 +87,26 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
-        resp = self.get_client().get_group_projects(group, query)
+        resp = self.get_client().search_group_projects(group, query)
         return [{
             'identifier': repo['id'],
             'name': repo['name_with_namespace'],
         } for repo in resp]
 
+    def search_projects(self, query):
+        client = self.get_client()
+        group_id = self.get_group_id()
+        return client.search_group_projects(group_id, query)
+
+    def search_issues(self, query):
+        client = self.get_client()
+        group_id = self.get_group_id()
+        return client.search_group_issues(group_id, query)
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
-        label=_("Installation Url"),
+        label=_('Installation Url'),
         help_text=_('The "base URL" for your GitLab instance, '
                     'includes the host and protocol.'),
         widget=forms.TextInput(
@@ -104,13 +114,13 @@ class InstallationForm(forms.Form):
         ),
     )
     group = forms.CharField(
-        label=_("GitLab Group Name"),
+        label=_('GitLab Group Name'),
         widget=forms.TextInput(
-            attrs={'placeholder': _('my-awesome-group')}
+            attrs={'placeholder': _('example-co')}
         )
     )
     verify_ssl = forms.BooleanField(
-        label=_("Verify SSL"),
+        label=_('Verify SSL'),
         help_text=_('By default, we verify SSL certificates '
                     'when delivering payloads to your GitLab instance, '
                     'and request GitLab to verify SSL when it delivers '
@@ -119,14 +129,14 @@ class InstallationForm(forms.Form):
         required=False
     )
     client_id = forms.CharField(
-        label=_("GitLab Application ID"),
+        label=_('GitLab Application ID'),
         widget=forms.TextInput(
             attrs={'placeholder': _(
                 '5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737')}
         )
     )
     client_secret = forms.CharField(
-        label=_("GitLab Application Secret"),
+        label=_('GitLab Application Secret'),
         widget=forms.TextInput(
             attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
         )

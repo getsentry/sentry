@@ -16,17 +16,16 @@ class GitLabApiClientPath(object):
     compare = u'/projects/{project}/repository/compare'
     diff = u'/projects/{project}/repository/commits/{sha}/diff'
     group = u'/groups/{group}'
+    group_issues = u'/groups/{group}/issues'
     group_projects = u'/groups/{group}/projects'
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
-    issues_search = u'/issues'
     members = u'/projects/{project}/members'
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
     project_hooks = u'/projects/{project}/hooks'
     project_hook = u'/projects/{project}/hooks/{hook_id}'
-    projects = u'/projects'
     user = u'/user'
 
     @staticmethod
@@ -105,7 +104,7 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         """
         return self.get(GitLabApiClientPath.user)
 
-    def get_group_projects(self, group, query=None, simple=True):
+    def search_group_projects(self, group, query=None, simple=True):
         """Get projects for a group
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
@@ -131,21 +130,6 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             GitLabApiClientPath.project.format(project=project_id)
         )
 
-    def get_projects(self, query, simple=True):
-        """Get project list
-
-        See https://docs.gitlab.com/ee/api/projects.html#list-all-projects
-        """
-        # simple param returns limited fields for the project.
-        # Really useful, because we often don't need most of the project information
-        return self.get(
-            GitLabApiClientPath.projects,
-            params={
-                'search': query,
-                'simple': simple,
-            }
-        )
-
     def get_issue(self, project_id, issue_id):
         """Get an issue
 
@@ -168,14 +152,17 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             data=data,
         )
 
-    def search_issues(self, query):
-        return self.get(
-            GitLabApiClientPath.issues_search,
-            params={
-                'scope': 'all',
-                'search': query
-            }
-        )
+    def search_group_issues(self, group_id, query):
+        """Search issues in a group
+
+        See https://docs.gitlab.com/ee/api/issues.html#list-group-issues
+        """
+        path = GitLabApiClientPath.group_issues.format(group=group_id)
+
+        return self.get(path, params={
+            'scope': 'all',
+            'search': query
+        })
 
     def create_note(self, project_id, issue_iid, data):
         """Create an issue note
