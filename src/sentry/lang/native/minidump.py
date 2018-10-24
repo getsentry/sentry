@@ -3,6 +3,8 @@ from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUpload
 
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
 
+# Attachment type used for minidump files
+MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
 
 # Mapping of well-known minidump OS constants to our internal names
 MINIDUMP_OS_TYPES = {

@@ -36,7 +36,7 @@ from sentry.coreapi import (
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.minidump import merge_minidump_event
+from sentry.lang.native.minidump import merge_minidump_event, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -672,7 +672,7 @@ class MinidumpView(StoreView):
         # allow us to stack walk again with CFI once symbols are loaded.
         attachments = []
         minidump.seek(0)
-        attachments.append(CachedAttachment.from_upload(minidump, type='event.minidump'))
+        attachments.append(CachedAttachment.from_upload(minidump, type=MINIDUMP_ATTACHMENT_TYPE))
 
         # Append all other files as generic attachments. We can skip this if the
         # feature is disabled since they won't be saved.
