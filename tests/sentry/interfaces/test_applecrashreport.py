@@ -42,6 +42,14 @@ class AppleCrashReportTest(TestCase):
             )
         )
 
+    def test_null_values(self):
+        sink = {}
+
+        assert AppleCrashReport.to_python(None).to_json() == sink
+        assert AppleCrashReport.to_python({}).to_json() == sink
+        assert AppleCrashReport.to_python({"binary_images": None}).to_json() == sink
+        assert AppleCrashReport.to_python({"binary_images": []}).to_json() == sink
+
     def test_path(self):
         assert self.interface.get_path() == 'sentry.interfaces.AppleCrashReport'
 
