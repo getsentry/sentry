@@ -576,6 +576,20 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
+      <Route name="Developer Settings" path="developer-settings/">
+        <IndexRoute
+          componentPromise={() =>
+            import(/*webpackChunkName:"OrganizationDeveloperSettings"*/ './views/settings/organizationDeveloperSettings')}
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          name="New Application"
+          path="new/"
+          componentPromise={() =>
+            import(/*webpackChunkName: "sentryApplicationDetails"*/ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')}
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
     </React.Fragment>
   );
 
