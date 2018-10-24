@@ -11,7 +11,7 @@ import {t} from 'app/locale';
 
 import HeaderItem from './headerItem';
 
-export default class MultipleProjectSelector extends React.Component {
+export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
     anchorRight: PropTypes.bool,
     value: PropTypes.array,
@@ -21,7 +21,7 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   static defaultProps = {
-    anchorRight: true,
+    anchorRight: false,
   };
 
   constructor() {

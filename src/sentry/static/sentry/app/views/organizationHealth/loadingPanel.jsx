@@ -22,6 +22,7 @@ const LoadingPanel = styled(props => (
   height: 200px;
   position: relative;
   border-color: transparent;
+  margin-bottom: 0;
 `;
 
 export default LoadingPanel;

@@ -116,7 +116,16 @@ export default class AsyncComponent extends React.Component {
   }
 
   remountComponent = () => {
-    this.setState(this.getDefaultState(), this.fetchData);
+    if (this.shouldReload) {
+      this.setState(
+        {
+          reloading: true,
+        },
+        this.fetchData
+      );
+    } else {
+      this.setState(this.getDefaultState(), this.fetchData);
+    }
   };
 
   visibilityReloader = () =>
@@ -327,7 +336,7 @@ export default class AsyncComponent extends React.Component {
   }
 
   renderComponent() {
-    return this.state.loading && !this.state.reloading
+    return this.state.loading && (!this.shouldReload || !this.state.reloading)
       ? this.renderLoading()
       : this.state.error
         ? this.renderError(new Error('Unable to load all required endpoints'))

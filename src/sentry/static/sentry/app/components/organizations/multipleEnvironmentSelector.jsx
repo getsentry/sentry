@@ -16,7 +16,7 @@ import HeaderItem from './headerItem';
 /**
  * Environment Selector
  */
-class MultipleEnvironmentSelector extends React.Component {
+class MultipleEnvironmentSelector extends React.PureComponent {
   static propTypes = {
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,

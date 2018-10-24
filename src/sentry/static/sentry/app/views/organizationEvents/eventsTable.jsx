@@ -1,3 +1,4 @@
+import {isEqual} from 'lodash';
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -8,11 +9,89 @@ import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import IdBadge from 'app/components/idBadge';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 
-class EventsTable extends React.PureComponent {
+const Table = styled(
+  class Table extends React.Component {
+    static propTypes = {
+      events: PropTypes.array,
+      organization: SentryTypes.Organization,
+      projectsMap: PropTypes.object,
+    };
+
+    shouldComponentUpdate(nextProps) {
+      if (
+        this.props.organization === nextProps.organization &&
+        isEqual(this.props.events, nextProps.events)
+      ) {
+        return false;
+      }
+      return true;
+    }
+
+    getEventTitle(event) {
+      const {organization, projectsMap} = this.props;
+      const project = projectsMap.get(event.projectID);
+      const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
+
+      if (!project) {
+        return trimmedMessage;
+      }
+
+      return (
+        <Link to={`/${organization.slug}/${project.slug}/issues/?query=${event.eventID}`}>
+          {trimmedMessage}
+        </Link>
+      );
+    }
+
+    render() {
+      const {className, events, organization, projectsMap} = this.props;
+      return (
+        <table className={className}>
+          <tbody>
+            {events.map((event, eventIdx) => {
+              const project = projectsMap.get(event.projectID);
+              return (
+                <tr key={`${project.slug}-${event.eventID}`}>
+                  <Td>
+                    <Link to={`/${organization.slug}/${project.slug}/`}>
+                      <Tooltip title={project.slug}>
+                        <IdBadge project={project} hideName />
+                      </Tooltip>
+                    </Link>
+                  </Td>
+
+                  <Td>
+                    <EventTitle>{this.getEventTitle(event)}</EventTitle>
+                  </Td>
+
+                  <Td>
+                    <IdBadge user={event.user} hideEmail />
+                    <DateRow>
+                      <DateTime date={new Date(event.dateCreated)} />
+                    </DateRow>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      );
+    }
+  }
+)`
+  border: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+`;
+
+class EventsTable extends React.Component {
   static propTypes = {
+    reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
   };
@@ -24,24 +103,8 @@ class EventsTable extends React.PureComponent {
     );
   }
 
-  getEventTitle(event) {
-    const {organization} = this.props;
-    const project = this.projectsMap.get(event.projectID);
-    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
-
-    if (!project) {
-      return trimmedMessage;
-    }
-
-    return (
-      <Link to={`/${organization.slug}/${project.slug}/issues/?query=${event.eventID}`}>
-        {trimmedMessage}
-      </Link>
-    );
-  }
-
   render() {
-    const {events, organization} = this.props;
+    const {events, organization, reloading} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -49,35 +112,12 @@ class EventsTable extends React.PureComponent {
         {!hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
         {hasEvents && (
           <Wrapper>
-            <Table>
-              <tbody>
-                {events.map((event, eventIdx) => {
-                  const project = this.projectsMap.get(event.projectID);
-                  return (
-                    <tr key={`${project.slug}-${event.eventID}`}>
-                      <Td>
-                        <Link to={`/${organization.slug}/${project.slug}/`}>
-                          <Tooltip title={project.slug}>
-                            <IdBadge project={project} hideName />
-                          </Tooltip>
-                        </Link>
-                      </Td>
-
-                      <Td>
-                        <EventTitle>{this.getEventTitle(event)}</EventTitle>
-                      </Td>
-
-                      <Td>
-                        <IdBadge user={event.user} hideEmail />
-                        <DateRow>
-                          <DateTime date={new Date(event.dateCreated)} />
-                        </DateRow>
-                      </Td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
+            {reloading && <StyledLoadingIndicator overlay />}
+            <Table
+              events={events}
+              organization={organization}
+              projectsMap={this.projectsMap}
+            />
           </Wrapper>
         )}
       </React.Fragment>
@@ -97,15 +137,17 @@ class EventsTableContainer extends React.Component {
 export default withRouter(EventsTableContainer);
 export {EventsTable};
 
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  padding-top: 40vh;
+  z-index: 1;
+  &.loading.overlay {
+    align-items: flex-start;
+  }
+`;
+
 const Wrapper = styled(PanelBody)`
   overflow-x: auto;
   padding: 0;
-`;
-const Table = styled('table')`
-  border: 0;
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
 `;
 
 const Td = styled('td')`

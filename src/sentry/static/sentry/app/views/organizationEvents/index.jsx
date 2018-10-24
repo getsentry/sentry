@@ -98,7 +98,7 @@ class OrganizationEventsContainer extends React.Component {
     this.setState({start, end, period: relative});
   };
 
-  handleUpdate = type => {
+  handleUpdatePeriod = () => {
     this.setState(({period, start, end, ...state}) => {
       let newValueObj = {};
 
