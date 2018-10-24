@@ -214,3 +214,20 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
         assert(response.data['data'][0]['uniq_project_name']) == 1
+
+    def test_meta_types(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['project_id', 'project_name'],
+                'aggregations': [['count()', '', 'count']],
+                'range': '14d',
+                'orderby': '-count',
+            })
+        assert response.status_code == 200, response.content
+        assert response.data['meta'] == [
+            {'name': 'project_id', 'type': 'integer'},
+            {'name': 'project_name', 'type': 'string'},
+            {'name': 'count', 'type': 'integer'}
+        ]
