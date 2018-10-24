@@ -48,13 +48,10 @@ class Sdk(Interface):
 
     @classmethod
     def to_python(cls, data):
+        if data is None:
+            data = {}
         name = data.get('name')
-        if not name:
-            raise InterfaceValidationError("No 'name' value")
-
         version = data.get('version')
-        if not version:
-            raise InterfaceValidationError("No 'version' value")
 
         integrations = data.get('integrations')
         if integrations and not isinstance(integrations, list):
