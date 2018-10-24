@@ -72,21 +72,28 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 
 
+@register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry import tagstore
 
-        return {
+        output = {
             'key': tagstore.get_standardized_key(obj.key),
             'name': tagstore.get_tag_key_label(obj.key),
             'uniqueValues': obj.values_seen,
         }
+        if obj.count is not None:
+            output['totalValues'] = obj.count
+        if obj.top_values is not None:
+            output['topValues'] = serialize(obj.top_values, user)
+        return output
 
 
+@register(GroupTagValue)
 @register(TagValue)
 class TagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
@@ -95,33 +102,6 @@ class TagValueSerializer(Serializer):
         return {
             'key': tagstore.get_standardized_key(obj.key),
             'name': tagstore.get_tag_value_label(obj.key, obj.value),
-            'value': obj.value,
-            'count': obj.times_seen,
-            'lastSeen': obj.last_seen,
-            'firstSeen': obj.first_seen,
-        }
-
-
-@register(GroupTagKey)
-class GroupTagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        from sentry import tagstore
-
-        return {
-            'name': tagstore.get_tag_key_label(obj.key),
-            'key': tagstore.get_standardized_key(obj.key),
-            'uniqueValues': obj.values_seen,
-        }
-
-
-@register(GroupTagValue)
-class GroupTagValueSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        from sentry import tagstore
-
-        return {
-            'name': tagstore.get_tag_value_label(obj.key, obj.value),
-            'key': tagstore.get_standardized_key(obj.key),
             'value': obj.value,
             'count': obj.times_seen,
             'lastSeen': obj.last_seen,
