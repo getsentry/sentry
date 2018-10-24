@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+
+import six
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
@@ -13,14 +15,16 @@ MINIDUMP_OS_TYPES = {
 }
 
 
-def merge_minidump_event(data, minidump):
+def merge_minidump_event(data, minidump, cfi=None):
     if isinstance(minidump, InMemoryUploadedFile):
         minidump.open()  # seek to start
-        state = ProcessState.from_minidump_buffer(minidump.read())
+        state = ProcessState.from_minidump_buffer(minidump.read(), cfi)
     elif isinstance(minidump, TemporaryUploadedFile):
-        state = ProcessState.from_minidump(minidump.temporary_file_path())
+        state = ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
+    elif isinstance(minidump, six.binarytypes):
+        state = ProcessState.from_minidump_buffer(minidump, cfi)
     else:
-        state = ProcessState.from_minidump(minidump)
+        state = ProcessState.from_minidump(minidump, cfi)
 
     data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
