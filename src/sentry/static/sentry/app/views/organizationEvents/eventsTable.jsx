@@ -9,12 +9,14 @@ import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import IdBadge from 'app/components/idBadge';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-class EventsTable extends React.PureComponent {
+class EventsTable extends React.Component {
   static propTypes = {
+    reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
   };
@@ -26,24 +28,8 @@ class EventsTable extends React.PureComponent {
     );
   }
 
-  getEventTitle(event) {
-    const {organization} = this.props;
-    const project = this.projectsMap.get(event.projectID);
-    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
-
-    if (!project) {
-      return trimmedMessage;
-    }
-
-    return (
-      <Link to={`/${organization.slug}/${project.slug}/issues/?query=${event.eventID}`}>
-        {trimmedMessage}
-      </Link>
-    );
-  }
-
   render() {
-    const {events, organization} = this.props;
+    const {events, organization, reloading} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -59,6 +45,7 @@ class EventsTable extends React.PureComponent {
         {!hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
         {hasEvents && (
           <StyledPanelBody>
+            {reloading && <StyledLoadingIndicator overlay />}
             {events.map((event, eventIdx) => {
               const project = this.projectsMap.get(event.projectID);
               return (
@@ -117,6 +104,14 @@ const TableLayout = styled('div')`
   grid-template-columns: 0.8fr 0.15fr 0.25fr 200px;
   grid-column-gap: ${space(1.5)};
   width: 100%;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  padding-top: 40vh;
+  z-index: 1;
+  &.loading.overlay {
+    align-items: flex-start;
+  }
 `;
 
 const TableRow = styled(TableLayout)`
