@@ -8,6 +8,7 @@ from sentry.models import Identity, Integration, OrganizationIntegration, sync_g
 from sentry.api.base import Endpoint
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.crypto import constant_time_compare
 
 import re
 UNSET = object()
@@ -66,8 +67,6 @@ class WorkItemWebhook(Endpoint):
                         'integration_id': integration.id
                     }
                 )
-                # TODO(lb): I'm not sure we should even return anything negative to vsts
-                # lest it disable the webhook
                 return self.respond(status=401)
             self.handle_updated_workitem(data, integration)
         return self.respond()
@@ -85,7 +84,7 @@ class WorkItemWebhook(Endpoint):
                 }
             )
 
-        assert integration_secret == webhook_payload_secret
+        assert constant_time_compare(integration_secret, webhook_payload_secret)
 
     def handle_updated_workitem(self, data, integration):
         try:
