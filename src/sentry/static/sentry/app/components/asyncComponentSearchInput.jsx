@@ -18,6 +18,8 @@ class AsyncComponentSearchInput extends React.Component {
     url: PropTypes.string.isRequired,
     onSuccess: PropTypes.func.isRequired,
     onError: PropTypes.func.isRequired,
+    // Updates URL with search query in the URL param: `query`
+    updateRoute: PropTypes.bool,
     router: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     onSearchSubmit: PropTypes.func,
@@ -61,9 +63,24 @@ class AsyncComponentSearchInput extends React.Component {
     this.setState({query: searchQuery});
   };
 
+  /**
+   * This is called when "Enter" (more specifically a form "submit" event) is pressed.
+   */
   handleSearch = evt => {
-    let {onSearchSubmit} = this.props;
+    let {updateRoute, onSearchSubmit} = this.props;
     evt.preventDefault();
+
+    // Update the URL to reflect search term.
+    if (updateRoute) {
+      let {router, location} = this.props;
+      router.push({
+        pathname: location.pathname,
+        query: {
+          query: this.state.query,
+        },
+      });
+    }
+
     if (typeof onSearchSubmit !== 'function') return;
     onSearchSubmit(this.state.query, evt);
   };

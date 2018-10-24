@@ -69,29 +69,12 @@ export default class OrganizationProjects extends AsyncView {
     return `${org.name} Projects`;
   }
 
-  /**
-   * This is called when "Enter" (more specifically a "submit" event) is pressed.
-   * Update the URL to reflect search term.
-   */
-  handleSearch = (query, e) => {
-    let {router} = this.context;
-    let {location} = this.props;
-    e.preventDefault();
-    router.push({
-      pathname: location.pathname,
-      query: {
-        query,
-      },
-    });
-  };
-
   renderBody() {
     let {projectList, projectListPageLinks, projectStats} = this.state;
     let {organization} = this.context;
     let canCreateProjects = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
-    let [stateKey, url] = this.getEndpoints()[0];
 
     let action = (
       <Button
@@ -118,11 +101,9 @@ export default class OrganizationProjects extends AsyncView {
             {t('Projects')}
 
             {this.renderSearchInput({
-              onSearchSubmit: this.handleSearch,
+              updateRoute: true,
               placeholder: t('Search Projects'),
               className: 'search',
-              url,
-              stateKey,
             })}
           </PanelHeader>
           <PanelBody css={{width: '100%'}}>

@@ -211,10 +211,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           api={Client {}}
                           className="search"
                           onError={[Function]}
-                          onSearchSubmit={[Function]}
                           onSuccess={[Function]}
                           placeholder="Search Projects"
                           stateKey="projectList"
+                          updateRoute={true}
                           url="/organizations/org-slug/projects/"
                         >
                           <AsyncComponentSearchInput
@@ -226,7 +226,6 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               }
                             }
                             onError={[Function]}
-                            onSearchSubmit={[Function]}
                             onSuccess={[Function]}
                             placeholder="Search Projects"
                             router={
@@ -272,6 +271,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                               }
                             }
                             stateKey="projectList"
+                            updateRoute={true}
                             url="/organizations/org-slug/projects/"
                           >
                             <Form
