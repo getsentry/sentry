@@ -97,7 +97,10 @@ describe('Discover', function() {
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {timing: {}, data: [], meta: []},
-        headers: {Link: '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"'}
+        headers: {
+          Link:
+            '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"',
+        },
       });
 
       secondPageMock = MockApiClient.addMockResponse({
@@ -117,25 +120,39 @@ describe('Discover', function() {
       );
     });
 
-    it('can go to next page', async function(){
+    it('can go to next page', async function() {
       wrapper.instance().runQuery();
       await tick();
       wrapper.update();
-      wrapper.find('PaginationButtons').find('Button').at(1).simulate('click');
+      wrapper
+        .find('PaginationButtons')
+        .find('Button')
+        .at(1)
+        .simulate('click');
       expect(firstPageMock).toHaveBeenCalledTimes(1);
       expect(secondPageMock).toHaveBeenCalledTimes(1);
     });
 
-    it('can\'t go back', async function() {
+    it("can't go back", async function() {
       wrapper.instance().runQuery();
       await tick();
       wrapper.update();
-      expect(wrapper.find('PaginationButtons').find('Button').at(0).prop('disabled')).toBe(true);
-      wrapper.find('PaginationButtons').find('Button').at(0).simulate('click');
+      expect(
+        wrapper
+          .find('PaginationButtons')
+          .find('Button')
+          .at(0)
+          .prop('disabled')
+      ).toBe(true);
+      wrapper
+        .find('PaginationButtons')
+        .find('Button')
+        .at(0)
+        .simulate('click');
       expect(firstPageMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not paginate on aggregate', async function(){
+    it('does not paginate on aggregate', async function() {
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
       await tick();
@@ -168,7 +185,6 @@ describe('Discover', function() {
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
-
     });
 
     it('always requests event_id and project_id for basic queries', async function() {
