@@ -163,9 +163,9 @@ class OrganizationMemberDetail extends AsyncView {
                 <div className="col-md-3">
                   <div className="control-group">
                     <label>{t('Status')}</label>
-                    <div className="controls">
+                    <div className="controls" data-test-id="member-status">
                       {member.expired ? (
-                        <em>Invitiation Expired</em>
+                        <em>Invitation Expired</em>
                       ) : member.pending ? (
                         <em>Invitation Pending</em>
                       ) : (
@@ -208,7 +208,7 @@ class OrganizationMemberDetail extends AsyncView {
                       {t('Generate New Invite')}
                     </Button>
                     {canResend && (
-                      <Button onClick={() => this.handleInvite(false)}>
+                      <Button data-test-id="resend-invite" onClick={() => this.handleInvite(false)}>
                         {t('Resend Invite')}
                       </Button>
                     )}
