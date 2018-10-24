@@ -33,6 +33,8 @@ class OrganizationMemberListTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]['email'] == self.user_2.email
         assert response.data[1]['email'] == self.owner_user.email
+        assert response.data[0]['pending'] is False
+        assert response.data[0]['expired'] is False
 
     def test_empty_query(self):
         response = self.client.get(self.url + "?query=")

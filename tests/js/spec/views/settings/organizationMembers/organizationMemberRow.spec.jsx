@@ -140,6 +140,24 @@ describe('OrganizationMemberRow', function() {
     });
   });
 
+  describe('Expired user', function() {
+    it('has "Expired" status', function() {
+      let wrapper = shallow(
+        <OrganizationMemberRow
+          {...defaultProps}
+          member={{
+            ...member,
+            pending: true,
+            expired: true,
+          }}
+        />
+      );
+
+      expect(findWithText(wrapper.find('strong'), 'Expired')).toHaveLength(1);
+      expect(wrapper.find('ResendInviteButton')).toHaveLength(0);
+    });
+  });
+
   describe('Requires SSO Link', function() {
     let props = {
       ...defaultProps,

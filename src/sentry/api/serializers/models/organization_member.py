@@ -29,6 +29,7 @@ class OrganizationMemberSerializer(Serializer):
             'role': obj.role,
             'roleName': obj.get_role_display(),
             'pending': obj.is_pending,
+            'expired': obj.token_expired,
             'flags': {
                 'sso:linked': bool(getattr(obj.flags, 'sso:linked')),
                 'sso:invalid': bool(getattr(obj.flags, 'sso:invalid')),
