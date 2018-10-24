@@ -17,7 +17,7 @@ describe('OrganizationDiscoverContainer', function() {
     });
     beforeEach(async function() {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
           data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
