@@ -4,7 +4,7 @@ from .client import VstsApiClient
 import logging
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
-from sentry.app import raven
+from sentry.utils.sdk import capture_exception
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 
@@ -36,7 +36,7 @@ class WorkItemWebhook(Endpoint):
             try:
                 self.check_webhook_secret(request, integration)
             except AssertionError:
-                raven.captureException()
+                capture_exception()
                 return self.respond(status=401)
             self.handle_updated_workitem(data, integration)
         return self.respond()

@@ -31,6 +31,7 @@ from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
+from sentry.utils.sdk import configure_scope
 from sentry.utils.canonical import CANONICAL_TYPES
 
 
@@ -94,57 +95,16 @@ class ClientContext(object):
     def bind_project(self, project):
         self.project = project
         self.project_id = project.id
+        with configure_scope() as scope:
+            scope.set_tag("project", project.id)
 
     def bind_auth(self, auth):
         self.agent = auth.client
         self.version = auth.version
 
-    def get_tags_context(self):
-        return {'project': self.project_id, 'agent': self.agent, 'protocol': self.version}
-
-
-class ClientLogHelper(object):
-    # XXX(markus): Remove. This should all be doable via scopes
-    def __init__(self, context):
-        self.context = context
-
-    def debug(self, *a, **k):
-        logger.debug(*a, **self._metadata(**k))
-
-    def info(self, *a, **k):
-        logger.info(*a, **self._metadata(**k))
-
-    def warning(self, *a, **k):
-        logger.warning(*a, **self._metadata(**k))
-
-    def error(self, *a, **k):
-        logger.error(*a, **self._metadata(**k))
-
-    def _metadata(self, tags=None, extra=None, **kwargs):
-        if not extra:
-            extra = {}
-        if not tags:
-            tags = {}
-
-        context = self.context
-
-        project = context.project
-        if project:
-            project_label = '%s/%s' % (project.organization.slug, project.slug)
-        else:
-            project_label = 'id=%s' % (context.project_id, )
-
-        tags.update(context.get_tags_context())
-        tags['project'] = project_label
-
-        extra['tags'] = tags
-        extra['agent'] = context.agent
-        extra['protocol'] = context.version
-        extra['project'] = project_label
-
-        kwargs['extra'] = extra
-
-        return kwargs
+        with configure_scope() as scope:
+            scope.set_tag("agent", self.agent)
+            scope.set_tag("protocol", self.version)
 
 
 class ClientApiHelper(object):
@@ -155,7 +115,6 @@ class ClientApiHelper(object):
             project_id=project_id,
             ip_address=ip_address,
         )
-        self.log = ClientLogHelper(self.context)
 
     def auth_from_request(self, request):
         result = {k: request.GET[k] for k in six.iterkeys(
