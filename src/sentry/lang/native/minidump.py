@@ -15,6 +15,14 @@ MINIDUMP_OS_TYPES = {
 }
 
 
+def is_minidump_event(data):
+    exceptions = data.get('exception', {}).get('values', [])
+    if not exceptions:
+        return False
+
+    return exceptions[0].get('mechanism', {}).get('type') == 'minidump'
+
+
 def merge_minidump_event(data, minidump, cfi=None):
     if isinstance(minidump, InMemoryUploadedFile):
         minidump.open()  # seek to start
