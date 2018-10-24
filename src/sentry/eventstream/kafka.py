@@ -151,7 +151,7 @@ class KafkaEventStream(EventStream):
         state = {
             'transaction_id': uuid4().hex,
             'project_id': project_id,
-            'group_ids': group_ids,
+            'group_ids': list(group_ids),
             'datetime': datetime.now(tz=pytz.utc),
         }
 
@@ -181,7 +181,7 @@ class KafkaEventStream(EventStream):
         state = {
             'transaction_id': uuid4().hex,
             'project_id': project_id,
-            'previous_group_ids': previous_group_ids,
+            'previous_group_ids': list(previous_group_ids),
             'new_group_id': new_group_id,
             'datetime': datetime.now(tz=pytz.utc),
         }
@@ -214,7 +214,7 @@ class KafkaEventStream(EventStream):
             'project_id': project_id,
             'previous_group_id': previous_group_id,
             'new_group_id': new_group_id,
-            'hashes': hashes,
+            'hashes': list(hashes),
             'datetime': datetime.now(tz=pytz.utc),
         }
 
