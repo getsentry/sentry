@@ -13,9 +13,15 @@ class SentryAppSerializer(Serializer):
             'scopes': obj.get_scopes(),
             'status': obj.get_status_display(),
             'uuid': obj.uuid,
+<<<<<<< HEAD
             'webhookUrl': obj.webhook_url,
             'redirectUrl': obj.redirect_url,
             'clientId': obj.application.client_id,
             'clientSecret': obj.application.client_secret,
             'overview': obj.overview,
+=======
+            'webhook_url': obj.webhook_url,
+            'clientID': obj.application.client_id,
+            'clientSecret': obj.application.client_secret,
+>>>>>>> use org sentry app endpoint & styling
         }

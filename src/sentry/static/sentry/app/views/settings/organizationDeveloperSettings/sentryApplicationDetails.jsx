@@ -6,6 +6,7 @@ import {browserHistory} from 'react-router';
 import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
 
@@ -53,10 +54,14 @@ class SentryApplicationDetails extends AsyncView {
 
   getEndpoints() {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> use org sentry app endpoint & styling
     let {appSlug} = this.props.params;
     if (appSlug) {
       return [['app', `/sentry-apps/${appSlug}/`]];
     }
+<<<<<<< HEAD
     return [];
   }
 
@@ -64,6 +69,9 @@ class SentryApplicationDetails extends AsyncView {
     return t('Sentry Application Details');
 =======
     return [['app', `/sentry-apps/`]];
+=======
+    return []
+>>>>>>> use org sentry app endpoint & styling
   }
 
   getTitle() {
@@ -91,16 +99,25 @@ class SentryApplicationDetails extends AsyncView {
   }
 
   onSubmitSuccess = (data) => {
-    debugger;
+    const {orgId} = this.props.params;
+    browserHistory.push(`/settings/${orgId}/developer-settings/`);
   }
 
   renderBody() {
+<<<<<<< HEAD
     let {orgId} = this.props.params;
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+    const {orgId} = this.props.params;
+    const {app} = this.state;
+    let method = app ? "PUT" : "POST";
+    let endpoint = app ? `/sentry-apps/${app.slug}/` : `/sentry-apps/`;
+>>>>>>> use org sentry app endpoint & styling
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
         <Form
+<<<<<<< HEAD
 <<<<<<< HEAD
           apiMethod={method}
           apiEndpoint={endpoint}
@@ -146,8 +163,12 @@ class SentryApplicationDetails extends AsyncView {
 =======
           apiMethod="POST"
           apiEndpoint={`/sentry-apps/`}
+=======
+          apiMethod={method}
+          apiEndpoint={endpoint}
+>>>>>>> use org sentry app endpoint & styling
           allowUndo
-          initialData={{organization: orgId}}
+          initialData={{organization: orgId, ...app}}
           onSubmitSuccess={this.onSubmitSuccess}
           onSubmitError={err => addErrorMessage('Unable to save change')}
         >
@@ -169,12 +190,13 @@ class SentryApplicationDetails extends AsyncView {
                           onChange,
                           onBlur
                         )}
-                        data={['org:write', 'org:read']}
+                        scopes={app && app.scopes ? app.scopes : []}
                       />
                     )}
                   </FormField>
               </PanelBody>
             </Panel>
+<<<<<<< HEAD
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
 
@@ -214,6 +236,43 @@ class SentryApplicationDetails extends AsyncView {
 <<<<<<< HEAD
           )}
 =======
+=======
+            {app &&
+              <Panel>
+                <PanelHeader>{t('Credentials')}</PanelHeader>
+                <PanelBody>
+                  <FormField name="clientID" label="Client ID" overflow>
+                    {({value}) => {
+                      return (
+                        <div>
+                          <TextCopyInput>
+                            {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                          </TextCopyInput>
+                        </div>
+                      );
+                    }}
+                  </FormField>
+                  <FormField
+                    overflow
+                    name="clientSecret"
+                    label="Client Secret"
+                    help={t(`Your secret is only available briefly after application creation. Make
+                      sure to save this value!`)}
+                      >
+                        {({value}) => {
+                          return value ? (
+                            <TextCopyInput>
+                              {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                            </TextCopyInput>
+                          ) : (
+                            <em>hidden</em>
+                          );
+                        }}
+                      </FormField>
+                    </PanelBody>
+                  </Panel>
+              }
+>>>>>>> use org sentry app endpoint & styling
           </Box>
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
         </Form>

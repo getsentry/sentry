@@ -66,8 +66,12 @@ class ApplicationScopes extends React.Component {
         scopes: new Set(scopes),
       },
       () => {
+<<<<<<< HEAD
         this.props.onToggle(this.props.data, scopes, e);
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+        this.props.onToggle(this.props.scopes, scopes, e);
+>>>>>>> use org sentry app endpoint & styling
       }
     );
   };
