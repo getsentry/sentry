@@ -20,6 +20,7 @@ class VstsApiPath(object):
     commits = u'{instance}_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'{instance}_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    project = u'{instance}_apis/projects/{project_id}'
     projects = u'{instance}_apis/projects'
     repository = u'{instance}{project}_apis/git/repositories/{repo_id}'
     repositories = u'{instance}{project}_apis/git/repositories'
@@ -224,6 +225,15 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                     'version': end_sha
                 }
             }
+        )
+
+    def get_project(self, instance, project_id):
+        return self.get(
+            VstsApiPath.project.format(
+                instance=instance,
+                project_id=project_id,
+            ),
+            params={'stateFilter': 'WellFormed'}
         )
 
     def get_projects(self, instance):

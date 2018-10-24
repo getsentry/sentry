@@ -23,6 +23,14 @@ class VstsIssueSync(IssueSyncMixin):
     def get_persisted_default_config_fields(self):
         return ['project']
 
+    def create_default_repo_choice(self, default_repo):
+        try:
+            # default_repo should be the project_id
+            project = self.get_client().get_project(default_repo)
+        except (ApiError, ApiUnauthorized):
+            return ('', '')
+        return (project['id'], project['name'])
+
     def get_project_choices(self, group, **kwargs):
         client = self.get_client()
         try:
@@ -48,6 +56,8 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+        # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
+        # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
         return [
