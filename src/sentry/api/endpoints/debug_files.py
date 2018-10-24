@@ -8,7 +8,6 @@ import posixpath
 from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
-from rest_framework import serializers
 
 from sentry import ratelimits
 
@@ -17,12 +16,10 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
-from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
-    VersionDSymFile, DSymApp, DIF_PLATFORMS, create_files_from_dif_zip, \
-    get_assemble_status, set_assemble_status
-from sentry.utils import json
 from sentry.constants import KNOWN_DIF_TYPES
+from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
+    create_files_from_dif_zip, get_assemble_status, set_assemble_status
+from sentry.utils import json
 
 try:
     from django.http import (
@@ -33,18 +30,6 @@ except ImportError:
 
 logger = logging.getLogger('sentry.api')
 ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
-
-
-class AssociateDsymSerializer(serializers.Serializer):
-    checksums = ListField(child=serializers.CharField(max_length=40))
-    platform = serializers.ChoiceField(choices=zip(
-        DIF_PLATFORMS.keys(),
-        DIF_PLATFORMS.keys(),
-    ))
-    name = serializers.CharField(max_length=250)
-    appId = serializers.CharField(max_length=250)
-    version = serializers.CharField(max_length=40)
-    build = serializers.CharField(max_length=40, required=False)
 
 
 def upload_from_request(request, project):
@@ -210,42 +195,9 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission, )
 
+    # Legacy endpoint, kept for backwards compatibility
     def post(self, request, project):
-        serializer = AssociateDsymSerializer(data=request.DATA)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        data = serializer.object
-
-        associated = []
-        dsym_app = DSymApp.objects.create_or_update_app(
-            sync_id=None,
-            app_id=data['appId'],
-            project=project,
-            data={'name': data['name']},
-            platform=DIF_PLATFORMS[data['platform']],
-        )
-
-        # There can be concurrent deletes on the underlying file object
-        # that the project dsym file references.  This means that we can
-        # get errors if we don't prefetch this when serializing.  Additionally
-        # performance wise it's a better idea to fetch this in one go.
-        difs = ProjectDebugFile.objects.find_by_checksums(
-            data['checksums'], project).select_related('file')
-
-        for dif in difs:
-            version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                dsym_file=dif,
-                version=data['version'],
-                build=data.get('build'),
-                defaults=dict(dsym_app=dsym_app),
-            )
-            if created:
-                associated.append(dif)
-
-        return Response({
-            'associatedDsymFiles': serialize(associated, request.user),
-        })
+        return Response({'associatedDsymFiles': []})
 
 
 def find_missing_chunks(organization, chunks):

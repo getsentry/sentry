@@ -121,23 +121,6 @@ def cpu_name_from_data(data):
     return unique_cpu_name
 
 
-def version_build_from_data(data):
-    """Returns release and build string from the given data if it exists."""
-    app_context = data.get('contexts', {}).get('app', {})
-    if app_context is not None:
-        if (app_context.get('app_identifier', None) and
-                app_context.get('app_version', None) and
-                app_context.get('app_build', None) and
-                app_context.get('app_name', None)):
-            return AppInfo(
-                app_context.get('app_identifier', None),
-                app_context.get('app_version', None),
-                app_context.get('app_build', None),
-                app_context.get('app_name', None),
-            )
-    return None
-
-
 def rebase_addr(instr_addr, obj):
     return parse_addr(instr_addr) - parse_addr(obj.addr)
 
