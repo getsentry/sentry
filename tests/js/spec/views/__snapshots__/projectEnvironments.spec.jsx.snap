@@ -195,26 +195,22 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-gvii4q-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      <Description
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
                         noMargin={true}
                       >
-                        <Component
-                          className="css-vc38z-TextBlock-Description eh488yo4"
-                          noMargin={true}
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
                         >
-                          <div
-                            className="css-vc38z-TextBlock-Description eh488yo4"
-                          >
-                            You don't have any environments yet.
-                          </div>
-                        </Component>
-                      </Description>
-                    </div>
+                          You don't have any environments yet.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -1027,26 +1023,22 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-gvii4q-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      <Description
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
                         noMargin={true}
                       >
-                        <Component
-                          className="css-vc38z-TextBlock-Description eh488yo4"
-                          noMargin={true}
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
                         >
-                          <div
-                            className="css-vc38z-TextBlock-Description eh488yo4"
-                          >
-                            You don't have any hidden environments.
-                          </div>
-                        </Component>
-                      </Description>
-                    </div>
+                          You don't have any hidden environments.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
