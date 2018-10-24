@@ -26,26 +26,6 @@ EXTRA_MERGE_MODELS = []
 
 
 @instrumented_task(
-    name='sentry.tasks.merge.merge_group',
-    queue='merge',
-    default_retry_delay=60 * 5,
-    max_retries=None
-)
-def merge_group(
-    from_object_id=None, to_object_id=None, transaction_id=None,
-    recursed=False, eventstream_state=None, **kwargs
-):
-    merge_groups(
-        from_object_ids=[from_object_id],
-        to_object_id=to_object_id,
-        transaction_id=transaction_id,
-        recursed=recursed,
-        eventstream_state=eventstream_state,
-        **kwargs
-    )
-
-
-@instrumented_task(
     name='sentry.tasks.merge.merge_groups',
     queue='merge',
     default_retry_delay=60 * 5,
