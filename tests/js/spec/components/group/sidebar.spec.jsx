@@ -7,6 +7,7 @@ describe('GroupSidebar', function() {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
   let environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
+  let tagValuesMock;
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -19,6 +20,11 @@ describe('GroupSidebar', function() {
       body: group,
     });
 
+    tagValuesMock = MockApiClient.addMockResponse({
+      url: '/issues/1/tags/',
+      body: TestStubs.TagValues(),
+    });
+
     wrapper = shallow(
       <GroupSidebar group={group} event={TestStubs.Event()} environment={environment} />,
       TestStubs.routerContext()
@@ -27,6 +33,12 @@ describe('GroupSidebar', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
+  });
+
+  describe('sidebar', function() {
+    it('should make a request to the /tags/ endpoint to get top values', function() {
+      expect(tagValuesMock).toHaveBeenCalled();
+    });
   });
 
   describe('renders with tags', function() {
@@ -47,6 +59,11 @@ describe('GroupSidebar', function() {
         url: '/issues/1/',
         body: group,
       });
+      MockApiClient.addMockResponse({
+        url: '/issues/1/tags/',
+        body: [],
+      });
+
       wrapper = shallow(
         <GroupSidebar
           group={group}

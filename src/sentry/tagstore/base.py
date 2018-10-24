@@ -17,6 +17,10 @@ from sentry.utils.services import Service, raises
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
+# Number of tag values to return by default for any query returning the "top"
+# values for a tag.
+TOP_VALUES_DEFAULT_LIMIT = 9
+
 # These tags are special and are used in pairing with `sentry:{}`
 # they should not be allowed to be set via data ingest due to ambiguity
 INTERNAL_TAG_KEYS = frozenset(
@@ -234,7 +238,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
         """
         >>> get_group_tag_key(1, 2, 3)
         """
@@ -341,7 +345,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
+    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         """
         >>> get_top_group_tag_values(1, 2, 3, 'key1')
         """
@@ -396,16 +400,14 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, user=None):
-        from sentry.api.serializers import serialize
+    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
 
-        tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id)
+        # If keys is unspecified, we will grab all tag keys for this group.
+        tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
 
-        return [dict(
-            totalValues=(self.get_group_tag_value_count(
-                project_id, group_id, environment_id, tk.key)
-                if tk.count is None else tk.count),
-            topValues=serialize(self.get_top_group_tag_values(
-                project_id, group_id, environment_id, tk.key, limit=10)),
-            **serialize([tk])[0]
-        ) for tk in tag_keys]
+        for tk in tag_keys:
+            tk.top_values = self.get_top_group_tag_values(project_id, group_id, environment_id, tk.key, limit=value_limit)
+            if tk.count is None:
+                tk.count = self.get_group_tag_value_count(project_id, group_id, environment_id, tk.key)
+
+        return tag_keys
