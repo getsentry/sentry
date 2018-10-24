@@ -108,6 +108,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
                                           file belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      DIFs of.
+        :qparam string query: If set, this parameter is used to locate DIFs with.
+        :qparam string id: If set, the specified DIF will be sent in the response.
         :auth: required
         """
         query = request.GET.get('query')
@@ -153,6 +155,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                                           file belongs to.
         :pparam string project_slug: the slug of the project to delete the
                                      DIF.
+        :qparam string id: The id of the DIF to delete.
         :auth: required
         """
 
@@ -259,8 +262,8 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         """
-        Assmble one or multiple chunks (FileBlob) into debug files
-        ``````````````````````````````````````````````````````````
+        Assemble one or multiple chunks (FileBlob) into debug files
+        ````````````````````````````````````````````````````````````
 
         :auth: required
         """
