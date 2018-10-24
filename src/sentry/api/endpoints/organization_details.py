@@ -59,15 +59,13 @@ def retrieve_organization_scenario(runner):
 @scenario('UpdateOrganization')
 def update_organization_scenario(runner):
     with runner.isolated_org('Badly Misnamed') as org:
-        api_key = runner.utils.create_api_key(org)
         runner.request(
             method='PUT',
             path='/organizations/%s/' % org.slug,
             data={
                 'name': 'Impeccably Designated',
                 'slug': 'impeccably-designated',
-            },
-            api_key=api_key
+            }
         )
 
 
