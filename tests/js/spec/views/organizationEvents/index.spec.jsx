@@ -62,6 +62,7 @@ describe('OrganizationEvents', function() {
       pathname: '/organizations/org-slug/events/',
       query: {
         environment: ['production'],
+        statsPeriod: '7d',
       },
     });
     expect(wrapper.state('queryValues')).toEqual(
@@ -77,6 +78,7 @@ describe('OrganizationEvents', function() {
       pathname: '/organizations/org-slug/events/',
       query: {
         environment: ['production', 'staging'],
+        statsPeriod: '7d',
       },
     });
     expect(wrapper.state('queryValues')).toEqual(
@@ -94,6 +96,7 @@ describe('OrganizationEvents', function() {
       pathname: '/organizations/org-slug/events/',
       query: {
         environment: [],
+        statsPeriod: '7d',
       },
     });
   });
@@ -118,6 +121,7 @@ describe('OrganizationEvents', function() {
           pathname: '/organizations/org-slug/events/',
           query: {
             environment: ['production'],
+            statsPeriod: '7d',
           },
         },
       },
