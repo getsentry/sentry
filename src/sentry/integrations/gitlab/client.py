@@ -21,13 +21,11 @@ class GitLabApiClientPath(object):
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
-    issues_search = u'/issues'
     members = u'/projects/{project}/members'
     notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
     project_hooks = u'/projects/{project}/hooks'
     project_hook = u'/projects/{project}/hooks/{hook_id}'
-    projects = u'/projects'
     user = u'/user'
 
     @staticmethod
@@ -106,7 +104,7 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         """
         return self.get(GitLabApiClientPath.user)
 
-    def get_group_projects(self, group, query=None, simple=True):
+    def search_group_projects(self, group, query=None, simple=True):
         """Get projects for a group
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
