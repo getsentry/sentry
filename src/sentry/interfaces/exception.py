@@ -1012,23 +1012,23 @@ class Exception(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'values' not in data:
-            data = {'values': [data]}
-
-        if not data['values']:
-            raise InterfaceValidationError("No 'values' present")
-
-        if not isinstance(data['values'], list):
-            raise InterfaceValidationError("Invalid value for 'values'")
+        if data:
+            if 'values' not in data:
+                data = {"values": [data]}
+            values = data['values']
+            if not isinstance(values, list):
+                values = []
+        else:
+            values = []
 
         kwargs = {
             'values': [SingleException.to_python(
                 v,
                 slim_frames=False,
-            ) for v in data['values']],
+            ) for v in values],
         }
 
-        if data.get('exc_omitted'):
+        if data and data.get('exc_omitted'):
             if len(data['exc_omitted']) != 2:
                 raise InterfaceValidationError("Invalid value for 'exc_omitted'")
             kwargs['exc_omitted'] = data['exc_omitted']

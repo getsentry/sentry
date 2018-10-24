@@ -52,7 +52,12 @@ class Breadcrumbs(Interface):
     @classmethod
     def to_python(cls, data):
         values = []
-        for crumb in data.get('values') or ():
+        if isinstance(data, dict):
+            old_values = data.get('values') or ()
+        else:
+            old_values = ()
+
+        for crumb in old_values:
             try:
                 values.append(cls.normalize_crumb(crumb))
             except InterfaceValidationError:
@@ -60,19 +65,21 @@ class Breadcrumbs(Interface):
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
                 continue
+
         return cls(values=values)
 
     @classmethod
     def normalize_crumb(cls, crumb):
-        ty = crumb.get('type') or 'default'
-        ts = parse_timestamp(crumb.get('timestamp'))
-        if ts is None:
-            raise InterfaceValidationError('Unable to determine timestamp ' 'for crumb')
+        if not crumb:
+            crumb = {}
 
         rv = {
-            'type': ty,
-            'timestamp': to_timestamp(ts),
+            'type': crumb.get('type') or 'default',
         }
+
+        ts = parse_timestamp(crumb.get('timestamp'))
+        if ts is not None:
+            rv['timestamp'] = to_timestamp(ts)
 
         level = crumb.get('level')
         if level not in (None, 'info'):
