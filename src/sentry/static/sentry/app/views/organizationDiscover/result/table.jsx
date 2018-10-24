@@ -94,9 +94,9 @@ export default class ResultTable extends React.Component {
   };
 
   // Returns an array of column widths for each column in the table.
-  // Estimates the column width based on the header row and the first three rows
-  // of data. Since this might be expensive, we'll only do this if there are
-  // less than 20 columns of data to check.
+  // Estimates the column width based on the header row and the longest three
+  // rows of data. Since this might be expensive, we'll only do this if there\
+  // are less than 20 columns of data to check in total.
   // Adds an empty column at the end with the remaining table width if any.
   getColumnWidths = tableWidth => {
     const {query, data: {data}} = this.props;
@@ -111,9 +111,16 @@ export default class ResultTable extends React.Component {
         const colName = col.name;
         const sizes = [this.measureText(colName, true)];
 
-        // Check the first 3 rows to set column width
-        data.slice(0, 3).forEach(row => {
-          sizes.push(this.measureText(getDisplayText(row[colName]), false));
+        // Get top 3 unique results sorted by string length
+        // We want to avoid calling measureText() too much so only do this
+        // for the top 3 longest strings
+        const uniqs = [...new Set(data.map(row => row[colName]))]
+          .map(colData => getDisplayText(colData, false))
+          .sort((a, b) => b.length - a.length)
+          .slice(0, 3);
+
+        uniqs.forEach(colData => {
+          sizes.push(this.measureText(colData, false));
         });
 
         // Ensure size is within max and min bounds, add 20px for cell padding
