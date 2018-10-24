@@ -29,14 +29,14 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
         installation = integration.get_installation(organization.id)
 
         if field == 'externalIssue':
-            response = installation.get_client().search_issues(query)
+            response = installation.search_issues(query)
             return Response([{
                 'label': '(#%s) %s' % (i['iid'], i['title']),
                 'value': '%s#%s' % (i['project_id'], i['iid'])
             } for i in response])
 
         if field == 'project':
-            response = installation.get_client().get_projects(query=query)
+            response = installation.search_projects(query)
             return Response([{
                 'label': project['name_with_namespace'],
                 'value': project['id'],
