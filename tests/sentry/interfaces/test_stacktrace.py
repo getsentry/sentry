@@ -9,7 +9,6 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from exam import fixture
 
-from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, is_url, slim_frame_data)
 from sentry.models import Event
 from sentry.testutils import TestCase
@@ -49,6 +48,21 @@ class StacktraceTest(TestCase):
             )
         )
 
+    def test_null_values(self):
+        sink = {'frames': [], 'frames_omitted': None, 'registers': None}
+
+        assert Stacktrace.to_python(None).to_json() == sink
+        assert Stacktrace.to_python({}).to_json() == sink
+        assert Stacktrace.to_python({'frames': None}).to_json() == sink
+        assert Stacktrace.to_python({'frames': []}).to_json() == sink
+
+    def test_null_values_in_frames(self):
+        sink = {'frames': [{}], 'frames_omitted': None, 'registers': None}
+
+        assert Stacktrace.to_python({'frames': [None]}).to_json() == sink
+        assert Stacktrace.to_python({'frames': [{}]}).to_json() == sink
+        assert Stacktrace.to_python({'frames': [{'abs_path': None}]}).to_json() == sink
+
     def test_legacy_interface(self):
         # Simple test to ensure legacy data works correctly with the ``Frame``
         # objects
@@ -57,10 +71,7 @@ class StacktraceTest(TestCase):
         assert len(interface.frames) == 2
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
-    def test_requires_filename(self):
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=[{}]))
-
+    def test_filename(self):
         Stacktrace.to_python(dict(frames=[{
             'filename': 'foo.py',
         }]))
@@ -68,16 +79,6 @@ class StacktraceTest(TestCase):
             'lineno': 1,
             'filename': 'foo.py',
         }]))
-
-    def test_requires_frames(self):
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python({})
-
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=[]))
-
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=1))
 
     def test_allows_abs_path_without_filename(self):
         interface = Stacktrace.to_python(
@@ -858,31 +859,26 @@ class StacktraceTest(TestCase):
         )
 
     def test_bad_input(self):
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'filename': 1,
-            })
+        assert Frame.to_python({
+            'filename': 1,
+        }).filename is None
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'filename': 'foo',
-                'abs_path': 1,
-            })
+        assert Frame.to_python({
+            'filename': 'foo',
+            'abs_path': 1,
+        }).abs_path == 'foo'
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'function': 1,
-            })
+        assert Frame.to_python({
+            'function': 1,
+        }).function is None
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'module': 1,
-            })
+        assert Frame.to_python({
+            'module': 1,
+        }).module is None
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'function': '?',
-            })
+        assert Frame.to_python({
+            'function': '?',
+        }).function is None
 
     def test_context_with_nan(self):
         self.assertEquals(

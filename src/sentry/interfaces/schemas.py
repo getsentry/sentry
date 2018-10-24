@@ -87,10 +87,7 @@ HTTP_INTERFACE_SCHEMA = {
 FRAME_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'abs_path': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'abs_path': {'type': 'string'},
         'colno': {'type': ['number', 'string']},
         'context_line': {'type': 'string'},
         'data': {
@@ -100,20 +97,14 @@ FRAME_INTERFACE_SCHEMA = {
             ]
         },
         'errors': {},
-        'filename': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'filename': {'type': 'string'},
         'function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
         'instruction_offset': {},
         'lineno': {'type': ['number', 'string']},
-        'module': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'module': {'type': 'string'},
         'package': {'type': 'string'},
         'platform': {
             'type': 'string',
@@ -142,7 +133,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         'frames': {
             'type': 'array',
             # To validate individual frames use FRAME_INTERFACE_SCHEMA
-            'items': {'type': 'object'},
+            'items': {},
             'minItems': 1,
         },
         'frames_omitted': {
@@ -153,7 +144,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         },
         'registers': {'type': 'object'},
     },
-    'required': ['frames'],
+    'required': [],
     # `additionalProperties: {'not': {}}` forces additional properties to
     # individually fail with errors that identify the key, so they can be deleted.
     'additionalProperties': {'not': {}},

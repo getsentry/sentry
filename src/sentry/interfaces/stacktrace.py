@@ -326,11 +326,6 @@ class Frame(Interface):
                 else:
                     filename = abs_path
 
-        if not (filename or function or module or package):
-            raise InterfaceValidationError(
-                "No 'filename' or 'function' or 'module' or 'package'"
-            )
-
         platform = data.get('platform')
 
         context_locals = data.get('vars') or {}
@@ -701,14 +696,17 @@ class Stacktrace(Interface):
 
     @classmethod
     def to_python(cls, data, slim_frames=True, raw=False):
+        if data is None:
+            data = {}
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
         # Trim down the frame list to a hard limit. Leave the last frame in place in case
         # it's useful for debugging.
-        frameiter = data['frames']
-        if len(data['frames']) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
+        frameiter = data.get('frames') or []
+        if len(frameiter) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
             frameiter = chain(
                 islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
 
@@ -725,10 +723,7 @@ class Stacktrace(Interface):
         if data.get('registers') and isinstance(data['registers'], dict):
             kwargs['registers'] = data.get('registers')
 
-        if data.get('frames_omitted'):
-            kwargs['frames_omitted'] = data['frames_omitted']
-        else:
-            kwargs['frames_omitted'] = None
+        kwargs['frames_omitted'] = data.get('frames_omitted') or None
 
         instance = cls(**kwargs)
         if slim_frames:
