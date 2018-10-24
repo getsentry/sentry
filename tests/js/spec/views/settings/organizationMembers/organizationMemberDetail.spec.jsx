@@ -27,6 +27,23 @@ describe('OrganizationMemberDetail', function() {
     dateCreated: new Date(),
     teams: [team.slug],
   });
+  let pendingMember = TestStubs.Member({
+    id: 2,
+    roles: TestStubs.RoleList(),
+    dateCreated: new Date(),
+    teams: [team.slug],
+    invite_link: 'http://example.com/i/abc123',
+    pending: true,
+  });
+  let expiredMember = TestStubs.Member({
+    id: 3,
+    roles: TestStubs.RoleList(),
+    dateCreated: new Date(),
+    teams: [team.slug],
+    invite_link: 'http://example.com/i/abc123',
+    pending: true,
+    expired: true
+  });
 
   describe('Can Edit', function() {
     beforeAll(function() {
@@ -39,6 +56,14 @@ describe('OrganizationMemberDetail', function() {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
         body: member,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
+        body: pendingMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${expiredMember.id}/`,
+        body: expiredMember,
       });
     });
 
@@ -138,6 +163,57 @@ describe('OrganizationMemberDetail', function() {
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('Button').prop('disabled')).toBe(true);
+    });
+  });
+
+  describe('Display status', function() {
+    beforeAll(function() {
+      organization = TestStubs.Organization({teams, access: ['org:read']});
+      routerContext = TestStubs.routerContext([{organization}]);
+    });
+
+    it('display pending status', function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
+        routerContext
+      );
+
+      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual('Invitation Pending');
+    });
+
+    it('display expired status', function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
+        routerContext
+      );
+
+      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual('Invitation Expired');
+    });
+  });
+
+  describe('Show resend button', function() {
+    beforeAll(function() {
+      organization = TestStubs.Organization({teams, access: ['org:read']});
+      routerContext = TestStubs.routerContext([{organization}]);
+    });
+
+    it('shows for pending', function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
+        routerContext
+      );
+
+      let button = wrapper.find('Button[data-test-id="resend-invite"]');
+      expect(button.text()).toEqual('Resend Invite');
+    });
+
+    it('does not show for expired', function() {
+      wrapper = mount(
+        <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
+        routerContext
+      );
+
+      expect(wrapper.find('Button[data-test-id="resend-invite"]')).toHaveLength(0);
     });
   });
 });

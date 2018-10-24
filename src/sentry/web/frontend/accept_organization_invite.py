@@ -11,9 +11,9 @@ from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
-ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
+ERR_INVITE_INVALID = _('The invite link you followed is not valid, or has expired.')
 PENDING_INVITE = 'pending-invite'
-MAX_AGE = 60 * 60 * 24 * 7  # 7 days
+COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
 class AcceptInviteForm(forms.Form):
@@ -93,7 +93,7 @@ class AcceptOrganizationInviteView(BaseView):
         if helper.needs_2fa:
             # redirect to setup 2fa
             response = self.respond('sentry/accept-organization-invite.html', context)
-            response.set_cookie(PENDING_INVITE, request.path, max_age=MAX_AGE)
+            response.set_cookie(PENDING_INVITE, request.path, max_age=COOKIE_MAX_AGE)
             return response
 
         # if they're already a member of the organization its likely they're
@@ -137,6 +137,8 @@ class BaseInviteHelper(object):
 
     @property
     def valid_token(self):
+        if self.om.token_expired:
+            return False
         return constant_time_compare(self.om.token or self.om.legacy_token, self.token)
 
     @property
@@ -162,8 +164,7 @@ class BaseInviteHelper(object):
             self.handle_member_already_exists()
             om.delete()
         else:
-            om.user = self.request.user
-            om.email = None
+            om.set_user(self.request.user)
             om.save()
 
             self.instance.create_audit_entry(

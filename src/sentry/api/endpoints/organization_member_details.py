@@ -16,14 +16,11 @@ from sentry.models import (
     AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus)
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
-
 ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
-
 ERR_INSUFFICIENT_SCOPE = 'You are missing the member:admin scope.'
-
 ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
-
 ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full member.'
+ERR_EXPIRED = 'You cannot resend an expired invitation without regenerating the token.'
 
 
 def get_allowed_roles(request, organization, member=None):
@@ -156,10 +153,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             if om.is_pending:
                 if result.get('regenerate'):
                     if request.access.has_scope('member:admin'):
-                        om.update(token=om.generate_token())
+                        om.regenerate_token()
+                        om.save()
                     else:
                         return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
-
+                if om.token_expired:
+                    return Response({'detail': ERR_EXPIRED}, status=400)
                 om.send_invite_email()
             elif auth_provider and not getattr(om.flags, 'sso:linked'):
                 om.send_sso_link_email(request.user, auth_provider)

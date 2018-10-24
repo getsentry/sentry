@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import six
 
 from bitfield import BitField
+from datetime import timedelta
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
@@ -26,8 +27,13 @@ from sentry.db.models import (
 )
 from sentry.utils.http import absolute_uri
 
+INVITE_DAYS_VALID = 30
+
 
 class OrganizationMemberTeam(BaseModel):
+    """
+    Identifies relationships between organization members and the teams they are on.
+    """
     __core__ = True
 
     id = BoundedAutoField(primary_key=True)
@@ -55,7 +61,7 @@ class OrganizationMemberTeam(BaseModel):
 
 class OrganizationMember(Model):
     """
-    Identifies relationships between teams and users.
+    Identifies relationships between organizations and users.
 
     Users listed as team members are considered to have access to all projects
     and could be thought of as team owners (though their access level may not)
@@ -79,6 +85,7 @@ class OrganizationMember(Model):
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
+    token_expires_at = models.DateTimeField(default=None, null=True)
     has_global_access = models.BooleanField(default=True)
     teams = models.ManyToManyField(
         'sentry.Team', blank=True, through='sentry.OrganizationMemberTeam'
@@ -102,11 +109,37 @@ class OrganizationMember(Model):
     def save(self, *args, **kwargs):
         assert self.user_id or self.email, \
             'Must set user or email'
+        if self.token and not self.token_expires_at:
+            self.refresh_expires_at()
         super(OrganizationMember, self).save(*args, **kwargs)
+
+    def set_user(self, user):
+        self.user = user
+        self.email = None
+        self.token = None
+        self.token_expires_at = None
+
+    def regenerate_token(self):
+        self.token = self.generate_token()
+        self.refresh_expires_at()
+
+    def refresh_expires_at(self):
+        now = timezone.now()
+        self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
 
     @property
     def is_pending(self):
         return self.user_id is None
+
+    @property
+    def token_expired(self):
+        # Old tokens don't expire to preserve compatibility and not require
+        # a backfill migration.
+        if self.token_expires_at is None:
+            return False
+        if self.token_expires_at > timezone.now():
+            return False
+        return True
 
     @property
     def legacy_token(self):

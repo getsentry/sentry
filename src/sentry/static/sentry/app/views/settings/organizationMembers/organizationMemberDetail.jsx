@@ -127,6 +127,7 @@ class OrganizationMemberDetail extends AsyncView {
     let email = member.email;
     let inviteLink = member.invite_link;
     let canEdit = access.includes('org:write');
+    let canResend = !member.expired;
 
     return (
       <div>
@@ -162,8 +163,14 @@ class OrganizationMemberDetail extends AsyncView {
                 <div className="col-md-3">
                   <div className="control-group">
                     <label>{t('Status')}</label>
-                    <div className="controls">
-                      {member.pending ? <em>Invitation Pending</em> : 'Active'}
+                    <div className="controls" data-test-id="member-status">
+                      {member.expired ? (
+                        <em>Invitation Expired</em>
+                      ) : member.pending ? (
+                        <em>Invitation Pending</em>
+                      ) : (
+                        'Active'
+                      )}
                     </div>
                   </div>
                 </div>
@@ -200,9 +207,11 @@ class OrganizationMemberDetail extends AsyncView {
                     >
                       {t('Generate New Invite')}
                     </Button>
-                    <Button onClick={() => this.handleInvite(false)}>
-                      {t('Resend Invite')}
-                    </Button>
+                    {canResend && (
+                      <Button data-test-id="resend-invite" onClick={() => this.handleInvite(false)}>
+                        {t('Resend Invite')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
