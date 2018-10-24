@@ -3,7 +3,6 @@ import ReactDOMServer from 'react-dom/server';
 
 import TestUtils from 'react-dom/test-utils';
 
-import {Client} from 'app/api';
 import {TagDistributionMeter} from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
