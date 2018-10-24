@@ -6,12 +6,6 @@ import {t} from 'app/locale';
 import {Client} from 'app/api';
 import styled from 'react-emotion';
 
-const Logout = styled.span`
-  float: right;
-  padding-top: 3px;
-  font-size: 16px;
-`;
-
 class NarrowLayout extends React.Component {
   static propTypes = {
     showLogout: PropTypes.bool,
@@ -47,7 +41,7 @@ class NarrowLayout extends React.Component {
                 <span className="icon-sentry-logo" />
               </a>
               {this.props.showLogout && (
-                <a className="logout" onClick={this.handleLogout}>
+                <a className="logout pull-right" onClick={this.handleLogout}>
                   <Logout>{t('Sign out')}</Logout>
                 </a>
               )}
@@ -59,5 +53,9 @@ class NarrowLayout extends React.Component {
     );
   }
 }
+
+const Logout = styled.span`
+  font-size: 16px;
+`;
 
 export default NarrowLayout;
