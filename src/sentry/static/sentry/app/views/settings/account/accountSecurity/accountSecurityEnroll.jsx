@@ -122,11 +122,17 @@ class AccountSecurityEnroll extends AsyncView {
   }
 
   getEndpoints() {
-    return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
+    return [];
   }
 
   componentWillMount() {
     super.componentWillMount();
+
+    this.api.request(ENDPOINT, {
+      method: 'GET',
+      success: data => this.getAuthenticator(data),
+    });
+
     // If 2FA is required, a pending organization invite
     // can be accepted once the user enrolls in 2FA
     let invite = Cookies.get(PENDING_INVITE);
@@ -139,6 +145,33 @@ class AccountSecurityEnroll extends AsyncView {
       };
     }
   }
+
+  getAuthenticator = authenticators => {
+    let authId = this.props.params.authId;
+    let current = authenticators.find(auth => auth.id == authId);
+    let alreadyEnrolled = current && current.isEnrolled && !current.allowMultiEnrollment;
+
+    if (alreadyEnrolled) {
+      // Redirect to the details page if already enrolled in a 2FA method
+      // that doesn't allow multi enrollment
+      this.props.router.push(`/settings/account/security/mfa/${current.authId}/`);
+    } else {
+      this.api.request(`${ENDPOINT}${authId}/enroll/`, {
+        method: 'GET',
+        success: data => {
+          this.setState({
+            authenticator: data,
+          });
+        },
+        error: () => {
+          // Potentially trying to enroll in an authenticator
+          // the user doesn't have access to
+          this.props.router.push('/settings/account/security/');
+          addErrorMessage(t('Error adding authenticator'));
+        },
+      });
+    }
+  };
 
   loadOrganizationContext = () => {
     if (this.invite && this.invite.memberId) {
@@ -311,6 +344,11 @@ class AccountSecurityEnroll extends AsyncView {
 
   renderBody() {
     let {authenticator} = this.state;
+
+    if (!authenticator) {
+      return null;
+    }
+
     let endpoint = `${ENDPOINT}${this.props.params.authId}/`;
 
     let fields = getFields({

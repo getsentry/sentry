@@ -25,6 +25,10 @@ describe('AccountSecurityEnroll', function() {
 
     beforeAll(function() {
       Client.addMockResponse({
+        url: ENDPOINT,
+        body: TestStubs.AllAuthenticators(),
+      });
+      Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
