@@ -211,7 +211,7 @@ export function gettext(string, ...args) {
 export function ngettext(singular, plural, ...args) {
   let countArg;
   if (args.length > 0) {
-    countArg = args[0];
+    countArg = args[0] || 0;
     args = [countArg.toLocaleString(), ...args.slice(1)];
   } else {
     countArg = 0;
