@@ -2,17 +2,20 @@ from __future__ import absolute_import
 from .client import VstsApiClient
 
 import logging
+import six
+
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
 from sentry.api.base import Endpoint
-from sentry.app import raven
 from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.crypto import constant_time_compare
 
 import re
 UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'
 EMAIL_PARSER = re.compile(r'<(.*)>')
 logger = logging.getLogger('sentry.integrations')
+PROVIDER_KEY = 'vsts'
 
 
 class WorkItemWebhook(Endpoint):
@@ -28,32 +31,82 @@ class WorkItemWebhook(Endpoint):
 
     def post(self, request, *args, **kwargs):
         data = request.DATA
-        if data['eventType'] == 'workitem.updated':
-            integration = Integration.objects.get(
-                provider='vsts',
-                external_id=data['resourceContainers']['collection']['id'],
+        try:
+            event_type = data['eventType']
+            external_id = data['resourceContainers']['collection']['id']
+        except KeyError as e:
+            logger.info(
+                'vsts.invalid-webhook-payload',
+                extra={
+                    'error': six.text_type(e),
+                }
             )
+
+        if event_type == 'workitem.updated':
+            try:
+                integration = Integration.objects.get(
+                    provider=PROVIDER_KEY,
+                    external_id=external_id,
+                )
+            except Integration.DoesNotExist:
+                logger.info(
+                    'vsts.integration-in-webhook-payload-does-not-exist',
+                    extra={
+                        'external_id': external_id,
+                        'event_type': event_type,
+                    }
+                )
+
             try:
                 self.check_webhook_secret(request, integration)
             except AssertionError:
-                raven.captureException()
+                logger.info(
+                    'vsts.invalid-webhook-secret',
+                    extra={
+                        'event_type': event_type,
+                        'integration_id': integration.id
+                    }
+                )
                 return self.respond(status=401)
             self.handle_updated_workitem(data, integration)
         return self.respond()
 
     def check_webhook_secret(self, request, integration):
-        assert integration.metadata['subscription']['secret'] == request.META['HTTP_SHARED_SECRET']
+        try:
+            integration_secret = integration.metadata['subscription']['secret']
+            webhook_payload_secret = request.META['HTTP_SHARED_SECRET']
+        except KeyError as e:
+            logger.info(
+                'vsts.missing-webhook-secret',
+                extra={
+                    'error': six.text_type(e),
+                    'integration_id': integration.id,
+                }
+            )
+
+        assert constant_time_compare(integration_secret, webhook_payload_secret)
 
     def handle_updated_workitem(self, data, integration):
-        external_issue_key = data['resource']['workItemId']
-        project = data['resourceContainers']['project']['id']
+        try:
+            external_issue_key = data['resource']['workItemId']
+            project = data['resourceContainers']['project']['id']
+        except KeyError as e:
+            logger.info(
+                'vsts.updating-workitem-does-not-have-necessary-information',
+                extra={
+                    'error': six.text_type(e),
+                    'integration_id': integration.id
+                }
+            )
+
         try:
             assigned_to = data['resource']['fields'].get('System.AssignedTo')
             status_change = data['resource']['fields'].get('System.State')
-        except KeyError:
+        except KeyError as e:
             logger.info(
                 'vsts.updated-workitem-fields-not-passed',
                 extra={
+                    'error': six.text_type(e),
                     'payload': data,
                     'integration_id': integration.id
                 }
@@ -71,11 +124,24 @@ class WorkItemWebhook(Endpoint):
             return
         new_value = assigned_to.get('newValue')
         if new_value is not None:
-            email = self.parse_email(new_value)
+            try:
+                email = self.parse_email(new_value)
+            except AttributeError as e:
+                logger.info(
+                    'vsts.failed-to-parse-email-in-handle-assign-to',
+                    extra={
+                        'error': six.text_type(e),
+                        'integration_id': integration.id,
+                        'assigned_to_values': assigned_to,
+                        'external_issue_key': external_issue_key,
+                    }
+                )
+                return  # TODO(lb): return if cannot parse email?
             assign = True
         else:
             email = None
             assign = False
+
         sync_group_assignee_inbound(
             integration=integration,
             email=email,
@@ -99,9 +165,11 @@ class WorkItemWebhook(Endpoint):
                 'old_state': status_change['oldValue'],
                 'project': project,
             }
+
             installation.sync_status_inbound(external_issue_key, data)
 
     def parse_email(self, email):
+        # TODO(lb): hmm... this looks brittle to me
         return EMAIL_PARSER.search(email).group(1)
 
     def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
