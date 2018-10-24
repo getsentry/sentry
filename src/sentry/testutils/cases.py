@@ -147,6 +147,7 @@ class BaseTestCase(Fixtures, Exam):
         request.user = user or AnonymousUser()
         request.superuser = Superuser(request)
         request.is_superuser = lambda: request.superuser.is_active
+        request.successful_authenticator = None
         return request
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require

@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
@@ -14,7 +14,7 @@ from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import SentryAppInstallation
 
 
-class OrganizationSentryAppInstallationsSerializer(serializers.Serializer):
+class SentryAppInstallationsSerializer(serializers.Serializer):
     slug = serializers.RegexField(
         r'^[a-z0-9_\-]+$',
         max_length=SENTRY_APP_SLUG_MAX_LENGTH,
@@ -30,7 +30,7 @@ class OrganizationSentryAppInstallationsSerializer(serializers.Serializer):
         return attrs
 
 
-class OrganizationSentryAppInstallationsEndpoint(OrganizationEndpoint):
+class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
     @requires_feature('organizations:internal-catchall')
     def get(self, request, organization):
         queryset = SentryAppInstallation.objects.filter(
@@ -47,13 +47,14 @@ class OrganizationSentryAppInstallationsEndpoint(OrganizationEndpoint):
 
     @requires_feature('organizations:internal-catchall')
     def post(self, request, organization):
-        serializer = OrganizationSentryAppInstallationsSerializer(data=request.DATA)
+        serializer = SentryAppInstallationsSerializer(data=request.DATA)
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        slug = serializer.object.get('slug')
         install, _ = Creator.run(
             organization=organization,
-            slug=slug,
+            slug=serializer.object.get('slug'),
         )
+
         return Response(serialize(install))
