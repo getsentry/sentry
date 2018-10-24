@@ -5,6 +5,7 @@ from mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import (
     Commit, Deploy, Integration, LatestRelease, Release, ReleaseHeadCommit, Repository
 )
@@ -252,20 +253,26 @@ class FetchCommitsTest(TestCase):
             provider='dummy',
         )
 
-        mock_compare_commits.side_effect = PluginError('You can read me')
+        exception_cases = (
+            PluginError('You can read me'),
+            IntegrationError('You can read me'),
+            ApiError('You can read me'),
+        )
+        for error in exception_cases:
+            mock_compare_commits.side_effect = error
 
-        with self.tasks():
-            fetch_commits(
-                release_id=release2.id,
-                user_id=self.user.id,
-                refs=refs,
-                previous_release_id=release.id,
-            )
+            with self.tasks():
+                fetch_commits(
+                    release_id=release2.id,
+                    user_id=self.user.id,
+                    refs=refs,
+                    previous_release_id=release.id,
+                )
 
-        msg = mail.outbox[-1]
-        assert msg.subject == 'Unable to Fetch Commits'
-        assert msg.to == [self.user.email]
-        assert 'You can read me' in msg.body
+            msg = mail.outbox[-1]
+            assert msg.subject == 'Unable to Fetch Commits'
+            assert msg.to == [self.user.email]
+            assert 'You can read me' in msg.body
 
     def test_fetch_error_random_exception_integration(self):
         self.login_as(user=self.user)
