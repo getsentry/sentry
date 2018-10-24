@@ -46,7 +46,6 @@ const StyledInlineSvg = styled(InlineSvg)`
 `;
 
 const Action = styled.div`
-  display: block;
   ${MarginStyles};
 `;
 
