@@ -276,7 +276,6 @@ DEVICE_INTERFACE_SCHEMA = {
             'default': {},
         },
     },
-    'required': ['name', 'version'],
 }
 
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out

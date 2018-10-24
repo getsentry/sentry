@@ -22,6 +22,9 @@ class Device(Interface):
 
     @classmethod
     def to_python(cls, data):
+        if data is None:
+            data = {}
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid device")
@@ -29,8 +32,8 @@ class Device(Interface):
         data = data.copy()
 
         extra_data = data.pop('data', data)
-        name = trim(data.pop('name'), 64)
-        version = trim(data.pop('version'), 64)
+        name = trim(data.pop('name', None), 64)
+        version = trim(data.pop('version', None), 64)
         build = trim(data.pop('build', None), 64)
 
         kwargs = {
