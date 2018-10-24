@@ -172,10 +172,40 @@ class DiscoverQuerySerializer(serializers.Serializer):
 class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDiscoverQueryPermission, )
 
+    def get_json_type(self, snuba_type):
+        """
+        Convert Snuba/Clickhouse type to JSON type
+        Default is string
+        """
+
+        # Ignore Nullable part
+        nullable_match = re.search(r'^Nullable\((.+)\)$', snuba_type)
+
+        if nullable_match:
+            snuba_type = nullable_match.group(1)
+        # Check for array
+
+        array_match = re.search(r'^Array\(.+\)$', snuba_type)
+        if array_match:
+            return 'array'
+
+        types = {
+            'UInt8': 'boolean',
+            'UInt16': 'integer',
+            'UInt32': 'integer',
+            'UInt64': 'integer',
+            'Float32': 'number',
+            'Float64': 'number',
+        }
+
+        return types.get(snuba_type, 'string')
+
     def handle_results(self, snuba_results, requested_query, projects):
         if 'project_name' in requested_query['selected_columns']:
             project_name_index = requested_query['selected_columns'].index('project_name')
-            snuba_results['meta'].insert(project_name_index, {'name': 'project_name'})
+            snuba_results['meta'].insert(
+                project_name_index, {
+                    'name': 'project_name', 'type': 'String'})
             if 'project_id' not in requested_query['selected_columns']:
                 snuba_results['meta'] = [
                     field for field in snuba_results['meta'] if field['name'] != 'project_id'
@@ -188,7 +218,9 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         if 'project_name' in requested_query['groupby']:
             project_name_index = requested_query['groupby'].index('project_name')
-            snuba_results['meta'].insert(project_name_index, {'name': 'project_name'})
+            snuba_results['meta'].insert(
+                project_name_index, {
+                    'name': 'project_name', 'type': 'String'})
             if 'project_id' not in requested_query['groupby']:
                 snuba_results['meta'] = [
                     field for field in snuba_results['meta'] if field['name'] != 'project_id'
@@ -199,8 +231,10 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 if 'project_id' not in requested_query['groupby']:
                     del result['project_id']
 
-        # Only return the meta property "name"
-        snuba_results['meta'] = [{'name': field['name']} for field in snuba_results['meta']]
+        # Convert snuba types to json types
+        for col in snuba_results['meta']:
+            col['type'] = self.get_json_type(col.get('type'))
+
         return snuba_results
 
     def do_query(self, projects, request, **kwargs):
