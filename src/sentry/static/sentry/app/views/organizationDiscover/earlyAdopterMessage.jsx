@@ -12,7 +12,7 @@ export default class EarlyAdopterMessage extends React.Component {
     return (
       <StyledAlert type="info" icon="icon-labs">
         <StyledAlertText>
-          {t('Sentry Discover is alpha software. Thanks for being an early adopter.')}
+          {t('Sentry Discover is alpha software. Thanks for being an early adopter.')}&nbsp;
           <StyledLink href="mailto:feedback-discover@sentry.io">
             {t('feedback-discover@sentry.io')}
           </StyledLink>
@@ -30,12 +30,17 @@ const StyledAlert = styled(Alert)`
 
 const StyledAlertText = styled(Flex)`
   justify-content: space-between;
+  white-space: nowrap;
   @media (max-width: ${theme.breakpoints[2]}) {
     justify-content: flex-start;
-    flex-wrap: wrap;
+    display: inline;
+    white-space: normal;
   }
+
 `;
 
 const StyledLink = styled(Link)`
   width: fit-content;
+  display: inline-block;
+  white-space: nowrap;
 `;
