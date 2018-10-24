@@ -33,14 +33,6 @@ const ProjectItem = createReactClass({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
-    // Local bookmarked state should be unset when the project data changes
-    // Local state is used for optimistic UI update
-    if (this.state.isBookmarked !== nextProps.project.isBookmarked) {
-      this.setState({isBookmarked: nextProps.project.isBookmarked});
-    }
-  },
-
   handleToggleBookmark() {
     let {project, organization} = this.props;
     let {isBookmarked} = this.state;
