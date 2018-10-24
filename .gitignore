@@ -35,6 +35,7 @@ example/db.sqlite
 /test_cli/
 Gemfile.lock
 .idea/
+*.iml
 .pytest_cache/
 .vscode/tags
 coverage.xml
