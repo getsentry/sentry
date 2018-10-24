@@ -18,13 +18,10 @@ import shutil
 import hashlib
 import logging
 import tempfile
-from requests.exceptions import RequestException
 
 from jsonfield import JSONField
 from django.db import models, transaction, IntegrityError
 from django.db.models.fields.related import OneToOneRel
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 
 from symbolic import FatObject, SymbolicError, ObjectErrorUnsupportedObject, \
     SYMCACHE_LATEST_VERSION, SymCache, SymCacheErrorMissingDebugInfo, \
@@ -103,7 +100,7 @@ class VersionDSymFile(Model):
     dsym_app = FlexibleForeignKey('sentry.DSymApp')
     version = models.CharField(max_length=32)
     build = models.CharField(max_length=32, null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=0)
 
     class Meta:
         app_label = 'sentry'
@@ -111,82 +108,17 @@ class VersionDSymFile(Model):
         unique_together = (('dsym_file', 'version', 'build'), )
 
 
-# TODO(dcramer): pull in enum library
-class DifPlatform(object):
-    GENERIC = 0
-    APPLE = 1
-    ANDROID = 2
-
-
-DIF_PLATFORMS = {
-    'generic': DifPlatform.GENERIC,
-    'apple': DifPlatform.APPLE,
-    'android': DifPlatform.ANDROID,
-}
-DIF_PLATFORMS_REVERSE = dict((v, k) for (k, v) in six.iteritems(DIF_PLATFORMS))
-
-
-def _auto_enrich_data(data, app_id, platform):
-    # If we don't have an icon URL we can try to fetch one from iTunes
-    if 'icon_url' not in data and platform == DifPlatform.APPLE:
-        from sentry.http import safe_urlopen
-        try:
-            rv = safe_urlopen(
-                'https://itunes.apple.com/lookup', params={
-                    'bundleId': app_id,
-                }
-            )
-        except RequestException:
-            pass
-        else:
-            if rv.ok:
-                rv = rv.json()
-                if rv.get('results'):
-                    data['icon_url'] = rv['results'][0]['artworkUrl512']
-
-
-class DSymAppManager(BaseManager):
-    def create_or_update_app(
-        self, sync_id, app_id, project, data=None, platform=DifPlatform.GENERIC,
-        no_fetch=False
-    ):
-        if data is None:
-            data = {}
-        if not no_fetch:
-            _auto_enrich_data(data, app_id, platform)
-        existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
-        if existing_app is not None:
-            now = timezone.now()
-            existing_app.update(
-                sync_id=sync_id,
-                data=data,
-                last_synced=now,
-            )
-            return existing_app
-
-        return BaseManager.create(
-            self, sync_id=sync_id, app_id=app_id, data=data, project=project, platform=platform
-        )
-
-
 class DSymApp(Model):
     __core__ = False
 
-    objects = DSymAppManager()
+    objects = BaseManager()
     project = FlexibleForeignKey('sentry.Project')
     app_id = models.CharField(max_length=64)
     sync_id = models.CharField(max_length=64, null=True)
     data = JSONField()
-    platform = BoundedPositiveIntegerField(
-        default=0,
-        choices=(
-            (DifPlatform.GENERIC, _('Generic')),
-            (DifPlatform.APPLE, _('Apple')),
-            (DifPlatform.ANDROID, _('Android')),
-        )
-    )
-    last_synced = models.DateTimeField(default=timezone.now)
-    date_added = models.DateTimeField(default=timezone.now)
+    platform = BoundedPositiveIntegerField(default=0)
+    last_synced = models.DateTimeField(default=0)
+    date_added = models.DateTimeField(default=0)
 
     class Meta:
         app_label = 'sentry'

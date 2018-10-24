@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (ProjectDebugFile, VersionDSymFile, DSymApp, DIF_PLATFORMS_REVERSE)
+from sentry.api.serializers import Serializer, register
+from sentry.models import ProjectDebugFile
 
 
 @register(ProjectDebugFile)
@@ -21,36 +21,5 @@ class DebugFileSerializer(Serializer):
             'sha1': obj.file.checksum,
             'dateCreated': obj.file.timestamp,
             'data': obj.data or {},
-        }
-        return d
-
-
-@register(VersionDSymFile)
-class VersionDSymFileSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        d = {
-            'id': six.text_type(obj.id),
-            'version': obj.version,
-            'build': obj.build,
-            'dateAdded': obj.date_added,
-            'dsymAppId': obj.dsym_app_id,
-            'dsym': serialize(obj.dsym_file)
-        }
-        return d
-
-
-@register(DSymApp)
-class DSymAppSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        d = {
-            'id': six.text_type(obj.id),
-            'iconUrl': obj.data.get('icon_url', None),
-            'appId': six.text_type(obj.app_id),
-            'name': obj.data.get('name', None),
-            'platform': DIF_PLATFORMS_REVERSE.get(obj.platform) or 'unknown',
-            # XXX: this should be renamed.  It's currently only used in
-            # the not yet merged itunes connect plugin (ios, tvos etc.)
-            'platforms': ', '.join(obj.data.get('platforms', [])),
-            'lastSync': obj.last_synced,
         }
         return d

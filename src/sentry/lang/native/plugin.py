@@ -8,13 +8,10 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
 from sentry import options
-from django.db import transaction, IntegrityError
-from sentry.models import VersionDSymFile, DifPlatform, DSymApp
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.utils import \
-    get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr, version_build_from_data
+from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
+    rebase_addr
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
@@ -136,38 +133,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is None and pf.data['debug_id'] is not None
         )
 
-        app_info = version_build_from_data(self.data)
-        if app_info is not None:
-            def on_referenced(dif):
-                dsym_app = DSymApp.objects.create_or_update_app(
-                    sync_id=None,
-                    app_id=app_info.id,
-                    project=self.project,
-                    data={'name': app_info.name},
-                    platform=DifPlatform.APPLE,
-                    no_fetch=True
-                )
-                try:
-                    with transaction.atomic():
-                        version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                            dsym_file=dif,
-                            version=app_info.version,
-                            build=app_info.build,
-                            defaults=dict(dsym_app=dsym_app),
-                        )
-                except IntegrityError:
-                    # XXX: this can currently happen because we only
-                    # support one app per debug file.  Since this can
-                    # happen in some cases anyways we ignore it.
-                    pass
-        else:
-            on_referenced = None
-
         self.sym = Symbolizer(
             self.project,
             self.object_lookup,
             referenced_images=referenced_images,
-            on_dif_referenced=on_referenced
         )
 
         if options.get('symbolserver.enabled'):

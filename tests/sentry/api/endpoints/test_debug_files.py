@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.models import ProjectDebugFile, VersionDSymFile
+from sentry.models import ProjectDebugFile
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -108,14 +108,8 @@ class DebugFilesUploadTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
-
-        vdf = VersionDSymFile.objects.get()
-        assert vdf.version == '1.0'
-        assert vdf.build == '1'
-        assert vdf.dsym_app.app_id == 'com.example.myapp'
-        assert vdf.dsym_file.debug_id == PROGUARD_UUID
+        assert 'associatedDsymFiles' in response.data
+        assert response.data['associatedDsymFiles'] == []
 
     def test_associate_proguard_dsym_no_build(self):
         project = self.create_project(name='foo')
@@ -162,14 +156,8 @@ class DebugFilesUploadTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
-
-        vdf = VersionDSymFile.objects.get()
-        assert vdf.version == '1.0'
-        assert vdf.build is None
-        assert vdf.dsym_app.app_id == 'com.example.myapp'
-        assert vdf.dsym_file.debug_id == PROGUARD_UUID
+        assert 'associatedDsymFiles' in response.data
+        assert response.data['associatedDsymFiles'] == []
 
     def test_dsyms_requests(self):
         project = self.create_project(name='foo')
@@ -210,9 +198,8 @@ class DebugFilesUploadTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
-        download_id = response.data['associatedDsymFiles'][0]['id']
+        assert 'associatedDsymFiles' in response.data
+        assert response.data['associatedDsymFiles'] == []
 
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -234,6 +221,7 @@ class DebugFilesUploadTest(APITestCase):
         assert dsym['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert dsym['symbolType'] == 'proguard'
         assert dsym['uuid'] == '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
+        download_id = dsym['id']
 
         # Test download
         response = self.client.get(url + "?id=" + download_id)
