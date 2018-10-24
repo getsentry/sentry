@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
 import {Flex} from 'grid-emotion';
 
@@ -20,7 +19,6 @@ import {
 export default class SavedQueries extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    onRunQuery: PropTypes.func.isRequired,
     // provided if it's a saved query
     savedQuery: SentryTypes.DiscoverSavedQuery,
   };
@@ -76,16 +74,13 @@ export default class SavedQueries extends React.Component {
   }
 
   renderListItem(query) {
-    const {savedQuery, onRunQuery} = this.props;
+    const {savedQuery} = this.props;
 
     const {id, name, dateUpdated} = query;
     const {organization} = this.props;
     return (
       <SavedQueryListItem key={id} isActive={savedQuery && savedQuery.id === id}>
-        <SavedQueryLink
-          onClick={onRunQuery}
-          to={`/organizations/${organization.slug}/discover/saved/${id}/`}
-        >
+        <SavedQueryLink to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
           {name}
         </SavedQueryLink>
         <SavedQueryUpdated>

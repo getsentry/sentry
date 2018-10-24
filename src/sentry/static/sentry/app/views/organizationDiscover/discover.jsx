@@ -293,11 +293,7 @@ export default class OrganizationDiscover extends React.Component {
           {this.renderSidebarNav()}
           {view === 'saved' && (
             <SavedQueryWrapper isEditing={isEditingSavedQuery}>
-              <SavedQueryList
-                organization={organization}
-                savedQuery={savedQuery}
-                onRunQuery={this.runQuery}
-              />
+              <SavedQueryList organization={organization} savedQuery={savedQuery} />
             </SavedQueryWrapper>
           )}
           {view === 'query' && (
