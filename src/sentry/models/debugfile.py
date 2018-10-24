@@ -92,40 +92,6 @@ class BadDif(Exception):
     pass
 
 
-class VersionDSymFile(Model):
-    __core__ = False
-
-    objects = BaseManager()
-    dsym_file = FlexibleForeignKey('sentry.ProjectDebugFile', null=True)
-    dsym_app = FlexibleForeignKey('sentry.DSymApp')
-    version = models.CharField(max_length=32)
-    build = models.CharField(max_length=32, null=True)
-    date_added = models.DateTimeField(default=0)
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_versiondsymfile'
-        unique_together = (('dsym_file', 'version', 'build'), )
-
-
-class DSymApp(Model):
-    __core__ = False
-
-    objects = BaseManager()
-    project = FlexibleForeignKey('sentry.Project')
-    app_id = models.CharField(max_length=64)
-    sync_id = models.CharField(max_length=64, null=True)
-    data = JSONField()
-    platform = BoundedPositiveIntegerField(default=0)
-    last_synced = models.DateTimeField(default=0)
-    date_added = models.DateTimeField(default=0)
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_dsymapp'
-        unique_together = (('project', 'platform', 'app_id'), )
-
-
 class ProjectDebugFileManager(BaseManager):
     def find_missing(self, checksums, project):
         if not checksums:
