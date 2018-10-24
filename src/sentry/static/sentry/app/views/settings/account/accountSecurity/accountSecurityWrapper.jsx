@@ -52,6 +52,13 @@ class AccountSecurityWrapper extends AsyncComponent {
     let orgsRequire2fa = organizations.filter(org => org.require2FA);
     let deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
+    // This happens when you switch between children views
+    // And the next child view is lazy loaded, it can potentially be `null`
+    // while the code split package is being fetched
+    if (this.props.children === null) {
+      return null;
+    }
+
     return React.cloneElement(this.props.children, {
       onDisable: this.handleDisable,
       onRegenerateBackupCodes: this.handleRegenerateBackupCodes,
