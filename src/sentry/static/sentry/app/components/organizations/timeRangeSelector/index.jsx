@@ -103,7 +103,7 @@ class TimeRangeSelector extends React.Component {
       : `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
-      <HeaderItem className={className} label={t('Time frame')}>
+      <HeaderItem className={className}>
         <DropdownLink
           title={<DynamicWrapper value={<Title>{summary}</Title>} fixed="start to end" />}
           anchorRight={true}

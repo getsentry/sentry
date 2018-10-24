@@ -146,7 +146,7 @@ class ProjectSelector extends React.Component {
   };
 
   render() {
-    const {children, organization: org, menuFooter, multi, multiOnly} = this.props;
+    const {children, organization: org, menuFooter, multi, multiOnly, rootClassName} = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
 
@@ -167,8 +167,9 @@ class ProjectSelector extends React.Component {
         onSelect={this.handleSelect}
         maxHeight={500}
         zIndex={1001}
-        style={{marginTop: 6}}
+        style={this.props.style || {marginTop: 6}}
         inputProps={{style: {padding: 8, paddingLeft: 14}}}
+        rootClassName={rootClassName}
         emptyMessage={t('You have no projects')}
         noResultsMessage={t('No projects found')}
         virtualizedHeight={33}

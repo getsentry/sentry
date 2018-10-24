@@ -1,7 +1,6 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {cx} from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -58,75 +57,69 @@ export default class MultipleProjectSelector extends React.Component {
     );
 
     return (
-      <HeaderItem className={className} label={t('Project(s)')}>
-        <ProjectSelector
-          {...this.props}
-          multi
-          showUpdate
-          selectedProjects={selected}
-          projects={projects}
-          onSelect={this.handleQuickSelect}
-          onMultiSelect={this.handleMultiSelect}
-          menuFooter={({actions}) => {
-            if (!this.state.hasChanges && selected.length === 0) {
-              return null;
-            }
+      <ProjectSelector
+        {...this.props}
+        multi
+        showUpdate
+        selectedProjects={selected}
+        projects={projects}
+        onSelect={this.handleQuickSelect}
+        onMultiSelect={this.handleMultiSelect}
+        rootClassName={css`display: flex`}
+        style={{margin: "1px 0 0 -1px", borderRadius: "0 0 4px 4px", width: "120%", zIndex: "-1"}}
+        menuFooter={({actions}) => {
+          if (!this.state.hasChanges && selected.length === 0) {
+            return null;
+          }
 
-            return (
-              <Footer>
-                <Button
-                  priority="primary"
-                  tabIndex={1}
-                  size="small"
-                  type="button"
-                  disabled={!this.state.hasChanges}
-                  onClick={this.handleUpdate.bind(this, actions)}
-                >
-                  {t('Update')}
-                </Button>
+          return (
+            <Footer>
+              <Button
+                priority="primary"
+                tabIndex={1}
+                size="small"
+                type="button"
+                disabled={!this.state.hasChanges}
+                onClick={this.handleUpdate.bind(this, actions)}
+              >
+                {t('Update')}
+              </Button>
 
-                <Button
-                  size="small"
-                  type="button"
-                  disabled={selected.length === 0}
-                  onClick={this.props.onChange.bind(this, [])}
-                >
-                  {t('Clear')}
-                </Button>
-              </Footer>
-            );
-          }}
-        >
-          {({getActorProps, selectedItem, activeProject, selectedProjects}) => {
-            const hasSelected = !!selectedProjects.length;
-            const title = hasSelected
-              ? selectedProjects.map(({slug}) => slug).join(', ')
-              : t('None selected, using all');
-            return (
-              <React.Fragment>
-                <Flex {...getActorProps()}>
-                  <Title>{title}</Title>
-                  <ArrowDown />
-                </Flex>
-              </React.Fragment>
-            );
-          }}
-        </ProjectSelector>
-      </HeaderItem>
+              <Button
+                size="small"
+                type="button"
+                disabled={selected.length === 0}
+                onClick={this.props.onChange.bind(this, [])}
+              >
+                {t('Clear')}
+              </Button>
+            </Footer>
+          );
+        }}
+      >
+        {({getActorProps, selectedItem, activeProject, selectedProjects}) => {
+          const hasSelected = !!selectedProjects.length;
+          const title = hasSelected
+            ? selectedProjects.map(({slug}) => slug).join(', ')
+            : t('Projects and Teams');
+          return (
+            <StyledHeaderItem active={hasSelected} {...getActorProps()}>
+              {title}
+            </StyledHeaderItem>
+          );
+        }}
+      </ProjectSelector>
     );
   }
 }
-const ArrowDown = styled(({className, ...props}) => (
-  <i className={cx('icon-arrow-down', className)} {...props} />
-))`
-  margin-left: ${space(0.5)};
+
+const StyledHeaderItem = styled(HeaderItem)`
+  height: 100%;
+  width: 300px;
 `;
 
-const Title = styled(TextOverflow)`
-  width: 240px;
-`;
-
-const Footer = styled(Flex)`
+const Footer = styled('div')`
+  display: flex;
   justify-content: space-between;
   padding: ${space(0.5)} 0;
 `;

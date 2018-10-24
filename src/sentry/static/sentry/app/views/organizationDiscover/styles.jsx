@@ -9,6 +9,7 @@ import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
 import TextField from 'app/components/forms/textField';
 import Link from 'app/components/link';
+import HeaderSeparator from 'app/components/organizations/headerSeparator';
 
 const FOOTER_HEIGHT = 87;
 const HEADER_HEIGHT = 60;
@@ -64,8 +65,11 @@ export const LoadingContainer = styled(Flex)`
   align-items: center;
 `;
 
+export const StyledHeaderSeparator = styled(HeaderSeparator)`
+  margin: 0;
+`;
+
 export const TopBar = styled(Flex)`
-  padding: 0 ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   height: ${HEADER_HEIGHT}px;
 `;
