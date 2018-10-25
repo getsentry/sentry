@@ -23,16 +23,20 @@ def is_minidump_event(data):
     return exceptions[0].get('mechanism', {}).get('type') == 'minidump'
 
 
-def merge_minidump_event(data, minidump, cfi=None):
+def process_minidump(minidump, cfi=None):
     if isinstance(minidump, InMemoryUploadedFile):
         minidump.open()  # seek to start
-        state = ProcessState.from_minidump_buffer(minidump.read(), cfi)
+        return ProcessState.from_minidump_buffer(minidump.read(), cfi)
     elif isinstance(minidump, TemporaryUploadedFile):
-        state = ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
-    elif isinstance(minidump, six.binarytypes):
-        state = ProcessState.from_minidump_buffer(minidump, cfi)
+        return ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
+    elif isinstance(minidump, six.binary_type) and minidump.startswith('MDMP'):
+        return ProcessState.from_minidump_buffer(minidump, cfi)
     else:
-        state = ProcessState.from_minidump(minidump, cfi)
+        return ProcessState.from_minidump(minidump, cfi)
+
+
+def merge_minidump_event(data, minidump, cfi=None):
+    state = process_minidump(minidump, cfi=cfi)
 
     data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
@@ -56,7 +60,7 @@ def merge_minidump_event(data, minidump, cfi=None):
     # We can extract stack traces here already but since CFI is not
     # available yet (without debug symbols), the stackwalker will
     # resort to stack scanning which yields low-quality results. If
-    # the user provides us with debug symbols, we could reprocess this
+    # the user provides us with debug symbols, we reprocess this
     # minidump and add improved stacktraces later.
     data['threads'] = [{
         'id': thread.thread_id,
