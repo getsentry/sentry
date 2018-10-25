@@ -48,7 +48,7 @@ const StyledHeaderItem = styled('div')`
   padding: 0 ${space(3)};
   align-items: center;
   cursor: pointer;
-  color: ${p => p.isOpen ? p.theme.gray4 : p.theme.gray2};
+  color: ${p => p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2};
   transition: 0.1s color;
   user-select: none;
 `;
@@ -59,7 +59,7 @@ const Content = styled('div')`
 `;
 
 const IconContainer = styled('span')`
-  color: ${p => p.hasSelected ? p.theme.blue : p.theme.gray2};
+  color: ${p => p.hasSelected ? p.theme.blue : null};
   margin-right: ${space(1.5)};
 `;
 
