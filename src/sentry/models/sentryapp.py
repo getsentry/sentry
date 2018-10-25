@@ -51,7 +51,10 @@ class SentryApp(ParanoidModel, HasApiScopes):
     uuid = models.CharField(max_length=64,
                             default=default_uuid)
 
-    webhook_url = models.TextField()
+    redirect_url = models.URLField()
+    webhook_url = models.URLField()
+
+    overview = models.TextField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
