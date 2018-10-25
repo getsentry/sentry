@@ -69,7 +69,8 @@ def merge_minidump_event(data, minidump, cfi=None):
             'frames': [{
                 'instruction_addr': '0x%x' % frame.return_address,
                 'function': '<unknown>',  # Required by interface
-                'package': frame.module.name if frame.module else None,
+                'module': frame.module.name if frame.module else None,
+                'trust': frame.trust,
             } for frame in reversed(list(thread.frames()))],
             'registers': thread.get_frame(0).registers if thread.frame_count else None,
         },
