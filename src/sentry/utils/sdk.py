@@ -88,9 +88,13 @@ def configure_sdk():
         upstream_transport = HttpTransport(options)
 
     def capture_event(event):
-        if upstream_transport is not None:
-            upstream_transport.capture_event(event)
         internal_transport.capture_event(event)
+
+        if upstream_transport is not None:
+            from sentry import options
+            event.setdefault('tags', {})['install-id'] = \
+                options.get('sentry:install-id')
+            upstream_transport.capture_event(event)
 
     sentry_sdk.init(
         integrations=[
