@@ -10,7 +10,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
 import {getOrderByOptions} from '../utils';
-import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
+import {Fieldset, PlaceholderText, SidebarLabel, StyledQueryFields} from '../styles';
 
 export default class QueryFields extends React.Component {
   static propTypes = {
@@ -56,7 +56,7 @@ export default class QueryFields extends React.Component {
     }));
 
     return (
-      <React.Fragment>
+      <StyledQueryFields>
         {savedQuery && (
           <Fieldset>
             <React.Fragment>
@@ -123,7 +123,7 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>{actions}</Fieldset>
-      </React.Fragment>
+      </StyledQueryFields>
     );
   }
 }
