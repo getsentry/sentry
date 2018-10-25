@@ -39,7 +39,13 @@ class VstsIssueSync(IssueSyncMixin):
 
         params = kwargs.get('params', {})
         defaults = self.get_project_defaults(group.project_id)
-        default_project = params.get('project', defaults.get('project') or project_choices[0][0])
+        try:
+            default_project = params.get(
+                'project', defaults.get('project') or project_choices[0][0])
+        except KeyError:
+            # TODO(lb): Actually should we surface an error to the user?
+            # Is there a way to do that already if so?
+            return None, project_choices
 
         # If a project has been selected outside of the default list of
         # projects, stick it onto the front of the list so that it can be

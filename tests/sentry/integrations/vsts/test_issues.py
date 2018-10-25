@@ -291,3 +291,15 @@ class VstsIssueFormTest(VstsIssueBase):
 
         with pytest.raises(IntegrationError):
             self.integration.get_create_issue_config(self.group)
+
+    @responses.activate
+    def test_default_project_no_projects(self):
+        responses.reset()
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects',
+            json={'value': []},
+        )
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(fields, None, [])
