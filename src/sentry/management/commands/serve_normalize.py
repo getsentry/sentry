@@ -110,7 +110,10 @@ class Command(BaseCommand):
     help = 'Start a socket server for event normalization'
 
     option_list = BaseCommand.option_list + (
-        make_option('--socket', dest='socket_file', help='Unix socket to bind to'),
+        make_option('--unix', dest='socket_file',
+                    help='Unix socket to bind to. Example: "/tmp/normalize.sock"'),
+        make_option('--net', dest='network_socket',
+                    help='Network socket to bind to. Example: "127.0.0.1:1234"'),
     )
 
     def _check_socket_path(self, socket_file):
@@ -128,12 +131,20 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         socket_file = options.get('socket_file')
-        if not socket_file:
-            raise CommandError('Path to the socket file is required!')
+        network_socket = options.get('network_socket')
+        if socket_file and network_socket:
+            raise CommandError('Only one socket allowed at a time')
+        elif socket_file:
+            self.socket_file = os.path.abspath(socket_file)
+            self._check_socket_path(socket_file)
+            self.stdout.write('Binding to unix socket: %s' % (socket_file,))
+            server = SocketServer.UnixStreamServer(socket_file, EventNormalizeHandler)
+        elif network_socket:
+            host, port = network_socket.split(':')
+            port = int(port)
+            self.stdout.write('Binding to network socket: %s:%s' % (host, port))
+            server = SocketServer.TCPServer((host, port), EventNormalizeHandler)
+        else:
+            raise CommandError('No connection option specified')
 
-        self.socket_file = os.path.abspath(socket_file)
-        self._check_socket_path(socket_file)
-        self.stdout.write('Binding to unix socket: %s' % (socket_file,))
-
-        server = SocketServer.UnixStreamServer(socket_file, EventNormalizeHandler)
         server.serve_forever()
