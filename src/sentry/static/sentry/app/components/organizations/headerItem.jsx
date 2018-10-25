@@ -10,49 +10,62 @@ class HeaderItem extends React.Component {
   static propTypes = {
     label: PropTypes.node,
     icon: PropTypes.element,
+    onClear: PropTypes.func,
     /**
      * className for <Label> component
      */
     labelClassName: PropTypes.string,
   };
 
+  onClear = (e) => {
+    e.stopPropagation();
+    this.props.onClear();
+  }
+
   render() {
-    const {className, label, children, active, icon} = this.props;
+    const {className, label, children, isOpen, hasSelected, icon} = this.props;
 
     return (
       <StyledHeaderItem className={className} {...this.props}>
-        <IconContainer active={active}>{icon}</IconContainer>
+        <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
         <Content>{children}</Content>
-        <StyledChevron src="icon-chevron-down" active={active}/>
+        {hasSelected && <StyledClose src="icon-close" onClick={this.onClear}/>}
+        <StyledChevron src="icon-chevron-down" isOpen={isOpen}/>
       </StyledHeaderItem>
     );
   }
 }
 
 const StyledHeaderItem = styled('div')`
-  flex-direction: column;
-  display: grid;
-  grid-template-columns: auto minmax(1em, 1fr) 1em;
-  grid-column-gap: ${space(0.25)};
+  display: flex;
   padding: 0 ${space(3)};
   align-items: center;
-  color: ${p => p.theme.button.default.colorActive};
   cursor: pointer;
-  color: ${p => p.active ? p.theme.gray4 : p.theme.gray2};
+  color: ${p => p.isOpen ? p.theme.gray4 : p.theme.gray2};
   transition: 0.1s color;
+  user-select: none;
 `;
 
 const Content = styled('div')`
+  flex: 1;
   ${overflowEllipsis};
 `;
 
 const IconContainer = styled('span')`
-  color: ${p => p.active ? p.theme.blue : p.theme.gray2};
+  color: ${p => p.hasSelected ? p.theme.blue : p.theme.gray2};
   margin-right: ${space(1.5)};
 `;
 
+const StyledClose = styled(InlineSvg)`
+  color: ${p => p.theme.gray2};
+  height: 10px;
+  width: 10px;
+  margin-right: ${p => space(1)};
+  stroke-width: 1.5;
+`;
+
 const StyledChevron = styled(InlineSvg)`
-  transform: rotate(${p => p.active ? "180deg" : "0deg"});
+  transform: rotate(${p => p.isOpen ? "180deg" : "0deg"});
   transition: 0.1s transform;
 `;
 

@@ -114,7 +114,7 @@ class TimeRangeSelector extends React.Component {
           <div {...getRootProps()} style={{position: "relative"}}>
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
-              active={isOpen}
+              isOpen={isOpen}
               {...getActorProps({isStyled: true})}
             >
               {summary}
@@ -152,7 +152,7 @@ class TimeRangeSelector extends React.Component {
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-  width: 200px;
+  width: 230px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`

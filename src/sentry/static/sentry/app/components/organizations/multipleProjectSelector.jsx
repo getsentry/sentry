@@ -84,15 +84,6 @@ export default class MultipleProjectSelector extends React.Component {
               >
                 {t('Update')}
               </Button>
-
-              <Button
-                size="small"
-                type="button"
-                disabled={selected.length === 0}
-                onClick={this.props.onChange.bind(this, [])}
-              >
-                {t('Clear')}
-              </Button>
             </Footer>
           );
         }}
@@ -103,7 +94,14 @@ export default class MultipleProjectSelector extends React.Component {
             ? selectedProjects.map(({slug}) => slug).join(', ')
             : t('Projects and Teams');
           return (
-            <StyledHeaderItem active={hasSelected || isOpen} icon={<StyledInlineSvg src="icon-stack" />} {...getActorProps()}>
+            <StyledHeaderItem
+              active={hasSelected || isOpen}
+              icon={<StyledInlineSvg src="icon-stack" />}
+              hasSelected={hasSelected}
+              isOpen={isOpen}
+              onClear={this.props.onChange.bind(this, [])}
+              {...getActorProps()}
+            >
               {title}
             </StyledHeaderItem>
           );
