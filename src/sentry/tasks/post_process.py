@@ -14,7 +14,6 @@ import time
 from django.conf import settings
 
 from sentry import features
-from sentry.app import raven
 from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
@@ -22,6 +21,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
+from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger('sentry')
 
@@ -96,9 +96,8 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     event.group_id = event.group.id
 
     project_id = event.group.project_id
-    raven.tags_context({
-        'project': project_id,
-    })
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
     # Re-bind Project since we're pickling the whole Event object
     # which may contain a stale Project.
@@ -181,9 +180,9 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    raven.tags_context({
-        'project': event.project_id,
-    })
+    with configure_scope() as scope:
+        scope.set_tag("project", event.project_id)
+
     plugin = plugins.get(plugin_slug)
     safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
 
@@ -198,9 +197,8 @@ def index_event_tags(organization_id, project_id, event_id, tags,
                      group_id, environment_id, date_added=None, **kwargs):
     from sentry import tagstore
 
-    raven.tags_context({
-        'project': project_id,
-    })
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
     create_event_tags_kwargs = {}
     if date_added is not None:

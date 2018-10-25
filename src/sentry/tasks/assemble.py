@@ -4,6 +4,7 @@ import os
 import logging
 
 from sentry.tasks.base import instrumented_task
+from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,9 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
     from sentry.models import ChunkFileState, debugfile, Project, \
         ProjectDebugFile, set_assemble_status, BadDif
     from sentry.reprocessing import bump_reprocessing_revision
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
     project = Project.objects.filter(id=project_id).get()
     set_assemble_status(project, checksum, ChunkFileState.ASSEMBLING)

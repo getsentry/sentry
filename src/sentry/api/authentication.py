@@ -5,9 +5,9 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
 
-from sentry.app import raven
 from sentry.models import ApiApplication, ApiKey, ApiToken, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.utils.sdk import configure_scope
 
 import semaphore
 
@@ -28,9 +28,8 @@ class RelayAuthentication(BasicAuthentication):
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
     def authenticate_credentials(self, relay_id, relay_sig, request):
-        raven.tags_context({
-            'relay_id': relay_id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag('relay_id', relay_id)
 
         try:
             relay = Relay.objects.get(relay_id=relay_id)
@@ -63,9 +62,8 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         if not key.is_active:
             raise AuthenticationFailed('Key is disabled')
 
-        raven.tags_context({
-            'api_key': key.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("api_key", key.id)
 
         return (AnonymousUser(), key)
 
@@ -139,8 +137,7 @@ class TokenAuthentication(QuietBasicAuthentication):
         if token.application and not token.application.is_active:
             raise AuthenticationFailed('UserApplication inactive or deleted')
 
-        raven.tags_context({
-            'api_token': token.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("api_token", token.id)
 
         return (token.user, token)

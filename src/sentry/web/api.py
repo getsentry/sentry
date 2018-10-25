@@ -29,10 +29,9 @@ from querystring_parser import parser
 from symbolic import ProcessMinidumpError
 
 from sentry import features, quotas, tsdb, options
-from sentry.app import raven
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
@@ -240,7 +239,6 @@ class APIView(BaseView):
         project = self._get_project_from_id(project_id)
         if project:
             helper.context.bind_project(project)
-            raven.tags_context(helper.context.get_tags_context())
 
         if origin is not None:
             # This check is specific for clients who need CORS support
@@ -267,7 +265,6 @@ class APIView(BaseView):
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
-            raven.tags_context(helper.context.get_tags_context())
 
             # Explicitly bind Organization so we don't implicitly query it later
             # this just allows us to comfortably assure that `project.organization` is safe.
@@ -441,8 +438,7 @@ class StoreView(APIView):
         # it cannot cascade
         if rate_limit is None or rate_limit.is_limited:
             if rate_limit is None:
-                helper.log.debug(
-                    'Dropped event due to error with rate limiter')
+                api_logger.debug('Dropped event due to error with rate limiter')
             tsdb.incr_multi(
                 [
                     (tsdb.models.project_total_received, project.id),
@@ -534,7 +530,7 @@ class StoreView(APIView):
 
         cache.set(cache_key, '', 60 * 5)
 
-        helper.log.debug('New event received (%s)', event_id)
+        api_logger.debug('New event received (%s)', event_id)
 
         event_accepted.send_robust(
             ip=remote_addr,
@@ -571,7 +567,6 @@ class MinidumpView(StoreView):
 
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
-        raven.tags_context(helper.context.get_tags_context())
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -583,7 +578,6 @@ class MinidumpView(StoreView):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
-        raven.tags_context(helper.context.get_tags_context())
 
         return super(APIView, self).dispatch(
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
@@ -745,7 +739,6 @@ class SecurityReportView(StoreView):
 
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
-        raven.tags_context(helper.context.get_tags_context())
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -757,7 +750,6 @@ class SecurityReportView(StoreView):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
-        raven.tags_context(helper.context.get_tags_context())
 
         return super(APIView, self).dispatch(
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
