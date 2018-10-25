@@ -176,7 +176,7 @@ const ProjectEvents = createReactClass({
           <td>
             <h5>
               <ProjectLink
-                to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id || event.eventID}/`}
+                to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}
               >
                 {this.getEventTitle(event)}
               </ProjectLink>
