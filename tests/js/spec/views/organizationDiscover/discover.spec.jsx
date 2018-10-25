@@ -34,8 +34,9 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
-          updateSavedQueryData={() => {}}
           savedQuery={TestStubs.DiscoverSavedQuery()}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -52,7 +53,8 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -69,19 +71,21 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
           location={{search: ''}}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext([{organization}])
       );
-      expect(wrapper.find('QueryFields')).toHaveLength(1);
-      expect(wrapper.find('QueryRead')).toHaveLength(0);
+      expect(wrapper.find('NewQuery')).toHaveLength(1);
+      expect(wrapper.find('EditSavedQuery')).toHaveLength(0);
       wrapper.setProps({
         savedQuery: TestStubs.DiscoverSavedQuery(),
+        isEditingSavedQuery: true,
       });
       wrapper.update();
-      expect(wrapper.find('QueryFields')).toHaveLength(0);
-      expect(wrapper.find('QueryRead')).toHaveLength(1);
+      expect(wrapper.find('NewQuery')).toHaveLength(0);
+      expect(wrapper.find('EditSavedQuery')).toHaveLength(1);
     });
   });
 
@@ -93,7 +97,10 @@ describe('Discover', function() {
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {timing: {}, data: [], meta: []},
-        headers: {Link: '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"'}
+        headers: {
+          Link:
+            '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"',
+        },
       });
 
       secondPageMock = MockApiClient.addMockResponse({
@@ -113,25 +120,39 @@ describe('Discover', function() {
       );
     });
 
-    it('can go to next page', async function(){
+    it('can go to next page', async function() {
       wrapper.instance().runQuery();
       await tick();
       wrapper.update();
-      wrapper.find('PaginationButtons').find('Button').at(1).simulate('click');
+      wrapper
+        .find('PaginationButtons')
+        .find('Button')
+        .at(1)
+        .simulate('click');
       expect(firstPageMock).toHaveBeenCalledTimes(1);
       expect(secondPageMock).toHaveBeenCalledTimes(1);
     });
 
-    it('can\'t go back', async function() {
+    it("can't go back", async function() {
       wrapper.instance().runQuery();
       await tick();
       wrapper.update();
-      expect(wrapper.find('PaginationButtons').find('Button').at(0).prop('disabled')).toBe(true);
-      wrapper.find('PaginationButtons').find('Button').at(0).simulate('click');
+      expect(
+        wrapper
+          .find('PaginationButtons')
+          .find('Button')
+          .at(0)
+          .prop('disabled')
+      ).toBe(true);
+      wrapper
+        .find('PaginationButtons')
+        .find('Button')
+        .at(0)
+        .simulate('click');
       expect(firstPageMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not paginate on aggregate', async function(){
+    it('does not paginate on aggregate', async function() {
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
       await tick();
@@ -151,7 +172,8 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext()
       );
@@ -163,7 +185,6 @@ describe('Discover', function() {
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
-
     });
 
     it('always requests event_id and project_id for basic queries', async function() {
@@ -210,6 +231,34 @@ describe('Discover', function() {
     });
   });
 
+  describe('saveQuery()', function() {
+    it('can be saved', function() {
+      const wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          params={{}}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
+        />,
+        TestStubs.routerContext()
+      );
+      const createMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/',
+        method: 'POST',
+      });
+
+      wrapper.find('button[aria-label="Save"]').simulate('click');
+
+      expect(createMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/saved/',
+        expect.objectContaining({
+          data: expect.objectContaining(queryBuilder.getInternal()),
+        })
+      );
+    });
+  });
+
   describe('reset()', function() {
     describe('query builder (no saved query)', function() {
       let wrapper;
@@ -232,7 +281,8 @@ describe('Discover', function() {
             organization={organization}
             location={{location: '?fields=something'}}
             params={{}}
-            updateSavedQueryData={() => {}}
+            updateSavedQueryData={jest.fn()}
+            toggleEditMode={jest.fn()}
           />,
           TestStubs.routerContext()
         );
@@ -299,8 +349,10 @@ describe('Discover', function() {
           organization={organization}
           params={{}}
           savedQuery={TestStubs.DiscoverSavedQuery()}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
           view="saved"
+          location={{search: ''}}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext()
       );
@@ -327,52 +379,38 @@ describe('Discover', function() {
     });
 
     it('toggles edit mode', function() {
-      expect(wrapper.find('QueryRead')).toHaveLength(1);
-      expect(wrapper.find('QueryFields')).toHaveLength(0);
+      wrapper.setProps({
+        isEditingSavedQuery: true,
+      });
+      expect(wrapper.find('SavedQueryList')).toHaveLength(1);
+      expect(wrapper.find('EditSavedQuery')).toHaveLength(1);
       wrapper
-        .find('SavedQueryTitle')
+        .find('SavedQueryAction')
         .find('a')
         .simulate('click');
-      expect(wrapper.find('QueryRead')).toHaveLength(0);
-      expect(wrapper.find('QueryFields')).toHaveLength(1);
+      expect(wrapper.find('SavedQueryList')).toHaveLength(1);
+      expect(wrapper.find('EditSavedQuery')).toHaveLength(1);
     });
 
     it('delete saved query', function() {
-      // Click edit
-      wrapper
-        .find('SavedQueryTitle')
-        .find('Link')
-        .simulate('click');
-
-      // Click delete
-      wrapper
-        .find('SavedQueryAction')
-        .at(1)
-        .simulate('click');
+      wrapper.setProps({
+        isEditingSavedQuery: true,
+      });
+      wrapper.find('SavedQueryAction[data-test-id="delete"]').simulate('click');
       expect(deleteMock).toHaveBeenCalled();
     });
 
     it('update name', function() {
-      // Click edit
-      wrapper
-        .find('SavedQueryTitle')
-        .find('Link')
-        .simulate('click');
+      wrapper.setProps({
+        isEditingSavedQuery: true,
+      });
 
-      // Change name
       wrapper
-        .find('EditableName')
-        .find('input')
+        .find('input[id="id-name"]')
         .simulate('change', {target: {value: 'New name'}});
-      wrapper.update();
 
-      // Click save
-      wrapper
-        .find('SavedQueryAction')
-        .at(0)
-        .simulate('click');
+      wrapper.find('button[aria-label="Save"]').simulate('click');
 
-      wrapper.update();
       expect(updateMock).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/saved/1/',
         expect.objectContaining({
@@ -394,7 +432,8 @@ describe('Discover', function() {
           organization={organization}
           location={{location: '?fields=something'}}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext()
       );
@@ -435,7 +474,8 @@ describe('Discover', function() {
           organization={organization}
           location={{location: ''}}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext()
       );

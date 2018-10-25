@@ -101,6 +101,24 @@ const OrganizationDiscoverContainer = createReactClass({
     this.setState({savedQuery});
   },
 
+  toggleEditMode: function() {
+    const {organization} = this.context;
+    const {savedQuery} = this.state;
+    const isEditingSavedQuery = this.props.location.query.editing === 'true';
+
+    const newQuery = {...this.props.location.query};
+    if (!isEditingSavedQuery) {
+      newQuery.editing = 'true';
+    } else {
+      delete newQuery.editing;
+    }
+
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
+      query: newQuery,
+    });
+  },
+
   renderComingSoon: function() {
     return (
       <Flex className="organization-home" justify="center" align="center">
@@ -127,6 +145,7 @@ const OrganizationDiscoverContainer = createReactClass({
 
   render() {
     const {isLoading, savedQuery, view} = this.state;
+
     const {location, params} = this.props;
     const hasFeature = this.getFeatures().has('discover');
 
@@ -143,8 +162,10 @@ const OrganizationDiscoverContainer = createReactClass({
             location={location}
             params={params}
             savedQuery={savedQuery}
+            isEditingSavedQuery={this.props.location.query.editing === 'true'}
             updateSavedQueryData={this.updateSavedQuery}
             view={view}
+            toggleEditMode={this.toggleEditMode}
           />
         )}
       </DiscoverWrapper>
