@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
-from sentry.app import raven
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
+from sentry.utils.sdk import configure_scope
 
 from .organization import OrganizationPermission
 from .team import has_team_permission
@@ -136,10 +136,9 @@ class ProjectEndpoint(Endpoint):
 
         self.check_object_permissions(request, project)
 
-        raven.tags_context({
-            'project': project.id,
-            'organization': project.organization_id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("project", project.id)
+            scope.set_tag("organization", project.organization_id)
 
         request._request.organization = project.organization
 

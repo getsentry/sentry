@@ -7,10 +7,10 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.app import raven
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Repository
 from sentry.plugins import bindings
+from sentry.utils.sdk import capture_exception
 
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
@@ -69,7 +69,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
                     repos.extend(i.get_installation(organization.id)
                                   .get_unmigratable_repositories())
                 except Exception:
-                    raven.captureException()
+                    capture_exception()
                     # Don't rely on the Integration's API being available. If
                     # it's not, the page should still render.
                     continue

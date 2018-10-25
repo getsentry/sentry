@@ -16,7 +16,6 @@ from time import time
 from django.utils import timezone
 
 from sentry import features, reprocessing
-from sentry.app import raven
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
@@ -26,6 +25,7 @@ from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
+from sentry.utils.sdk import configure_scope
 from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
@@ -70,9 +70,9 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
 
     data = CanonicalKeyDict(data)
     project = data['project']
-    raven.tags_context({
-        'project': project,
-    })
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project)
 
     if should_process(data):
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
@@ -124,9 +124,10 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
 
     data = CanonicalKeyDict(data)
     project = data['project']
-    raven.tags_context({
-        'project': project,
-    })
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project)
+
     has_changed = False
 
     # Fetch the reprocessing revision
@@ -368,9 +369,8 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    raven.tags_context({
-        'project': project_id,
-    })
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
     try:
         manager = EventManager(data)
