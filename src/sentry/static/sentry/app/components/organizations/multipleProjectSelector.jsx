@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
+import InlineSvg from 'app/components/inlineSvg';
 
 import HeaderItem from './headerItem';
 
@@ -97,13 +98,13 @@ export default class MultipleProjectSelector extends React.Component {
           );
         }}
       >
-        {({getActorProps, selectedItem, activeProject, selectedProjects}) => {
+        {({getActorProps, selectedItem, activeProject, selectedProjects, isOpen}) => {
           const hasSelected = !!selectedProjects.length;
           const title = hasSelected
             ? selectedProjects.map(({slug}) => slug).join(', ')
             : t('Projects and Teams');
           return (
-            <StyledHeaderItem active={hasSelected} {...getActorProps()}>
+            <StyledHeaderItem active={hasSelected || isOpen} icon={<StyledInlineSvg src="icon-stack" />} {...getActorProps()}>
               {title}
             </StyledHeaderItem>
           );
@@ -116,6 +117,11 @@ export default class MultipleProjectSelector extends React.Component {
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 300px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  height: 18px;
+  width: 18px;
 `;
 
 const Footer = styled('div')`

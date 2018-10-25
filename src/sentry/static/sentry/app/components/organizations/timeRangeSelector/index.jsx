@@ -8,6 +8,7 @@ import space from 'app/styles/space';
 import HeaderItem from 'app/components/organizations/headerItem';
 import DropdownMenu from 'app/components/dropdownMenu';
 import DynamicWrapper from 'app/components/dynamicWrapper';
+import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import AbsoluteSelector from './absoluteSelector';
@@ -111,7 +112,13 @@ class TimeRangeSelector extends React.Component {
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
           <div {...getRootProps()} style={{position: "relative"}}>
-            <StyledHeaderItem {...getActorProps({isStyled: true})}>Howdy</StyledHeaderItem>
+            <StyledHeaderItem
+              icon={<StyledInlineSvg src="icon-calendar" />}
+              active={isOpen}
+              {...getActorProps({isStyled: true})}
+            >
+              {summary}
+            </StyledHeaderItem>
             <Menu {...getMenuProps()} style={{display: isOpen ? 'block' : 'none'}}>
               {shouldShowAbsolute && (
                 <AbsoluteSelector onChange={onChange} start={start} end={end} />
@@ -146,6 +153,12 @@ class TimeRangeSelector extends React.Component {
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 200px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  transform: translateY(-2px);
+  height: 17px;
+  width: 17px;
 `;
 
 const Menu = styled('div')`
