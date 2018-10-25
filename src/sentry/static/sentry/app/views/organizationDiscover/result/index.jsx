@@ -17,6 +17,8 @@ import Pagination from './pagination';
 import {
   Heading,
   ResultSummary,
+  ResultContainer,
+  ResultInnerContainer,
   ChartWrapper,
   ChartNote,
   SavedQueryAction,
@@ -165,76 +167,81 @@ export default class Result extends React.Component {
     };
 
     return (
-      <Box flex="1">
+      <ResultContainer>
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </Box>
           {this.renderToggle()}
         </Flex>
-
-        {view === 'table' && (
-          <div>
-            <Table data={baseQuery.data} query={baseQuery.query} />
-            {!baseQuery.query.aggregations.length && (
-              <Pagination
-                previous={baseQuery.previous}
-                next={baseQuery.next}
-                getNextPage={() => onFetchPage('next')}
-                getPreviousPage={() => onFetchPage('previous')}
+        <ResultInnerContainer innerRef={ref => (this.container = ref)}>
+          {view === 'table' && (
+            <React.Fragment>
+              <Table
+                data={baseQuery.data}
+                query={baseQuery.query}
+                height={this.container && this.container.clientHeight}
               />
-            )}
-          </div>
-        )}
-        {view === 'line' && (
-          <ChartWrapper>
-            <LineChart
-              series={basicChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
-              renderer="canvas"
-            />
-          </ChartWrapper>
-        )}
-        {view === 'bar' && (
-          <ChartWrapper>
-            <BarChart
-              series={basicChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
-              renderer="canvas"
-            />
-          </ChartWrapper>
-        )}
-        {view === 'line-by-day' && (
-          <ChartWrapper>
-            <LineChart
-              series={byDayChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={legendData}
-              renderer="canvas"
-            />
-            {this.renderNote()}
-          </ChartWrapper>
-        )}
-        {view === 'bar-by-day' && (
-          <ChartWrapper>
-            <BarChart
-              series={byDayChartData}
-              stacked={true}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={legendData}
-              renderer="canvas"
-            />
-            {this.renderNote()}
-          </ChartWrapper>
-        )}
-        {this.renderSummary()}
-      </Box>
+              {!baseQuery.query.aggregations.length && (
+                <Pagination
+                  previous={baseQuery.previous}
+                  next={baseQuery.next}
+                  getNextPage={() => onFetchPage('next')}
+                  getPreviousPage={() => onFetchPage('previous')}
+                />
+              )}
+            </React.Fragment>
+          )}
+          {view === 'line' && (
+            <ChartWrapper>
+              <LineChart
+                series={basicChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                renderer="canvas"
+              />
+            </ChartWrapper>
+          )}
+          {view === 'bar' && (
+            <ChartWrapper>
+              <BarChart
+                series={basicChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                renderer="canvas"
+              />
+            </ChartWrapper>
+          )}
+          {view === 'line-by-day' && (
+            <ChartWrapper>
+              <LineChart
+                series={byDayChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={legendData}
+                renderer="canvas"
+              />
+              {this.renderNote()}
+            </ChartWrapper>
+          )}
+          {view === 'bar-by-day' && (
+            <ChartWrapper>
+              <BarChart
+                series={byDayChartData}
+                stacked={true}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={legendData}
+                renderer="canvas"
+              />
+              {this.renderNote()}
+            </ChartWrapper>
+          )}
+          {this.renderSummary()}
+        </ResultInnerContainer>
+      </ResultContainer>
     );
   }
 }
