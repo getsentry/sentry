@@ -176,10 +176,10 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
   />
   <Panel>
     <Component
-      className="css-10qfvek-Panel e1laxa7d0"
+      className="css-yahxlu-Panel e1laxa7d0"
     >
       <div
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <PanelHeader
           disablePadding={true}
@@ -3064,10 +3064,10 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
   />
   <Panel>
     <Component
-      className="css-10qfvek-Panel e1laxa7d0"
+      className="css-yahxlu-Panel e1laxa7d0"
     >
       <div
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <PanelHeader
           disablePadding={true}

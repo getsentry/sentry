@@ -369,10 +369,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                   className="plugin-config ref-plugin-config-amazon-sqs"
                 >
                   <Component
-                    className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                    className="plugin-config ref-plugin-config-amazon-sqs css-yahxlu-Panel e1laxa7d0"
                   >
                     <div
-                      className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                      className="plugin-config ref-plugin-config-amazon-sqs css-yahxlu-Panel e1laxa7d0"
                     >
                       <PanelHeader
                         hasButtons={true}

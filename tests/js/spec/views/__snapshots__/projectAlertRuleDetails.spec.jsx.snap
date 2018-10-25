@@ -190,10 +190,10 @@ exports[`ProjectAlertRuleDetails Edit alert rule renders 1`] = `
             className="rule-detail"
           >
             <Component
-              className="rule-detail css-10qfvek-Panel e1laxa7d0"
+              className="rule-detail css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="rule-detail css-10qfvek-Panel e1laxa7d0"
+                className="rule-detail css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader>
                   <Component
@@ -2721,10 +2721,10 @@ exports[`ProjectAlertRuleDetails New alert rule renders 1`] = `
             className="rule-detail"
           >
             <Component
-              className="rule-detail css-10qfvek-Panel e1laxa7d0"
+              className="rule-detail css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="rule-detail css-10qfvek-Panel e1laxa7d0"
+                className="rule-detail css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader>
                   <Component
