@@ -140,10 +140,10 @@ exports[`CreateProject should render roles when available and allowed, and handl
           className="new-invite-team"
         >
           <Component
-            className="new-invite-team css-10qfvek-Panel e1laxa7d0"
+            className="new-invite-team css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-team css-10qfvek-Panel e1laxa7d0"
+              className="new-invite-team css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader>
                 <Component
@@ -365,10 +365,10 @@ exports[`CreateProject should render roles when available and allowed, and handl
           className="new-invite-team"
         >
           <Component
-            className="new-invite-team css-10qfvek-Panel e1laxa7d0"
+            className="new-invite-team css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="new-invite-team css-10qfvek-Panel e1laxa7d0"
+              className="new-invite-team css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader>
                 <Component

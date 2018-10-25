@@ -54,10 +54,10 @@ exports[`ProjectSavedSearches renders 1`] = `
         </SettingsPageHeading>
         <Panel>
           <Component
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader
                 disablePadding={true}
@@ -882,10 +882,10 @@ exports[`ProjectSavedSearches renders empty 1`] = `
         </SettingsPageHeading>
         <Panel>
           <Component
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader
                 disablePadding={true}

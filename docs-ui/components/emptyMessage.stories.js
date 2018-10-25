@@ -84,4 +84,26 @@ storiesOf('UI|EmptyMessage', module)
         />
       </Panel>
     ))
+  )
+  .add(
+    'in onboarding/missing functionality panel',
+    withInfo('Put this in a panel for maximum effect')(() => (
+      <Panel dottedBorder>
+        <EmptyMessage
+          icon="icon-discover"
+          title="You're missing out on crucial functionality!"
+          description="Enable this feature now to get the most out of Sentry. What are you waiting for? Do it!"
+          action={
+            <Flex justify="center">
+              <Box mr={1}>
+                <Button priority="primary">Enable it!</Button>
+              </Box>
+              <Box>
+                <Button>Learn More</Button>
+              </Box>
+            </Flex>
+          }
+        />
+      </Panel>
+    ))
   );
