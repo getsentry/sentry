@@ -6,7 +6,6 @@ import {
   getDisplayValue,
   getDisplayText,
   downloadAsCsv,
-  generateQueryName,
 } from 'app/views/organizationDiscover/result/utils';
 
 describe('Utils', function() {
@@ -239,9 +238,5 @@ describe('Utils', function() {
         )
       );
     });
-  });
-
-  it('generateQueryName()', function() {
-    expect(generateQueryName()).toBe('Result - Oct 17 02:41:20');
   });
 });
