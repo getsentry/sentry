@@ -88,7 +88,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
       canAddMembers,
     } = this.props;
 
-    let {id, flags, email, name, roleName, pending, user} = member;
+    let {id, flags, email, name, roleName, pending, expired, user} = member;
 
     // if member is not the only owner, they can leave
     let needsSso = !flags['sso:linked'] && requireLink;
@@ -102,6 +102,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     let detailsUrl = recreateRoute(id, {routes, params});
     let isInviteSuccessful = status === 'success';
     let isInviting = status === 'loading';
+    let canResend = (!expired && canAddMembers && (pending || needsSso));
 
     return (
       <PanelItem align="center" p={0} py={2}>
@@ -124,7 +125,10 @@ export default class OrganizationMemberRow extends React.PureComponent {
             needsSso || pending ? (
               <div>
                 <div>
-                  {pending ? (
+                  {expired ? (
+                    <strong>{t('Expired')}</strong>
+                  ) :
+                  pending ? (
                     <strong>{t('Invited')}</strong>
                   ) : (
                     <strong>{t('Missing SSO Link')}</strong>
@@ -139,8 +143,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 {isInviteSuccessful && <span>Sent!</span>}
                 {!isInviting &&
                   !isInviteSuccessful &&
-                  canAddMembers &&
-                  (pending || needsSso) && (
+                  canResend && (
                     <ResendInviteButton
                       priority="primary"
                       size="xsmall"
