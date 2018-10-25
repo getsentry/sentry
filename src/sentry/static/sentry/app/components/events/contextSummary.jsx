@@ -230,7 +230,8 @@ export class GpuSummary extends React.Component {
 }
 
 const MIN_CONTEXTS = 3;
-const MAX_CONTEXTS = 4;
+// More than 3 don't fit on 1280px
+const MAX_CONTEXTS = 3;
 const KNOWN_CONTEXTS = [
   {key: 'user', Component: UserSummary},
   {key: 'browser', Component: GenericSummary, unknownTitle: t('Unknown Browser')},
