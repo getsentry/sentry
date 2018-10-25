@@ -28,16 +28,8 @@ describe('savedQueryList', function() {
 
   it('renders list', async function() {
     const savedQueries = [
-      {
-        id: '1',
-        name: 'saved query #1',
-        dateUpdated: '2018-09-24T00:00:00.000Z',
-      },
-      {
-        id: '2',
-        name: 'saved query #2',
-        dateUpdated: '2018-09-24T00:00:00.000Z',
-      },
+      TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
+      TestStubs.DiscoverSavedQuery({id: '2', name: '2two'}),
     ];
     mockResponse.push(...savedQueries);
     const wrapper = mount(<SavedQueryList organization={organization} />);

@@ -49,23 +49,6 @@ describe('Result', function() {
         expect(wrapper.find('ResultTable')).toHaveLength(0);
         expect(wrapper.find('LineChart')).toHaveLength(1);
       });
-
-      it('can be saved', async function() {
-        const createMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/discover/saved/',
-          method: 'POST',
-        });
-
-        wrapper.find('SavedQueryAction[data-test-id="save"]').simulate('click');
-        wrapper.find('SavedQueryAction[data-test-id="confirm"]').simulate('click');
-        await tick();
-        expect(createMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/discover/saved/',
-          expect.objectContaining({
-            data: expect.objectContaining(queryBuilder.getExternal()),
-          })
-        );
-      });
     });
   });
 
