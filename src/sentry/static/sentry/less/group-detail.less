@@ -1333,6 +1333,9 @@ div.traceback > ul {
       line-height: 16px;
       background: lighten(@blue-light, 35);
 
+      word-break: break-all; /* for firefox */
+      word-break: break-word; /* for chrome */
+
       code {
         font-family: inherit;
         font-weight: bold;
@@ -1345,7 +1348,6 @@ div.traceback > ul {
 
     &.system-frame .title {
       background: @white-dark;
-      word-break: break-all;
     }
 
     &.missing-frame .title {
