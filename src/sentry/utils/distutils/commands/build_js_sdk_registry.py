@@ -55,6 +55,9 @@ from .base import BaseBuildCommand
 class BuildJsSdkRegistryCommand(BaseBuildCommand):
     description = 'build js sdk registry'
 
+    def _needs_built(self):
+        return True
+
     def _build(self):
         logger.info('downloading js sdk information from the registry')
 
