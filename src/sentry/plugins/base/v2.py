@@ -406,7 +406,8 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         Enhancers should not be returned if there is nothing to do with the
         event data.
 
-        >>> def get_event_enhancers(self, data, **kwargs): return [lambda x: x]
+        >>> def get_event_enhancers(self, data, **kwargs):
+        >>>     return [lambda x: x]
         """
         return []
 
