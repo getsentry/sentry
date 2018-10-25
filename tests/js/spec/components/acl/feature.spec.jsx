@@ -24,9 +24,9 @@ describe('Feature', function() {
       childrenMock.mockClear();
     });
 
-    it('has feature', function() {
+    it('has features', function() {
       mount(
-        <Feature feature={['org-foo', 'project-foo']}>{childrenMock}</Feature>,
+        <Feature features={['org-foo', 'project-foo']}>{childrenMock}</Feature>,
         routerContext
       );
 
@@ -35,9 +35,9 @@ describe('Feature', function() {
       });
     });
 
-    it('has feature when requireAll is false', function() {
+    it('has features when requireAll is false', function() {
       mount(
-        <Feature feature={['org-foo', 'project-foo', 'apple']} requireAll={false}>
+        <Feature features={['org-foo', 'project-foo', 'apple']} requireAll={false}>
           {childrenMock}
         </Feature>,
         routerContext
@@ -48,18 +48,18 @@ describe('Feature', function() {
       });
     });
 
-    it('has no feature', function() {
-      mount(<Feature feature={['org-baz']}>{childrenMock}</Feature>, routerContext);
+    it('has no features', function() {
+      mount(<Feature features={['org-baz']}>{childrenMock}</Feature>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
       });
     });
 
-    it('calls render function when no feature', function() {
+    it('calls render function when no features', function() {
       const noFeatureRenderer = jest.fn(() => null);
       mount(
-        <Feature feature={['org-baz']} renderNoFeatureMessage={noFeatureRenderer}>
+        <Feature features={['org-baz']} renderNoFeatureMessage={noFeatureRenderer}>
           {childrenMock}
         </Feature>,
         routerContext
@@ -73,7 +73,7 @@ describe('Feature', function() {
       mount(
         <Feature
           organization={TestStubs.Organization({features: ['org-bazar']})}
-          feature={['org-bazar']}
+          features={['org-bazar']}
         >
           {childrenMock}
         </Feature>,
@@ -89,7 +89,7 @@ describe('Feature', function() {
       mount(
         <Feature
           project={TestStubs.Project({features: ['project-baz']})}
-          feature={['project-baz']}
+          features={['project-baz']}
         >
           {childrenMock}
         </Feature>,
@@ -103,7 +103,7 @@ describe('Feature', function() {
 
     it('handles no org/project', function() {
       mount(
-        <Feature organization={null} project={null} feature={['org-foo', 'project-foo']}>
+        <Feature organization={null} project={null} features={['org-foo', 'project-foo']}>
           {childrenMock}
         </Feature>,
         routerContext
@@ -119,7 +119,7 @@ describe('Feature', function() {
         <Feature
           organization={organization}
           project={project}
-          feature={['organization:bar']}
+          features={['organization:bar']}
         >
           {childrenMock}
         </Feature>,
@@ -131,7 +131,7 @@ describe('Feature', function() {
       });
 
       mount(
-        <Feature organization={organization} project={project} feature={['project:bar']}>
+        <Feature organization={organization} project={project} features={['project:bar']}>
           {childrenMock}
         </Feature>,
         routerContext
@@ -147,7 +147,7 @@ describe('Feature', function() {
         features: new Set(['organizations:create']),
       };
       mount(
-        <Feature feature={['organizations:create']}>{childrenMock}</Feature>,
+        <Feature features={['organizations:create']}>{childrenMock}</Feature>,
         routerContext
       );
 
@@ -162,7 +162,7 @@ describe('Feature', function() {
 
     it('has features', function() {
       wrapper = mount(
-        <Feature feature={['org-bar']}>
+        <Feature features={['org-bar']}>
           <div>The Child</div>
         </Feature>,
         routerContext
@@ -173,7 +173,7 @@ describe('Feature', function() {
 
     it('has no features', function() {
       wrapper = mount(
-        <Feature feature={['org-baz']}>
+        <Feature features={['org-baz']}>
           <div>The Child</div>
         </Feature>,
         routerContext
