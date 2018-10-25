@@ -11,7 +11,7 @@ from django.utils.functional import cached_property
 
 import sentry_sdk
 
-from sentry_sdk.transport import Transport
+from sentry_sdk.transport import Transport, HttpTransport
 from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
@@ -80,14 +80,26 @@ def configure_sdk():
 
     assert sentry_sdk.Hub.main.client is None
 
+    options = settings.SENTRY_SDK_CONFIG
+
+    internal_transport = InternalTransport()
+    upstream_transport = None
+    if options.get('dsn'):
+        upstream_transport = HttpTransport(options)
+
+    def capture_event(event):
+        if upstream_transport is not None:
+            upstream_transport.capture_event(event)
+        internal_transport.capture_event(event)
+
     sentry_sdk.init(
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(event_level=None)
         ],
-        transport=InternalTransport(),
-        **settings.SENTRY_SDK_CONFIG
+        transport=capture_event,
+        **options
     )
 
 
