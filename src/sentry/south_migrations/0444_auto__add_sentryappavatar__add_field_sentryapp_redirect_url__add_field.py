@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
 
         # Adding field 'SentryApp.redirect_url'
         db.add_column('sentry_sentryapp', 'redirect_url', self.gf(
-            'django.db.models.fields.URLField')(max_length=200))
+            'django.db.models.fields.URLField')(max_length=200, null=True))
 
         # Adding field 'SentryApp.overview'
         db.add_column('sentry_sentryapp', 'overview',

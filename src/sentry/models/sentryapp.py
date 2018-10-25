@@ -51,7 +51,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     uuid = models.CharField(max_length=64,
                             default=default_uuid)
 
-    redirect_url = models.URLField()
+    redirect_url = models.URLField(null=True)
     webhook_url = models.URLField()
 
     overview = models.TextField(null=True)
