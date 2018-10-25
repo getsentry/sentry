@@ -26,10 +26,10 @@ const formGroups = [
         name: 'sentry:csp_ignored_sources',
         type: 'string',
         multiline: true,
-        placeholder: 'e.g. file://*, *.example.com, example.com, etc...',
+        placeholder: 'e.g.\nfile://*\n*.example.com\nexample.com\netc',
         label: t('Additional ignored sources'),
         help: t(
-          'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+          'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
         ),
         extraHelp: t('Separate multiple entries with a newline.'),
         getData: data => ({
