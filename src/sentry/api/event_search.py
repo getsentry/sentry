@@ -5,7 +5,8 @@ from parsimonious.grammar import Grammar, NodeVisitor
 
 
 event_search_grammar = Grammar(r"""
-
+# raw_search must come at the end, otherwise other
+# search_terms will be treated as a raw query
 search          = search_term* raw_search?
 search_term     = space? basic_filter space?
 raw_search      = ~r".+$"
