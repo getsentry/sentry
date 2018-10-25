@@ -67,15 +67,11 @@ class SnubaUtilTest(TestCase):
         group2 = self.create_group()
         GroupHash.objects.create(project_id=group2.project_id, group=group2, hash='b' * 32)
 
-        # issues is a list like [(gid, pid, [(hash, tombstone_date), ...]), ...]
-        issues = [(group1.id, group1.project_id, [('a' * 32, None)])]
+        issues = [group1.id]
         assert snuba.shrink_time_window(issues, year_ago, year_ahead) == \
             (now - timedelta(hours=1, minutes=5), now + timedelta(minutes=5))
 
-        issues = [
-            (group1.id, group1.project_id, [('a' * 32, None)]),
-            (group2.id, group2.project_id, [('b' * 32, None)]),
-        ]
+        issues = [group1.id, group2.id]
         assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
 
         with pytest.raises(snuba.QueryOutsideGroupActivityError):
