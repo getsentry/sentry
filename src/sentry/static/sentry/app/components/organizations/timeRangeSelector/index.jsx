@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import Button from 'app/components/button';
+import space from 'app/styles/space';
 import HeaderItem from 'app/components/organizations/headerItem';
-import DropdownLink from 'app/components/dropdownLink';
+import DropdownMenu from 'app/components/dropdownMenu';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import {t} from 'app/locale';
 
@@ -103,44 +103,63 @@ class TimeRangeSelector extends React.Component {
       : `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
-      <HeaderItem className={className}>
-        <DropdownLink
-          title={<DynamicWrapper value={<Title>{summary}</Title>} fixed="start to end" />}
-          anchorRight={true}
-          keepMenuOpen={true}
-          isOpen={this.state.isOpen}
-          onOpen={() => this.setState({isOpen: true})}
-          onClose={() => this.setState({isOpen: false})}
-        >
-          <Flex direction="column" p={2}>
-            {shouldShowAbsolute && (
-              <AbsoluteSelector onChange={onChange} start={start} end={end} />
-            )}
-            {shouldShowRelative && (
-              <RelativeSelector
-                choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                onChange={onChange}
-                value={relative}
-              />
-            )}
-            {shouldShowBoth && (
-              <CombinedSelector
-                choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                onChange={onChange}
-                relative={relative}
-                start={start}
-                end={end}
-              />
-            )}
-            <div>
-              <Button onClick={this.handleUpdate}>{t('Update')}</Button>
-            </div>
-          </Flex>
-        </DropdownLink>
-      </HeaderItem>
+      <DropdownMenu
+        isOpen={this.state.isOpen}
+        onOpen={() => this.setState({isOpen: true})}
+        onClose={() => this.setState({isOpen: false})}
+        keepMenuOpen={true}
+      >
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
+          <div {...getRootProps()} style={{position: "relative"}}>
+            <StyledHeaderItem {...getActorProps({isStyled: true})}>Howdy</StyledHeaderItem>
+            <Menu {...getMenuProps()} style={{display: isOpen ? 'block' : 'none'}}>
+              {shouldShowAbsolute && (
+                <AbsoluteSelector onChange={onChange} start={start} end={end} />
+              )}
+              {shouldShowRelative && (
+                <RelativeSelector
+                  choices={Object.entries(ALLOWED_RELATIVE_DATES)}
+                  onChange={onChange}
+                  value={relative}
+                />
+              )}
+              {shouldShowBoth && (
+                <CombinedSelector
+                  choices={Object.entries(ALLOWED_RELATIVE_DATES)}
+                  onChange={onChange}
+                  relative={relative}
+                  start={start}
+                  end={end}
+                />
+              )}
+              <div>
+                <Button onClick={this.handleUpdate}>{t('Update')}</Button>
+              </div>
+            </Menu>
+          </div>
+        )}
+      </DropdownMenu>
     );
   }
 }
+
+const StyledHeaderItem = styled(HeaderItem)`
+  height: 100%;
+  width: 200px;
+`;
+
+const Menu = styled('div')`
+  background: #fff;
+  border: 1px solid ${p => p.theme.borderLight};
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  min-width: 120%;
+  z-index: ${p => p.theme.zIndex.dropdown};
+  box-shadow: ${p => p.theme.dropShadowLight};
+  padding: ${space(2)};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+`;
 
 const Title = styled.span`
   padding-right: 40px;

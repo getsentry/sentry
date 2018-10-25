@@ -20,7 +20,7 @@ class HeaderItem extends React.Component {
     const {className, label, children, active} = this.props;
 
     return (
-      <StyledHeaderItem className={className}>
+      <StyledHeaderItem className={className} {...this.props}>
         <Content>{children}</Content>
         <InlineSvg src="icon-chevron-down" />
       </StyledHeaderItem>
@@ -37,6 +37,7 @@ const StyledHeaderItem = styled('div')`
   padding: 0 ${space(3)};
   align-items: center;
   color: ${p => p.theme.button.default.colorActive};
+  cursor: pointer;
 `;
 
 const Content = styled('div')`

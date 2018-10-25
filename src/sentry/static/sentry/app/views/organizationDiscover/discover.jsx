@@ -367,6 +367,7 @@ export default class OrganizationDiscover extends React.Component {
               onChange={this.handleUpdateTime}
               onUpdate={this.runQuery}
             />
+            <StyledHeaderSeparator />
           </TopBar>
           <BodyContent>
             {shouldDisplayResult && (

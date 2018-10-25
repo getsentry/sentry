@@ -66,7 +66,7 @@ export const LoadingContainer = styled(Flex)`
 `;
 
 export const StyledHeaderSeparator = styled(HeaderSeparator)`
-  margin: 0;
+  margin: ${space(1.5)} 0;
 `;
 
 export const TopBar = styled(Flex)`
