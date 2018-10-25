@@ -76,6 +76,7 @@ describe('ReleaseProgress', function() {
       })
     );
     expect(wrapper.state('showBar')).toBe(false);
+    expect(wrapper.find('ReleaseProgress')).toHaveLength(1);
     expect(wrapper.find('PanelItem')).toHaveLength(0);
   });
 });

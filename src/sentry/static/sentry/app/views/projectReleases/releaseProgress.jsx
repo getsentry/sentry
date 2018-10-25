@@ -22,14 +22,6 @@ class ReleaseProgress extends AsyncComponent {
     router: PropTypes.object,
   };
 
-  constructor(props, context) {
-    super(props, context);
-  }
-
-  getTitle() {
-    return t('ReleaseProgress');
-  }
-
   getEndpoints() {
     let {project, organization} = this.context;
     let data = {

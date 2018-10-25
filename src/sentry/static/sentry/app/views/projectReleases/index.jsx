@@ -48,8 +48,6 @@ const ProjectReleases = createReactClass({
       query: queryParams.query || DEFAULT_QUERY,
       pageLinks: '',
       environment: this.props.environment,
-      EmptyComponent: null,
-      ProgressComponent: null,
     };
   },
 
