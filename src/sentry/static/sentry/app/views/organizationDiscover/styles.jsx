@@ -144,10 +144,16 @@ export const ButtonSpinner = styled.div`
 export const ResultSummary = styled(Box)`
   color: ${p => p.theme.gray6};
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(3)};
 `;
 
 export const ResultContainer = styled('div')`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-bottom: ${space(3)};
+`;
+
+export const ResultInnerContainer = styled('div')`
   flex: 1;
 `;
 

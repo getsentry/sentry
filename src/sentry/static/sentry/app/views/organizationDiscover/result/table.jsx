@@ -21,7 +21,7 @@ const LINK_COL_WIDTH = 40;
 const CELL_PADDING = 20;
 const MIN_VISIBLE_ROWS = 12;
 const MAX_VISIBLE_ROWS = 24;
-const OTHER_ELEMENTS_HEIGHT = 114; // pagination obuttons, alpha notice, heading
+const OTHER_ELEMENTS_HEIGHT = 70; // pagination buttons, query summary
 
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
@@ -196,9 +196,10 @@ export default class ResultTable extends React.Component {
       return MIN_VISIBLE_ROWS;
     }
 
-    const visibleRows = Math.floor(
-      (elementHeight - OTHER_ELEMENTS_HEIGHT) / TABLE_ROW_HEIGHT_WITH_BORDER
-    );
+    // subtract header row, pagination buttons and query summary
+    const height = elementHeight - TABLE_ROW_HEIGHT_WITH_BORDER - OTHER_ELEMENTS_HEIGHT;
+
+    const visibleRows = Math.floor(height / TABLE_ROW_HEIGHT_WITH_BORDER);
 
     // Apply min/max
     return Math.max(Math.min(visibleRows, MAX_VISIBLE_ROWS), MIN_VISIBLE_ROWS);
