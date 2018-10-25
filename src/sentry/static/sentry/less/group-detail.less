@@ -2674,6 +2674,19 @@ ul.crumbs {
 }
 
 /**
+* Responsive medium-large screen
+* ============================================================================
+*/
+
+@media (max-width: 1460px) {
+  .context-summary {
+    .context-item:nth-child(4) {
+      display: none;
+    }
+  }
+}
+
+/**
 * Responsive medium screen
 * ============================================================================
 */
@@ -2798,6 +2811,10 @@ ul.crumbs {
       padding-top: 14px;
       padding-bottom: 14px;
       min-height: 67px;
+
+      &:nth-child(4) {
+        display: block;
+      }
 
       .context-item-icon {
         top: 9px;
