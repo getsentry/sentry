@@ -10,7 +10,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.models import Event, Release, UserReport
-from sentry.utils.validators import is_event_id
 
 
 class EventDetailsEndpoint(Endpoint):
@@ -35,26 +34,13 @@ class EventDetailsEndpoint(Endpoint):
         Retrieve an Event
         `````````````````
 
-        This endpoint returns the data for a specific event.
-
-        :pparam string event_id: either the numeric database primary key for the
-                                 event or the 32-character hexadecimal event_id.
+        This endpoint returns the data for a specific event.  The event ID
+        is the event as it appears in the Sentry database and not the event
+        ID that is reported by the client upon submission.
         """
-        event = None
-        # If its a numeric string, srr if it's an event Primary Key first
-        if event_id.isdigit():
-            try:
-                event = Event.objects.get(id=event_id)
-            except Event.DoesNotExist:
-                pass
-        # If it was not found as a PK, and its a possible event_id, search by that instead.
-        if event is None and is_event_id(event_id):
-            try:
-                event = Event.objects.get(event_id=event_id)
-            except Event.DoesNotExist:
-                pass
-
-        if event is None:
+        try:
+            event = Event.objects.get(id=event_id)
+        except Event.DoesNotExist:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, event.group)
