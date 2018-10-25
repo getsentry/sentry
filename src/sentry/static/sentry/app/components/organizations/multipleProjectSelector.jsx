@@ -43,6 +43,11 @@ export default class MultipleProjectSelector extends React.Component {
     onUpdate();
   };
 
+  handleClear = () => {
+    this.props.onChange.bind(this, []).call();
+    this.setState({hasChanges: false});
+  }
+
   handleMultiSelect = (selected, checked, e) => {
     const {onChange} = this.props;
     onChange(selected.map(({id}) => parseInt(id, 10)));
@@ -67,28 +72,8 @@ export default class MultipleProjectSelector extends React.Component {
         onSelect={this.handleQuickSelect}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={css`display: flex`}
-        menuFooter={({actions}) => {
-          if (!this.state.hasChanges && selected.length === 0) {
-            return null;
-          }
-
-          return (
-            <Footer>
-              <Button
-                priority="primary"
-                tabIndex={1}
-                size="small"
-                type="button"
-                disabled={!this.state.hasChanges}
-                onClick={this.handleUpdate.bind(this, actions)}
-              >
-                {t('Update')}
-              </Button>
-            </Footer>
-          );
-        }}
       >
-        {({getActorProps, selectedItem, activeProject, selectedProjects, isOpen}) => {
+        {({getActorProps, selectedItem, activeProject, selectedProjects, isOpen, actions}) => {
           const hasSelected = !!selectedProjects.length;
           const title = hasSelected
             ? selectedProjects.map(({slug}) => slug).join(', ')
@@ -98,8 +83,10 @@ export default class MultipleProjectSelector extends React.Component {
               active={hasSelected || isOpen}
               icon={<StyledInlineSvg src="icon-stack" />}
               hasSelected={hasSelected}
+              hasChanges={this.state.hasChanges}
               isOpen={isOpen}
-              onClear={this.props.onChange.bind(this, [])}
+              handleSubmit={this.handleUpdate.bind(this, actions)}
+              onClear={this.handleClear}
               {...getActorProps()}
             >
               {title}
@@ -114,7 +101,7 @@ export default class MultipleProjectSelector extends React.Component {
 const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;
   border-radius: 0 0 4px 4px;
-  width: 120%;
+  width: 110%;
   zIndex: -1;
 `;
 

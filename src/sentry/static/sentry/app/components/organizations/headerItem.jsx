@@ -17,20 +17,27 @@ class HeaderItem extends React.Component {
     labelClassName: PropTypes.string,
   };
 
-  onClear = (e) => {
+  onClear = e => {
     e.stopPropagation();
     this.props.onClear();
   }
 
+  handleChevronClick = e => {
+    e.stopPropagation();
+    if (this.props.hasChanges) this.props.handleSubmit();
+  }
+
   render() {
-    const {className, label, children, isOpen, hasSelected, icon} = this.props;
+    const {className, label, children, isOpen, hasSelected, hasChanges, icon} = this.props;
 
     return (
       <StyledHeaderItem className={className} {...this.props}>
         <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
         <Content>{children}</Content>
         {hasSelected && <StyledClose src="icon-close" onClick={this.onClear}/>}
-        <StyledChevron src="icon-chevron-down" isOpen={isOpen}/>
+        <StyledChevron isOpen={isOpen} hasChanges={hasChanges} onClick={this.handleChevronClick}>
+          <InlineSvg src="icon-chevron-down"/>
+        </StyledChevron>
       </StyledHeaderItem>
     );
   }
@@ -64,9 +71,22 @@ const StyledClose = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-const StyledChevron = styled(InlineSvg)`
+const StyledChevron = styled('div')`
   transform: rotate(${p => p.isOpen ? "180deg" : "0deg"});
-  transition: 0.1s transform;
+  transition: 0.1s all;
+  width: 1em;
+  height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  ${p => p.hasChanges ? `
+    background: ${p.theme.green};
+    border-radius: 2em;
+    width: 20px;
+    height: 20px;
+    color: #fff;
+    transform: rotate(270deg);
+  ` : ''}
 `;
 
 export default HeaderItem;
