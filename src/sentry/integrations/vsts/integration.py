@@ -388,7 +388,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
             subscription_id, subscription_secret = self.create_subscription(
-                base_url, account['accountId'], oauth_data)
+                base_url, oauth_data)
             integration['metadata']['subscription'] = {
                 'id': subscription_id,
                 'secret': subscription_secret,
@@ -396,11 +396,11 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def create_subscription(self, instance, account_id, oauth_data):
+    def create_subscription(self, instance, oauth_data):
         webhook = WorkItemWebhook()
         try:
             subscription, shared_secret = webhook.create_subscription(
-                instance, oauth_data, self.oauth_redirect_url, account_id)
+                instance, oauth_data, self.oauth_redirect_url)
         except ApiError as e:
             if e.code != 400 or 'permission' not in e.message:
                 raise e

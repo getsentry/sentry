@@ -244,7 +244,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def create_subscription(self, instance, external_id, shared_secret):
+    def create_subscription(self, instance, shared_secret):
         return self.post(
             VstsApiPath.subscriptions.format(
                 instance=instance
