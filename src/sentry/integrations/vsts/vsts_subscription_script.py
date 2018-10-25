@@ -18,6 +18,7 @@ def create_webhook(integration, organization_id):
 
     resp = client.create_subscription(
         instance=installation.instance,
+        external_id=integration.external_id,
         shared_secret=shared_secret,
     )
 
