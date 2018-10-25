@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
+from six.moves.urllib.parse import quote
 
 
 API_VERSION = u'/api/v4'
@@ -50,6 +51,12 @@ class GitLabSetupClient(ApiClient):
         self.verify_ssl = verify_ssl
 
     def get_group(self, group):
+        """Get a group based on `path` which is a slug.
+
+        We need to URL quote because subgroups use `/` in their
+        `id` and GitLab requires slugs to be URL encoded.
+        """
+        group = quote(group, safe='')
         path = GitLabApiClientPath.group.format(group=group)
         return self.get(path)
 

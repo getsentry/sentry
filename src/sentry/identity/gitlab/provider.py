@@ -23,10 +23,7 @@ class GitlabIdentityProvider(OAuth2Provider):
     key = 'gitlab'
     name = 'Gitlab'
 
-    oauth_scopes = (
-        'api',
-        'sudo',
-    )
+    oauth_scopes = ('api', )
 
     def build_identity(self, data):
         data = data['data']
