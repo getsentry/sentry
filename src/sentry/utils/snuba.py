@@ -14,7 +14,7 @@ import urllib3
 from django.conf import settings
 from django.db.models import Q
 
-from sentry import quotas
+from sentry import quotas, options
 from sentry.event_manager import HASH_RE
 from sentry.models import (
     Environment, Group, GroupHash, GroupHashTombstone, GroupRelease,
@@ -127,17 +127,21 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    # If the grouping, aggregation, or any of the conditions reference `issue`
-    # we need to fetch the issue definitions (issue -> fingerprint hashes)
-    aggregate_cols = [a[1] for a in aggregations]
-    condition_cols = all_referenced_columns(conditions)
-    all_cols = groupby + aggregate_cols + condition_cols + selected_columns
-    get_issues = 'issue' in all_cols
+    use_group_id_column = options.get('snuba.use_group_id_column')
+    issues = None
+    if not use_group_id_column:
+        # If the grouping, aggregation, or any of the conditions reference `issue`
+        # we need to fetch the issue definitions (issue -> fingerprint hashes)
+        aggregate_cols = [a[1] for a in aggregations]
+        condition_cols = all_referenced_columns(conditions)
+        all_cols = groupby + aggregate_cols + condition_cols + selected_columns
+        get_issues = 'issue' in all_cols
 
-    with timer('get_project_issues'):
-        issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
+        if get_issues:
+            with timer('get_project_issues'):
+                issues = get_project_issues(project_ids, filter_keys.get('issue'))
 
-    start, end = shrink_time_window(issues, start, end)
+    start, end = shrink_time_window(filter_keys.get('issue'), start, end)
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -155,6 +159,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'project': project_ids,
         'aggregations': aggregations,
         'granularity': rollup,
+        'use_group_id_column': use_group_id_column,
         'issues': issues,
         'arrayjoin': arrayjoin,
         'limit': limit,
@@ -464,8 +469,7 @@ def insert_raw(data):
 
 def shrink_time_window(issues, start, end):
     if issues and len(issues) == 1:
-        group_id = issues[0][0]
-        group = Group.objects.get(pk=group_id)
+        group = Group.objects.get(pk=issues[0])
         start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
         end = min(end, naiveify_datetime(group.last_seen) + timedelta(minutes=5))
 
