@@ -5,6 +5,8 @@ import re
 import logging
 import json
 
+from functools32 import lru_cache
+
 import sentry
 
 from django.conf import settings
@@ -16,6 +18,7 @@ LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), '
 DEFAULT_VERSION = '4.x'
 
 
+@lru_cache(maxsize=10)
 def load_registry(path):
     if '/' in path:
         return None
