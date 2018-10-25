@@ -139,7 +139,8 @@ class AccountSecurityEnroll extends AsyncView {
               this.props.router.push('/settings/account/security/');
               addErrorMessage(t('Already enrolled'));
               return true;
-            } else return false;
+            }
+            return false;
           },
         },
       ],
