@@ -58,7 +58,7 @@ export default class MultipleProjectSelector extends React.Component {
     );
 
     return (
-      <ProjectSelector
+      <StyledProjectSelector
         {...this.props}
         multi
         showUpdate
@@ -67,7 +67,6 @@ export default class MultipleProjectSelector extends React.Component {
         onSelect={this.handleQuickSelect}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={css`display: flex`}
-        style={{margin: "1px 0 0 -1px", borderRadius: "0 0 4px 4px", width: "120%", zIndex: "-1"}}
         menuFooter={({actions}) => {
           if (!this.state.hasChanges && selected.length === 0) {
             return null;
@@ -109,10 +108,17 @@ export default class MultipleProjectSelector extends React.Component {
             </StyledHeaderItem>
           );
         }}
-      </ProjectSelector>
+      </StyledProjectSelector>
     );
   }
 }
+
+const StyledProjectSelector = styled(ProjectSelector)`
+  margin: 1px 0 0 -1px;
+  border-radius: 0 0 4px 4px;
+  width: 120%;
+  zIndex: -1;
+`;
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;

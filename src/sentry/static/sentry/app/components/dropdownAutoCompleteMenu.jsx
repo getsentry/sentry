@@ -255,6 +255,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       noResultsMessage,
       style,
       rootClassName,
+      className,
       menuHeader,
       menuFooter,
       menuWithArrow,
@@ -318,6 +319,7 @@ class DropdownAutoCompleteMenu extends React.Component {
 
               {isOpen && (
                 <StyledMenu
+                  className={className}
                   {...getMenuProps({
                     ...menuProps,
                     style,
