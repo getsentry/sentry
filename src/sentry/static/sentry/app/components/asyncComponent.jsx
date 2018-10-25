@@ -161,6 +161,7 @@ export default class AsyncComponent extends React.Component {
         },
         error: error => {
           // Allow endpoints to fail
+          // allowError can have side effects to handle the error
           if (options.allowError && options.allowError(error)) {
             error = null;
           }

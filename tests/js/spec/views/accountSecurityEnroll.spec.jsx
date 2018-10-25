@@ -25,10 +25,6 @@ describe('AccountSecurityEnroll', function() {
 
     beforeAll(function() {
       Client.addMockResponse({
-        url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
-      });
-      Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
@@ -73,6 +69,32 @@ describe('AccountSecurityEnroll', function() {
           }),
         })
       );
+    });
+
+    it('can redirect with already enrolled error', function() {
+      Client.addMockResponse({
+        url: `${ENDPOINT}${authenticator.authId}/enroll/`,
+        body: {details: 'Already enrolled'},
+        statusCode: 400,
+      });
+
+      let pushMock = jest.fn();
+      wrapper = mount(
+        <AccountSecurityEnroll />,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router({
+                push: pushMock,
+              }),
+              params: {
+                authId: authenticator.authId,
+              },
+            },
+          },
+        ])
+      );
+      expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
     });
   });
 });
