@@ -197,7 +197,7 @@ class Sidebar extends React.Component {
                   to={`/${organization.slug}/`}
                 />
 
-                <Feature feature={['discover']}>
+                <Feature features={['discover']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
@@ -207,7 +207,7 @@ class Sidebar extends React.Component {
                   />
                 </Feature>
 
-                <Feature feature={['events-stream']}>
+                <Feature features={['events-stream']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
