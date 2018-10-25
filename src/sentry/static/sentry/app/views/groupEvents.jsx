@@ -1,6 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import {isEqual, omit} from 'lodash';
+import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {
@@ -8,11 +10,10 @@ import {
   getQueryStringWithEnvironment,
   getQueryStringWithoutEnvironment,
 } from 'app/utils/queryString';
-import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {setActiveEnvironmentName} from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import EnvironmentStore from 'app/stores/environmentStore';
 import EventsTable from 'app/components/eventsTable/eventsTable';
 import GroupState from 'app/mixins/groupState';
 import LoadingError from 'app/components/loadingError';
@@ -41,20 +42,19 @@ const GroupEvents = createReactClass({
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
+      environment: this.props.environment,
     };
 
     // If an environment is specified in the query, update the global environment
     // Otherwise if a global environment is present update the query
-    const queryEnvironment = EnvironmentStore.getByName(
-      getQueryEnvironment(queryParams.query || '')
-    );
+    const queryEnvironment = getQueryEnvironment(queryParams.query || '');
 
     if (queryEnvironment) {
-      setActiveEnvironment(queryEnvironment);
+      setActiveEnvironmentName(queryEnvironment);
     } else if (this.props.environment) {
       const newQuery = getQueryStringWithEnvironment(
         initialState.query,
-        this.props.environment.name
+        initialState.environment.name
       );
       this.handleSearch(newQuery);
     }
@@ -67,17 +67,14 @@ const GroupEvents = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // If query has changed, update the environment with the query environment
-    if (nextProps.location.search !== this.props.location.search) {
+    // omit when environment changes in query string since we handle that separately
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(nextProps.location.search), 'environment'),
+      omit(qs.parse(this.props.location.search), 'environment')
+    );
+
+    if (searchHasChanged) {
       const queryParams = nextProps.location.query;
-
-      const queryEnvironment = EnvironmentStore.getByName(
-        getQueryEnvironment(queryParams.query || '')
-      );
-
-      if (queryEnvironment) {
-        setActiveEnvironment(queryEnvironment);
-      }
 
       this.setState(
         {
@@ -87,21 +84,29 @@ const GroupEvents = createReactClass({
       );
     }
 
-    // If environment has changed, update query with new environment
+    // If environment has changed, refetch data
     if (nextProps.environment !== this.props.environment) {
-      const newQueryString = getQueryStringWithEnvironment(
-        nextProps.location.query.query || '',
-        nextProps.environment ? nextProps.environment.name : null
+      this.setState(
+        {
+          environment: nextProps.environment,
+        },
+        this.fetchData
       );
-      this.handleSearch(newQueryString);
     }
   },
 
   handleSearch(query) {
+    const queryEnvironment = getQueryEnvironment(query);
+
+    if (queryEnvironment) {
+      setActiveEnvironmentName(queryEnvironment);
+    }
+
     query = getQueryStringWithoutEnvironment(query);
     let targetQueryParams = {...this.props.location.query};
     if (query !== '') targetQueryParams.query = query;
     let {groupId, orgId, projectId} = this.props.params;
+
     browserHistory.push({
       pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
       query: targetQueryParams,
@@ -113,7 +118,11 @@ const GroupEvents = createReactClass({
       loading: true,
       error: false,
     });
-    const query = {...this.props.location.query, limit: 50, query: this.state.query};
+    const query = {limit: 50, query: this.state.query};
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    }
 
     this.api.request(`/issues/${this.props.params.groupId}/events/`, {
       query,
@@ -136,7 +145,7 @@ const GroupEvents = createReactClass({
   },
 
   renderNoQueryResults() {
-    const {environment} = this.props;
+    const {environment} = this.state;
     const message = environment
       ? tct('Sorry, no events match your search query in the [env] environment.', {
           env: environment.displayName,
@@ -151,7 +160,7 @@ const GroupEvents = createReactClass({
   },
 
   renderEmpty() {
-    const {environment} = this.props;
+    const {environment} = this.state;
     const message = environment
       ? tct("There don't seem to be any events in the [env] environment yet.", {
           env: environment.displayName,
