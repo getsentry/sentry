@@ -24,11 +24,8 @@ class VstsIssueSync(IssueSyncMixin):
         return ['project']
 
     def create_default_repo_choice(self, default_repo):
-        try:
-            # default_repo should be the project_id
-            project = self.get_client().get_project(default_repo)
-        except (ApiError, ApiUnauthorized):
-            return ('', '')
+        # default_repo should be the project_id
+        project = self.get_client().get_project(self.instance, default_repo)
         return (project['id'], project['name'])
 
     def get_project_choices(self, group, **kwargs):
@@ -50,7 +47,10 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             next(True for r in project_choices if r[0] == default_project)
         except StopIteration:
-            project_choices.insert(0, self.create_default_repo_choice(default_project))
+            try:
+                project_choices.insert(0, self.create_default_repo_choice(default_project))
+            except (ApiError, ApiUnauthorized):
+                return None, project_choices
 
         return default_project, project_choices
 
