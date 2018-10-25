@@ -26,4 +26,4 @@ class PromptsActivity(Model):
         db_table = 'sentry_prompt'
         unique_together = (('user', 'feature', 'organization', 'project'), )
 
-    __repr__ = sane_repr('organization', 'project')
+    __repr__ = sane_repr('user_id', 'feature')

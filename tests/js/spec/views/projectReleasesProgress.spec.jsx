@@ -54,8 +54,8 @@ describe('ReleaseProgress', function() {
       <ReleaseProgress orgId={organization.id} projectId={project.id} />,
       routerContext
     );
-    expect(getPromptsMock).toHaveBeenCalled();
     expect(wrapper.find('li')).toHaveLength(3);
+    expect(wrapper.find('PanelItem')).toHaveLength(1);
 
     //Snooze the bar
     wrapper
@@ -75,7 +75,7 @@ describe('ReleaseProgress', function() {
         },
       })
     );
-    wrapper.update();
     expect(wrapper.state('showBar')).toBe(false);
+    expect(wrapper.find('PanelItem')).toHaveLength(0);
   });
 });

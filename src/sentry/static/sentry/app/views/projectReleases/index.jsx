@@ -12,7 +12,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import HookStore from 'app/stores/hookStore';
+import Hook from 'app/components/hook';
 import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -56,10 +56,6 @@ const ProjectReleases = createReactClass({
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
-  },
-
-  componentDidMount() {
-    this.fetchComponents();
   },
 
   componentWillReceiveProps(nextProps) {
@@ -135,37 +131,19 @@ const ProjectReleases = createReactClass({
     });
   },
 
-  fetchComponents() {
-    let EmptyComponent = HookStore.get('component:releases-tab-empty').length
-      ? HookStore.get('component:releases-tab-empty')[0](
-          this.context.organization,
-          this.props.params
-        )
-      : undefined;
-    let ProgressComponent = HookStore.get('component:releases-tab-progress').length
-      ? HookStore.get('component:releases-tab-progress')[0](
-          this.context.organization,
-          this.props.params
-        )
-      : undefined;
-
-    this.setState({EmptyComponent, ProgressComponent});
-  },
-
   renderStreamBody() {
     let body;
-
     let {params} = this.props;
-    const {ProgressComponent} = this.state;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.releaseList.length > 0)
       body = (
         <div>
-          {ProgressComponent && (
-            <ProgressComponent orgId={params.orgId} projectId={params.projectId} />
-          )}
+          <Hook
+            name="component:releases-tab-progress"
+            organization={this.context.organization}
+          />
           <ReleaseList
             orgId={params.orgId}
             projectId={params.projectId}
@@ -193,9 +171,7 @@ const ProjectReleases = createReactClass({
   },
 
   renderEmpty() {
-    let {params} = this.props;
-    const {ProgressComponent} = this.state;
-    const {environment, EmptyComponent} = this.state;
+    const {environment} = this.state;
     const {project} = this.context;
     let anyProjectReleases = project.latestRelease;
     const message = environment
@@ -204,14 +180,19 @@ const ProjectReleases = createReactClass({
         })
       : t("There don't seem to be any releases yet.");
 
-    return anyProjectReleases === null && EmptyComponent ? (
-      <EmptyComponent />
+    return anyProjectReleases === null ? (
+      <Hook
+        name="component:releases-tab-empty"
+        organization={this.context.organization}
+      />
     ) : (
       <div>
-        {anyProjectReleases !== null &&
-          ProgressComponent && (
-            <ProgressComponent orgId={params.orgId} projectId={params.projectId} />
-          )}
+        {anyProjectReleases !== null && (
+          <Hook
+            name="component:releases-tab-progress"
+            organization={this.context.organization}
+          />
+        )}
         <EmptyStateWarning>
           <p>{message}</p>
           <p>

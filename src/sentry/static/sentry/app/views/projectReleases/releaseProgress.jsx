@@ -3,18 +3,19 @@ import React from 'react';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
-import AsyncView from 'app/views/asyncView';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
+import {promptsUpdate} from 'app/actionCreators/prompts';
 
 const STEPS = {
-  tag: 'Tag an error',
-  repo: 'Link to a repo',
-  commit: 'Associate commits',
-  deploy: 'Tell sentry about a deploy',
+  tag: t('Tag an error'),
+  repo: t('Link to a repo'),
+  commit: t('Associate commits'),
+  deploy: t('Tell sentry about a deploy'),
 };
 
-class ReleaseProgress extends AsyncView {
+class ReleaseProgress extends AsyncComponent {
   static contextTypes = {
     organization: PropTypes.object,
     project: PropTypes.object,
@@ -52,8 +53,7 @@ class ReleaseProgress extends AsyncView {
     }
   }
 
-  getRemainingSteps(data) {
-    let setupStatus = data;
+  getRemainingSteps(setupStatus) {
     let remainingSteps;
     if (setupStatus) {
       remainingSteps = setupStatus
@@ -66,9 +66,7 @@ class ReleaseProgress extends AsyncView {
     }
   }
 
-  showBar(prompt) {
-    let data = prompt.data;
-
+  showBar({data} = {}) {
     let show;
     if (data && data.snoozed_ts) {
       // check if more than 3 days have passed since snooze
@@ -86,24 +84,22 @@ class ReleaseProgress extends AsyncView {
 
   handleClick(action) {
     let {project, organization} = this.context;
-    this.api.request('/promptsactivity/', {
-      method: 'PUT',
-      data: {
-        organization_id: organization.id,
-        project_id: project.id,
-        feature: 'releases',
-        status: action,
-      },
-      success: data => {
-        this.setState({showBar: false});
-      },
-    });
+
+    let params = {
+      projectId: project.id,
+      organizationId: organization.id,
+      feature: 'releases',
+      status: action,
+    };
+    promptsUpdate(this.api, params).then(this.setState({showBar: false}));
   }
 
   renderBody() {
     let {remainingSteps, showBar} = this.state;
-
-    return remainingSteps && showBar ? (
+    if (!remainingSteps || !showBar) {
+      return null;
+    }
+    return (
       <PanelItem>
         <div className="col-sm-6">
           <div>
@@ -141,8 +137,6 @@ class ReleaseProgress extends AsyncView {
           </div>
         </div>
       </PanelItem>
-    ) : (
-      ''
     );
   }
 }
