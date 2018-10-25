@@ -66,12 +66,7 @@ def merge_minidump_event(data, minidump, cfi=None):
         'id': thread.thread_id,
         'crashed': False,
         'stacktrace': {
-            'frames': [{
-                'instruction_addr': '0x%x' % frame.return_address,
-                'function': '<unknown>',  # Required by interface
-                'module': frame.module.name if frame.module else None,
-                'trust': frame.trust,
-            } for frame in reversed(list(thread.frames()))],
+            'frames': frames_from_minidump_thread(thread),
             'registers': thread.get_frame(0).registers if thread.frame_count else None,
         },
     } for thread in state.threads()]
@@ -105,3 +100,12 @@ def merge_minidump_event(data, minidump, cfi=None):
         'name': module.name,
     } for module in state.modules()]
     data.setdefault('debug_meta', {})['images'] = images
+
+
+def frames_from_minidump_thread(thread):
+    return [{
+        'instruction_addr': '0x%x' % frame.return_address,
+        'function': '<unknown>',  # Required by interface
+        'module': frame.module.name if frame.module else None,
+        'trust': frame.trust,
+    } for frame in reversed(list(thread.frames()))]
