@@ -34,11 +34,6 @@ space           = ~r"\s"
 """
                                )
 
-DATE_FORMAT = '%Y-%m-%d'
-DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
-DATETIME_FORMAT_MICROSECONDS = '%Y-%m-%dT%H:%M:%S.%f'
-
-
 FIELD_LOOKUP = {
     'user.id': {
         'snuba_name': 'user_id',
