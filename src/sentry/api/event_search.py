@@ -6,9 +6,11 @@ from parsimonious.grammar import Grammar, NodeVisitor
 
 event_search_grammar = Grammar(r"""
 
-search          = search_term+
-search_term     = space? filter space?
-filter          = search_key sep search_value
+search          = search_term* raw_search?
+search_term     = space? basic_filter space?
+raw_search      = ~r".+$"
+# standard key:val filter
+basic_filter    = search_key sep search_value
 search_key      = ~r"[a-z]*\.?[a-z]*"
 search_value    = ~r"\S*"
 
@@ -29,6 +31,10 @@ FIELD_LOOKUP = {
     },
     'release': {
         'snuba_name': 'sentry:release',
+        'type': 'string',
+    },
+    'message': {
+        'snuba_name': 'message',
         'type': 'string',
     }
 }
@@ -62,13 +68,22 @@ class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
     def visit_search(self, node, children):
+        # there is a list from search_term and one from raw_search, so flatten them
+        children = [child for group in children for child in group]
         return filter(None, children)
 
     def visit_search_term(self, node, children):
         _, search_term, _ = children
         return search_term
 
-    def visit_filter(self, node, children):
+    def visit_raw_search(self, node, children):
+        return SearchFilter(
+            SearchKey('message'),
+            "=",
+            SearchValue(node.text, FIELD_LOOKUP['message']['type']),
+        )
+
+    def visit_basic_filter(self, node, children):
         search_key, _, search_value = children
         try:
             return SearchFilter(
