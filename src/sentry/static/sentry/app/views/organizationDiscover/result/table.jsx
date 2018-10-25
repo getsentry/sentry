@@ -45,7 +45,7 @@ export default class ResultTable extends React.Component {
   }
 
   cellRenderer = ({key, rowIndex, columnIndex, style}) => {
-    const {query, data: {data}} = this.props;
+    const {query, data: {data, meta}} = this.props;
     const cols = this.getColumnList();
 
     const showEventLinks = !query.aggregations.length;
@@ -56,9 +56,16 @@ export default class ResultTable extends React.Component {
 
     const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
 
+    const isNumberCol =
+      !isLinkCol &&
+      !isSpacingCol &&
+      ['number', 'integer'].includes(meta[columnIndex].type);
+
+    const align = isNumberCol ? 'right' : isLinkCol ? 'center' : 'left';
+
     if (rowIndex === 0) {
       return (
-        <TableHeader key={key} style={style}>
+        <TableHeader key={key} style={style} align={align}>
           <strong>{colName}</strong>
         </TableHeader>
       );
@@ -67,10 +74,6 @@ export default class ResultTable extends React.Component {
     const value = isLinkCol
       ? this.getLink(data[rowIndex - 1])
       : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
-
-    const isNumber = !isLinkCol && typeof data[rowIndex - 1][colName] === 'number';
-
-    const align = isNumber ? 'right' : isLinkCol ? 'center' : 'left';
 
     return (
       <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
