@@ -101,9 +101,10 @@ class EventSearchTest(TestCase):
             parse_search_query('fruit:apple release:1.2.1')
 
     def test_get_snuba_query_args(self):
-        assert get_snuba_query_args('user.email:foo@example.com release:1.2.1') == {
+        assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 hello') == {
             'conditions': [
                 ['email', '=', 'foo@example.com'],
                 ['sentry:release', '=', '1.2.1'],
+                [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
             ]
         }

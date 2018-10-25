@@ -151,10 +151,17 @@ def get_snuba_query_args(query):
     parsed_filters = parse_search_query(query)
     conditions = []
     for _filter in parsed_filters:
-        conditions.append([
-            _filter.key.snuba_name,
-            _filter.operator,
-            _filter.value.raw_value,
-        ])
+        if _filter.key.snuba_name == 'message':
+            # make message search case insensitive
+            conditions.append(
+                [['positionCaseInsensitive', ['message', "'%s'" %
+                                              (_filter.value.raw_value,)]], '!=', 0]
+            )
+        else:
+            conditions.append([
+                _filter.key.snuba_name,
+                _filter.operator,
+                _filter.value.raw_value,
+            ])
 
     return {'conditions': conditions}
