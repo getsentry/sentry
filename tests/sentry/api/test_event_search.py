@@ -11,10 +11,12 @@ class EventSearchTest(TestCase):
         assert parse_search_query('user.email:foo@example.com release:1.2.1') == [
             SearchFilter(
                 key=SearchKey(name='user.email'),
+                operator="=",
                 value=SearchValue(raw_value='foo@example.com', type='string')
             ),
             SearchFilter(
                 key=SearchKey(name='release'),
+                operator="=",
                 value=SearchValue(raw_value='1.2.1', type='string')
             )
         ]

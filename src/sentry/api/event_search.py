@@ -38,7 +38,7 @@ class InvalidSearchQuery(Exception):
     pass
 
 
-class SearchFilter(namedtuple('SearchFilter', 'key value')):
+class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
     pass
 
 
@@ -73,6 +73,7 @@ class SearchVisitor(NodeVisitor):
         try:
             return SearchFilter(
                 SearchKey(search_key),
+                "=",
                 SearchValue(search_value, FIELD_LOOKUP[search_key]['type']),
             )
         except KeyError:
@@ -99,7 +100,7 @@ def get_snuba_query_args(query):
     for _filter in parsed_filters:
         conditions.append([
             _filter.key.snuba_name,
-            '=',
+            _filter.operator,
             _filter.value.parsed_value,
         ])
 
