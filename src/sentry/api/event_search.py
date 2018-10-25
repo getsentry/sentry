@@ -6,8 +6,9 @@ from parsimonious.grammar import Grammar, NodeVisitor
 
 event_search_grammar = Grammar(r"""
 
-search          = filter+
-filter          = space? search_key sep search_value space?
+search          = search_term+
+search_term     = space? filter space?
+filter          = search_key sep search_value
 search_key      = ~r"[a-z]*\.?[a-z]*"
 search_value    = ~r"\S*"
 
@@ -63,9 +64,12 @@ class SearchVisitor(NodeVisitor):
     def visit_search(self, node, children):
         return filter(None, children)
 
+    def visit_search_term(self, node, children):
+        _, search_term, _ = children
+        return search_term
+
     def visit_filter(self, node, children):
-        search_key = children[1]
-        search_value = children[3]
+        search_key, _, search_value = children
         try:
             return SearchFilter(
                 SearchKey(search_key),
