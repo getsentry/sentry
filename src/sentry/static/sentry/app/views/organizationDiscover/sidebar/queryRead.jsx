@@ -64,7 +64,7 @@ export default class QueryRead extends React.Component {
         <Fieldset>
           <SidebarLabel className="control-label">{t('Order by')}</SidebarLabel>
           <PlaceholderText>
-            {currentQuery.orderBy || t('No orderby value selected')}
+            {currentQuery.orderby || t('No orderby value selected')}
           </PlaceholderText>
         </Fieldset>
         <Fieldset>
