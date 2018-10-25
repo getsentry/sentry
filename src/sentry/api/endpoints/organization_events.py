@@ -22,10 +22,13 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
 
         requested_projects = project_ids.copy()
 
-        om_role = OrganizationMember.objects.filter(
-            user=request.user,
-            organization=organization,
-        ).values_list('role', flat=True).get()
+        try:
+            om_role = OrganizationMember.objects.filter(
+                user=request.user,
+                organization=organization,
+            ).values_list('role', flat=True).get()
+        except OrganizationMember.DoesNotExist:
+            om_role = None
 
         if request.user.is_superuser or (om_role and roles.get(om_role).is_global):
             qs = Project.objects.filter(
