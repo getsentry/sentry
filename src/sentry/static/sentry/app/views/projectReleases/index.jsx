@@ -14,10 +14,12 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Hook from 'app/components/hook';
+import HookOrDefault from 'app/components/hookOrDefault';
 import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ReleaseEmptyState from 'app/views/projectReleases/releaseEmptyState';
 
 import ReleaseList from 'app/views/projectReleases/releaseList';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
@@ -180,7 +182,7 @@ const ProjectReleases = createReactClass({
 
   renderEmpty() {
     const {environment} = this.state;
-    const {project} = this.context;
+    const {organization, project} = this.context;
     let anyProjectReleases = project.latestRelease;
 
     const message = environment
@@ -189,27 +191,24 @@ const ProjectReleases = createReactClass({
         })
       : t("There don't seem to be any releases yet.");
 
+    let EmptyStateComponent = HookOrDefault({
+      hookName: 'component:releases-tab',
+      defaultComponent: ReleaseEmptyState,
+      params: {source: 'empty', organization},
+    });
+
     return anyProjectReleases === null ? (
-      <Hook
-        name="component:releases-tab"
-        params={{organization: this.context.organization, source: 'empty'}}
+      <EmptyStateComponent
+        message={message}
+        params={{organization: this.context.organization, source: 'progress'}}
       />
     ) : (
       <div>
-        {anyProjectReleases !== null && (
-          <Hook
-            name="component:releases-tab"
-            params={{organization: this.context.organization, source: 'progress'}}
-          />
-        )}
-        <EmptyStateWarning>
-          <p>{message}</p>
-          <p>
-            <a href="https://docs.sentry.io/learn/releases/">
-              {t('Learn how to integrate Release Tracking')}
-            </a>
-          </p>
-        </EmptyStateWarning>
+        <Hook
+          name="component:releases-tab"
+          params={{organization: this.context.organization, source: 'progress'}}
+        />
+        <ReleaseEmptyState message={message} />
       </div>
     );
   },
