@@ -19,7 +19,7 @@ const MIN_COL_WIDTH = 100;
 const MAX_COL_WIDTH = 500;
 const LINK_COL_WIDTH = 40;
 const CELL_PADDING = 20;
-const MIN_VISIBLE_ROWS = 12;
+const MIN_VISIBLE_ROWS = 6;
 const MAX_VISIBLE_ROWS = 24;
 const OTHER_ELEMENTS_HEIGHT = 70; // pagination buttons, query summary
 

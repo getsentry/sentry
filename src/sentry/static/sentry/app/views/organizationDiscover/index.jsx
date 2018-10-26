@@ -2,6 +2,7 @@ import React from 'react';
 import {Flex} from 'grid-emotion';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import jQuery from 'jquery';
 import OrganizationState from 'app/mixins/organizationState';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
@@ -39,6 +40,8 @@ const OrganizationDiscoverContainer = createReactClass({
   },
 
   componentDidMount: function() {
+    jQuery(document.body).addClass('body-discover');
+
     const {savedQueryId} = this.props.params;
     const {search} = this.props.location;
     const {organization} = this.context;
@@ -67,6 +70,10 @@ const OrganizationDiscoverContainer = createReactClass({
     if (nextProps.location.query.view !== this.props.location.query.view) {
       this.setState({view: getView(nextProps.location.query.view)});
     }
+  },
+
+  componentWillUnmount: function() {
+    jQuery(document.body).removeClass('body-discover');
   },
 
   loadTags: function() {
