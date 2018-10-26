@@ -21,7 +21,12 @@ class SentryAppSerializer(Serializer):
             'overview': obj.overview,
 =======
             'webhook_url': obj.webhook_url,
+            'redirect_url': obj.redirect_url,
             'clientID': obj.application.client_id,
             'clientSecret': obj.application.client_secret,
+<<<<<<< HEAD
 >>>>>>> use org sentry app endpoint & styling
+=======
+            'overview': obj.overview,
+>>>>>>> add redirect_url and overview to ui and letter avatar
         }

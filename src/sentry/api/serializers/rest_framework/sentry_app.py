@@ -20,6 +20,11 @@ class ApiScopesField(serializers.WritableField):
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     scopes = ApiScopesField()
+<<<<<<< HEAD
     webhookUrl = serializers.URLField()
     redirectUrl = serializers.URLField(required=False)
+=======
+    webhook_url = serializers.URLField()
+    redirect_url = serializers.URLField(required=False)
+>>>>>>> add redirect_url and overview to ui and letter avatar
     overview = serializers.CharField(required=False)
