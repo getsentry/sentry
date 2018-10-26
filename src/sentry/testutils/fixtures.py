@@ -24,6 +24,9 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
+from sentry.constants import SentryAppStatus
+from sentry.mediators.sentry_apps import Creator as SentryAppCreator
+from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
@@ -700,3 +703,27 @@ class Fixtures(object):
                 UserPermission.objects.create(user=user, permission=permission)
         except IntegrityError:
             raise
+
+    def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
+                          webhook_url=None, **kwargs):
+        if not name:
+            name = 'Test App'
+        if not organization:
+            organization = self.organization
+        if not webhook_url:
+            webhook_url = 'https://example.com/webhook'
+
+        app = SentryAppCreator.run(
+            name=name,
+            organization=organization,
+            scopes=scopes,
+            webhook_url=webhook_url,
+            **kwargs
+        )
+        if published:
+            app.update(status=SentryAppStatus.PUBLISHED)
+
+        return app
+
+    def create_sentry_app_install(self, organization=None):
+        return
