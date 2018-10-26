@@ -203,6 +203,26 @@ const InviteMember = createReactClass({
     });
   },
 
+  handleSelectAll() {
+    let {teams} = this.getOrganization();
+    let {selectedTeams} = this.state;
+    let allSelected = teams.length === selectedTeams.size;
+
+    if (allSelected) {
+      teams.map(team => {
+        if (selectedTeams.has(team.slug)) {
+          selectedTeams.delete(team.slug);
+        }
+      });
+    } else {
+      teams.map(team => {
+        selectedTeams.add(team.slug);
+      });
+    }
+
+    this.setState({selectedTeams});
+  },
+
   render() {
     let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
     let {teams} = this.getOrganization();
@@ -246,6 +266,7 @@ const InviteMember = createReactClass({
               teams={teams}
               selectedTeams={selectedTeams}
               toggleTeam={this.toggleTeam}
+              onSelectAll={this.handleSelectAll}
             />
             <Button
               priority="primary"

@@ -118,6 +118,32 @@ class OrganizationMemberDetail extends AsyncView {
     });
   };
 
+  handleSelectAll = () => {
+    let {member} = this.state;
+    let {teams} = this.getOrganization();
+    let selectedTeams = new Set(member.teams);
+    let allSelected = teams.length === selectedTeams.size;
+
+    if (allSelected) {
+      teams.map(team => {
+        if (selectedTeams.has(team.slug)) {
+          selectedTeams.delete(team.slug);
+        }
+      });
+    } else {
+      teams.map(team => {
+        selectedTeams.add(team.slug);
+      });
+    }
+
+    this.setState({
+      member: {
+        ...member,
+        teams: Array.from(selectedTeams.values()),
+      },
+    });
+  };
+
   renderBody() {
     let {error, member} = this.state;
     let {teams, access} = this.getOrganization();
@@ -208,7 +234,10 @@ class OrganizationMemberDetail extends AsyncView {
                       {t('Generate New Invite')}
                     </Button>
                     {canResend && (
-                      <Button data-test-id="resend-invite" onClick={() => this.handleInvite(false)}>
+                      <Button
+                        data-test-id="resend-invite"
+                        onClick={() => this.handleInvite(false)}
+                      >
                         {t('Resend Invite')}
                       </Button>
                     )}
@@ -232,6 +261,7 @@ class OrganizationMemberDetail extends AsyncView {
           selectedTeams={new Set(member.teams)}
           toggleTeam={this.handleToggleTeam}
           disabled={!canEdit}
+          onSelectAll={this.handleSelectAll}
         />
 
         <Button

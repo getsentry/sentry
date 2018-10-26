@@ -42,7 +42,7 @@ describe('OrganizationMemberDetail', function() {
     teams: [team.slug],
     invite_link: 'http://example.com/i/abc123',
     pending: true,
-    expired: true
+    expired: true,
   });
 
   describe('Can Edit', function() {
@@ -147,6 +147,49 @@ describe('OrganizationMemberDetail', function() {
     });
   });
 
+  it('can select and deselect all', function() {
+    wrapper = mount(
+      <OrganizationMemberDetail params={{memberId: member.id}} />,
+      routerContext
+    );
+
+    let first = 'TeamSelect Checkbox[id="team-slug"]';
+    let last = 'TeamSelect Checkbox[id="new-team"]';
+    let selectAllButton = wrapper.find('Button.select-all');
+
+    expect(selectAllButton).toHaveLength(1);
+    expect(wrapper.find(first).prop('checked')).toBe(true);
+    expect(wrapper.find(last).prop('checked')).toBe(false);
+    expect(wrapper.state('member').teams).toHaveLength(1);
+
+    // select and deselect all
+    selectAllButton.simulate('click');
+    expect(wrapper.find(first).prop('checked')).toBe(true);
+    expect(wrapper.find(last).prop('checked')).toBe(true);
+    expect(wrapper.state('member').teams).toHaveLength(2);
+
+    selectAllButton.simulate('click');
+    expect(wrapper.find(first).prop('checked')).toBe(false);
+    expect(wrapper.find(last).prop('checked')).toBe(false);
+    expect(wrapper.state('member').teams).toHaveLength(0);
+
+    // select one, then select all
+    wrapper.find(first).simulate('change');
+    expect(wrapper.state('member').teams).toHaveLength(1);
+    selectAllButton.simulate('click');
+    expect(wrapper.state('member').teams).toHaveLength(2);
+    selectAllButton.simulate('click');
+    expect(wrapper.state('member').teams).toHaveLength(0);
+
+    // select both, then deselect all
+    wrapper.find(first).simulate('change');
+    expect(wrapper.state('member').teams).toHaveLength(1);
+    wrapper.find(last).simulate('change');
+    expect(wrapper.state('member').teams).toHaveLength(2);
+    selectAllButton.simulate('click');
+    expect(wrapper.state('member').teams).toHaveLength(0);
+  });
+
   describe('Cannot Edit', function() {
     beforeAll(function() {
       organization = TestStubs.Organization({teams, access: ['org:read']});
@@ -162,7 +205,10 @@ describe('OrganizationMemberDetail', function() {
       // Should have 4 roles
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
-      expect(wrapper.find('Button').prop('disabled')).toBe(true);
+      expect(
+        wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
+      ).toBe(true);
+      expect(wrapper.find('Button.select-all').prop('disabled')).toBe(true);
     });
   });
 
@@ -178,7 +224,9 @@ describe('OrganizationMemberDetail', function() {
         routerContext
       );
 
-      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual('Invitation Pending');
+      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual(
+        'Invitation Pending'
+      );
     });
 
     it('display expired status', function() {
@@ -187,7 +235,9 @@ describe('OrganizationMemberDetail', function() {
         routerContext
       );
 
-      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual('Invitation Expired');
+      expect(wrapper.find('[data-test-id="member-status"]').text()).toEqual(
+        'Invitation Expired'
+      );
     });
   });
 
