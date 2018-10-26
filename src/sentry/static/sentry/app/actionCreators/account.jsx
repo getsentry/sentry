@@ -23,3 +23,10 @@ export function updateUser(user) {
   // Ideally we'd fire an action but this is gonna get refactored soon anyway
   ConfigStore.set('user', user);
 }
+
+export function logout() {
+  const api = new Client();
+  return api.requestPromise('/auth/', {
+    method: 'DELETE',
+  });
+}
