@@ -45,6 +45,16 @@ body {
       }
     }
   }
+
+  /* Discover has a 100% height based layout with no footer */
+  &.body-discover {
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    footer {
+      display: none;
+    }
+  }
 }
 
 #blk_router {

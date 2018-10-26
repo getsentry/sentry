@@ -9,10 +9,7 @@ import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
 
-const FOOTER_HEIGHT = 87;
 const HEADER_HEIGHT = 60;
-const TABS_HEIGHT = 55;
-const QUERY_FIELDS_HEIGHT = 592;
 
 export const DiscoverWrapper = styled(Flex)`
   flex: 1;
@@ -20,7 +17,7 @@ export const DiscoverWrapper = styled(Flex)`
 
 export const DiscoverContainer = styled(Flex)`
   width: 100%;
-  min-height: calc(100vh - ${FOOTER_HEIGHT}px);
+  height: 100vh;
 
   margin-bottom: -20px;
 
@@ -58,6 +55,7 @@ export const BodyContent = styled(Flex)`
   flex: 1;
   flex-direction: column;
   padding: ${space(1.5)} 32px 32px 32px;
+  overflow: scroll;
 `;
 
 export const LoadingContainer = styled(Flex)`
@@ -111,6 +109,11 @@ export const SidebarLabel = styled.label`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray3};
+`;
+
+export const StyledQueryFields = styled('div')`
+  flex: 1;
+  overflow: scroll;
 `;
 
 export const AddText = styled.span`
@@ -176,10 +179,7 @@ export const SavedQueryAction = styled(Link)`
 `;
 
 export const SavedQueryWrapper = styled('div')`
-  height: ${p =>
-    p.isEditing
-      ? `${QUERY_FIELDS_HEIGHT}px`
-      : `calc(100vh - ${FOOTER_HEIGHT + HEADER_HEIGHT + TABS_HEIGHT}px)`};
+  flex: 1;
   overflow: scroll;
 `;
 
