@@ -3,10 +3,7 @@ import React from 'react';
 import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
-import TextOverflow from 'app/components/textOverflow';
-import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
 
 import HeaderItem from './headerItem';
@@ -46,7 +43,7 @@ export default class MultipleProjectSelector extends React.Component {
   handleClear = () => {
     this.props.onChange.bind(this, []).call();
     this.setState({hasChanges: false});
-  }
+  };
 
   handleMultiSelect = (selected, checked, e) => {
     const {onChange} = this.props;
@@ -55,7 +52,7 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   render() {
-    const {className, value, projects} = this.props;
+    const {value, projects} = this.props;
     const selectedProjectIds = new Set(value);
 
     const selected = projects.filter(project =>
@@ -71,9 +68,19 @@ export default class MultipleProjectSelector extends React.Component {
         projects={projects}
         onSelect={this.handleQuickSelect}
         onMultiSelect={this.handleMultiSelect}
-        rootClassName={css`display: flex`}
+        rootClassName={css`
+          display: flex;
+        `}
       >
-        {({getActorProps, selectedItem, activeProject, selectedProjects, isOpen, actions}) => {
+        {({
+          getActorProps,
+          selectedItem,
+          activeProject,
+          selectedProjects,
+          isOpen,
+          actions,
+          onBlur,
+        }) => {
           const hasSelected = !!selectedProjects.length;
           const title = hasSelected
             ? selectedProjects.map(({slug}) => slug).join(', ')
@@ -86,7 +93,7 @@ export default class MultipleProjectSelector extends React.Component {
               hasChanges={this.state.hasChanges}
               isOpen={isOpen}
               handleSubmit={this.handleUpdate.bind(this, actions)}
-              onClear={this.handleClear}
+              handleClear={this.handleClear}
               {...getActorProps()}
             >
               {title}
@@ -102,7 +109,7 @@ const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;
   border-radius: 0 0 4px 4px;
   width: 110%;
-  zIndex: -1;
+  z-index: -1;
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`
@@ -113,10 +120,4 @@ const StyledHeaderItem = styled(HeaderItem)`
 const StyledInlineSvg = styled(InlineSvg)`
   height: 18px;
   width: 18px;
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(0.5)} 0;
 `;

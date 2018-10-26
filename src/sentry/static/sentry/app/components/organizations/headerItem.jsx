@@ -1,42 +1,44 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class HeaderItem extends React.Component {
   static propTypes = {
-    label: PropTypes.node,
     icon: PropTypes.element,
-    onClear: PropTypes.func,
-    /**
-     * className for <Label> component
-     */
-    labelClassName: PropTypes.string,
+    handleClear: PropTypes.func,
+    handleSubmit: PropTypes.func,
+    hasChanges: PropTypes.bool,
+    hasSelected: PropTypes.bool,
+    isOpen: PropTypes.bool,
   };
 
-  onClear = e => {
+  handleClear = e => {
     e.stopPropagation();
-    this.props.onClear();
-  }
+    this.props.handleClear();
+  };
 
   handleChevronClick = e => {
     e.stopPropagation();
     if (this.props.hasChanges) this.props.handleSubmit();
-  }
+  };
 
   render() {
-    const {className, label, children, isOpen, hasSelected, hasChanges, icon} = this.props;
+    const {className, children, isOpen, hasSelected, hasChanges, icon} = this.props;
 
     return (
       <StyledHeaderItem className={className} {...this.props}>
         <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
         <Content>{children}</Content>
-        {hasSelected && <StyledClose src="icon-close" onClick={this.onClear}/>}
-        <StyledChevron isOpen={isOpen} hasChanges={hasChanges} onClick={this.handleChevronClick}>
-          <InlineSvg src="icon-chevron-down"/>
+        {hasSelected && <StyledClose src="icon-close" onClick={this.handleClear} />}
+        <StyledChevron
+          isOpen={isOpen}
+          hasChanges={hasChanges}
+          onClick={this.handleChevronClick}
+        >
+          <InlineSvg src="icon-chevron-down" />
         </StyledChevron>
       </StyledHeaderItem>
     );
@@ -48,7 +50,7 @@ const StyledHeaderItem = styled('div')`
   padding: 0 ${space(3)};
   align-items: center;
   cursor: pointer;
-  color: ${p => p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2};
+  color: ${p => (p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2)};
   transition: 0.1s color;
   user-select: none;
 `;
@@ -59,7 +61,7 @@ const Content = styled('div')`
 `;
 
 const IconContainer = styled('span')`
-  color: ${p => p.hasSelected ? p.theme.blue : null};
+  color: ${p => (p.hasSelected ? p.theme.blue : null)};
   margin-right: ${space(1.5)};
 `;
 
@@ -72,21 +74,24 @@ const StyledClose = styled(InlineSvg)`
 `;
 
 const StyledChevron = styled('div')`
-  transform: rotate(${p => p.isOpen ? "180deg" : "0deg"});
+  transform: rotate(${p => (p.isOpen ? '180deg' : '0deg')});
   transition: 0.1s all;
-  width: 1em;
-  height: 1em;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  ${p => p.hasChanges ? `
-    background: ${p.theme.green};
+  ${p =>
+    p.hasChanges
+      ? `
+    background: ${p.theme.purple};
     border-radius: 2em;
     width: 20px;
     height: 20px;
     color: #fff;
     transform: rotate(270deg);
-  ` : ''}
+  `
+      : ''};
 `;
 
 export default HeaderItem;
