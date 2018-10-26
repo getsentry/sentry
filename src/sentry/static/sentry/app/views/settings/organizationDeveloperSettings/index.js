@@ -7,6 +7,7 @@ import createReactClass from 'create-react-class';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
 import PropTypes from 'prop-types'
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -30,12 +31,15 @@ class SentryApplicationRow extends React.Component {
 
     return (
       <PanelItem justify="space-between" px={2} py={2}>
-        <Box flex="1">
-          <div style={{marginBottom: 5}}>
-              <StyledLink to={`/settings/${orgId}/developer-settings/${app.slug}/`}>{app.name}</StyledLink>
-          </div>
-          <Status published={app.status === "published"} />
-        </Box>
+        <Flex>
+            <SentryAppAvatar size={36} sentryApp={app}/>
+            <Box pl={2} flex="1">
+              <div style={{marginBottom: 3}}>
+                <StyledLink to={`/settings/${orgId}/developer-settings/${app.slug}/`}>{app.name}</StyledLink>
+              </div>
+              <Status published={app.status === "published"} />
+            </Box>
+        </Flex>
 
         <Flex align="center">
           <Box pl={2}>

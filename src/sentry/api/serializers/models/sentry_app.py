@@ -14,6 +14,8 @@ class SentryAppSerializer(Serializer):
             'status': obj.get_status_display(),
             'uuid': obj.uuid,
             'webhook_url': obj.webhook_url,
+            'redirect_url': obj.redirect_url,
             'clientID': obj.application.client_id,
             'clientSecret': obj.application.client_secret,
+            'overview': obj.overview,
         }

@@ -29,7 +29,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 sentry_app=sentry_app,
                 name=result.get('name'),
                 webhook_url=result.get('webhook_url'),
+                redirect_url=result.get('redirect_url'),
                 scopes=result.get('scopes'),
+                overview=result.get('overview'),
             )
 
             return Response(serialize(updated_app, request.user))
