@@ -36,6 +36,8 @@ class ExternalIssueForm extends AsyncComponent {
     onSubmitSuccess: PropTypes.func.isRequired,
   };
 
+  shouldRenderBadRequests = true;
+
   getEndpoints() {
     let {action, group, integration} = this.props;
     return [
