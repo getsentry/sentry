@@ -60,6 +60,11 @@ class DropdownAutoCompleteMenu extends React.Component {
     onOpen: PropTypes.func,
 
     /**
+     * Callback for when dropdown menu closes
+     */
+    onClose: PropTypes.func,
+
+    /**
      * Message to display when there are no items initially
      */
     emptyMessage: PropTypes.node,
@@ -118,6 +123,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
+
+    /**
+     * for passing simple styles to the root container
+     */
+    rootClassName: PropTypes.string,
 
     /**
      * Props to pass to input/filter component
@@ -244,6 +254,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       onSelect,
       onChange,
       onOpen,
+      onClose,
       children,
       items,
       menuProps,
@@ -273,6 +284,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         onSelect={onSelect}
         inputIsActor={false}
         onOpen={onOpen}
+        onClose={onClose}
         {...props}
       >
         {({

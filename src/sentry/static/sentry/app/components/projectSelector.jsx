@@ -42,9 +42,13 @@ class ProjectSelector extends React.Component {
     // Callback when a project is selected
     onSelect: PropTypes.func,
 
+    // Callback when the menu is closed
+    onClose: PropTypes.func,
+
     // Callback when projects are selected via the multiple project selector
     // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
+    rootClassName: PropTypes.string,
   };
 
   static defaultProps = {
@@ -146,7 +150,16 @@ class ProjectSelector extends React.Component {
   };
 
   render() {
-    const {children, organization: org, menuFooter, multi, multiOnly, className, rootClassName} = this.props;
+    const {
+      children,
+      organization: org,
+      menuFooter,
+      multi,
+      multiOnly,
+      className,
+      rootClassName,
+      onClose,
+    } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
 
@@ -165,6 +178,7 @@ class ProjectSelector extends React.Component {
         blendCorner={false}
         filterPlaceholder={t('Filter projects')}
         onSelect={this.handleSelect}
+        onClose={onClose}
         maxHeight={500}
         zIndex={1001}
         css={{marginTop: 6}}
@@ -207,7 +221,7 @@ class ProjectSelector extends React.Component {
               inputValue={inputValue}
               isChecked={
                 this.isControlled()
-                  ? this.props.selectedProjects.find(({slug}) => slug === project.slug)
+                  ? !!this.props.selectedProjects.find(({slug}) => slug === project.slug)
                   : this.state.selectedProjects.has(project.slug)
               }
               onMultiSelect={this.handleMultiSelect}
@@ -265,10 +279,7 @@ class ProjectSelectorItem extends React.PureComponent {
 
         {multi && (
           <MultiSelectWrapper onClick={this.handleMultiSelect}>
-            <MultiSelect
-              checked={isChecked}
-              onClick={this.handleClick}
-            />
+            <MultiSelect checked={isChecked} onClick={this.handleClick} />
           </MultiSelectWrapper>
         )}
       </ProjectRow>

@@ -40,6 +40,12 @@ export default class MultipleProjectSelector extends React.Component {
     onUpdate();
   };
 
+  handleClose = props => {
+    if (!this.state.hasChanges) return;
+    this.props.onUpdate();
+    this.setState({hasChanges: false});
+  };
+
   handleClear = () => {
     this.props.onChange.bind(this, []).call();
     this.setState({hasChanges: false});
@@ -67,6 +73,7 @@ export default class MultipleProjectSelector extends React.Component {
         selectedProjects={selected}
         projects={projects}
         onSelect={this.handleQuickSelect}
+        onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
         rootClassName={css`
           display: flex;
