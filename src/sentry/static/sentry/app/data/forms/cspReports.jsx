@@ -26,7 +26,8 @@ const formGroups = [
         name: 'sentry:csp_ignored_sources',
         type: 'string',
         multiline: true,
-        placeholder: 'e.g.\nfile://*\n*.example.com\nexample.com\netc',
+        autosize: true,
+        placeholder: 'e.g.\nfile://*\n*.example.com\nexample.com',
         label: t('Additional ignored sources'),
         help: t(
           'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
