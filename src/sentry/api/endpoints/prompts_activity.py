@@ -76,6 +76,9 @@ class PromptsActivityEndpoint(Endpoint):
         required_fields = PROMPTS[feature]['required_fields']
         fields = {k: request.DATA.get(k) for k in required_fields}
 
+        if any(elem is None for elem in fields.values()):
+            return Response({'detail': 'Missing required field'}, status=400)
+
         data = {}
         now = calendar.timegm(timezone.now().utctimetuple())
         if status == 'snoozed':

@@ -99,7 +99,8 @@ class ReleaseProgress extends AsyncComponent {
             <StyledBar>
               <StyledSlider />
             </StyledBar>
-            {t('Next steps:')}
+            <a href="https://docs.sentry.io/learn/releases/">{t('Next steps:')}</a>
+
             <ul>
               {this.state.remainingSteps.map((step, i) => {
                 return <li key={i}>{step}</li>;

@@ -6,6 +6,7 @@ import {Box} from 'grid-emotion';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
+import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import LoadingError from 'app/components/loadingError';
@@ -54,6 +55,15 @@ const ProjectReleases = createReactClass({
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
+  },
+
+  componentDidMount() {
+    let {organization, project} = this.context;
+
+    analytics('releases.tab_viewed', {
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+    });
   },
 
   componentWillReceiveProps(nextProps) {
@@ -139,8 +149,8 @@ const ProjectReleases = createReactClass({
       body = (
         <div>
           <Hook
-            name="component:releases-tab-progress"
-            organization={this.context.organization}
+            name="component:releases-tab"
+            params={{organization: this.context.organization, source: 'progress'}}
           />
           <ReleaseList
             orgId={params.orgId}
@@ -172,6 +182,7 @@ const ProjectReleases = createReactClass({
     const {environment} = this.state;
     const {project} = this.context;
     let anyProjectReleases = project.latestRelease;
+
     const message = environment
       ? tct("There don't seem to be any releases in your [env] environment yet", {
           env: environment.displayName,
@@ -180,15 +191,15 @@ const ProjectReleases = createReactClass({
 
     return anyProjectReleases === null ? (
       <Hook
-        name="component:releases-tab-empty"
-        organization={this.context.organization}
+        name="component:releases-tab"
+        params={{organization: this.context.organization, source: 'empty'}}
       />
     ) : (
       <div>
         {anyProjectReleases !== null && (
           <Hook
-            name="component:releases-tab-progress"
-            organization={this.context.organization}
+            name="component:releases-tab"
+            params={{organization: this.context.organization, source: 'progress'}}
           />
         )}
         <EmptyStateWarning>
