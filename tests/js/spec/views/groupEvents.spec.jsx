@@ -62,7 +62,7 @@ describe('groupEvents', function() {
     });
   });
 
-  fdescribe('changing environment', function() {
+  describe('changing environment', function() {
     let component, eventsMock;
     beforeEach(function() {
       component = shallow(

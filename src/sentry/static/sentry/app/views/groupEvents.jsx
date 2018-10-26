@@ -118,10 +118,13 @@ const GroupEvents = createReactClass({
       loading: true,
       error: false,
     });
-    const query = {limit: 50, query: this.state.query};
+
+    const query = {...this.props.location.query, limit: 50, query: this.state.query};
 
     if (this.state.environment) {
       query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
     }
 
     this.api.request(`/issues/${this.props.params.groupId}/events/`, {
