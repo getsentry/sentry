@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import socket
 from socket import error as SocketError, timeout as SocketTimeout
 
 from requests import Session as _Session
@@ -8,6 +9,7 @@ from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.exceptions import NewConnectionError, ConnectTimeoutError
 from urllib3.poolmanager import PoolManager
+from urllib3.util.connection import _set_socket_options
 
 from sentry import VERSION as SENTRY_VERSION
 from sentry.net.socket import safe_create_connection
@@ -149,3 +151,36 @@ class SafeSession(Session):
         adapter = BlacklistAdapter()
         self.mount('https://', adapter)
         self.mount('http://', adapter)
+
+
+class UnixHTTPConnection(HTTPConnection):
+    default_socket_options = []
+
+    def __init__(self, host, **kwargs):
+        # We're using the `host` as the socket path, but
+        # urllib3 uses this host as the Host header by default.
+        # If we send along the socket path as a Host header, this is
+        # never what you want and would typically be malformed value.
+        # So we fake this by sending along `localhost` by default as
+        # other libraries do.
+        self.socket_path = host
+        super(UnixHTTPConnection, self).__init__(host='localhost', **kwargs)
+
+    def _new_conn(self):
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+        # If provided, set socket level options before connecting.
+        _set_socket_options(sock, self.socket_options)
+
+        if self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+            sock.settimeout(self.timeout)
+        sock.connect(self.socket_path)
+        return sock
+
+
+class UnixHTTPConnectionPool(HTTPConnectionPool):
+    ConnectionCls = UnixHTTPConnection
+
+    def __str__(self):
+        return '%s(host=%r)' % (type(self).__name__,
+                                self.host)
