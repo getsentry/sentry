@@ -136,7 +136,7 @@ class OrganizationEventsContainer extends React.Component {
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['events-stream']} renderNoFeatureMessage>
+      <Feature features={['events-stream']} renderDisabled>
         <EventsContext.Provider
           value={{actions: this.actions, ...this.state.queryValues}}
         >
