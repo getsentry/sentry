@@ -209,15 +209,9 @@ const InviteMember = createReactClass({
     let allSelected = teams.length === selectedTeams.size;
 
     if (allSelected) {
-      teams.map(team => {
-        if (selectedTeams.has(team.slug)) {
-          selectedTeams.delete(team.slug);
-        }
-      });
+      selectedTeams.clear();
     } else {
-      teams.map(team => {
-        selectedTeams.add(team.slug);
-      });
+      selectedTeams = new Set(teams.map(({slug}) => slug));
     }
 
     this.setState({selectedTeams});

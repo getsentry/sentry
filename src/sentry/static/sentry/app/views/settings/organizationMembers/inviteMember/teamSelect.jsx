@@ -28,10 +28,10 @@ class TeamSelect extends React.Component {
           {t('Team')}
           {onSelectAll && (
             <Button
-              className="select-all"
+              data-test-id="select-all"
               size="small"
               disabled={disabled}
-              onClick={() => onSelectAll()}
+              onClick={onSelectAll}
             >
               <SelectAll>{t('Select All')}</SelectAll>
             </Button>

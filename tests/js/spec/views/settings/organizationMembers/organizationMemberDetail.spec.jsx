@@ -155,7 +155,7 @@ describe('OrganizationMemberDetail', function() {
 
     let first = 'TeamSelect Checkbox[id="team-slug"]';
     let last = 'TeamSelect Checkbox[id="new-team"]';
-    let selectAllButton = wrapper.find('Button.select-all');
+    let selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
 
     expect(selectAllButton).toHaveLength(1);
     expect(wrapper.find(first).prop('checked')).toBe(true);
@@ -208,7 +208,9 @@ describe('OrganizationMemberDetail', function() {
       expect(
         wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
       ).toBe(true);
-      expect(wrapper.find('Button.select-all').prop('disabled')).toBe(true);
+      expect(wrapper.find('Button[data-test-id="select-all"]').prop('disabled')).toBe(
+        true
+      );
     });
   });
 

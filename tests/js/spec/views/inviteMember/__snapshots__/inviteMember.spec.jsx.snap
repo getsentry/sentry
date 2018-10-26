@@ -394,27 +394,29 @@ exports[`CreateProject should render roles when available and allowed, and handl
                       >
                         Team
                         <Button
-                          className="select-all"
+                          data-test-id="select-all"
                           disabled={false}
                           onClick={[Function]}
                           size="small"
                         >
                           <StyledButton
-                            className="select-all"
+                            data-test-id="select-all"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
                             size="small"
                           >
                             <Component
-                              className="select-all css-dkprmi-StyledButton-getColors eqrebog0"
+                              className="css-dkprmi-StyledButton-getColors eqrebog0"
+                              data-test-id="select-all"
                               disabled={false}
                               onClick={[Function]}
                               role="button"
                               size="small"
                             >
                               <button
-                                className="select-all css-dkprmi-StyledButton-getColors eqrebog0"
+                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                data-test-id="select-all"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"

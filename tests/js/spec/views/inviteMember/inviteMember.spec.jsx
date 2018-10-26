@@ -90,7 +90,7 @@ describe('CreateProject', function() {
 
     let first = 'TeamSelect Checkbox[id="bar"]';
     let last = 'TeamSelect Checkbox[id="foo"]';
-    let selectAllButton = wrapper.find('Button.select-all');
+    let selectAllButton = wrapper.find('Button[data-test-id="select-all"]');
 
     expect(wrapper.state('selectedTeams').size).toBe(0);
     expect(selectAllButton).toHaveLength(1);
