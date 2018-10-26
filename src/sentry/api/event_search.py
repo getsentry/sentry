@@ -32,7 +32,7 @@ operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
 space           = ~r"\s"
 """
-                               )
+)
 
 FIELD_LOOKUP = {
     'user.id': {
