@@ -23,8 +23,10 @@ from threading import Lock, Thread, Event
 from requests.certs import where as ca_certs
 from six.moves.urllib.parse import urlencode, quote_plus
 from urllib3 import HTTPConnectionPool, HTTPSConnectionPool
-from urllib3.connection import HTTPConnection
 from urllib3.exceptions import HTTPError
+
+from sentry.net.http import UnixHTTPConnectionPool
+
 
 DEFAULT_NODES = ({'host': '127.0.0.1', 'port': 8098}, )
 
@@ -243,11 +245,6 @@ class ConnectionManager(object):
         if 'basic_auth' in host:
             options['headers']['authorization'] = encode_basic_auth(host['basic_auth'])
 
-        if self.tcp_keepalive:
-            options['socket_options'] = HTTPConnection.default_socket_options + [
-                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-            ]
-
         # Support backwards compatibility with `http_port`
         if 'http_port' in host:
             import warnings
@@ -257,10 +254,12 @@ class ConnectionManager(object):
         addr = host.get('host', '127.0.0.1')
         port = int(host.get('port', 8098))
         secure = host.get('secure', False)
-        if not secure:
-            connection_cls = HTTPConnectionPool
+        if addr[:1] == '/':
+            pool_cls = UnixHTTPConnectionPool
+        elif not secure:
+            pool_cls = HTTPConnectionPool
         else:
-            connection_cls = HTTPSConnectionPool
+            pool_cls = HTTPSConnectionPool
             verify_ssl = host.get('verify_ssl', False)
             if verify_ssl:
                 options.extend(
@@ -269,7 +268,13 @@ class ConnectionManager(object):
                         'ca_certs': host.get('ca_certs', ca_certs())
                     }
                 )
-        return connection_cls(addr, port, **options)
+
+        if self.tcp_keepalive:
+            options['socket_options'] = pool_cls.ConnectionCls.default_socket_options + [
+                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+            ]
+
+        return pool_cls(addr, port, **options)
 
     def urlopen(self, method, path, headers=None, **kwargs):
         """
