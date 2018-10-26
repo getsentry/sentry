@@ -50,6 +50,9 @@ export default class AsyncComponent extends React.Component {
   // eslint-disable-next-line react/sort-comp
   shouldReloadOnVisible = false;
 
+  // should `renderError` render the `detail` attribute of a 400 error
+  shouldRenderBadRequests = false;
+
   constructor(props, context) {
     super(props, context);
 
@@ -165,7 +168,6 @@ export default class AsyncComponent extends React.Component {
           if (options.allowError && options.allowError(error)) {
             error = null;
           }
-
           this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
@@ -299,6 +301,19 @@ export default class AsyncComponent extends React.Component {
 
     if (permissionErrors) {
       return <PermissionDenied />;
+    }
+
+    if (this.shouldRenderBadRequests) {
+      let badRequests = Object.values(this.state.errors)
+        .filter(
+          resp =>
+            resp && resp.status === 400 && resp.responseJSON && resp.responseJSON.detail
+        )
+        .map(resp => resp.responseJSON.detail);
+
+      if (badRequests.length) {
+        return <LoadingError message={badRequests.join('\n')} />;
+      }
     }
 
     return (
