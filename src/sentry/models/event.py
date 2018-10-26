@@ -13,10 +13,12 @@ import warnings
 
 from collections import OrderedDict
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes
+from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
     BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
@@ -282,6 +284,46 @@ class Event(Model):
             )
 
         return self._environment_cache
+
+    # Find next and previous events based on datetime and id. We cannot
+    # simply `ORDER BY (datetime, id)` as this is too slow (no index), so
+    # we grab the next 5 / prev 5 events by datetime, and sort locally to
+    # get the next/prev events. Given that timestamps only have 1-second
+    # granularity, this will be inaccurate if there are more than 5 events
+    # in a given second.
+    @property
+    def next_event(self):
+        qs = self.__class__.objects.filter(
+            # To be 'after', an event needs either a higher datetime,
+            # or the same datetime and a higher id.
+            (
+                Q(datetime__gt=self.datetime) |
+                (Q(datetime=self.datetime) & Q(id__gt=self.id))
+            ),
+            group_id=self.group_id,
+        ).exclude(id=self.id).order_by('datetime')
+
+        try:
+            return sorted(qs[0:5], key=EVENT_ORDERING_KEY)[0]
+        except IndexError:
+            return None
+
+    @property
+    def prev_event(self):
+        qs = self.__class__.objects.filter(
+            # To be 'before', an event needs either a lower datetime,
+            # or the same datetime and a lower id.
+            (
+                Q(datetime__lt=self.datetime) |
+                (Q(datetime=self.datetime) & Q(id__lt=self.id))
+            ),
+            group_id=self.group_id,
+        ).exclude(id=self.id).order_by('-datetime')
+
+        try:
+            return sorted(qs[0:5], key=EVENT_ORDERING_KEY, reverse=True)[0]
+        except IndexError:
+            return None
 
 
 class EventSubjectTemplate(string.Template):

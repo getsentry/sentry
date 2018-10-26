@@ -1101,7 +1101,7 @@ urlpatterns = patterns(
 
     # Events
     url(
-        r'^events/(?P<event_id>\d+)/$',
+        r'^events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'
     ),
