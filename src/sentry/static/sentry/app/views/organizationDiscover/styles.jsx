@@ -56,11 +56,13 @@ export const BodyContent = styled(Flex)`
   flex-direction: column;
   padding: ${space(1.5)} 32px 32px 32px;
   overflow: scroll;
+  position: relative;
 `;
 
 export const LoadingContainer = styled(Flex)`
   flex: 1;
   align-items: center;
+  height: 100%;
 `;
 
 export const TopBar = styled(Flex)`
