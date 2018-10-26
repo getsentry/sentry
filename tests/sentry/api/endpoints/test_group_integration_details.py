@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 import six
+import mock
 
+from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
@@ -114,6 +117,26 @@ class GroupIntegrationDetailsTest(APITestCase):
                     }
                 ]
             }
+
+    def test_get_create_with_error(self):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        self.create_event(group=group)
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org, self.user)
+
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+
+        with self.feature('organizations:integrations-issue-basic'):
+            with mock.patch.object(ExampleIntegration, 'get_create_issue_config', side_effect=IntegrationError('oops')):
+                response = self.client.get(path)
+
+                assert response.status_code == 400
+                assert response.data == {'detail': 'oops'}
 
     def test_get_feature_disabled(self):
         self.login_as(user=self.user)
