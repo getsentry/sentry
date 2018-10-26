@@ -44,6 +44,25 @@
     border-radius: 15px;
   }
 
+  .event-message {
+    position: relative;
+
+    .error-level {
+      position: absolute;
+      left: 0;
+    }
+
+    .message {
+      margin-left: 21px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-height: 38px;
+      display: block;
+    }
+  }
+
+
   .event-meta {
     font-size: 80%;
     margin-top: 6px;
@@ -2155,6 +2174,10 @@ span.val {
 
     &:before {
       display: none;
+    }
+
+    .event-message .message {
+      margin-left: 0;
     }
 
     .details {
