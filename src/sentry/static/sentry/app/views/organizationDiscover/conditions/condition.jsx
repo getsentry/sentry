@@ -80,6 +80,10 @@ export default class Condition extends React.Component {
         return ['=', '!='].includes(operator);
       }
 
+      if (colType === 'datetime') {
+        return !stringOnlyOperators.has(operator) && !numberOnlyOperators.has(operator);
+      }
+
       // Treat everything else like a string
       return !numberOnlyOperators.has(operator);
     });
