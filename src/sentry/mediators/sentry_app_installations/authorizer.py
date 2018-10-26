@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from datetime import datetime, timedelta
+from django.utils.crypto import constant_time_compare
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param
@@ -49,13 +50,26 @@ class Authorizer(Mediator):
 
     def _validate_grant(self):
         if (
-            self.grant.application.owner != self.user or
-            self.grant.application.client_id != self.client_id
+            not self.grant_belongs_to_install() or
+            not self.application_owned_by_user() or
+            not self.client_id_matches()
         ):
             raise APIUnauthorized
 
         if self.grant.is_expired():
             raise APIUnauthorized
+
+    def grant_belongs_to_install(self):
+        return self.grant.sentry_app_installation == self.install
+
+    def application_owned_by_user(self):
+        return self.grant.application.owner == self.user
+
+    def client_id_matches(self):
+        return constant_time_compare(
+            self.grant.application.client_id,
+            self.client_id,
+        )
 
     @memoize
     def sentry_app(self):
@@ -74,6 +88,10 @@ class Authorizer(Mediator):
     @memoize
     def grant(self):
         try:
-            return ApiGrant.objects.get(code=self.code)
+            return ApiGrant.objects \
+                .select_related('sentry_app_installation') \
+                .select_related('application') \
+                .select_related('application__sentry_app') \
+                .get(code=self.code)
         except ApiGrant.DoesNotExist:
             raise APIUnauthorized
