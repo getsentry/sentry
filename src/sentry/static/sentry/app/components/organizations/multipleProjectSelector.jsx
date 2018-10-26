@@ -109,7 +109,6 @@ const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;
   border-radius: 0 0 4px 4px;
   width: 110%;
-  z-index: -1;
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`
