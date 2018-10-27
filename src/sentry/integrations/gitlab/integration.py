@@ -117,7 +117,7 @@ class InstallationForm(forms.Form):
     group = forms.CharField(
         label=_('GitLab Group Path'),
         widget=forms.TextInput(
-            attrs={'placeholder': _('example-co')}
+            attrs={'placeholder': _('example-co/web')}
         )
     )
     verify_ssl = forms.BooleanField(
@@ -245,7 +245,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             resp = client.get_group(installation_data['group'])
             return resp.json
         except ApiError:
-            raise IntegrationError("The requested GitLab group could not be found.")
+            raise IntegrationError('The requested GitLab group could not be found.')
 
     def get_pipeline_views(self):
         return [InstallationConfigView(), lambda: self._make_identity_pipeline_view()]
