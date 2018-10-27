@@ -42,11 +42,11 @@ describe('OrganizationEvents', function() {
   });
 
   it('renders', function() {
-    expect(wrapper.find('Content')).toHaveLength(1);
+    expect(wrapper.find('OrganizationEventsContent')).toHaveLength(1);
   });
 
   it('updates router when changing environments', async function() {
-    wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
     wrapper.update();
 

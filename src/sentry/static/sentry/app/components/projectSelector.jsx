@@ -187,7 +187,7 @@ class ProjectSelector extends React.Component {
         className={className}
         emptyMessage={t('You have no projects')}
         noResultsMessage={t('No projects found')}
-        virtualizedHeight={43}
+        virtualizedHeight={40}
         emptyHidesInput
         menuFooter={renderProps => {
           const renderedFooter =

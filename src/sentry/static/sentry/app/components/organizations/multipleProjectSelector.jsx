@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
 
-import HeaderItem from './headerItem';
+import HeaderItem from 'app/components/organizations/headerItem';
 
 export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
@@ -47,7 +47,7 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   handleClear = () => {
-    this.props.onChange.bind(this, []).call();
+    this.props.onChange([]);
     this.setState({hasChanges: false});
   };
 
@@ -65,6 +65,10 @@ export default class MultipleProjectSelector extends React.Component {
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
+    const rootContainerStyles = css`
+      display: flex;
+    `;
+
     return (
       <StyledProjectSelector
         {...this.props}
@@ -75,9 +79,7 @@ export default class MultipleProjectSelector extends React.Component {
         onSelect={this.handleQuickSelect}
         onClose={this.handleClose}
         onMultiSelect={this.handleMultiSelect}
-        rootClassName={css`
-          display: flex;
-        `}
+        rootClassName={rootContainerStyles}
       >
         {({
           getActorProps,
