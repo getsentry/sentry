@@ -81,7 +81,7 @@ export default class CombinedSelector extends React.Component {
             onChange={val => this.handleChange('relative', val.value)}
           />
         </Box>
-        {relative === null && (
+        {!relative && (
           <React.Fragment>
             <Box mb={1}>
               <DateTimeField
