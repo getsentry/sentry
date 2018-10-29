@@ -184,6 +184,9 @@ class ThreadProcessingHandle(object):
         ``ThreadRef``."""
         for thread in self.data.get('threads', {}).get('values', []):
             if thread.get('crashed'):
+                # XXX: Assumes that the full list of threads is present in the
+                # original crash report. This is guaranteed by KSCrash and our
+                # minidump utility.
                 exceptions = self.data.get('exception', {}).get('values', [])
                 exception = exceptions[0] if exceptions else {}
                 frames = exception.get('stacktrace', {}).get('frames')
