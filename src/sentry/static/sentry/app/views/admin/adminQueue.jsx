@@ -37,9 +37,9 @@ export default class AdminQueue extends AsyncView {
     });
   }
 
-  changeTask(value) {
+  changeTask = value => {
     this.setState({activeTask: value});
-  }
+  };
 
   renderBody() {
     let {activeTask, taskList} = this.state;
