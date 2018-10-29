@@ -208,13 +208,23 @@ export const SavedQueryUpdated = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
+const slidein = keyframes`
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 0;
+  }
+`;
+
 export const QueryPanelContainer = styled('div')`
   position: absolute;
-  width: 100%;
+  width: calc(100% + 1px); /* Add 1px for border */
   height: calc(100% - ${HEADER_HEIGHT}px);
   background-color: white;
   top: ${HEADER_HEIGHT}px;
-  overflow-y: scroll;
+  border-right: 1px solid ${p => p.theme.borderLight};
+  animation: ${slidein} 0.6s ease-in;
 `;
 
 export const QueryPanelTitle = styled(Flex)`
