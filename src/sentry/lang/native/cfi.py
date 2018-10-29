@@ -82,7 +82,7 @@ class ThreadRef(object):
         if cached is None:
             return False
 
-        if cached != NO_CFI_PLACEHOLDER:
+        if cached == NO_CFI_PLACEHOLDER:
             self.resolved_frames = NO_CFI_PLACEHOLDER
         else:
             self.resolved_frames = [self._frame_from_cache(c) for c in cached]
