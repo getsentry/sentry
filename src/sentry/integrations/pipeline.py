@@ -3,34 +3,16 @@ from __future__ import absolute_import, print_function
 __all__ = ['IntegrationPipeline']
 
 from django.db import IntegrityError
-from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
-from sentry.utils import json
-from sentry.integrations.exceptions import IntegrationError
+from sentry.web.helpers import render_to_response
 from . import default_manager
-
-DIALOG_RESPONSE = """
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Sentry - Integration Setup Complete</title>
-</head>
-<body>
-  <script>
-  window.opener.postMessage({json}, document.origin);
-  window.close();
-  </script>
-  <p>You can safely close this window now.</p>
-</body>
-</html>
-"""
 
 
 def ensure_integration(key, data):
@@ -165,12 +147,13 @@ class IntegrationPipeline(Pipeline):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        return HttpResponse(
-            DIALOG_RESPONSE.format(
-                json=json.dumps({
-                    'success': success,
-                    'data': data,
-                })
-            ),
-            content_type='text/html',
-        )
+        context = {
+            'payload': {
+                'success': success,
+                'data': data
+            }
+        }
+        return render_to_response(
+            'sentry/integrations/dialog-complete.html',
+            context,
+            self.request)
