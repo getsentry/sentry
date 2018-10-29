@@ -45,7 +45,7 @@ class Threads(Interface):
                 'current': data['current'],
                 'crashed': data['crashed'],
                 'name': data['name'],
-                'stacktrace': None,
+                'stacktrace': None
             }
             if data['stacktrace']:
                 rv['stacktrace'] = data['stacktrace'].to_json()

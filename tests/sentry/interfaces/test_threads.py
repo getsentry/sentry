@@ -63,6 +63,17 @@ class ThreadsTest(TestCase):
         assert Threads.to_python({'values': None}).to_json() == sink
         assert Threads.to_python({'values': [None]}).to_json() == sink
 
+    def test_null_values_in_values(self):
+        sink = {"values": [{
+            "crashed": False,
+            "current": False,
+            "id": None,
+            "name": None,
+            "stacktrace": None
+        }]}
+
+        assert Threads.to_python({"values": [{}]}).to_json() == sink
+
     def test_get_hash(self):
         result = self.interface.get_hash()
         self.assertEquals(result, [['foo/baz.c', 'main']])
