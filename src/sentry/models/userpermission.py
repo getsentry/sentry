@@ -4,10 +4,6 @@ from django.db import models
 
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 
-KNOWN_PERMISSIONS = (
-    'broadcasts.admin',
-)
-
 
 class UserPermission(Model):
     __core__ = True
