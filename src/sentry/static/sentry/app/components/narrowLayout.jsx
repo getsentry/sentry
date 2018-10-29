@@ -23,7 +23,7 @@ class NarrowLayout extends React.Component {
   }
 
   handleLogout() {
-    logout(this.api).then(() => window.location = '/auth/login');
+    logout(this.api).then(() => (window.location = '/auth/login'));
   }
 
   render() {
