@@ -34,7 +34,6 @@ class BreadcrumbsTest(TestCase):
     def test_null_values(self):
         sink = {}
 
-        assert Breadcrumbs.to_python(None).to_json() == sink
         assert Breadcrumbs.to_python({}).to_json() == sink
         assert Breadcrumbs.to_python({'values': None}).to_json() == sink
         assert Breadcrumbs.to_python({'values': []}).to_json() == sink
@@ -42,9 +41,10 @@ class BreadcrumbsTest(TestCase):
     def test_null_values_in_crumb(self):
         sink = {"values": [{"type": "default"}]}
 
-        assert Breadcrumbs.to_python({'values': [None]}).to_json() == sink
         assert Breadcrumbs.to_python({'values': [{}]}).to_json() == sink
         assert Breadcrumbs.to_python({'values': [{"type": None}]}).to_json() == sink
+
+        assert Breadcrumbs.to_python({'values': [None]}).to_json() == {}
 
     def test_non_string_keys(self):
         result = Breadcrumbs.to_python(

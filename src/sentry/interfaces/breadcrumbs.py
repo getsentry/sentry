@@ -52,12 +52,9 @@ class Breadcrumbs(Interface):
     @classmethod
     def to_python(cls, data):
         values = []
-        if isinstance(data, dict):
-            old_values = data.get('values') or ()
-        else:
-            old_values = ()
-
-        for crumb in old_values:
+        for crumb in data.get('values') or ():
+            if crumb is None:
+                continue
             try:
                 values.append(cls.normalize_crumb(crumb))
             except InterfaceValidationError:
@@ -70,9 +67,6 @@ class Breadcrumbs(Interface):
 
     @classmethod
     def normalize_crumb(cls, crumb):
-        if not crumb:
-            crumb = {}
-
         rv = {
             'type': crumb.get('type') or 'default',
         }

@@ -833,9 +833,6 @@ class SingleException(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid exception")
 
-        if not (data.get('type') or data.get('value')):
-            raise InterfaceValidationError("No 'type' or 'value' present")
-
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
@@ -1012,13 +1009,10 @@ class Exception(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if data:
-            if 'values' not in data:
-                data = {"values": [data]}
-            values = data['values']
-            if not isinstance(values, list):
-                values = []
-        else:
+        if 'values' not in data and ('type' in data or 'value' in data):
+            data = {"values": [data]}
+        values = data.get('values', [])
+        if not isinstance(values, list):
             values = []
 
         kwargs = {
@@ -1028,7 +1022,7 @@ class Exception(Interface):
             ) for v in values],
         }
 
-        if data and data.get('exc_omitted'):
+        if data.get('exc_omitted'):
             if len(data['exc_omitted']) != 2:
                 raise InterfaceValidationError("Invalid value for 'exc_omitted'")
             kwargs['exc_omitted'] = data['exc_omitted']

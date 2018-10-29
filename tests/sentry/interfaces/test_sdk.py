@@ -28,7 +28,6 @@ class SdkTest(TestCase):
 
     def test_null_values(self):
         sink = {}
-        assert Sdk.to_python(None).to_json() == sink
         assert Sdk.to_python({}).to_json() == sink
         assert Sdk.to_python({'name': None}).to_json() == sink
 

@@ -27,9 +27,6 @@ class AppleCrashReport(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if data is None:
-            data = {}
-
         kwargs = {
             'crash': data.get('crash'),
             'system': data.get('system') or {},

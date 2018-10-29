@@ -19,7 +19,6 @@ class DeviceTest(TestCase):
     def test_null_values(self):
         sink = {}
 
-        assert Device.to_python(None).to_json() == sink
         assert Device.to_python({}).to_json() == sink
         assert Device.to_python({'name': None}).to_json() == sink
 

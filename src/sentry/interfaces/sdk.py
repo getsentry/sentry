@@ -48,8 +48,6 @@ class Sdk(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if data is None:
-            data = {}
         name = data.get('name')
         version = data.get('version')
 

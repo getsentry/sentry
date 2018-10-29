@@ -240,10 +240,6 @@ EXCEPTION_INTERFACE_SCHEMA = {
             },
         },
     },
-    'anyOf': [  # Require at least one of these keys.
-        {'required': ['type']},
-        {'required': ['value']},
-    ],
     # TODO should be false but allowing extra garbage for now
     # for compatibility
     'additionalProperties': True,

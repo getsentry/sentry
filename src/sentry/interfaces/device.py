@@ -22,9 +22,6 @@ class Device(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if data is None:
-            data = {}
-
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid device")

@@ -45,8 +45,8 @@ class ExceptionTest(TestCase):
 
     def test_null_values(self):
         sink = {'exc_omitted': None, 'values': []}
-        assert Exception.to_python(None).to_json() == sink
         assert Exception.to_python({}).to_json() == sink
+        assert Exception.to_python({'exc_omitted': None}).to_json() == sink
         assert Exception.to_python({'values': None}).to_json() == sink
         assert Exception.to_python({'values': []}).to_json() == sink
 
