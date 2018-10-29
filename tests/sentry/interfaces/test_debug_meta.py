@@ -7,6 +7,12 @@ from sentry.testutils import TestCase
 
 
 class DebugMetaTest(TestCase):
+    def test_null_values(self):
+        assert DebugMeta.to_python({}).to_json() == {}
+        assert DebugMeta.to_python({"images": None}).to_json() == {}
+
+        assert DebugMeta.to_python({"images": [None]}).to_json() == {"images": [None]}
+
     def test_apple_behavior(self):
         image_name = (
             '/var/containers/Bundle/Application/'

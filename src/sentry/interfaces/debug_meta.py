@@ -98,13 +98,19 @@ class DebugMeta(Interface):
 
     @classmethod
     def to_python(cls, data):
-        images = data.get('images', [])
-        is_debug_build = data.get('is_debug_build')
+        is_debug_build = data.get('is_debug_build', None)
         if is_debug_build is not None and not isinstance(is_debug_build, bool):
             raise InterfaceValidationError('Invalid value for "is_debug_build"')
 
+        images = []
+        for x in data.get('images', None) or ():
+            if x is not None:
+                images.append(cls.normalize_image(x))
+            else:
+                images.append(None)
+
         return cls(
-            images=[cls.normalize_image(x) for x in images],
+            images=images,
             sdk_info=cls.normalize_sdk_info(data.get('sdk_info')),
             is_debug_build=is_debug_build,
         )
