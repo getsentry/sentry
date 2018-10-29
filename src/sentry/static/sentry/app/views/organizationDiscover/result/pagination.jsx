@@ -9,10 +9,9 @@ export default class Pagination extends React.Component {
   static propTypes = {
     getNextPage: PropTypes.func.isRequired,
     getPreviousPage: PropTypes.func.isRequired,
-    previous: PropTypes.object,
-    next: PropTypes.object,
+    previous: PropTypes.string,
+    next: PropTypes.string,
   };
-
 
   render() {
     const {getPreviousPage, getNextPage, previous, next} = this.props;
@@ -21,14 +20,14 @@ export default class Pagination extends React.Component {
       <PaginationButtons className="btn-group">
         <Button
           className="btn"
-          disabled={previous && !previous.results}
+          disabled={!previous}
           size="xsmall"
           icon="icon-chevron-left"
           onClick={getPreviousPage}
         />
         <Button
           className="btn"
-          disabled={next && !next.results}
+          disabled={!next}
           size="xsmall"
           icon="icon-chevron-right"
           onClick={getNextPage}
