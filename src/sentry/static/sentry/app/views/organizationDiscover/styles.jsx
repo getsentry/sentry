@@ -113,7 +113,7 @@ export const SidebarLabel = styled.label`
   color: ${p => p.theme.gray3};
 `;
 
-export const StyledQueryFields = styled('div')`
+export const QueryFieldsContainer = styled('div')`
   flex: 1;
   overflow-y: scroll;
 `;
@@ -182,7 +182,7 @@ export const SavedQueryAction = styled(Link)`
 
 export const SavedQueryWrapper = styled('div')`
   flex: 1;
-  overflow: scroll;
+  overflow-y: scroll;
 `;
 
 export const SavedQueryList = styled(Panel)`
@@ -213,7 +213,7 @@ export const QueryPanelContainer = styled('div')`
   height: calc(100% - ${HEADER_HEIGHT}px);
   background-color: white;
   top: ${HEADER_HEIGHT}px;
-  overflow: scroll;
+  overflow-y: scroll;
 `;
 
 export const QueryPanelTitle = styled(Flex)`
