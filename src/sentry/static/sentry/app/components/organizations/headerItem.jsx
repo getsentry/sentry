@@ -8,8 +8,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 class HeaderItem extends React.Component {
   static propTypes = {
     icon: PropTypes.element,
-    handleClear: PropTypes.func,
-    handleSubmit: PropTypes.func,
+    onClear: PropTypes.func,
+    onSubmit: PropTypes.func,
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
@@ -17,19 +17,23 @@ class HeaderItem extends React.Component {
 
   handleClear = e => {
     e.stopPropagation();
-    this.props.handleClear();
+    this.props.onClear();
   };
 
   handleChevronClick = e => {
+    if (!this.props.hasChanges) {
+      return;
+    }
+
     e.stopPropagation();
-    if (this.props.hasChanges) this.props.handleSubmit();
+    this.props.onSubmit();
   };
 
   render() {
     const {className, children, isOpen, hasSelected, hasChanges, icon} = this.props;
 
     return (
-      <StyledHeaderItem className={className} {...this.props}>
+      <StyledHeaderItem className={className} isOpen={isOpen} hasSelected={hasSelected}>
         <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
         <Content>{children}</Content>
         {hasSelected && <StyledClose src="icon-close" onClick={this.handleClear} />}

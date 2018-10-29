@@ -101,8 +101,8 @@ export default class MultipleProjectSelector extends React.Component {
               hasSelected={hasSelected}
               hasChanges={this.state.hasChanges}
               isOpen={isOpen}
-              handleSubmit={this.handleUpdate.bind(this, actions)}
-              handleClear={this.handleClear}
+              onSubmit={this.handleUpdate.bind(this, actions)}
+              onClear={this.handleClear}
               {...getActorProps()}
             >
               {title}
