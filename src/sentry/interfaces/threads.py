@@ -23,6 +23,8 @@ class Threads(Interface):
         threads = []
 
         for thread in data.get('values') or ():
+            if thread is None:
+                continue
             threads.append(
                 {
                     'stacktrace': get_stacktrace(thread.get('stacktrace')),
