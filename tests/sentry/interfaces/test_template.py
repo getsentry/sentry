@@ -28,6 +28,13 @@ class TemplateTest(TestCase):
         self.assertEquals(result['context_line'], 'hello world')
         self.assertEquals(result['lineno'], 1)
 
+    def test_null_values(self):
+        sink = {}
+
+        assert Template.to_python({}).to_json() == sink
+        assert Template.to_python({"lineno": None}).to_json() == sink
+        assert Template.to_python({"lineno": 0}).to_json() == {"lineno": 0}
+
     def test_get_hash(self):
         result = self.interface.get_hash()
         self.assertEquals(result, ['foo.html', 'hello world'])
