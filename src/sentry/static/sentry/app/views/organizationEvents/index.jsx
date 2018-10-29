@@ -4,7 +4,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
+import {getParams} from 'app/views/organizationEvents/utils';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -41,7 +43,7 @@ class OrganizationEventsContainer extends React.Component {
     const values = {
       project,
       environment,
-      period: query.statsPeriod || (hasAbsolute ? null : '7d'),
+      period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: query.start || null,
       end: query.end || null,
     };
@@ -62,26 +64,17 @@ class OrganizationEventsContainer extends React.Component {
     this.state = OrganizationEventsContainer.getInitialStateFromRouter(props);
   }
 
-  updateParams = ({period, ...obj}) => {
+  updateParams = obj => {
     const {router} = this.props;
     // Reset cursor when changing parameters
     // eslint-disable-next-line no-unused-vars
-    const {cursor, ...oldQuery} = router.location.query;
+    const {cursor, statsPeriod, ...oldQuery} = router.location.query;
 
-    // Filter null values
-    const newQuery = Object.entries({
+    const newQuery = getParams({
       ...oldQuery,
-      statsPeriod: period,
+      period: obj.period || statsPeriod,
       ...obj,
-    })
-      .filter(([key, value]) => value !== null)
-      .reduce(
-        (acc, [key, value]) => ({
-          ...acc,
-          [key]: value,
-        }),
-        {}
-      );
+    });
 
     router.push({
       pathname: router.location.pathname,
