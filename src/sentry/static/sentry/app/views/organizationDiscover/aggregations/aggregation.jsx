@@ -85,7 +85,7 @@ export default class Aggregation extends React.Component {
         type="text"
         {...props}
         value={props.value || this.state.inputValue}
-        style={{width: '100%', border: 0}}
+        style={{width: '100%', border: 0, backgroundColor: 'transparent'}}
       />
     );
   };
