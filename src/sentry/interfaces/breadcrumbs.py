@@ -54,14 +54,15 @@ class Breadcrumbs(Interface):
         values = []
         for crumb in data.get('values') or ():
             if crumb is None:
-                continue
-            try:
-                values.append(cls.normalize_crumb(crumb))
-            except InterfaceValidationError:
-                # TODO(dcramer): we dont want to discard the entirety of data
-                # when one breadcrumb errors, but it'd be nice if we could still
-                # record an error
-                continue
+                values.append(None)
+            else:
+                try:
+                    values.append(cls.normalize_crumb(crumb))
+                except InterfaceValidationError:
+                    # TODO(dcramer): we dont want to discard the entirety of data
+                    # when one breadcrumb errors, but it'd be nice if we could still
+                    # record an error
+                    values.append(None)
 
         return cls(values=values)
 

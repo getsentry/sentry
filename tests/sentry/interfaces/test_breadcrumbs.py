@@ -44,7 +44,7 @@ class BreadcrumbsTest(TestCase):
         assert Breadcrumbs.to_python({'values': [{}]}).to_json() == sink
         assert Breadcrumbs.to_python({'values': [{"type": None}]}).to_json() == sink
 
-        assert Breadcrumbs.to_python({'values': [None]}).to_json() == {}
+        assert Breadcrumbs.to_python({'values': [None]}).to_json() == {"values": [None]}
 
     def test_non_string_keys(self):
         result = Breadcrumbs.to_python(

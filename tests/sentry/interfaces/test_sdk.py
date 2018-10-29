@@ -30,6 +30,9 @@ class SdkTest(TestCase):
         sink = {}
         assert Sdk.to_python({}).to_json() == sink
         assert Sdk.to_python({'name': None}).to_json() == sink
+        assert Sdk.to_python({'integrations': []}).to_json() == sink
+        assert Sdk.to_python({'packages': None}).to_json() == sink
+        assert Sdk.to_python({'packages': [None]}).to_json() == {"packages": [None]}
 
     def test_missing_name(self):
         assert Sdk.to_python({

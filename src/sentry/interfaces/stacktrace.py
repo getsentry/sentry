@@ -214,7 +214,7 @@ def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAME
     system_frames = []
     for frame in frames:
         frames_len += 1
-        if frame.in_app:
+        if frame is not None and frame.in_app:
             app_frames.append(frame)
         else:
             system_frames.append(frame)
@@ -707,10 +707,14 @@ class Stacktrace(Interface):
             frameiter = chain(
                 islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
 
-        frame_list = [
-            # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {}, raw=raw) for f in frameiter
-        ]
+        frame_list = []
+
+        for f in frameiter:
+            if f is None:
+                frame_list.append(None)
+            else:
+                # XXX(dcramer): handle PHP sending an empty array for a frame
+                frame_list.append(Frame.to_python(f or {}, raw=raw))
 
         kwargs = {
             'frames': frame_list,
@@ -773,7 +777,7 @@ class Stacktrace(Interface):
 
     def to_json(self):
         return {
-            'frames': [f.to_json() for f in self.frames],
+            'frames': [f and f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
         }

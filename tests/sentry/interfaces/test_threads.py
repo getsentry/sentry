@@ -61,7 +61,7 @@ class ThreadsTest(TestCase):
         assert Threads.to_python({}).to_json() == sink
         assert Threads.to_python({'values': []}).to_json() == sink
         assert Threads.to_python({'values': None}).to_json() == sink
-        assert Threads.to_python({'values': [None]}).to_json() == sink
+        assert Threads.to_python({"values": [None]}).to_json() == {"values": [None]}
 
     def test_null_values_in_values(self):
         sink = {"values": [{
@@ -73,6 +73,9 @@ class ThreadsTest(TestCase):
         }]}
 
         assert Threads.to_python({"values": [{}]}).to_json() == sink
+        assert Threads.to_python({"values": [{"id": None}]}).to_json() == sink
+        assert Threads.to_python({"values": [{"name": None}]}).to_json() == sink
+        assert Threads.to_python({"values": [{"stacktrace": None}]}).to_json() == sink
 
     def test_get_hash(self):
         result = self.interface.get_hash()

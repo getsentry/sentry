@@ -1016,7 +1016,7 @@ class Exception(Interface):
             values = []
 
         kwargs = {
-            'values': [SingleException.to_python(
+            'values': [v and SingleException.to_python(
                 v,
                 slim_frames=False,
             ) for v in values],
@@ -1036,7 +1036,7 @@ class Exception(Interface):
 
     def to_json(self):
         return {
-            'values': [v.to_json() for v in self.values],
+            'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
 
@@ -1138,7 +1138,7 @@ def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE
     # rather than distributing allowance among all exceptions
     frames = []
     for exception in instance.values:
-        if not exception.stacktrace:
+        if exception is None or not exception.stacktrace:
             continue
         frames.extend(exception.stacktrace.frames)
 

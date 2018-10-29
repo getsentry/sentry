@@ -24,22 +24,26 @@ class Threads(Interface):
 
         for thread in data.get('values') or ():
             if thread is None:
-                continue
-            threads.append(
-                {
-                    'stacktrace': get_stacktrace(thread.get('stacktrace')),
-                    'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True),
-                    'id': trim(thread.get('id'), 40),
-                    'crashed': bool(thread.get('crashed')),
-                    'current': bool(thread.get('current')),
-                    'name': trim(thread.get('name'), 200),
-                }
-            )
+                threads.append(None)
+            else:
+                threads.append(
+                    {
+                        'stacktrace': get_stacktrace(thread.get('stacktrace')),
+                        'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True),
+                        'id': trim(thread.get('id'), 40),
+                        'crashed': bool(thread.get('crashed')),
+                        'current': bool(thread.get('current')),
+                        'name': trim(thread.get('name'), 200),
+                    }
+                )
 
         return cls(values=threads)
 
     def to_json(self):
         def export_thread(data):
+            if data is None:
+                return None
+
             rv = {
                 'id': data['id'],
                 'current': data['current'],

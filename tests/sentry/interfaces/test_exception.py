@@ -49,6 +49,8 @@ class ExceptionTest(TestCase):
         assert Exception.to_python({'exc_omitted': None}).to_json() == sink
         assert Exception.to_python({'values': None}).to_json() == sink
         assert Exception.to_python({'values': []}).to_json() == sink
+        assert Exception.to_python({'values': [None]}).to_json() == {
+            "exc_omitted": None, "values": [None]}
 
     def test_path(self):
         assert self.interface.get_path() == 'sentry.interfaces.Exception'
