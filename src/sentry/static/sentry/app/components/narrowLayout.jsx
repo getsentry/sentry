@@ -13,15 +13,17 @@ class NarrowLayout extends React.Component {
   };
 
   componentWillMount() {
+    this.api = new Client();
     jQuery(document.body).addClass('narrow');
   }
 
   componentWillUnmount() {
+    this.api.clear();
     jQuery(document.body).removeClass('narrow');
   }
 
   handleLogout() {
-    logout().then(() => window.location = '/auth/login');
+    logout(this.api).then(() => window.location = '/auth/login');
   }
 
   render() {

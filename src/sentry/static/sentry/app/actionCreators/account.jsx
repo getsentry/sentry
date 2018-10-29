@@ -24,8 +24,7 @@ export function updateUser(user) {
   ConfigStore.set('user', user);
 }
 
-export function logout() {
-  const api = new Client();
+export function logout(api) {
   return api.requestPromise('/auth/', {
     method: 'DELETE',
   });

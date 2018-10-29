@@ -38,7 +38,7 @@ const SidebarDropdown = withApi(
     };
 
     handleLogout = (...args) => {
-      logout().then(() => window.location = '/auth/login');
+      logout(this.props.api).then(() => window.location = '/auth/login');
     };
 
     render() {
