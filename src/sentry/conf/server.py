@@ -1431,3 +1431,9 @@ JS_SDK_LOADER_DEFAULT_SDK_URL = ''
 # block domains which are generally used by spammers -- keep this configurable in case an onpremise
 # install wants to allow it
 INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
+
+# This is customizable for sentry.io, but generally should only be additive
+# (currently the values not used anymore so this is more for documentation purposes)
+SENTRY_USER_PERMISSIONS = (
+    'broadcasts.admin',
+)
