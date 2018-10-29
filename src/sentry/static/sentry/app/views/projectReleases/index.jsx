@@ -6,16 +6,20 @@ import {Box} from 'grid-emotion';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
+import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Hook from 'app/components/hook';
+import HookOrDefault from 'app/components/hookOrDefault';
 import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ReleaseEmptyState from 'app/views/projectReleases/releaseEmptyState';
 
 import ReleaseList from 'app/views/projectReleases/releaseList';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
@@ -28,6 +32,11 @@ const ProjectReleases = createReactClass({
   propTypes: {
     setProjectNavSection: PropTypes.func,
     environment: SentryTypes.Environment,
+  },
+
+  contextTypes: {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   },
 
   mixins: [ApiMixin],
@@ -48,6 +57,15 @@ const ProjectReleases = createReactClass({
   componentWillMount() {
     this.props.setProjectNavSection('releases');
     this.fetchData();
+  },
+
+  componentDidMount() {
+    let {organization, project} = this.context;
+
+    analytics('releases.tab_viewed', {
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+    });
   },
 
   componentWillReceiveProps(nextProps) {
@@ -123,26 +141,25 @@ const ProjectReleases = createReactClass({
     });
   },
 
-  getReleaseTrackingUrl() {
-    let params = this.props.params;
-
-    return '/' + params.orgId + '/' + params.projectId + '/settings/release-tracking/';
-  },
-
   renderStreamBody() {
     let body;
-
-    let params = this.props.params;
+    let {params} = this.props;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.releaseList.length > 0)
       body = (
-        <ReleaseList
-          orgId={params.orgId}
-          projectId={params.projectId}
-          releaseList={this.state.releaseList}
-        />
+        <div>
+          <Hook
+            name="component:releases-tab"
+            params={{organization: this.context.organization, source: 'progress'}}
+          />
+          <ReleaseList
+            orgId={params.orgId}
+            projectId={params.projectId}
+            releaseList={this.state.releaseList}
+          />
+        </div>
       );
     else if (this.state.query && this.state.query !== DEFAULT_QUERY)
       body = this.renderNoQueryResults();
@@ -165,20 +182,34 @@ const ProjectReleases = createReactClass({
 
   renderEmpty() {
     const {environment} = this.state;
+    const {organization, project} = this.context;
+    let anyProjectReleases = project.latestRelease;
+
     const message = environment
       ? tct("There don't seem to be any releases in your [env] environment yet", {
           env: environment.displayName,
         })
       : t("There don't seem to be any releases yet.");
-    return (
-      <EmptyStateWarning>
-        <p>{message}</p>
-        <p>
-          <a href={this.getReleaseTrackingUrl()}>
-            {t('Learn how to integrate Release Tracking')}
-          </a>
-        </p>
-      </EmptyStateWarning>
+
+    let EmptyStateComponent = HookOrDefault({
+      hookName: 'component:releases-tab',
+      defaultComponent: ReleaseEmptyState,
+      params: {source: 'empty', organization},
+    });
+
+    return anyProjectReleases === null ? (
+      <EmptyStateComponent
+        message={message}
+        params={{organization: this.context.organization, source: 'progress'}}
+      />
+    ) : (
+      <div>
+        <Hook
+          name="component:releases-tab"
+          params={{organization: this.context.organization, source: 'progress'}}
+        />
+        <ReleaseEmptyState message={message} />
+      </div>
     );
   },
 
