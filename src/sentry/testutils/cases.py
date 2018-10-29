@@ -139,6 +139,8 @@ class BaseTestCase(Fixtures, Exam):
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.META['SERVER_NAME'] = 'testserver'
         request.META['SERVER_PORT'] = 80
+        request.REQUEST = {}
+
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
