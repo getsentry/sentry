@@ -93,6 +93,11 @@ build-platform-assets:
 	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
+fetch-release-registry:
+	@echo "--> Fetching release registry"
+	sentry init
+	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
+
 test-cli:
 	@echo "--> Testing CLI"
 	rm -rf test_cli
