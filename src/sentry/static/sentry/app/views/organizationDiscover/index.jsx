@@ -1,11 +1,10 @@
 import React from 'react';
 import {Flex} from 'grid-emotion';
-import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import jQuery from 'jquery';
-import OrganizationState from 'app/mixins/organizationState';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -27,19 +26,21 @@ import {
   LoadingContainer,
 } from './styles';
 
-const OrganizationDiscoverContainer = createReactClass({
-  displayName: 'OrganizationDiscoverContainer',
-  mixins: [OrganizationState],
+export default class OrganizationDiscoverContainer extends React.Component {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+  };
 
-  getInitialState: function() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       isLoading: true,
       savedQuery: null,
-      view: getView(this.props.location.query.view),
+      view: getView(props.location.query.view),
     };
-  },
+  }
 
-  componentDidMount: function() {
+  componentDidMount() {
     jQuery(document.body).addClass('body-discover');
 
     const {savedQueryId} = this.props.params;
@@ -55,9 +56,9 @@ const OrganizationDiscoverContainer = createReactClass({
       );
       this.loadTags();
     }
-  },
+  }
 
-  componentWillReceiveProps: function(nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (!nextProps.params.savedQueryId) {
       this.setState({savedQuery: null});
       return;
@@ -70,19 +71,19 @@ const OrganizationDiscoverContainer = createReactClass({
     if (nextProps.location.query.view !== this.props.location.query.view) {
       this.setState({view: getView(nextProps.location.query.view)});
     }
-  },
+  }
 
-  componentWillUnmount: function() {
+  componentWillUnmount() {
     jQuery(document.body).removeClass('body-discover');
-  },
+  }
 
-  loadTags: function() {
+  loadTags = () => {
     this.queryBuilder.load().then(() => {
       this.setState({isLoading: false});
     });
-  },
+  };
 
-  fetchSavedQuery: function(savedQueryId) {
+  fetchSavedQuery = savedQueryId => {
     const {organization} = this.context;
 
     return fetchSavedQuery(organization, savedQueryId)
@@ -102,13 +103,13 @@ const OrganizationDiscoverContainer = createReactClass({
         });
         window.location.reload();
       });
-  },
+  };
 
-  updateSavedQuery: function(savedQuery) {
+  updateSavedQuery = savedQuery => {
     this.setState({savedQuery});
-  },
+  };
 
-  toggleEditMode: function() {
+  toggleEditMode = () => {
     const {organization} = this.context;
     const {savedQuery} = this.state;
     const isEditingSavedQuery = this.props.location.query.editing === 'true';
@@ -124,17 +125,17 @@ const OrganizationDiscoverContainer = createReactClass({
       pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
       query: newQuery,
     });
-  },
+  };
 
-  renderComingSoon: function() {
+  renderComingSoon() {
     return (
       <Flex className="organization-home" justify="center" align="center">
         something is happening here soon :)
       </Flex>
     );
-  },
+  }
 
-  renderLoading: function() {
+  renderLoading() {
     return (
       <DiscoverContainer>
         <Sidebar>
@@ -148,13 +149,15 @@ const OrganizationDiscoverContainer = createReactClass({
         </Body>
       </DiscoverContainer>
     );
-  },
+  }
 
   render() {
     const {isLoading, savedQuery, view} = this.state;
 
     const {location, params} = this.props;
-    const hasFeature = this.getFeatures().has('discover');
+
+    const {organization} = this.context;
+    const hasFeature = new Set(organization.features).has('discover');
 
     if (!hasFeature) return this.renderComingSoon();
 
@@ -164,7 +167,7 @@ const OrganizationDiscoverContainer = createReactClass({
           this.renderLoading()
         ) : (
           <Discover
-            organization={this.getOrganization()}
+            organization={organization}
             queryBuilder={this.queryBuilder}
             location={location}
             params={params}
@@ -177,7 +180,5 @@ const OrganizationDiscoverContainer = createReactClass({
         )}
       </DiscoverWrapper>
     );
-  },
-});
-
-export default OrganizationDiscoverContainer;
+  }
+}
