@@ -140,7 +140,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if getattr(obj.flags, 'require_2fa'):
             feature_list.add('require-2fa')
 
-        experiment_assignments = experiments.all(org=obj, actor=user)
+        experiment_assignments = experiments.all(org=obj)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
