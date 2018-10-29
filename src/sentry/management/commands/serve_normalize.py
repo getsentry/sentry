@@ -15,9 +15,31 @@ import sys
 import time
 import traceback
 import json
+import resource
 
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
+
+
+class MetricCollector(object):
+    def __init__(self):
+        self.is_linux = sys.platform.startswith('linux')
+        self.pid = os.getpid()
+
+    def collect_metrics(self):
+        metrics = {
+            'time': time.time(),
+        }
+
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        usage_dict = {attr: getattr(usage, attr) for attr in dir(usage) if attr.startswith('ru_')}
+        metrics.update(usage_dict)
+
+        if self.is_linux:
+            with open('/proc/{}/status'.format(self.pid)) as procfh:
+                metrics['proc'] = procfh.read()
+
+        return metrics
 
 
 class EventNormalizeHandler(SocketServer.BaseRequestHandler):
@@ -76,30 +98,34 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         return dict(ev.get_data())
 
     def handle_data(self):
-        result, error = None, None
-        start, end = None, None
+        result = None
+        error = None
+        metrics = None
+        mc = MetricCollector()
         try:
             data, meta = self.decode(self.data)
-            start = time.time()
+
+            metrics_before = mc.collect_metrics()
             result = self.process_event(data, meta)
-            end = time.time()
+            metrics_after = mc.collect_metrics()
+
+            metrics = {'before': metrics_before, 'after': metrics_after}
         except Exception as e:
             error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
 
-        duration = (end - start) if (start and end) else None
         try:
             return self.encode({
                 'result': result,
                 'error': error,
-                'duration': duration
+                'metrics': metrics
             })
         except (ValueError, TypeError) as e:
             try:
                 # Encoding error, try to send the exception instead
                 return self.encode({
-                    'result': None,
+                    'result': result,
                     'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
-                    'duration': duration,
+                    'metrics': metrics,
                     'encoding_error': True,
                 })
             except Exception:
