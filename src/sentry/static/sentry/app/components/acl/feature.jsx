@@ -3,28 +3,24 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {t} from 'app/locale';
-import Alert from 'app/components/alert';
+import {descopeFeatureName} from 'app/utils';
 import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
 
-const DEFAULT_NO_FEATURE_MESSAGE = (
-  <Alert type="info" icon="icon-circle-info">
-    {t('This feature is coming soon!')}
-  </Alert>
-);
+import ComingSoon from './comingSoon';
 
 /**
  * Component to handle feature flags.
  */
 class Feature extends React.Component {
   static propTypes = {
+    /**
+     * The following properties will be set by the FeatureContainer component
+     * that typically wraps this component.
+     */
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-
-    /**
-     * Configuration features from ConfigStore
-     */
     configFeatures: PropTypes.arrayOf(PropTypes.string),
 
     /**
@@ -42,17 +38,47 @@ class Feature extends React.Component {
     requireAll: PropTypes.bool,
 
     /**
-     * Custom renderer function for "no feature" message OR `true` to use default message.
-     * `false` will suppress message.
+     * Custom renderer function for when the feature is not enabled.
+     *
+     *  - [default] Set this to false to disable rendering anything. If the
+     *    feature is not enabled no children will be rendererd.
+     *
+     *  - Set this to `true` to use the default `ComingSoon` alert component.
+     *
+     *  - Provide a custom render function to customize the rendered component.
+     *
+     * When a custom render function is used, the same object that would be
+     * passed to `children` if a func is provided there, will be used here.
+     *
+     * NOTE: HookStore capability.
+     *
+     * Enabling the renderDisabled prop (by setting `true` or passing a
+     * function) will enable functionality to check the HookStore for a hook to
+     * retrieve the no feature render function.
+     *
+     * The hookstore key that will be checked is:
+     *
+     *     feature-disabled:{unscoped-feature-name}
+     *
+     * This functionality will ONLY BE ACTIVATED when exactly ONE feature is
+     * provided through the feature property.
      */
-    renderNoFeatureMessage: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
+    renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
     /**
-     * If children is a function then will be treated as a render prop and passed this object:
+     * If children is a function then will be treated as a render prop and
+     * passed this object:
      *
-     * {
-     *   hasFeature: bool,
-     * }
+     *   {
+     *     organization,
+     *     project,
+     *     features: [],
+     *     hasFeature: bool,
+     *     renderDisabled: function,
+     *   }
+     *
+     * Remember that the renderDisabled function may have been set by the
+     * hookstore.
      *
      * The other interface is more simple, only show `children` if org/project has
      * all the required feature.
@@ -61,20 +87,20 @@ class Feature extends React.Component {
   };
 
   static defaultProps = {
-    renderNoFeatureMessage: false,
+    renderDisabled: false,
     requireAll: true,
   };
 
-  getAllFeatures = () => {
+  getAllFeatures() {
     let {organization, project, configFeatures} = this.props;
     return {
       configFeatures: configFeatures || [],
       organization: (organization && organization.features) || [],
       project: (project && project.features) || [],
     };
-  };
+  }
 
-  hasFeature = (feature, features) => {
+  hasFeature(feature, features) {
     let shouldMatchOnlyProject = feature.match(/^project:(\w+)/);
     let shouldMatchOnlyOrg = feature.match(/^organization:(\w+)/);
 
@@ -95,31 +121,52 @@ class Feature extends React.Component {
       organization.includes(feature) ||
       project.includes(feature)
     );
-  };
+  }
 
   render() {
-    let {children, features, renderNoFeatureMessage, requireAll} = this.props;
+    let {
+      children,
+      features,
+      renderDisabled,
+      organization,
+      project,
+      requireAll,
+    } = this.props;
 
     let allFeatures = this.getAllFeatures();
     let method = requireAll ? 'every' : 'some';
     let hasFeature =
       !features || features[method](feat => this.hasFeature(feat, allFeatures));
 
-    let renderProps = {
-      hasFeature,
-    };
+    // Default renderDisabled to the ComingSoon component
+    let customDisabledRender =
+      renderDisabled === false
+        ? false
+        : typeof renderDisabled === 'function' ? renderDisabled : () => <ComingSoon />;
 
-    if (!hasFeature && typeof renderNoFeatureMessage === 'function') {
-      return renderNoFeatureMessage(renderProps);
-    } else if (!hasFeature && renderNoFeatureMessage) {
-      return DEFAULT_NO_FEATURE_MESSAGE;
+    // Override the renderDisabled function with a hook store function if there
+    // is one registered for the feature.
+    if (renderDisabled !== false && features.length === 1) {
+      HookStore.get(`feature-disabled:${descopeFeatureName(features[0])}`)
+        .slice(0, 1)
+        .map(hookFn => (customDisabledRender = hookFn));
     }
+
+    let renderProps = {
+      organization,
+      project,
+      features,
+      hasFeature,
+      renderDisabled: customDisabledRender,
+    };
 
     if (typeof children === 'function') {
       return children(renderProps);
     }
 
-    return hasFeature ? children : null;
+    return hasFeature
+      ? children
+      : renderDisabled !== false ? customDisabledRender(renderProps) : null;
   }
 }
 
