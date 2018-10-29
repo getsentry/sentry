@@ -55,7 +55,7 @@ export const BodyContent = styled(Flex)`
   flex: 1;
   flex-direction: column;
   padding: ${space(1.5)} 32px 32px 32px;
-  overflow: scroll;
+  overflow-y: scroll;
   position: relative;
 `;
 
@@ -115,7 +115,7 @@ export const SidebarLabel = styled.label`
 
 export const StyledQueryFields = styled('div')`
   flex: 1;
-  overflow: scroll;
+  overflow-y: scroll;
 `;
 
 export const AddText = styled.span`
