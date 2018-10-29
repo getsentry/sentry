@@ -26,22 +26,15 @@ export default function createResultManager(queryBuilder) {
     const query = queryBuilder.getExternal();
     const baseQuery = queryBuilder.getQueryByType(query, 'baseQuery');
 
-    let results, cursor;
+    const cursor = data.baseQuery[pageToFetch];
 
-    if (data.baseQuery[pageToFetch]) {
-      results = data.baseQuery[pageToFetch].results;
-      cursor = data.baseQuery[pageToFetch].cursor;
-    }
-
-    if (results) {
+    if (cursor) {
       return queryBuilder.fetch(baseQuery, cursor).then(resp => {
+        data.baseQuery.current = cursor;
         data.baseQuery.query = query;
         data.baseQuery.data = resp;
-        if (resp.pageLinks) {
-          const links = parseLinkHeader(resp.pageLinks);
-          data.baseQuery.next = links.next;
-          data.baseQuery.previous = links.previous;
-        }
+        updatePageLinks(resp.pageLinks);
+
         return data;
       });
     }
@@ -81,11 +74,8 @@ export default function createResultManager(queryBuilder) {
     return Promise.all(promises).then(resp => {
       data.baseQuery.query = query;
       data.baseQuery.data = resp[0];
-      if (resp[0].pageLinks) {
-        const links = parseLinkHeader(resp[0].pageLinks);
-        data.baseQuery.next = links.next;
-        data.baseQuery.previous = links.previous;
-      }
+      data.baseQuery.current = '0:0:1';
+      updatePageLinks(resp[0].pageLinks);
 
       if (hasAggregations) {
         data.byDayQuery.query = byDayQuery;
@@ -99,6 +89,20 @@ export default function createResultManager(queryBuilder) {
   }
 
   /**
+   * Parses the Links header and sets the relevant next and previous cursor
+   * values on the data object
+   *
+   * @param {Object} pageLinks
+   * @returns {Void}
+   */
+  function updatePageLinks(pageLinks) {
+    if (!pageLinks) return;
+    const links = parseLinkHeader(pageLinks);
+    data.baseQuery.next = links.next.results ? links.next.cursor : null;
+    data.baseQuery.previous = links.previous.results ? links.previous.cursor : null;
+  }
+
+  /**
    * Resets data for all visualizations.
    *
    * @returns {Void}
@@ -108,13 +112,13 @@ export default function createResultManager(queryBuilder) {
   }
 
   /**
-   * Resets all data
+   * Returns default data object to store results of all queries
    *
    * @returns {Object}
    */
   function getDefault() {
     return {
-      baseQuery: {query: null, data: null, next: null, previous: null},
+      baseQuery: {query: null, data: null, next: null, previous: null, current: null},
       byDayQuery: {query: null, data: null},
     };
   }
