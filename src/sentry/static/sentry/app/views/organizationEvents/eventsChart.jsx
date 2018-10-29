@@ -15,6 +15,7 @@ class EventsChart extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     actions: PropTypes.object,
+    period: PropTypes.string,
   };
 
   constructor(props) {
@@ -68,25 +69,42 @@ class EventsChart extends React.Component {
   };
 
   render() {
+    const {period} = this.props;
+
+    let interval = '1d';
+    let xAxisOptions = {};
+    if ((typeof period === 'string' && period.endsWith('h')) || period === '1d') {
+      interval = '1h';
+      xAxisOptions.axisLabel = {
+        formatter: value =>
+          moment
+            .utc(value)
+            .local()
+            .format('LT'),
+      };
+    }
+
     return (
       <div>
         <HealthRequestWithParams
           {...this.props}
           tag="error.handled"
           includeTimeseries
-          interval="1d"
+          interval={interval}
           showLoading
           getCategory={() => t('Event')}
         >
           {({timeseriesData, previousTimeseriesData}) => (
             <AreaChart
               isGroupedByDate
+              interval={interval === '1h' ? 'hour' : 'day'}
               series={timeseriesData}
               previousPeriod={previousTimeseriesData}
               grid={{
                 left: '18px',
                 right: '18px',
               }}
+              xAxis={xAxisOptions}
               dataZoom={DataZoom()}
               toolBox={ToolBox(
                 {},

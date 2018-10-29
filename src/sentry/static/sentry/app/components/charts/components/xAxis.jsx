@@ -2,9 +2,15 @@ import moment from 'moment';
 
 import theme from 'app/utils/theme';
 
-export default function XAxis({isGroupedByDate, ...props} = {}) {
+export default function XAxis({isGroupedByDate, interval, ...props} = {}) {
   const axisLabelFormatter = isGroupedByDate
-    ? (value, index) => moment.utc(value).format('MMM Do')
+    ? (value, index) => {
+        const format = interval === 'hour' ? 'LT' : 'MMM Do';
+        return moment
+          .utc(value)
+          .local()
+          .format(format);
+      }
     : undefined;
 
   return {
