@@ -22,9 +22,9 @@ class NarrowLayout extends React.Component {
     jQuery(document.body).removeClass('narrow');
   }
 
-  handleLogout() {
+  handleLogout = () => {
     logout(this.api).then(() => (window.location = '/auth/login'));
-  }
+  };
 
   render() {
     return (
