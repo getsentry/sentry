@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import os
 import sys
 import json
-import logging
+from distutils import log
 
 import sentry
 
@@ -27,8 +27,6 @@ else:
         return d.iteritems(**kw)  # NOQA
 
     from urllib2 import urlopen
-
-logger = logging.getLogger('sentry')
 
 
 def dump_registry(path, data):
@@ -55,14 +53,9 @@ from .base import BaseBuildCommand
 class BuildJsSdkRegistryCommand(BaseBuildCommand):
     description = 'build js sdk registry'
 
-    def _needs_built(self):
-        return True
-
-    def _build(self):
-        logger.info('downloading js sdk information from the registry')
-
+    def run(self):
+        log.info('downloading js sdk information from the release registry')
         try:
             sync_registry()
         except BaseException:
-            logger.error('error ocurred while trying to fetch js sdk information from the registry')
-            pass
+            log.error('error ocurred while trying to fetch js sdk information from the registry')
