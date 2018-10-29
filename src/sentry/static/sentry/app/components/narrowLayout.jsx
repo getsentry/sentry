@@ -3,6 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
 import styled from 'react-emotion';
 
@@ -22,12 +23,7 @@ class NarrowLayout extends React.Component {
   }
 
   handleLogout = () => {
-    this.api.request('/auth/', {
-      method: 'DELETE',
-      success: () => {
-        window.location = '/auth/login';
-      },
-    });
+    logout(this.api).then(() => (window.location = '/auth/login'));
   };
 
   render() {
