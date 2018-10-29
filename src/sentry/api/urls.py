@@ -150,7 +150,6 @@ from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
-from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
@@ -260,11 +259,6 @@ urlpatterns = patterns(
     ),
     url(r'^api-tokens/$', ApiTokensEndpoint.as_view(),
         name='sentry-api-0-api-tokens'),
-    url(
-        r'^promptsactivity/$',
-        PromptsActivityEndpoint.as_view(),
-        name='sentry-api-0-promptsactivity',
-    ),
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
