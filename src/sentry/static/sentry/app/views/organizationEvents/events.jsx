@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {Panel, PanelHeader} from 'app/components/panels';
+import {getParams} from 'app/views/organizationEvents/utils';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import EventsChart from 'app/views/organizationEvents/eventsChart';
@@ -23,9 +24,19 @@ class OrganizationEvents extends AsyncView {
 
   getEndpoints() {
     const {organization, location} = this.props;
+    let {statsPeriod, ...query} = location.query;
 
     return [
-      ['events', `/organizations/${organization.slug}/events/`, {query: location.query}],
+      [
+        'events',
+        `/organizations/${organization.slug}/events/`,
+        {
+          query: getParams({
+            period: statsPeriod,
+            ...query,
+          }),
+        },
+      ],
     ];
   }
 
