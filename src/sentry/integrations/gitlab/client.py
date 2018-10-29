@@ -22,8 +22,6 @@ class GitLabApiClientPath(object):
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
-    members = u'/projects/{project}/members'
-    notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
     project_hooks = u'/projects/{project}/hooks'
     project_hook = u'/projects/{project}/hooks/{hook_id}'
@@ -170,25 +168,6 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             'scope': 'all',
             'search': query
         })
-
-    def create_note(self, project_id, issue_iid, data):
-        """Create an issue note
-
-        See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
-        """
-        return self.post(
-            GitLabApiClientPath.notes.format(project=project_id, issue=issue_iid),
-            data=data,
-        )
-
-    def list_project_members(self, project_id):
-        """Get project members
-
-        See https://docs.gitlab.com/ee/api/members.html#list-all-members-of-a-group-or-project
-        """
-        return self.get(
-            GitLabApiClientPath.members.format(project=project_id)
-        )
 
     def create_project_webhook(self, project_id):
         """Create a webhook on a project
