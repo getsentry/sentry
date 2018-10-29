@@ -58,11 +58,15 @@ describe('Condition', function() {
 
     it('renders operator options for datetime column', function() {
       const options = wrapper.instance().filterOptions([], 'col3');
-      expect(options).toHaveLength(4);
-      expect(options[0]).toEqual({value: 'col3 =', label: 'col3 ='});
-      expect(options[1]).toEqual({value: 'col3 !=', label: 'col3 !='});
-      expect(options[2]).toEqual({value: 'col3 IS NULL', label: 'col3 IS NULL'});
-      expect(options[3]).toEqual({value: 'col3 IS NOT NULL', label: 'col3 IS NOT NULL'});
+      expect(options).toHaveLength(8);
+      expect(options[0]).toEqual({value: 'col3 >', label: 'col3 >'});
+      expect(options[1]).toEqual({value: 'col3 <', label: 'col3 <'});
+      expect(options[2]).toEqual({value: 'col3 >=', label: 'col3 >='});
+      expect(options[3]).toEqual({value: 'col3 <=', label: 'col3 <='});
+      expect(options[4]).toEqual({value: 'col3 =', label: 'col3 ='});
+      expect(options[5]).toEqual({value: 'col3 !=', label: 'col3 !='});
+      expect(options[6]).toEqual({value: 'col3 IS NULL', label: 'col3 IS NULL'});
+      expect(options[7]).toEqual({value: 'col3 IS NOT NULL', label: 'col3 IS NOT NULL'});
     });
 
     it('limits operators to = and != for array fields', function() {

@@ -71,17 +71,13 @@ export default class Condition extends React.Component {
     const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
 
     return CONDITION_OPERATORS.filter(operator => {
-      if (colType === 'number') {
+      if (colType === 'number' || colType === 'datetime') {
         return !stringOnlyOperators.has(operator);
       }
 
       // We currently only support = and != on array fields
       if (ARRAY_FIELD_PREFIXES.some(prefix => colName.startsWith(prefix))) {
         return ['=', '!='].includes(operator);
-      }
-
-      if (colType === 'datetime') {
-        return !stringOnlyOperators.has(operator) && !numberOnlyOperators.has(operator);
       }
 
       // Treat everything else like a string
