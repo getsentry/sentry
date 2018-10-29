@@ -2,6 +2,7 @@ const TYPES = {
   STRING: 'string',
   NUMBER: 'number',
   BOOLEAN: 'boolean',
+  DATETIME: 'datetime',
 };
 
 export const PROMOTED_TAGS = [
@@ -37,8 +38,8 @@ export const COLUMNS = [
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
   {name: 'primary_hash', type: TYPES.STRING},
-  {name: 'timestamp', type: TYPES.STRING}, // TODO: handling datetime as string for now
-  {name: 'received', type: TYPES.STRING}, // TODO: handling datetime as string for now
+  {name: 'timestamp', type: TYPES.DATETIME},
+  {name: 'received', type: TYPES.DATETIME},
 
   {name: 'user_id', type: TYPES.STRING},
   {name: 'username', type: TYPES.STRING},
