@@ -89,8 +89,7 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
     }
 
     try:
-        member.email = member.get_email()
-        member.user = None
+        member.remove_user()
         member.save()
     except (AssertionError, IntegrityError):
         logger.warning(
