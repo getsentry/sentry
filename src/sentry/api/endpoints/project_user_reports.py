@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.response import Response
 from uuid import uuid4
 
 from sentry.api.base import DocSection, EnvironmentMixin
@@ -73,7 +73,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                     group__status=GroupStatus.UNRESOLVED,
                 )
             elif status:
-                return Response({'status': 'Invalid status choice'}, status=400)
+                return self.respond({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
@@ -94,6 +94,13 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Submit and associate user feedback with an issue.
 
+        Feedback must be received by the server no more than 30 minutes after the event was saved.
+
+        Additionally, within 5 minutes of submitting feedback it may also be overwritten. This is useful
+        in situations where you may need to retry sending a request due to network failures.
+
+        If feedback is rejected due to a mutability threshold, a 409 status code will be returned.
+
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.
         :auth: required
@@ -104,7 +111,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         """
         serializer = UserReportSerializer(data=request.DATA)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return self.respond(serializer.errors, status=400)
 
         report = serializer.object
         report.project = project
@@ -117,15 +124,22 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if euser:
             report.event_user_id = euser.id
 
-        try:
-            event = Event.objects.filter(project_id=project.id,
-                                         event_id=report.event_id)[0]
-        except IndexError:
+        event = Event.objects.filter(
+            project_id=project.id,
+            event_id=report.event_id,
+        ).first()
+        if not event:
             try:
                 report.group = Group.objects.from_event_id(project, report.event_id)
             except Group.DoesNotExist:
                 pass
         else:
+            # if the event is more than 30 minutes old, we dont allow updates
+            # as it might be abusive
+            if event.datetime < timezone.now() - timedelta(minutes=30):
+                return self.respond(
+                    {'detail': 'Feedback for this event cannot be modified.'}, status=409)
+
             report.environment = event.get_environment()
             report.group = event.group
 
@@ -144,6 +158,12 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 event_id=report.event_id,
             )
 
+            # if the existing report was submitted more than 5 minutes ago, we dont
+            # allow updates as it might be abusive (replay attacks)
+            if existing_report.date_added < timezone.now() - timedelta(minutes=5):
+                return self.respond(
+                    {'detail': 'Feedback for this event cannot be modified.'}, status=409)
+
             existing_report.update(
                 name=report.name,
                 email=report.email,
@@ -159,7 +179,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         user_feedback_received.send(project=report.project, group=report.group, sender=self)
 
-        return Response(serialize(report, request.user, ProjectUserReportSerializer(
+        return self.respond(serialize(report, request.user, ProjectUserReportSerializer(
             environment_func=self._get_environment_func(
                 request, project.organization_id)
         )))
