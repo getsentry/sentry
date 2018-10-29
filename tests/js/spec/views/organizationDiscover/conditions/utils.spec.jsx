@@ -50,6 +50,10 @@ describe('Conditions', function() {
     conditionList.forEach(({internal, external}) => {
       expect(getExternal(internal, COLUMNS)).toEqual(external);
     });
+
+    // datetime fields are expanded
+    const expected = ['received', '=', '2018-05-05T00:00:00Z'];
+    expect(getExternal('received = 2018-05-05', COLUMNS)).toEqual(expected);
   });
 
   it('getInternal()', function() {
