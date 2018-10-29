@@ -6,6 +6,7 @@ import six
 from symbolic import FrameInfoMap, FrameTrust, ObjectLookup
 
 from sentry.attachments import attachment_cache
+from sentry.coreapi import cache_key_for_event
 from sentry.lang.native.minidump import process_minidump, frames_from_minidump_thread, \
     MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.utils import rebase_addr
@@ -231,8 +232,7 @@ def reprocess_minidump_with_cfi(data):
         return handle.result()
 
     # Check if we have a minidump to reprocess
-    # XXX: Copied from coreapi.py since we don't have access to the cache_key here
-    cache_key = u'e:{1}:{0}'.format(data['project'], data['event_id'])
+    cache_key = cache_key_for_event(data)
     attachments = attachment_cache.get(cache_key) or []
     minidump = next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
     if not minidump:
