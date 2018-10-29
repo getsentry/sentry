@@ -1,15 +1,12 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {cx} from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
-import TextOverflow from 'app/components/textOverflow';
-import space from 'app/styles/space';
+import InlineSvg from 'app/components/inlineSvg';
 
-import HeaderItem from './headerItem';
+import HeaderItem from 'app/components/organizations/headerItem';
 
 export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
@@ -43,6 +40,17 @@ export default class MultipleProjectSelector extends React.Component {
     onUpdate();
   };
 
+  handleClose = props => {
+    if (!this.state.hasChanges) return;
+    this.props.onUpdate();
+    this.setState({hasChanges: false});
+  };
+
+  handleClear = () => {
+    this.props.onChange([]);
+    this.setState({hasChanges: false});
+  };
+
   handleMultiSelect = (selected, checked, e) => {
     const {onChange} = this.props;
     onChange(selected.map(({id}) => parseInt(id, 10)));
@@ -50,83 +58,74 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   render() {
-    const {className, value, projects} = this.props;
+    const {value, projects} = this.props;
     const selectedProjectIds = new Set(value);
 
     const selected = projects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
+    const rootContainerStyles = css`
+      display: flex;
+    `;
+
     return (
-      <HeaderItem className={className} label={t('Project(s)')}>
-        <ProjectSelector
-          {...this.props}
-          multi
-          showUpdate
-          selectedProjects={selected}
-          projects={projects}
-          onSelect={this.handleQuickSelect}
-          onMultiSelect={this.handleMultiSelect}
-          menuFooter={({actions}) => {
-            if (!this.state.hasChanges && selected.length === 0) {
-              return null;
-            }
-
-            return (
-              <Footer>
-                <Button
-                  priority="primary"
-                  tabIndex={1}
-                  size="small"
-                  type="button"
-                  disabled={!this.state.hasChanges}
-                  onClick={this.handleUpdate.bind(this, actions)}
-                >
-                  {t('Update')}
-                </Button>
-
-                <Button
-                  size="small"
-                  type="button"
-                  disabled={selected.length === 0}
-                  onClick={this.props.onChange.bind(this, [])}
-                >
-                  {t('Clear')}
-                </Button>
-              </Footer>
-            );
-          }}
-        >
-          {({getActorProps, selectedItem, activeProject, selectedProjects}) => {
-            const hasSelected = !!selectedProjects.length;
-            const title = hasSelected
-              ? selectedProjects.map(({slug}) => slug).join(', ')
-              : t('None selected, using all');
-            return (
-              <React.Fragment>
-                <Flex {...getActorProps()}>
-                  <Title>{title}</Title>
-                  <ArrowDown />
-                </Flex>
-              </React.Fragment>
-            );
-          }}
-        </ProjectSelector>
-      </HeaderItem>
+      <StyledProjectSelector
+        {...this.props}
+        multi
+        showUpdate
+        selectedProjects={selected}
+        projects={projects}
+        onSelect={this.handleQuickSelect}
+        onClose={this.handleClose}
+        onMultiSelect={this.handleMultiSelect}
+        rootClassName={rootContainerStyles}
+      >
+        {({
+          getActorProps,
+          selectedItem,
+          activeProject,
+          selectedProjects,
+          isOpen,
+          actions,
+          onBlur,
+        }) => {
+          const hasSelected = !!selectedProjects.length;
+          const title = hasSelected
+            ? selectedProjects.map(({slug}) => slug).join(', ')
+            : t('Projects and Teams');
+          return (
+            <StyledHeaderItem
+              active={hasSelected || isOpen}
+              icon={<StyledInlineSvg src="icon-stack" />}
+              hasSelected={hasSelected}
+              hasChanges={this.state.hasChanges}
+              isOpen={isOpen}
+              handleSubmit={this.handleUpdate.bind(this, actions)}
+              handleClear={this.handleClear}
+              {...getActorProps()}
+            >
+              {title}
+            </StyledHeaderItem>
+          );
+        }}
+      </StyledProjectSelector>
     );
   }
 }
-const ArrowDown = styled(({className, ...props}) => (
-  <i className={cx('icon-arrow-down', className)} {...props} />
-))`
-  margin-left: ${space(0.5)};
+
+const StyledProjectSelector = styled(ProjectSelector)`
+  margin: 1px 0 0 -1px;
+  border-radius: 0 0 4px 4px;
+  width: 110%;
 `;
 
-const Title = styled(TextOverflow)`
-  width: 240px;
+const StyledHeaderItem = styled(HeaderItem)`
+  height: 100%;
+  width: 300px;
 `;
 
-const Footer = styled(Flex)`
-  justify-content: space-between;
-  padding: ${space(0.5)} 0;
+const StyledInlineSvg = styled(InlineSvg)`
+  height: 18px;
+  width: 18px;
 `;

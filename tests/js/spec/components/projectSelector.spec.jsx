@@ -168,7 +168,7 @@ describe('ProjectSelector', function() {
     expect(mock).not.toHaveBeenCalled();
   });
 
-  it('calls `onMultiSelect` and render prop  when using multi select as an uncontrolled component', async function() {
+  it('calls `onMultiSelect` and render prop when using multi select as an uncontrolled component', async function() {
     let mock = jest.fn();
     let wrapper = mount(
       <ProjectSelector {...props} multi onMultiSelect={mock} />,
@@ -180,7 +180,7 @@ describe('ProjectSelector', function() {
     wrapper
       .find('MultiSelect')
       .at(0)
-      .simulate('change', {target: {checked: true}});
+      .simulate('click', {target: {checked: true}});
 
     expect(mock).toHaveBeenLastCalledWith(
       [
@@ -203,7 +203,7 @@ describe('ProjectSelector', function() {
     wrapper
       .find('MultiSelect')
       .at(1)
-      .simulate('change', {target: {checked: true}});
+      .simulate('click', {target: {checked: true}});
 
     expect(mock).toHaveBeenLastCalledWith(
       [
@@ -233,7 +233,7 @@ describe('ProjectSelector', function() {
     wrapper
       .find('MultiSelect')
       .at(1)
-      .simulate('change', {target: {checked: false}});
+      .simulate('click', {target: {checked: false}});
 
     expect(mock).toHaveBeenLastCalledWith(
       [

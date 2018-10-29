@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import Checkbox from 'app/components/checkbox';
+import CheckboxFancy from 'app/components/checkboxFancy';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
@@ -42,9 +42,13 @@ class ProjectSelector extends React.Component {
     // Callback when a project is selected
     onSelect: PropTypes.func,
 
+    // Callback when the menu is closed
+    onClose: PropTypes.func,
+
     // Callback when projects are selected via the multiple project selector
     // Calls back with (projects[], event)
     onMultiSelect: PropTypes.func,
+    rootClassName: PropTypes.string,
   };
 
   static defaultProps = {
@@ -146,7 +150,16 @@ class ProjectSelector extends React.Component {
   };
 
   render() {
-    const {children, organization: org, menuFooter, multi, multiOnly} = this.props;
+    const {
+      children,
+      organization: org,
+      menuFooter,
+      multi,
+      multiOnly,
+      className,
+      rootClassName,
+      onClose,
+    } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
 
@@ -165,13 +178,16 @@ class ProjectSelector extends React.Component {
         blendCorner={false}
         filterPlaceholder={t('Filter projects')}
         onSelect={this.handleSelect}
+        onClose={onClose}
         maxHeight={500}
         zIndex={1001}
-        style={{marginTop: 6}}
+        css={{marginTop: 6}}
         inputProps={{style: {padding: 8, paddingLeft: 14}}}
+        rootClassName={rootClassName}
+        className={className}
         emptyMessage={t('You have no projects')}
         noResultsMessage={t('No projects found')}
-        virtualizedHeight={33}
+        virtualizedHeight={40}
         emptyHidesInput
         menuFooter={renderProps => {
           const renderedFooter =
@@ -205,7 +221,7 @@ class ProjectSelector extends React.Component {
               inputValue={inputValue}
               isChecked={
                 this.isControlled()
-                  ? this.props.selectedProjects.find(({slug}) => slug === project.slug)
+                  ? !!this.props.selectedProjects.find(({slug}) => slug === project.slug)
                   : this.state.selectedProjects.has(project.slug)
               }
               onMultiSelect={this.handleMultiSelect}
@@ -242,6 +258,7 @@ class ProjectSelectorItem extends React.PureComponent {
 
   handleClick = e => {
     e.stopPropagation();
+    this.handleMultiSelect(e);
   };
 
   render() {
@@ -262,11 +279,7 @@ class ProjectSelectorItem extends React.PureComponent {
 
         {multi && (
           <MultiSelectWrapper onClick={this.handleMultiSelect}>
-            <MultiSelect
-              checked={isChecked}
-              onClick={this.handleClick}
-              onChange={this.handleMultiSelect}
-            />
+            <MultiSelect checked={isChecked} onClick={this.handleClick} />
           </MultiSelectWrapper>
         )}
       </ProjectRow>
@@ -328,13 +341,8 @@ const MultiSelectWrapper = styled('div')`
   padding: 8px;
 `;
 
-const MultiSelect = styled(Checkbox)`
+const MultiSelect = styled(CheckboxFancy)`
   flex-shrink: 0;
-  border: 1px solid ${p => p.theme.borderLight};
-
-  &:hover {
-    border-color: ${p => p.theme.borderDark};
-  }
 `;
 
 export default ProjectSelector;

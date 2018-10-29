@@ -39,19 +39,19 @@ describe('MultipleEnvironmentSelector', function() {
 
   it('fetches environments only when dropdown opened', async function() {
     expect(getMock).not.toHaveBeenCalled();
-    wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     expect(getMock).toHaveBeenCalled();
     await tick();
     wrapper.update();
     expect(wrapper.find('FetchOrganizationEnvironments')).toHaveLength(1);
 
     // Close
-    wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     expect(wrapper.find('FetchOrganizationEnvironments')).toHaveLength(0);
   });
 
   it('can select and change environments', async function() {
-    wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
     wrapper.update();
 
