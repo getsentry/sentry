@@ -19,6 +19,13 @@ class MessageTest(TestCase):
             )
         )
 
+    def test_null_values(self):
+        sink = {}
+        assert Message.to_python({}).to_json() == sink
+        assert Message.to_python({'message': None}).to_json() == sink
+        assert Message.to_python({'formatted': None}).to_json() == sink
+        assert Message.to_python({'params': None}).to_json() == sink
+
     def test_serialize_behavior(self):
         assert self.interface.to_json() == {
             'message': self.interface.message,
