@@ -204,7 +204,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         method should be late bound into the pipeline vies.
         """
         identity_pipeline_config = dict(
-            oauth_scopes=('api',),
+            oauth_scopes=sorted(GitlabIdentityProvider.oauth_scopes),
             redirect_url=absolute_uri('/extensions/gitlab/setup/'),
             **self.pipeline.fetch_state('oauth_config_information')
         )
