@@ -1,14 +1,12 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
+import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
-import Button from 'app/components/button';
-import DateRangePicker from 'app/components/organizations/timeRangeSelector/dateRangePicker';
+import DateRangePicker from 'app/components/organizations/timeRangeSelector/dateRange';
 import DropdownMenu from 'app/components/dropdownMenu';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -20,12 +18,6 @@ const ALLOWED_RELATIVE_DATES = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
 };
-
-const DropdownMenuCss = css`
-  &.dropdown-menu {
-    padding: 0;
-  }
-`;
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -41,11 +33,11 @@ class TimeRangeSelector extends React.PureComponent {
     /**
      * Start date value for absolute date selector
      */
-    start: PropTypes.string,
+    start: PropTypes.instanceOf(Date),
     /**
      * End date value for absolute date selector
      */
-    end: PropTypes.string,
+    end: PropTypes.instanceOf(Date),
 
     /**
      * Relative date value
@@ -71,16 +63,14 @@ class TimeRangeSelector extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
+      useUtc: false,
       isOpen: false,
       selected: !!props.start && !!props.end ? 'absolute' : props.relative,
     };
   }
 
   formatDate(date) {
-    return moment
-      .utc(date)
-      .local()
-      .format('MMMM D, h:mm a');
+    return getFormattedDate(date, 'MMMM D HH:mm', {local: !this.state.useUtc});
   }
 
   handleUpdate = () => {
@@ -112,9 +102,15 @@ class TimeRangeSelector extends React.PureComponent {
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
     onChange({
-      start: moment.utc(start).format(moment.HTML5_FMT.DATETIME_LOCAL_MS),
-      end: moment.utc(end).format(moment.HTML5_FMT.DATETIME_LOCAL_MS),
+      start,
+      end,
     });
+  };
+
+  handleUseUtc = () => {
+    this.setState(state => ({
+      useUtc: !state.useUtc,
+    }));
   };
 
   render() {
@@ -168,17 +164,22 @@ class TimeRangeSelector extends React.PureComponent {
                     selected={isAbsoluteSelected}
                   />
                 )}
+                <SelectorItem
+                  onClick={this.handleUseUtc}
+                  value="utc"
+                  label={t('Use UTC')}
+                  selected={this.state.useUtc}
+                />
               </RelativeSelectorList>
               {isAbsoluteSelected && (
                 <DateRangePicker
+                  allowTimePicker
+                  useUtc={this.state.useUtc}
                   start={start}
                   end={end}
                   onChange={this.handleSelectDateRange}
                 />
               )}
-              <div>
-                <Button onClick={this.handleUpdate}>{t('Update')}</Button>
-              </div>
             </Menu>
           </div>
         )}

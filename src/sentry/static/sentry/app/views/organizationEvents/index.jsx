@@ -6,6 +6,7 @@ import styled from 'react-emotion';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
+import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
 import {getParams} from 'app/views/organizationEvents/utils';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
@@ -40,12 +41,19 @@ class OrganizationEventsContainer extends React.Component {
       environment = [query.environment];
     }
 
+    let {start, end} = query;
+
+    if (hasAbsolute) {
+      start = getLocalDateObject(start);
+      end = getLocalDateObject(end);
+    }
+
     const values = {
       project,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
-      start: query.start || null,
-      end: query.end || null,
+      start: start || null,
+      end: end || null,
     };
 
     return {
@@ -72,9 +80,17 @@ class OrganizationEventsContainer extends React.Component {
 
     const newQuery = getParams({
       ...oldQuery,
-      period: obj.period || statsPeriod,
+      period: !obj.start && !obj.end ? obj.period || statsPeriod : null,
       ...obj,
     });
+
+    if (newQuery.start) {
+      newQuery.start = getUtcDateString(newQuery.start);
+    }
+
+    if (newQuery.end) {
+      newQuery.end = getUtcDateString(newQuery.end);
+    }
 
     router.push({
       pathname: router.location.pathname,
@@ -100,18 +116,32 @@ class OrganizationEventsContainer extends React.Component {
 
   handleUpdatePeriod = () => {
     this.setState(({period, start, end, ...state}) => {
-      let newValueObj = {};
-
-      if (type === 'period') {
-        newValueObj = {
-          ...(typeof period !== 'undefined' ? {period} : {start, end}),
-        };
-      } else {
-        newValueObj = {[type]: state[type]};
-      }
+      let newValueObj = {
+        ...(defined(period) ? {period} : {start, end}),
+      };
 
       this.updateParams(newValueObj);
 
+      const {
+        period: _period, // eslint-disable-line no-unused-vars
+        start: _start, // eslint-disable-line no-unused-vars
+        end: _end, // eslint-disable-line no-unused-vars
+        ...queryValues
+      } = state.queryValues;
+
+      return {
+        queryValues: {
+          ...queryValues,
+          ...newValueObj,
+        },
+      };
+    });
+  };
+
+  handleUpdate = type => {
+    this.setState(state => {
+      let newValueObj = {[type]: state[type]};
+      this.updateParams(newValueObj);
       return {
         queryValues: {
           ...state.queryValues,
@@ -120,6 +150,10 @@ class OrganizationEventsContainer extends React.Component {
       };
     });
   };
+
+  handleUpdateEnvironmments = () => this.handleUpdate('environment');
+
+  handleUpdateProjects = () => this.handleUpdate('projects');
 
   render() {
     const {organization, children} = this.props;
@@ -140,14 +174,14 @@ class OrganizationEventsContainer extends React.Component {
                 projects={projects}
                 value={this.state.project}
                 onChange={this.handleChangeProjects}
-                onUpdate={this.handleUpdate.bind(this, 'project')}
+                onUpdate={this.handleUpdateProjects}
               />
               <HeaderSeparator />
               <MultipleEnvironmentSelector
                 organization={organization}
                 value={this.state.environment}
                 onChange={this.handleChangeEnvironments}
-                onUpdate={this.handleUpdate.bind(this, 'environment')}
+                onUpdate={this.handleUpdateEnvironmments}
               />
               <HeaderSeparator />
               <TimeRangeSelector
@@ -157,7 +191,7 @@ class OrganizationEventsContainer extends React.Component {
                 start={start}
                 end={end}
                 onChange={this.handleChangeTime}
-                onUpdate={this.handleUpdate.bind(this, 'period')}
+                onUpdate={this.handleUpdatePeriod}
               />
             </Header>
             <Body>{children}</Body>

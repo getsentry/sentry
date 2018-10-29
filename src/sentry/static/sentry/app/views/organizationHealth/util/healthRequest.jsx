@@ -46,11 +46,11 @@ class HealthRequestWithParams extends React.Component {
     /**
      * Absolute start date for query
      */
-    start: PropTypes.string,
+    start: PropTypes.instanceOf(Date),
     /**
      * Absolute end date for query
      */
-    end: PropTypes.string,
+    end: PropTypes.instanceOf(Date),
 
     /**
      * Interval to group results in
@@ -110,7 +110,7 @@ class HealthRequestWithParams extends React.Component {
   };
 
   static defaultProps = {
-    period: '7d',
+    period: null,
     start: null,
     end: null,
     interval: '1d',
