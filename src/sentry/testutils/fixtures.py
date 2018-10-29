@@ -26,7 +26,6 @@ from uuid import uuid4
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator as SentryAppCreator
-from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
@@ -724,6 +723,3 @@ class Fixtures(object):
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
-
-    def create_sentry_app_install(self, organization=None):
-        return

@@ -10,7 +10,6 @@ from sentry.api.bases.sentryapps import (
     SentryAppInstallationDetailsEndpoint,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 
 
@@ -20,11 +19,9 @@ class SentryAppDetailsPermissionTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
         self.request = HttpRequest()
@@ -49,11 +46,9 @@ class SentryAppDetailsEndpointTest(TestCase):
         self.request.user = self.user
         self.request.successful_authenticator = True
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
     def test_retrieves_sentry_app(self):
@@ -73,13 +68,10 @@ class SentryAppInstallationDetailsPermissionTest(TestCase):
         self.member = self.create_user()
         self.org = self.create_organization(owner=self.member)
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
-
         self.installation, _ = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
@@ -125,11 +117,9 @@ class SentryAppInstallationDetailsEndpointTest(TestCase):
         self.request.user = self.user
         self.request.successful_authenticator = True
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
         self.installation, _ = SentryAppInstallationCreator.run(

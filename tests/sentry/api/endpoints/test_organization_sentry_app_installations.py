@@ -4,10 +4,8 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator
 
 
@@ -95,11 +93,9 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
     @with_feature('organizations:internal-catchall')
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
         response = self.client.post(
             self.url,
@@ -117,13 +113,11 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
     @with_feature('organizations:internal-catchall')
     def test_install_published_app(self):
         self.login_as(user=self.user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(
             self.url,
             data={'slug': app.slug},
@@ -146,13 +140,11 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
             role='member',
         )
         self.login_as(user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(
             self.url,
             data={'slug': app.slug},
