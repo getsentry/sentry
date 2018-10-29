@@ -25,7 +25,8 @@ from django.db.models.fields.related import OneToOneRel
 
 from symbolic import FatObject, SymbolicError, ObjectErrorUnsupportedObject, \
     SYMCACHE_LATEST_VERSION, SymCache, SymCacheErrorMissingDebugInfo, \
-    SymCacheErrorMissingDebugSection, CfiCache, CfiErrorMissingDebugInfo
+    SymCacheErrorMissingDebugSection, CfiCache, CfiErrorMissingDebugInfo, \
+    CFICACHE_LATEST_VERSION
 
 from sentry import options
 from sentry.cache import default_cache
@@ -288,6 +289,12 @@ class ProjectCacheFile(Model):
         """Indicates whether the cache can be computed from the given DIF."""
         return set(cls.required_features) <= debug_file.features
 
+    @property
+    def outdated(self):
+        """Indicates whether this cache is outdated and needs to be recomputed.
+        """
+        raise NotImplemented
+
     def delete(self, *args, **kwargs):
         super(ProjectCacheFile, self).delete(*args, **kwargs)
         self.cache_file.delete()
@@ -318,6 +325,10 @@ class ProjectSymCacheFile(ProjectCacheFile):
             return debug_file.dif_type in ('breakpad', 'macho', 'elf')
         return super(ProjectSymCacheFile, cls).computes_from(debug_file)
 
+    @property
+    def outdated(self):
+        return self.version != SYMCACHE_LATEST_VERSION
+
 
 class ProjectCfiCacheFile(ProjectCacheFile):
     """Cache for stack unwinding information: CfiCache."""
@@ -336,6 +347,10 @@ class ProjectCfiCacheFile(ProjectCacheFile):
     @classproperty
     def cache_cls(cls):
         return CfiCache
+
+    @property
+    def outdated(self):
+        return self.version != CFICACHE_LATEST_VERSION
 
 
 def clean_redundant_difs(project, debug_id):
@@ -650,12 +665,12 @@ class DIFCache(object):
         caches = []
         to_update = debug_files.copy()
         for cache_file in existing_caches:
-            if cache_file.version == SYMCACHE_LATEST_VERSION:
+            if cache_file.outdated:
+                cache_file.delete()
+            else:
                 debug_id = cache_file.debug_file.debug_id
                 to_update.pop(debug_id, None)
                 caches.append((debug_id, cache_file, None))
-            else:
-                cache_file.delete()
 
         # If any cache files need to be updated, do that now
         if to_update:
