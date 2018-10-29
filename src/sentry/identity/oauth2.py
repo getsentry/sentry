@@ -250,7 +250,7 @@ class OAuth2CallbackView(PipelineView):
         verify_ssl = pipeline.config.get('verify_ssl', True)
         req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
         body = safe_urlread(req)
-        if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
+        if req.headers.get('Content-Type', '').startswith('application/x-www-form-urlencoded'):
             return dict(parse_qsl(body))
         return json.loads(body)
 
