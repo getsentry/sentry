@@ -82,12 +82,12 @@ export default class SavedQueries extends React.Component {
       <SavedQueryListItem key={id} isActive={savedQuery && savedQuery.id === id}>
         <SavedQueryLink to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
           {name}
+          <SavedQueryUpdated>
+            {tct('Updated [date] (UTC)', {
+              date: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
+            })}
+          </SavedQueryUpdated>
         </SavedQueryLink>
-        <SavedQueryUpdated>
-          {tct('Updated [date] (UTC)', {
-            date: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
-          })}
-        </SavedQueryUpdated>
       </SavedQueryListItem>
     );
   }
