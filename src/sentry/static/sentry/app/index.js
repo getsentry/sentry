@@ -154,8 +154,6 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
-    ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
