@@ -16,6 +16,15 @@ class HttpTest(TestCase):
             url='http://example.com',
         ))
 
+    def test_null_values(self):
+        sink = {}
+        assert Http.to_python({}).to_json() == sink
+        assert Http.to_python({'method': None}).to_json() == sink
+        assert Http.to_python({'query_string': None}).to_json() == sink
+        assert Http.to_python({'headers': None}).to_json() == sink
+        assert Http.to_python({'data': None}).to_json() == sink
+        assert Http.to_python({'url': None}).to_json() == sink
+
     def test_path(self):
         assert self.interface.get_path() == 'sentry.interfaces.Http'
 

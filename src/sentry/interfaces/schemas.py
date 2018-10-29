@@ -80,7 +80,6 @@ HTTP_INTERFACE_SCHEMA = {
         'data': {'type': ['string', 'object', 'array']},
         'fragment': {'type': 'string'},
     },
-    'required': ['url'],
     'additionalProperties': True,
 }
 
