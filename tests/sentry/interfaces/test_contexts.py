@@ -29,6 +29,11 @@ class ContextsTest(TestCase):
             }
         }
 
+    def test_null_values(self):
+        assert Contexts.to_python({'os': None}).to_json() == {}
+        assert Contexts.to_python({'os': {}}).to_json() == {'os': {'type': 'os'}}
+        assert Contexts.to_python({'os': {'name': None}}).to_json() == {'os': {'type': 'os'}}
+
     def test_os_normalization(self):
         ctx = Contexts.to_python({
             'os': {
