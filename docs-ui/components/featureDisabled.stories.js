@@ -16,7 +16,7 @@ storiesOf('UI|FeatureDisabled', module)
     withInfo('A disabled feature wrapped in an alert')(() => (
       <FeatureDisabled
         name="Example Feature"
-        feature="organizaton:example-feature"
+        feature="organization:example-feature"
         alert
       />
     ))
