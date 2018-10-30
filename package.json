@@ -108,6 +108,7 @@
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
   "jest": {
+    "verbose": false,
     "collectCoverageFrom": [
       "tests/js/spec/**/*.{js,jsx}",
       "src/sentry/static/sentry/app/**/*.{js,jsx}"
