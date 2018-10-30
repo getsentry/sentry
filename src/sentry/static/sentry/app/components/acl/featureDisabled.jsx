@@ -120,7 +120,8 @@ const HelpDescription = styled(Box)`
 `;
 
 const StyledAlert = styled(Alert)`
-  ${/* sc-selector */ HelpButton} {
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${HelpButton} {
     color: #6d6319;
     &:hover {
       color: #88750b;
