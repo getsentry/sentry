@@ -30,10 +30,25 @@ class HeaderItem extends React.Component {
   };
 
   render() {
-    const {className, children, isOpen, hasSelected, hasChanges, icon} = this.props;
+    const {
+      className,
+      children,
+      isOpen,
+      hasSelected,
+      hasChanges,
+      icon,
+      onClear, // eslint-disable-line no-unused-vars
+      onSubmit, // eslint-disable-line no-unused-vars
+      ...props
+    } = this.props;
 
     return (
-      <StyledHeaderItem className={className} isOpen={isOpen} hasSelected={hasSelected}>
+      <StyledHeaderItem
+        className={className}
+        isOpen={isOpen}
+        hasSelected={hasSelected}
+        {...props}
+      >
         <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
         <Content>{children}</Content>
         {hasSelected && <StyledClose src="icon-close" onClick={this.handleClear} />}

@@ -1,19 +1,19 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
-import Button from 'app/components/button';
-import space from 'app/styles/space';
-import HeaderItem from 'app/components/organizations/headerItem';
-import DropdownMenu from 'app/components/dropdownMenu';
-import DynamicWrapper from 'app/components/dynamicWrapper';
-import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import DropdownMenu from 'app/components/dropdownMenu';
+import HeaderItem from 'app/components/organizations/headerItem';
+import InlineSvg from 'app/components/inlineSvg';
+import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 
 import AbsoluteSelector from './absoluteSelector';
-import RelativeSelector from './relativeSelector';
 import CombinedSelector from './combinedSelector';
+import RelativeSelector from './relativeSelector';
 
 const ALLOWED_RELATIVE_DATES = {
   '24h': t('Last 24 hours'),
@@ -85,15 +85,7 @@ class TimeRangeSelector extends React.Component {
   };
 
   render() {
-    const {
-      className,
-      start,
-      end,
-      relative,
-      showAbsolute,
-      showRelative,
-      onChange,
-    } = this.props;
+    const {start, end, relative, showAbsolute, showRelative, onChange} = this.props;
 
     const shouldShowAbsolute = showAbsolute && !showRelative;
     const shouldShowRelative = !showAbsolute && showRelative;
@@ -111,15 +103,18 @@ class TimeRangeSelector extends React.Component {
         keepMenuOpen={true}
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
-          <div {...getRootProps()} style={{position: "relative"}}>
+          <div {...getRootProps()} style={{position: 'relative'}}>
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
               {...getActorProps({isStyled: true})}
             >
-              {summary}
+              {getDynamicText({value: summary, fixed: 'from date to date'})}
             </StyledHeaderItem>
-            <Menu {...getMenuProps()} style={{display: isOpen ? 'block' : 'none'}}>
+            <Menu
+              {...getMenuProps({isStyled: true})}
+              style={{display: isOpen ? 'block' : 'none'}}
+            >
               {shouldShowAbsolute && (
                 <AbsoluteSelector onChange={onChange} start={start} end={end} />
               )}
@@ -150,7 +145,9 @@ class TimeRangeSelector extends React.Component {
   }
 }
 
-const StyledHeaderItem = styled(HeaderItem)`
+const StyledHeaderItem = styled(
+  React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />)
+)`
   height: 100%;
   width: 230px;
 `;
@@ -172,10 +169,6 @@ const Menu = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   padding: ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-`;
-
-const Title = styled.span`
-  padding-right: 40px;
 `;
 
 export default TimeRangeSelector;

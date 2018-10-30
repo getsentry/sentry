@@ -53,7 +53,7 @@ class MultipleEnvironmentSelector extends React.Component {
               {summary}
             </StyledHeaderItem>
             {isOpen && (
-              <Menu {...getMenuProps()}>
+              <Menu {...getMenuProps({isStyled: true})}>
                 <FetchOrganizationEnvironments organization={organization}>
                   {({environments}) => (
                     <React.Fragment>
@@ -113,7 +113,9 @@ const FetchOrganizationEnvironments = withApi(
   }
 );
 
-const StyledHeaderItem = styled(HeaderItem)`
+const StyledHeaderItem = styled(
+  React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />)
+)`
   height: 100%;
   width: 250px;
 `;
