@@ -48,7 +48,8 @@ class Feature extends React.Component {
      *  - Provide a custom render function to customize the rendered component.
      *
      * When a custom render function is used, the same object that would be
-     * passed to `children` if a func is provided there, will be used here.
+     * passed to `children` if a func is provided there, will be used here,
+     * aditionally `children` will also be passed.
      *
      * NOTE: HookStore capability.
      *
@@ -160,13 +161,15 @@ class Feature extends React.Component {
       renderDisabled: customDisabledRender,
     };
 
+    if (!hasFeature && renderDisabled !== false) {
+      return customDisabledRender({children, ...renderProps});
+    }
+
     if (typeof children === 'function') {
       return children(renderProps);
     }
 
-    return hasFeature
-      ? children
-      : renderDisabled !== false ? customDisabledRender(renderProps) : null;
+    return hasFeature ? children : null;
   }
 }
 
