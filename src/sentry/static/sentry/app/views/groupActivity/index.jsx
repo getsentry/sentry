@@ -134,8 +134,8 @@ class GroupActivityItem extends React.Component {
         });
       case 'unmerge_source':
         return tn(
-          '%2$s migrated %1$d fingerprint to %3$s',
-          '%2$s migrated %1$d fingerprints to %3$s',
+          '%2$s migrated %1$s fingerprint to %3$s',
+          '%2$s migrated %1$s fingerprints to %3$s',
           data.fingerprints.length,
           author,
           data.destination ? (
@@ -148,8 +148,8 @@ class GroupActivityItem extends React.Component {
         );
       case 'unmerge_destination':
         return tn(
-          '%2$s migrated %1$d fingerprint from %3$s',
-          '%2$s migrated %1$d fingerprints from %3$s',
+          '%2$s migrated %1$s fingerprint from %3$s',
+          '%2$s migrated %1$s fingerprints from %3$s',
           data.fingerprints.length,
           author,
           data.source ? (
@@ -193,8 +193,8 @@ class GroupActivityItem extends React.Component {
         return t('%s unassigned this issue', author);
       case 'merge':
         return tn(
-          '%2$s merged %1$d issue into this issue',
-          '%2$s merged %1$d issues into this issue',
+          '%2$s merged %1$s issue into this issue',
+          '%2$s merged %1$s issues into this issue',
           data.issues.length,
           author
         );

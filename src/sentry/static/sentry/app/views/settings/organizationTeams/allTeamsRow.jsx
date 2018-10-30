@@ -119,7 +119,7 @@ const AllTeamsRow = createReactClass({
       <IdBadge
         team={team}
         avatarSize={36}
-        description={tn('%d Member', '%d Members', team.memberCount)}
+        description={tn('%s Member', '%s Members', team.memberCount)}
       />
     );
 

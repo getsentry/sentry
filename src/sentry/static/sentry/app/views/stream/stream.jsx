@@ -589,8 +589,8 @@ const Stream = createReactClass({
     if (pi.numIssues > 0) {
       icon = <span className="icon icon-alert" />;
       issues = tn(
-        'There is %d issue blocking event processing',
-        'There are %d issues blocking event processing',
+        'There is %s issue blocking event processing',
+        'There are %s issues blocking event processing',
         pi.numIssues
       );
       lastEvent = (
@@ -606,16 +606,16 @@ const Stream = createReactClass({
       icon = <span className="icon icon-processing play" />;
       className['alert-info'] = true;
       issues = tn(
-        'Reprocessing %d event …',
-        'Reprocessing %d events …',
+        'Reprocessing %s event …',
+        'Reprocessing %s events …',
         pi.issuesProcessing
       );
     } else if (pi.resolveableIssues > 0) {
       icon = <span className="icon icon-processing" />;
       className['alert-warning'] = true;
       issues = tn(
-        'There is %d event pending reprocessing.',
-        'There are %d events pending reprocessing.',
+        'There is %s event pending reprocessing.',
+        'There are %s events pending reprocessing.',
         pi.resolveableIssues
       );
       showButton = true;
