@@ -11,6 +11,8 @@ import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SelectField from 'app/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tooltip from 'app/components/tooltip';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const UserInfo = styled(Box)`
   display: flex;
@@ -32,7 +34,9 @@ const Name = styled.div`
 const Note = styled.div`
   font-size: 13px;
 `;
-
+const OverflowBox = styled.div`
+  ${overflowEllipsis};
+`;
 const avatarStyle = {
   width: 36,
   height: 36,
@@ -51,6 +55,7 @@ class AuditLogList extends React.Component {
   render() {
     let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
     let hasEntries = entries && entries.length > 0;
+    let ipv4Length = 15;
     let options = [
       {value: '', label: t('Any action'), clearableVaue: false},
       ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
@@ -110,7 +115,14 @@ class AuditLogList extends React.Component {
                       </NameContainer>
                     </UserInfo>
                     <Box w={150}>{entry.event}</Box>
-                    <Box w={130}>{entry.ipAddress}</Box>
+                    <Box w={130}>
+                      <Tooltip
+                        title={entry.ipAddress}
+                        disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
+                      >
+                        <OverflowBox>{entry.ipAddress}</OverflowBox>
+                      </Tooltip>
+                    </Box>
                     <Box w={150} p={1}>
                       <DateTime date={entry.dateCreated} />
                     </Box>
