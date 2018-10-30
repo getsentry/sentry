@@ -33,9 +33,15 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         assert response.status_code == 200
         assert response.data == [{
             'name': self.unpublished_app.name,
+            'slug': self.unpublished_app.slug,
             'scopes': [],
             'uuid': self.unpublished_app.uuid,
+            'status': self.unpublished_app.get_status_display(),
             'webhook_url': self.unpublished_app.webhook_url,
+            'redirect_url': self.unpublished_app.redirect_url,
+            'clientID': self.unpublished_app.application.client_id,
+            'clientSecret': self.unpublished_app.application.client_secret,
+            'overview': self.unpublished_app.overview,
         }]
 
     @with_feature('organizations:internal-catchall')

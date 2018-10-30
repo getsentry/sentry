@@ -58,35 +58,16 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.published_app.name,
+            'slug': self.published_app.slug,
             'scopes': [],
+            'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
             'webhook_url': self.published_app.webhook_url,
-        } in response.data
-
-    @with_feature('organizations:internal-catchall')
-    def test_users_see_unpublished_apps_their_org_owns(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-
-        assert response.status_code == 200
-        assert {
-            'name': self.unpublished_app.name,
-            'scopes': [],
-            'uuid': self.unpublished_app.uuid,
-            'webhook_url': self.unpublished_app.webhook_url,
-        } in response.data
-
-    @with_feature('organizations:internal-catchall')
-    def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-
-        assert response.status_code == 200
-        assert self.unowned_unpublished_app.uuid not in [
-            a['uuid'] for a in response.data
-        ]
+            'redirect_url': self.published_app.redirect_url,
+            'clientID': self.published_app.application.client_id,
+            'clientSecret': self.published_app.application.client_secret,
+            'overview': self.published_app.overview,
+        }]
 
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)

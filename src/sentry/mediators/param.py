@@ -145,6 +145,12 @@ class Param(object):
         mod, klass = self._type.rsplit('.', 1)
         return getattr(sys.modules[mod], klass)
 
+    def _eval_value_type(self, value):
+        if isinstance(value, six.string_types):
+            mod, klass = value.rsplit('.', 1)
+            return getattr(sys.modules[mod], klass)
+        return type(value)
+
     def _missing_value(self, value):
         return self.is_required and value is None and not self.has_default
 
