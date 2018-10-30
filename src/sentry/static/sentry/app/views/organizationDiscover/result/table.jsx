@@ -5,7 +5,6 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import AutoSelectText from 'app/components/autoSelectText';
 import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
@@ -77,7 +76,7 @@ export default class ResultTable extends React.Component {
 
     return (
       <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
-        <AutoSelectText>{value}</AutoSelectText>
+        {value}
       </Cell>
     );
   };
@@ -254,6 +253,7 @@ export default class ResultTable extends React.Component {
                 rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
                 columnWidth={({index}) => columnWidths[index]}
                 cellRenderer={this.cellRenderer}
+                overscanByPixels={800}
               />
             );
           }}
