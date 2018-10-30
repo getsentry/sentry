@@ -40,6 +40,29 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 2
         self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
+    def test_simple_superuser(self):
+        user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
+
+        project = self.create_project()
+        project2 = self.create_project()
+        group = self.create_group(project=project)
+        group2 = self.create_group(project=project2)
+        event_1 = self.create_event('a' * 32, group=group, datetime=self.min_ago)
+        event_2 = self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
+
     def test_message_search(self):
         self.login_as(user=self.user)
 
