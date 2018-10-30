@@ -1,29 +1,31 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
+import Feature from 'app/components/acl/feature';
 import GroupActions from 'app/actions/groupActions';
 import GroupState from 'app/mixins/groupState';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
+import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import IssuePluginActions from 'app/components/group/issuePluginActions';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
-import ShareIssue from 'app/components/shareIssue';
-
 import ResolveActions from 'app/components/actions/resolve';
-import IgnoreActions from 'app/components/actions/ignore';
+import ShareIssue from 'app/components/shareIssue';
+import space from 'app/styles/space';
 
 class DeleteActions extends React.Component {
   static propTypes = {
     organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
     onDelete: PropTypes.func.isRequired,
     onDiscard: PropTypes.func.isRequired,
   };
@@ -35,37 +37,50 @@ class DeleteActions extends React.Component {
     };
   }
 
-  renderDisabledDiscard = () => {
-    let {project, organization} = this.props;
-    return this.state.hooksDisabled.map(hook => hook(organization, project));
-  };
+  renderDiscardDisabled = ({children, ...props}) =>
+    children({
+      ...props,
+      renderDisabled: ({features}) => (
+        <FeatureDisabled alert featureName="Discard and Delete" feature={features[0]} />
+      ),
+    });
 
-  renderDiscard = () => {
-    return (
-      <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
-        <li>
-          <LinkWithConfirmation
-            title={t('Discard')}
-            message={t(
+  renderDiscardModal = ({Body, closeModal}) => (
+    <Feature
+      features={['discard-groups']}
+      organization={this.props.organization}
+      renderDisabled={this.renderDiscardDisabled}
+    >
+      {({hasFeature, renderDisabled, ...props}) => (
+        <React.Fragment>
+          <Body>
+            {!hasFeature && renderDisabled({hasFeature, ...props})}
+            {t(
               'Discarding this event will result in the deletion ' +
                 'of most data associated with this issue and future ' +
                 'events being discarded before reaching your stream. ' +
                 'Are you sure you wish to continue?'
             )}
-            onConfirm={this.props.onDiscard}
-          >
-            <GuideAnchor type="text" target="delete_discard" />
-            <span>{t('Delete and discard future events')}</span>
-          </LinkWithConfirmation>
-        </li>
-      </DropdownLink>
-    );
-  };
+          </Body>
+          <div className="modal-footer">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button
+              style={{marginLeft: space(1)}}
+              priority="primary"
+              onClick={this.props.onDiscard}
+              disabled={!hasFeature}
+            >
+              {t('Discard Future Events')}
+            </Button>
+          </div>
+        </React.Fragment>
+      )}
+    </Feature>
+  );
+
+  openDiscardModal = () => openModal(this.renderDiscardModal);
 
   render() {
-    let features = new Set(this.props.project.features);
-    let hasDiscard = features.has('discard-groups');
-
     return (
       <div className="btn-group">
         <LinkWithConfirmation
@@ -79,7 +94,12 @@ class DeleteActions extends React.Component {
           <span className="icon-trash" />
           <GuideAnchor type="text" target="ignore_delete_discard" />
         </LinkWithConfirmation>
-        {hasDiscard ? this.renderDiscard() : this.renderDisabledDiscard()}
+        <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+          <MenuItem onClick={this.openDiscardModal}>
+            <GuideAnchor type="text" target="delete_discard" />
+            <span>{t('Delete and discard future events')}</span>
+          </MenuItem>
+        </DropdownLink>
       </div>
     );
   }
@@ -248,7 +268,6 @@ const GroupDetailsActions = createReactClass({
           </a>
         </div>
         <DeleteActions
-          project={project}
           organization={org}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}

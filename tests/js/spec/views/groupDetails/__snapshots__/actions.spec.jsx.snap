@@ -61,43 +61,6 @@ exports[`GroupActions render() renders correctly 1`] = `
         "teams": Array [],
       }
     }
-    project={
-      Object {
-        "allowedDomains": Array [
-          "example.com",
-          "https://example.com",
-        ],
-        "dataScrubber": false,
-        "dataScrubberDefaults": false,
-        "digestsMaxDelay": 60,
-        "digestsMinDelay": 5,
-        "features": Array [],
-        "hasAccess": true,
-        "id": "2448",
-        "isBookmarked": false,
-        "isMember": true,
-        "name": "project name",
-        "resolveAge": 48,
-        "safeFields": Array [
-          "business-email",
-          "company",
-        ],
-        "scrapeJavaScript": true,
-        "scrubIPAddresses": false,
-        "securityToken": "security-token",
-        "securityTokenHeader": "x-security-header",
-        "sensitiveFields": Array [
-          "creditcard",
-          "ssn",
-        ],
-        "slug": "project",
-        "storeCrashReports": false,
-        "subjectPrefix": "[my-org]",
-        "subjectTemplate": "[$project] \${tag:level}: $title",
-        "teams": Array [],
-        "verifySSL": true,
-      }
-    }
   />
 </div>
 `;
