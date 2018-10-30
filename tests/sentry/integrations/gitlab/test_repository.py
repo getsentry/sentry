@@ -87,7 +87,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             json={'id': 99}
         )
 
-        with self.feature({'organizations:internal-catchall': True, 'organizations:repos': True}):
+        with self.feature({'organizations:repos': True}):
             response = self.client.post(
                 path=reverse(
                     'sentry-api-0-organization-repositories',
