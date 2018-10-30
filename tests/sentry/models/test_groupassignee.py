@@ -143,7 +143,6 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({
             'organizations:integrations-issue-sync': True,
-            'organizations:internal-catchall': True,
         }):
             with self.tasks():
                 GroupAssignee.objects.assign(self.group, self.user)
@@ -208,7 +207,6 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({
             'organizations:integrations-issue-sync': True,
-            'organizations:internal-catchall': True,
         }):
             with self.tasks():
                 GroupAssignee.objects.deassign(self.group)
