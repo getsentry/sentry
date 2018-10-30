@@ -194,12 +194,13 @@ export const SavedQueryListItem = styled(({isActive, ...props}) => (
   <PanelItem {...props} />
 ))`
   flex-direction: column;
-  padding: ${space(2)} ${space(4)};
+  padding: 0;
   background-color: ${p => (p.isActive ? p.theme.whiteDark : p.theme.white)};
 `;
 
 export const SavedQueryLink = styled(Link)`
   font-weight: 600;
+  padding: ${space(2)} ${space(4)};
 `;
 
 export const SavedQueryUpdated = styled('div')`
