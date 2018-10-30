@@ -62,6 +62,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'scopes': [],
             'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
+<<<<<<< HEAD
             'webhookUrl': self.published_app.webhook_url,
             'redirectUrl': self.published_app.redirect_url,
             'clientId': self.published_app.application.client_id,
@@ -99,6 +100,14 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid not in [
             a['uuid'] for a in response.data
         ]
+=======
+            'webhook_url': self.published_app.webhook_url,
+            'redirect_url': self.published_app.redirect_url,
+            'clientID': self.published_app.application.client_id,
+            'clientSecret': self.published_app.application.client_secret,
+            'overview': self.published_app.overview,
+        }]
+>>>>>>> fix python tests
 
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)

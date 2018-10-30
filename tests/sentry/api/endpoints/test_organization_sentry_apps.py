@@ -37,9 +37,15 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             'scopes': [],
             'uuid': self.unpublished_app.uuid,
             'status': self.unpublished_app.get_status_display(),
+<<<<<<< HEAD
             'webhookUrl': self.unpublished_app.webhook_url,
             'redirectUrl': self.unpublished_app.redirect_url,
             'clientId': self.unpublished_app.application.client_id,
+=======
+            'webhook_url': self.unpublished_app.webhook_url,
+            'redirect_url': self.unpublished_app.redirect_url,
+            'clientID': self.unpublished_app.application.client_id,
+>>>>>>> fix python tests
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
         }]
