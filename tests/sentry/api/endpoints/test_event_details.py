@@ -15,17 +15,17 @@ class EventDetailsTest(APITestCase):
 
         group = self.create_group()
         prev_event = self.create_event(
-            event_id='a' * 32,
+            event_id='a',
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 24),
         )
         cur_event = self.create_event(
-            event_id='9' * 32,
+            event_id='b',
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 25),
         )
         next_event = self.create_event(
-            event_id='c' * 32,
+            event_id='c',
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
@@ -71,41 +71,6 @@ class EventDetailsTest(APITestCase):
         assert response.data['previousEventID'] == six.text_type(cur_event.id)
         assert response.data['groupID'] == six.text_type(group.id)
         assert not response.data['userReport']
-
-        # prev_event.event_id is a valid event_id but not a valid id, so we
-        # will look for it for it by event_id, but not id.
-        url = reverse(
-            'sentry-api-0-event-details', kwargs={
-                'event_id': prev_event.event_id,
-            }
-        )
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(prev_event.id)
-
-        # cur_event has a 32-character numeric id so it could be either a
-        # numeric PK or a hex event_id. Make sure we find it as the latter even
-        # after it doesn't match the former.
-        url = reverse(
-            'sentry-api-0-event-details', kwargs={
-                'event_id': cur_event.id,
-            }
-        )
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(cur_event.id)
-
-        # nonexistent event_id
-        url = reverse(
-            'sentry-api-0-event-details', kwargs={
-                'event_id': 'f' * 32
-            }
-        )
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 404, response.content
 
     def test_identical_datetime(self):
         self.login_as(user=self.user)

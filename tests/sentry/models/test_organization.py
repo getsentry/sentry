@@ -246,11 +246,17 @@ class Require2fa(TestCase):
         assert not member.email
         assert member.user == user
 
-    def is_pending_organization_member(self, user_id, member_id):
+    def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
         assert User.objects.filter(id=user_id).exists()
         assert member.is_pending
         assert member.email
+        if was_booted:
+            assert member.token
+            assert member.token_expires_at
+        else:
+            assert member.token is None
+            assert member.token_expires_at is None
 
     @mock.patch('sentry.utils.email.logger')
     def test_handle_2fa_required__compliant_and_non_compliant_members(self, email_log):
@@ -325,7 +331,7 @@ class Require2fa(TestCase):
 
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.org.handle_2fa_required(self.request)
-        self.is_pending_organization_member(user.id, member.id)
+        self.is_pending_organization_member(user.id, member.id, was_booted=False)
 
         assert len(mail.outbox) == email_log.info.call_count == 0
         assert not AuditLogEntry.objects.filter(

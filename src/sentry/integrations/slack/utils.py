@@ -32,7 +32,7 @@ def format_actor_option(actor):
     if isinstance(actor, User):
         return {'text': actor.get_display_name(), 'value': u'user:{}'.format(actor.id)}
     if isinstance(actor, Team):
-        return {'text': actor.slug, 'value': u'team:{}'.format(actor.id)}
+        return {'text': u'#{}'.format(actor.slug), 'value': u'team:{}'.format(actor.id)}
 
     raise NotImplementedError
 

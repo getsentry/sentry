@@ -15,9 +15,31 @@ import sys
 import time
 import traceback
 import json
+import resource
 
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
+
+
+class MetricCollector(object):
+    def __init__(self):
+        self.is_linux = sys.platform.startswith('linux')
+        self.pid = os.getpid()
+
+    def collect_metrics(self):
+        metrics = {
+            'time': time.time(),
+        }
+
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        usage_dict = {attr: getattr(usage, attr) for attr in dir(usage) if attr.startswith('ru_')}
+        metrics.update(usage_dict)
+
+        if self.is_linux:
+            with open('/proc/{}/status'.format(self.pid)) as procfh:
+                metrics['proc'] = procfh.read()
+
+        return metrics
 
 
 class EventNormalizeHandler(SocketServer.BaseRequestHandler):
@@ -76,30 +98,34 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         return dict(ev.get_data())
 
     def handle_data(self):
-        result, error = None, None
-        start, end = None, None
+        result = None
+        error = None
+        metrics = None
+        mc = MetricCollector()
         try:
             data, meta = self.decode(self.data)
-            start = time.time()
+
+            metrics_before = mc.collect_metrics()
             result = self.process_event(data, meta)
-            end = time.time()
+            metrics_after = mc.collect_metrics()
+
+            metrics = {'before': metrics_before, 'after': metrics_after}
         except Exception as e:
             error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
 
-        duration = (end - start) if (start and end) else None
         try:
             return self.encode({
                 'result': result,
                 'error': error,
-                'duration': duration
+                'metrics': metrics
             })
         except (ValueError, TypeError) as e:
             try:
                 # Encoding error, try to send the exception instead
                 return self.encode({
-                    'result': None,
+                    'result': result,
                     'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
-                    'duration': duration,
+                    'metrics': metrics,
                     'encoding_error': True,
                 })
             except Exception:
@@ -110,7 +136,10 @@ class Command(BaseCommand):
     help = 'Start a socket server for event normalization'
 
     option_list = BaseCommand.option_list + (
-        make_option('--socket', dest='socket_file', help='Unix socket to bind to'),
+        make_option('--unix', dest='socket_file',
+                    help='Unix socket to bind to. Example: "/tmp/normalize.sock"'),
+        make_option('--net', dest='network_socket',
+                    help='Network socket to bind to. Example: "127.0.0.1:1234"'),
     )
 
     def _check_socket_path(self, socket_file):
@@ -128,12 +157,20 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         socket_file = options.get('socket_file')
-        if not socket_file:
-            raise CommandError('Path to the socket file is required!')
+        network_socket = options.get('network_socket')
+        if socket_file and network_socket:
+            raise CommandError('Only one socket allowed at a time')
+        elif socket_file:
+            self.socket_file = os.path.abspath(socket_file)
+            self._check_socket_path(socket_file)
+            self.stdout.write('Binding to unix socket: %s' % (socket_file,))
+            server = SocketServer.UnixStreamServer(socket_file, EventNormalizeHandler)
+        elif network_socket:
+            host, port = network_socket.split(':')
+            port = int(port)
+            self.stdout.write('Binding to network socket: %s:%s' % (host, port))
+            server = SocketServer.TCPServer((host, port), EventNormalizeHandler)
+        else:
+            raise CommandError('No connection option specified')
 
-        self.socket_file = os.path.abspath(socket_file)
-        self._check_socket_path(socket_file)
-        self.stdout.write('Binding to unix socket: %s' % (socket_file,))
-
-        server = SocketServer.UnixStreamServer(socket_file, EventNormalizeHandler)
         server.serve_forever()

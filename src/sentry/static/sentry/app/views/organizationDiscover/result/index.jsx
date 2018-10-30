@@ -1,26 +1,24 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {Box, Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
+import InlineSvg from 'app/components/inlineSvg';
 
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-
-import {getChartData, getChartDataByDay, downloadAsCsv, generateQueryName} from './utils';
-import {createSavedQuery} from '../utils';
-import Pagination from './pagination';
+import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
 import Table from './table';
+import Pagination from './pagination';
 import {
   Heading,
-  EditableName,
   ResultSummary,
+  ResultContainer,
+  ResultInnerContainer,
   ChartWrapper,
   ChartNote,
   SavedQueryAction,
@@ -29,19 +27,16 @@ import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     data: PropTypes.object.isRequired,
-    queryBuilder: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     onFetchPage: PropTypes.func.isRequired,
+    onToggleEdit: PropTypes.func,
   };
 
   constructor() {
     super();
     this.state = {
       view: 'table',
-      isEditMode: false,
-      savedQueryName: null,
     };
   }
 
@@ -64,47 +59,9 @@ export default class Result extends React.Component {
     }
 
     this.setState({
-      isEditMode: false,
       savedQueryName: null,
     });
   }
-
-  toggleEditMode = () => {
-    const {savedQuery} = this.props;
-    this.setState(state => {
-      const isEditMode = !state.isEditMode;
-      return {
-        isEditMode,
-        savedQueryName: isEditMode
-          ? savedQuery ? savedQuery.name : generateQueryName()
-          : null,
-      };
-    });
-  };
-
-  confirmSave = () => {
-    const {organization, queryBuilder} = this.props;
-    const {savedQueryName} = this.state;
-    const data = {...queryBuilder.getInternal(), name: savedQueryName};
-
-    createSavedQuery(organization, data)
-      .then(savedQuery => {
-        addSuccessMessage(
-          tct('Successfully saved query [name]', {name: savedQuery.name})
-        );
-        browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/saved/${savedQuery.id}/`,
-        });
-      })
-      .catch(err => {
-        const message = (err && err.detail) || t('Could not save query');
-        addErrorMessage(message);
-      });
-  };
-
-  updateSavedQueryName = val => {
-    this.setState({savedQueryName: val});
-  };
 
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
@@ -173,46 +130,25 @@ export default class Result extends React.Component {
 
   renderSavedQueryHeader() {
     return (
-      <Flex>
+      <Flex align="center">
         <Heading>{this.props.savedQuery.name}</Heading>
+        <SavedQueryAction onClick={this.props.onToggleEdit}>
+          <InlineSvg src="icon-edit" />
+        </SavedQueryAction>
       </Flex>
     );
   }
 
   renderQueryResultHeader() {
-    const {isEditMode, savedQueryName} = this.state;
-
     return (
-      <React.Fragment>
-        {!isEditMode && (
-          <Flex>
-            <Heading>{t('Result')}</Heading>
-            <SavedQueryAction data-test-id="save" onClick={this.toggleEditMode}>
-              {t('Save')}
-            </SavedQueryAction>
-          </Flex>
-        )}
-        {isEditMode && (
-          <Flex>
-            <EditableName value={savedQueryName} onChange={this.updateSavedQueryName} />
-            <SavedQueryAction data-test-id="confirm" onClick={this.confirmSave}>
-              {t('Confirm save')}
-            </SavedQueryAction>
-            <SavedQueryAction data-test-id="cancel" onClick={this.toggleEditMode}>
-              {t('Cancel')}
-            </SavedQueryAction>
-          </Flex>
-        )}
-      </React.Fragment>
+      <Flex>
+        <Heading>{t('Result')}</Heading>
+      </Flex>
     );
   }
 
   render() {
-    const {
-      data: {baseQuery, byDayQuery},
-      savedQuery,
-      onFetchPage,
-    } = this.props;
+    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage} = this.props;
 
     const {view} = this.state;
 
@@ -231,76 +167,81 @@ export default class Result extends React.Component {
     };
 
     return (
-      <Box flex="1">
+      <ResultContainer>
         <Flex align="center" mb={space(2)}>
           <Box flex="1">
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </Box>
           {this.renderToggle()}
         </Flex>
-
-        {view === 'table' && (
-          <div>
-            <Table data={baseQuery.data} query={baseQuery.query} />
-            {!baseQuery.query.aggregations.length && (
-              <Pagination
-                previous={baseQuery.previous}
-                next={baseQuery.next}
-                getNextPage={() => onFetchPage('next')}
-                getPreviousPage={() => onFetchPage('previous')}
+        <ResultInnerContainer innerRef={ref => (this.container = ref)}>
+          {view === 'table' && (
+            <React.Fragment>
+              <Table
+                data={baseQuery.data}
+                query={baseQuery.query}
+                height={this.container && this.container.clientHeight}
               />
-            )}
-          </div>
-        )}
-        {view === 'line' && (
-          <ChartWrapper>
-            <LineChart
-              series={basicChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
-              renderer="canvas"
-            />
-          </ChartWrapper>
-        )}
-        {view === 'bar' && (
-          <ChartWrapper>
-            <BarChart
-              series={basicChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
-              renderer="canvas"
-            />
-          </ChartWrapper>
-        )}
-        {view === 'line-by-day' && (
-          <ChartWrapper>
-            <LineChart
-              series={byDayChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={legendData}
-              renderer="canvas"
-            />
-            {this.renderNote()}
-          </ChartWrapper>
-        )}
-        {view === 'bar-by-day' && (
-          <ChartWrapper>
-            <BarChart
-              series={byDayChartData}
-              stacked={true}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={legendData}
-              renderer="canvas"
-            />
-            {this.renderNote()}
-          </ChartWrapper>
-        )}
-        {this.renderSummary()}
-      </Box>
+              {!baseQuery.query.aggregations.length && (
+                <Pagination
+                  previous={baseQuery.previous}
+                  next={baseQuery.next}
+                  getNextPage={() => onFetchPage('next')}
+                  getPreviousPage={() => onFetchPage('previous')}
+                />
+              )}
+            </React.Fragment>
+          )}
+          {view === 'line' && (
+            <ChartWrapper>
+              <LineChart
+                series={basicChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                renderer="canvas"
+              />
+            </ChartWrapper>
+          )}
+          {view === 'bar' && (
+            <ChartWrapper>
+              <BarChart
+                series={basicChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                renderer="canvas"
+              />
+            </ChartWrapper>
+          )}
+          {view === 'line-by-day' && (
+            <ChartWrapper>
+              <LineChart
+                series={byDayChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={legendData}
+                renderer="canvas"
+              />
+              {this.renderNote()}
+            </ChartWrapper>
+          )}
+          {view === 'bar-by-day' && (
+            <ChartWrapper>
+              <BarChart
+                series={byDayChartData}
+                stacked={true}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={legendData}
+                renderer="canvas"
+              />
+              {this.renderNote()}
+            </ChartWrapper>
+          )}
+          {this.renderSummary()}
+        </ResultInnerContainer>
+      </ResultContainer>
     );
   }
 }

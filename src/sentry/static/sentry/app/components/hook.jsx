@@ -7,18 +7,16 @@ import HookStore from 'app/stores/hookStore';
 /**
  * Instead of accessing the HookStore directly, use this.
  *
- * If the hook slot needs to perform anything w/ the hooks, you can pass a function as a child and you will receive an object with a `hooks` key
+ * If the hook slot needs to perform anything w/ the hooks, you can pass a
+ * function as a child and you will receive an object with a `hooks` key
  *
- * example:
+ * Example:
  *
- * <Hook name="my-hook">
- * {({hooks}) => hooks.map(hook => (
- *  <Wrapper>
- *    {hook}
- * </Wrapper>
- * ))}
- * </Hook>
- *
+ *   <Hook name="my-hook">
+ *     {({hooks}) => hooks.map(hook => (
+ *       <Wrapper>{hook}</Wrapper>
+ *     ))}
+ *   </Hook>
  */
 const Hook = createReactClass({
   displayName: 'Hook',

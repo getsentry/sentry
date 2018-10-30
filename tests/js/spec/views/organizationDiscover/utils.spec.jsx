@@ -3,6 +3,7 @@ import {
   getQueryStringFromQuery,
   getOrderByOptions,
   parseSavedQuery,
+  generateQueryName,
 } from 'app/views/organizationDiscover/utils';
 
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
@@ -98,5 +99,11 @@ describe('parseSavedQuery', function() {
       conditions: [],
       limit: 10,
     });
+  });
+});
+
+describe('generateQueryName', function() {
+  it('generates name', function() {
+    expect(generateQueryName()).toBe('Result - Oct 17 02:41:20');
   });
 });

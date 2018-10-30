@@ -122,7 +122,29 @@ class AccountSecurityEnroll extends AsyncView {
   }
 
   getEndpoints() {
-    return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
+    return [
+      [
+        'authenticator',
+        `${ENDPOINT}${this.props.params.authId}/enroll/`,
+        {},
+        {
+          allowError: err => {
+            let alreadyEnrolled =
+              err &&
+              err.status === 400 &&
+              err.responseJSON &&
+              err.responseJSON.details === 'Already enrolled';
+
+            if (alreadyEnrolled) {
+              this.props.router.push('/settings/account/security/');
+              addErrorMessage(t('Already enrolled'));
+              return true;
+            }
+            return false;
+          },
+        },
+      ],
+    ];
   }
 
   componentWillMount() {
@@ -311,6 +333,11 @@ class AccountSecurityEnroll extends AsyncView {
 
   renderBody() {
     let {authenticator} = this.state;
+
+    if (!authenticator) {
+      return null;
+    }
+
     let endpoint = `${ENDPOINT}${this.props.params.authId}/`;
 
     let fields = getFields({

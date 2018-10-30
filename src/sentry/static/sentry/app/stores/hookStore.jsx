@@ -26,6 +26,12 @@ let validHookNames = new Set([
   'integrations:feature-gates',
 ]);
 
+/**
+ * HookStore is used to allow extensability into Sentry's frontend via
+ * registration of 'hook functions'.
+ *
+ * This functionality is primarly used by the SASS sentry.io product.
+ */
 const HookStore = Reflux.createStore({
   init() {
     this.hooks = {};

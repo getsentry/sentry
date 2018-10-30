@@ -31,6 +31,7 @@ example/db.sqlite
 /src/sentry/static/sentry/debug_toolbar/
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
+/src/sentry/loader/_registry.json
 /wheelhouse
 /test_cli/
 Gemfile.lock
@@ -41,5 +42,4 @@ Gemfile.lock
 coverage.xml
 junit.xml
 *.codestyle.xml
-.pytest_cache/
 package-lock.json

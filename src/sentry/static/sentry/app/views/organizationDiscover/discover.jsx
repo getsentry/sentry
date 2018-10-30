@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {isEqual} from 'lodash';
 
 import {
   addErrorMessage,
@@ -15,11 +14,13 @@ import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Result from './result';
+import ResultLoading from './result/loading';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
 import NewQuery from './sidebar/newQuery';
-import QueryRead from './sidebar/queryRead';
+import EditSavedQuery from './sidebar/editSavedQuery';
 import SavedQueryList from './sidebar/savedQueryList';
+import QueryPanel from './sidebar/queryPanel';
 
 import createResultManager from './resultManager';
 import {
@@ -27,7 +28,6 @@ import {
   getQueryFromQueryString,
   deleteSavedQuery,
   updateSavedQuery,
-  parseSavedQuery,
 } from './utils';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
@@ -38,11 +38,8 @@ import {
   TopBar,
   Sidebar,
   SidebarTabs,
-  SavedQueryTitle,
-  SavedQueryAction,
   PageTitle,
-  EditableName,
-  BackToQueryList,
+  SavedQueryWrapper,
 } from './styles';
 
 import {trackQuery} from './analytics';
@@ -51,9 +48,12 @@ export default class OrganizationDiscover extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     queryBuilder: PropTypes.object.isRequired,
-    savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
+    // savedQuery and isEditingSavedQuery are provided if it's a saved query
+    savedQuery: SentryTypes.DiscoverSavedQuery,
+    isEditingSavedQuery: PropTypes.bool,
     updateSavedQueryData: PropTypes.func.isRequired,
     view: PropTypes.oneOf(['query', 'saved']),
+    toggleEditMode: PropTypes.func.isRequired,
   };
 
   constructor(props) {
@@ -63,7 +63,7 @@ export default class OrganizationDiscover extends React.Component {
       resultManager,
       data: resultManager.getAll(),
       isFetchingQuery: false,
-      isEditingSavedQuery: false,
+      isEditingSavedQuery: props.isEditingSavedQuery,
       savedQueryName: null,
       view: props.view || 'query',
     };
@@ -76,13 +76,18 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search}, savedQuery} = nextProps;
+    const {queryBuilder, location: {search}, savedQuery, isEditingSavedQuery} = nextProps;
     const currentSearch = this.props.location.search;
     const {resultManager} = this.state;
 
     if (savedQuery && savedQuery !== this.props.savedQuery) {
       this.setState({view: 'saved'});
       this.runQuery();
+    }
+
+    if (isEditingSavedQuery !== this.props.isEditingSavedQuery) {
+      this.setState({isEditingSavedQuery});
+      return;
     }
 
     if (currentSearch === search) {
@@ -160,7 +165,10 @@ export default class OrganizationDiscover extends React.Component {
           });
         }
 
-        this.setState({data, isFetchingQuery: false});
+        this.setState({
+          data,
+          isFetchingQuery: false,
+        });
       })
       .catch(err => {
         const message = (err && err.message) || t('An error occurred');
@@ -169,7 +177,7 @@ export default class OrganizationDiscover extends React.Component {
       });
   };
 
-  onFetchPage(nextOrPrev) {
+  onFetchPage = nextOrPrev => {
     this.setState({isFetchingQuery: true});
     return this.state.resultManager
       .fetchPage(nextOrPrev)
@@ -181,7 +189,7 @@ export default class OrganizationDiscover extends React.Component {
         addErrorMessage(message);
         this.setState({isFetchingQuery: false});
       });
-  }
+  };
 
   toggleSidebar = view => {
     if (view !== this.state.view) {
@@ -191,16 +199,6 @@ export default class OrganizationDiscover extends React.Component {
         query: {...this.props.location.query, view},
       });
     }
-  };
-
-  toggleEditMode = () => {
-    this.setState(state => {
-      const isEditMode = !state.isEditingSavedQuery;
-      return {
-        isEditingSavedQuery: isEditMode,
-        savedQueryName: isEditMode ? this.props.savedQuery.name : null,
-      };
-    });
   };
 
   loadSavedQueries = () => {
@@ -226,6 +224,8 @@ export default class OrganizationDiscover extends React.Component {
 
   deleteSavedQuery = () => {
     const {organization, savedQuery} = this.props;
+    const {resultManager} = this.state;
+
     deleteSavedQuery(organization, savedQuery.id)
       .then(() => {
         addSuccessMessage(
@@ -233,6 +233,7 @@ export default class OrganizationDiscover extends React.Component {
             name: savedQuery.name,
           })
         );
+        resultManager.reset();
         this.loadSavedQueries();
       })
       .catch(() => {
@@ -241,38 +242,25 @@ export default class OrganizationDiscover extends React.Component {
       });
   };
 
-  updateSavedQueryName = savedQueryName => {
-    this.setState({savedQueryName});
-  };
-
-  updateSavedQuery = () => {
-    const {queryBuilder, savedQuery, organization} = this.props;
+  updateSavedQuery = name => {
+    const {queryBuilder, savedQuery, organization, toggleEditMode} = this.props;
     const query = queryBuilder.getInternal();
-    const hasChanged =
-      !isEqual(query, parseSavedQuery(savedQuery)) ||
-      savedQuery.name !== this.state.savedQueryName;
 
-    const data = {...query, name: this.state.savedQueryName};
+    const data = {...query, name};
 
-    if (hasChanged) {
-      updateSavedQuery(organization, savedQuery.id, data)
-        .then(resp => {
-          addSuccessMessage(t('Updated query'));
-          this.toggleEditMode(); // Return to read-only mode
-          this.props.updateSavedQueryData(resp);
-          this.runQuery();
-        })
-        .catch(() => {
-          addErrorMessage(t('Could not update query'));
-        });
-    } else {
-      this.toggleEditMode(); // Return to read-only mode
-    }
+    updateSavedQuery(organization, savedQuery.id, data)
+      .then(resp => {
+        addSuccessMessage(t('Updated query'));
+        toggleEditMode(); // Return to read-only mode
+        this.props.updateSavedQueryData(resp);
+      })
+      .catch(() => {
+        addErrorMessage(t('Could not update query'));
+      });
   };
 
   renderSidebarNav() {
-    const {view, isEditingSavedQuery} = this.state;
-    const {savedQuery} = this.props;
+    const {view} = this.state;
     const views = [
       {id: 'query', title: t('Query')},
       {id: 'saved', title: t('Saved queries')},
@@ -287,55 +275,18 @@ export default class OrganizationDiscover extends React.Component {
             </li>
           ))}
         </SidebarTabs>
-        {savedQuery && (
-          <React.Fragment>
-            <BackToQueryList>
-              <a onClick={this.loadSavedQueries}>
-                {tct('[arr] Back to saved query list', {arr: '←'})}
-              </a>
-            </BackToQueryList>
-            <SavedQueryTitle>
-              {!isEditingSavedQuery && (
-                <React.Fragment>
-                  {savedQuery.name}
-                  <SavedQueryAction onClick={this.toggleEditMode}>
-                    {t('Edit query')}
-                  </SavedQueryAction>
-                </React.Fragment>
-              )}
-              {isEditingSavedQuery && (
-                <React.Fragment>
-                  <EditableName
-                    value={savedQuery.name}
-                    onChange={this.updateSavedQueryName}
-                  />
-                  <SavedQueryAction onClick={this.updateSavedQuery}>
-                    {t('Save changes')}
-                  </SavedQueryAction>
-                  <SavedQueryAction onClick={this.deleteSavedQuery}>
-                    {t('Delete')}
-                  </SavedQueryAction>
-                </React.Fragment>
-              )}
-            </SavedQueryTitle>
-          </React.Fragment>
-        )}
       </React.Fragment>
     );
   }
 
   render() {
     const {data, isFetchingQuery, view, resultManager, isEditingSavedQuery} = this.state;
-    const {queryBuilder, organization, savedQuery} = this.props;
+
+    const {queryBuilder, organization, savedQuery, toggleEditMode} = this.props;
 
     const currentQuery = queryBuilder.getInternal();
 
     const shouldDisplayResult = resultManager.shouldDisplayResult();
-    const shouldRenderSavedList = view === 'saved' && !savedQuery;
-    const shouldRenderReadMode = view === 'saved' && savedQuery && !isEditingSavedQuery;
-    const shouldRenderEditMode =
-      (view === 'saved' && savedQuery && isEditingSavedQuery) ||
-      (view === 'query' && !savedQuery);
 
     const projects = organization.projects.filter(project => project.isMember);
 
@@ -344,15 +295,14 @@ export default class OrganizationDiscover extends React.Component {
         <Sidebar>
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
-          {shouldRenderReadMode && (
-            <QueryRead
-              queryBuilder={queryBuilder}
-              isFetchingQuery={isFetchingQuery}
-              onRunQuery={this.runQuery}
-            />
+          {view === 'saved' && (
+            <SavedQueryWrapper isEditing={isEditingSavedQuery}>
+              <SavedQueryList organization={organization} savedQuery={savedQuery} />
+            </SavedQueryWrapper>
           )}
-          {shouldRenderEditMode && (
+          {view === 'query' && (
             <NewQuery
+              organization={organization}
               queryBuilder={queryBuilder}
               isFetchingQuery={isFetchingQuery}
               onUpdateField={this.updateField}
@@ -360,7 +310,21 @@ export default class OrganizationDiscover extends React.Component {
               onReset={this.reset}
             />
           )}
-          {shouldRenderSavedList && <SavedQueryList organization={organization} />}
+          {isEditingSavedQuery &&
+            savedQuery && (
+              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
+                <EditSavedQuery
+                  savedQuery={savedQuery}
+                  queryBuilder={queryBuilder}
+                  isFetchingQuery={isFetchingQuery}
+                  onUpdateField={this.updateField}
+                  onRunQuery={this.runQuery}
+                  onReset={this.reset}
+                  onDeleteQuery={this.deleteSavedQuery}
+                  onSaveQuery={this.updateSavedQuery}
+                />
+              </QueryPanel>
+            )}
         </Sidebar>
         <Body>
           <TopBar>
@@ -385,13 +349,13 @@ export default class OrganizationDiscover extends React.Component {
             {shouldDisplayResult && (
               <Result
                 data={data}
-                organization={organization}
                 savedQuery={savedQuery}
-                queryBuilder={queryBuilder}
-                onFetchPage={this.onFetchPage.bind(this)}
+                onToggleEdit={toggleEditMode}
+                onFetchPage={this.onFetchPage}
               />
             )}
             {!shouldDisplayResult && <Intro updateQuery={this.updateFields} />}
+            {isFetchingQuery && <ResultLoading />}
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>

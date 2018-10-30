@@ -71,7 +71,7 @@ export default class Condition extends React.Component {
     const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
 
     return CONDITION_OPERATORS.filter(operator => {
-      if (colType === 'number') {
+      if (colType === 'number' || colType === 'datetime') {
         return !stringOnlyOperators.has(operator);
       }
 
@@ -130,7 +130,7 @@ export default class Condition extends React.Component {
         type="text"
         {...props}
         value={this.state.inputValue}
-        style={{width: '100%', border: 0, zIndex: 1000}}
+        style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };

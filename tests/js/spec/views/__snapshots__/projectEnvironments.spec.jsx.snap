@@ -155,10 +155,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -195,13 +195,22 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      You don't have any environments yet.
-                    </div>
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        >
+                          You don't have any environments yet.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -369,10 +378,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -974,10 +983,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -1014,13 +1023,22 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      You don't have any hidden environments.
-                    </div>
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        >
+                          You don't have any hidden environments.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -1188,10 +1206,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component

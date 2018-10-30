@@ -101,6 +101,8 @@ jest.mock('echarts-for-react/lib/core', () => {
 });
 
 jest.mock('app/utils/sdk', () => ({
+  captureBreadcrumb: jest.fn(),
+  addBreadcrumb: jest.fn(),
   captureMessage: jest.fn(),
   captureException: jest.fn(),
   showReportDialog: jest.fn(),
