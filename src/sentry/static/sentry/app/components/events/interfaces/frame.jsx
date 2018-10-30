@@ -319,6 +319,9 @@ const Frame = createReactClass({
     if (this.isInlineFrame()) {
       return t('Inlined frame');
     }
+    if (this.props.data.trust === 'scan') {
+      return t('Found by stack scanning');
+    }
     if (this.getPlatform() == 'cocoa') {
       let func = this.props.data.function || '<unknown>';
       if (func.match(/^@objc\s/)) {
