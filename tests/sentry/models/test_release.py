@@ -519,7 +519,6 @@ class SetCommitsTestCase(TestCase):
         with self.tasks():
             with self.feature({
                 'organizations:integrations-issue-sync': True,
-                'organizations:internal-catchall': True,
             }):
                 release.set_commits([{
                     'id': commit.key,
