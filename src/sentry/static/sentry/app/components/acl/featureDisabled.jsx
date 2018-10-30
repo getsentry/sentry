@@ -7,6 +7,7 @@ import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/externalLink';
+import space from 'app/styles/space';
 
 const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
 
@@ -71,7 +72,7 @@ class FeatureDisabled extends React.Component {
           )}
         </Flex>
         {showHelp && (
-          <HelpDescription mt={1}>
+          <HelpDescription>
             <p>
               {tct(
                 `Enable this feature on your sentry installation by adding the
@@ -109,6 +110,7 @@ const HelpButton = styled(Button)`
 
 const HelpDescription = styled(Box)`
   font-size: 0.9em;
+  margin-top: ${space(1)};
 
   p {
     line-height: 1.5em;
