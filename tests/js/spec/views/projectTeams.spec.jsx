@@ -1,14 +1,11 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
 
-import {Client} from 'app/api';
+import {shallow, mount} from 'enzyme';
+import App from 'app/views/app';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
-import {openCreateTeamModal} from 'app/actionCreators/modal';
+import * as modals from 'app/actionCreators/modal';
 
 jest.unmock('app/actionCreators/modal');
-jest.mock('app/actionCreators/modal', () => ({
-  openCreateTeamModal: jest.fn(),
-}));
 
 describe('ProjectTeams', function() {
   let org;
@@ -22,21 +19,22 @@ describe('ProjectTeams', function() {
   };
 
   beforeEach(function() {
+    jest.spyOn(modals, 'openCreateTeamModal');
     org = TestStubs.Organization();
     project = TestStubs.ProjectDetails();
     team = TestStubs.Team();
 
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
       body: project,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
       body: [team],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
       body: [team, team2],
@@ -44,7 +42,8 @@ describe('ProjectTeams', function() {
   });
 
   afterEach(function() {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
+    modals.openCreateTeamModal.mockRestore();
   });
 
   it('renders', function() {
@@ -59,21 +58,21 @@ describe('ProjectTeams', function() {
   });
 
   it('can remove a team from project', async function() {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
       body: [team, team2],
     });
 
     let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
-    let mock = Client.addMockResponse({
+    let mock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'DELETE',
       statusCode: 200,
     });
 
     let endpoint2 = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-    let mock2 = Client.addMockResponse({
+    let mock2 = MockApiClient.addMockResponse({
       url: endpoint2,
       method: 'DELETE',
       statusCode: 200,
@@ -125,7 +124,7 @@ describe('ProjectTeams', function() {
 
   it('can associate a team with project', function() {
     let endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
-    let mock = Client.addMockResponse({
+    let mock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
       statusCode: 200,
@@ -156,13 +155,38 @@ describe('ProjectTeams', function() {
     );
   });
 
-  it('opens "create team modal" when creating a new team from dropdown', function() {
+  it('creates a new team adds it to current project using the "create team modal" in dropdown', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: [org],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: {},
+    });
+    let addTeamToProject = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/teams/new-team/`,
+      method: 'POST',
+    });
+    let createTeam = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'POST',
+      body: {slug: 'new-team'},
+    });
+
     let wrapper = mount(
-      <ProjectTeams
-        params={{orgId: org.slug, projectId: project.slug}}
-        project={project}
-        organization={org}
-      />,
+      <App params={{orgId: org.slug}}>
+        <ProjectTeams
+          params={{orgId: org.slug, projectId: project.slug}}
+          project={project}
+          organization={org}
+        />
+      </App>,
       TestStubs.routerContext()
     );
 
@@ -173,7 +197,7 @@ describe('ProjectTeams', function() {
     wrapper.find('StyledCreateTeamLink').simulate('click');
 
     // action creator to open "create team modal" is called
-    expect(openCreateTeamModal).toHaveBeenCalledWith(
+    expect(modals.openCreateTeamModal).toHaveBeenCalledWith(
       expect.objectContaining({
         project: expect.objectContaining({
           slug: project.slug,
@@ -182,6 +206,29 @@ describe('ProjectTeams', function() {
           slug: org.slug,
         }),
       })
+    );
+
+    // Two ticks are required
+    await tick();
+    await tick();
+    wrapper.update();
+
+    wrapper.find('input[name="slug"]').simulate('change', {target: {value: 'new-team'}});
+    wrapper.find('[data-test-id="create-team-form"] form').simulate('submit');
+    expect(createTeam).toHaveBeenCalledTimes(1);
+    expect(createTeam).toHaveBeenCalledWith(
+      '/organizations/org-slug/teams/',
+      expect.objectContaining({
+        data: {slug: 'new-team'},
+      })
+    );
+
+    await tick();
+
+    expect(addTeamToProject).toHaveBeenCalledTimes(1);
+    expect(addTeamToProject).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/teams/new-team/',
+      expect.anything()
     );
   });
 });
