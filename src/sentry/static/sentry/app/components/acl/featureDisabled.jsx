@@ -31,7 +31,7 @@ class FeatureDisabled extends React.Component {
 
   toggleHelp = e => {
     e.preventDefault();
-    this.setState({showHelp: !this.state.showHelp});
+    this.setState(state => ({showHelp: !state.showHelp}));
   };
 
   render() {
