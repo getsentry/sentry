@@ -10,7 +10,7 @@ import SentryTypes from 'app/sentryTypes';
 
 import QueryFields from './queryFields';
 import {createSavedQuery, generateQueryName} from '../utils';
-import {ButtonSpinner} from '../styles';
+import {ButtonSpinner, QueryFieldsContainer} from '../styles';
 
 export default class NewQuery extends React.Component {
   static propTypes = {
@@ -50,37 +50,39 @@ export default class NewQuery extends React.Component {
       onUpdateField,
     } = this.props;
     return (
-      <QueryFields
-        queryBuilder={queryBuilder}
-        onUpdateField={onUpdateField}
-        actions={
-          <Flex justify="space-between">
-            <Flex>
-              <Box mr={1}>
-                <Button
-                  size="xsmall"
-                  onClick={onRunQuery}
-                  priority="primary"
-                  busy={isFetchingQuery}
-                >
-                  {t('Run')}
-                  {isFetchingQuery && <ButtonSpinner />}
-                </Button>
-              </Box>
+      <QueryFieldsContainer>
+        <QueryFields
+          queryBuilder={queryBuilder}
+          onUpdateField={onUpdateField}
+          actions={
+            <Flex justify="space-between">
+              <Flex>
+                <Box mr={1}>
+                  <Button
+                    size="xsmall"
+                    onClick={onRunQuery}
+                    priority="primary"
+                    busy={isFetchingQuery}
+                  >
+                    {t('Run')}
+                    {isFetchingQuery && <ButtonSpinner />}
+                  </Button>
+                </Box>
+                <Box>
+                  <Button size="xsmall" onClick={() => this.saveQuery()}>
+                    {t('Save')}
+                  </Button>
+                </Box>
+              </Flex>
               <Box>
-                <Button size="xsmall" onClick={() => this.saveQuery()}>
-                  {t('Save')}
+                <Button size="xsmall" onClick={onReset}>
+                  {t('Reset')}
                 </Button>
               </Box>
             </Flex>
-            <Box>
-              <Button size="xsmall" onClick={onReset}>
-                {t('Reset')}
-              </Button>
-            </Box>
-          </Flex>
-        }
-      />
+          }
+        />
+      </QueryFieldsContainer>
     );
   }
 }
