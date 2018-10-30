@@ -109,6 +109,7 @@ FRAME_INTERFACE_SCHEMA = {
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
         'instruction_offset': {},
+        'trust': {'type': 'string'},
         'lineno': {'type': ['number', 'string']},
         'module': {
             'type': 'string',

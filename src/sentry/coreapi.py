@@ -200,7 +200,7 @@ class ClientApiHelper(object):
             data = dict(data.items())
 
         cache_timeout = 3600
-        cache_key = u'e:{1}:{0}'.format(data['project'], data['event_id'])
+        cache_key = cache_key_for_event(data)
         default_cache.set(cache_key, data, cache_timeout)
 
         # Attachments will be empty or None if the "event-attachments" feature
@@ -255,6 +255,10 @@ class SecurityApiHelper(ClientApiHelper):
         )
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
+
+
+def cache_key_for_event(data):
+    return u'e:{1}:{0}'.format(data['project'], data['event_id'])
 
 
 def decompress_deflate(encoded_data):

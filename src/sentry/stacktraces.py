@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+import six
 import logging
-import hashlib
 from datetime import datetime
 
 from collections import namedtuple
@@ -9,9 +9,8 @@ from collections import namedtuple
 from sentry.models import Project, Release
 from sentry.utils.safe import safe_execute
 from sentry.utils.cache import cache
+from sentry.utils.hashlib import hash_values
 
-import six
-from six import integer_types, text_type
 
 logger = logging.getLogger(__name__)
 
@@ -69,38 +68,8 @@ class ProcessableFrame(object):
             self.cache_key = None
             return
 
-        h = hashlib.md5()
-        h.update((u'%s\xff' % self.processor.__class__.__name__).encode('utf-8'))
-
-        def _hash_value(value):
-            if value is None:
-                h.update(b'\x00')
-            elif value is True:
-                h.update(b'\x01')
-            elif value is False:
-                h.update(b'\x02')
-            elif isinstance(value, integer_types):
-                h.update(b'\x03' + text_type(value).encode('ascii') + b'\x00')
-            elif isinstance(value, (tuple, list)):
-                h.update(b'\x04' + text_type(len(value)).encode('utf-8'))
-                for item in value:
-                    _hash_value(item)
-            elif isinstance(value, dict):
-                h.update(b'\x05' + text_type(len(value)).encode('utf-8'))
-                for k, v in six.iteritems(value):
-                    _hash_value(k)
-                    _hash_value(v)
-            elif isinstance(value, bytes):
-                h.update(b'\x06' + value + b'\x00')
-            elif isinstance(value, text_type):
-                h.update(b'\x07' + value.encode('utf-8') + b'\x00')
-            else:
-                raise TypeError('Invalid value for frame cache')
-
-        for value in values:
-            _hash_value(value)
-
-        self.cache_key = rv = 'pf:%s' % h.hexdigest()
+        h = hash_values(values, seed=self.processor.__class__.__name__)
+        self.cache_key = rv = 'pf:%s' % h
         return rv
 
 

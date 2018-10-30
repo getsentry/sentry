@@ -133,7 +133,16 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project)
 
-    # Stacktrace based event processors.  These run before anything else.
+    # Event enhancers.  These run before anything else.
+    for plugin in plugins.all(version=2):
+        enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+        for enhancer in (enhancers or ()):
+            enhanced = safe_execute(enhancer, data)
+            if enhanced:
+                data = enhanced
+                has_changed = True
+
+    # Stacktrace based event processors.
     new_data = process_stacktraces(data)
     if new_data is not None:
         has_changed = True

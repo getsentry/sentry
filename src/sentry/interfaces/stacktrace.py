@@ -372,6 +372,7 @@ class Frame(Interface):
             'symbol': trim(symbol, 256),
             'symbol_addr': to_hex_addr(data.get('symbol_addr')),
             'instruction_addr': to_hex_addr(data.get('instruction_addr')),
+            'trust': trim(data.get('trust'), 16),
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -477,6 +478,7 @@ class Frame(Interface):
             'lineNo': self.lineno,
             'colNo': self.colno,
             'inApp': self.in_app,
+            'trust': self.trust,
             'errors': self.errors,
         }
         if not is_public:
@@ -522,6 +524,7 @@ class Frame(Interface):
             'lineNo': meta.get('lineno'),
             'colNo': meta.get('colno'),
             'inApp': meta.get('in_app'),
+            'trust': meta.get('trust'),
             'errors': meta.get('errors'),
         }
 
