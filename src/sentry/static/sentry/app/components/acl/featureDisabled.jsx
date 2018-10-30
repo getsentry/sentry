@@ -19,10 +19,27 @@ const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
  */
 class FeatureDisabled extends React.Component {
   static propTypes = {
+    /**
+     * The feature flag key that should be uwed in the code example for
+     * enabling the feature.
+     */
     feature: PropTypes.string,
+    /**
+     * The english name of the feature. This is used in the comment that will
+     * be outputted above the example line of code to enable the feature.
+     */
     featureName: PropTypes.string,
-    hideHelpToggle: PropTypes.bool,
+    /**
+     * Render the disabled message within a warning Alert.
+     *
+     * Attaches additional styles to the FeatureDisabeld component to make it
+     * look nice within the Alert.
+     */
     alert: PropTypes.bool,
+    /**
+     * Do not show the help toggle.
+     */
+    hideHelpToggle: PropTypes.bool,
   };
 
   state = {
