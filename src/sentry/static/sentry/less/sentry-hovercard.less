@@ -29,23 +29,43 @@
   // Default align hovercard top-middle
   bottom: 28px;
   left: 50%;
+  transform: translateY(0) translateX(-50%);
+  width: @hovercard-width;
   visibility: hidden;
 
   @keyframes hovercardSlideUp {
     from {
-      transform: translateY(12px);
+      transform: translateY(12px) translateX(-50%);
     }
     to {
-      transform: translateY(0);
+      transform: translateY(0) translateX(-50%);
+    }
+  }
+
+  @keyframes hovercardSlideUpNoCenter {
+    from {
+      transform: translateY(12px) translateX(0);
+    }
+    to {
+      transform: translateY(0) translateX(0);
     }
   }
 
   @keyframes hovercardSlideDown {
     from {
-      transform: translateY(-12px);
+      transform: translateY(-12px) translateX(-50%);
     }
     to {
-      transform: translateY(0);
+      transform: translateY(0) translateX(-50%);
+    }
+  }
+
+  @keyframes hovercardSlideDownNoCenter {
+    from {
+      transform: translateY(-12px) translateX(0);
+    }
+    to {
+      transform: translateY(0) translateX(0);
     }
   }
 
@@ -66,6 +86,11 @@
   &.visible {
     visibility: visible;
     animation-play-state: running;
+  }
+
+  &.one-line {
+    width: auto;
+    white-space: nowrap;
   }
 
   &.hovercard-bottom {
@@ -95,9 +120,20 @@
     }
   }
 
+  &.hovercard-right,
+  &.hovercard-left {
+    transform: translateY(0) translateX(0);
+    animation: hovercardFadeIn 100ms ease-in-out,
+      hovercardSlideDownNoCenter 100ms ease-in-out;
+
+    &.hovercard-bottom {
+      animation: hovercardFadeIn 100ms ease-in-out,
+        hovercardSlideUpNoCenter 100ms ease-in-out;
+    }
+  }
+
   &.hovercard-left {
     left: 0;
-    margin-left: 0;
 
     &:before,
     &:after {
@@ -109,7 +145,6 @@
   &.hovercard-right {
     left: initial;
     right: 0;
-    margin-left: 0;
 
     &:before,
     &:after {

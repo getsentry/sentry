@@ -60,6 +60,13 @@ class Hovercard extends React.Component {
     this.hoverWait = setTimeout(() => this.setState({visible, rendered}), timeout);
   };
 
+  isOneLine() {
+    if (!this.cardElement || !this.state.visible) return null;
+    // spans will create a new bounding box for each line of text
+    // if the text wraps, so this is a way to test for text wrapping
+    return this.cardBodySpan.getClientRects().length <= 1;
+  }
+
   positionClasses() {
     if (!this.cardElement || !this.state.visible) return {};
 
@@ -151,6 +158,7 @@ class Hovercard extends React.Component {
     const containerCx = classNames('hovercard-container', containerClassName);
     const cx = classNames('hovercard', this.positionClasses(), className, {
       'with-header': header,
+      'one-line': this.isOneLine(),
       visible,
     });
 
@@ -181,11 +189,7 @@ class Hovercard extends React.Component {
             <div className="hovercard-hoverlap" />
             {header && <div className="hovercard-header">{header}</div>}
             {body && (
-              <div
-                className="hovercard-body"
-                ref={e => (this.cardBody = e)}
-                style={{minHeight: this.props.minHeight}}
-              >
+              <div className="hovercard-body">
                 <span ref={e => (this.cardBodySpan = e)}>{body}</span>
               </div>
             )}
