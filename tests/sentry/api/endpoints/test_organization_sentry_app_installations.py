@@ -4,10 +4,8 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator
 
 
@@ -17,22 +15,18 @@ class OrganizationSentryAppInstallationsTest(APITestCase):
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
-        self.published_app = SentryAppCreator.run(
+        self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.super_org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        self.published_app.update(status=SentryAppStatus.PUBLISHED)
+        self.unpublished_app = self.create_sentry_app(
+            name='Testin',
+            organization=self.org,
+        )
         self.installation, _ = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
-        )
-        self.unpublished_app = SentryAppCreator.run(
-            name='Testin',
-            organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
         self.installation2, _ = Creator.run(
             slug=self.unpublished_app.slug,
@@ -99,11 +93,9 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
     @with_feature('organizations:internal-catchall')
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
         response = self.client.post(
             self.url,
@@ -121,13 +113,11 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
     @with_feature('organizations:internal-catchall')
     def test_install_published_app(self):
         self.login_as(user=self.user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(
             self.url,
             data={'slug': app.slug},
@@ -150,13 +140,11 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
             role='member',
         )
         self.login_as(user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(
             self.url,
             data={'slug': app.slug},

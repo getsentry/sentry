@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Authorizer, Creator
 from sentry.testutils import TestCase
 
@@ -13,11 +12,9 @@ class TestAuthorizer(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.org,
-            scopes=(),
-            webhook_url='http://example.com',
         )
 
         self.install, self.grant = Creator.run(

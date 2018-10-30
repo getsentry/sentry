@@ -6,33 +6,23 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_apps import Creator
-from sentry.constants import SentryAppStatus
 
 
 class SentryAppsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email='a@example.com', is_superuser=True)
-        self.super_org = self.create_organization(owner=self.superuser)
-
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
-
-        self.published_app = Creator.run(
+        self.super_org = self.create_organization(owner=self.superuser)
+        self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        self.published_app.update(status=SentryAppStatus.PUBLISHED)
-
-        self.unpublished_app = Creator.run(
+        self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
-
         self.url = reverse('sentry-api-0-sentry-apps')
 
 
