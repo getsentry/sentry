@@ -233,7 +233,7 @@ export const buildTeamId = id => `team:${id}`;
 export function descopeFeatureName(feature) {
   return typeof feature.match !== 'function'
     ? feature
-    : feature.match(/(?:^(?:project|organization):)?(.*)/).pop();
+    : feature.match(/(?:^(?:projects|organizations):)?(.*)/).pop();
 }
 
 // re-export under utils
