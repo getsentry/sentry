@@ -75,7 +75,11 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
         className="css-17m6soy-hoverCardStyles"
         containerClassName="css-1s8b4pt-hoverCardContainer"
         displayTimeout={100}
+        dynamicWidth={false}
         header="Linked GitHub Integration"
+        maxWidth={295}
+        minHeight={50}
+        minWidth={295}
       >
         <span
           className="hovercard-container css-1s8b4pt-hoverCardContainer"
@@ -277,7 +281,11 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
           className="css-17m6soy-hoverCardStyles"
           containerClassName="css-1s8b4pt-hoverCardContainer"
           displayTimeout={100}
+          dynamicWidth={false}
           header="Linked GitHub Integration"
+          maxWidth={295}
+          minHeight={50}
+          minWidth={295}
         >
           <span
             className="hovercard-container css-1s8b4pt-hoverCardContainer"
