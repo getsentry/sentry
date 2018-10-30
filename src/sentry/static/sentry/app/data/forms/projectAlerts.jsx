@@ -5,7 +5,7 @@ export const route = '/settings/:orgId/:projectId/alerts/';
 
 const formatMinutes = value => {
   value = value / 60;
-  return tn('%d minute', '%d minutes', value);
+  return tn('%s minute', '%s minutes', value);
 };
 
 export const fields = {

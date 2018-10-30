@@ -49,8 +49,8 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
     let question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
-          `Are you sure you want to ${action} this %d issue${append}?`,
-          `Are you sure you want to ${action} these %d issues${append}?`,
+          `Are you sure you want to ${action} this %s issue${append}?`,
+          `Are you sure you want to ${action} these %s issues${append}?`,
           numIssues
         );
 
@@ -88,8 +88,8 @@ const getLabel = (numIssues, allInQuerySelected) => {
     let text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
       : tn(
-          `${capitalized} %d selected issue`,
-          `${capitalized} %d selected issues`,
+          `${capitalized} %s selected issue`,
+          `${capitalized} %s selected issues`,
           numIssues
         );
 
@@ -514,8 +514,8 @@ const StreamActions = createReactClass({
                 ) : (
                   <span>
                     {tn(
-                      '%d issue on this page selected.',
-                      '%d issues on this page selected.',
+                      '%s issue on this page selected.',
+                      '%s issues on this page selected.',
                       numIssues
                     )}
                     <a onClick={this.selectAll}>
