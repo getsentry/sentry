@@ -490,4 +490,31 @@ describe('AutoComplete', function() {
       expect(wrapper.state('inputValue')).toBe('Pineapple');
     });
   });
+
+  it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function() {
+    wrapper = createWrapper({closeOnSelect: false});
+    jest.useFakeTimers();
+    input.simulate('focus');
+    expect(wrapper.state('isOpen')).toBe(true);
+
+    input.simulate('keyDown', {key: 'ArrowDown'});
+    expect(wrapper.state('highlightedIndex')).toBe(1);
+
+    // Select item
+    input.simulate('keyDown', {key: 'Enter'});
+
+    // Should still remain open with same highlightedIndex
+    expect(wrapper.state('highlightedIndex')).toBe(1);
+    expect(wrapper.state('isOpen')).toBe(true);
+
+    input.simulate('keyDown', {key: 'ArrowDown'});
+    expect(wrapper.state('highlightedIndex')).toBe(2);
+
+    // Select item
+    input.simulate('keyDown', {key: 'Enter'});
+
+    // Should still remain open with same highlightedIndex
+    expect(wrapper.state('highlightedIndex')).toBe(2);
+    expect(wrapper.state('isOpen')).toBe(true);
+  });
 });
