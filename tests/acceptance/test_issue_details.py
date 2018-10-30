@@ -106,6 +106,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
+        self.browser.wait_until('[data-test-id="loaded-device-name"]')
         self.browser.snapshot('issue details cordova')
 
     def test_stripped_event(self):
