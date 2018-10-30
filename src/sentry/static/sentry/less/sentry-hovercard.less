@@ -29,7 +29,6 @@
 
   // Default align hovercard top-middle
   bottom: 28px;
-  //width: fit-content;
   left: 50%;
   transform: translateY(0) translateX(-50%);
   width: @hovercard-width;
@@ -122,12 +121,15 @@
     }
   }
 
-  &.hovercard-right, &.hovercard-left {
+  &.hovercard-right,
+  &.hovercard-left {
     transform: translateY(0) translateX(0);
-    animation: hovercardFadeIn 100ms ease-in-out, hovercardSlideDownNoCenter 100ms ease-in-out;
+    animation: hovercardFadeIn 100ms ease-in-out,
+      hovercardSlideDownNoCenter 100ms ease-in-out;
 
     &.hovercard-bottom {
-      animation: hovercardFadeIn 100ms ease-in-out, hovercardSlideUpNoCenter 100ms ease-in-out;
+      animation: hovercardFadeIn 100ms ease-in-out,
+        hovercardSlideUpNoCenter 100ms ease-in-out;
     }
   }
 

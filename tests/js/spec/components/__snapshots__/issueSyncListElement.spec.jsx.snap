@@ -6,10 +6,6 @@ exports[`AlertLink renders 1`] = `
     className="css-17m6soy-hoverCardStyles"
     containerClassName="css-1s8b4pt-hoverCardContainer"
     displayTimeout={100}
-    dynamicWidth={false}
-    maxWidth={295}
-    minHeight={50}
-    minWidth={295}
   >
     <IntegrationIcon
       src="icon-github"

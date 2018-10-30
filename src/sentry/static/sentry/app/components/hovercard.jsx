@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import intersection from 'lodash/intersection';
-import styled from 'react-emotion';
 
 class Hovercard extends React.Component {
   static propTypes = {
@@ -11,11 +10,10 @@ class Hovercard extends React.Component {
     containerClassName: PropTypes.string,
     header: PropTypes.node,
     body: PropTypes.node,
-    dynamicWidth: PropTypes.bool,
   };
 
   static defaultProps = {
-    displayTimeout: 100
+    displayTimeout: 100,
   };
 
   constructor(...args) {
@@ -56,10 +54,10 @@ class Hovercard extends React.Component {
 
   isOneLine() {
     if (!this.cardElement || !this.state.visible) return null;
-     // spans will create a new bounding box for each line of text
+    // spans will create a new bounding box for each line of text
     // if the text wraps, so this is a way to test for text wrapping
     return this.cardBodySpan.getClientRects().length <= 1;
-  };
+  }
 
   positionClasses() {
     if (!this.cardElement || !this.state.visible) return {};
@@ -108,11 +106,7 @@ class Hovercard extends React.Component {
             <div className="hovercard-hoverlap" />
             {header && <div className="hovercard-header">{header}</div>}
             {body && (
-              <div
-                className="hovercard-body"
-                ref={e => (this.cardBody = e)}
-                style={{minHeight: this.props.minHeight}}
-              >
+              <div className="hovercard-body">
                 <span ref={e => (this.cardBodySpan = e)}>{body}</span>
               </div>
             )}
