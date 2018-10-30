@@ -79,9 +79,10 @@ describe('Feature', function() {
         routerContext
       );
 
-      expect(noFeatureRenderer).not.toHaveBeenCalled();
-      expect(childrenMock).toHaveBeenCalledWith({
+      expect(childrenMock).not.toHaveBeenCalled();
+      expect(noFeatureRenderer).toHaveBeenCalledWith({
         hasFeature: false,
+        children: childrenMock,
         renderDisabled: noFeatureRenderer,
         organization,
         project,
@@ -235,9 +236,10 @@ describe('Feature', function() {
 
     it('calls renderDisabled function when no features', function() {
       const noFeatureRenderer = jest.fn(() => null);
+      const children = <div>The Child</div>;
       const wrapper = mount(
         <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
-          <div>The Child</div>
+          {children}
         </Feature>,
         routerContext
       );
@@ -246,6 +248,7 @@ describe('Feature', function() {
       expect(noFeatureRenderer).toHaveBeenCalledWith({
         hasFeature: false,
         renderDisabled: noFeatureRenderer,
+        children,
         organization,
         project,
         features: ['org-baz'],
@@ -267,9 +270,10 @@ describe('Feature', function() {
 
     it('calls renderDisabled function from HookStore when no features', function() {
       const noFeatureRenderer = jest.fn(() => null);
+      const children = <div>The Child</div>;
       const wrapper = mount(
         <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
-          <div>The Child</div>
+          {children}
         </Feature>,
         routerContext
       );
@@ -280,6 +284,7 @@ describe('Feature', function() {
       expect(hookFn).toHaveBeenCalledWith({
         hasFeature: false,
         renderDisabled: hookFn,
+        children,
         organization,
         project,
         features: ['org-baz'],
