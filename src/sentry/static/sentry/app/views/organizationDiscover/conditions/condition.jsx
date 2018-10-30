@@ -130,7 +130,7 @@ export default class Condition extends React.Component {
         type="text"
         {...props}
         value={this.state.inputValue}
-        style={{width: '100%', border: 0, zIndex: 1000}}
+        style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };
