@@ -90,9 +90,9 @@ export const fields = {
       } else if (val > 23 && val % 24 === 0) {
         // Based on allowed values, val % 24 should always be true
         val = val / 24;
-        return tn('%d day', '%d days', val);
+        return tn('%s day', '%s days', val);
       }
-      return tn('%d hour', '%d hours', val);
+      return tn('%s hour', '%s hours', val);
     },
     saveOnBlur: false,
     saveMessage: tct(
