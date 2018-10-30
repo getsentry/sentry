@@ -54,13 +54,11 @@ const ProjectCards = styled(Flex)`
 const TeamSectionWrapper = styled.div`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
 
-  /* stylelint-disable no-duplicate-selectors */
   &:last-child {
-    ${ProjectCards} {
+    ${/* sc-selector */ ProjectCards} {
       padding-bottom: 0;
     }
   }
-  /* stylelint-enable */
 `;
 
 const TeamTitleBar = styled(Flex)`

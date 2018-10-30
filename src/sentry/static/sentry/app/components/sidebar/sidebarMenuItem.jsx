@@ -76,8 +76,7 @@ const MenuItemLink = styled(({to, href, external, ...props}) => {
     color: ${p => p.theme.gray5};
   }
 
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${OrgSummary} {
+  ${/* sc-selector */ OrgSummary} {
     padding-left: 0;
     padding-right: 0;
   }

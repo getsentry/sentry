@@ -302,8 +302,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
   justify-content: flex-end;
 
   /* manually align menu underneath dropdown caret */
-  /* stylelint-disable-next-line no-duplicate-selectors */
-  ${StyledMenu} {
+  ${/* sc-selector */ StyledMenu} {
     right: -14px;
   }
 `;
