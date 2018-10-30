@@ -62,20 +62,35 @@ describe('groupEvents', function() {
     });
   });
 
-  it('can change environment', function() {
-    const component = shallow(
-      <GroupEvents
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        location={{query: {}}}
-        environment={TestStubs.Environments()[0]}
-      />,
-      {
-        context: {...TestStubs.router(), group: TestStubs.Group()},
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      }
-    );
-    component.setProps({environment: TestStubs.Environments()[1]});
+  describe('changing environment', function() {
+    let component, eventsMock;
+    beforeEach(function() {
+      component = shallow(
+        <GroupEvents
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          location={{query: {}}}
+          environment={TestStubs.Environments()[0]}
+        />,
+        {
+          context: {...TestStubs.router(), group: TestStubs.Group()},
+          childContextTypes: {
+            router: PropTypes.object,
+          },
+        }
+      );
+
+      eventsMock = MockApiClient.addMockResponse({
+        url: '/issues/1/events/',
+      });
+    });
+    it('select environment', function() {
+      component.setProps({environment: TestStubs.Environments()[1]});
+      expect(eventsMock.mock.calls[0][1].query.environment).toEqual('staging');
+    });
+
+    it('select all environments', function() {
+      component.setProps({environment: null});
+      expect(eventsMock.mock.calls[0][1].query.environment).toEqual(undefined);
+    });
   });
 });
