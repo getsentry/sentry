@@ -708,7 +708,7 @@ class Fixtures(object):
         if not name:
             name = 'Test App'
         if not organization:
-            organization = self.organization
+            organization = self.create_organization()
         if not webhook_url:
             webhook_url = 'https://example.com/webhook'
 
