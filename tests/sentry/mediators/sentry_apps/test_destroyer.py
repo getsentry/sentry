@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.db import connection
 
-from sentry.mediators.sentry_apps import Creator, Destroyer
+from sentry.mediators.sentry_apps import Destroyer
 from sentry.models import ApiApplication, User, SentryApp
 from sentry.testutils import TestCase
 
@@ -12,11 +12,10 @@ class TestDestroyer(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name='blah',
             organization=self.org,
             scopes=('project:read',),
-            webhook_url='https://example.com',
         )
 
         self.destroyer = Destroyer(sentry_app=self.sentry_app)

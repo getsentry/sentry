@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.coreapi import APIError
-from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Creator, Updater
+from sentry.mediators.sentry_apps import Updater
 from sentry.testutils import TestCase
 
 
@@ -10,11 +9,10 @@ class TestUpdater(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
-        self.sentry_app = Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.org,
             scopes=('project:read',),
-            webhook_url='http://example.com',
         )
 
         self.updater = Updater(sentry_app=self.sentry_app)
@@ -31,13 +29,12 @@ class TestUpdater(TestCase):
             ['project:read', 'project:write']
 
     def test_doesnt_update_published_app_scopes(self):
-        sentry_app = Creator.run(
+        sentry_app = self.create_sentry_app(
             name='sentry',
             organization=self.org,
             scopes=('project:read',),
-            webhook_url='http://example.com',
+            published=True,
         )
-        sentry_app.update(status=SentryAppStatus.PUBLISHED)
         updater = Updater(sentry_app=sentry_app)
         updater.scopes = ('project:read', 'project:write', )
 

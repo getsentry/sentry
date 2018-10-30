@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.db import connection
 
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
 from sentry.models import ApiAuthorization, ApiGrant, SentryAppInstallation
 from sentry.testutils import TestCase
@@ -13,11 +12,10 @@ class TestDestroyer(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.org,
             scopes=('project:read',),
-            webhook_url='https://example.com',
         )
 
         self.install, self.grant = Creator.run(

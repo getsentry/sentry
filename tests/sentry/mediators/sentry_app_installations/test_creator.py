@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import ApiAuthorization
 from sentry.testutils import TestCase
@@ -11,11 +10,10 @@ class TestCreator(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
             organization=self.org,
             scopes=('project:read',),
-            webhook_url='http://example.com',
         )
 
         self.creator = Creator(organization=self.org, slug='nulldb')
