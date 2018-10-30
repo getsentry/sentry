@@ -16,11 +16,11 @@ MINIDUMP_OS_TYPES = {
 
 
 def is_minidump_event(data):
-    exceptions = data.get('exception', {}).get('values', [])
+    exceptions = (data.get('exception') or {}).get('values') or []
     if not exceptions:
         return False
 
-    return exceptions[0].get('mechanism', {}).get('type') == 'minidump'
+    return (exceptions[0].get('mechanism') or {}).get('type') == 'minidump'
 
 
 def process_minidump(minidump, cfi=None):

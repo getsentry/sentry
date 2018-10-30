@@ -169,7 +169,7 @@ class ThreadProcessingHandle(object):
         self.changed = False
 
     def _get_modules(self):
-        modules = self.data.get('debug_meta', {}).get('images', [])
+        modules = (self.data.get('debug_meta') or {}).get('images') or []
         return ObjectLookup(modules)
 
     def iter_modules(self):
@@ -182,16 +182,16 @@ class ThreadProcessingHandle(object):
         """Returns an iterator over all threads of the process at the time of
         the crash, including the crashing thread. The values are of type
         ``ThreadRef``."""
-        for thread in self.data.get('threads', {}).get('values', []):
+        for thread in (self.data.get('threads') or {}).get('values') or []:
             if thread.get('crashed'):
                 # XXX: Assumes that the full list of threads is present in the
                 # original crash report. This is guaranteed by KSCrash and our
                 # minidump utility.
-                exceptions = self.data.get('exception', {}).get('values', [])
+                exceptions = (self.data.get('exception') or {}).get('values') or []
                 exception = exceptions[0] if exceptions else {}
-                frames = exception.get('stacktrace', {}).get('frames')
+                frames = (exception.get('stacktrace') or {}).get('frames')
             else:
-                frames = thread.get('stacktrace', {}).get('frames')
+                frames = (thread.get('stacktrace') or {}).get('frames')
 
             tid = thread.get('id')
             if tid and frames:
