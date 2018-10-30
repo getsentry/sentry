@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import (FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 
 
 class PromptsActivity(Model):
@@ -13,7 +13,7 @@ class PromptsActivity(Model):
     __core__ = False
 
     organization = FlexibleForeignKey('sentry.Organization', null=True)
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project_id = BoundedPositiveIntegerField(null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
@@ -23,7 +23,7 @@ class PromptsActivity(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_prompt'
-        unique_together = (('user', 'feature', 'organization', 'project'), )
+        db_table = 'sentry_promptsactivity'
+        unique_together = (('user', 'feature', 'organization', 'project_id'), )
 
     __repr__ = sane_repr('user_id', 'feature')
