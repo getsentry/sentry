@@ -93,7 +93,7 @@ export default class MultipleProjectSelector extends React.Component {
           const hasSelected = !!selectedProjects.length;
           const title = hasSelected
             ? selectedProjects.map(({slug}) => slug).join(', ')
-            : t('Projects and Teams');
+            : t('Projects');
           return (
             <StyledHeaderItem
               active={hasSelected || isOpen}
