@@ -11,7 +11,7 @@ import ExternalLink from 'app/components/externalLink';
 const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
 
 /**
- * DisabledInfo renders a componet informing that a feature has been disabled.
+ * DisabledInfo renders a component informing that a feature has been disabled.
  *
  * By default this component will render a help button which toggles more
  * information about why the feature is disabled, showing the missing feature
