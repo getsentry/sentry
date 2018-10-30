@@ -3,8 +3,6 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_apps import Creator
-from sentry.constants import SentryAppStatus
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -13,24 +11,19 @@ class SentryAppDetailsTest(APITestCase):
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
-        self.published_app = Creator.run(
+        self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        self.published_app.update(status=SentryAppStatus.PUBLISHED)
-        self.unpublished_app = Creator.run(
+        self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
         self.url = reverse('sentry-api-0-sentry-app-details', args=[self.published_app.slug])
 
 
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
-
     @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -142,11 +135,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     @with_feature('organizations:internal-catchall')
     def test_cannot_update_non_owned_apps(self):
         self.login_as(user=self.user)
-        app = Creator.run(
+        app = self.create_sentry_app(
             name='SampleApp',
             organization=self.super_org,
-            scopes=(),
-            webhook_url='https://sample.com',
         )
         url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
         response = self.client.put(

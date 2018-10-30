@@ -4,7 +4,6 @@ from django.http import HttpRequest
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.api.authentication import ClientIdSecretAuthentication
-from sentry.mediators.sentry_apps import Creator
 from sentry.testutils import TestCase
 
 
@@ -15,11 +14,9 @@ class TestClientIdSecretAuthentication(TestCase):
         self.auth = ClientIdSecretAuthentication()
         self.org = self.create_organization(owner=self.user)
 
-        self.sentry_app = Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name="foo",
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
         self.api_app = self.sentry_app.application
