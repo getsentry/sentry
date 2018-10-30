@@ -9,7 +9,7 @@ from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
 from sentry.lang.native.minidump import process_minidump, frames_from_minidump_thread, \
     MINIDUMP_ATTACHMENT_TYPE
-from sentry.lang.native.utils import rebase_addr
+from sentry.lang.native.utils import parse_addr, rebase_addr
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -66,7 +66,7 @@ class ThreadRef(object):
         addr = module.addr + offset if module else offset
 
         return module, {
-            'instruction_addr': '0x%x' % addr,
+            'instruction_addr': '0x%x' % parse_addr(addr),
             'function': '<unknown>',  # Required by interface
             'module': module.name if module else None,
             'trust': trust,
