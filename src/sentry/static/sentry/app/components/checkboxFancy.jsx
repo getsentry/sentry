@@ -2,25 +2,29 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import InlineSvg from 'app/components/inlineSvg';
-import space from 'app/styles/space';
 
 class CheckboxFancy extends React.Component {
   static propTypes = {
     checked: PropTypes.bool,
+    size: PropTypes.string,
   };
 
   static defaultProps = {
     checked: false,
+    size: '18px',
   };
 
   render() {
-    const {checked} = this.props;
+    const {className, checked, size, ...props} = this.props;
 
     return (
       <CheckboxContainer
         role="checkbox"
-        aria-checked={this.props.checked}
-        {...this.props}
+        aria-checked={checked}
+        className={className}
+        checked={checked}
+        size={size}
+        {...props}
       >
         {checked && <Check src="icon-checkmark-sm" />}
       </CheckboxContainer>
@@ -29,9 +33,9 @@ class CheckboxFancy extends React.Component {
 }
 
 const CheckboxContainer = styled('div')`
-  width: ${space(2)};
-  height: ${space(2)};
-  border-radius: ${space(2)};
+  width: ${p => p.size};
+  height: ${p => p.size};
+  border-radius: ${p => p.size};
   background: ${p => (p.checked ? p.theme.purple : null)};
   display: flex;
   align-items: center;
