@@ -44,7 +44,7 @@ class FeatureDisabled extends React.Component {
           {t('This feature is not enabled on your Sentry installation.')}
           {!hideHelpToggle && (
             <HelpButton
-              icon={this.showHelp ? 'icon-chevron-down' : 'icon-circle-info'}
+              icon={showHelp ? 'icon-chevron-down' : 'icon-circle-info'}
               priority="link"
               size="xsmall"
               onClick={this.toggleHelp}
