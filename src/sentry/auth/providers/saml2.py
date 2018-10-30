@@ -11,7 +11,7 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems
+from six import iteritems, add_metaclass
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
@@ -40,6 +40,14 @@ except ImportError:
 
     def OneLogin_Saml2_Settings(*args, **kwargs):
         raise NotImplementedError('Missing SAML libraries')
+
+    class OneLogin_Saml2_ConstantsType(type):
+        def __getattr__(self, attr):
+            raise NotImplementedError('Missing SAML libraries')
+
+    @add_metaclass(OneLogin_Saml2_ConstantsType)
+    class OneLogin_Saml2_Constants(object):
+        pass
 
 
 ERR_NO_SAML_SSO = _('The organization does not exist or does not have SAML SSO enabled.')
