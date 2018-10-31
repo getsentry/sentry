@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.models import PromptsActivity
+from sentry.models import PromptsActivity, Project
 
 PROMPTS = {
     'releases': {
@@ -78,6 +78,14 @@ class PromptsActivityEndpoint(Endpoint):
 
         if any(elem is None for elem in fields.values()):
             return Response({'detail': 'Missing required field'}, status=400)
+
+        if 'project_id' in required_fields:
+            try:
+                Project.objects.get(
+                    id=fields['project_id'],
+                )
+            except Project.DoesNotExist:
+                return Response({'detail': 'Project no longer exists'}, status=400)
 
         data = {}
         now = calendar.timegm(timezone.now().utctimetuple())

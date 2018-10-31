@@ -13,6 +13,7 @@ class PromptsActivity(Model):
     __core__ = False
 
     organization = FlexibleForeignKey('sentry.Organization', null=True)
+    # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod
     project_id = BoundedPositiveIntegerField(null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     feature = models.CharField(max_length=64, null=False)
