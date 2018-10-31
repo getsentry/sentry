@@ -3,14 +3,22 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import HookStore from 'app/stores/hookStore';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
 import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
@@ -171,21 +179,46 @@ class ProjectFiltersSettings extends AsyncComponent {
     onBlur(subfilters, e);
   };
 
-  renderDisabledFeature(fields) {
-    let {project, organization} = this.props;
-    return this.state.hooksDisabled.map(hook =>
-      hook(organization, project, null, fields)
-    );
-  }
-
   renderBody() {
-    let {features, params} = this.props;
+    let {organization, features, params} = this.props;
     let {orgId, projectId} = params;
     let {project} = this.state;
 
     if (!project) return null;
     let projectEndpoint = `/projects/${orgId}/${projectId}/`;
     let filtersEndpoint = `${projectEndpoint}filters/`;
+
+    let disabledAdvFilters = p => (
+      <FeatureDisabled
+        feature={p.features[0]}
+        alert={PanelAlert}
+        name={t('Custom Inbound Filters')}
+        message={t(
+          'Release and Error Message filtering are not enabled on your Sentry installation'
+        )}
+      />
+    );
+
+    let advCustomFilters = (
+      <Feature
+        features={['projects:custom-inbound-filters']}
+        renderDisabled={({children, ...props}) =>
+          children({...props, renderDisabled: disabledAdvFilters})}
+      >
+        {({hasFeature, renderDisabled, ...featureProps}) => (
+          <React.Fragment>
+            {!hasFeature && renderDisabled({organization, ...featureProps})}
+
+            {customFilterFields.map(field => (
+              <FieldFromConfig
+                key={field.name}
+                field={{...field, disabled: !hasFeature}}
+              />
+            ))}
+          </React.Fragment>
+        )}
+      </Feature>
+    );
 
     return (
       <React.Fragment>
@@ -255,16 +288,7 @@ class ProjectFiltersSettings extends AsyncComponent {
           <JsonForm
             features={features}
             forms={filterGroups}
-            renderFooter={() => {
-              // Render additional fields that are behind a feature flag
-              let customFilters = customFilterFields.map(field => (
-                <FieldFromConfig key={field.name} field={field} />
-              ));
-
-              return features.has('custom-inbound-filters')
-                ? customFilters
-                : this.renderDisabledFeature(customFilters);
-            }}
+            renderFooter={() => advCustomFilters}
           />
         </Form>
       </React.Fragment>
