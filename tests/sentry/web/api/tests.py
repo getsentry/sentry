@@ -728,21 +728,6 @@ class CrossDomainXmlTest(TestCase):
         )
 
 
-class CrossDomainXmlIndexTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-api-crossdomain-xml-index')
-
-    def test_permits_policies(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp['Content-Type'], 'application/xml')
-        self.assertTemplateUsed(resp, 'sentry/crossdomain_index.xml')
-        assert '<site-control permitted-cross-domain-policies="all" />' in resp.content.decode(
-            'utf-8'
-        )
-
-
 class RobotsTxtTest(TestCase):
     @fixture
     def path(self):
