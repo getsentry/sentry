@@ -17,13 +17,16 @@ from sentry.testutils import IntegrationTestCase
 class GitlabIntegrationTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
-        'url': 'https://gitlab.example.com',
+        # Trailing slash is intentional to ensure that valid
+        # URLs are generated even if the user inputs a trailing /
+        'url': 'https://gitlab.example.com/',
         'name': 'Test App',
         'group': 'cool-group',
         'verify_ssl': True,
         'client_id': 'client_id',
         'client_secret': 'client_secret'
     }
+
     default_group_id = 4
 
     def assert_setup_flow(self, user_id='user_id_1', group_id=None):
