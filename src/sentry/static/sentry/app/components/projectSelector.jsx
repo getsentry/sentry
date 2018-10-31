@@ -278,8 +278,8 @@ class ProjectSelectorItem extends React.PureComponent {
         </BadgeAndBookmark>
 
         {multi && (
-          <MultiSelectWrapper onClick={this.handleMultiSelect}>
-            <MultiSelect checked={isChecked} onClick={this.handleClick} />
+          <MultiSelectWrapper onClick={this.handleClick}>
+            <MultiSelect checked={isChecked} />
           </MultiSelectWrapper>
         )}
       </ProjectRow>

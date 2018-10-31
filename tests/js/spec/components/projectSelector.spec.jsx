@@ -160,7 +160,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('MultiSelect')
+      .find('MultiSelectWrapper')
       .first()
       .simulate('click');
 
