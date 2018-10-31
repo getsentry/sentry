@@ -3,6 +3,25 @@
 {% load sentry_assets %}
 {% load i18n %}
 
+{% block css %}
+  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  <style>
+    ol li {
+      padding:5px 0px;
+    }
+    ul li {
+      list-style-type: none;
+      background-color: #f7f8f9;
+      font-size: 90%;
+      padding: 2px 0px;
+      font-family: Monaco, Consolas, 'Courier New', monospace;
+    }
+    a.btn.btn-primary{
+      margin: 10px 0px;
+    }
+  </style>
+{% endblock %}
+
 {% block wrapperclass %} narrow auth {% endblock %}
 {% block modal_header_signout %} {% endblock %}
 
@@ -10,21 +29,38 @@
 
 {% block main %}
 <h3>GitLab Configuration</h3>
+{% if form %}
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="gitlab" />
 
-<form action="" method="post" class="form-stacked">
-  {% csrf_token %}
-  <input type="hidden" name="provider" value="gitlab" />
+    <p>{% trans "Configure GitLab to use with Sentry." %}</p>
 
-  <p>{% trans "Configure GitLab to use with Sentry." %}</p>
+    {{ form|as_crispy_errors }}
 
-  {{ form|as_crispy_errors }}
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
 
-  {% for field in form %}
-   {{ field|as_crispy_field }}
-  {% endfor %}
-
-  <fieldset class="form-actions">
-    <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
-  </fieldset>
-</form>
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
+    </fieldset>
+  </form>
+{% else %}
+  <p>To configure GitLab with Sentry, you will need to create a Sentry app in your GitLab instance.</p>
+  <ol>
+    <li>Navigate to the settingsw section of your GitLab instance.</li>
+    <li>In the sidebar, select Applications.</li>
+    <li>In the resulting form, enter the following information:
+      <ul>
+        {% for val in setup_values %}
+          <li>{{ val.label }}: {{ val.value }}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li>Click Save Application.</li>
+    <li>In the resulting page, you'll see the Application ID and the secret. You'll need those for the next phase of setup.</li>
+  </ol>
+  <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
+{% endif %}
 {% endblock %}

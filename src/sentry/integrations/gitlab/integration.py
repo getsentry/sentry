@@ -178,6 +178,24 @@ class InstallationConfigView(PipelineView):
         )
 
 
+class InstallationGuideView(PipelineView):
+    def dispatch(self, request, pipeline):
+        if 'completed_installation_guide' in request.GET:
+            return pipeline.next_step()
+        return render_to_response(
+            template='sentry/integrations/gitlab-config.html',
+            context={
+                'next_url': '%s%s' % (absolute_uri('extensions/gitlab/setup/'), '?completed_installation_guide'),
+                'setup_values': [
+                    {'label': 'Name', 'value': 'Sentry'},
+                    {'label': 'Redirect URI', 'value': 'https://sentry.io/extensions/gitlab/setup/'},
+                    {'label': 'Scopes', 'value': 'API'}
+                ]
+            },
+            request=request,
+        )
+
+
 class GitlabIntegrationProvider(IntegrationProvider):
     key = 'gitlab'
     name = 'Gitlab'
@@ -248,7 +266,8 @@ class GitlabIntegrationProvider(IntegrationProvider):
             raise IntegrationError('The requested GitLab group could not be found.')
 
     def get_pipeline_views(self):
-        return [InstallationConfigView(), lambda: self._make_identity_pipeline_view()]
+        return [InstallationGuideView(), InstallationConfigView(),
+                lambda: self._make_identity_pipeline_view()]
 
     def build_integration(self, state):
         data = state['identity']['data']
