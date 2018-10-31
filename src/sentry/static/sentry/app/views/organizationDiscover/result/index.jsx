@@ -11,12 +11,7 @@ import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
 
-import {
-  getChartData,
-  getChartDataByDay,
-  downloadAsCsv,
-  getResultsPageRange,
-} from './utils';
+import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import {
@@ -123,7 +118,7 @@ export default class Result extends React.Component {
 
     const summary = [`query time: ${summaryData.timing.duration_ms} ms`];
     if (this.state.view === 'table') {
-      summary.push(getResultsPageRange(baseQuery));
+      summary.push(getRowsPageRange(baseQuery));
     }
     return <ResultSummary>{summary.join(', ')}</ResultSummary>;
   }

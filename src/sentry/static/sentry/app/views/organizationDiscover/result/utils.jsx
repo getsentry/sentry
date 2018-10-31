@@ -81,7 +81,7 @@ export function getChartDataByDay(rawData, query) {
  * @param {Object} baseQuery data
  * @returns {String}
  */
-export function getResultsPageRange(baseQuery) {
+export function getRowsPageRange(baseQuery) {
   const dataLength = baseQuery.data.data.length;
 
   if (!dataLength) {
