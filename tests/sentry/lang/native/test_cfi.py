@@ -181,6 +181,24 @@ class CfiReprocessingTest(TestCase):
 
     @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
+    def test_cfi_missing_stacktrace(self, mock_cache_get, mock_attachment_get):
+        data = {
+            'exception': {
+                'values': [
+                    {
+                        'stacktrace': None,
+                    }
+                ]
+            },
+        }
+        result = reprocess_minidump_with_cfi(data)
+
+        assert mock_cache_get.call_count == 0
+        assert mock_attachment_get.call_count == 0
+        assert result is None
+
+    @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
+    @mock.patch('sentry.utils.cache.cache.get', return_value=None)
     def test_cfi_reprocessing(self, mock_cache_get, mock_attachment_get):
         dif = self.create_dif_file(
             debug_id='c0bcc3f1-9827-fe65-3058-404b2831d9e6',
